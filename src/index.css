@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 1. GLOBAL QOIDALAR (BASE LAYER) */
+@layer base {
+  /* Body uchun umumiy sozlamalar */
+  body {
+    @apply bg-ielts-bg text-text-primary font-sans overflow-hidden;
+  }
+
+  /* Butun sayt bo'ylab matn belgilangandagi rang (Apple style) */
+  ::selection {
+    @apply bg-blue-200 text-blue-900;
+  }
+}
+
+/* 2. YORDAMCHI KLASSLAR (UTILITIES) - ENG MUHIMI SHU YERDA */
+@layer utilities {
+  /* Foydalanuvchi matnni belgilay oladigan joylar (Passage, Inputlar) */
+  .selectable-text {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    cursor: text;
+  }
+
+  /* Foydalanuvchi belgilay olmaydigan joylar (Buttonlar, Menyular, Savol raqamlari) */
+  .unselectable {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
+
+/* 3. KOMPONENTLAR (COMPONENTS) */
+@layer components {
+  /* --- CUSTOM SCROLLBARS --- */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-lg;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-lg;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+  /* Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f3f4f6; /* gray-300 gray-100 */
+  }
+
+  /* --- HIDE SCROLLBAR --- */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* --- HIGHLIGHT STYLES (Sariq marker) --- */
+  .highlight-span {
+    @apply bg-highlight-yellow cursor-pointer rounded-sm transition-colors duration-200;
+    mix-blend-mode: multiply; /* Matnni yopib qo'ymasligi uchun */
+  }
+  .highlight-span:hover {
+    @apply bg-yellow-300;
+  }
+
+  /* --- EVIDENCE HIGHLIGHT (Review paytida javob joyi) --- */
+  .evidence-highlight {
+    @apply bg-highlight-green;
+    animation: pulse-green 2s infinite;
+  }
+}
+
+/* 4. ANIMATIONS */
+@keyframes pulse-green {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
