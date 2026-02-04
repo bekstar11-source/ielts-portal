@@ -152,7 +152,7 @@ export default function AdminAnalytics() {
   if (loading) return <div className="min-h-screen bg-[#1E1E1E] flex items-center justify-center text-white/50">Hisoblanmoqda...</div>;
 
   return (
-    <div className="min-h-screen bg-[#1E1E1E] font-sans text-white p-4 lg:p-8 overflow-y-auto custom-scrollbar">
+    <div className="h-screen bg-[#1E1E1E] font-sans text-white p-4 lg:p-8 overflow-y-auto custom-scrollbar">
       
       {/* HEADER */}
       <header className="flex items-center gap-4 mb-8">

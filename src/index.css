@@ -6,7 +6,7 @@
 @layer base {
   /* Body uchun umumiy sozlamalar */
   body {
-    @apply bg-ielts-bg text-text-primary font-sans overflow-hidden;
+    @apply bg-ielts-bg text-text-primary font-sans;
   }
 
   /* Butun sayt bo'ylab matn belgilangandagi rang (Apple style) */

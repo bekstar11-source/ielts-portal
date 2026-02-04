@@ -6,21 +6,34 @@ import { useAuth } from "../context/AuthContext";
 import ReadingInterface from "../components/ReadingInterface/ReadingInterface";
 import ListeningInterface from "../components/ListeningInterface/ListeningInterface";
 
-// IELTS BAND CALCULATOR
-const calculateBandScore = (score, type) => {
+// IELTS BAND CALCULATOR (YANGILANGAN)
+const calculateBandScore = (score, type, totalQuestions = 40) => {
   const t = type?.toLowerCase();
+  
   if (t === 'listening' || t === 'reading') {
-    if (score >= 39) return 9.0;
-    if (score >= 37) return 8.5;
-    if (score >= 35) return 8.0;
-    if (score >= 32) return 7.5;
-    if (score >= 30) return 7.0;
-    if (score >= 26) return 6.5;
-    if (score >= 23) return 6.0;
-    if (score >= 18) return 5.5;
-    if (score >= 16) return 5.0;
-    if (score >= 13) return 4.5;
-    if (score >= 10) return 4.0;
+    let finalScore = score;
+
+    // 🔥 LOGIKA: Agar test to'liq bo'lmasa (masalan, 13-14 ta savol bo'lsa),
+    // ballni 40 talik shkalaga proporsional o'tkazamiz.
+    // 35 dan kam savol bo'lsa, demak bu "Full Test" emas.
+    if (totalQuestions > 0 && totalQuestions < 35) {
+        // Masalan: 13 tadan 13 ta topdi. (13 / 13) * 40 = 40.  -> Band 9.0
+        // Masalan: 13 tadan 10 ta topdi. (10 / 13) * 40 = 30.7 -> 31. -> Band 7.0
+        finalScore = Math.round((score / totalQuestions) * 40);
+    }
+
+    // Endi standart jadval bilan tekshiramiz (40 talik shkala bo'yicha)
+    if (finalScore >= 39) return 9.0;
+    if (finalScore >= 37) return 8.5;
+    if (finalScore >= 35) return 8.0;
+    if (finalScore >= 32) return 7.5;
+    if (finalScore >= 30) return 7.0;
+    if (finalScore >= 26) return 6.5;
+    if (finalScore >= 23) return 6.0;
+    if (finalScore >= 18) return 5.5;
+    if (finalScore >= 16) return 5.0;
+    if (finalScore >= 13) return 4.5;
+    if (finalScore >= 10) return 4.0;
     return 3.5;
   }
   return null;
@@ -168,6 +181,15 @@ export default function TestSolving() {
     if (showResult && !isReviewing) return;
     if (isReviewing) return; 
     setUserAnswers(prev => ({ ...prev, [questionId]: option }));
+    
+    // 🔥 LOG: Javob kelayotganini ko'rish uchun (F12 bosib Console da tekshiring)
+    // console.log(`Javob yangilandi: ${questionId} -> ${option}`);
+
+    setUserAnswers(prev => {
+        // Agar eski javob bilan yangisi bir xil bo'lsa, render qilmang (Optimallashtirish)
+        if (prev[questionId] === option) return prev;
+        return { ...prev, [questionId]: option };
+    });
   };
 
   const toggleFlag = (questionId) => {
@@ -199,6 +221,10 @@ export default function TestSolving() {
 
   const handleSubmit = async () => {
     if (!window.confirm("Testni yakunlashga ishonchingiz komilmi?")) return;
+    
+    // 🔥 YANGI: 100ms kutib turamiz, shunda oxirgi Input yozilishi tugaydi
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     setSaving(true);
 
     let resultData = {
@@ -215,22 +241,68 @@ export default function TestSolving() {
     try {
         let correctCount = 0;
         let totalQ = 0;
+
+        // --- YANGILANGAN HISOBLASH LOGIKASI ---
+        const checkAnswer = (correct, user) => {
+            if (correct === undefined || correct === null) return false;
+            
+            // 1. Tozalash (Trim + Lowercase)
+            let cleanCorrect = String(correct).trim().toLowerCase();
+            let cleanUser = String(user || "").trim().toLowerCase();
+
+            // 2. "v. long text" muammosini hal qilish
+            if (/^[ivx]+\./.test(cleanUser)) {
+                cleanUser = cleanUser.split('.')[0].trim();
+            }
+
+            // 3. Slash (/) yoki Pipe (|) tekshiruvi
+            if (cleanCorrect.includes('/')) {
+                const options = cleanCorrect.split('/').map(s => s.trim());
+                return options.includes(cleanUser);
+            } 
+            if (cleanCorrect.includes('|')) {
+                const options = cleanCorrect.split('|').map(s => s.trim());
+                return options.includes(cleanUser);
+            }
+
+            // 4. Oddiy tekshiruv
+            return cleanCorrect === cleanUser;
+        };
+
+        // Savollarni aylanamiz
         test.questions.forEach(q => {
-           if (q.items) { 
+           // Agar guruh (Passage) bo'lsa
+           if (q.items && Array.isArray(q.items)) { 
                q.items.forEach(item => {
                    totalQ++;
-                   if (String(userAnswers[item.id] || "").trim().toLowerCase() === String(item.answer).trim().toLowerCase()) correctCount++;
+                   // item.answer yoki item.correct_answer ni tekshiramiz
+                   const correctAnswer = item.answer || item.correct_answer;
+                   const userAnswer = userAnswers[String(item.id)] || userAnswers[item.id]; // ID ni string qilib olamiz
+                   
+                   if (checkAnswer(correctAnswer, userAnswer)) {
+                       correctCount++;
+                   }
                });
-           } else { 
+           } 
+           // Agar yakka savol bo'lsa
+           else { 
                totalQ++;
-               if (String(userAnswers[q.id] || "").trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) correctCount++;
+               const correctAnswer = q.answer || q.correct_answer;
+               const userAnswer = userAnswers[String(q.id)] || userAnswers[q.id];
+
+               if (checkAnswer(correctAnswer, userAnswer)) {
+                   correctCount++;
+               }
            }
         });
-        const band = calculateBandScore(correctCount, test.type);
+        // --------------------------------------
+
+        // 🔥 O'ZGARISH: calculateBandScore ga totalQ ni ham berib yuboramiz
+        const band = calculateBandScore(correctCount, test.type, totalQ);
         resultData.score = correctCount; 
         resultData.bandScore = band;     
         resultData.totalQuestions = totalQ;
-        resultData.percentage = Math.round((correctCount / totalQ) * 100);
+        resultData.percentage = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
         resultData.status = "graded";
         
         // Practice modeda ketgan vaqtni saqlash (sekundda)
@@ -387,7 +459,7 @@ export default function TestSolving() {
                             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Correct Answers</p>
                             <div className="mt-8 p-4 bg-blue-50 rounded-2xl">
                                 <p className="text-xs font-bold text-blue-500 uppercase mb-1">Your Band Score</p>
-                                <p className="text-5xl font-bold text-blue-600">{calculateBandScore(score, test.type)}</p>
+                                <p className="text-5xl font-bold text-blue-600">{calculateBandScore(score, test.type, test.questions.reduce((acc, q) => acc + (q.items ? q.items.length : 1), 0))}</p>
                             </div>
                         </div>
                     ) : (

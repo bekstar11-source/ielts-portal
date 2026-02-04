@@ -1,5 +1,5 @@
 // src/components/ReadingInterface/ReadingInterface.jsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react"; // 🔥 useEffect qo'shildi
 import ReadingLeftPane from "./ReadingLeftPane";
 import ReadingRightPane from "./ReadingRightPane";
 import ReadingFooter from "./ReadingFooter";
@@ -8,26 +8,56 @@ import HighlightMenu from "./HighlightMenu";
 // 👇 HOOKLAR
 import { useResizablePane } from "../../hooks/useResizablePane";
 import { useTextSelection } from "../../hooks/useTextSelection";
-import { useTestSession } from "../../hooks/useTestSession"; // 🔥 YANGI
+import { useTestSession } from "../../hooks/useTestSession"; // 🔥 Session Hook import qilindi
 
 export default function ReadingInterface({ 
   testData, 
-  // userAnswers, // ❌ Endi bularni Hook boshqaradi
-  // onAnswerChange, // ❌ 
+  userAnswers: parentAnswers,   // 👈 Parentdagi (TestSolving) javoblar
+  onAnswerChange: setParentAnswer, // 👈 Parentdagi o'zgartirish funksiyasi
   onFlag, 
   flaggedQuestions, 
   isReviewMode, 
   textSize 
 }) {
-  // --- 1. SESSION HOOK (LocalStorage & Logic) ---
-  // "ielts_reading_session" - bu kalit so'z. Listening uchun boshqasini berasiz.
+  // --- 1. SESSION HOOK (KO'PRIK BOSHLANDI) ---
   const { 
-    answers: userAnswers, 
-    handleAnswerChange: onAnswerChange, 
+    answers: sessionAnswers, // Hookdagi (LocalStorage) javoblar
+    handleAnswerChange: setSessionAnswer, 
     showResumeModal, 
     confirmResume, 
     confirmRestart 
-  } = useTestSession("ielts_reading_session");
+  } = useTestSession(`ielts_reading_session_${testData?.id || 'default'}`);
+
+  // 🌉 KO'PRIK 1: JAVOB O'ZGARISHI (Dual Update)
+  // Foydalanuvchi javob berganda ham Hookga, ham Parentga yozamiz
+  const handleDualAnswerChange = (questionId, value) => {
+      // 1. LocalStoragega yozish (Refresh qilsa saqlab qolish uchun)
+      setSessionAnswer(questionId, value);
+      
+      // 2. TestSolving.jsx ga yozish (Finish bosganda 0 chiqmasligi uchun)
+      if (setParentAnswer) {
+          // 🔥 MUHIM: Biz qiymatni stringga aylantirib, tozalab yuboramiz
+          // Bu kechikishni (lag) oldini olishga yordam beradi
+          const cleanVal = value ? String(value) : "";
+          setParentAnswer(questionId, cleanVal);
+      }
+  };
+
+  // 🌉 KO'PRIK 2: RESUME QILISH (Sync Effect)
+  // Agar "Continue" bosilsa, Hookdagi ma'lumotni Parentga o'tkazamiz
+  useEffect(() => {
+      // Modal yopilgan bo'lsa va sessiyada javoblar bo'lsa
+      if (!showResumeModal && sessionAnswers && Object.keys(sessionAnswers).length > 0) {
+          Object.entries(sessionAnswers).forEach(([key, val]) => {
+              // Agar Parentda bu javob bo'lmasa yoki farq qilsa -> Yangilaymiz
+              if (parentAnswers && parentAnswers[key] !== val) {
+                  setParentAnswer(key, val);
+              }
+          });
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showResumeModal, sessionAnswers]); // parentAnswers ni dependencyga qo'shmadik (loop oldini olish uchun)
+
 
   // --- 2. RESIZE HOOK ---
   const { leftWidth, startResizing } = useResizablePane(50);
@@ -71,7 +101,7 @@ export default function ReadingInterface({
     }
   };
 
-  // 🔥 Storage key for the active passage content (if needed for persistence)
+  // Storage key
   const currentStorageKey = `reading_passage_${activePassage}`;
 
   if (!testData) return <div className="p-10">Loading Test Data...</div>;
@@ -82,31 +112,24 @@ export default function ReadingInterface({
       ref={rootRef}
     >
       
-      {/* 🔥 RESUME / RESTART MODAL 🔥 */}
+      {/* 🔥 RESUME MODAL (QAYTARILDI) */}
       {showResumeModal && (
         <div className="fixed inset-0 z-[3000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center transform scale-100 transition-all">
-            <div className="mb-4">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
-                <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-bold text-gray-900">Resume Test?</h3>
-              <p className="text-sm text-gray-500 mt-2">
-                We found a previous unfinished session. Would you like to continue where you left off or start fresh?
-              </p>
-            </div>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center">
+            <h3 className="text-lg font-bold text-gray-900">Resume Test?</h3>
+            <p className="text-sm text-gray-500 mt-2">
+              We found a previous unfinished session. Would you like to continue?
+            </p>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={confirmRestart}
-                className="flex-1 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
               >
-                Restart Test
+                Restart
               </button>
               <button
                 onClick={confirmResume}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors"
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
               >
                 Continue
               </button>
@@ -134,14 +157,23 @@ export default function ReadingInterface({
           style={{ width: `${leftWidth}%` }}
           onMouseUp={handleTextSelection}
         >
-          <ReadingLeftPane 
-             passageLabel={`READING PASSAGE ${activePassage + 1}`}
-             title={testData.passages[activePassage]?.title || ""}
-             content={testData.passages[activePassage]?.content || ""} 
-             textSize={textSize}
-             highlightedId={highlightedLoc}
-             storageKey={currentStorageKey}
-          />
+          {(() => {
+             const currentPassage = testData.passages[activePassage];
+             const rawTitle = currentPassage?.title || "";
+             const match = rawTitle.match(/Passage\s+(\d+)/i);
+             const displayNum = match ? match[1] : activePassage + 1;
+
+             return (
+               <ReadingLeftPane 
+                  passageLabel={`READING PASSAGE ${displayNum}`} 
+                  title={rawTitle} 
+                  content={currentPassage?.content || ""} 
+                  textSize={textSize}
+                  highlightedId={highlightedLoc}
+                  storageKey={currentStorageKey}
+               />
+             );
+          })()}
         </div>
 
         {/* RESIZER */}
@@ -161,8 +193,11 @@ export default function ReadingInterface({
           <ReadingRightPane 
             testData={testData} 
             activePassage={activePassage}
-            userAnswers={userAnswers} // 👈 Hookdan kelgan state
-            onAnswerChange={onAnswerChange} // 👈 Hookdan kelgan funksiya
+            // 🔥 MUHIM: Ekranda Parent ma'lumotini ko'rsatamiz (sinxronlik uchun)
+            userAnswers={parentAnswers || {}} 
+            // 🔥 MUHIM: Javob o'zgarganda "Bridge" funksiyasini chaqiramiz
+            onAnswerChange={handleDualAnswerChange} 
+            
             onFlag={onFlag}
             flaggedQuestions={flaggedQuestions}
             isReviewMode={isReviewMode}
@@ -178,7 +213,7 @@ export default function ReadingInterface({
            testData={testData}
            activePassage={activePassage}
            setActivePassage={setActivePassage}
-           userAnswers={userAnswers}
+           userAnswers={parentAnswers || {}} // 🔥 Footerda ham Parent ma'lumoti
            scrollToQuestionDiv={handleScrollToQuestion}
         />
       </div>

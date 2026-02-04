@@ -32,7 +32,7 @@ const ReadingLeftPane = memo(({ passageLabel, title, content, textSize, highligh
     return (
         <div 
             ref={containerRef}
-            className={`p-8 pb-32 h-full overflow-y-auto leading-relaxed text-gray-800 selectable-text ${textSize}`}
+            className={`p-8 pb-20 h-full overflow-y-auto leading-relaxed text-gray-800 selectable-text ${textSize}`}
             onMouseUp={onMouseUp}
         >
             {/* 🔥 YANGI: PASSAGE SARLAVHASI (HEADING) */}

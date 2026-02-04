@@ -325,7 +325,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* DASHBOARD GRID */}
-        <div className="grid grid-cols-12 gap-6 h-full overflow-y-auto pb-20 custom-scrollbar pr-2">
+        <div className="grid grid-cols-12 gap-6 flex-1 min-h-0 overflow-y-auto pb-20 custom-scrollbar pr-2">
             
             {/* STATS */}
             <div className="col-span-12 md:col-span-4 bg-[#272727] rounded-[24px] p-6 border border-white/5">
