@@ -80,13 +80,12 @@ export default function CreateTest() {
   }, [id]);
 
   // --- HELPER: Update State from JSON String ---
-  // Bu funksiya JSON stringni olib, TestData ni yangilaydi (Kod takrorlanmasligi uchun ajratdik)
   const updateTestDataFromJSON = (jsonStr) => {
     try {
         if (!jsonStr.trim()) return;
-        const cleanVal = jsonStr.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
-        const parsed = JSON.parse(cleanVal);
+        const parsed = JSON.parse(jsonStr);
         
+        // Passagelarni yangilash (Audio state ni saqlab qolish)
         let updatedPassages = parsed.passages || [];
         updatedPassages = updatedPassages.map((p, idx) => ({
             ...p,
@@ -131,13 +130,14 @@ export default function CreateTest() {
       } catch (err) { alert(err.message); } finally { setUploading(false); }
   };
 
-  // 🔥 AVTOMATIK RASM QO'YISH LOGIKASI QO'SHILDI 🔥
+  // 🔥 MAP UPLOAD: AVTOMATIK JSON GA JOYLASH 🔥
   const handleMapUpload = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       setUploading(true);
+
       try {
-          // 1. Rasmni yuklash
+          // 1. Rasmni Firebasega yuklash
           const storageRef = ref(storage, `map_images/${Date.now()}_${file.name}`);
           await uploadBytes(storageRef, file);
           const url = await getDownloadURL(storageRef);
@@ -145,30 +145,48 @@ export default function CreateTest() {
           // 2. Ro'yxatga qo'shish (Vizual uchun)
           setUploadedMaps(prev => [...prev, { name: file.name, url }]);
 
-          // 3. JSON ichiga Avtomatik Joylash (Auto-Injection)
-          // Biz JSON ichidan "image": "LINK_HERE..." yoki "image": "" degan joyni qidirib,
-          // birinchi uchraganini yangi URL bilan almashtiramiz.
-          if (jsonInput) {
-              // Regex: "image": "..." qidiradi (bo'sh yoki LINK_HERE bilan boshlanadigan)
-              const regex = /"image":\s*"(LINK_HERE[^"]*|)"/; 
-              
-              if (regex.test(jsonInput)) {
-                  // Topilsa, almashtiramiz
-                  const newJsonStr = jsonInput.replace(regex, `"image": "${url}"`);
-                  setJsonInput(newJsonStr);
-                  updateTestDataFromJSON(newJsonStr); // State ni ham yangilaymiz
-                  alert("Rasm muvaffaqiyatli yuklandi va JSON ga avtomatik joylandi!");
-              } else {
-                  // Agar joy topilmasa, shunchaki nusxalaymiz
+          // 3. JSON ni tahlil qilish va rasmni "map_labeling" ga tiqish
+          if (jsonInput.trim()) {
+              try {
+                  const parsedJson = JSON.parse(jsonInput);
+                  let found = false;
+                  
+                  if (parsedJson.questions && Array.isArray(parsedJson.questions)) {
+                      parsedJson.questions = parsedJson.questions.map(q => {
+                          // Agar bu Map Labeling bo'lsa va hali rasmi bo'lmasa (yoki yangilamoqchi bo'lsak)
+                          if (q.type === 'map_labeling') {
+                              found = true;
+                              return { ...q, image: url }; // 👈 Rasm URL shu yerga qo'shiladi
+                          }
+                          return q;
+                      });
+                  }
+
+                  if (found) {
+                      const newJsonStr = JSON.stringify(parsedJson, null, 2);
+                      setJsonInput(newJsonStr);
+                      updateTestDataFromJSON(newJsonStr);
+                      alert("Rasm yuklandi va JSON dagi Map Labeling qismiga avtomatik joylandi! ✅");
+                  } else {
+                      copyToClipboard(url);
+                      alert("Rasm yuklandi, lekin JSON da 'map_labeling' turi topilmadi. Link nusxalandi. 📋");
+                  }
+
+              } catch (jsonErr) {
                   copyToClipboard(url);
-                  alert("Rasm yuklandi! Lekin JSON da bo'sh 'image' joyi topilmadi. Link nusxalandi.");
+                  console.error(jsonErr);
+                  alert("Rasm yuklandi, lekin JSON formati noto'g'ri bo'lgani uchun avtomatik qo'yolmadim. Link nusxalandi. ⚠️");
               }
           } else {
               copyToClipboard(url);
-              alert("Rasm yuklandi! Link nusxalandi.");
+              alert("Rasm yuklandi! Link nusxalandi (JSON bo'sh).");
           }
 
-      } catch (err) { alert(err.message); } finally { setUploading(false); }
+      } catch (err) { 
+          alert("Yuklashda xatolik: " + err.message); 
+      } finally { 
+          setUploading(false); 
+      }
   };
 
   const handleWritingImageUpload = async (e) => {
@@ -184,10 +202,10 @@ export default function CreateTest() {
                 newTasks[activeWritingTask] = { ...newTasks[activeWritingTask], image: url };
                 return { ...prev, writingTasks: newTasks };
             });
+            alert("Writing Task rasmi yuklandi!");
         } catch (err) { alert(err.message); } finally { setUploading(false); }
   };
 
-  // 🔥 YETISHMAYOTGAN FUNKSIYA QO'SHILDI 🔥
   const handleWritingUpdate = (field, value) => {
       setTestData(prev => {
           const newTasks = [...prev.writingTasks];
@@ -202,12 +220,13 @@ export default function CreateTest() {
     if (!testData.title) return alert("Test nomini yozing!");
     setLoading(true);
     try {
-      const processedQuestions = testData.questions.map(q => {
+      // Questions ni qayta ishlash (Table Completion rows ni to'g'rilash)
+      const processedQuestions = testData.questions?.map(q => {
           if (q.type === 'table_completion' && Array.isArray(q.rows)) {
               return { ...q, rows: q.rows.map(row => Array.isArray(row) ? { cells: row } : row) };
           }
           return q;
-      });
+      }) || [];
 
       const payload = {
         ...testData,
@@ -233,7 +252,7 @@ export default function CreateTest() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#141416] text-white selection:bg-[#3772FF]/30">
       
-      {/* HEADER MOBILE (Only visible on small screens) */}
+      {/* HEADER MOBILE */}
       <div className="md:hidden p-4 flex items-center justify-between bg-[#23262F] border-b border-white/5">
           <button onClick={() => navigate('/admin/tests')} className="text-white"><Icons.Back className="w-6 h-6"/></button>
           <span className="font-bold">Test Manager</span>
@@ -438,12 +457,28 @@ export default function CreateTest() {
                     <div key={i} className="bg-[#23262F]/50 p-5 rounded-[24px] border border-[#353945] hover:border-[#3772FF]/30 transition">
                         <p className="text-xs font-bold text-[#3772FF] mb-2 uppercase tracking-wider">{g.type}</p>
                         <div className="text-sm text-white mb-3 font-medium" dangerouslySetInnerHTML={{__html: g.instruction}}></div>
-                        {g.items?.map(q => (
-                            <div key={q.id} className="flex gap-3 text-xs py-2 border-b border-[#353945] last:border-0 text-[#777E90]">
-                                <span className="font-bold w-6 text-white">{q.id}.</span>
-                                <span className="flex-1">{q.text}</span>
+                        
+                        {/* Map Image Preview (CSS yaxshilandi) */}
+                        {g.image && (
+                            <div className="mb-4 rounded-xl overflow-hidden border border-[#353945] bg-[#141416] flex justify-center py-2">
+                                <img src={g.image} alt="Map" className="max-w-full max-h-[400px] w-auto h-auto object-contain" />
                             </div>
-                        ))}
+                        )}
+
+                        {g.items && Array.isArray(g.items) ? (
+                            g.items.map((q, idx) => {
+                                const displayId = q.id || `?`; 
+                                const displayText = q.text || "Savol matni yo'q";
+                                return (
+                                    <div key={q.id || idx} className="flex gap-3 text-xs py-2 border-b border-[#353945] last:border-0 text-[#777E90]">
+                                        <span className="font-bold w-fit min-w-[24px] text-white">{displayId}.</span>
+                                        <span className="flex-1" dangerouslySetInnerHTML={{__html: displayText}} />
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="text-xs text-orange-400 italic p-2">⚠ Savollar (items) topilmadi. JSON ni tekshiring.</div>
+                        )}
                     </div>
                 ))}
             </div>

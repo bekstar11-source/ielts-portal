@@ -61,7 +61,7 @@ export default function TestSolving() {
   const [score, setScore] = useState(0); 
   const [saving, setSaving] = useState(false);
   const [timeLeft, setTimeLeft] = useState(3600);
-  const [textSize, setTextSize] = useState('text-medium'); 
+  const [textSize, setTextSize] = useState('text-base'); 
   const [isReviewing, setIsReviewing] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -384,9 +384,9 @@ export default function TestSolving() {
                 <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded border hidden md:inline-block ${testMode === 'exam' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-green-600 border-green-200'}`}>{testMode}</span>
             )}
             <div className="hidden md:flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
-                <button onClick={() => setTextSize('text-small')} className={`px-2 py-1 text-xs font-bold rounded-md transition-all ${textSize === 'text-small' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>A</button>
-                <button onClick={() => setTextSize('text-medium')} className={`px-2 py-1 text-sm font-bold rounded-md transition-all ${textSize === 'text-medium' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>A</button>
-                <button onClick={() => setTextSize('text-large')} className={`px-2 py-1 text-base font-bold rounded-md transition-all ${textSize === 'text-large' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>A</button>
+                <button onClick={() => setTextSize('text-sm')} className={`px-2 py-1 text-xs font-bold rounded-md transition-all ${textSize === 'text-sm' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>A</button>
+                <button onClick={() => setTextSize('text-base')} className={`px-2 py-1 text-sm font-bold rounded-md transition-all ${textSize === 'text-base' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>A</button>
+                <button onClick={() => setTextSize('text-xl')} className={`px-2 py-1 text-base font-bold rounded-md transition-all ${textSize === 'text-xl' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>A</button>
             </div>
             
             {/* TIMER DISPLAY */}

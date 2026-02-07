@@ -44,7 +44,7 @@ export function useTextSelection() {
         // Unga sariq fon va kerakli stillarni beramiz
         // Tailwind class: bg-yellow-200 (yoki #fef08a)
         span.style.backgroundColor = color === 'yellow' ? '#fef08a' : color; 
-        span.className = "highlight-mark rounded px-0.5 cursor-pointer mix-blend-multiply";
+        span.className = "highlight-mark rounded cursor-pointer mix-blend-multiply";
 
         try {
             // Tanlangan matnni shu span ichiga o'raymiz

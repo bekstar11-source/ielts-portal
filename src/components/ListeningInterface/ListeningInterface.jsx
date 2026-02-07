@@ -17,7 +17,7 @@ export default function ListeningInterface({
   isReviewMode,     // Test tugaganmi?
   textSize,         // Matn o'lchami
   testMode,         // 'exam' yoki 'practice'
-  audioCurrentTime, // Audio vaqti (agar kerak bo'lsa vizualizatsiya uchun)
+  audioCurrentTime, // Audio vaqti
   introFinished,    // Intro tugadimi?
   hasStarted        // Test boshlandimi?
 }) {
@@ -29,8 +29,35 @@ export default function ListeningInterface({
   // --- 2. STATE ---
   const [activePart, setActivePart] = useState(0); // Hozirgi bo'lim (Part 1, 2, 3, 4)
   const [highlightedLoc, setHighlightedLoc] = useState(null); // Review paytida bosilganda highlight qilish
+  const [isFullScreen, setIsFullScreen] = useState(false); // 🔥 Yangi State
   
   const rootRef = useRef(null);
+
+  // --- 3. FULL SCREEN LOGIC (TUZATILDI) ---
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullScreen(true);
+      }).catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().then(() => {
+            setIsFullScreen(false);
+        });
+      }
+    }
+  };
+
+  // Esc bosilganda yoki boshqa yo'l bilan chiqilganda state ni yangilash
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullScreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullScreenChange);
+  }, []);
 
   // --- 3. DATA GUARD ---
   // JSON strukturasi bo'yicha "passages" ishlatamiz
@@ -87,13 +114,33 @@ export default function ListeningInterface({
       ref={rootRef}
     >
       
+      {/* 🔥 FULL SCREEN BUTTON (FLOATING TOP-RIGHT) */}
+      <button
+        onClick={toggleFullScreen}
+        className="absolute top-3 right-5 z-[100] p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md border border-gray-200 text-gray-600 hover:text-blue-600 hover:bg-white transition-all duration-200 group"
+        title={isFullScreen ? "Exit Full Screen" : "Full Screen"}
+      >
+        {isFullScreen ? (
+            // Compress Icon
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+        ) : (
+            // Expand Icon
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+        )}
+      </button>
+      
       {/* Highlight Menu (Faqat Review Mode da matn belgilash uchun) */}
       {isReviewMode && (
          <HighlightMenu position={menuPos} onHighlight={applyHighlight} onClear={clearSelection} />
       )}
 
       {/* --- MAIN SPLIT CONTENT --- */}
-      <div className="flex w-full h-full overflow-hidden relative pb-[60px]"> {/* Footer balandligi uchun joy */}
+      {/* 👇 O'ZGARISH: pb-[60px] yoki 45px dan -> pb-[36px] ga */}
+      <div className="flex w-full h-full overflow-hidden relative pb-[36px]"> 
         
         {/* 1-muammo yechimi: Chap taraf va Resizer FAQAT Review paytida ko'rinadi */}
         {isReviewMode && (
@@ -145,7 +192,8 @@ export default function ListeningInterface({
       </div>
 
       {/* --- FOOTER (Navigation) --- */}
-      <div className="absolute bottom-0 left-0 w-full h-[60px] bg-white border-t border-gray-200 z-[50] shadow-md">
+      {/* 👇 O'ZGARISH: h-[60px] yoki 45px dan -> h-[36px] ga */}
+      <div className="absolute bottom-0 left-0 w-full h-[36px] bg-white border-t border-gray-200 z-[50] shadow-sm">
         <ListeningFooter 
            testData={testData}
            activePart={activePart}

@@ -1,7 +1,15 @@
 // src/components/ReadingInterface/ReadingLeftPane.jsx
 import React, { memo, useEffect, useRef, useState } from "react";
 
-const ReadingLeftPane = memo(({ passageLabel, title, content, textSize, highlightedId, onMouseUp, storageKey }) => {
+const ReadingLeftPane = memo(({ 
+    passageLabel, 
+    title, 
+    content, 
+    textSize = "text-base", 
+    highlightedId, 
+    onMouseUp, 
+    storageKey 
+}) => {
     const containerRef = useRef(null);
     const [displayContent, setDisplayContent] = useState(content);
 
@@ -29,31 +37,46 @@ const ReadingLeftPane = memo(({ passageLabel, title, content, textSize, highligh
         }
     }, [highlightedId]);
 
+    // 🔥 HIGHLIGHT REMOVER
+    const handleHighlightClick = (e) => {
+        if (e.target.classList.contains('highlight-mark')) {
+            const span = e.target;
+            const text = document.createTextNode(span.textContent);
+            span.parentNode.replaceChild(text, span);
+
+            // Storage yangilash
+            if (storageKey && containerRef.current) {
+                const contentDiv = containerRef.current.querySelector('#reading-content-display');
+                if (contentDiv) {
+                    localStorage.setItem(storageKey, contentDiv.innerHTML);
+                }
+            }
+        }
+    };
+
     return (
         <div 
             ref={containerRef}
             className={`p-8 pb-20 h-full overflow-y-auto leading-relaxed text-gray-800 selectable-text ${textSize}`}
             onMouseUp={onMouseUp}
+            onClick={handleHighlightClick}
         >
-            {/* 🔥 YANGI: PASSAGE SARLAVHASI (HEADING) */}
-            <div className="mb-6 border-b-2 border-gray-100 pb-4">
-                
-                {/* 1. PASSAGE LABEL (Tepada, kichik, kulrang) */}
-                <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">
-                    {passageLabel}
-                </div>
-
-                {/* 2. TITLE (Pastda, katta, qora) */}
-                {title && (
-                    <h2 className="text-2xl font-bold text-gray-900 leading-tight">
-                        {title.replace(/Passage \d+:?\s*/i, "")} {/* Agar title ichida Passage so'zi bo'lsa olib tashlaymiz */}
-                    </h2>
-                )}
+            {/* --- O'ZGARISH SHU YERDA --- */}
+            
+            {/* 1. Kichikroq Header (Reading Passage 1) */}
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 select-none">
+                {passageLabel || "READING PASSAGE 1"}
             </div>
 
-            {/* HTML Content Render
-                Tailwindning "Arbitrary variants" ([&_p]) yordamida ichki HTML elementlarga stil beramiz 
-            */}
+            {/* 2. Sarlavha (Title) - Tepadagi bo'shliq olib tashlandi (mt-0) */}
+            {title && (
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 mt-0 leading-tight">
+                    {title}
+                </h1>
+            )}
+            
+            {/* --------------------------- */}
+
             <div 
                 id="reading-content-display"
                 className="
@@ -66,6 +89,17 @@ const ReadingLeftPane = memo(({ passageLabel, title, content, textSize, highligh
                 "
                 dangerouslySetInnerHTML={{ __html: displayContent }} 
             />
+            
+            {/* CSS: Highlight markerni yashirish (agar kerak bo'lsa) */}
+            <style>{`
+                .reading-content span[id^="loc_"] {
+                    background-color: transparent; 
+                    transition: background-color 0.3s;
+                }
+                .reading-content span[id^="loc_"]:hover {
+                    background-color: rgba(255, 255, 0, 0.2); 
+                }
+            `}</style>
         </div>
     );
 });

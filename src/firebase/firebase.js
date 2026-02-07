@@ -7,7 +7,7 @@ import { getStorage } from "firebase/storage";
 
 // DIQQAT: Quyidagi ma'lumotlarni o'zingizning Firebase Console-dan olib o'zgartiring!
 const firebaseConfig = {
-  apiKey: "AIzaSyCSIk5BsjdhPYemuifBpWPJJzSZX4YQLYU",
+  apiKey: "AIzaSyA38SNIvTLWqb300PuXIE4TUAsudQANUb0",
   authDomain: "ielts-portal-v1.firebaseapp.com",
   projectId: "ielts-portal-v1",
   storageBucket: "ielts-portal-v1.firebasestorage.app",
