@@ -95,6 +95,29 @@ const ListeningRightPane = memo(({
     const [isHighlighterActive, setIsHighlighterActive] = useState(false);
     const containerRef = useRef(null);
 
+    // --- INTRO BLUR LOGIC ---
+    const [introTimeLeft, setIntroTimeLeft] = useState(0);
+
+    React.useEffect(() => {
+        // Agar Review Mode bo'lsa yoki Intro vaqt tugagan bo'lsa, ishlamasin
+        if (isReviewMode) return;
+
+        // TestData ichidan intro vaqtini olamiz (default 10 sekund)
+        const duration = Number(testData.introDuration) || 10;
+        setIntroTimeLeft(duration);
+
+        const timer = setInterval(() => {
+            setIntroTimeLeft((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [testData.introDuration, isReviewMode]);
+
     // Guard Clause
     if (!testData?.questions || !testData?.passages) {
         return <div className="p-10 text-center text-gray-400">Loading questions...</div>;
@@ -434,6 +457,21 @@ const ListeningRightPane = memo(({
             className={`p-6 pb-5 bg-white ${textSize} select-text w-full relative`}
             onMouseUp={handleTextSelection}
         >
+            {/* 🔥 BLUR OVERLAY (Qaytarildi) 🔥 */}
+            {introTimeLeft > 0 && !isReviewMode && (
+                <div className="fixed inset-0 z-[3000] bg-white/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500">
+                    <div className="text-6xl mb-4 animate-bounce">🎧</div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Test is about to start</h2>
+                    <p className="text-gray-500 font-medium mb-6">Please put on your headphones</p>
+                    
+                    <div className="w-24 h-24 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shadow-lg">
+                        <span className="text-3xl font-bold text-blue-600 animate-pulse">
+                            {introTimeLeft}
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* --- HEADER --- */}
             {/* flex items-center gap-4 qildik, shunda tugma chapda turadi */}
             <div className="mb-6 border-b border-gray-200 pb-4 flex items-center gap-4">
