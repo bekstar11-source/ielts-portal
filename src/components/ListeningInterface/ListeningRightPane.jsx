@@ -1,7 +1,7 @@
-import React, { memo } from "react";
+import React, { memo, useState, useRef } from "react";
 
 // =========================================================
-// 1. PURE FUNCTIONS & UI COMPONENTS (Reusable)
+// 1. PURE FUNCTIONS & UI COMPONENTS
 // =========================================================
 
 const checkAnswer = (userVal, correctVal) => {
@@ -31,6 +31,13 @@ const getStatusStyles = (isReviewMode, isCorrect, isSelected = false, type = 'bo
     }
 };
 
+// --- ICONS ---
+const HighlighterIcon = ({ active }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 ${active ? "fill-yellow-400 text-yellow-600" : "text-gray-500"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
+);
+
 const QuestionBadge = ({ id, isReviewMode, onClick }) => (
     <span 
         className={`min-w-[24px] h-[24px] flex items-center justify-center rounded bg-white border border-gray-400 text-[11px] font-bold text-gray-700 shrink-0 shadow-sm select-none mr-2 
@@ -47,7 +54,6 @@ const CorrectAnswerTooltip = ({ answer }) => (
     </div>
 );
 
-// 🔥 YANGI: Dropdown (Select) komponenti (Map va Matching uchun umumiy)
 const SelectInput = ({ value, onChange, options, isReviewMode, isCorrect, correctAnswer, width = "w-[80px]" }) => {
     const styles = getStatusStyles(isReviewMode, isCorrect, false, 'input');
     return (
@@ -85,9 +91,52 @@ const ListeningRightPane = memo(({
     handleLocationClick 
 }) => {
 
+    // --- STATE: HIGHLIGHTER ---
+    const [isHighlighterActive, setIsHighlighterActive] = useState(false);
+    const containerRef = useRef(null);
+
+    // Guard Clause
     if (!testData?.questions || !testData?.passages) {
         return <div className="p-10 text-center text-gray-400">Loading questions...</div>;
     }
+
+    // --- HIGHLIGHT LOGIC ---
+    const handleTextSelection = (e) => {
+        if (!isHighlighterActive) return;
+
+        // 1. O'CHIRISH (Agar sariq joy bosilsa)
+        // E.target biz bosgan element ekanligini tekshiramiz
+        if (e.target.tagName === "SPAN" && e.target.classList.contains("bg-yellow-200")) {
+            // Span ichidagi matnni tashqariga chiqarib, spannin o'zini o'chiramiz
+            const parent = e.target.parentNode;
+            while (e.target.firstChild) {
+                parent.insertBefore(e.target.firstChild, e.target);
+            }
+            parent.removeChild(e.target);
+            return; // Funksiyani to'xtatamiz
+        }
+
+        // 2. QO'SHISH (Matn tanlansa)
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.toString().trim() === "") return;
+
+        // Xavfsizlik: Faqat bizning konteyner ichida ekanligini tekshirish
+        if (containerRef.current && !containerRef.current.contains(selection.anchorNode)) return;
+
+        const range = selection.getRangeAt(0);
+        
+        // Agar allaqachon highlight qilingan bo'lsa, olib tashlash (Oddiy toggle)
+        // Hozircha faqat qo'shishni qilamiz (murakkablikni oldini olish uchun)
+        try {
+            const span = document.createElement("span");
+            // "pointer-events-auto" qo'shdik, shunda keyingi safar ustiga bosganda event ishlaydi
+            span.className = "bg-yellow-200 selection:bg-yellow-300 rounded-sm cursor-pointer pointer-events-auto";
+            range.surroundContents(span);
+            selection.removeAllRanges(); // Tanlovni olib tashlash
+        } catch (e) {
+            console.warn("Murakkab highlight (taglar kesishuvi) qo'llab quvvatlanmaydi.");
+        }
+    };
 
     // --- RENDERERS ---
 
@@ -165,10 +214,10 @@ const ListeningRightPane = memo(({
                         const badgeStyle = getStatusStyles(isReviewMode, isCorrectOption, isSelected, 'badge');
 
                         return (
-                            <div key={idx} onClick={() => handleToggle(opt.label)} className={`flex items-center gap-3 p-2 rounded-lg border transition-all cursor-pointer select-none ${containerStyle}`}>
+                        <div key={idx} className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${containerStyle}`}>    
                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border transition-colors ${badgeStyle}`}>{opt.label}</div>
                                 <div className="relative flex items-center justify-center shrink-0">
-                                    <input type="checkbox" className="appearance-none w-5 h-5 border border-gray-400 rounded checked:bg-blue-600 checked:border-blue-600 transition-all" checked={isSelected} readOnly disabled={isReviewMode} />
+                                    <input type="checkbox" className="appearance-none w-5 h-5 border border-gray-400 rounded checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer" checked={isSelected} onChange={() => handleToggle(opt.label)} disabled={isReviewMode} />
                                     <svg className={`absolute w-3.5 h-3.5 text-white pointer-events-none ${isSelected ? 'block' : 'hidden'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                 </div>
                                 <span className="text-[15px] text-gray-900 font-medium">{opt.text}</span>
@@ -270,14 +319,14 @@ const ListeningRightPane = memo(({
                             const badgeStyle = getStatusStyles(isReviewMode, isCorrect, isSelected, 'badge');
 
                             return (
-                                <label key={idx} className={`flex items-center gap-3 p-2 rounded-lg border transition-all cursor-pointer select-none ${containerStyle}`}>
+                                <div key={idx} className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${containerStyle}`}>
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border transition-colors ${badgeStyle}`}>{opt.label}</div>
                                     <div className="relative flex items-center justify-center shrink-0">
                                         <input type="radio" className="appearance-none w-5 h-5 border border-gray-300 rounded-full checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer" checked={isSelected} onChange={() => !isReviewMode && onAnswerChange(q.id, String(opt.label))} disabled={isReviewMode} />
                                         <div className={`absolute w-2.5 h-2.5 rounded-full opacity-0 transition-opacity pointer-events-none ${isSelected ? 'opacity-100' : ''} bg-white`}></div>
                                     </div>
                                     <span className="text-[15px] text-gray-900 font-medium leading-tight">{opt.text}</span>
-                                </label>
+                                </div>
                             );
                         })}
                     </div>
@@ -379,11 +428,32 @@ const ListeningRightPane = memo(({
     const questionsForPart = testData.questions.filter(g => g.passageId === currentPassage?.id);
 
     return (
-        <div className={`p-6 pb-5 bg-white ${textSize} select-text w-full`}>
-            <div className="mb-6 border-b border-gray-200 pb-4">
-                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">{currentPassage?.title}</h2>
-                 <p className="text-sm text-gray-500 mt-1 font-medium">Listen carefully and answer the questions.</p>
+        // 🔥 MOUSE UP EVENT QO'SHILDI: Highlight uchun
+        <div 
+            ref={containerRef}
+            className={`p-6 pb-5 bg-white ${textSize} select-text w-full relative`}
+            onMouseUp={handleTextSelection}
+        >
+            {/* --- HEADER --- */}
+            {/* flex items-center gap-4 qildik, shunda tugma chapda turadi */}
+            <div className="mb-6 border-b border-gray-200 pb-4 flex items-center gap-4">
+                 
+                 {/* 🔥 HIGHLIGHTER TOOL BUTTON 🔥 */}
+                 <button 
+                    onClick={() => setIsHighlighterActive(!isHighlighterActive)}
+                    // Button stili biroz o'zgardi (full screen tagida qolmasligi uchun z-index berish shart emas, chunki joyi o'zgardi)
+                    className={`p-2 rounded-lg transition-all border shrink-0 ${isHighlighterActive ? 'bg-yellow-100 border-yellow-300 ring-2 ring-yellow-200' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}
+                    title="Highlight Text (Click highlighted text to remove)"
+                 >
+                    <HighlighterIcon active={isHighlighterActive} />
+                 </button>
+
+                 <div>
+                     <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">{currentPassage?.title}</h2>
+                     <p className="text-sm text-gray-500 mt-1 font-medium">Listen carefully and answer the questions.</p>
+                 </div>
             </div>
+
             {questionsForPart.map((group, gIdx) => {
                 const allItems = group.questions || group.items || [];
                 const firstId = allItems.length > 0 ? allItems[0].id : null;

@@ -5,7 +5,7 @@ import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate, useParams } from "react-router-dom";
 
-// --- ICONS ---
+// --- ICONS (O'zgarmadi) ---
 const Icons = {
   Back: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>,
   Cloud: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>,
@@ -15,12 +15,11 @@ const Icons = {
 
 export default function CreateTest() {
   const navigate = useNavigate();
-  const { id } = useParams(); // Edit mode uchun
+  const { id } = useParams();
   
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  
   const [isMockMode, setIsMockMode] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
   const [jsonError, setJsonError] = useState("");
@@ -30,44 +29,40 @@ export default function CreateTest() {
   const [activeWritingTask, setActiveWritingTask] = useState(0);
 
   const [testData, setTestData] = useState({
-    title: "",
-    type: "reading",
-    difficulty: "medium",
-    passages: [], 
-    audio_url: "",
-    introDuration: 10,
-    questions: [],
+    title: "", type: "reading", difficulty: "medium", passages: [], 
+    audio_url: "", introDuration: 10, questions: [], passage: "",
     writingTasks: [
         { id: 1, title: "Task 1", prompt: "", image: "", minWords: 150 },
         { id: 2, title: "Task 2", prompt: "", image: "", minWords: 250 }
     ],
-    passage: ""
   });
 
-  // --- INIT (EDIT MODE) ---
+  // --- 🔥 OPTIMIZATSIYA: UNIVERSAL UPLOAD FUNCTION 🔥 ---
+  // Barcha yuklashlar uchun yagona funksiya (DRY principle)
+  const uploadToFirebase = async (file, folderName) => {
+      const storageRef = ref(storage, `${folderName}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      return await getDownloadURL(storageRef);
+  };
+
   useEffect(() => {
     if (id) {
         setIsEditMode(true);
         const fetchTest = async () => {
             setLoading(true);
             try {
-                const docRef = doc(db, "tests", id);
-                const docSnap = await getDoc(docRef);
+                const docSnap = await getDoc(doc(db, "tests", id));
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     setTestData(data);
                     setIsMockMode(data.isExclusive || false);
-                    
-                    // JSON inputni to'ldirish
-                    const jsonStructure = {
+                    setJsonInput(JSON.stringify({
                         title: data.title,
                         introDuration: data.introDuration,
                         passages: data.passages?.map(p => ({ ...p, audio: "" })) || [],
                         questions: data.questions || []
-                    };
-                    setJsonInput(JSON.stringify(jsonStructure, null, 2));
-
-                    // Audiolarni tiklash
+                    }, null, 2));
+                    
                     const audioMap = {};
                     data.passages?.forEach((p, i) => { if (p.audio) audioMap[i] = p.audio; });
                     setPartAudios(audioMap);
@@ -79,13 +74,10 @@ export default function CreateTest() {
     }
   }, [id]);
 
-  // --- HELPER: Update State from JSON String ---
   const updateTestDataFromJSON = (jsonStr) => {
     try {
         if (!jsonStr.trim()) return;
         const parsed = JSON.parse(jsonStr);
-        
-        // Passagelarni yangilash (Audio state ni saqlab qolish)
         let updatedPassages = parsed.passages || [];
         updatedPassages = updatedPassages.map((p, idx) => ({
             ...p,
@@ -104,21 +96,18 @@ export default function CreateTest() {
     } catch (err) { setJsonError("JSON Xato: " + err.message); }
   };
 
-  // --- HANDLERS ---
   const handleJsonChange = (e) => {
-    const val = e.target.value;
-    setJsonInput(val);
-    updateTestDataFromJSON(val);
+    setJsonInput(e.target.value);
+    updateTestDataFromJSON(e.target.value);
   };
 
+  // 1. AUDIO UPLOAD (Optimized)
   const handlePartAudioUpload = async (e, index) => {
       const file = e.target.files[0];
       if (!file) return;
       setUploading(true);
       try {
-          const storageRef = ref(storage, `part_audios/${Date.now()}_${file.name}`);
-          await uploadBytes(storageRef, file);
-          const url = await getDownloadURL(storageRef);
+          const url = await uploadToFirebase(file, "part_audios"); // Universal funksiya ishlatildi
           
           setPartAudios(prev => ({ ...prev, [index]: url }));
           setTestData(prev => {
@@ -130,22 +119,17 @@ export default function CreateTest() {
       } catch (err) { alert(err.message); } finally { setUploading(false); }
   };
 
-  // 🔥 MAP UPLOAD: AVTOMATIK JSON GA JOYLASH 🔥
+  // 2. MAP UPLOAD (Optimized + Auto Inject Logic)
   const handleMapUpload = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       setUploading(true);
 
       try {
-          // 1. Rasmni Firebasega yuklash
-          const storageRef = ref(storage, `map_images/${Date.now()}_${file.name}`);
-          await uploadBytes(storageRef, file);
-          const url = await getDownloadURL(storageRef);
-          
-          // 2. Ro'yxatga qo'shish (Vizual uchun)
+          const url = await uploadToFirebase(file, "map_images"); // Universal funksiya
           setUploadedMaps(prev => [...prev, { name: file.name, url }]);
 
-          // 3. JSON ni tahlil qilish va rasmni "map_labeling" ga tiqish
+          // Auto-Inject Logic
           if (jsonInput.trim()) {
               try {
                   const parsedJson = JSON.parse(jsonInput);
@@ -153,10 +137,9 @@ export default function CreateTest() {
                   
                   if (parsedJson.questions && Array.isArray(parsedJson.questions)) {
                       parsedJson.questions = parsedJson.questions.map(q => {
-                          // Agar bu Map Labeling bo'lsa va hali rasmi bo'lmasa (yoki yangilamoqchi bo'lsak)
                           if (q.type === 'map_labeling') {
                               found = true;
-                              return { ...q, image: url }; // 👈 Rasm URL shu yerga qo'shiladi
+                              return { ...q, image: url };
                           }
                           return q;
                       });
@@ -166,43 +149,35 @@ export default function CreateTest() {
                       const newJsonStr = JSON.stringify(parsedJson, null, 2);
                       setJsonInput(newJsonStr);
                       updateTestDataFromJSON(newJsonStr);
-                      alert("Rasm yuklandi va JSON dagi Map Labeling qismiga avtomatik joylandi! ✅");
+                      alert("Rasm yuklandi va JSON ga joylandi! ✅");
                   } else {
                       copyToClipboard(url);
-                      alert("Rasm yuklandi, lekin JSON da 'map_labeling' turi topilmadi. Link nusxalandi. 📋");
+                      alert("Rasm yuklandi, lekin 'map_labeling' topilmadi. Link nusxalandi. 📋");
                   }
-
               } catch (jsonErr) {
                   copyToClipboard(url);
                   console.error(jsonErr);
-                  alert("Rasm yuklandi, lekin JSON formati noto'g'ri bo'lgani uchun avtomatik qo'yolmadim. Link nusxalandi. ⚠️");
               }
           } else {
               copyToClipboard(url);
-              alert("Rasm yuklandi! Link nusxalandi (JSON bo'sh).");
+              alert("Rasm yuklandi! Link nusxalandi.");
           }
-
-      } catch (err) { 
-          alert("Yuklashda xatolik: " + err.message); 
-      } finally { 
-          setUploading(false); 
-      }
+      } catch (err) { alert("Xatolik: " + err.message); } finally { setUploading(false); }
   };
 
+  // 3. WRITING IMAGE UPLOAD (Optimized)
   const handleWritingImageUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
         try {
-            const storageRef = ref(storage, `writing_images/${Date.now()}_${file.name}`);
-            await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(storageRef);
+            const url = await uploadToFirebase(file, "writing_images"); // Universal funksiya
             setTestData(prev => {
                 const newTasks = [...prev.writingTasks];
                 newTasks[activeWritingTask] = { ...newTasks[activeWritingTask], image: url };
                 return { ...prev, writingTasks: newTasks };
             });
-            alert("Writing Task rasmi yuklandi!");
+            alert("Rasm yuklandi!");
         } catch (err) { alert(err.message); } finally { setUploading(false); }
   };
 
@@ -220,7 +195,6 @@ export default function CreateTest() {
     if (!testData.title) return alert("Test nomini yozing!");
     setLoading(true);
     try {
-      // Questions ni qayta ishlash (Table Completion rows ni to'g'rilash)
       const processedQuestions = testData.questions?.map(q => {
           if (q.type === 'table_completion' && Array.isArray(q.rows)) {
               return { ...q, rows: q.rows.map(row => Array.isArray(row) ? { cells: row } : row) };
@@ -251,61 +225,39 @@ export default function CreateTest() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#141416] text-white selection:bg-[#3772FF]/30">
-      
-      {/* HEADER MOBILE */}
+      {/* MOBILE HEADER */}
       <div className="md:hidden p-4 flex items-center justify-between bg-[#23262F] border-b border-white/5">
           <button onClick={() => navigate('/admin/tests')} className="text-white"><Icons.Back className="w-6 h-6"/></button>
           <span className="font-bold">Test Manager</span>
       </div>
 
-      {/* --- LEFT PANEL: SETUP --- */}
+      {/* --- LEFT PANEL --- */}
       <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col h-full overflow-y-auto custom-scrollbar border-r border-[#353945]">
-        
-        {/* Back & Toggle */}
         <div className="flex justify-between items-center mb-8">
             <button onClick={() => navigate('/admin/tests')} className="flex items-center gap-2 text-[#777E90] hover:text-white transition group">
-                <div className="p-2 rounded-full bg-[#23262F] group-hover:bg-[#353945] border border-white/5">
-                    <Icons.Back className="w-4 h-4"/>
-                </div>
+                <div className="p-2 rounded-full bg-[#23262F] group-hover:bg-[#353945] border border-white/5"><Icons.Back className="w-4 h-4"/></div>
                 <span className="text-sm font-medium">Orqaga</span>
             </button>
-
             <div className="flex bg-[#23262F] p-1 rounded-xl border border-white/5">
                 <button onClick={() => setIsMockMode(false)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${!isMockMode ? 'bg-[#3772FF] text-white shadow-lg' : 'text-[#777E90] hover:text-white'}`}>Standard</button>
                 <button onClick={() => setIsMockMode(true)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${isMockMode ? 'bg-[#FFD166] text-black shadow-lg' : 'text-[#777E90] hover:text-white'}`}>Mock Exam</button>
             </div>
         </div>
 
-        <h1 className="text-3xl font-medium mb-8 tracking-tight text-white">
-            {isEditMode ? "Testni Tahrirlash" : "Yangi Test Yaratish"}
-        </h1>
+        <h1 className="text-3xl font-medium mb-8 tracking-tight text-white">{isEditMode ? "Testni Tahrirlash" : "Yangi Test Yaratish"}</h1>
 
-        {/* Form Fields */}
         <div className="space-y-6 mb-8">
             <div>
               <label className="block text-xs font-bold text-[#777E90] uppercase mb-2 ml-1">Test Nomi</label>
-              <input 
-                type="text" 
-                className="w-full bg-[#23262F] border border-[#353945] rounded-2xl p-4 text-white focus:outline-none focus:border-[#3772FF] transition font-medium placeholder:text-[#777E90]/50" 
-                placeholder="Masalan: Cambridge 18 - Test 1" 
-                value={testData.title} 
-                onChange={e => setTestData({...testData, title: e.target.value})} 
-              />
+              <input type="text" className="w-full bg-[#23262F] border border-[#353945] rounded-2xl p-4 text-white focus:outline-none focus:border-[#3772FF] transition font-medium placeholder:text-[#777E90]/50" placeholder="Masalan: Cambridge 18 - Test 1" value={testData.title} onChange={e => setTestData({...testData, title: e.target.value})} />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[#777E90] uppercase mb-2 ml-1">Turi</label>
                   <div className="relative">
-                      <select 
-                        className="w-full bg-[#23262F] border border-[#353945] rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-[#3772FF] transition cursor-pointer" 
-                        value={testData.type} 
-                        onChange={e => setTestData({...testData, type: e.target.value})}
-                      >
-                          <option value="reading">Reading</option>
-                          <option value="listening">Listening</option>
-                          <option value="writing">Writing</option>
-                          <option value="speaking">Speaking</option>
+                      <select className="w-full bg-[#23262F] border border-[#353945] rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-[#3772FF] transition cursor-pointer" value={testData.type} onChange={e => setTestData({...testData, type: e.target.value})}>
+                          <option value="reading">Reading</option><option value="listening">Listening</option><option value="writing">Writing</option><option value="speaking">Speaking</option>
                       </select>
                       <div className="absolute right-4 top-4 text-[#777E90] pointer-events-none">▼</div>
                   </div>
@@ -313,14 +265,8 @@ export default function CreateTest() {
                 <div>
                   <label className="block text-xs font-bold text-[#777E90] uppercase mb-2 ml-1">Qiyinlik</label>
                   <div className="relative">
-                      <select 
-                        className="w-full bg-[#23262F] border border-[#353945] rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-[#3772FF] transition cursor-pointer" 
-                        value={testData.difficulty} 
-                        onChange={e => setTestData({...testData, difficulty: e.target.value})}
-                      >
-                          <option value="easy">Easy</option>
-                          <option value="medium">Medium</option>
-                          <option value="hard">Hard</option>
+                      <select className="w-full bg-[#23262F] border border-[#353945] rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-[#3772FF] transition cursor-pointer" value={testData.difficulty} onChange={e => setTestData({...testData, difficulty: e.target.value})}>
+                          <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
                       </select>
                       <div className="absolute right-4 top-4 text-[#777E90] pointer-events-none">▼</div>
                   </div>
@@ -335,7 +281,6 @@ export default function CreateTest() {
             )}
         </div>
 
-        {/* LISTENING UPLOADS */}
         {testData.type === 'listening' && (
             <div className="bg-[#23262F] p-6 rounded-[30px] border border-[#353945] mb-6">
                 <h3 className="font-medium text-white mb-4 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#9757D7]"/> Audio Fayllar</h3>
@@ -343,11 +288,7 @@ export default function CreateTest() {
                     {[0, 1, 2, 3].map((idx) => (
                         <label key={idx} className={`relative flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/10' : 'border-[#353945] hover:border-[#777E90] hover:bg-[#353945]/50'}`}>
                             <span className="text-xs font-bold text-[#777E90] uppercase mb-1">Part {idx + 1}</span>
-                            {partAudios[idx] ? (
-                                <span className="text-[10px] text-[#45B26B] font-bold flex items-center gap-1"><Icons.Check className="w-3 h-3"/> Yuklandi</span>
-                            ) : (
-                                <span className="text-[10px] text-[#3772FF]">Yuklash</span>
-                            )}
+                            {partAudios[idx] ? <span className="text-[10px] text-[#45B26B] font-bold flex items-center gap-1"><Icons.Check className="w-3 h-3"/> Yuklandi</span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
                             <input type="file" accept="audio/*" onChange={(e) => handlePartAudioUpload(e, idx)} disabled={uploading} className="hidden"/>
                         </label>
                     ))}
@@ -355,7 +296,6 @@ export default function CreateTest() {
             </div>
         )}
 
-        {/* MAP/IMAGE UPLOADS */}
         {(testData.type === 'listening' || testData.type === 'reading') && (
             <div className="bg-[#23262F] p-6 rounded-[30px] border border-[#353945] mb-6">
                 <div className="flex justify-between items-center mb-4">
@@ -365,14 +305,11 @@ export default function CreateTest() {
                         <input type="file" accept="image/*" onChange={handleMapUpload} disabled={uploading} className="hidden"/>
                     </label>
                 </div>
-                
                 <div className="space-y-2">
                     {uploadedMaps.map((map, idx) => (
                         <div key={idx} className="flex items-center justify-between bg-[#141416] p-3 rounded-xl border border-[#353945]">
                             <span className="text-xs text-[#777E90] truncate w-40">{map.name}</span>
-                            <button onClick={() => copyToClipboard(map.url)} className="text-[#3772FF] hover:text-white transition p-1">
-                                <Icons.Copy className="w-4 h-4"/>
-                            </button>
+                            <button onClick={() => copyToClipboard(map.url)} className="text-[#3772FF] hover:text-white transition p-1"><Icons.Copy className="w-4 h-4"/></button>
                         </div>
                     ))}
                     {uploadedMaps.length === 0 && <p className="text-xs text-[#777E90] text-center py-2">Rasm yuklanmagan</p>}
@@ -380,17 +317,11 @@ export default function CreateTest() {
             </div>
         )}
 
-        {/* WRITING TASK */}
         {testData.type === 'writing' && (
             <div className="bg-[#23262F] p-6 rounded-[30px] border border-[#353945] mb-6 flex-1 flex flex-col">
                 <div className="flex bg-[#141416] p-1 rounded-xl mb-4 w-fit border border-[#353945]">
-                    {[0,1].map(i => (
-                        <button key={i} onClick={() => setActiveWritingTask(i)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeWritingTask === i ? 'bg-[#3772FF] text-white' : 'text-[#777E90] hover:text-white'}`}>
-                            Task {i+1}
-                        </button>
-                    ))}
+                    {[0,1].map(i => (<button key={i} onClick={() => setActiveWritingTask(i)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeWritingTask === i ? 'bg-[#3772FF] text-white' : 'text-[#777E90] hover:text-white'}`}>Task {i+1}</button>))}
                 </div>
-                
                 <div className="flex items-center gap-3 mb-4">
                     <label className="bg-[#353945] hover:bg-[#454955] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition flex-1 text-center">
                         Rasm Yuklash
@@ -398,30 +329,17 @@ export default function CreateTest() {
                     </label>
                     {testData.writingTasks[activeWritingTask].image && <span className="text-xs text-[#45B26B]">Rasm mavjud</span>}
                 </div>
-
-                <textarea 
-                    className="w-full flex-1 bg-[#141416] border border-[#353945] rounded-2xl p-4 text-white text-sm focus:border-[#3772FF] outline-none resize-none leading-relaxed placeholder:text-[#777E90]/50" 
-                    placeholder="Task description..." 
-                    value={testData.writingTasks[activeWritingTask].prompt} 
-                    onChange={e => handleWritingUpdate("prompt", e.target.value)}
-                ></textarea>
+                <textarea className="w-full flex-1 bg-[#141416] border border-[#353945] rounded-2xl p-4 text-white text-sm focus:border-[#3772FF] outline-none resize-none leading-relaxed placeholder:text-[#777E90]/50" placeholder="Task description..." value={testData.writingTasks[activeWritingTask].prompt} onChange={e => handleWritingUpdate("prompt", e.target.value)}></textarea>
             </div>
         )}
 
-        {/* JSON INPUT */}
         {(testData.type === 'reading' || testData.type === 'listening') && (
             <div className="flex-1 flex flex-col min-h-[300px]">
                 <div className="flex justify-between items-center mb-2 px-1">
                     <label className="text-xs font-bold text-[#777E90] uppercase">JSON Data</label>
                     {jsonError && <span className="text-xs text-[#FF5959] font-bold">{jsonError}</span>}
                 </div>
-                <textarea 
-                    className="w-full flex-1 bg-[#23262F] border border-[#353945] rounded-[24px] p-5 font-mono text-xs text-[#777E90] focus:text-white focus:border-[#3772FF] outline-none resize-none leading-relaxed custom-scrollbar" 
-                    value={jsonInput} 
-                    onChange={handleJsonChange} 
-                    placeholder='{ "passages": [], "questions": [] }' 
-                    spellCheck="false"
-                />
+                <textarea className="w-full flex-1 bg-[#23262F] border border-[#353945] rounded-[24px] p-5 font-mono text-xs text-[#777E90] focus:text-white focus:border-[#3772FF] outline-none resize-none leading-relaxed custom-scrollbar" value={jsonInput} onChange={handleJsonChange} placeholder='{ "passages": [], "questions": [] }' spellCheck="false"/>
             </div>
         )}
       </div>
@@ -429,18 +347,12 @@ export default function CreateTest() {
       {/* --- RIGHT PANEL: PREVIEW --- */}
       <div className="hidden md:flex w-1/2 bg-[#141416] p-8 flex-col border-l border-[#353945] relative">
         <div className="absolute inset-0 bg-gradient-to-br from-[#3772FF]/5 to-transparent pointer-events-none"/>
-        
         <div className="flex justify-between items-center mb-6 relative z-10">
             <h2 className="text-xl font-medium text-white">Preview</h2>
-            <span className="px-3 py-1 bg-[#23262F] rounded-lg text-xs font-bold text-[#3772FF] uppercase border border-[#353945]">
-                {testData.type}
-            </span>
+            <span className="px-3 py-1 bg-[#23262F] rounded-lg text-xs font-bold text-[#3772FF] uppercase border border-[#353945]">{testData.type}</span>
         </div>
-
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2 relative z-10">
             <h1 className="text-3xl font-bold text-white leading-tight">{testData.title || "Test Nomi..."}</h1>
-            
-            {/* Passages */}
             {testData.passages?.map((p, i) => (
                 <div key={i} className="bg-[#23262F] p-6 rounded-[24px] border border-[#353945]">
                     <div className="flex justify-between items-center mb-4">
@@ -450,15 +362,13 @@ export default function CreateTest() {
                     <div className="text-sm text-[#777E90] leading-relaxed" dangerouslySetInnerHTML={{__html: p.content || "Matn yo'q..."}}></div>
                 </div>
             ))}
-
-            {/* Questions */}
             <div className="space-y-4">
                 {testData.questions?.map((g, i) => (
                     <div key={i} className="bg-[#23262F]/50 p-5 rounded-[24px] border border-[#353945] hover:border-[#3772FF]/30 transition">
                         <p className="text-xs font-bold text-[#3772FF] mb-2 uppercase tracking-wider">{g.type}</p>
                         <div className="text-sm text-white mb-3 font-medium" dangerouslySetInnerHTML={{__html: g.instruction}}></div>
                         
-                        {/* Map Image Preview (CSS yaxshilandi) */}
+                        {/* Map Image Preview (Fixed Style) */}
                         {g.image && (
                             <div className="mb-4 rounded-xl overflow-hidden border border-[#353945] bg-[#141416] flex justify-center py-2">
                                 <img src={g.image} alt="Map" className="max-w-full max-h-[400px] w-auto h-auto object-contain" />
@@ -466,36 +376,23 @@ export default function CreateTest() {
                         )}
 
                         {g.items && Array.isArray(g.items) ? (
-                            g.items.map((q, idx) => {
-                                const displayId = q.id || `?`; 
-                                const displayText = q.text || "Savol matni yo'q";
-                                return (
-                                    <div key={q.id || idx} className="flex gap-3 text-xs py-2 border-b border-[#353945] last:border-0 text-[#777E90]">
-                                        <span className="font-bold w-fit min-w-[24px] text-white">{displayId}.</span>
-                                        <span className="flex-1" dangerouslySetInnerHTML={{__html: displayText}} />
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <div className="text-xs text-orange-400 italic p-2">⚠ Savollar (items) topilmadi. JSON ni tekshiring.</div>
-                        )}
+                            g.items.map((q, idx) => (
+                                <div key={q.id || idx} className="flex gap-3 text-xs py-2 border-b border-[#353945] last:border-0 text-[#777E90]">
+                                    <span className="font-bold w-fit min-w-[24px] text-white">{q.id || '?'}.</span>
+                                    <span className="flex-1" dangerouslySetInnerHTML={{__html: q.text || "Savol matni yo'q"}} />
+                                </div>
+                            ))
+                        ) : <div className="text-xs text-orange-400 italic p-2">⚠ Savollar (items) topilmadi.</div>}
                     </div>
                 ))}
             </div>
         </div>
-
-        {/* Action Button */}
         <div className="mt-6 pt-6 border-t border-[#353945] relative z-10">
-            <button 
-                onClick={handleSave} 
-                disabled={loading || uploading} 
-                className={`w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isEditMode ? 'bg-[#FFD166] text-black hover:bg-[#ffc642]' : 'bg-[#3772FF] hover:bg-[#2e62e0]'}`}
-            >
+            <button onClick={handleSave} disabled={loading || uploading} className={`w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isEditMode ? 'bg-[#FFD166] text-black hover:bg-[#ffc642]' : 'bg-[#3772FF] hover:bg-[#2e62e0]'}`}>
                 {loading ? "Jarayonda..." : (isEditMode ? "O'zgarishlarni Saqlash" : "Testni Yaratish")}
             </button>
         </div>
       </div>
-
     </div>
   );
 }
