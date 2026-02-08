@@ -159,9 +159,9 @@ export default function AdminResults() {
                         </td>
                         <td className="p-5 text-center">
                             <div className="flex items-center justify-center gap-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${res.status === 'graded' ? 'bg-emerald-500' : 'bg-orange-400'}`}></span>
-                                <span className={`text-xs font-medium ${res.status === 'graded' ? 'text-emerald-700' : 'text-orange-600'}`}>
-                                    {res.status === 'graded' ? 'Baholangan' : 'Kutilmoqda'}
+                                <span className={`w-1.5 h-1.5 rounded-full ${res.status === 'graded' || res.status === 'published' ? 'bg-emerald-500' : 'bg-orange-400'}`}></span>
+                                <span className={`text-xs font-medium ${res.status === 'graded' || res.status === 'published' ? 'text-emerald-700' : 'text-orange-600'}`}>
+                                    {res.status === 'graded' || res.status === 'published' ? 'Baholangan' : 'Kutilmoqda'}
                                 </span>
                             </div>
                         </td>
