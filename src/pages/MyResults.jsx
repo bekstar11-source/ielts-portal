@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { IoChevronBack, IoDocumentTextOutline, IoHeadsetOutline, IoMicOutline, IoCreateOutline, IoTimeOutline, IoArrowForward, IoChevronForward } from "react-icons/io5";
 
-// --- HELPERS (O'ZGARMADI) ---
+// --- HELPERS ---
 const calculateBandScore = (score, type) => {
   if (type === 'listening' || type === 'reading') {
     if (score >= 39) return 9.0;
@@ -72,9 +72,12 @@ export default function MyResults() {
         );
         
         const snapshot = await getDocs(q);
-        const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const rawData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         
-        setResults(data);
+        // 🔥 FILTER: Hide 'review_pending' (Writing tests under review)
+        const visibleData = rawData.filter(d => d.status !== 'review_pending');
+
+        setResults(visibleData);
         if (snapshot.docs.length > 0) {
             setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
             setFirstDoc(snapshot.docs[0]);
@@ -105,8 +108,10 @@ export default function MyResults() {
           
           const snapshot = await getDocs(q);
           if (!snapshot.empty) {
-              const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-              setResults(data);
+              const rawData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+              const visibleData = rawData.filter(d => d.status !== 'review_pending');
+
+              setResults(visibleData);
               setPageHistory(prev => [...prev, firstDoc]);
               setFirstDoc(snapshot.docs[0]);
               setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
@@ -131,8 +136,10 @@ export default function MyResults() {
 
           const snapshot = await getDocs(qRewind);
           if (!snapshot.empty) {
-              const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-              setResults(data);
+              const rawData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+              const visibleData = rawData.filter(d => d.status !== 'review_pending');
+
+              setResults(visibleData);
               setFirstDoc(snapshot.docs[0]);
               setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
               setPageHistory(prev => prev.slice(0, -1));
@@ -146,9 +153,6 @@ export default function MyResults() {
   return (
     <div className="min-h-screen bg-[#F5F5F7] font-sans">
       
-      {/* NAVBAR QISMI (O'ZGARTIRILDI) 
-          'sticky' olib tashlandi, endi u oddiy oq blok bo'lib turadi. 
-      */}
       <div className="bg-white border-b border-gray-200 h-16 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -182,10 +186,11 @@ export default function MyResults() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {results.map((res) => {
                 const theme = getTestTheme(res.type);
+                // 🔥 UPDATE: Handle 'published' status as graded
+                const isGraded = res.status === 'graded' || res.status === 'published' || res.score !== null;
                 const bandScore = (res.type === 'reading' || res.type === 'listening') 
                     ? (res.bandScore || calculateBandScore(res.score, res.type)) 
-                    : res.score;
-                const isGraded = res.status === 'graded' || res.score !== null;
+                    : res.bandScore; // Writing uses stored bandScore
 
                 return (
                   <div 
@@ -226,13 +231,18 @@ export default function MyResults() {
 
                     <div className="pt-4 border-t border-black/5 flex items-center justify-between mt-auto">
                        <div>
-                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">To'g'ri javoblar</p>
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                              {res.type === 'writing' ? 'AI Review' : 'To\'g\'ri javoblar'}
+                          </p>
                           <p className="text-sm font-bold text-gray-800">
-                              {res.score !== null ? res.score : "?"} <span className="text-gray-400 font-normal">/ {res.totalQuestions || "?"}</span>
+                              {res.type === 'writing'
+                                ? (isGraded ? "Completed" : "Pending")
+                                : `${res.score !== null ? res.score : "?"} / ${res.totalQuestions || "?"}`
+                              }
                           </p>
                        </div>
 
-                       {((res.type === 'reading' || res.type === 'listening') || (isGraded)) && (
+                       {isGraded && (
                           <button 
                               onClick={() => navigate(`/review/${res.id}`)}
                               className="w-10 h-10 rounded-full bg-white/60 hover:bg-[#0071e3] hover:text-white flex items-center justify-center text-gray-400 transition-all duration-300 shadow-sm border border-white/40"
