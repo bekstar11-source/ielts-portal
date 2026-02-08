@@ -19,7 +19,9 @@ export default function ListeningInterface({
   testMode,         // 'exam' yoki 'practice'
   audioCurrentTime, // Audio vaqti
   introFinished,    // Intro tugadimi?
-  hasStarted        // Test boshlandimi?
+  hasStarted,       // Test boshlandimi?
+  activePart,       // State lifted to TestSolving
+  setActivePart     // State setter lifted to TestSolving
 }) {
   // --- 1. RESIZE & SELECTION HOOKS ---
   // Listeningda chap taraf (matn) odatda kichikroq bo'ladi (default 40%)
@@ -27,7 +29,7 @@ export default function ListeningInterface({
   const { menuPos, handleTextSelection, applyHighlight, clearSelection } = useTextSelection();
 
   // --- 2. STATE ---
-  const [activePart, setActivePart] = useState(0); // Hozirgi bo'lim (Part 1, 2, 3, 4)
+  // const [activePart, setActivePart] = useState(0); // REMOVED: Managed by parent
   const [highlightedLoc, setHighlightedLoc] = useState(null); // Review paytida bosilganda highlight qilish
   const [isFullScreen, setIsFullScreen] = useState(false); // 🔥 Yangi State
   
