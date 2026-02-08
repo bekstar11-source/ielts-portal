@@ -66,6 +66,7 @@ export default function TestSolving() {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Audio States & Refs
+  const [activePart, setActivePart] = useState(0);
   const [audioTime, setAudioTime] = useState(0);
   const audioRef = useRef(null);
 
@@ -176,6 +177,32 @@ export default function TestSolving() {
          localStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
     }
   }, [writingEssay, userAnswers, test, user.uid, showResult, testMode]);
+
+  const currentPassage = test?.passages?.[activePart];
+  const audioSource =
+      currentPassage?.audio ||
+      test?.audio ||
+      test?.audio_url ||
+      test?.audioUrl ||
+      test?.file ||
+      test?.passages?.[0]?.audio;
+
+  // Autoplay audio when source changes (e.g. switching parts)
+  useEffect(() => {
+      if (audioRef.current && audioSource && activePart >= 0 && !showModeSelection && !showResult) {
+          audioRef.current.load();
+          // Only autoplay if we are navigating between parts or if it's explicitly required.
+          // Since the user reported issue with "part 2 part 3 part 4", we assume they want autoplay on part switch.
+          if (activePart > 0 || testMode === 'exam') {
+              const playPromise = audioRef.current.play();
+              if (playPromise !== undefined) {
+                  playPromise.catch(error => {
+                      console.log("Autoplay prevented:", error);
+                  });
+              }
+          }
+      }
+  }, [audioSource, activePart, showModeSelection, showResult, testMode]);
 
   const handleSelectAnswer = (questionId, option) => {
     if (showResult && !isReviewing) return;
@@ -336,13 +363,6 @@ export default function TestSolving() {
 
   const isListening = test?.type?.toLowerCase() === 'listening';
   
-  const audioSource = 
-      test.audio ||                       
-      test.audio_url || 
-      test.audioUrl ||                    
-      test.file ||                        
-      test.passages?.[0]?.audio;       
-
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans select-none">
       
@@ -494,6 +514,8 @@ export default function TestSolving() {
                         isFullScreen={isFullScreen}
                         audioCurrentTime={audioTime} 
                         onStartTest={handleStartAudio} 
+                        activePart={activePart}
+                        setActivePart={setActivePart}
                     />
                 </div>
             ) : (
