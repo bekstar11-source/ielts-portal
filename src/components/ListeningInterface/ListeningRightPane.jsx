@@ -385,35 +385,77 @@ const ListeningRightPane = memo(({
                 </div>
             );
         }
+        
+        // --- NOTE COMPLETION & GAP FILL (YANGILANGAN) ---
         if ((group.type === 'note_completion' || group.type === 'gap_fill') && group.groups) {
             return (
                 <div className="mb-6 space-y-6">
                     {group.groups.map((sub, sIdx) => (
-                        <div key={sIdx} className="bg-gray-50/30 p-4 rounded-xl border border-gray-100">
-                            {sub.header && <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wide border-b border-gray-200 pb-2">{sub.header}</h3>}
+                        <div key={sIdx} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                            {/* 1. Asosiy Header (Masalan: GAMIFICATION) */}
+                            {sub.header && (
+                                <h3 className="text-xl font-black text-gray-900 mb-4 uppercase tracking-wide border-b border-gray-300 pb-2">
+                                    {sub.header}
+                                </h3>
+                            )}
+                            
                             <div className="space-y-3">
                                 {sub.items.map((q, qIdx) => {
+                                    
+                                    // --- A) HEADING (Sarlavha) ---
+                                    // Bu "What is it?", "Uses", "Successful examples" kabi qatorlar uchun
+                                    if (q.type === 'heading') {
+                                        return (
+                                            <div key={qIdx} className="font-bold text-black text-lg mt-4 mb-2">
+                                                {q.text}
+                                            </div>
+                                        );
+                                    }
+
+                                    // --- B) ODDIY TEXT (Sarlavha emas, savol ham emas) ---
+                                    // Bu "• The use of gaming..." kabi qatorlar uchun
+                                    // MUHIM: font-normal ishlatamiz!
+                                    const hasInput = q.text && q.text.includes('[INPUT]');
+                                    
+                                    if (q.type === 'text' || (q.text && !hasInput && !q.parts)) {
+                                        return (
+                                            <div key={qIdx} className="font-normal text-gray-800 text-[16px] pl-4 leading-relaxed">
+                                                {/* dangerouslySetInnerHTML bullet pointlarni to'g'ri chiqarish uchun kerak */}
+                                                <span dangerouslySetInnerHTML={{ __html: q.text }} />
+                                            </div>
+                                        );
+                                    }
+
+                                    // --- C) SAVOL (Question) ---
+                                    // Bu "[INPUT]" bor qatorlar uchun
+                                    // MUHIM: Bu ham font-normal bo'lishi kerak, faqat inputning o'zi ajralib turadi
+                                    if (q.text && hasInput) {
+                                        const parts = q.text.split('[INPUT]');
+                                        return (
+                                            <div key={q.id} className="font-normal text-gray-800 text-[16px] leading-[2.6] pl-4 flex flex-wrap items-baseline">
+                                                {parts[0] && <span className="mr-2" dangerouslySetInnerHTML={{ __html: parts[0] }} />}
+                                                
+                                                {/* Input komponenti */}
+                                                {renderInput(q.id, q.answer, q.locationId)}
+                                                
+                                                {parts[1] && <span className="ml-2" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
+                                            </div>
+                                        );
+                                    }
+                                    
+                                    // Mixed type (eski koddan qolgan bo'lsa)
                                     if (q.isMixed && q.parts) {
                                         return (
-                                            <div key={q.id || qIdx} className="text-gray-800 text-[15px] leading-[2.4]">
-                                                {q.parts.map((p, pIdx) => {
+                                            <div key={q.id} className="font-normal text-gray-800 text-[16px] leading-[2.6] pl-4">
+                                                 {q.parts.map((p, pIdx) => {
                                                     if (p.type === 'text') return <span key={pIdx} dangerouslySetInnerHTML={{ __html: p.content }} />;
-                                                    if (p.type === 'input') return renderInput(p.id, q.answer, q.locationId, true);
+                                                    if (p.type === 'input') return renderInput(p.id, q.answer, q.locationId);
                                                     return null;
                                                 })}
                                             </div>
-                                        );
+                                        )
                                     }
-                                    if (q.text) {
-                                        const parts = q.text.split('[INPUT]');
-                                        return (
-                                            <div key={q.id} className="text-gray-800 text-[15px] leading-[2.4]">
-                                                <span className="font-medium mr-1">{parts[0]}</span>
-                                                {renderInput(q.id, q.answer, q.locationId, true)}
-                                                <span className="ml-1">{parts[1]}</span>
-                                            </div>
-                                        );
-                                    }
+
                                     return null;
                                 })}
                             </div>
