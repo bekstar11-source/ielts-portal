@@ -4,10 +4,12 @@ import { db } from "../firebase/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import ReadingInterface from "../components/ReadingInterface/ReadingInterface";
 import ListeningInterface from '../components/ListeningInterface/ListeningInterface';
+import { useAuth } from "../context/AuthContext";
 
 export default function TestReview() {
   const { id } = useParams(); // Result ID
   const navigate = useNavigate();
+  const { user, userData } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [testData, setTestData] = useState(null); // Asl test (Savollar)
@@ -63,7 +65,7 @@ export default function TestReview() {
     };
 
     fetchData();
-  }, [id, navigate]);
+  }, [id, navigate, user, userData]);
 
   // --- ADMIN: BAHONI SAQLASH FUNKSIYASI ---
   const handleSaveGrade = async () => {

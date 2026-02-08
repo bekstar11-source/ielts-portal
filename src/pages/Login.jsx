@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 // 🔥 Haqiqiy importlar
+import { db, auth } from "../firebase/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -22,7 +24,25 @@ export default function Login() {
     
     try {
       await login(email, password);
-      navigate("/dashboard"); // Muvaffaqiyatli bo'lsa dashboardga
+      
+      // 2. 🔥 MUHIM: Bazadan foydalanuvchi rolini olish
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          // 3. Rolga qarab yo'naltirish
+          if (userData.role === 'admin') {
+            navigate('/admin'); // Admin panelga
+          } else {
+            navigate('/dashboard'); // Student dashboardga
+          }
+        } else {
+          navigate('/dashboard'); 
+        }
+      }
     } catch (err) {
       setError("Email yoki parol noto'g'ri!");
       console.error(err);

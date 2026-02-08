@@ -124,6 +124,13 @@ export default function StudentDashboard() {
   const [keyError, setKeyError] = useState("");
 
   useEffect(() => {
+    // Agar foydalanuvchi ADMIN bo'lsa, uni o'z joyiga haydaymiz
+    if (userData?.role === 'admin') {
+      navigate('/admin', { replace: true });
+    }
+  }, [userData, navigate]);
+
+  useEffect(() => {
     if (!user) return;
 
     const fetchData = async () => {

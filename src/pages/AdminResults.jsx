@@ -167,7 +167,7 @@ export default function AdminResults() {
                         </td>
                         <td className="p-5 text-right pr-8">
                             <button 
-                                onClick={() => navigate(`/admin/review/${res.id}`)}
+                                onClick={() => navigate(`/review/${res.id}`)}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:text-black transition-all shadow-sm active:scale-95 ml-auto"
                             >
                                 <Icons.Eye className="w-3.5 h-3.5" />

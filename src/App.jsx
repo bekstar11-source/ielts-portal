@@ -36,7 +36,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 function App() {
-  const { user, loading, trackUserActivity } = useAuth(); // 🔥 trackUserActivity olib kelindi
+  // userData qo'shildi 👇
+const { user, userData, loading, trackUserActivity } = useAuth(); // userData qo'shildi
   const location = useLocation(); // 🔥 Hozirgi sahifa manzilini olish
 
   // 🔥 GOD MODE KUZATUVCHISI
@@ -65,9 +66,29 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
-      <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
+      {/* Bosh sahifa (Landing) */}
+      <Route 
+        path="/" 
+        element={
+          user ? (
+            userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+          ) : (
+            <LandingPage />
+          )
+        } 
+      />
+
+      {/* Register sahifasi */}
+      <Route 
+        path="/register" 
+        element={
+          user ? (
+            userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+          ) : (
+            <Register />
+          )
+        } 
+      />
 
       {/* STUDENT YO'NALISHLARI */}
       <Route 
@@ -127,6 +148,18 @@ function App() {
           <ProtectedRoute allowedRoles={['admin']}>
             <CreateTest />
           </ProtectedRoute>
+        } 
+      />
+
+      {/* Login sahifasi */}
+      <Route 
+        path="/login" 
+        element={
+          user ? (
+            userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+          ) : (
+            <Login />
+          )
         } 
       />
 
