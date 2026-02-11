@@ -8,7 +8,8 @@ const HighlightableText = memo(({
     highlights, 
     onTextSelect, 
     onHighlightRemove, 
-    isReviewMode 
+    isReviewMode,
+    className = ""
 }) => {
     
     // Matn belgilanganda (Selection)
@@ -51,7 +52,7 @@ const HighlightableText = memo(({
     return (
         <span 
             id={id}
-            className="highlightable-zone inline leading-relaxed relative"
+            className={`highlightable-zone inline leading-relaxed relative ${className}`}
             dangerouslySetInnerHTML={{ __html: renderedHTML }}
             onMouseUp={handleMouseUp}
             onClick={handleClick}

@@ -3,10 +3,8 @@ import React, { useState, useRef, useEffect } from "react";
 import ReadingLeftPane from "./ReadingLeftPane";
 import ReadingRightPane from "./ReadingRightPane";
 import ReadingFooter from "./ReadingFooter";
-import HighlightMenu from "./HighlightMenu";
 
 import { useResizablePane } from "../../hooks/useResizablePane";
-import { useTextSelection } from "../../hooks/useTextSelection";
 import { useTestSession } from "../../hooks/useTestSession"; 
 import { generateId } from "../../utils/highlightUtils";
 
@@ -52,9 +50,6 @@ export default function ReadingInterface({
 
   // --- 2. RESIZE HOOK ---
   const { leftWidth, startResizing } = useResizablePane(50);
-
-  // --- 3. TEXT SELECTION HOOK ---
-  const { menuPos, handleTextSelection, applyHighlight, clearSelection } = useTextSelection();
 
   // --- 4. HIGHLIGHT STATE (YANGI QISM) ---
   const [allHighlights, setAllHighlights] = useState({});
@@ -143,15 +138,12 @@ export default function ReadingInterface({
         {isFullScreen ? "Exit Full Screen" : "Full Screen Mode"}
       </button>
 
-      <HighlightMenu position={menuPos} onHighlight={applyHighlight} onClear={clearSelection} />
-
       <div className="flex w-full h-[calc(100vh-50px)] overflow-hidden relative"> 
         
         {/* LEFT PANE */}
         <div 
           className="bg-white flex flex-col border-r border-gray-200 h-full overflow-y-auto select-text"
           style={{ width: `${leftWidth}%` }}
-          onMouseUp={handleTextSelection}
         >
           {(() => {
              const currentPassage = testData.passages[activePassage];

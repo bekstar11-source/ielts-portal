@@ -222,6 +222,7 @@ const ReadingRightPane = memo(({
                     onTextSelect={handlePartSelect} 
                     onHighlightRemove={onRemoveHighlight}
                     isReviewMode={isReviewMode}
+                    className="inline text-gray-800 leading-relaxed align-middle [&_strong]:font-bold [&_b]:font-bold"
                 />
             );
         });
