@@ -8,6 +8,7 @@ import HighlightMenu from "./HighlightMenu";
 import { useResizablePane } from "../../hooks/useResizablePane";
 import { useTextSelection } from "../../hooks/useTextSelection";
 import { useTestSession } from "../../hooks/useTestSession"; 
+import { generateId } from "../../utils/highlightUtils";
 
 export default function ReadingInterface({ 
   testData, 
@@ -54,6 +55,29 @@ export default function ReadingInterface({
 
   // --- 3. TEXT SELECTION HOOK ---
   const { menuPos, handleTextSelection, applyHighlight, clearSelection } = useTextSelection();
+
+  // --- 4. HIGHLIGHT STATE (YANGI QISM) ---
+  const [allHighlights, setAllHighlights] = useState({});
+
+  const addHighlight = (partId, newHighlight) => {
+      setAllHighlights(prev => {
+          const existing = prev[partId] || [];
+          return {
+              ...prev,
+              [partId]: [...existing, { ...newHighlight, id: generateId() }]
+          };
+      });
+  };
+
+  const removeHighlight = (partId, highlightId) => {
+      setAllHighlights(prev => {
+          const existing = prev[partId] || [];
+          return {
+              ...prev,
+              [partId]: existing.filter(h => h.id !== highlightId)
+          };
+      });
+  };
 
   // --- STATE ---
   const [activePassage, setActivePassage] = useState(0);
@@ -158,7 +182,6 @@ export default function ReadingInterface({
         <div 
           className="flex-1 bg-slate-50 flex flex-col overflow-y-auto h-full relative select-text"
           style={{ width: `${100 - leftWidth}%` }}
-          onMouseUp={handleTextSelection}
         >
           <ReadingRightPane 
             testData={testData} 
@@ -170,6 +193,9 @@ export default function ReadingInterface({
             isReviewMode={isReviewMode}
             textSize={textSize}
             handleLocationClick={handleLocationClick}
+            highlights={allHighlights}
+            onAddHighlight={addHighlight}
+            onRemoveHighlight={removeHighlight}
           />
         </div>
       </div>

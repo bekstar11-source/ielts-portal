@@ -1,5 +1,7 @@
-// src/components/ReadingInterface/ReadingRightPane.jsx
-import React, { memo } from "react";
+import React, { memo, useState, useRef, useCallback } from "react";
+import HighlightableText from './HighlightableText';
+import HighlightMenu from './HighlightMenu';
+import { getSelectionOffsets } from '../../utils/highlightUtils';
 
 const ReadingRightPane = memo(({ 
     testData, 
@@ -8,31 +10,93 @@ const ReadingRightPane = memo(({
     onAnswerChange, 
     isReviewMode, 
     textSize = "text-base", 
-    qRef,
-    handleLocationClick
+    qRef, // Tashqaridan kelgan Ref (Scroll uchun)
+    handleLocationClick,
+    highlights,          
+    onAddHighlight,      
+    onRemoveHighlight    
 }) => {
+    // 1. Ichki Ref (Menyu ishlashi uchun kafolat)
+    const internalRef = useRef(null);
+    const [tempSelection, setTempSelection] = useState(null);
+
+    // 🔥 MUHIM: Ham ichki refni, ham tashqi qRefni bog'laymiz
+    const setRefs = useCallback((node) => {
+        // 1. O'zimiz uchun saqlaymiz
+        internalRef.current = node;
+        // 2. Agar tashqaridan ref kelsa, unga ham beramiz (Scroll buzilmasligi uchun)
+        if (qRef) {
+            if (typeof qRef === 'function') qRef(node);
+            else qRef.current = node;
+        }
+    }, [qRef]);
 
     if (!testData || !testData.questions || !testData.passages) {
         return <div className="h-full flex items-center justify-center text-gray-400">Loading...</div>;
     }
 
+    // 2. Selection Handler
+    const handlePartSelect = useCallback((partId, selection, containerNode) => {
+        const { start, end, text } = getSelectionOffsets(selection, containerNode);
+        
+        // Bo'sh joy yoki juda qisqa matn bo'lsa inkor qilamiz
+        if (!text || text.trim().length < 1) return;
+
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        
+        // 🔥 ENDI ICHKI REF ISHLATILADI (Bu har doim bor)
+        const container = internalRef.current;
+        
+        if (container) {
+            const containerRect = container.getBoundingClientRect();
+            
+            // Scroll va pozitsiyani hisoblash
+            const relativeTop = rect.top - containerRect.top + container.scrollTop;
+            const relativeLeft = rect.left - containerRect.left + container.scrollLeft + (rect.width / 2);
+
+            setTempSelection({
+                id: partId,
+                start,
+                end,
+                position: { 
+                    top: relativeTop - 45, // Matndan 45px tepada
+                    left: relativeLeft 
+                }
+            });
+        }
+    }, []); // Dependency bo'sh - internalRef barqaror
+
+    const applyColor = useCallback((color) => {
+        if (tempSelection) {
+            onAddHighlight(tempSelection.id, {
+                start: tempSelection.start,
+                end: tempSelection.end,
+                color: color
+            });
+            setTempSelection(null);
+            window.getSelection().removeAllRanges();
+        }
+    }, [tempSelection, onAddHighlight]);
+
+    const clearSelectionMenu = useCallback(() => {
+        setTempSelection(null);
+        window.getSelection().removeAllRanges();
+    }, []);
+
+    // --- HELPERLAR ---
     const checkAnswer = (userVal, correctVal) => {
         if (!userVal || !correctVal) return false;
-        const u = String(userVal).trim().toLowerCase();
-        const c = String(correctVal).trim().toLowerCase();
-        return u === c;
+        return String(userVal).trim().toLowerCase() === String(correctVal).trim().toLowerCase();
     };
 
     const getOptionValue = (text) => {
         if (!text) return "";
         const match = text.match(/^([A-Z]|[ivxIVX]+)[\.\)\s]/);
-        if (match) {
-            return match[1].trim();
-        }
-        return text;
+        return match ? match[1].trim() : text;
     };
 
-    // --- SHARED INPUT RENDERER (Oddiy qatorlar va Jadval uchun) ---
+    // --- RENDER INPUT (Jadval uchun) ---
     const renderInput = (qId, answer, locationId, passageId, isInline = false) => {
         const val = userAnswers[qId] || "";
         
@@ -58,15 +122,12 @@ const ReadingRightPane = memo(({
 
         return (
             <span key={qId} className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative">
-                {/* Savol raqami */}
                 <span 
                     className={inlineNumberClass} 
                     onClick={() => isReviewMode && locationId && handleLocationClick(locationId, passageId)}
                 >
                     {qId}
                 </span>
-
-                {/* Input maydoni */}
                 <input 
                     className={`w-[110px] h-[26px] border rounded px-1 text-center font-semibold text-sm focus:outline-none focus:ring-1 transition-all bg-white disabled:bg-opacity-50 placeholder-transparent ${inputBorderClass} ${textClass}`}
                     value={val} 
@@ -74,8 +135,6 @@ const ReadingRightPane = memo(({
                     disabled={isReviewMode}
                     autoComplete="off"
                 />
-
-                {/* Review Mode: To'g'ri javobni ko'rsatish */}
                 {isReviewMode && !isCorrect && (
                     <span className="ml-1 text-[10px] font-bold text-green-600 bg-green-100 px-1 py-0.5 rounded border border-green-200 whitespace-nowrap">
                         ✓ {answer}
@@ -85,24 +144,17 @@ const ReadingRightPane = memo(({
         );
     };
 
-    // --- ESKI HELPER (Matnli savollar uchun) ---
+    // --- RENDER PARTS ---
     const renderParts = (parts, q, val, isInlineQuestion, isSummary, itemOptions, isMatching, isReviewMode, onAnswerChange, group) => {
-        // ... (Bu funksiya o'zgarishsiz qoladi, faqat [INPUT] qismi renderInput ni chaqirishi mumkin, 
-        // lekin hozircha eski kodni buzmaslik uchun shunday qoldiramiz. 
-        // Agar xohlasangiz yuqoridagi renderInput ni bu yerga ham integratsiya qilish mumkin.)
-        
-        // KOD QISQARTIRILDI (Sizdagi bor kodni o'zini ishlating, faqat Table logikasi qo'shiladi pastda)
-        // ...
-        // Sizdagi original renderParts kodi shu yerda turishi kerak...
         const inlineNumberClass = `
             inline-flex min-w-[26px] w-fit px-1 h-[26px] items-center justify-center rounded bg-white border border-gray-400 text-xs font-bold text-gray-700 mr-2 align-middle select-none shadow-sm transition-colors
             ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}
         `;
-
-        // Validation Styles copy for consistency
+        
         let isCorrect = false;
         let inputBorderClass = "border-gray-300 focus:border-ielts-blue focus:ring-ielts-blue";
         let textClass = "text-ielts-blue";
+
         if (isReviewMode) {
              isCorrect = checkAnswer(val, q.answer);
              if(isCorrect) { inputBorderClass = "border-green-500 bg-green-50 text-green-700 font-bold"; textClass = "text-green-700"; }
@@ -154,15 +206,29 @@ const ReadingRightPane = memo(({
                     </span>
                 );
             }
+
+            // TEXT QISMI (HighlightableText)
             const cleanPart = part.replace(/<\/?p>|<\/?div>/gi, ""); 
             if (!cleanPart.trim()) return null;
-            return <span key={i} dangerouslySetInnerHTML={{ __html: cleanPart }} className="inline text-gray-800 leading-relaxed align-middle [&_strong]:font-bold [&_b]:font-bold" />;
+
+            const partId = `p-${activePassage}-q-${q.id}-part-${i}`;
+
+            return (
+                <HighlightableText 
+                    key={i}
+                    id={partId}
+                    content={cleanPart}
+                    highlights={highlights ? highlights[partId] || [] : []}
+                    onTextSelect={handlePartSelect} 
+                    onHighlightRemove={onRemoveHighlight}
+                    isReviewMode={isReviewMode}
+                />
+            );
         });
     };
 
+    // --- RENDER CHOICES ---
     const renderChoices = (itemOptions, q, val, isMultiSelect, isReviewMode, onAnswerChange, group) => {
-        // ... (Bu funksiya o'zgarishsiz qoladi)
-        // Sizdagi original renderChoices kodini shu yerga qo'ying
         const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
         const correctAnswersList = String(q.answer || "").split(',').map(s => s.trim().toLowerCase());
         return (
@@ -231,10 +297,9 @@ const ReadingRightPane = memo(({
         );
     };
 
-    // 🔥 YANGI: JADVAL RENDERER (Siz so'ragan format uchun)
+    // --- RENDER TABLE ---
     const renderTable = (group) => {
         const rows = group.rows || group.items || [];
-
         return (
             <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
                 <table className="w-full text-sm text-left border-collapse">
@@ -243,19 +308,14 @@ const ReadingRightPane = memo(({
                             <tr key={rIdx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50/50">
                                 {row.cells && row.cells.map((cell, cIdx) => (
                                     <td key={cIdx} className="border-r border-gray-200 last:border-r-0 p-3 align-top text-gray-700 leading-relaxed">
-                                        
-                                        {/* CASE A: Oddiy Text */}
                                         {!cell.isMixed && (
                                             <span dangerouslySetInnerHTML={{ __html: cell.text }} />
                                         )}
-
-                                        {/* CASE B: Mixed Content (Text + Inputs) */}
                                         {cell.isMixed && cell.parts && cell.parts.map((part, pIdx) => {
                                             if (part.type === 'text') {
                                                 return <span key={pIdx} dangerouslySetInnerHTML={{ __html: part.content }} />;
                                             }
                                             if (part.type === 'input') {
-                                                // Bu yerda biz renderInput yordamchisidan foydalanamiz
                                                 return renderInput(
                                                     part.id, 
                                                     part.answer, 
@@ -276,26 +336,29 @@ const ReadingRightPane = memo(({
         );
     };
 
-    const handleHighlightClick = (e) => {
-        if (e.target.classList.contains('highlight-mark')) {
-            const span = e.target;
-            const text = document.createTextNode(span.textContent);
-            span.parentNode.replaceChild(text, span);
-        }
-    };
-
+    // 3. REF ULANDI (setRefs orqali)
     return (
-        <div className={`h-full overflow-y-auto p-6 pb-20 box-border relative select-text bg-white ${textSize}`} ref={qRef} onClick={handleHighlightClick}>
+        <div 
+            className={`h-full overflow-y-auto p-6 pb-20 box-border relative select-text bg-white ${textSize}`} 
+            ref={setRefs} // 🔥 Dual Ref
+        >
+            <HighlightMenu 
+                position={tempSelection?.position} 
+                onHighlight={applyColor} 
+                onClear={clearSelectionMenu} 
+            />
+
             {testData.questions
                 .filter(g => g.passageId === testData.passages[activePassage].id)
                 .map((group, gIdx) => {
                     const isChoiceType = ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => group.type && group.type.toLowerCase().includes(t));
                     const isMultiSelect = group.type === 'pick_two' || group.type === 'pick_three' || (group.type && group.type.includes('multi'));
                     const isMatching = group.type === 'matching' || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));
-                    const isSummary = group.type === 'gap_fill' || (group.type && group.type.includes('summary'));
-                    const isTable = group.type === 'table_completion' || group.type === 'table'; // 🔥 Table ni aniqlash
+                    const isSummary = group.type === 'gap_fill' || (group.type && group.type.includes('summary')) || group.type === 'summary_box';
+                    const isTable = group.type === 'table_completion' || group.type === 'table';
                     
-                    const showStaticOptions = isMatching && group.options && group.options.length > 0 && group.options.some(opt => (typeof opt === 'object' ? opt.text : opt).length > 4);
+                    const showStaticOptions = (group.type === 'matching' || group.type === 'summary_box') && group.options && group.options.length > 0;
+                    const boxTitle = group.type === 'summary_box' ? "List of Words" : "List of Headings / Features";
 
                     return (
                         <div key={gIdx} className="mb-8 pb-8 border-b border-gray-200 border-dashed last:border-0">
@@ -303,10 +366,10 @@ const ReadingRightPane = memo(({
                             
                             {showStaticOptions && (
                                 <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
-                                    <p className="text-xs font-bold mb-3 uppercase text-gray-500 tracking-wider">List of Headings / Features</p>
-                                    <div className="flex flex-col">
+                                    <p className="text-xs font-bold mb-3 uppercase text-gray-500 tracking-wider">{boxTitle}</p>
+                                    <div className="flex flex-wrap gap-x-6 gap-y-2">
                                         {group.options.map((opt, idx) => (
-                                            <div key={idx} className="text-sm text-gray-700 py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50 px-2 rounded">
+                                            <div key={idx} className="text-sm text-gray-700 py-1 px-2 rounded hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors">
                                                 {typeof opt === 'object' ? opt.text : opt}
                                             </div>
                                         ))}
@@ -315,9 +378,7 @@ const ReadingRightPane = memo(({
                             )}
 
                             <div>
-                                {/* 🔥 YANGI: Agar TABLE bo'lsa renderTable ni chaqir */}
                                 {isTable ? renderTable(group) : (
-                                    // Boshqa barcha turlar (Eski logika)
                                     group.items?.map(q => {
                                         const isInlineQuestion = q.text.includes('[INPUT]') || q.text.includes('[DROP]');
                                         let itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
@@ -363,6 +424,12 @@ const ReadingRightPane = memo(({
                 })}
         </div>
     );
-}, (prev, next) => prev.textSize === next.textSize && prev.userAnswers === next.userAnswers && prev.activePassage === next.activePassage && prev.isReviewMode === next.isReviewMode);
+}, (prev, next) => 
+    prev.textSize === next.textSize && 
+    prev.userAnswers === next.userAnswers && 
+    prev.activePassage === next.activePassage && 
+    prev.isReviewMode === next.isReviewMode &&
+    prev.highlights === next.highlights
+);
 
 export default ReadingRightPane;

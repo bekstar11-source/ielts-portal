@@ -21,7 +21,10 @@ export default function ListeningInterface({
   introFinished,    // Intro tugadimi?
   hasStarted,       // Test boshlandimi?
   activePart,       // State lifted to TestSolving
-  setActivePart     // State setter lifted to TestSolving
+  setActivePart,    // State setter lifted to TestSolving
+  playingPartIndex,
+  isPlaying,
+  onPlayPartAudio
 }) {
   // --- 1. RESIZE & SELECTION HOOKS ---
   // Listeningda chap taraf (matn) odatda kichikroq bo'ladi (default 40%)
@@ -203,6 +206,9 @@ export default function ListeningInterface({
            userAnswers={userAnswers}
            isReviewMode={isReviewMode}
            scrollToQuestionDiv={handleScrollToQuestion} // Scroll funksiyasi
+           playingPartIndex={playingPartIndex}
+           isPlaying={isPlaying}
+           onPlayPartAudio={onPlayPartAudio}
         />
       </div>
     </div>

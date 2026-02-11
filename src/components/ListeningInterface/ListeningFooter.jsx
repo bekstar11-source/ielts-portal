@@ -5,7 +5,9 @@ export default function ListeningFooter({
     activePart, 
     setActivePart, 
     userAnswers, 
-    scrollToQuestionDiv
+    scrollToQuestionDiv,
+    playingPartIndex,
+    isPlaying
 }) {
     if (!testData || !testData.passages) return null;
 
@@ -42,6 +44,7 @@ export default function ListeningFooter({
             <div className="flex-1 h-full overflow-x-auto hide-scrollbar flex">
                 {testData.passages.map((passage, idx) => {
                     const isActive = activePart === idx;
+                    const isAudioPlaying = playingPartIndex === idx && isPlaying;
                     
                     const partGroups = testData.questions 
                         ? testData.questions.filter(g => String(g.passageId) === String(passage.id)) 
@@ -63,18 +66,23 @@ export default function ListeningFooter({
                             className={`
                                 h-full flex items-center px-2 cursor-pointer border-r border-gray-200 
                                 transition-all duration-200 shrink-0 select-none
-                                ${isActive 
-                                    ? 'bg-white min-w-[140px] border-t-[3px] border-t-blue-600 -mt-[1px]' // Kenglik ham ixchamlashdi
-                                    : 'bg-gray-50 text-gray-400 hover:bg-gray-100 min-w-[60px]'
+                                ${isActive
+                                    ? 'bg-white min-w-[160px] border-t-[3px] border-t-blue-600 -mt-[1px]'
+                                    : 'bg-gray-50 text-gray-400 hover:bg-gray-100 min-w-[80px]'
                                 }
                             `}
                         >
                             {/* Chap tomon: Faqat Part Nomi (Kichikroq shrift) */}
-                            <div className="flex items-center justify-center mr-2 shrink-0">
+                            <div className="flex items-center justify-center mr-2 shrink-0 gap-2">
                                 {/* 👇 text-xs ga o'zgartirildi */}
                                 <span className={`font-bold text-xs ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                                     Part {idx + 1}
                                 </span>
+                                
+                                {/* PLAYING INDICATOR */}
+                                {isAudioPlaying && (
+                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-sm"></div>
+                                )}
                             </div>
 
                             {/* O'ng tomon: Savol tugmachalari */}

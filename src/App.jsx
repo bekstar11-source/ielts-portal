@@ -1,6 +1,6 @@
 // src/App.jsx
-import React, { useEffect } from 'react'; // 🔥 useEffect qo'shildi
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'; // 🔥 useLocation qo'shildi
+import React, { useEffect } from 'react'; 
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'; 
 import { useAuth } from './context/AuthContext';
 
 // SAHIFALAR
@@ -36,27 +36,23 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 function App() {
-  // userData qo'shildi 👇
-const { user, userData, loading, trackUserActivity } = useAuth(); // userData qo'shildi
-  const location = useLocation(); // 🔥 Hozirgi sahifa manzilini olish
+  const { user, userData, loading, trackUserActivity } = useAuth(); 
+  const location = useLocation(); 
 
-  // 🔥 GOD MODE KUZATUVCHISI
-  // Har safar sahifa o'zgarganda (location o'zgarganda) ishlaydi
+  // GOD MODE KUZATUVCHISI
   useEffect(() => {
     if (user && trackUserActivity) {
       const path = location.pathname;
       let activityName = "Saytda";
 
-      // Sahifaga qarab statusni aniqlaymiz
       if (path === '/dashboard') activityName = "Bosh sahifada (Dashboard)";
-      else if (path.includes('/test/')) activityName = "Reading Test ishlamoqda... 📝"; // Siz so'ragan maxsus status
+      else if (path.includes('/test/')) activityName = "Reading Test ishlamoqda... 統"; 
       else if (path === '/mock-exam') activityName = "Mock Exam bo'limida";
       else if (path.includes('/review/')) activityName = "Xatolarini tahlil qilmoqda";
       else if (path === '/my-results') activityName = "Natijalarini ko'rmoqda";
-      else if (path.includes('/admin')) activityName = "Admin Panelda 🛠";
+      else if (path.includes('/admin')) activityName = "Admin Panelda 屏";
       else activityName = `Ko'rib chiqmoqda: ${path}`;
 
-      // AuthContext orqali bazaga yozamiz
       trackUserActivity(activityName);
     }
   }, [location, user, trackUserActivity]);
@@ -144,6 +140,16 @@ const { user, userData, loading, trackUserActivity } = useAuth(); // userData qo
 
       <Route 
         path="/admin/create-test" 
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <CreateTest />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* --- YANGI QO'SHILGAN ROUTE: TAHRIRLASH UCHUN --- */}
+      <Route 
+        path="/admin/edit-test/:id" 
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <CreateTest />

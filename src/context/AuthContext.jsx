@@ -4,7 +4,9 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  RecaptchaVerifier,
+  signInWithPhoneNumber
 } from "firebase/auth";
 // 🔥 YANGI IMPORTLAR (updateDoc va serverTimestamp qo'shildi)
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -66,6 +68,24 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // 1. Recaptcha ni sozlash (Bu robot emasligini tekshirish uchun kerak)
+  function setupRecaptcha(phoneNumber) {
+    const recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      "recaptcha-container", // Bu ID keyinroq Login sahifasida ishlatiladi
+      {
+        size: "invisible", // Yoki 'normal' qilsangiz ko'rinib turadi
+      }
+    );
+    return recaptchaVerifier;
+  }
+
+  // 2. SMS yuborish funksiyasi
+  function signInWithPhone(phoneNumber) {
+    const appVerifier = setupRecaptcha(phoneNumber);
+    return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+  }
+
   // User holatini kuzatish
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -97,6 +117,7 @@ export function AuthProvider({ children }) {
     logout,
     updateUserLocalData,
     trackUserActivity, // 🔥 Exportga qo'shildi
+    signInWithPhone,
     loading
   };
 

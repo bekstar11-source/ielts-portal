@@ -66,7 +66,8 @@ export default function TestSolving() {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Audio States & Refs
-  const [activePart, setActivePart] = useState(0);
+  const [activeViewPart, setActiveViewPart] = useState(0);
+  const [activeAudioPart, setActiveAudioPart] = useState(0);
   const [audioTime, setAudioTime] = useState(0);
   const audioRef = useRef(null);
 
@@ -178,31 +179,26 @@ export default function TestSolving() {
     }
   }, [writingEssay, userAnswers, test, user.uid, showResult, testMode]);
 
-  const currentPassage = test?.passages?.[activePart];
-  const audioSource =
-      currentPassage?.audio ||
-      test?.audio ||
-      test?.audio_url ||
-      test?.audioUrl ||
-      test?.file ||
-      test?.passages?.[0]?.audio;
+  // --- 🔥 2. AUDIO BOSHQARUV LOGIKASI ---
+  const currentAudioSrc = test?.passages?.[activeAudioPart]?.audio || test?.audio || test?.audio_url || test?.file;
 
-  // Autoplay audio when source changes (e.g. switching parts)
   useEffect(() => {
-      if (audioRef.current && audioSource && activePart >= 0 && !showModeSelection && !showResult) {
+      if (audioRef.current && currentAudioSrc && !showModeSelection && !showResult) {
           audioRef.current.load();
-          // Only autoplay if we are navigating between parts or if it's explicitly required.
-          // Since the user reported issue with "part 2 part 3 part 4", we assume they want autoplay on part switch.
-          if (activePart > 0 || testMode === 'exam') {
-              const playPromise = audioRef.current.play();
-              if (playPromise !== undefined) {
-                  playPromise.catch(error => {
-                      console.log("Autoplay prevented:", error);
-                  });
-              }
+          if (testMode === 'exam' || activeAudioPart > 0) {
+             const playPromise = audioRef.current.play();
+             if (playPromise !== undefined) {
+                 playPromise.catch(error => console.log("Autoplay prevented:", error));
+             }
           }
       }
-  }, [audioSource, activePart, showModeSelection, showResult, testMode]);
+  }, [activeAudioPart, currentAudioSrc, showModeSelection, showResult, testMode]);
+
+  const handleAudioEnded = () => {
+      if (test?.passages && activeAudioPart < test.passages.length - 1) {
+          setActiveAudioPart(prev => prev + 1);
+      }
+  };
 
   const handleSelectAnswer = (questionId, option) => {
     if (showResult && !isReviewing) return;
@@ -238,12 +234,6 @@ export default function TestSolving() {
         setIsFullScreen(false);
       }
     }
-  };
-
-  const handleStartAudio = () => {
-      if (audioRef.current) {
-          audioRef.current.play().catch(e => console.log("Audio play error:", e));
-      }
   };
 
   const handleSubmit = async () => {
@@ -378,25 +368,33 @@ export default function TestSolving() {
           </div>
         </div>
         
-        {/* AUDIO PLAYER (Faqat Listening uchun) */}
+        {/* 🔥 PLAYER MARKAZI (ENG MUHIM QISM) */}
         {isListening && !showModeSelection && !showResult && (
-           <div className={`absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md flex justify-center z-[100] ${testMode === 'exam' ? 'pointer-events-none select-none' : 'pointer-events-auto'}`}>
-              {audioSource ? (
-                  <audio 
-                     ref={audioRef} 
-                     controls 
-                     controlsList="nodownload" 
-                     src={audioSource} 
-                     onTimeUpdate={(e) => setAudioTime(e.target.currentTime)}
-                     onPause={(e) => { if(testMode === 'exam' && !e.target.ended) e.target.play() }}
-                     className="h-10 w-full shadow-md rounded-full bg-gray-50 border border-gray-200 focus:outline-none block"
-                  />
-              ) : (
-                  <div className="bg-red-50 text-red-600 px-4 py-1 rounded-full text-xs font-bold border border-red-200 shadow-sm animate-pulse">
-                      ⚠️ Audio fayl topilmadi
-                  </div>
-              )}
-           </div>
+            <div className="flex flex-col items-center w-full max-w-2xl mx-auto">
+                <audio 
+                    ref={audioRef}
+                    controls
+                    controlsList="nodownload"
+                    src={currentAudioSrc}
+                    onEnded={handleAudioEnded}
+                    className="w-full h-10 mb-2 rounded-full focus:outline-none shadow-sm bg-gray-50"
+                />
+                <div className="flex items-center gap-2 overflow-x-auto w-full justify-center pb-1">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mr-2">Audio:</span>
+                    {test?.passages?.map((_, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setActiveAudioPart(idx)}
+                            className={`px-3 py-1 text-xs font-bold rounded-full transition-all border ${activeAudioPart === idx ? "bg-blue-600 text-white border-blue-600 shadow-md transform scale-105" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"}`}
+                        >
+                            Part {idx + 1}
+                            {activeAudioPart === idx && (
+                                <span className="ml-2 inline-block w-2 h-2 bg-white rounded-full animate-pulse"/>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
         )}
 
         <div className="flex items-center gap-6 justify-end flex-1 z-20">
@@ -513,9 +511,8 @@ export default function TestSolving() {
                         onToggleFullScreen={handleToggleFullScreen}
                         isFullScreen={isFullScreen}
                         audioCurrentTime={audioTime} 
-                        onStartTest={handleStartAudio} 
-                        activePart={activePart}
-                        setActivePart={setActivePart}
+                        activePart={activeViewPart}
+                        setActivePart={setActiveViewPart}
                     />
                 </div>
             ) : (
