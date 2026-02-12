@@ -65,6 +65,9 @@ export default function TestSolving() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
+  // YANGI: Test ochilgan vaqtni eslab qoladi
+  const [startedAt] = useState(new Date());
+
   // Audio States & Refs
   const [activePart, setActivePart] = useState(0);      // Ko'rish uchun (Tabs)
   const [audioActivePart, setAudioActivePart] = useState(0); // Eshitish uchun (Player)
@@ -230,6 +233,7 @@ export default function TestSolving() {
       type: test.type,
       mode: testMode, 
       date: new Date().toISOString(),
+      startedAt: startedAt,
       userAnswers: userAnswers 
     };
 
