@@ -66,10 +66,9 @@ export default function TestSolving() {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Audio States & Refs
-  const [activeViewPart, setActiveViewPart] = useState(0);
-  const [activeAudioPart, setActiveAudioPart] = useState(0);
+  const [activePart, setActivePart] = useState(0);      // Ko'rish uchun (Tabs)
+  const [audioActivePart, setAudioActivePart] = useState(0); // Eshitish uchun (Player)
   const [audioTime, setAudioTime] = useState(0);
-  const audioRef = useRef(null);
 
   // 1. TESTNI YUKLASH
   useEffect(() => {
@@ -178,27 +177,6 @@ export default function TestSolving() {
          localStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
     }
   }, [writingEssay, userAnswers, test, user.uid, showResult, testMode]);
-
-  // --- 🔥 2. AUDIO BOSHQARUV LOGIKASI ---
-  const currentAudioSrc = test?.passages?.[activeAudioPart]?.audio || test?.audio || test?.audio_url || test?.file;
-
-  useEffect(() => {
-      if (audioRef.current && currentAudioSrc && !showModeSelection && !showResult) {
-          audioRef.current.load();
-          if (testMode === 'exam' || activeAudioPart > 0) {
-             const playPromise = audioRef.current.play();
-             if (playPromise !== undefined) {
-                 playPromise.catch(error => console.log("Autoplay prevented:", error));
-             }
-          }
-      }
-  }, [activeAudioPart, currentAudioSrc, showModeSelection, showResult, testMode]);
-
-  const handleAudioEnded = () => {
-      if (test?.passages && activeAudioPart < test.passages.length - 1) {
-          setActiveAudioPart(prev => prev + 1);
-      }
-  };
 
   const handleSelectAnswer = (questionId, option) => {
     if (showResult && !isReviewing) return;
@@ -370,31 +348,26 @@ export default function TestSolving() {
         
         {/* 🔥 PLAYER MARKAZI (ENG MUHIM QISM) */}
         {isListening && !showModeSelection && !showResult && (
-            <div className="flex flex-col items-center w-full max-w-2xl mx-auto">
-                <audio 
-                    ref={audioRef}
-                    controls
-                    controlsList="nodownload"
-                    src={currentAudioSrc}
-                    onEnded={handleAudioEnded}
-                    className="w-full h-10 mb-2 rounded-full focus:outline-none shadow-sm bg-gray-50"
-                />
-                <div className="flex items-center gap-2 overflow-x-auto w-full justify-center pb-1">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mr-2">Audio:</span>
-                    {test?.passages?.map((_, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => setActiveAudioPart(idx)}
-                            className={`px-3 py-1 text-xs font-bold rounded-full transition-all border ${activeAudioPart === idx ? "bg-blue-600 text-white border-blue-600 shadow-md transform scale-105" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"}`}
-                        >
-                            Part {idx + 1}
-                            {activeAudioPart === idx && (
-                                <span className="ml-2 inline-block w-2 h-2 bg-white rounded-full animate-pulse"/>
-                            )}
-                        </button>
-                    ))}
-                </div>
-            </div>
+           <div className={`absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md flex justify-center z-[100] ${testMode === 'exam' ? 'pointer-events-none select-none' : 'pointer-events-auto'}`}>
+              {test?.passages?.map((passage, index) => {
+                  const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
+                  if (!src) return null;
+                  const isVisible = index === activePart;
+
+                  return (
+                      <audio 
+                         key={index} 
+                         controls 
+                         controlsList="nodownload" 
+                         src={src}
+                         style={{ display: isVisible ? 'block' : 'none' }}
+                         onTimeUpdate={(e) => isVisible && setAudioTime(e.target.currentTime)}
+                         onPause={(e) => { if(testMode === 'exam' && !e.target.ended) e.target.play() }}
+                         className="h-10 w-full shadow-md rounded-full bg-gray-50 border border-gray-200"
+                      />
+                  );
+              })}
+           </div>
         )}
 
         <div className="flex items-center gap-6 justify-end flex-1 z-20">
@@ -511,8 +484,8 @@ export default function TestSolving() {
                         onToggleFullScreen={handleToggleFullScreen}
                         isFullScreen={isFullScreen}
                         audioCurrentTime={audioTime} 
-                        activePart={activeViewPart}
-                        setActivePart={setActiveViewPart}
+                        activePart={activePart}
+                        setActivePart={setActivePart}
                     />
                 </div>
             ) : (
