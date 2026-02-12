@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import ListeningLeftPane from "./ListeningLeftPane";
 import ListeningRightPane from "./ListeningRightPane";
 import ListeningFooter from "./ListeningFooter";
-import HighlightMenu from "./HighlightMenu"; 
 
 // Hooklar (Loyiha papkasida bor deb hisoblaymiz)
 import { useResizablePane } from "../../hooks/useResizablePane";
@@ -137,11 +136,6 @@ export default function ListeningInterface({
             </svg>
         )}
       </button>
-      
-      {/* Highlight Menu (Faqat Review Mode da matn belgilash uchun) */}
-      {isReviewMode && (
-         <HighlightMenu position={menuPos} onHighlight={applyHighlight} onClear={clearSelection} />
-      )}
 
       {/* --- MAIN SPLIT CONTENT --- */}
       {/* 👇 O'ZGARISH: pb-[60px] yoki 45px dan -> pb-[36px] ga */}

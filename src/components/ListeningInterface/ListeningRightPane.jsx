@@ -1,85 +1,9 @@
 import React, { memo, useState, useRef } from "react";
-
-// =========================================================
-// 1. PURE FUNCTIONS & UI COMPONENTS
-// =========================================================
-
-const checkAnswer = (userVal, correctVal) => {
-    if (!userVal && !correctVal) return true;
-    if (!userVal || !correctVal) return false;
-    const u = String(userVal).trim().toLowerCase();
-    const correctList = Array.isArray(correctVal) 
-        ? correctVal.map(c => String(c).trim().toLowerCase()) 
-        : [String(correctVal).trim().toLowerCase()];
-    return correctList.includes(u);
-};
-
-const getStatusStyles = (isReviewMode, isCorrect, isSelected = false, type = 'border') => {
-    if (!isReviewMode) {
-        if (type === 'badge') return "bg-white border-gray-400 text-gray-700";
-        if (type === 'container') return isSelected ? "bg-blue-50 border-blue-200" : "bg-white border-transparent";
-        return "border-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 bg-white text-gray-900";
-    }
-    if (isCorrect) {
-        if (type === 'badge') return "bg-green-600 text-white border-green-600";
-        if (type === 'container') return "bg-green-50 border-green-200";
-        return "border-green-500 bg-green-50 text-green-700 font-bold ring-1 ring-green-500";
-    } else {
-        if (type === 'badge') return isSelected ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-500 border-gray-300";
-        if (type === 'container') return isSelected ? "bg-red-50 border-red-200 opacity-80" : "opacity-50 grayscale";
-        return "border-red-500 bg-red-50 text-red-700 font-bold ring-1 ring-red-500";
-    }
-};
-
-// --- ICONS ---
-const HighlighterIcon = ({ active }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 ${active ? "fill-yellow-400 text-yellow-600" : "text-gray-500"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-    </svg>
-);
-
-const QuestionBadge = ({ id, isReviewMode, onClick }) => (
-    <span 
-        className={`min-w-[24px] h-[24px] flex items-center justify-center rounded bg-white border border-gray-400 text-[11px] font-bold text-gray-700 shrink-0 shadow-sm select-none mr-2 
-        ${isReviewMode ? 'cursor-pointer hover:border-blue-600 hover:text-blue-600' : ''}`}
-        onClick={onClick}
-    >
-        {id}
-    </span>
-);
-
-const CorrectAnswerTooltip = ({ answer }) => (
-    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-10 whitespace-nowrap bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded border border-green-300 font-bold shadow-sm animate-in fade-in zoom-in-95">
-        ✓ {Array.isArray(answer) ? answer[0] : answer}
-    </div>
-);
-
-const SelectInput = ({ value, onChange, options, isReviewMode, isCorrect, correctAnswer, width = "w-[80px]" }) => {
-    const styles = getStatusStyles(isReviewMode, isCorrect, false, 'input');
-    return (
-        <div className="relative shrink-0 ml-auto sm:ml-0">
-            <select 
-                value={value} 
-                disabled={isReviewMode} 
-                onChange={onChange} 
-                className={`h-[30px] ${width} pl-2 pr-6 border rounded text-sm font-bold appearance-none cursor-pointer transition-all shadow-sm focus:outline-none ${styles}`}
-            >
-                <option value="">...</option>
-                {options.map((opt, idx) => (
-                    <option key={idx} value={opt.label}>{opt.label}</option>
-                ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
-                <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
-            </div>
-            {isReviewMode && !isCorrect && <CorrectAnswerTooltip answer={correctAnswer} />}
-        </div>
-    );
-};
-
-// =========================================================
-// 2. MAIN COMPONENT
-// =========================================================
+// Yangi komponentlarni import qilamiz
+import { HighlighterIcon } from "./ListeningComponents";
+import { MapLabeling, Matching, SelectionBox, TableCompletion, NoteCompletion, FlowChart, StandardMCQ } from "./ListeningQuestionTypes";
+// Highlighter logic (agar alohida hook bo'lmasa, shu yerda qolishi mumkin yoki utilsga o'tsa ham bo'ladi)
+// Lekin siz "Highlight" tugmasini Interfacega o'tkazganingiz uchun, bu yerda faqat "Selection" funksiyasi qoladi.
 
 const ListeningRightPane = memo(({ 
     testData, 
@@ -88,24 +12,20 @@ const ListeningRightPane = memo(({
     onAnswerChange, 
     isReviewMode, 
     textSize = "text-base", 
-    handleLocationClick 
+    handleLocationClick,
+    testMode // <--- YANGI: Buni qo'shishni unutmang
 }) => {
-
-    // --- STATE: HIGHLIGHTER ---
-    const [isHighlighterActive, setIsHighlighterActive] = useState(false);
     const containerRef = useRef(null);
+    const [isHighlighterActive, setIsHighlighterActive] = useState(false);
 
     // --- INTRO BLUR LOGIC ---
     const [introTimeLeft, setIntroTimeLeft] = useState(0);
 
     React.useEffect(() => {
-        // Agar Review Mode bo'lsa yoki Intro vaqt tugagan bo'lsa, ishlamasin
-        if (isReviewMode) return;
-
-        // TestData ichidan intro vaqtini olamiz (default 10 sekund)
+        // 🔥 O'ZGARISH: Agar Review Mode YOKI Practice Mode bo'lsa, intro timer ishlamasin
+        if (isReviewMode || testMode === 'practice') return;
         const duration = Number(testData.introDuration) || 10;
         setIntroTimeLeft(duration);
-
         const timer = setInterval(() => {
             setIntroTimeLeft((prev) => {
                 if (prev <= 1) {
@@ -116,7 +36,7 @@ const ListeningRightPane = memo(({
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [testData.introDuration, isReviewMode]);
+    }, [testData.introDuration, isReviewMode, testMode]);
 
     // Guard Clause
     if (!testData?.questions || !testData?.passages) {
@@ -126,414 +46,79 @@ const ListeningRightPane = memo(({
     // --- HIGHLIGHT LOGIC ---
     const handleTextSelection = (e) => {
         if (!isHighlighterActive) return;
-
-        // 1. O'CHIRISH (Agar sariq joy bosilsa)
-        // E.target biz bosgan element ekanligini tekshiramiz
         if (e.target.tagName === "SPAN" && e.target.classList.contains("bg-yellow-200")) {
-            // Span ichidagi matnni tashqariga chiqarib, spannin o'zini o'chiramiz
             const parent = e.target.parentNode;
-            while (e.target.firstChild) {
-                parent.insertBefore(e.target.firstChild, e.target);
-            }
+            while (e.target.firstChild) parent.insertBefore(e.target.firstChild, e.target);
             parent.removeChild(e.target);
-            return; // Funksiyani to'xtatamiz
+            return; 
         }
-
-        // 2. QO'SHISH (Matn tanlansa)
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0 || selection.toString().trim() === "") return;
-
-        // Xavfsizlik: Faqat bizning konteyner ichida ekanligini tekshirish
         if (containerRef.current && !containerRef.current.contains(selection.anchorNode)) return;
 
-        const range = selection.getRangeAt(0);
-        
-        // Agar allaqachon highlight qilingan bo'lsa, olib tashlash (Oddiy toggle)
-        // Hozircha faqat qo'shishni qilamiz (murakkablikni oldini olish uchun)
         try {
+            const range = selection.getRangeAt(0);
             const span = document.createElement("span");
-            // "pointer-events-auto" qo'shdik, shunda keyingi safar ustiga bosganda event ishlaydi
             span.className = "bg-yellow-200 selection:bg-yellow-300 rounded-sm cursor-pointer pointer-events-auto";
             range.surroundContents(span);
-            selection.removeAllRanges(); // Tanlovni olib tashlash
+            selection.removeAllRanges();
         } catch (e) {
             console.warn("Murakkab highlight (taglar kesishuvi) qo'llab quvvatlanmaydi.");
         }
     };
 
-    // --- RENDERERS ---
-
-    const renderInput = (qId, answer, locationId) => {
-        const val = userAnswers[qId] || "";
-        const isCorrect = isReviewMode ? checkAnswer(val, answer) : false;
-        const styles = getStatusStyles(isReviewMode, isCorrect, false, 'input');
-
-        return (
-            <span key={qId} className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative group/input">
-                <QuestionBadge id={qId} isReviewMode={isReviewMode} onClick={() => isReviewMode && locationId && handleLocationClick(locationId)} />
-                <input 
-                    className={`w-[130px] h-[30px] border rounded px-2 text-center font-semibold text-sm focus:outline-none transition-all placeholder-transparent shadow-sm ${styles}`}
-                    value={val} 
-                    onChange={(e) => onAnswerChange(qId, e.target.value)} 
-                    disabled={isReviewMode}
-                    autoComplete="off"
-                />
-                {isReviewMode && !isCorrect && (
-                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-10 hidden group-hover/input:block animate-in fade-in zoom-in-95 duration-200">
-                        <span className="text-[10px] font-bold text-white bg-green-600 px-2 py-1 rounded shadow-lg whitespace-nowrap">✓ {answer}</span>
-                        <div className="w-2 h-2 bg-green-600 rotate-45 absolute left-1/2 -translate-x-1/2 -bottom-1"></div>
-                    </div>
-                )}
-            </span>
-        );
-    };
-
-    const renderTableCell = (cell, group) => {
-        if (!cell.isMixed && cell.text) {
-            return <span className="text-gray-800 leading-relaxed text-[15px]" dangerouslySetInnerHTML={{ __html: cell.text }} />;
-        }
-        return (
-            <div className="leading-[2.2] text-gray-800 text-[15px]">
-                {cell.parts?.map((p, i) => {
-                    if (p.type === 'text') return <span key={i} dangerouslySetInnerHTML={{ __html: p.content }} />;
-                    if (p.type === 'input') return renderInput(p.id, group.items?.find(it => it.id === p.id)?.answer || "", null);
-                    return null;
-                })}
-            </div>
-        );
-    };
-
-    const renderSelectionBox = (group) => {
-        const questions = group.questions || group.items || [];
-        const options = group.options || [];
-        if (questions.length === 0 || options.length === 0) return null;
-
-        const questionIds = questions.map((q) => q.id);
-        const maxSelection = questionIds.length; 
-        const currentSelectedValues = questionIds.map((id) => userAnswers[id]).filter(Boolean); 
-
-        const handleToggle = (optionLabel) => {
-            if (isReviewMode) return;
-            let newSelection = [...currentSelectedValues];
-            if (newSelection.includes(optionLabel)) newSelection = newSelection.filter((val) => val !== optionLabel);
-            else {
-                if (newSelection.length >= maxSelection) newSelection.shift(); 
-                newSelection.push(optionLabel);
-            }
-            newSelection.sort(); 
-            questionIds.forEach((id, index) => onAnswerChange(id, newSelection[index] || ""));
-        };
-
-        return (
-            <div className="mb-6 border border-gray-200 rounded-lg p-3 bg-gray-50/50 shadow-sm">
-                <div className="mb-2 border-b border-gray-200 pb-2">
-                    <p className="text-sm text-gray-500 italic font-medium">Select <strong>{maxSelection}</strong> correct options (Questions {questionIds.join(", ")})</p>
-                </div>
-                <div className="flex flex-col gap-1">
-                    {options.map((opt, idx) => {
-                        const isSelected = currentSelectedValues.includes(opt.label);
-                        const isCorrectOption = questions.some(q => Array.isArray(q.answer) ? q.answer.includes(opt.label) : q.answer === opt.label);
-                        const containerStyle = getStatusStyles(isReviewMode, isCorrectOption, isSelected, 'container');
-                        const badgeStyle = getStatusStyles(isReviewMode, isCorrectOption, isSelected, 'badge');
-
-                        return (
-                        <div key={idx} className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${containerStyle}`}>    
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border transition-colors ${badgeStyle}`}>{opt.label}</div>
-                                <div className="relative flex items-center justify-center shrink-0">
-                                    <input type="checkbox" className="appearance-none w-5 h-5 border border-gray-400 rounded checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer" checked={isSelected} onChange={() => handleToggle(opt.label)} disabled={isReviewMode} />
-                                    <svg className={`absolute w-3.5 h-3.5 text-white pointer-events-none ${isSelected ? 'block' : 'hidden'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                </div>
-                                <span className="text-[15px] text-gray-900 font-medium">{opt.text}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    const renderMapLabeling = (group) => {
-        const options = group.options || []; 
-        return (
-            <div className="mb-6">
-                {group.image && (
-                    <div className="mb-6 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex justify-center py-2">
-                        <img src={group.image} alt="Map" className="max-w-full max-h-[400px] w-auto h-auto object-contain" />
-                    </div>
-                )}
-                <div className="flex flex-col gap-1">
-                    {(group.questions || group.items || []).map((q) => {
-                        const isCorrect = checkAnswer(userAnswers[q.id], q.answer);
-                        return (
-                            <div key={q.id} className="flex items-center gap-2 py-1 hover:bg-gray-50 rounded transition-colors">
-                                <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
-                                <div className="text-base font-semibold text-gray-900 leading-snug shrink-0 min-w-[120px]">{q.text}</div>
-                                <SelectInput 
-                                    value={userAnswers[q.id] || ""} 
-                                    onChange={(e) => onAnswerChange(q.id, e.target.value)} 
-                                    options={options} 
-                                    isReviewMode={isReviewMode} 
-                                    isCorrect={isCorrect} 
-                                    correctAnswer={q.answer} 
-                                />
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    const renderMatching = (group) => {
-        const options = group.options || []; 
-        return (
-            <div className="mb-5">
-                {options.length > 0 && (
-                    <div className="mb-6 border border-gray-300 p-4 rounded-lg bg-gray-50/30">
-                        <h4 className="font-bold text-xs text-gray-500 uppercase mb-3 tracking-widest">Options</h4>
-                        <div className="flex flex-col gap-2">
-                            {options.map((opt, idx) => (
-                                <div key={idx} className="text-base font-bold text-gray-800 flex items-start gap-2 leading-tight">
-                                    <span className="min-w-[20px] text-gray-900">{opt.label}</span><span>{opt.text}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                <div className="flex flex-col gap-0.5">
-                    {(group.questions || group.items || []).map((q) => {
-                        const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer) : false;
-                        const cleanText = q.text ? q.text.replace('[DROP]', '').trim() : "";
-                        return (
-                            <div key={q.id} className="flex items-center gap-2 py-1 hover:bg-gray-50 rounded transition-colors">
-                                <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
-                                <div className="text-base font-normal text-gray-900 leading-snug shrink-0 mr-2" dangerouslySetInnerHTML={{ __html: cleanText }} />
-                                <SelectInput 
-                                    value={userAnswers[q.id] || ""} 
-                                    onChange={(e) => onAnswerChange(q.id, e.target.value)} 
-                                    options={options} 
-                                    isReviewMode={isReviewMode} 
-                                    isCorrect={isCorrect} 
-                                    correctAnswer={q.answer} 
-                                    width="w-[100px]"
-                                />
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    const renderStdMCQ = (group) => {
-        return (group.questions || group.items || []).map(q => {
-            const options = q.options || group.options || [];
-            return (
-                <div key={q.id} className="mb-6 p-1 rounded-xl">
-                    <div className="flex gap-2 mb-2 items-start">
-                        <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
-                        {q.text && <div className="text-base font-semibold text-gray-900 leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: q.text }} />}
-                    </div>
-                    <div className="flex flex-col gap-1 pl-2 sm:pl-10">
-                        {options.map((opt, idx) => {
-                            const isSelected = String(userAnswers[q.id]) === String(opt.label);
-                            const isCorrect = isReviewMode ? checkAnswer(opt.label, q.answer) : false;
-                            const containerStyle = getStatusStyles(isReviewMode, isCorrect, isSelected, 'container');
-                            const badgeStyle = getStatusStyles(isReviewMode, isCorrect, isSelected, 'badge');
-
-                            return (
-                                <div key={idx} className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${containerStyle}`}>
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border transition-colors ${badgeStyle}`}>{opt.label}</div>
-                                    <div className="relative flex items-center justify-center shrink-0">
-                                        <input type="radio" className="appearance-none w-5 h-5 border border-gray-300 rounded-full checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer" checked={isSelected} onChange={() => !isReviewMode && onAnswerChange(q.id, String(opt.label))} disabled={isReviewMode} />
-                                        <div className={`absolute w-2.5 h-2.5 rounded-full opacity-0 transition-opacity pointer-events-none ${isSelected ? 'opacity-100' : ''} bg-white`}></div>
-                                    </div>
-                                    <span className="text-[15px] text-gray-900 font-medium leading-tight">{opt.text}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-        });
-    };
-
     // --- MAIN DISPATCHER ---
     const renderGroupContent = (group) => {
-        if (group.type === 'map_labeling') return renderMapLabeling(group);
-        if (group.type === 'matching') return renderMatching(group);
-        if (['selection', 'pick_two', 'multi_choice_box', 'multiple_choice_multiple_answer'].includes(group.type)) return renderSelectionBox(group);
-        if (group.type === 'table_completion') {
-            return (
-                <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm mb-6 bg-white">
-                    <table className="w-full text-sm text-left border-collapse">
-                        <thead className="bg-gray-100 text-gray-700 uppercase font-bold text-xs">
-                            <tr>{group.headers.map((h, i) => (<th key={i} className="px-4 py-3 border-b border-gray-200">{h}</th>))}</tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {group.rows.map((row, rIdx) => (
-                                <tr key={rIdx} className="hover:bg-gray-50/50 transition-colors">
-                                    {(row.cells || row).map((cell, cIdx) => (
-                                        <td key={cIdx} className="px-4 py-3 border-r border-gray-100 last:border-r-0 align-top">
-                                            {renderTableCell(cell, group)}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            );
-        }
+        // Hamma propslarni bitta obyektga yig'ib uzatamiz
+        const commonProps = { group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick };
+
+        if (group.type === 'map_labeling') return <MapLabeling {...commonProps} />;
+        if (group.type === 'matching') return <Matching {...commonProps} />;
+        if (['selection', 'pick_two', 'multi_choice_box', 'multiple_choice_multiple_answer'].includes(group.type)) return <SelectionBox {...commonProps} />;
+        if (group.type === 'table_completion') return <TableCompletion {...commonProps} />;
+        if ((group.type === 'note_completion' || group.type === 'gap_fill') && group.groups) return <NoteCompletion {...commonProps} />;
+        if (group.type === 'flow_chart') return <FlowChart {...commonProps} />;
         
-        // --- NOTE COMPLETION & GAP FILL (YANGILANGAN) ---
-        if ((group.type === 'note_completion' || group.type === 'gap_fill') && group.groups) {
-            return (
-                <div className="mb-6 space-y-6">
-                    {group.groups.map((sub, sIdx) => (
-                        <div key={sIdx} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                            {/* 1. Asosiy Header (Masalan: GAMIFICATION) */}
-                            {sub.header && (
-                                <h3 className="text-xl font-black text-gray-900 mb-4 uppercase tracking-wide border-b border-gray-300 pb-2">
-                                    {sub.header}
-                                </h3>
-                            )}
-                            
-                            <div className="space-y-3">
-                                {sub.items.map((q, qIdx) => {
-                                    
-                                    // --- A) HEADING (Sarlavha) ---
-                                    // Bu "What is it?", "Uses", "Successful examples" kabi qatorlar uchun
-                                    if (q.type === 'heading') {
-                                        return (
-                                            <div key={qIdx} className="font-bold text-black text-lg mt-4 mb-2">
-                                                {q.text}
-                                            </div>
-                                        );
-                                    }
-
-                                    // --- B) ODDIY TEXT (Sarlavha emas, savol ham emas) ---
-                                    // Bu "• The use of gaming..." kabi qatorlar uchun
-                                    // MUHIM: font-normal ishlatamiz!
-                                    const hasInput = q.text && q.text.includes('[INPUT]');
-                                    
-                                    if (q.type === 'text' || (q.text && !hasInput && !q.parts)) {
-                                        return (
-                                            <div key={qIdx} className="font-normal text-gray-800 text-[16px] pl-4 leading-relaxed">
-                                                {/* dangerouslySetInnerHTML bullet pointlarni to'g'ri chiqarish uchun kerak */}
-                                                <span dangerouslySetInnerHTML={{ __html: q.text }} />
-                                            </div>
-                                        );
-                                    }
-
-                                    // --- C) SAVOL (Question) ---
-                                    // Bu "[INPUT]" bor qatorlar uchun
-                                    // MUHIM: Bu ham font-normal bo'lishi kerak, faqat inputning o'zi ajralib turadi
-                                    if (q.text && hasInput) {
-                                        const parts = q.text.split('[INPUT]');
-                                        return (
-                                            <div key={q.id} className="font-normal text-gray-800 text-[16px] leading-[2.6] pl-4 flex flex-wrap items-baseline">
-                                                {parts[0] && <span className="mr-2" dangerouslySetInnerHTML={{ __html: parts[0] }} />}
-                                                
-                                                {/* Input komponenti */}
-                                                {renderInput(q.id, q.answer, q.locationId)}
-                                                
-                                                {parts[1] && <span className="ml-2" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
-                                            </div>
-                                        );
-                                    }
-                                    
-                                    // Mixed type (eski koddan qolgan bo'lsa)
-                                    if (q.isMixed && q.parts) {
-                                        return (
-                                            <div key={q.id} className="font-normal text-gray-800 text-[16px] leading-[2.6] pl-4">
-                                                 {q.parts.map((p, pIdx) => {
-                                                    if (p.type === 'text') return <span key={pIdx} dangerouslySetInnerHTML={{ __html: p.content }} />;
-                                                    if (p.type === 'input') return renderInput(p.id, q.answer, q.locationId);
-                                                    return null;
-                                                })}
-                                            </div>
-                                        )
-                                    }
-
-                                    return null;
-                                })}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            );
-        }
-        if (group.type === 'flow_chart') {
-            return (
-                <div className="mb-8 flex flex-col items-center">
-                    <div className="flex flex-col gap-3 w-full max-w-lg">
-                        {group.items.map((item, index) => (
-                            <div key={item.id || index} className="relative flex flex-col items-center">
-                                <div className="w-full border border-gray-300 rounded-lg p-4 bg-white text-center shadow-sm relative z-10 hover:shadow-md transition-shadow">
-                                    {item.isQuestion ? (
-                                        <div className="flex flex-col items-center gap-2">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Step {index + 1}</span>
-                                            <div className="flex items-center justify-center w-full gap-2">{renderInput(item.id, item.answer, item.locationId)}</div>
-                                            {item.text && <span className="text-sm mt-1 text-gray-600">{item.text.replace('[INPUT]', '')}</span>}
-                                        </div>
-                                    ) : <span className="text-gray-800 font-semibold text-sm">{item.text}</span>}
-                                </div>
-                                {index !== group.items.length - 1 && <div className="h-6 w-px bg-gray-300 my-1 relative"><div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 text-gray-400">▼</div></div>}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-        return renderStdMCQ(group);
+        return <StandardMCQ {...commonProps} />;
     };
 
     const currentPassage = testData.passages[activePart];
     const questionsForPart = testData.questions.filter(g => g.passageId === currentPassage?.id);
 
     return (
-        // 🔥 MOUSE UP EVENT QO'SHILDI: Highlight uchun
         <div 
             ref={containerRef}
             className={`p-6 pb-5 bg-white ${textSize} select-text w-full relative`}
             onMouseUp={handleTextSelection}
         >
-            {/* 🔥 BLUR OVERLAY (Qaytarildi) 🔥 */}
+            {/* INTRO BLUR */}
             {introTimeLeft > 0 && !isReviewMode && (
                 <div className="fixed inset-0 z-[3000] bg-white/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500">
                     <div className="text-6xl mb-4 animate-bounce">🎧</div>
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Test is about to start</h2>
                     <p className="text-gray-500 font-medium mb-6">Please put on your headphones</p>
-                    
                     <div className="w-24 h-24 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shadow-lg">
-                        <span className="text-3xl font-bold text-blue-600 animate-pulse">
-                            {introTimeLeft}
-                        </span>
+                        <span className="text-3xl font-bold text-blue-600 animate-pulse">{introTimeLeft}</span>
                     </div>
                 </div>
             )}
 
-            {/* --- HEADER --- */}
-            {/* flex items-center gap-4 qildik, shunda tugma chapda turadi */}
+            {/* HEADER */}
             <div className="mb-6 border-b border-gray-200 pb-4 flex items-center gap-4">
-                 
-                 {/* 🔥 HIGHLIGHTER TOOL BUTTON 🔥 */}
                  <button 
                     onClick={() => setIsHighlighterActive(!isHighlighterActive)}
-                    // Button stili biroz o'zgardi (full screen tagida qolmasligi uchun z-index berish shart emas, chunki joyi o'zgardi)
                     className={`p-2 rounded-lg transition-all border shrink-0 ${isHighlighterActive ? 'bg-yellow-100 border-yellow-300 ring-2 ring-yellow-200' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}
-                    title="Highlight Text (Click highlighted text to remove)"
+                    title="Highlight Text"
                  >
                     <HighlighterIcon active={isHighlighterActive} />
                  </button>
-
                  <div>
                      <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">{currentPassage?.title}</h2>
                      <p className="text-sm text-gray-500 mt-1 font-medium">Listen carefully and answer the questions.</p>
                  </div>
             </div>
 
+            {/* QUESTIONS LOOP */}
             {questionsForPart.map((group, gIdx) => {
                 const allItems = group.questions || group.items || [];
                 const firstId = allItems.length > 0 ? allItems[0].id : null;
@@ -553,6 +138,6 @@ const ListeningRightPane = memo(({
             })}
         </div>
     );
-}, (prev, next) => prev.activePart === next.activePart && prev.userAnswers === next.userAnswers && prev.isReviewMode === next.isReviewMode && prev.textSize === next.textSize);
+}, (prev, next) => prev.activePart === next.activePart && prev.userAnswers === next.userAnswers && prev.isReviewMode === next.isReviewMode && prev.textSize === next.textSize && prev.testMode === next.testMode);
 
 export default ListeningRightPane;
