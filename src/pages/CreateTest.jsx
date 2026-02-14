@@ -5,7 +5,7 @@ import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate, useParams } from "react-router-dom";
 
-// --- ICONS (O'zgarmadi) ---
+// --- ICONS (Ranglar moslashtirildi) ---
 const Icons = {
   Back: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>,
   Cloud: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>,
@@ -37,8 +37,6 @@ export default function CreateTest() {
     ],
   });
 
-  // --- 🔥 OPTIMIZATSIYA: UNIVERSAL UPLOAD FUNCTION 🔥 ---
-  // Barcha yuklashlar uchun yagona funksiya (DRY principle)
   const uploadToFirebase = async (file, folderName) => {
       const storageRef = ref(storage, `${folderName}/${Date.now()}_${file.name}`);
       await uploadBytes(storageRef, file);
@@ -101,13 +99,12 @@ export default function CreateTest() {
     updateTestDataFromJSON(e.target.value);
   };
 
-  // 1. AUDIO UPLOAD (Optimized)
   const handlePartAudioUpload = async (e, index) => {
       const file = e.target.files[0];
       if (!file) return;
       setUploading(true);
       try {
-          const url = await uploadToFirebase(file, "part_audios"); // Universal funksiya ishlatildi
+          const url = await uploadToFirebase(file, "part_audios");
           
           setPartAudios(prev => ({ ...prev, [index]: url }));
           setTestData(prev => {
@@ -119,17 +116,15 @@ export default function CreateTest() {
       } catch (err) { alert(err.message); } finally { setUploading(false); }
   };
 
-  // 2. MAP UPLOAD (Optimized + Auto Inject Logic)
   const handleMapUpload = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       setUploading(true);
 
       try {
-          const url = await uploadToFirebase(file, "map_images"); // Universal funksiya
+          const url = await uploadToFirebase(file, "map_images");
           setUploadedMaps(prev => [...prev, { name: file.name, url }]);
 
-          // Auto-Inject Logic
           if (jsonInput.trim()) {
               try {
                   const parsedJson = JSON.parse(jsonInput);
@@ -165,13 +160,12 @@ export default function CreateTest() {
       } catch (err) { alert("Xatolik: " + err.message); } finally { setUploading(false); }
   };
 
-  // 3. WRITING IMAGE UPLOAD (Optimized)
   const handleWritingImageUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
         try {
-            const url = await uploadToFirebase(file, "writing_images"); // Universal funksiya
+            const url = await uploadToFirebase(file, "writing_images");
             setTestData(prev => {
                 const newTasks = [...prev.writingTasks];
                 newTasks[activeWritingTask] = { ...newTasks[activeWritingTask], image: url };
@@ -224,70 +218,70 @@ export default function CreateTest() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#141416] text-white selection:bg-[#3772FF]/30">
+    <div className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#F5F5F7] text-gray-900 selection:bg-[#3772FF]/30">
       {/* MOBILE HEADER */}
-      <div className="md:hidden p-4 flex items-center justify-between bg-[#23262F] border-b border-white/5">
-          <button onClick={() => navigate('/admin/tests')} className="text-white"><Icons.Back className="w-6 h-6"/></button>
-          <span className="font-bold">Test Manager</span>
+      <div className="md:hidden p-4 flex items-center justify-between bg-white border-b border-gray-200">
+          <button onClick={() => navigate('/admin/tests')} className="text-gray-600"><Icons.Back className="w-6 h-6"/></button>
+          <span className="font-bold text-gray-900">Test Manager</span>
       </div>
 
       {/* --- LEFT PANEL --- */}
-      <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col h-full overflow-y-auto custom-scrollbar border-r border-[#353945]">
+      <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col h-full overflow-y-auto custom-scrollbar border-r border-gray-200 bg-white">
         <div className="flex justify-between items-center mb-8">
-            <button onClick={() => navigate('/admin/tests')} className="flex items-center gap-2 text-[#777E90] hover:text-white transition group">
-                <div className="p-2 rounded-full bg-[#23262F] group-hover:bg-[#353945] border border-white/5"><Icons.Back className="w-4 h-4"/></div>
+            <button onClick={() => navigate('/admin/tests')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition group">
+                <div className="p-2 rounded-full bg-white group-hover:bg-gray-100 border border-gray-200 shadow-sm"><Icons.Back className="w-4 h-4"/></div>
                 <span className="text-sm font-medium">Orqaga</span>
             </button>
-            <div className="flex bg-[#23262F] p-1 rounded-xl border border-white/5">
-                <button onClick={() => setIsMockMode(false)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${!isMockMode ? 'bg-[#3772FF] text-white shadow-lg' : 'text-[#777E90] hover:text-white'}`}>Standard</button>
-                <button onClick={() => setIsMockMode(true)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${isMockMode ? 'bg-[#FFD166] text-black shadow-lg' : 'text-[#777E90] hover:text-white'}`}>Mock Exam</button>
+            <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                <button onClick={() => setIsMockMode(false)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${!isMockMode ? 'bg-white text-[#3772FF] shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-900'}`}>Standard</button>
+                <button onClick={() => setIsMockMode(true)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${isMockMode ? 'bg-[#FFD166] text-black shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Mock Exam</button>
             </div>
         </div>
 
-        <h1 className="text-3xl font-medium mb-8 tracking-tight text-white">{isEditMode ? "Testni Tahrirlash" : "Yangi Test Yaratish"}</h1>
+        <h1 className="text-3xl font-bold mb-8 tracking-tight text-gray-900">{isEditMode ? "Testni Tahrirlash" : "Yangi Test Yaratish"}</h1>
 
         <div className="space-y-6 mb-8">
             <div>
-              <label className="block text-xs font-bold text-[#777E90] uppercase mb-2 ml-1">Test Nomi</label>
-              <input type="text" className="w-full bg-[#23262F] border border-[#353945] rounded-2xl p-4 text-white focus:outline-none focus:border-[#3772FF] transition font-medium placeholder:text-[#777E90]/50" placeholder="Masalan: Cambridge 18 - Test 1" value={testData.title} onChange={e => setTestData({...testData, title: e.target.value})} />
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Test Nomi</label>
+              <input type="text" className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition font-medium placeholder:text-gray-400" placeholder="Masalan: Cambridge 18 - Test 1" value={testData.title} onChange={e => setTestData({...testData, title: e.target.value})} />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#777E90] uppercase mb-2 ml-1">Turi</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Turi</label>
                   <div className="relative">
-                      <select className="w-full bg-[#23262F] border border-[#353945] rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-[#3772FF] transition cursor-pointer" value={testData.type} onChange={e => setTestData({...testData, type: e.target.value})}>
+                      <select className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.type} onChange={e => setTestData({...testData, type: e.target.value})}>
                           <option value="reading">Reading</option><option value="listening">Listening</option><option value="writing">Writing</option><option value="speaking">Speaking</option>
                       </select>
-                      <div className="absolute right-4 top-4 text-[#777E90] pointer-events-none">▼</div>
+                      <div className="absolute right-4 top-4 text-gray-400 pointer-events-none">▼</div>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#777E90] uppercase mb-2 ml-1">Qiyinlik</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Qiyinlik</label>
                   <div className="relative">
-                      <select className="w-full bg-[#23262F] border border-[#353945] rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-[#3772FF] transition cursor-pointer" value={testData.difficulty} onChange={e => setTestData({...testData, difficulty: e.target.value})}>
+                      <select className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.difficulty} onChange={e => setTestData({...testData, difficulty: e.target.value})}>
                           <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
                       </select>
-                      <div className="absolute right-4 top-4 text-[#777E90] pointer-events-none">▼</div>
+                      <div className="absolute right-4 top-4 text-gray-400 pointer-events-none">▼</div>
                   </div>
                 </div>
             </div>
 
             {testData.type === 'listening' && (
-                <div className="bg-[#23262F] p-4 rounded-2xl border border-[#353945] flex items-center justify-between">
-                    <span className="text-sm font-medium text-[#777E90]">Intro Delay (Sekund)</span>
-                    <input type="number" className="w-20 bg-[#141416] border border-[#353945] rounded-xl p-2 text-center text-white focus:border-[#3772FF] outline-none" value={testData.introDuration} onChange={(e) => setTestData({...testData, introDuration: e.target.value})} />
+                <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center justify-between shadow-sm">
+                    <span className="text-sm font-medium text-gray-600">Intro Delay (Sekund)</span>
+                    <input type="number" className="w-20 bg-gray-50 border border-gray-200 rounded-xl p-2 text-center text-gray-900 focus:border-[#3772FF] outline-none transition" value={testData.introDuration} onChange={(e) => setTestData({...testData, introDuration: e.target.value})} />
                 </div>
             )}
         </div>
 
         {testData.type === 'listening' && (
-            <div className="bg-[#23262F] p-6 rounded-[30px] border border-[#353945] mb-6">
-                <h3 className="font-medium text-white mb-4 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#9757D7]"/> Audio Fayllar</h3>
+            <div className="bg-white p-6 rounded-[30px] border border-gray-200 mb-6 shadow-sm">
+                <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#9757D7]"/> Audio Fayllar</h3>
                 <div className="grid grid-cols-2 gap-3">
                     {[0, 1, 2, 3].map((idx) => (
-                        <label key={idx} className={`relative flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/10' : 'border-[#353945] hover:border-[#777E90] hover:bg-[#353945]/50'}`}>
-                            <span className="text-xs font-bold text-[#777E90] uppercase mb-1">Part {idx + 1}</span>
+                        <label key={idx} className={`relative flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+                            <span className="text-xs font-bold text-gray-500 uppercase mb-1">Part {idx + 1}</span>
                             {partAudios[idx] ? <span className="text-[10px] text-[#45B26B] font-bold flex items-center gap-1"><Icons.Check className="w-3 h-3"/> Yuklandi</span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
                             <input type="file" accept="audio/*" onChange={(e) => handlePartAudioUpload(e, idx)} disabled={uploading} className="hidden"/>
                         </label>
@@ -297,98 +291,98 @@ export default function CreateTest() {
         )}
 
         {(testData.type === 'listening' || testData.type === 'reading') && (
-            <div className="bg-[#23262F] p-6 rounded-[30px] border border-[#353945] mb-6">
+            <div className="bg-white p-6 rounded-[30px] border border-gray-200 mb-6 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-medium text-white flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#3772FF]"/> Map & Images</h3>
-                    <label className="bg-[#3772FF] hover:bg-[#2e62e0] text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition">
+                    <h3 className="font-medium text-gray-900 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#3772FF]"/> Map & Images</h3>
+                    <label className="bg-[#3772FF] hover:bg-[#2e62e0] text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition shadow-sm hover:shadow-md">
                         + Rasm
                         <input type="file" accept="image/*" onChange={handleMapUpload} disabled={uploading} className="hidden"/>
                     </label>
                 </div>
                 <div className="space-y-2">
                     {uploadedMaps.map((map, idx) => (
-                        <div key={idx} className="flex items-center justify-between bg-[#141416] p-3 rounded-xl border border-[#353945]">
-                            <span className="text-xs text-[#777E90] truncate w-40">{map.name}</span>
-                            <button onClick={() => copyToClipboard(map.url)} className="text-[#3772FF] hover:text-white transition p-1"><Icons.Copy className="w-4 h-4"/></button>
+                        <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200">
+                            <span className="text-xs text-gray-600 truncate w-40">{map.name}</span>
+                            <button onClick={() => copyToClipboard(map.url)} className="text-[#3772FF] hover:text-[#2e62e0] transition p-1"><Icons.Copy className="w-4 h-4"/></button>
                         </div>
                     ))}
-                    {uploadedMaps.length === 0 && <p className="text-xs text-[#777E90] text-center py-2">Rasm yuklanmagan</p>}
+                    {uploadedMaps.length === 0 && <p className="text-xs text-gray-400 text-center py-2">Rasm yuklanmagan</p>}
                 </div>
             </div>
         )}
 
         {testData.type === 'writing' && (
-            <div className="bg-[#23262F] p-6 rounded-[30px] border border-[#353945] mb-6 flex-1 flex flex-col">
-                <div className="flex bg-[#141416] p-1 rounded-xl mb-4 w-fit border border-[#353945]">
-                    {[0,1].map(i => (<button key={i} onClick={() => setActiveWritingTask(i)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeWritingTask === i ? 'bg-[#3772FF] text-white' : 'text-[#777E90] hover:text-white'}`}>Task {i+1}</button>))}
+            <div className="bg-white p-6 rounded-[30px] border border-gray-200 mb-6 flex-1 flex flex-col shadow-sm">
+                <div className="flex bg-gray-100 p-1 rounded-xl mb-4 w-fit border border-gray-200">
+                    {[0,1].map(i => (<button key={i} onClick={() => setActiveWritingTask(i)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeWritingTask === i ? 'bg-white text-[#3772FF] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Task {i+1}</button>))}
                 </div>
                 <div className="flex items-center gap-3 mb-4">
-                    <label className="bg-[#353945] hover:bg-[#454955] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition flex-1 text-center">
+                    <label className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition flex-1 text-center">
                         Rasm Yuklash
                         <input type="file" accept="image/*" onChange={handleWritingImageUpload} className="hidden"/>
                     </label>
                     {testData.writingTasks[activeWritingTask].image && <span className="text-xs text-[#45B26B]">Rasm mavjud</span>}
                 </div>
-                <textarea className="w-full flex-1 bg-[#141416] border border-[#353945] rounded-2xl p-4 text-white text-sm focus:border-[#3772FF] outline-none resize-none leading-relaxed placeholder:text-[#777E90]/50" placeholder="Task description..." value={testData.writingTasks[activeWritingTask].prompt} onChange={e => handleWritingUpdate("prompt", e.target.value)}></textarea>
+                <textarea className="w-full flex-1 bg-gray-50 border border-gray-200 rounded-2xl p-4 text-gray-900 text-sm focus:border-[#3772FF] outline-none resize-none leading-relaxed placeholder:text-gray-400" placeholder="Task description..." value={testData.writingTasks[activeWritingTask].prompt} onChange={e => handleWritingUpdate("prompt", e.target.value)}></textarea>
             </div>
         )}
 
         {(testData.type === 'reading' || testData.type === 'listening') && (
             <div className="flex-1 flex flex-col min-h-[300px]">
                 <div className="flex justify-between items-center mb-2 px-1">
-                    <label className="text-xs font-bold text-[#777E90] uppercase">JSON Data</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase">JSON Data</label>
                     {jsonError && <span className="text-xs text-[#FF5959] font-bold">{jsonError}</span>}
                 </div>
-                <textarea className="w-full flex-1 bg-[#23262F] border border-[#353945] rounded-[24px] p-5 font-mono text-xs text-[#777E90] focus:text-white focus:border-[#3772FF] outline-none resize-none leading-relaxed custom-scrollbar" value={jsonInput} onChange={handleJsonChange} placeholder='{ "passages": [], "questions": [] }' spellCheck="false"/>
+                <textarea className="w-full flex-1 bg-white border border-gray-200 rounded-[24px] p-5 font-mono text-xs text-gray-600 focus:text-gray-900 focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 outline-none resize-none leading-relaxed custom-scrollbar shadow-sm" value={jsonInput} onChange={handleJsonChange} placeholder='{ "passages": [], "questions": [] }' spellCheck="false"/>
             </div>
         )}
       </div>
 
       {/* --- RIGHT PANEL: PREVIEW --- */}
-      <div className="hidden md:flex w-1/2 bg-[#141416] p-8 flex-col border-l border-[#353945] relative">
+      <div className="hidden md:flex w-1/2 bg-gray-50 p-8 flex-col border-l border-gray-200 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-[#3772FF]/5 to-transparent pointer-events-none"/>
         <div className="flex justify-between items-center mb-6 relative z-10">
-            <h2 className="text-xl font-medium text-white">Preview</h2>
-            <span className="px-3 py-1 bg-[#23262F] rounded-lg text-xs font-bold text-[#3772FF] uppercase border border-[#353945]">{testData.type}</span>
+            <h2 className="text-xl font-medium text-gray-900">Preview</h2>
+            <span className="px-3 py-1 bg-white rounded-lg text-xs font-bold text-[#3772FF] uppercase border border-blue-100 shadow-sm">{testData.type}</span>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2 relative z-10">
-            <h1 className="text-3xl font-bold text-white leading-tight">{testData.title || "Test Nomi..."}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 leading-tight">{testData.title || "Test Nomi..."}</h1>
             {testData.passages?.map((p, i) => (
-                <div key={i} className="bg-[#23262F] p-6 rounded-[24px] border border-[#353945]">
+                <div key={i} className="bg-white p-6 rounded-[24px] border border-gray-200 shadow-sm">
                     <div className="flex justify-between items-center mb-4">
-                        <h4 className="text-lg font-bold text-white">{p.title || `Part ${i+1}`}</h4>
-                        {(partAudios[i] || p.audio) && <span className="text-[10px] bg-[#353945] text-[#9757D7] px-2 py-1 rounded font-bold">AUDIO</span>}
+                        <h4 className="text-lg font-bold text-gray-900">{p.title || `Part ${i+1}`}</h4>
+                        {(partAudios[i] || p.audio) && <span className="text-[10px] bg-purple-50 text-[#9757D7] px-2 py-1 rounded font-bold border border-purple-100">AUDIO</span>}
                     </div>
-                    <div className="text-sm text-[#777E90] leading-relaxed" dangerouslySetInnerHTML={{__html: p.content || "Matn yo'q..."}}></div>
+                    <div className="text-sm text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{__html: p.content || "Matn yo'q..."}}></div>
                 </div>
             ))}
             <div className="space-y-4">
                 {testData.questions?.map((g, i) => (
-                    <div key={i} className="bg-[#23262F]/50 p-5 rounded-[24px] border border-[#353945] hover:border-[#3772FF]/30 transition">
+                    <div key={i} className="bg-white p-5 rounded-[24px] border border-gray-200 hover:border-[#3772FF]/30 transition shadow-sm">
                         <p className="text-xs font-bold text-[#3772FF] mb-2 uppercase tracking-wider">{g.type}</p>
-                        <div className="text-sm text-white mb-3 font-medium" dangerouslySetInnerHTML={{__html: g.instruction}}></div>
+                        <div className="text-sm text-gray-900 mb-3 font-medium" dangerouslySetInnerHTML={{__html: g.instruction}}></div>
                         
-                        {/* Map Image Preview (Fixed Style) */}
+                        {/* Map Image Preview */}
                         {g.image && (
-                            <div className="mb-4 rounded-xl overflow-hidden border border-[#353945] bg-[#141416] flex justify-center py-2">
+                            <div className="mb-4 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex justify-center py-2">
                                 <img src={g.image} alt="Map" className="max-w-full max-h-[400px] w-auto h-auto object-contain" />
                             </div>
                         )}
 
                         {g.items && Array.isArray(g.items) ? (
                             g.items.map((q, idx) => (
-                                <div key={q.id || idx} className="flex gap-3 text-xs py-2 border-b border-[#353945] last:border-0 text-[#777E90]">
-                                    <span className="font-bold w-fit min-w-[24px] text-white">{q.id || '?'}.</span>
+                                <div key={q.id || idx} className="flex gap-3 text-xs py-2 border-b border-gray-100 last:border-0 text-gray-600">
+                                    <span className="font-bold w-fit min-w-[24px] text-gray-900">{q.id || '?'}.</span>
                                     <span className="flex-1" dangerouslySetInnerHTML={{__html: q.text || "Savol matni yo'q"}} />
                                 </div>
                             ))
-                        ) : <div className="text-xs text-orange-400 italic p-2">⚠ Savollar (items) topilmadi.</div>}
+                        ) : <div className="text-xs text-orange-500 italic p-2">⚠ Savollar (items) topilmadi.</div>}
                     </div>
                 ))}
             </div>
         </div>
-        <div className="mt-6 pt-6 border-t border-[#353945] relative z-10">
-            <button onClick={handleSave} disabled={loading || uploading} className={`w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isEditMode ? 'bg-[#FFD166] text-black hover:bg-[#ffc642]' : 'bg-[#3772FF] hover:bg-[#2e62e0]'}`}>
+        <div className="mt-6 pt-6 border-t border-gray-200 relative z-10">
+            <button onClick={handleSave} disabled={loading || uploading} className={`w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg shadow-blue-500/20 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isEditMode ? 'bg-[#FFD166] text-black hover:bg-[#ffc642]' : 'bg-[#3772FF] hover:bg-[#2e62e0]'}`}>
                 {loading ? "Jarayonda..." : (isEditMode ? "O'zgarishlarni Saqlash" : "Testni Yaratish")}
             </button>
         </div>
