@@ -1,6 +1,6 @@
 // src/App.jsx
-import React, { useEffect } from 'react'; 
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'; 
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
 // SAHIFALAR
@@ -12,17 +12,19 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminTests from './pages/AdminTests';
+import Onboarding from './pages/Onboarding';
+import Practice from './pages/Practice';
 
 // ADMIN SAHIFALAR
 import CreateTest from './pages/CreateTest';
 import AdminResults from './pages/AdminResults';
 
 // TEST BILAN BOG'LIQ SAHIFALAR
-import TestSolving from './pages/TestSolving'; 
-import TestReview from './pages/TestReview';  
+import TestSolving from './pages/TestSolving';
+import TestReview from './pages/TestReview';
 
-import MockExam from './pages/MockExam';     
-import MyResults from './pages/MyResults'; 
+import MockExam from './pages/MockExam';
+import MyResults from './pages/MyResults';
 
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -36,8 +38,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 function App() {
-  const { user, userData, loading, trackUserActivity } = useAuth(); 
-  const location = useLocation(); 
+  const { user, userData, loading, trackUserActivity } = useAuth();
+  const location = useLocation();
 
   // GOD MODE KUZATUVCHISI
   useEffect(() => {
@@ -46,7 +48,7 @@ function App() {
       let activityName = "Saytda";
 
       if (path === '/dashboard') activityName = "Bosh sahifada (Dashboard)";
-      else if (path.includes('/test/')) activityName = "Reading Test ishlamoqda... 統"; 
+      else if (path.includes('/test/')) activityName = "Reading Test ishlamoqda... 統";
       else if (path === '/mock-exam') activityName = "Mock Exam bo'limida";
       else if (path.includes('/review/')) activityName = "Xatolarini tahlil qilmoqda";
       else if (path === '/my-results') activityName = "Natijalarini ko'rmoqda";
@@ -63,73 +65,91 @@ function App() {
   return (
     <Routes>
       {/* Bosh sahifa (Landing) */}
-      <Route 
-        path="/" 
+      <Route
+        path="/"
         element={
           user ? (
             userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
           ) : (
             <LandingPage />
           )
-        } 
+        }
       />
 
       {/* Register sahifasi */}
-      <Route 
-        path="/register" 
+      <Route
+        path="/register"
         element={
           user ? (
             userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
           ) : (
             <Register />
           )
-        } 
+        }
       />
 
       {/* STUDENT YO'NALISHLARI */}
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <Onboarding />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/practice"
+        element={
+          <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <Practice />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute allowedRoles={['student', 'admin']}>
             <StudentDashboard />
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/my-results" 
+
+      <Route
+        path="/my-results"
         element={
           <ProtectedRoute allowedRoles={['student', 'admin']}>
             <MyResults />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      <Route 
-        path="/test/:testId" 
+      <Route
+        path="/test/:testId"
         element={
           <ProtectedRoute allowedRoles={['student', 'admin']}>
             <TestSolving />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      <Route 
-        path="/review/:id" 
+      <Route
+        path="/review/:id"
         element={
           <ProtectedRoute allowedRoles={['student', 'admin']}>
             <TestReview />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      <Route 
-        path="/mock-exam" 
+      <Route
+        path="/mock-exam"
         element={
           <ProtectedRoute allowedRoles={['student', 'admin']}>
             <MockExam />
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* --- ADMIN YO'NALISHLARI --- */}
@@ -138,44 +158,44 @@ function App() {
       <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
       <Route path="/admin/tests" element={<ProtectedRoute allowedRoles={['admin']}><AdminTests /></ProtectedRoute>} />
 
-      <Route 
-        path="/admin/create-test" 
+      <Route
+        path="/admin/create-test"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <CreateTest />
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* --- YANGI QO'SHILGAN ROUTE: TAHRIRLASH UCHUN --- */}
-      <Route 
-        path="/admin/edit-test/:id" 
+      <Route
+        path="/admin/edit-test/:id"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <CreateTest />
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Login sahifasi */}
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           user ? (
             userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
           ) : (
             <Login />
           )
-        } 
+        }
       />
 
-      <Route 
-        path="/admin/results" 
+      <Route
+        path="/admin/results"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminResults />
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Noma'lum sahifalar uchun redirect */}

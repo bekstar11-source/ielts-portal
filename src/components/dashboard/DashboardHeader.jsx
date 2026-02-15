@@ -1,65 +1,104 @@
-import React from 'react';
-import { Icons } from './Icons';
+import React, { useState } from 'react';
+import { Zap, ChevronDown, Key, LogOut } from 'lucide-react';
+
+import { useNavigate } from 'react-router-dom';
 
 export default function DashboardHeader({ user, userData, onKeyClick, onLogoutClick, activeTab, setActiveTab }) {
-  
-  // 🔥 YANGILANGAN MENU: "Natijalar" qo'shildi
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const navigate = useNavigate();
+
   const menuItems = [
-    { id: 'dashboard', label: 'Asosiy' },
-    { id: 'results', label: 'Natijalar' }, // <-- YANGI TUGMA
-    { id: 'archive', label: 'Arxiv' },
-    { id: 'favorites', label: 'Sevimlilar' },
-    { id: 'settings', label: 'Sozlamalar' }
+    { id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
+    { id: 'practice', label: 'Practice', path: '/practice' },
+    { id: 'results', label: 'Natijalar', path: '/my-results' },
+    { id: 'archive', label: 'Arxiv', path: '/archive' }, // Kelajakda alohida sahifa bo'lishi mumkin
+    { id: 'favorites', label: 'Sevimlilar', path: '/favorites' }
   ];
 
+  const handleNavigation = (item) => {
+    if (item.path) {
+      navigate(item.path);
+    } else {
+      setActiveTab(item.id);
+    }
+  };
+
   return (
-    <>
-      <style>{`
-        .glass-header { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
-      `}</style>
-      <header className="sticky top-0 z-50 w-full glass-header px-6 py-3 flex items-center justify-between transition-all">
-        {/* Logo */}
-        <div className="flex items-center cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-            <h1 className="text-lg font-semibold tracking-tight text-gray-900 mr-8">Dashboard</h1>
+    <div className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-16 gap-6 md:gap-0 pt-6 relative z-50">
+      {/* Logo */}
+      <div className="hidden md:block w-32 cursor-pointer" onClick={() => navigate('/dashboard')}>
+        <div className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
+          <Zap className="w-6 h-6 text-vetra-orange fill-vetra-orange" />
+          <span className="font-bold text-xl tracking-tight text-white">
+            Vetra<span className="text-vetra-orange">IELTS</span>
+          </span>
         </div>
+      </div>
 
-        {/* Center Navigation */}
-        <nav className="absolute left-1/2 transform -translate-x-1/2 hidden md:flex items-center gap-1 bg-gray-100/50 p-1 rounded-full border border-gray-200/50">
-            {menuItems.map((item) => (
-                <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`text-[13px] font-medium tracking-tight px-4 py-1.5 rounded-full transition-all duration-200 
-                    ${activeTab === item.id 
-                        ? 'bg-white text-black shadow-sm font-semibold' 
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
-                >
-                    {item.label}
-                </button>
-            ))}
-        </nav>
+      {/* Navigation */}
+      <nav className="flex items-center gap-4 md:gap-8 text-[15px] md:text-[16px] overflow-x-auto max-w-full px-2">
+        {menuItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => handleNavigation(item)}
+            className={`font-medium transition-all relative nav-link whitespace-nowrap
+                        ${activeTab === item.id
+                ? 'text-vetra-blue font-semibold scale-105'
+                : 'text-vetra-textMuted hover:text-white'}`}
+          >
+            {item.label}
+            {activeTab === item.id && (
+              <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-vetra-blue rounded-full"></span>
+            )}
+          </button>
+        ))}
+      </nav>
 
-        {/* Right Actions */}
-        <div className="flex items-center gap-4">
-            <button 
-                onClick={onKeyClick} 
-                className="bg-black hover:bg-gray-800 text-white px-4 py-1.5 rounded-full font-medium text-xs transition shadow-sm flex items-center gap-2"
-            >
-                <Icons.Key className="w-3.5 h-3.5"/> <span>Key mock</span>
-            </button>
+      {/* Right Side: Key & Profile */}
+      <div className="w-auto md:w-32 flex justify-end items-center gap-3">
+        {/* Mobile/Tablet: Key Button visible */}
+        <button
+          onClick={onKeyClick}
+          className="p-2 rounded-full bg-white/10 hover:bg-vetra-orange/20 text-white hover:text-vetra-orange transition-colors"
+          title="Enter Access Key"
+        >
+          <Key className="w-5 h-5" />
+        </button>
 
-            <div className="hidden sm:flex flex-col items-end mr-1">
-                <span className="text-[13px] font-semibold text-gray-900 leading-tight">
-                    {userData?.fullName || user?.email}
-                </span>
-                <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">O'quvchi</span>
+        {/* Profile Dropdown Trigger */}
+        <div className="relative">
+          <button
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="flex items-center gap-3 bg-white rounded-full p-1 pl-1 pr-2 md:pr-4 shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 group"
+          >
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white">
+              <img
+                src={user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
+                alt="Profile"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              />
             </div>
+            <ChevronDown className={`w-4 h-4 text-gray-500 group-hover:text-gray-800 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
+          </button>
 
-            <button onClick={onLogoutClick} className="text-gray-400 hover:text-red-500 transition p-1">
-                <Icons.Logout className="w-5 h-5" /> 
-            </button>
+          {/* Dropdown Menu */}
+          {isProfileOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-[#0F0F0F] border border-white/10 rounded-xl shadow-xl overflow-hidden py-1 z-50 animate-fade-in-up">
+              <div className="px-4 py-3 border-b border-white/5">
+                <p className="text-sm text-white font-medium truncate">{userData?.fullName || "User"}</p>
+                <p className="text-xs text-vetra-textMuted truncate">{user?.email}</p>
+              </div>
+              <button
+                onClick={onLogoutClick}
+                className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5 flex items-center gap-2 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Chiqish
+              </button>
+            </div>
+          )}
         </div>
-      </header>
-    </>
+      </div>
+    </div>
   );
 }

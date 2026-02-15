@@ -1,22 +1,15 @@
-// src/pages/StudentDashboard.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebase";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Rocket, Key, UserCircle, BookOpen, ArrowRight, Headphones } from "lucide-react";
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
-import HeroSection from "../components/dashboard/HeroSection";
-// StatsCards removed as it is integrated into HeroSection now
 import PlanetBackground from "../components/dashboard/PlanetBackground";
-import FeaturesGrid from "../components/dashboard/FeaturesGrid";
-// FiltersBar and TestGrid moved to Practice.jsx
+import TestGrid from "../components/dashboard/TestGrid";
+import FiltersBar from "../components/dashboard/FiltersBar";
 import DashboardModals from "../components/dashboard/DashboardModals";
-import SettingsTab from "../components/dashboard/SettingsTab";
-import MyResults from "../pages/MyResults";
 
 // --- LOGIC HELPERS ---
 const safeDate = (dateString) => {
@@ -25,16 +18,15 @@ const safeDate = (dateString) => {
     return isNaN(d.getTime()) ? null : d;
 };
 
-// Yordamchi: ID lar bo'yicha hujjatlarni olib kelish (Xatolikdan himoyalangan)
+// Yordamchi: ID lar bo'yicha hujjatlarni olib kelish
 const fetchDocumentsByIds = async (collectionName, ids) => {
     if (!ids || ids.length === 0) return {};
     const uniqueIds = [...new Set(ids)];
     const docsMap = {};
 
-    // Har bir ID ni alohida try-catch bilan o'raymiz
     const promises = uniqueIds.map(async (id) => {
         try {
-            const cleanId = String(id).trim(); // Bo'sh joylarni tozalash
+            const cleanId = String(id).trim();
             if (!cleanId) return null;
             const snap = await getDoc(doc(db, collectionName, cleanId));
             if (snap.exists()) return { id: snap.id, ...snap.data() };
@@ -51,71 +43,18 @@ const fetchDocumentsByIds = async (collectionName, ids) => {
     return docsMap;
 };
 
-const WelcomeState = ({ onKeyClick, userFullName }) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col items-center justify-center py-12 px-4"
-        >
-            <div className="w-24 h-24 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-xl shadow-blue-500/20 mb-8 transform rotate-3 hover:rotate-6 transition-transform duration-300">
-                <Rocket className="w-12 h-12 text-white" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 text-center mb-3">
-                Salom, {userFullName?.split(' ')[0] || "O'quvchi"}! 👋
-            </h2>
-            <p className="text-gray-500 text-center max-w-md mb-10 text-lg">
-                IELTS sayohatingiz shu yerdan boshlanadi. Hozircha sizda faol testlar yo'q, lekin buni o'zgartirish oson!
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mb-12">
-                <div
-                    onClick={onKeyClick}
-                    className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group text-center"
-                >
-                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-4 mx-auto group-hover:scale-110 transition-transform">
-                        <Key size={24} />
-                    </div>
-                    <h3 className="font-bold text-gray-900 mb-1">Kod kiriting</h3>
-                    <p className="text-sm text-gray-500">O'qituvchingizdan olgan Access Keyni faollashtiring.</p>
-                    <span className="text-blue-600 text-sm font-bold mt-4 inline-flex items-center gap-1">Kiritish <ArrowRight size={14} /></span>
-                </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-center">
-                    <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 mb-4 mx-auto">
-                        <UserCircle size={24} />
-                    </div>
-                    <h3 className="font-bold text-gray-900 mb-1">Profilni to'ldiring</h3>
-                    <p className="text-sm text-gray-500">Ism va rasmingizni sozlamalar bo'limida yangilang.</p>
-                </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-center">
-                    <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 mb-4 mx-auto">
-                        <BookOpen size={24} />
-                    </div>
-                    <h3 className="font-bold text-gray-900 mb-1">Natijalarni kuzating</h3>
-                    <p className="text-sm text-gray-500">Test ishlaganingizdan so'ng tahlillar shu yerda chiqadi.</p>
-                </div>
-            </div>
-            <button
-                onClick={onKeyClick}
-                className="bg-black text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg hover:bg-gray-800 hover:scale-105 transition-all flex items-center gap-2"
-            >
-                <Key size={20} />
-                Testni Faollashtirish
-            </button>
-        </motion.div>
-    );
-};
-
-export default function StudentDashboard() {
+export default function Practice() {
     const { user, logout, userData } = useAuth();
     const navigate = useNavigate();
 
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState('practice');
     const [rawAssignments, setRawAssignments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterType, setFilterType] = useState("all");
+
+    // Modals state
     const [showKeyModal, setShowKeyModal] = useState(false);
     const [showStartConfirm, setShowStartConfirm] = useState(false);
     const [testToStart, setTestToStart] = useState(null);
@@ -125,19 +64,7 @@ export default function StudentDashboard() {
     const [checkingKey, setCheckingKey] = useState(false);
     const [keyError, setKeyError] = useState("");
 
-    useEffect(() => {
-        // Agar foydalanuvchi ADMIN bo'lsa, uni o'z joyiga haydaymiz
-        if (userData?.role === 'admin') {
-            navigate('/admin', { replace: true });
-            return;
-        }
-
-        // Onboarding Check
-        if (userData && !userData.onboarding?.completed) {
-            navigate('/onboarding');
-        }
-    }, [userData, navigate]);
-
+    // Data Fetching Logic (Taken from StudentDashboard)
     useEffect(() => {
         if (!user) return;
 
@@ -146,7 +73,6 @@ export default function StudentDashboard() {
             setErrorMsg(null);
 
             try {
-                console.log("Firebase'dan yuklash boshlandi...");
                 const [userSnap, groupsSnap, resultsSnap] = await Promise.all([
                     getDoc(doc(db, 'users', user.uid)),
                     getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))),
@@ -154,20 +80,13 @@ export default function StudentDashboard() {
                 ]);
 
                 const myResults = resultsSnap.docs.map(d => d.data());
-
-                // 🔥 MA'LUMOTLARNI TOZALASH (NORMALIZATION)
                 let allAssignments = [];
                 const currentUserData = userSnap.data();
 
-                // Helper: String yoki Object bo'lishidan qat'iy nazar to'g'irlash
                 const normalizeAssignment = (assign) => {
                     if (!assign) return null;
-                    if (typeof assign === 'string') {
-                        return { id: assign.trim(), type: 'test' };
-                    }
-                    if (typeof assign === 'object' && assign.id) {
-                        return { ...assign, id: String(assign.id).trim() };
-                    }
+                    if (typeof assign === 'string') return { id: assign.trim(), type: 'test' };
+                    if (typeof assign === 'object' && assign.id) return { ...assign, id: String(assign.id).trim() };
                     return null;
                 };
 
@@ -182,9 +101,7 @@ export default function StudentDashboard() {
                     }
                 });
 
-                // Null qiymatlarni olib tashlash
                 allAssignments = allAssignments.filter(Boolean);
-                console.log("Jami tayinlovlar (tozalangan):", allAssignments);
 
                 const testIdsToFetch = [];
                 const setIdsToFetch = [];
@@ -202,7 +119,6 @@ export default function StudentDashboard() {
                 });
 
                 const testsMap = await fetchDocumentsByIds('tests', testIdsToFetch);
-                console.log("Bazadan topilgan testlar:", Object.keys(testsMap));
 
                 let processedList = [];
 
@@ -251,12 +167,11 @@ export default function StudentDashboard() {
                     }
                     else {
                         const testDataFromDb = testsMap[assign.id];
-                        // Agar test bazada bo'lsa yoki assignmentda title bo'lsa (qo'lda qo'shilgan)
                         if (testDataFromDb || assign.title) {
                             const finalTestData = {
                                 ...testDataFromDb,
                                 ...assign,
-                                id: assign.id, // ID aniq bo'lishi kerak
+                                id: assign.id,
                                 title: testDataFromDb?.title || assign.title || "IELTS Test",
                                 type: testDataFromDb?.type || assign.type || "unknown"
                             };
@@ -276,15 +191,12 @@ export default function StudentDashboard() {
                     }
                 });
 
-                // Dublikatlarni olib tashlash (ID bo'yicha)
                 const uniqueTests = processedList.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-
-                console.log("Yakuniy ro'yxat:", uniqueTests.length);
                 setRawAssignments(uniqueTests);
 
             } catch (err) {
-                console.error("DEBUG ERROR:", err);
-                setErrorMsg("Ma'lumot yuklashda xatolik yuz berdi.");
+                console.error("Error fetching practice tests:", err);
+                setErrorMsg("Testlarni yuklashda xatolik yuz berdi.");
             } finally {
                 setLoading(false);
             }
@@ -293,27 +205,8 @@ export default function StudentDashboard() {
         fetchData();
     }, [user]);
 
-    // --- STATS ---
-    const stats = useMemo(() => {
-        const total = rawAssignments.length;
-        const completed = rawAssignments.filter(t => t.status === 'completed' || (t.isSet && t.completedTests > 0)).length;
-        let totalScore = 0, scoreCount = 0;
-        rawAssignments.forEach(t => {
-            if (t.result?.bandScore) { totalScore += parseFloat(t.result.bandScore); scoreCount++; }
-            if (t.isSet) { (t.subTests || []).forEach(sub => { if (sub.result?.bandScore) { totalScore += parseFloat(sub.result.bandScore); scoreCount++; } }); }
-        });
-        const avg = scoreCount > 0 ? (totalScore / scoreCount).toFixed(1) : 0;
-        return { total, completed, avg };
-    }, [rawAssignments]);
-
     const filteredTests = useMemo(() => {
         let baseList = rawAssignments;
-        if (activeTab === 'archive') {
-            baseList = baseList.filter(t => t.status === 'completed' || (t.isSet && t.completedTests === t.totalTests));
-        }
-        else if (activeTab === 'favorites') {
-            baseList = [];
-        }
         return baseList.filter(item => {
             const matchesSearch = item.title?.toLowerCase().includes(searchQuery.toLowerCase());
             let matchesType = true;
@@ -324,7 +217,7 @@ export default function StudentDashboard() {
             }
             return matchesSearch && matchesType;
         });
-    }, [rawAssignments, searchQuery, filterType, activeTab]);
+    }, [rawAssignments, searchQuery, filterType]);
 
     const handleStartTest = (test) => { setTestToStart(test); setShowStartConfirm(true); };
 
@@ -366,93 +259,9 @@ export default function StudentDashboard() {
             await updateDoc(doc(db, "accessKeys", keyDoc.id), { isUsed: true, usedBy: user.uid, usedByName: userData?.fullName, usedAt: new Date().toISOString() });
 
             alert("Test qo'shildi! 🚀");
-            sessionStorage.removeItem(`dashboard_data_${user.uid}`);
             setShowKeyModal(false); setAccessKeyInput("");
-            window.location.reload();
+            window.location.reload(); // Reload to fetch new test
         } catch (error) { setKeyError(error.message); } finally { setCheckingKey(false); }
-    };
-
-    const renderContent = () => {
-        if (activeTab === 'settings') return <SettingsTab user={user} userData={userData} />;
-        if (activeTab === 'results') {
-            return <MyResults tests={rawAssignments} onReview={handleReview} onStartTest={handleStartTest} loading={loading} />;
-        }
-        if (activeTab === 'progress') return <div className="text-center py-20 text-gray-400"><h3 className="text-xl font-bold text-gray-700 mb-2">Statistika Tez Orada...</h3></div>;
-
-        if ((activeTab === 'dashboard' || activeTab === 'favorites' || activeTab === 'archive') && filteredTests.length === 0 && !loading) {
-            if (activeTab === 'dashboard') {
-                return <WelcomeState onKeyClick={() => setShowKeyModal(true)} userFullName={userData?.fullName} />;
-            } else {
-                return (
-                    <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300 mx-auto max-w-2xl mt-10">
-                        <p className="text-gray-500 font-medium">{activeTab === 'favorites' ? "Sevimlilar ro'yxati bo'sh" : "Arxiv bo'sh"}</p>
-                    </div>
-                );
-            }
-        }
-
-        return (
-            <>
-                {activeTab === 'dashboard' && (
-                    <>
-                        <HeroSection
-                            userName={userData?.fullName?.split(' ')[0] || "O'quvchi"}
-                            targetBand={userData?.targetBand || 7.5}
-                            currentBand={userData?.currentBand || parseFloat(stats.avg) || 0}
-                            previousBand={userData?.previousIELTSScore || 0}
-                            examDate={userData?.examDate}
-                            daysRemaining={userData?.examTimeframe ? null : undefined}
-                        />
-                        <FeaturesGrid />
-
-                        {/* Tavsiya Etilgan Testlar (Recommended) */}
-                        <div className="mt-12">
-                            <div className="flex justify-between items-end mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-white mb-1">Tavsiya Etilgan 🌟</h2>
-                                    <p className="text-gray-400 text-sm">Sizning darajangizga mos maxsus testlar</p>
-                                </div>
-                                <button
-                                    onClick={() => navigate('/practice')}
-                                    className="text-orange-500 hover:text-orange-400 font-medium text-sm flex items-center gap-1 transition-colors"
-                                >
-                                    Barchasini ko'rish <ArrowRight size={16} />
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredTests.slice(0, 3).map(test => (
-                                    <div key={test.id} className="bg-[#0F0F0F] rounded-2xl p-6 border border-white/5 hover:border-orange-500/30 transition-all group cursor-pointer" onClick={() => handleStartTest(test)}>
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className={`p-3 rounded-xl ${test.type === 'listening' ? 'bg-blue-500/10 text-blue-500' : 'bg-orange-500/10 text-orange-500'}`}>
-                                                <BookOpen size={24} />
-                                            </div>
-                                            <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/5 text-gray-400 border border-white/5 uppercase tracking-wider">
-                                                {test.type}
-                                            </span>
-                                        </div>
-                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-orange-500 transition-colors line-clamp-2">{test.title}</h3>
-                                        <p className="text-gray-500 text-sm mb-6 line-clamp-2">{test.description || "IELTS imtihoniga tayyorgarlik uchun maxsus test variantlari."}</p>
-                                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
-                                            <span className="text-sm text-gray-400 font-medium">Boshlash</span>
-                                            <span className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                <ArrowRight size={16} />
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {filteredTests.length === 0 && !loading && (
-                                <div className="text-center py-10 bg-[#0F0F0F] rounded-2xl border border-dashed border-gray-800">
-                                    <p className="text-gray-500">Hozircha tavsiyalar yo'q. Practice bo'limiga o'ting.</p>
-                                </div>
-                            )}
-                        </div>
-                    </>
-                )}
-            </>
-        );
     };
 
     return (
@@ -463,14 +272,35 @@ export default function StudentDashboard() {
                     background-color: #050505;
                 }
             `}</style>
+
             <DashboardHeader
                 user={user} userData={userData}
                 activeTab={activeTab} setActiveTab={setActiveTab}
                 onKeyClick={() => setShowKeyModal(true)} onLogoutClick={() => setShowLogoutConfirm(true)}
             />
+
             <PlanetBackground />
+
             <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-8">
-                {renderContent()}
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold mb-2">Amaliyot Markazi 🎯</h1>
+                    <p className="text-gray-400">Barcha mavjud testlar va to'plamlar shu yerda.</p>
+                </div>
+
+                <FiltersBar
+                    searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+                    filterType={filterType} setFilterType={setFilterType}
+                />
+
+                <TestGrid
+                    loading={loading}
+                    tests={filteredTests}
+                    onStartTest={handleStartTest}
+                    onSelectSet={setSelectedSet}
+                    onReview={handleReview}
+                    errorMsg={errorMsg}
+                />
+
                 <DashboardModals
                     showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}
                     accessKeyInput={accessKeyInput} setAccessKeyInput={setAccessKeyInput}

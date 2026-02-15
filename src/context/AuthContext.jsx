@@ -1,15 +1,15 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { auth, db } from "../firebase/firebase"; 
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
+import { auth, db } from "../firebase/firebase";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
   RecaptchaVerifier,
   signInWithPhoneNumber
 } from "firebase/auth";
 // 🔥 YANGI IMPORTLAR (updateDoc va serverTimestamp qo'shildi)
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
   const signup = async (email, password, fullName, role = "student") => {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     const user = result.user;
-    
+
     await setDoc(doc(db, "users", user.uid), {
       uid: user.uid,
       email: email,
@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
       lastActiveAt: serverTimestamp(),
       isOnline: true
     });
-    
+
     return user;
   };
 
@@ -87,27 +87,36 @@ export function AuthProvider({ children }) {
   }
 
   // User holatini kuzatish
+  // 1. Auth State Kuzatish
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
-        const docRef = doc(db, "users", currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          setUserData(docSnap.data());
-          
-          // 🔥 Saytga kirganda (Refresh berganda) avtomatik vaqtni yangilash
-          updateDoc(docRef, { lastActiveAt: serverTimestamp() }).catch(e => console.log(e));
-        }
-      } else {
+      if (!currentUser) {
         setUserData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  // 2. User Data (Firestore) Kuzatish - Real-time
+  useEffect(() => {
+    if (user) {
+      const unsubscribeSnapshot = onSnapshot(doc(db, "users", user.uid), (doc) => {
+        if (doc.exists()) {
+          setUserData(doc.data());
+          // Vaqtni yangilashni bu yerda qilsak har safar update bo'lganda yozadi, bu yaxshi emas.
+          // Lekin hozircha mayli.
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error("Firestore error:", error);
+        setLoading(false);
+      });
+      return () => unsubscribeSnapshot();
+    }
+  }, [user]);
 
   const value = {
     user,
