@@ -6,31 +6,36 @@ export default function HighlightMenu({ position, onHighlight, onClear }) {
     if (!position) return null;
 
     return (
-        <div 
+        <div
             className="absolute z-[1000] flex items-center gap-1 bg-gray-900 text-white p-1.5 rounded-lg shadow-xl -translate-x-1/2 animate-in fade-in zoom-in duration-100"
-            style={{ 
-                top: position.top, 
-                left: position.left 
-            }} 
+            style={{
+                top: position.top,
+                left: position.left
+            }}
             onMouseDown={(e) => e.preventDefault()} // Selection o'chmasligi uchun muhim
         >
-            <button 
-                className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold hover:bg-gray-700 rounded transition-colors"
+            <button
+                className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold hover:bg-gray-700 rounded transition-colors group"
                 onMouseDown={() => onHighlight('yellow')}
+                title="Highlight Yellow"
             >
-                <span className="text-yellow-300">🖊️</span> Highlight
+                <div className="w-3 h-3 rounded-full bg-yellow-300 border border-yellow-400 group-hover:scale-110 transition-transform"></div>
             </button>
-            
-            <button 
-                className="w-4 h-4 rounded-full bg-green-200 hover:scale-110 transition-transform border border-gray-600"
+
+            <button
+                className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold hover:bg-gray-700 rounded transition-colors group"
                 onMouseDown={() => onHighlight('green')}
-            ></button>
+                title="Highlight Green"
+            >
+                <div className="w-3 h-3 rounded-full bg-green-300 border border-green-400 group-hover:scale-110 transition-transform"></div>
+            </button>
 
             <div className="w-[1px] h-3 bg-gray-600 mx-1"></div>
 
-            <button 
+            <button
                 className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded"
                 onMouseDown={onClear}
+                title="Clear Selection"
             >
                 ✕
             </button>

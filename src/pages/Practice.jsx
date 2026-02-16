@@ -311,15 +311,20 @@ export default function Practice() {
                     filterType={filterType} setFilterType={setFilterType}
                 />
 
-                <TestGrid
-                    key={`${filterType}-${currentPage}`} // 🔥 FIX: Filter o'zgarganda animatsiya ishlashi uchun
-                    loading={loading}
-                    tests={currentTests} // Faqat hozirgi sahifadagi testlar
-                    onStartTest={handleStartTest}
-                    onSelectSet={setSelectedSet}
-                    onReview={handleReview}
-                    errorMsg={errorMsg}
-                />
+                {currentTests.length === 0 && !loading && !errorMsg ? (
+                    <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10 mx-auto max-w-2xl mt-8">
+                        <p className="text-gray-500 font-medium">Hozircha hech qanday test topilmadi.</p>
+                    </div>
+                ) : (
+                    <TestGrid
+                        loading={loading}
+                        tests={currentTests} // Faqat hozirgi sahifadagi testlar
+                        onStartTest={handleStartTest}
+                        onSelectSet={setSelectedSet}
+                        onReview={handleReview}
+                        errorMsg={errorMsg}
+                    />
+                )}
 
                 {!loading && !errorMsg && (
                     <Pagination

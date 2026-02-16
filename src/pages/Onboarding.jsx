@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Check, Target, Calendar, Globe, Clock, User, Award, BookOpen } from 'lucide-react';
 
@@ -58,20 +58,32 @@ export default function Onboarding() {
         if (!user) return;
         setLoading(true);
         try {
-            await updateDoc(doc(db, 'users', user.uid), {
+            const safeFloat = (val, def = 0) => {
+                const num = parseFloat(val);
+                return isNaN(num) ? def : num;
+            };
+
+            const dataToSave = {
                 ...formData,
                 onboarding: {
                     completed: true,
                     completedAt: new Date().toISOString()
                 },
                 // Initial values for dashboard
-                currentBand: formData.previousIELTSScore ? parseFloat(formData.previousIELTSScore) : 4.0, // Default start
-                targetBand: parseFloat(formData.targetBand),
-            });
+                currentBand: formData.previousIELTSScore ? safeFloat(formData.previousIELTSScore, 4.0) : 4.0,
+                targetBand: safeFloat(formData.targetBand, 7.0),
+            };
+
+            // Sanitize undefined
+            Object.keys(dataToSave).forEach(key => dataToSave[key] === undefined && delete dataToSave[key]);
+
+            // Use setDoc with merge for robustness
+            await setDoc(doc(db, 'users', user.uid), dataToSave, { merge: true });
+
             navigate('/dashboard');
         } catch (error) {
             console.error("Onboarding error:", error);
-            alert("Xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
+            alert(`Xatolik yuz berdi: ${error.message}`);
         } finally {
             setLoading(false);
         }

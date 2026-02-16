@@ -13,6 +13,25 @@ import {
     updateDoc,
     arrayUnion,
 } from "firebase/firestore";
+import AnalyticsChart from "../components/common/AnalyticsChart";
+
+// --- MOCK CHART DATA ---
+const mockActivityData = [
+    { name: 'Mon', value: 12 },
+    { name: 'Tue', value: 19 },
+    { name: 'Wed', value: 15 },
+    { name: 'Thu', value: 25 },
+    { name: 'Fri', value: 32 },
+    { name: 'Sat', value: 20 },
+    { name: 'Sun', value: 28 },
+];
+
+const mockTestsData = [
+    { name: 'Reading', value: 45 },
+    { name: 'Listening', value: 32 },
+    { name: 'Writing', value: 28 },
+    { name: 'Speaking', value: 15 },
+];
 
 // --- 1. ICONS (Barcha kerakli ikonkalar) ---
 const Icons = {
@@ -270,212 +289,179 @@ export default function AdminDashboard() {
     if (!isAuthorized || stats.loading) return <DashboardSkeleton />;
 
     return (
-        <div className="flex h-screen bg-[#1E1E1E] font-sans overflow-hidden text-white selection:bg-blue-500/30">
+        <div className="flex-1 flex flex-col gap-6">
+            {/* DASHBOARD GRID */}
+            <div className="grid grid-cols-12 gap-6">
 
-            {/* SIDEBAR */}
-            <aside className="w-[72px] bg-[#2C2C2C] m-4 mr-0 rounded-[30px] flex flex-col items-center py-6 shadow-2xl border border-white/5 z-20 hidden md:flex">
-                <div className="mb-8 w-10 h-10 bg-[#3B3B3B] rounded-full flex items-center justify-center text-white shadow-inner">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /></svg>
-                </div>
-                <div className="flex-1 flex flex-col gap-4 w-full px-2">
-                    <SidebarBtn icon={<Icons.Home />} active onClick={() => { }} />
-                    <SidebarBtn icon={<Icons.Analytics />} onClick={() => navigate('/admin/analytics')} />
-                    <SidebarBtn icon={<Icons.Stats />} onClick={() => navigate('/admin/results')} />
-                    <SidebarBtn icon={<Icons.Users />} onClick={() => navigate('/admin/users')} />
-                    <SidebarBtn icon={<Icons.Test />} onClick={() => navigate('/admin/tests')} />
-                    <SidebarBtn icon={<Icons.Key />} onClick={() => navigate('/admin/keys')} />
-                    <SidebarBtn icon={<Icons.Megaphone />} onClick={() => navigate('/admin/announcements')} />
-                </div>
-                <div className="mt-auto">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 p-[1.5px]">
-                        <div className="w-full h-full rounded-full bg-[#2C2C2C] flex items-center justify-center overflow-hidden">
-                            <span className="text-xs font-bold text-white">{userData?.fullName?.charAt(0) || "A"}</span>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            {/* MAIN CONTENT */}
-            <main className="flex-1 p-4 lg:p-6 overflow-hidden flex flex-col">
-
-                {/* HEADER & BREADCRUMBS */}
-                <div className="mb-6 px-2">
-                    <div className="text-[10px] md:text-xs text-white/40 mb-2 flex items-center gap-2 font-medium">
-                        <span className="hover:text-white cursor-pointer transition" onClick={() => { setSearchTerm(""); setSortOption("fullName"); setSelectedUser(null); }}>Bosh sahifa</span>
-                        <span>/</span>
-                        <span>O'quvchilar</span>
-                        {searchTerm && (
-                            <>
-                                <span>/</span>
-                                <span className="text-blue-400">Qidiruv: "{searchTerm}"</span>
-                            </>
-                        )}
-                    </div>
-
-                    <div className="flex justify-between items-center">
+                {/* STATS */}
+                <div className="col-span-12 md:col-span-4 bg-[#272727] dark:bg-[#272727] bg-white rounded-[24px] p-6 border border-white/5 dark:border-white/5 border-gray-200 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
+                    <div className="flex justify-between items-start z-10 relative">
                         <div>
-                            <h1 className="text-2xl font-medium tracking-tight text-white">Salom, <span className="font-bold">{userData?.fullName || "Admin"}</span></h1>
-                            <p className="text-white/40 text-xs mt-1 flex items-center gap-2">
-                                Platforma statistikasi
-                                <button onClick={refreshData} className="text-blue-400 hover:text-blue-300 underline text-[10px]">Yangilash</button>
-                            </p>
+                            <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">O'quvchilar</h3>
+                            <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.users}</div>
+                            <div className="text-xs text-green-500 mt-2 font-medium flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                                +12% bu hafta
+                            </div>
                         </div>
-                        <button onClick={logout} className="text-white/60 hover:text-white transition p-2 rounded-full hover:bg-white/5">
-                            <Icons.Logout className="w-5 h-5" />
-                        </button>
+                        <div className="p-3 bg-blue-50 dark:bg-white/5 rounded-2xl text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform"><Icons.Users className="w-5 h-5" /></div>
                     </div>
+                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
+                </div>
+                <div className="col-span-12 md:col-span-4 bg-[#272727] dark:bg-[#272727] bg-white rounded-[24px] p-6 border border-white/5 dark:border-white/5 border-gray-200 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
+                    <div className="flex justify-between items-start z-10 relative">
+                        <div>
+                            <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">Testlar</h3>
+                            <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.tests}</div>
+                            <div className="text-xs text-green-500 mt-2 font-medium flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                                +5% yangi
+                            </div>
+                        </div>
+                        <div className="p-3 bg-purple-50 dark:bg-white/5 rounded-2xl text-purple-500 dark:text-purple-400 group-hover:scale-110 transition-transform"><Icons.Test className="w-5 h-5" /></div>
+                    </div>
+                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-colors"></div>
+                </div>
+                <div className="col-span-12 md:col-span-4 bg-[#272727] dark:bg-[#272727] bg-white rounded-[24px] p-6 border border-white/5 dark:border-white/5 border-gray-200 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
+                    <div className="flex justify-between items-start z-10 relative">
+                        <div>
+                            <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">Natijalar</h3>
+                            <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.results}</div>
+                            <div className="text-xs text-orange-500 mt-2 font-medium flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                                -2%
+                            </div>
+                        </div>
+                        <div className="p-3 bg-orange-50 dark:bg-white/5 rounded-2xl text-orange-500 dark:text-orange-400 group-hover:scale-110 transition-transform"><Icons.Stats className="w-5 h-5" /></div>
+                    </div>
+                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-colors"></div>
                 </div>
 
-                {/* DASHBOARD GRID */}
-                <div className="grid grid-cols-12 gap-6 flex-1 min-h-0 overflow-y-auto pb-20 custom-scrollbar pr-2">
+                {/* CHARTS */}
+                <div className="col-span-12 md:col-span-8">
+                    <AnalyticsChart title="Faollik Statistikasi" data={mockActivityData} height={320} color="#3B82F6" />
+                </div>
+                <div className="col-span-12 md:col-span-4">
+                    <AnalyticsChart title="Testlar Bo'limi" data={mockTestsData} height={320} type="bar" color="#8B5CF6" />
+                </div>
 
-                    {/* STATS */}
-                    <div className="col-span-12 md:col-span-4 bg-[#272727] rounded-[24px] p-6 border border-white/5">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="text-white/50 text-xs font-medium uppercase tracking-wider mb-2">O'quvchilar</h3>
-                                <div className="text-4xl font-light text-white tracking-tight">{stats.loading ? "..." : stats.users}</div>
-                            </div>
-                            <div className="p-3 bg-white/5 rounded-2xl text-blue-400"><Icons.Users className="w-5 h-5" /></div>
-                        </div>
-                    </div>
-                    <div className="col-span-12 md:col-span-4 bg-[#272727] rounded-[24px] p-6 border border-white/5">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="text-white/50 text-xs font-medium uppercase tracking-wider mb-2">Testlar</h3>
-                                <div className="text-4xl font-light text-white tracking-tight">{stats.loading ? "..." : stats.tests}</div>
-                            </div>
-                            <div className="p-3 bg-white/5 rounded-2xl text-purple-400"><Icons.Test className="w-5 h-5" /></div>
-                        </div>
-                    </div>
-                    <div className="col-span-12 md:col-span-4 bg-[#272727] rounded-[24px] p-6 border border-white/5">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="text-white/50 text-xs font-medium uppercase tracking-wider mb-2">Natijalar</h3>
-                                <div className="text-4xl font-light text-white tracking-tight">{stats.loading ? "..." : stats.results}</div>
-                            </div>
-                            <div className="p-3 bg-white/5 rounded-2xl text-orange-400"><Icons.Stats className="w-5 h-5" /></div>
-                        </div>
-                    </div>
+                {/* ACTION CARDS */}
+                <div className="col-span-12 text-gray-400 dark:text-white/40 font-medium text-xs mt-2 uppercase tracking-widest pl-1">Tezkor Menyular</div>
+                <ActionCard title="Test Yaratish" desc="Yangi Reading/Listening" icon={<Icons.Plus className="w-6 h-6 text-white" />} bg="bg-blue-600 hover:bg-blue-500" onClick={() => navigate('/admin/create-test')} />
+                <ActionCard title="Analitika" desc="Statistika va tahlillar" icon={<Icons.Analytics className="w-6 h-6 text-white" />} bg="bg-purple-600 hover:bg-purple-500" onClick={() => navigate('/admin/analytics')} />
+                <ActionCard title="O'quvchilar" desc="Tahrirlash va ko'rish" icon={<Icons.Users className="w-6 h-6 text-white" />} bg="dark:bg-[#353535] dark:hover:bg-[#404040] bg-gray-800 hover:bg-gray-700" onClick={() => navigate('/admin/users')} />
+                <ActionCard title="Baholash" desc="Natijalarni tekshirish" icon={<Icons.Stats className="w-6 h-6 text-white" />} bg="dark:bg-[#353535] dark:hover:bg-[#404040] bg-gray-800 hover:bg-gray-700" onClick={() => navigate('/admin/results')} />
+                <ActionCard title="E'lonlar" desc="Yangiliklar yuborish" icon={<Icons.Megaphone className="w-6 h-6 text-white" />} bg="dark:bg-[#353535] dark:hover:bg-[#404040] bg-gray-800 hover:bg-gray-700" onClick={() => navigate('/admin/announcements')} />
 
-                    {/* ACTION CARDS */}
-                    <div className="col-span-12 text-white/40 font-medium text-xs mt-2 uppercase tracking-widest pl-1">Tezkor Menyular</div>
-                    <ActionCard title="Test Yaratish" desc="Yangi Reading/Listening" icon={<Icons.Plus className="w-6 h-6 text-white" />} bg="bg-blue-600 hover:bg-blue-500" onClick={() => navigate('/admin/create-test')} />
-                    <ActionCard title="Analitika" desc="Statistika va tahlillar" icon={<Icons.Analytics className="w-6 h-6 text-white" />} bg="bg-purple-600 hover:bg-purple-500" onClick={() => navigate('/admin/analytics')} />
-                    <ActionCard title="O'quvchilar" desc="Tahrirlash va ko'rish" icon={<Icons.Users className="w-6 h-6 text-white" />} bg="bg-[#353535] hover:bg-[#404040]" onClick={() => navigate('/admin/users')} />
-                    <ActionCard title="Baholash" desc="Natijalarni tekshirish" icon={<Icons.Stats className="w-6 h-6 text-white" />} bg="bg-[#353535] hover:bg-[#404040]" onClick={() => navigate('/admin/results')} />
-                    <ActionCard title="E'lonlar" desc="Yangiliklar yuborish" icon={<Icons.Megaphone className="w-6 h-6 text-white" />} bg="bg-[#353535] hover:bg-[#404040]" onClick={() => navigate('/admin/announcements')} />
-
-                    {/* USER MANAGEMENT LIST */}
-                    <div className="col-span-12 bg-[#272727] rounded-[24px] p-4 md:p-6 border border-white/5">
-                        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                            <h3 className="text-white font-medium">O'quvchilar Boshqaruvi</h3>
-                            <div className="flex gap-2 w-full md:w-auto">
-                                <div className="relative group">
-                                    <button className="flex items-center gap-2 bg-[#303030] px-3 py-2 rounded-xl text-xs text-white border border-white/5 hover:bg-[#383838] transition">
-                                        <Icons.Filter className="w-4 h-4 text-white/50" />
-                                        <span>{sortOption === "fullName" ? "Alifbo" : "Sana"}</span>
-                                    </button>
-                                    <div className="absolute right-0 top-full mt-2 w-32 bg-[#2C2C2C] border border-white/10 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-10">
-                                        <button onClick={() => setSortOption("fullName")} className="w-full text-left px-4 py-2 text-xs text-white hover:bg-white/5">Alifbo bo'yicha</button>
-                                        <button onClick={() => setSortOption("createdAt")} className="w-full text-left px-4 py-2 text-xs text-white hover:bg-white/5">Ro'yxat sanasi</button>
-                                    </div>
-                                </div>
-
-                                <div className="relative w-full md:w-64">
-                                    <Icons.Search className="absolute left-3 top-2.5 w-4 h-4 text-white/30" />
-                                    <input
-                                        type="text"
-                                        placeholder="Ism bo'yicha qidirish..."
-                                        className="w-full bg-[#303030] border border-white/5 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500/50 transition placeholder:text-white/20"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
+                {/* USER MANAGEMENT LIST */}
+                <div className="col-span-12 bg-[#272727] dark:bg-[#272727] bg-white rounded-[24px] p-4 md:p-6 border border-white/5 dark:border-white/5 border-gray-200 shadow-sm dark:shadow-none transition-colors">
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                        <h3 className="text-gray-900 dark:text-white font-medium">O'quvchilar Boshqaruvi</h3>
+                        <div className="flex gap-2 w-full md:w-auto">
+                            <div className="relative group">
+                                <button className="flex items-center gap-2 bg-gray-100 dark:bg-[#303030] px-3 py-2 rounded-xl text-xs text-gray-700 dark:text-white border border-transparent dark:border-white/5 hover:bg-gray-200 dark:hover:bg-[#383838] transition">
+                                    <Icons.Filter className="w-4 h-4 text-gray-500 dark:text-white/50" />
+                                    <span>{sortOption === "fullName" ? "Alifbo" : "Sana"}</span>
+                                </button>
+                                <div className="absolute right-0 top-full mt-2 w-32 bg-white dark:bg-[#2C2C2C] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-10">
+                                    <button onClick={() => setSortOption("fullName")} className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5">Alifbo bo'yicha</button>
+                                    <button onClick={() => setSortOption("createdAt")} className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5">Ro'yxat sanasi</button>
                                 </div>
                             </div>
+
+                            <div className="relative w-full md:w-64">
+                                <Icons.Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-white/30" />
+                                <input
+                                    type="text"
+                                    placeholder="Ism bo'yicha qidirish..."
+                                    className="w-full bg-gray-100 dark:bg-[#303030] border border-transparent dark:border-white/5 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition placeholder:text-gray-500 dark:placeholder:text-white/20"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
                         </div>
+                    </div>
 
-                        <div className="space-y-4 md:space-y-2 min-h-[200px]">
-                            {displayedUsers.length === 0 && !loadingUsers && <p className="text-white/30 text-sm italic text-center py-10">O'quvchi topilmadi.</p>}
+                    <div className="space-y-4 md:space-y-2 min-h-[200px]">
+                        {displayedUsers.length === 0 && !loadingUsers && <p className="text-gray-400 dark:text-white/30 text-sm italic text-center py-10">O'quvchi topilmadi.</p>}
 
-                            {displayedUsers.map((user) => {
-                                const userGroup = groups.find(g => g.studentIds && g.studentIds.includes(user.id));
+                        {displayedUsers.map((user) => {
+                            const userGroup = groups.find(g => g.studentIds && g.studentIds.includes(user.id));
 
-                                // GOD MODE DATA
-                                const { status, text: timeText } = getTimeStatus(user.lastActiveAt);
-                                const isOnline = status === 'online';
-                                const currentActivity = isOnline && user.currentActivity ? user.currentActivity : null;
+                            // GOD MODE DATA
+                            const { status, text: timeText } = getTimeStatus(user.lastActiveAt);
+                            const isOnline = status === 'online';
+                            const currentActivity = isOnline && user.currentActivity ? user.currentActivity : null;
 
-                                return (
-                                    <div key={user.id} className={`flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:p-2 bg-[#303030] rounded-2xl md:rounded-xl hover:bg-[#383838] transition border border-white/5 gap-4 md:gap-3 group ${user.isBlocked ? 'opacity-50 grayscale' : ''}`}>
+                            return (
+                                <div key={user.id} className={`flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:p-2 bg-gray-50 dark:bg-[#303030] rounded-2xl md:rounded-xl hover:bg-gray-100 dark:hover:bg-[#383838] transition border border-gray-200 dark:border-white/5 gap-4 md:gap-3 group ${user.isBlocked ? 'opacity-50 grayscale' : ''}`}>
 
-                                        <div className="flex items-center gap-3 w-full md:w-auto cursor-pointer" onClick={() => { setSelectedUser(user); setShowDetailModal(true); }}>
-                                            <div className="relative">
-                                                <div className="w-10 h-10 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-600 flex items-center justify-center text-white font-bold text-sm md:text-xs shadow-lg">
-                                                    {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-                                                </div>
-                                                {/* ONLINE INDICATOR */}
-                                                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#303030] ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                                    <div className="flex items-center gap-3 w-full md:w-auto cursor-pointer" onClick={() => { setSelectedUser(user); setShowDetailModal(true); }}>
+                                        <div className="relative">
+                                            <div className="w-10 h-10 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-gray-700 dark:text-white font-bold text-sm md:text-xs shadow-sm">
+                                                {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
                                             </div>
-
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-sm md:text-xs font-bold text-gray-200 leading-tight hover:underline">{user.fullName || "Ismsiz"}</p>
-                                                    {user.isBlocked && <Icons.Lock className="w-3 h-3 text-red-500" />}
-                                                </div>
-                                                {/* STATUS & ACTIVITY */}
-                                                <div className="flex items-center gap-1.5">
-                                                    {isOnline ? (
-                                                        <p className="text-xs md:text-[10px] text-green-400 font-medium">Online</p>
-                                                    ) : (
-                                                        <p className="text-xs md:text-[10px] text-gray-500">{timeText}</p>
-                                                    )}
-                                                </div>
-                                                {currentActivity && (
-                                                    <p className="text-[10px] text-blue-400 animate-pulse mt-0.5 flex items-center gap-1">
-                                                        <Icons.Activity className="w-3 h-3" />
-                                                        {currentActivity}
-                                                    </p>
-                                                )}
-                                            </div>
+                                            {/* ONLINE INDICATOR */}
+                                            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-[#303030] ${isOnline ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-500'}`}></div>
                                         </div>
 
-                                        <div className="flex items-center justify-between md:justify-end w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/5">
-                                            <div className="mr-2">
-                                                {userGroup ? (
-                                                    <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 whitespace-nowrap">
-                                                        {userGroup.name}
-                                                    </span>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm md:text-xs font-bold text-gray-900 dark:text-gray-200 leading-tight hover:underline">{user.fullName || "Ismsiz"}</p>
+                                                {user.isBlocked && <Icons.Lock className="w-3 h-3 text-red-500" />}
+                                            </div>
+                                            {/* STATUS & ACTIVITY */}
+                                            <div className="flex items-center gap-1.5">
+                                                {isOnline ? (
+                                                    <p className="text-xs md:text-[10px] text-green-600 dark:text-green-400 font-medium">Online</p>
                                                 ) : (
-                                                    <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                        Individual
-                                                    </span>
+                                                    <p className="text-xs md:text-[10px] text-gray-500">{timeText}</p>
                                                 )}
                                             </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => { setSelectedUser(user); setShowDetailModal(true); }}
-                                                    className="bg-white/5 hover:bg-blue-500 hover:text-white text-gray-400 p-2 md:p-1.5 rounded-lg border border-white/10 transition"
-                                                    title="Profilni ko'rish"
-                                                >
-                                                    <Icons.Eye className="w-4 h-4 md:w-3.5 md:h-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => { setSelectedUser(user); setShowGroupModal(true); }}
-                                                    className="bg-white/5 hover:bg-white/10 text-white p-2 md:p-1.5 rounded-lg border border-white/10 transition"
-                                                    title="Guruhga qo'shish"
-                                                >
-                                                    <Icons.Plus className="w-4 h-4 md:w-3.5 md:h-3.5" />
-                                                </button>
-                                            </div>
+                                            {currentActivity && (
+                                                <p className="text-[10px] text-blue-500 dark:text-blue-400 animate-pulse mt-0.5 flex items-center gap-1">
+                                                    <Icons.Activity className="w-3 h-3" />
+                                                    {currentActivity}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
+
+                                    <div className="flex items-center justify-between md:justify-end w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t border-gray-200 dark:border-white/5 md:border-t-0">
+                                        <div className="mr-2">
+                                            {userGroup ? (
+                                                <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20 whitespace-nowrap">
+                                                    {userGroup.name}
+                                                </span>
+                                            ) : (
+                                                <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
+                                                    Individual
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => { setSelectedUser(user); setShowDetailModal(true); }}
+                                                className="bg-white dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500 hover:text-blue-600 dark:hover:text-white text-gray-500 dark:text-gray-400 p-2 md:p-1.5 rounded-lg border border-gray-200 dark:border-white/10 transition shadow-sm"
+                                                title="Profilni ko'rish"
+                                            >
+                                                <Icons.Eye className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={() => { setSelectedUser(user); setShowGroupModal(true); }}
+                                                className="bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-white p-2 md:p-1.5 rounded-lg border border-gray-200 dark:border-white/10 transition shadow-sm"
+                                                title="Guruhga qo'shish"
+                                            >
+                                                <Icons.Plus className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
-            </main>
+            </div>
 
             {/* MODALS */}
             {showGroupModal && selectedUser && (

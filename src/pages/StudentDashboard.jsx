@@ -5,7 +5,7 @@ import { db } from "../firebase/firebase";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Rocket, Key, UserCircle, BookOpen, ArrowRight, Headphones, PenTool, Mic } from "lucide-react";
+import { BookOpen, Headphones, PenTool, Mic } from "lucide-react";
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -57,60 +57,8 @@ const fetchDocumentsByIds = async (collectionName, ids) => {
     return docsMap;
 };
 
-const WelcomeState = ({ onKeyClick, userFullName }) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col items-center justify-center py-12 px-4"
-        >
-            <div className="w-24 h-24 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-xl shadow-blue-500/20 mb-8 transform rotate-3 hover:rotate-6 transition-transform duration-300">
-                <Rocket className="w-12 h-12 text-white" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 text-center mb-3">
-                Salom, {userFullName?.split(' ')[0] || "O'quvchi"}! 👋
-            </h2>
-            <p className="text-gray-500 text-center max-w-md mb-10 text-lg">
-                IELTS sayohatingiz shu yerdan boshlanadi. Hozircha sizda faol testlar yo'q, lekin buni o'zgartirish oson!
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mb-12">
-                <div
-                    onClick={onKeyClick}
-                    className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group text-center"
-                >
-                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-4 mx-auto group-hover:scale-110 transition-transform">
-                        <Key size={24} />
-                    </div>
-                    <h3 className="font-bold text-gray-900 mb-1">Kod kiriting</h3>
-                    <p className="text-sm text-gray-500">O'qituvchingizdan olgan Access Keyni faollashtiring.</p>
-                    <span className="text-blue-600 text-sm font-bold mt-4 inline-flex items-center gap-1">Kiritish <ArrowRight size={14} /></span>
-                </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-center">
-                    <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 mb-4 mx-auto">
-                        <UserCircle size={24} />
-                    </div>
-                    <h3 className="font-bold text-gray-900 mb-1">Profilni to'ldiring</h3>
-                    <p className="text-sm text-gray-500">Ism va rasmingizni sozlamalar bo'limida yangilang.</p>
-                </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-center">
-                    <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 mb-4 mx-auto">
-                        <BookOpen size={24} />
-                    </div>
-                    <h3 className="font-bold text-gray-900 mb-1">Natijalarni kuzating</h3>
-                    <p className="text-sm text-gray-500">Test ishlaganingizdan so'ng tahlillar shu yerda chiqadi.</p>
-                </div>
-            </div>
-            <button
-                onClick={onKeyClick}
-                className="bg-black text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg hover:bg-gray-800 hover:scale-105 transition-all flex items-center gap-2"
-            >
-                <Key size={20} />
-                Testni Faollashtirish
-            </button>
-        </motion.div>
-    );
-};
+// WelcomeState component removed
+
 
 export default function StudentDashboard() {
     const { user, logout, userData } = useAuth();
@@ -407,16 +355,12 @@ export default function StudentDashboard() {
         }
         if (activeTab === 'progress') return <div className="text-center py-20 text-gray-400"><h3 className="text-xl font-bold text-gray-700 mb-2">Statistika Tez Orada...</h3></div>;
 
-        if ((activeTab === 'dashboard' || activeTab === 'favorites' || activeTab === 'archive') && filteredTests.length === 0 && !loading) {
-            if (activeTab === 'dashboard') {
-                return <WelcomeState onKeyClick={() => setShowKeyModal(true)} userFullName={userData?.fullName} />;
-            } else {
-                return (
-                    <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300 mx-auto max-w-2xl mt-10">
-                        <p className="text-gray-500 font-medium">{activeTab === 'favorites' ? "Sevimlilar ro'yxati bo'sh" : "Arxiv bo'sh"}</p>
-                    </div>
-                );
-            }
+        if ((activeTab === 'favorites' || activeTab === 'archive') && filteredTests.length === 0 && !loading) {
+            return (
+                <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10 mx-auto max-w-2xl mt-10">
+                    <p className="text-gray-500 font-medium">{activeTab === 'favorites' ? "Sevimlilar ro'yxati bo'sh" : "Arxiv bo'sh"}</p>
+                </div>
+            );
         }
 
         return (
@@ -437,11 +381,18 @@ export default function StudentDashboard() {
                         <FeaturesGrid />
 
                         <div className="mt-8">
-                            <div className="mt-8">
-                                <TestShowcase tests={recommendedTests.length > 0 ? recommendedTests : rawAssignments} onStartTest={handleStartTest} />
+                            {/* If no tests, Show WelcomeState as a section, else show Showcase */}
+                            {/* Always show TestShowcase to display Banner and Recommendations */}
+                            <TestShowcase tests={recommendedTests.length > 0 ? recommendedTests : rawAssignments} onStartTest={handleStartTest} />
+
+                            {/* If no tests, Show WelcomeState as a section for quick start actions */}
+                            {/* WelcomeState removed as per user request */}
+
+                            <div className="mt-12">
                                 <AnnouncementsBoard />
                             </div>
-                            <AnnouncementsBoard />
+
+
                         </div>
                     </>
                 )}

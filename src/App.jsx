@@ -15,11 +15,15 @@ import AdminTests from './pages/AdminTests';
 import Onboarding from './pages/Onboarding';
 import Practice from './pages/Practice';
 import Settings from './pages/Settings';
+import { ThemeProvider } from './context/ThemeContext';
+import AdminLayout from './components/common/AdminLayout';
 
 // ADMIN SAHIFALAR
 import CreateTest from './pages/CreateTest';
 import AdminResults from './pages/AdminResults';
 import AdminAnnouncements from './pages/AdminAnnouncements';
+import AdminLogs from './pages/AdminLogs';
+import AdminGamification from './pages/AdminGamification';
 
 // TEST BILAN BOG'LIQ SAHIFALAR
 import TestSolving from './pages/TestSolving';
@@ -65,154 +69,139 @@ function App() {
   if (loading) return <div className="flex h-screen items-center justify-center">IELTS Portal...</div>;
 
   return (
-    <Routes>
-      {/* Bosh sahifa (Landing) */}
-      <Route
-        path="/"
-        element={
-          user ? (
-            userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
-          ) : (
-            <LandingPage />
-          )
-        }
-      />
+    <ThemeProvider>
+      <Routes>
+        {/* Bosh sahifa (Landing) */}
+        <Route
+          path="/"
+          element={
+            user ? (
+              userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+            ) : (
+              <LandingPage />
+            )
+          }
+        />
 
-      {/* Register sahifasi */}
-      <Route
-        path="/register"
-        element={
-          user ? (
-            userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
-          ) : (
-            <Register />
-          )
-        }
-      />
+        {/* Register sahifasi */}
+        <Route
+          path="/register"
+          element={
+            user ? (
+              userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+            ) : (
+              <Register />
+            )
+          }
+        />
 
-      {/* STUDENT YO'NALISHLARI */}
-      <Route
-        path="/onboarding"
-        element={
-          <ProtectedRoute allowedRoles={['student', 'admin']}>
-            <Onboarding />
-          </ProtectedRoute>
-        }
-      />
+        {/* STUDENT YO'NALISHLARI */}
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/practice"
-        element={
-          <ProtectedRoute allowedRoles={['student', 'admin']}>
-            <Practice />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/practice"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <Practice />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute allowedRoles={['student', 'admin']}>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={['student', 'admin']}>
-            <StudentDashboard />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/my-results"
-        element={
-          <ProtectedRoute allowedRoles={['student', 'admin']}>
-            <MyResults />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/my-results"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <MyResults />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/test/:testId"
-        element={
-          <ProtectedRoute allowedRoles={['student', 'admin']}>
-            <TestSolving />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/test/:testId"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <TestSolving />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/review/:id"
-        element={
-          <ProtectedRoute allowedRoles={['student', 'admin']}>
-            <TestReview />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/review/:id"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <TestReview />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/mock-exam"
-        element={
-          <ProtectedRoute allowedRoles={['student', 'admin']}>
-            <MockExam />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/mock-exam"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <MockExam />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* --- ADMIN YO'NALISHLARI --- */}
-      <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
-      <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
-      <Route path="/admin/tests" element={<ProtectedRoute allowedRoles={['admin']}><AdminTests /></ProtectedRoute>} />
-      <Route path="/admin/announcements" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnnouncements /></ProtectedRoute>} />
+        {/* --- ADMIN YO'NALISHLARI (LAYOUT BILAN) --- */}
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="tests" element={<AdminTests />} />
+          <Route path="announcements" element={<AdminAnnouncements />} />
+          <Route path="create-test" element={<CreateTest />} />
+          <Route path="edit-test/:id" element={<CreateTest />} />
+          <Route path="results" element={<AdminResults />} />
+          <Route path="logs" element={<AdminLogs />} />
+          <Route path="gamification" element={<AdminGamification />} />
+        </Route>
 
-      <Route
-        path="/admin/create-test"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <CreateTest />
-          </ProtectedRoute>
-        }
-      />
 
-      {/* --- YANGI QO'SHILGAN ROUTE: TAHRIRLASH UCHUN --- */}
-      <Route
-        path="/admin/edit-test/:id"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <CreateTest />
-          </ProtectedRoute>
-        }
-      />
 
-      {/* Login sahifasi */}
-      <Route
-        path="/login"
-        element={
-          user ? (
-            userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
-          ) : (
-            <Login />
-          )
-        }
-      />
+        {/* Login sahifasi */}
+        <Route
+          path="/login"
+          element={
+            user ? (
+              userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+            ) : (
+              <Login />
+            )
+          }
+        />
 
-      <Route
-        path="/admin/results"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminResults />
-          </ProtectedRoute>
-        }
-      />
 
-      {/* Noma'lum sahifalar uchun redirect */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+
+        {/* Noma'lum sahifalar uchun redirect */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </ThemeProvider>
   );
 }
 

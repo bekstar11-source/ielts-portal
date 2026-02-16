@@ -1,6 +1,8 @@
 import React from "react";
 import ReadingInterface from "../components/ReadingInterface/ReadingInterface";
 import ListeningInterface from "../components/ListeningInterface/ListeningInterface";
+import WritingInterface from "../components/WritingInterface/WritingInterface";
+import SpeakingInterface from "../components/SpeakingInterface/SpeakingInterface";
 import TestHeader from "../components/TestSolving/TestHeader";
 import { ModeSelectionModal, ResultModal } from "../components/TestSolving/TestModals";
 import { useTestLogic } from "../hooks/useTestLogic";
@@ -18,7 +20,10 @@ export default function TestSolving() {
     if (loading) return <div className="flex h-screen items-center justify-center font-bold text-xl text-gray-500">Test yuklanmoqda...</div>;
     if (!test) return <div className="flex h-screen items-center justify-center font-bold text-red-500">Test topilmadi.</div>;
 
-    const isListening = test?.type?.toLowerCase() === 'listening';
+    const testType = test?.type?.toLowerCase();
+    const isListening = testType === 'listening';
+    const isWriting = testType === 'writing';
+    const isSpeaking = testType === 'speaking';
 
     return (
         <div className="flex flex-col h-screen bg-gray-50 font-sans select-none">
@@ -88,7 +93,27 @@ export default function TestSolving() {
                                 isFullScreen={isFullScreen}
                                 activePart={activePart}
                                 setActivePart={setActivePart}
-                                audioCurrentTime={audioTime}  // 🔥 MANA SHU QATOR QO'SHILDI (Tuzatildi)
+                                audioCurrentTime={audioTime}
+                            />
+                        </div>
+                    ) : isWriting ? (
+                        <div className="w-full h-full">
+                            <WritingInterface
+                                testData={test}
+                                userAnswers={userAnswers}
+                                onAnswerChange={handleSelectAnswer}
+                                isReviewMode={isReviewing}
+                                textSize={textSize}
+                            />
+                        </div>
+                    ) : isSpeaking ? (
+                        <div className="w-full h-full">
+                            <SpeakingInterface
+                                testData={test}
+                                userAnswers={userAnswers}
+                                onAnswerChange={handleSelectAnswer}
+                                isReviewMode={isReviewing}
+                                textSize={textSize}
                             />
                         </div>
                     ) : (

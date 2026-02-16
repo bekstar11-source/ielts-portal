@@ -1,8 +1,7 @@
-// src/hooks/useTestLogic.js
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
-import { doc, getDoc, addDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection, query, where, getDocs, updateDoc, increment, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { calculateBandScore, checkAnswer } from "../utils/ieltsScoring";
 
@@ -159,26 +158,25 @@ export function useTestLogic() {
 
     const handleSubmit = async () => {
         if (!window.confirm("Testni yakunlashga ishonchingiz komilmi?")) return;
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small UI delay
         setSaving(true);
 
-        let resultData = {
-            userId: user.uid,
-            userName: userData?.fullName || user.email,
-            testId: test.id,
-            testTitle: test.title,
-            type: test.type,
-            mode: testMode,
-            date: new Date().toISOString(),
-            startedAt: startedAt,
-            userAnswers: userAnswers
-        };
-
         try {
+            // 1. Calculate Score
             let correctCount = 0;
             let totalQ = 0;
+            let resultData = {
+                userId: user.uid,
+                userName: userData?.fullName || user.email || 'Unknown User',
+                testId: test.id,
+                testTitle: test.title || 'Untitled Test',
+                type: test.type,
+                mode: testMode || 'practice',
+                date: new Date().toISOString(),
+                startedAt: typeof startedAt === 'object' ? startedAt.toISOString() : new Date().toISOString(),
+                userAnswers: userAnswers || {}
+            };
 
-            // FAQAT READING VA LISTENING UCHUN AVTO-BAHOLASH
             if ((test.type === 'reading' || test.type === 'listening') && test.questions && Array.isArray(test.questions)) {
                 test.questions.forEach(q => {
                     if (q.items && Array.isArray(q.items)) {
@@ -195,46 +193,70 @@ export function useTestLogic() {
                         }
                     }
                 });
-            }
 
-            // Writing/Speaking uchun resultni boshqacha shakllantirish
-            if (test.type === 'reading' || test.type === 'listening') {
                 const band = calculateBandScore(correctCount, test.type, totalQ);
-                resultData.bandScore = band;
+                resultData.bandScore = band || 0;
                 resultData.score = correctCount;
                 resultData.totalQuestions = totalQ;
                 resultData.percentage = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
                 resultData.status = "graded";
             } else {
-                // Writing / Speaking
                 resultData.status = "submitted";
-                resultData.score = 0; // Baholanmagan
+                resultData.score = 0;
                 resultData.bandScore = 0;
             }
 
-            if (testMode === 'practice') resultData.timeSpent = timeLeft;
+            // 2. Calculate Time Spent
+            let timeSpent = 0;
+            if (testMode === 'practice') {
+                // In practice mode, timeLeft counts UP from 0 or saved time
+                timeSpent = timeLeft || 0;
+            } else {
+                // In exam mode, timeLeft counts DOWN from total duration
+                let totalDuration = 3600; // Default
+                if (test.type === 'listening') totalDuration = 2400;
+                else if (test.type === 'speaking') totalDuration = 900;
 
+                // If we had a logic to store initial duration, better. 
+                // Checks default assignment above:
+                // listening: 2400, writing: 3600, speaking: 900, others: 3600
+
+                timeSpent = Math.max(0, totalDuration - timeLeft);
+            }
+            resultData.timeSpent = timeSpent;
+
+            // 3. Sanitize Data (Remove undefined) - CRITICAL FIX
+            Object.keys(resultData).forEach(key => {
+                if (resultData[key] === undefined) delete resultData[key];
+            });
+
+            // 4. Save to Firestore
             setScore(correctCount);
             await addDoc(collection(db, "results"), resultData);
 
-            // 🔥 UPDATE USER STATS & LEADERBOARD POINTS
+            // 4. Update User Stats safely
             if (resultData.bandScore > 0) {
-                const { increment, updateDoc, doc } = await import("firebase/firestore");
                 const userRef = doc(db, "users", user.uid);
                 await updateDoc(userRef, {
                     "stats.totalTests": increment(1),
                     "stats.totalBandScore": increment(resultData.bandScore),
                     "gamification.points": increment(Math.round(resultData.bandScore * 10)),
-                    "lastActiveAt": new Date().toISOString()
-                }).catch(err => console.error("Stats update error:", err));
+                    "lastActiveAt": serverTimestamp()
+                }).catch(err => console.warn("Stats update failed (non-critical):", err));
             }
 
+            // 5. Cleanup LocalStorage
             localStorage.removeItem(`draft_${user.uid}_${test.id}`);
             localStorage.removeItem(`timer_${user.uid}_${test.id}`);
             localStorage.removeItem(`mode_${user.uid}_${test.id}`);
+
             setShowResult(true);
-        } catch (error) { console.error(error); alert("Saqlashda xatolik."); }
-        finally { setSaving(false); }
+        } catch (error) {
+            console.error("Submit Error:", error);
+            alert(`Saqlashda xatolik yuz berdi: ${error.message}`);
+        } finally {
+            setSaving(false);
+        }
     };
 
     return {
