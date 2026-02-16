@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Target, BarChart2, Clock, PlayCircle, Calendar, ArrowUp } from 'lucide-react';
 
+const GlassCard = ({ children, delay = "0s", className = "" }) => (
+    <div
+        className={`glass-card rounded-3xl p-6 md:p-8 relative overflow-hidden group transition-all duration-500 animate-fade-in-up ${className}`}
+        style={{ animationDelay: delay }}
+    >
+        {children}
+    </div>
+);
+
 export default function HeroSection({
     userName = "O'quvchi",
     targetBand = 7.5,
@@ -23,7 +32,7 @@ export default function HeroSection({
     // Calculate progress percentage (current vs target)
     // const progressToTarget = Math.min(100, Math.round((currentBand / targetBand) * 100));
 
-    // Progress Ring logic
+    // Logic moved to effect
     const radius = 40;
     const circumference = radius * 2 * Math.PI;
     const targetPercentage = 85;
@@ -52,15 +61,6 @@ export default function HeroSection({
 
         return () => clearInterval(timer);
     }, [currentBand, finalDays]);
-
-    const GlassCard = ({ children, delay = "0s", className = "" }) => (
-        <div
-            className={`glass-card rounded-3xl p-8 relative overflow-hidden group transition-all duration-500 animate-fade-in-up ${className}`}
-            style={{ animationDelay: delay }}
-        >
-            {children}
-        </div>
-    );
 
     return (
         <section className="relative z-10 mb-20">

@@ -14,10 +14,12 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import AdminTests from './pages/AdminTests';
 import Onboarding from './pages/Onboarding';
 import Practice from './pages/Practice';
+import Settings from './pages/Settings';
 
 // ADMIN SAHIFALAR
 import CreateTest from './pages/CreateTest';
 import AdminResults from './pages/AdminResults';
+import AdminAnnouncements from './pages/AdminAnnouncements';
 
 // TEST BILAN BOG'LIQ SAHIFALAR
 import TestSolving from './pages/TestSolving';
@@ -108,6 +110,15 @@ function App() {
       />
 
       <Route
+        path="/settings"
+        element={
+          <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/dashboard"
         element={
           <ProtectedRoute allowedRoles={['student', 'admin']}>
@@ -157,6 +168,7 @@ function App() {
       <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
       <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
       <Route path="/admin/tests" element={<ProtectedRoute allowedRoles={['admin']}><AdminTests /></ProtectedRoute>} />
+      <Route path="/admin/announcements" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnnouncements /></ProtectedRoute>} />
 
       <Route
         path="/admin/create-test"

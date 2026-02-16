@@ -58,8 +58,9 @@ export function useTestLogic() {
 
                 if (docSnap.exists()) {
                     const data = { id: docSnap.id, ...docSnap.data() };
+                    if (data.type) data.type = data.type.toLowerCase(); // 🔥 NORMALIZE TYPE
                     setTest(data);
-                    const type = data.type ? data.type.toLowerCase() : '';
+                    const type = data.type;
 
                     // Timer logic
                     const savedTime = localStorage.getItem(`timer_${user.uid}_${data.id}`);
@@ -177,32 +178,56 @@ export function useTestLogic() {
             let correctCount = 0;
             let totalQ = 0;
 
-            test.questions.forEach(q => {
-                if (q.items && Array.isArray(q.items)) {
-                    q.items.forEach(item => {
+            // FAQAT READING VA LISTENING UCHUN AVTO-BAHOLASH
+            if ((test.type === 'reading' || test.type === 'listening') && test.questions && Array.isArray(test.questions)) {
+                test.questions.forEach(q => {
+                    if (q.items && Array.isArray(q.items)) {
+                        q.items.forEach(item => {
+                            totalQ++;
+                            if (checkAnswer(item.answer || item.correct_answer, userAnswers[String(item.id)] || userAnswers[item.id])) {
+                                correctCount++;
+                            }
+                        });
+                    } else {
                         totalQ++;
-                        if (checkAnswer(item.answer || item.correct_answer, userAnswers[String(item.id)] || userAnswers[item.id])) {
+                        if (checkAnswer(q.answer || q.correct_answer, userAnswers[String(q.id)] || userAnswers[q.id])) {
                             correctCount++;
                         }
-                    });
-                } else {
-                    totalQ++;
-                    if (checkAnswer(q.answer || q.correct_answer, userAnswers[String(q.id)] || userAnswers[q.id])) {
-                        correctCount++;
                     }
-                }
-            });
+                });
+            }
 
-            const band = calculateBandScore(correctCount, test.type, totalQ);
-            resultData.score = correctCount;
-            resultData.bandScore = band;
-            resultData.totalQuestions = totalQ;
-            resultData.percentage = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
-            resultData.status = "graded";
+            // Writing/Speaking uchun resultni boshqacha shakllantirish
+            if (test.type === 'reading' || test.type === 'listening') {
+                const band = calculateBandScore(correctCount, test.type, totalQ);
+                resultData.bandScore = band;
+                resultData.score = correctCount;
+                resultData.totalQuestions = totalQ;
+                resultData.percentage = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+                resultData.status = "graded";
+            } else {
+                // Writing / Speaking
+                resultData.status = "submitted";
+                resultData.score = 0; // Baholanmagan
+                resultData.bandScore = 0;
+            }
+
             if (testMode === 'practice') resultData.timeSpent = timeLeft;
 
             setScore(correctCount);
             await addDoc(collection(db, "results"), resultData);
+
+            // 🔥 UPDATE USER STATS & LEADERBOARD POINTS
+            if (resultData.bandScore > 0) {
+                const { increment, updateDoc, doc } = await import("firebase/firestore");
+                const userRef = doc(db, "users", user.uid);
+                await updateDoc(userRef, {
+                    "stats.totalTests": increment(1),
+                    "stats.totalBandScore": increment(resultData.bandScore),
+                    "gamification.points": increment(Math.round(resultData.bandScore * 10)),
+                    "lastActiveAt": new Date().toISOString()
+                }).catch(err => console.error("Stats update error:", err));
+            }
 
             localStorage.removeItem(`draft_${user.uid}_${test.id}`);
             localStorage.removeItem(`timer_${user.uid}_${test.id}`);

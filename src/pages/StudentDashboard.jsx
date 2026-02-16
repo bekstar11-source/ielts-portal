@@ -5,10 +5,13 @@ import { db } from "../firebase/firebase";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Rocket, Key, UserCircle, BookOpen, ArrowRight, Headphones } from "lucide-react";
+import { Rocket, Key, UserCircle, BookOpen, ArrowRight, Headphones, PenTool, Mic } from "lucide-react";
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
+import QuickAnalytics from '../components/dashboard/QuickAnalytics';
+import TestShowcase from '../components/dashboard/TestShowcase';
+import AnnouncementsBoard from '../components/dashboard/AnnouncementsBoard';
 import HeroSection from "../components/dashboard/HeroSection";
 // StatsCards removed as it is integrated into HeroSection now
 import PlanetBackground from "../components/dashboard/PlanetBackground";
@@ -17,6 +20,9 @@ import FeaturesGrid from "../components/dashboard/FeaturesGrid";
 import DashboardModals from "../components/dashboard/DashboardModals";
 import SettingsTab from "../components/dashboard/SettingsTab";
 import MyResults from "../pages/MyResults";
+import { useAnalytics } from "../hooks/useAnalytics";
+import { getRecommendations } from "../utils/recommendations";
+import Leaderboard from "../components/dashboard/Leaderboard";
 
 // --- LOGIC HELPERS ---
 const safeDate = (dateString) => {
@@ -124,6 +130,16 @@ export default function StudentDashboard() {
     const [accessKeyInput, setAccessKeyInput] = useState("");
     const [checkingKey, setCheckingKey] = useState(false);
     const [keyError, setKeyError] = useState("");
+
+    // 🔥 ANALYTICS HOOK
+    const { stats: analyticsStats } = useAnalytics(user?.uid);
+
+    // 🔥 RECOMMENDATIONS
+    const recommendedTests = useMemo(() => {
+        // Return top 5 recommended tests from rawAssignments
+        const completedIds = rawAssignments.filter(t => t.status === 'completed').map(t => t.id);
+        return getRecommendations(analyticsStats, rawAssignments, completedIds);
+    }, [analyticsStats, rawAssignments]);
 
     useEffect(() => {
         // Agar foydalanuvchi ADMIN bo'lsa, uni o'z joyiga haydaymiz
@@ -251,8 +267,8 @@ export default function StudentDashboard() {
                     }
                     else {
                         const testDataFromDb = testsMap[assign.id];
-                        // Agar test bazada bo'lsa yoki assignmentda title bo'lsa (qo'lda qo'shilgan)
-                        if (testDataFromDb || assign.title) {
+                        // 🔥 FIX: Faqat bazada real mavjud testlarni chiqaramiz.
+                        if (testDataFromDb) {
                             const finalTestData = {
                                 ...testDataFromDb,
                                 ...assign,
@@ -305,6 +321,17 @@ export default function StudentDashboard() {
         const avg = scoreCount > 0 ? (totalScore / scoreCount).toFixed(1) : 0;
         return { total, completed, avg };
     }, [rawAssignments]);
+
+    // 🔥 REAL STATISTIKA (useAnalytics dan olinadi)
+    const skillStats = useMemo(() => {
+        const averages = analyticsStats.skillAverages || { reading: 0, listening: 0, writing: 0, speaking: 0 };
+        return [
+            { name: "Reading", score: averages.reading || 0, icon: BookOpen, color: "blue" },
+            { name: "Listening", score: averages.listening || 0, icon: Headphones, color: "purple" },
+            { name: "Writing", score: averages.writing || 0, icon: PenTool, color: "orange" },
+            { name: "Speaking", score: averages.speaking || 0, icon: Mic, color: "emerald" }
+        ];
+    }, [analyticsStats]);
 
     const filteredTests = useMemo(() => {
         let baseList = rawAssignments;
@@ -374,6 +401,7 @@ export default function StudentDashboard() {
 
     const renderContent = () => {
         if (activeTab === 'settings') return <SettingsTab user={user} userData={userData} />;
+        if (activeTab === 'leaderboard') return <Leaderboard />;
         if (activeTab === 'results') {
             return <MyResults tests={rawAssignments} onReview={handleReview} onStartTest={handleStartTest} loading={loading} />;
         }
@@ -403,51 +431,17 @@ export default function StudentDashboard() {
                             examDate={userData?.examDate}
                             daysRemaining={userData?.examTimeframe ? null : undefined}
                         />
+
+                        <QuickAnalytics stats={skillStats} />
+
                         <FeaturesGrid />
 
-                        {/* Tavsiya Etilgan Testlar (Recommended) */}
-                        <div className="mt-12">
-                            <div className="flex justify-between items-end mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-white mb-1">Tavsiya Etilgan 🌟</h2>
-                                    <p className="text-gray-400 text-sm">Sizning darajangizga mos maxsus testlar</p>
-                                </div>
-                                <button
-                                    onClick={() => navigate('/practice')}
-                                    className="text-orange-500 hover:text-orange-400 font-medium text-sm flex items-center gap-1 transition-colors"
-                                >
-                                    Barchasini ko'rish <ArrowRight size={16} />
-                                </button>
+                        <div className="mt-8">
+                            <div className="mt-8">
+                                <TestShowcase tests={recommendedTests.length > 0 ? recommendedTests : rawAssignments} onStartTest={handleStartTest} />
+                                <AnnouncementsBoard />
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredTests.slice(0, 3).map(test => (
-                                    <div key={test.id} className="bg-[#0F0F0F] rounded-2xl p-6 border border-white/5 hover:border-orange-500/30 transition-all group cursor-pointer" onClick={() => handleStartTest(test)}>
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className={`p-3 rounded-xl ${test.type === 'listening' ? 'bg-blue-500/10 text-blue-500' : 'bg-orange-500/10 text-orange-500'}`}>
-                                                <BookOpen size={24} />
-                                            </div>
-                                            <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/5 text-gray-400 border border-white/5 uppercase tracking-wider">
-                                                {test.type}
-                                            </span>
-                                        </div>
-                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-orange-500 transition-colors line-clamp-2">{test.title}</h3>
-                                        <p className="text-gray-500 text-sm mb-6 line-clamp-2">{test.description || "IELTS imtihoniga tayyorgarlik uchun maxsus test variantlari."}</p>
-                                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
-                                            <span className="text-sm text-gray-400 font-medium">Boshlash</span>
-                                            <span className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                <ArrowRight size={16} />
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {filteredTests.length === 0 && !loading && (
-                                <div className="text-center py-10 bg-[#0F0F0F] rounded-2xl border border-dashed border-gray-800">
-                                    <p className="text-gray-500">Hozircha tavsiyalar yo'q. Practice bo'limiga o'ting.</p>
-                                </div>
-                            )}
+                            <AnnouncementsBoard />
                         </div>
                     </>
                 )}

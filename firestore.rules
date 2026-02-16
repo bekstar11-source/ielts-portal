@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.token.email == 'bekstar11@gmail.com'
+      );
+    }
+
+    // Helper function to check if user is authenticated
+    function isAuth() {
+        return request.auth != null;
+    }
+
+    // USERS
+    match /users/{userId} {
+      allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAuth() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // TESTS (O'qish hammaga, Yozish faqat adminga)
+    match /tests/{testId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ANNOUNCEMENTS (Yangiliklar)
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // RESULTS (Natijalar)
+    match /results/{resultId} {
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuth(); 
+      allow update, delete: if isAdmin();
+    }
+    
+    // GROUPS
+    match /groups/{groupId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+    
+    // TEST SETS
+    match /testSets/{setId} {
+        allow read: if isAuth();
+        allow write: if isAdmin();
+    }
+    
+    // ACCESS KEYS
+    match /accessKeys/{keyId} {
+      allow read: if true; // Kalitni tekshirish uchun
+      allow write: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isUsed', 'usedBy', 'usedByName', 'usedAt']));
+    }
+  }
+}

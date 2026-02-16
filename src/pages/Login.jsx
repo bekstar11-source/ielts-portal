@@ -1,31 +1,50 @@
-// src/pages/Login.jsx
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-// 🔥 Haqiqiy importlar
+import { ArrowRight, Loader2, AlertCircle, Mail, Lock, Zap } from 'lucide-react';
 import { db, auth } from "../firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import PlanetBackground from '../components/dashboard/PlanetBackground';
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  const { login } = useAuth();
+
+  const { login, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          if (userData.role === 'admin') navigate('/admin');
+          else navigate('/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    } catch (err) {
+      setError("Google orqali kirishda xatolik!");
+      console.error(err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    
+
     try {
       await login(email, password);
-      
-      // 2. 🔥 MUHIM: Bazadan foydalanuvchi rolini olish
+
       const user = auth.currentUser;
       if (user) {
         const docRef = doc(db, "users", user.uid);
@@ -33,14 +52,13 @@ export default function Login() {
 
         if (docSnap.exists()) {
           const userData = docSnap.data();
-          // 3. Rolga qarab yo'naltirish
           if (userData.role === 'admin') {
-            navigate('/admin'); // Admin panelga
+            navigate('/admin');
           } else {
-            navigate('/dashboard'); // Student dashboardga
+            navigate('/dashboard');
           }
         } else {
-          navigate('/dashboard'); 
+          navigate('/dashboard');
         }
       }
     } catch (err) {
@@ -51,98 +69,162 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7] relative overflow-hidden font-sans selection:bg-black selection:text-white">
-        
-        {/* Background Animation */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-            <motion.div 
-              animate={{ rotate: 360, scale: [1, 1.1, 1] }}
-              transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-              className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-teal-200/40 rounded-full blur-[100px] mix-blend-multiply"
-            />
-            <motion.div 
-              animate={{ rotate: -360, scale: [1, 1.2, 1] }}
-              transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
-              className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-200/40 rounded-full blur-[100px] mix-blend-multiply"
-            />
+    <div className="min-h-screen flex items-center justify-center bg-[#050505] relative overflow-hidden font-sans selection:bg-[#FF5520] selection:text-white">
+      <style>{`
+            .glass-form {
+                background: rgba(10, 10, 10, 0.6);
+                backdrop-filter: blur(25px);
+                -webkit-backdrop-filter: blur(25px);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            }
+
+            .input-field {
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                color: white;
+                transition: all 0.3s ease;
+            }
+            
+            .input-field:focus {
+                background: rgba(255, 255, 255, 0.05);
+                border-color: #FF5520;
+                box-shadow: 0 0 0 1px rgba(255, 85, 32, 0.2);
+                outline: none;
+            }
+
+            .btn-primary {
+                background: #FF5520;
+                box-shadow: 0 0 20px rgba(255, 85, 32, 0.3);
+                transition: all 0.3s ease;
+            }
+            
+            .btn-primary:hover {
+                background: #FF7A50;
+                box-shadow: 0 0 30px rgba(255, 85, 32, 0.5);
+                transform: translateY(-1px);
+            }
+        `}</style>
+
+      <PlanetBackground />
+
+      {/* Main Container via User's HTML */}
+      <div className="w-full max-w-md mx-4 relative z-10">
+
+        {/* Logo Header */}
+        <div className="text-center mb-8 animate-fade-in-up">
+          <div className="inline-flex items-center justify-center gap-2 mb-2">
+            <Zap className="w-8 h-8 text-[#FF5520] fill-[#FF5520]" />
+            <span className="font-bold text-3xl tracking-tight text-white">Vetra<span className="text-[#FF5520]">IELTS</span></span>
+          </div>
+          <p className="text-[#9CA3AF] text-sm">Kelajak ta'limiga xush kelibsiz</p>
         </div>
 
-        {/* Login Card */}
-        <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full max-w-md relative z-10 px-6"
+        {/* Auth Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="glass-form rounded-3xl p-8 md:p-10"
         >
-            <div className="bg-white/70 backdrop-blur-2xl p-8 md:p-10 rounded-[2rem] shadow-2xl border border-white/50">
-                
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold tracking-tight text-[#1D1D1F] mb-2">Xush kelibsiz</h2>
-                    <p className="text-gray-500 font-medium text-sm">IELTS Portal hisobingizga kiring</p>
+
+          {/* LOGIN VIEW */}
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-6">Tizimga kirish</h2>
+
+            {error && (
+              <div className="bg-red-500/10 text-red-500 text-sm font-medium p-3 rounded-xl mb-6 border border-red-500/20 flex items-center gap-2">
+                <AlertCircle size={16} /> {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-xs font-medium text-[#9CA3AF] mb-1.5 uppercase tracking-wide">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input
+                    type="email"
+                    placeholder="student@example.com"
+                    className="input-field w-full rounded-xl py-3.5 pl-12 pr-4 text-sm placeholder-gray-600"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
-                
-                {error && (
-                    <motion.div 
-                        initial={{ opacity: 0, height: 0 }} 
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="bg-red-50 text-red-600 text-sm font-medium p-3 rounded-xl mb-6 border border-red-100 flex items-center gap-2"
-                    >
-                        <AlertCircle size={16} /> {error}
-                    </motion.div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-medium text-[#9CA3AF] uppercase tracking-wide">Parol</label>
+                  <a href="#" className="text-xs text-[#FF5520] hover:text-white transition-colors">Unutdingizmi?</a>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    className="input-field w-full rounded-xl py-3.5 pl-12 pr-4 text-sm placeholder-gray-600"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                  <>
+                    Kirish
+                    <ArrowRight className="w-5 h-5" />
+                  </>
                 )}
+              </button>
+            </form>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">Email</label>
-                        <input 
-                            type="email" 
-                            className="w-full px-4 py-3.5 rounded-2xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
-                            placeholder="name@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">Parol</label>
-                        <input 
-                            type="password" 
-                            className="w-full px-4 py-3.5 rounded-2xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
-                    
-                    <div className="pt-2">
-                        <button 
-                            type="submit" 
-                            disabled={loading}
-                            className="w-full bg-[#1D1D1F] text-white py-4 rounded-full font-semibold text-lg hover:bg-black hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-xl shadow-black/10 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                        >
-                            {loading ? (
-                                <><Loader2 className="animate-spin" size={20} /> Kirilmoqda...</>
-                            ) : (
-                                <>Kirish <ArrowRight size={20} /></>
-                            )}
-                        </button>
-                    </div>
-                </form>
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-500">
+                Hisobingiz yo'qmi?{" "}
+                <Link to="/register" className="text-white font-semibold hover:text-[#FF5520] transition-colors ml-1">
+                  Ro'yxatdan o'tish
+                </Link>
+              </p>
+            </div>
+          </div>
 
-                <p className="mt-8 text-center text-gray-500 font-medium text-sm">
-                    Hali a'zo emasmisiz?{" "}
-                    {/* 🔥 Registerga havola */}
-                    <Link to="/register" className="text-blue-600 font-bold hover:text-blue-700 transition-colors">
-                        Ro'yxatdan o'tish
-                    </Link>
-                </p>
+          {/* Social Login Divider */}
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10"></div>
             </div>
-            
-            <div className="mt-8 text-center text-xs text-gray-400 font-medium">
-                &copy; 2026 IELTS Portal. Secure Login.
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-[#0a0a0a] text-gray-500">Yoki</span>
             </div>
+          </div>
+
+          {/* Social Buttons */}
+          <div className="grid grid-cols-1 gap-4">
+            <button
+              onClick={handleGoogleLogin}
+              className="flex items-center justify-center gap-2 py-3 border border-white/10 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium text-white"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+              </svg>
+              Google orqali kirish
+            </button>
+            {/* GitHub button removed as not requested/configured in VetraIELTS context usually */}
+          </div>
+
         </motion.div>
+      </div>
     </div>
   );
 }

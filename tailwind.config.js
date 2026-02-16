@@ -28,7 +28,7 @@ export default {
       },
       // 2. SHRIFT (Default fontni Inter qilamiz)
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
       },
       // 3. O'LCHAMLAR (Agar kerak bo'lsa)
       height: {

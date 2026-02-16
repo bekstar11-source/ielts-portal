@@ -6,7 +6,9 @@ import {
   signOut,
   onAuthStateChanged,
   RecaptchaVerifier,
-  signInWithPhoneNumber
+  signInWithPhoneNumber,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 // 🔥 YANGI IMPORTLAR (updateDoc va serverTimestamp qo'shildi)
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
@@ -86,6 +88,38 @@ export function AuthProvider({ children }) {
     return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
   }
 
+  // 3. Google Sign In
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if user exists
+      const docRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        // Create new user
+        await setDoc(docRef, {
+          uid: user.uid,
+          email: user.email,
+          fullName: user.displayName,
+          photoURL: user.photoURL,
+          role: "student",
+          createdAt: new Date().toISOString(),
+          lastActiveAt: serverTimestamp(),
+          isOnline: true
+        });
+      }
+
+      return user;
+    } catch (error) {
+      console.error("Google Sign In Error", error);
+      throw error;
+    }
+  };
+
   // User holatini kuzatish
   // 1. Auth State Kuzatish
   useEffect(() => {
@@ -127,6 +161,7 @@ export function AuthProvider({ children }) {
     updateUserLocalData,
     trackUserActivity, // 🔥 Exportga qo'shildi
     signInWithPhone,
+    signInWithGoogle,
     loading
   };
 

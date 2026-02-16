@@ -1,144 +1,271 @@
-import React from 'react';
-import { Icons } from './Icons';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Headphones, PenTool, Mic, Clock, HelpCircle, Play, Check, Folder, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 
-// --- STYLES ---
-const getCardStyle = (type) => {
+// --- STYLES & VARIANTS ---
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.05,
+        },
+    },
+};
+
+const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+        y: 0,
+        opacity: 1,
+        transition: { type: "spring", stiffness: 120, damping: 14 }
+    },
+};
+
+// --- HELPER FUNCTIONS ---
+const getIcon = (type) => {
     switch (type) {
-        case 'reading': return "bg-gradient-to-br from-white to-blue-50/50 border-blue-100 hover:border-blue-200 hover:shadow-blue-100";
-        case 'listening': return "bg-gradient-to-br from-white to-purple-50/50 border-purple-100 hover:border-purple-200 hover:shadow-purple-100";
-        case 'writing': return "bg-gradient-to-br from-white to-orange-50/50 border-orange-100 hover:border-orange-200 hover:shadow-orange-100";
-        default: return "bg-gradient-to-br from-white to-slate-50/80 border-slate-200 hover:border-slate-300";
+        case 'reading': return <BookOpen size={20} />;
+        case 'listening': return <Headphones size={20} />;
+        case 'writing': return <PenTool size={20} />;
+        case 'speaking': return <Mic size={20} />;
+        default: return <BookOpen size={20} />;
     }
 };
 
-const getBadgeStyle = (type) => {
+const getColor = (type) => {
     switch (type) {
-        case 'reading': return "text-blue-600 bg-blue-50";
-        case 'listening': return "text-purple-600 bg-purple-50";
-        case 'writing': return "text-orange-600 bg-orange-50";
-        default: return "text-slate-600 bg-slate-100";
+        case 'reading': return 'blue';
+        case 'listening': return 'purple';
+        case 'writing': return 'orange';
+        case 'speaking': return 'emerald';
+        default: return 'orange';
     }
 };
 
-const isUrgent = (endDate) => {
-    if (!endDate) return false;
-    const now = new Date();
-    const end = new Date(endDate);
-    const diffHours = (end - now) / 1000 / 60 / 60;
-    return diffHours > 0 && diffHours < 24;
+const TestCard = ({ test, onStart, onReview }) => {
+    return (
+        <TestCardContent test={test} onStart={onStart} onReview={onReview} />
+    );
 };
 
-// 🔥 PROPSGA "onReview" QO'SHILDI
-export default function TestGrid({ loading, tests, onStartTest, onSelectSet, onReview, errorMsg }) {
-  if (loading) return <div className="text-center py-20 text-gray-400 text-sm animate-pulse">Yuklanmoqda...</div>;
-  if (errorMsg) return <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-medium border border-red-100">{errorMsg}</div>;
+const TestCardContent = ({ test, onStart, onReview }) => {
+    const { user } = useAuth(); // Import useAuth
+    const [hasDraft, setHasDraft] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {tests.map((test, index) => {
-            const isUrgentCase = test.assignmentInfo?.endDate && isUrgent(test.assignmentInfo.endDate) && test.status !== 'completed';
-            
-            // --- MOCK CARD ---
-            if (test.isMock) {
-                return (
-                    <div key={index} className="relative overflow-hidden rounded-2xl bg-gray-900 text-white p-6 shadow-xl hover:scale-[1.01] transition duration-300 cursor-default">
-                        <div className="absolute top-0 right-0 p-4 opacity-10"><Icons.Check className="w-24 h-24"/></div>
-                        <div className="relative z-10 flex flex-col h-full justify-between">
-                            <div>
-                                <span className="inline-block px-2 py-1 bg-yellow-500/20 text-yellow-400 text-[10px] font-bold rounded mb-3 uppercase tracking-wider">Mock Exam</span>
-                                <h3 className="text-2xl font-bold leading-tight mb-1">Full IELTS Mock</h3>
-                                <p className="text-gray-400 text-xs">Listening • Reading • Writing</p>
-                            </div>
-                            <div className="mt-6">
-                                {test.status === 'completed' ? (
-                                    <div className="flex gap-2">
-                                        {/* 🔥 MOCK NATIJA TUGMASI ULANDI */}
-                                        <button onClick={() => onReview(test)} className="flex-1 bg-white/10 hover:bg-white/20 py-2.5 rounded-xl text-xs font-bold transition">Natija</button>
-                                        <button onClick={() => onStartTest(test)} className="flex-1 bg-white text-black hover:bg-gray-100 py-2.5 rounded-xl text-xs font-bold transition">Qayta</button>
-                                    </div>
-                                ) : (
-                                    <button onClick={() => onStartTest(test)} className="w-full bg-white text-black hover:bg-gray-100 py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
-                                        Boshlash <Icons.Play className="w-3 h-3"/>
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                );
+    const { type, title, duration, questionsCount, status, result } = test;
+
+    useEffect(() => {
+        if (user && status !== 'completed') {
+            const key = `draft_${user.uid}_${test.id}`;
+            if (localStorage.getItem(key)) {
+                setHasDraft(true);
             }
+        }
+    }, [user, test.id, status]);
 
-            // --- SET CARD ---
-            if (test.isSet) {
-                return (
-                    <div key={test.id || index} onClick={() => onSelectSet(test)} className="group bg-white rounded-2xl p-5 border border-gray-200/60 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between h-full relative overflow-hidden bg-gradient-to-br from-white to-gray-50/50">
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-gray-50 rounded-bl-full -mr-4 -mt-4 transition group-hover:bg-blue-50/50"></div>
-                        <div>
-                            <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition shadow-sm">
-                                <Icons.Folder className="w-5 h-5"/>
-                            </div>
-                            <h3 className="text-[17px] font-semibold text-gray-900 tracking-tight leading-snug mb-1 line-clamp-1">{test.title}</h3>
-                            <p className="text-[11px] text-gray-500 uppercase tracking-wide font-medium">{test.completedTests} / {test.totalTests} tugatildi</p>
+    const color = getColor(type);
+    const icon = getIcon(type);
+    const isCompleted = status === 'completed';
+    // const progress = isCompleted ? 100 : 0; 
+
+    // Color mapping
+    const colorStyles = {
+        orange: {
+            accent: "text-orange-400",
+            glow: "bg-orange-500",
+            border: "group-hover:border-orange-500/30",
+            button: "bg-orange-500 hover:bg-orange-600"
+        },
+        purple: {
+            accent: "text-purple-400",
+            glow: "bg-purple-500",
+            border: "group-hover:border-purple-500/30",
+            button: "bg-purple-600 hover:bg-purple-700"
+        },
+        emerald: {
+            accent: "text-emerald-400",
+            glow: "bg-emerald-500",
+            border: "group-hover:border-emerald-500/30",
+            button: "bg-emerald-600 hover:bg-emerald-700"
+        },
+        blue: {
+            accent: "text-blue-400",
+            glow: "bg-blue-500",
+            border: "group-hover:border-blue-500/30",
+            button: "bg-blue-600 hover:bg-blue-700"
+        }
+    };
+
+    const theme = colorStyles[color] || colorStyles.orange;
+
+    return (
+        <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -5, transition: { duration: 0.3 } }}
+            className={`
+        relative group p-5 rounded-[28px] 
+        bg-[#181210] border border-white/5 
+        shadow-lg
+        ${theme.border}
+        overflow-hidden
+        flex flex-col
+        h-full
+        min-h-[260px]
+      `}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            {/* Top Gradient Line */}
+            <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-${color}-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10`} />
+
+            {/* Background radial glow effect */}
+            <div className={`absolute -right-10 -top-10 w-32 h-32 ${theme.glow} rounded-full blur-[70px] opacity-10 group-hover:opacity-20 transition-opacity duration-500 z-0`} />
+
+            <div className="relative z-10 flex flex-col h-full justify-between">
+
+                {/* Header */}
+                <div>
+                    <div className="flex justify-between items-start mb-5">
+                        <div className={`p-3 rounded-2xl bg-white/5 border border-white/5 ${theme.accent}`}>
+                            {icon}
                         </div>
-                        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
-                            <div className="flex -space-x-1">
-                                {[...Array(Math.min(3, test.totalTests))].map((_, i) => <div key={i} className="w-5 h-5 rounded-full bg-gray-200 border-2 border-white"></div>)}
-                            </div>
-                            <span className="text-[10px] font-bold text-blue-600 group-hover:underline">Ochish &rarr;</span>
-                        </div>
+
+                        {/* Section Tag */}
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold border border-white/10 bg-white/5 uppercase tracking-wide ${theme.accent}`}>
+                            {type}
+                        </span>
                     </div>
-                );
-            }
 
-            // --- INDIVIDUAL TEST ---
-            const isDone = test.status === 'completed';
-            
-            return (
-                <div key={test.id || index} className={`rounded-2xl p-6 border shadow-sm hover:shadow-md transition flex flex-col justify-between h-full relative group ${getCardStyle(test.type)} ${isUrgentCase ? 'ring-2 ring-red-400 border-red-400' : ''}`}>
-                    {isUrgentCase && <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md flex items-center gap-1"><Icons.Fire className="w-3 h-3"/> 24h</div>}
-                    
-                    <div>
-                        <div className="flex justify-between items-start mb-4">
-                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${getBadgeStyle(test.type)}`}>{test.type}</span>
-                            {isDone && <span className="text-green-600 bg-white/80 p-1 rounded-full shadow-sm"><Icons.Check className="w-4 h-4"/></span>}
+                    <h3 className="text-2xl font-semibold leading-[1.1] mb-2 text-white tracking-tight line-clamp-2">
+                        {title}
+                    </h3>
+
+                    <div className="flex items-center gap-4 text-xs text-gray-400 mt-4 font-medium">
+                        <div className="flex items-center gap-1.5">
+                            <HelpCircle size={14} className="opacity-70" />
+                            <span>{questionsCount || 40} savol</span>
                         </div>
-                        <h3 className="text-[17px] font-semibold text-gray-900 tracking-tight leading-snug mb-2 line-clamp-2">{test.title}</h3>
-                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">
-                            {test.assignmentInfo?.endDate ? `Deadline: ${new Date(test.assignmentInfo.endDate).toLocaleDateString()}` : 'Muddatsiz'}
-                        </p>
-                    </div>
-
-                    <div className="mt-6 flex items-end justify-between border-t border-gray-200/50 pt-4">
-                        {isDone ? (
-                            <>
-                                {/* 🔥 TEST NATIJA QISMI (Bosiladigan qilindi) */}
-                                <div 
-                                    onClick={() => onReview(test)} 
-                                    className="cursor-pointer group-hover:opacity-80 transition"
-                                    title="Tahlilni ko'rish"
-                                >
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase block mb-0.5 flex items-center gap-1">
-                                        NATIJA <span className="text-[8px] bg-gray-100 text-gray-500 px-1 rounded hover:bg-gray-200 transition">TAHLIL &rarr;</span>
-                                    </span>
-                                    <span className="text-3xl font-bold text-gray-900 tracking-tighter leading-none">{test.result.bandScore || test.result.score}</span>
-                                </div>
-
-                                <button onClick={() => onStartTest(test)} className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition shadow-sm group-hover:scale-110" title="Qayta ishlash">
-                                    <Icons.Refresh className="w-4 h-4 text-gray-600"/>
-                                </button>
-                            </>
-                        ) : (
-                            <button 
-                                onClick={() => onStartTest(test)} 
-                                disabled={test.status === 'expired'}
-                                className={`w-full py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 ${test.status === 'expired' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800 shadow-lg shadow-gray-200'}`}
-                            >
-                                {test.status === 'expired' ? "Yopilgan" : "Boshlash"}
-                            </button>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                            <Clock size={14} className="opacity-70" />
+                            <span>{duration || 60} daqiqada</span>
+                        </div>
                     </div>
                 </div>
-            );
-        })}
-    </div>
-  );
+
+                {/* Footer / Action */}
+                <div className="mt-6">
+                    {isCompleted ? (
+                        <div className="mb-4">
+                            <div className="flex justify-between text-[10px] font-medium text-gray-400 mb-1.5">
+                                <span>Natija</span>
+                                <span className="text-white font-bold">{result?.bandScore || result?.score} Ball</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `100%` }}
+                                    transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+                                    className={`h-full rounded-full ${theme.glow}`}
+                                ></motion.div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-2"></div>
+                    )}
+
+                    <motion.button
+                        onClick={() => isCompleted ? onReview(test) : onStart(test)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`
+            w-full py-3.5 rounded-xl flex items-center justify-center gap-2 
+            text-white font-semibold text-sm transition-colors duration-300
+            ${isCompleted ? 'bg-white/10 hover:bg-white/20' : theme.button}
+          `}>
+                        {isCompleted ? 'Tahlilni Ko\'rish' : (hasDraft ? 'Davom ettirish' : 'Boshlash')}
+                        {!isCompleted && <Play size={16} fill="currentColor" />}
+                    </motion.button>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
+export default function TestGrid({ loading, tests, onStartTest, onSelectSet, onReview, errorMsg }) {
+    if (loading) return <div className="text-center py-20 text-gray-400 text-sm animate-pulse">Yuklanmoqda...</div>;
+    if (errorMsg) return <div className="bg-red-500/10 text-red-400 p-4 rounded-xl mb-6 text-sm font-medium border border-red-500/20">{errorMsg}</div>;
+
+    return (
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+        >
+            {tests.map((test, index) => {
+                // Mock va Set kartalari uchun alohida dizayn kerak bo'lsa, shu yerda ajratish mumkin.
+                // Hozircha oddiy TestCard ishlatamiz.
+
+                if (test.isMock) {
+                    return (
+                        <motion.div variants={itemVariants} key={index} className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-gray-900 to-black text-white p-6 shadow-xl border border-white/10 group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Check className="w-32 h-32" /></div>
+                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                <div>
+                                    <span className="inline-block px-2 py-1 bg-yellow-500/20 text-yellow-400 text-[10px] font-bold rounded mb-3 uppercase tracking-wider border border-yellow-500/20">Mock Exam</span>
+                                    <h3 className="text-2xl font-bold leading-tight mb-1">Full IELTS Mock</h3>
+                                    <p className="text-gray-400 text-xs">Listening • Reading • Writing</p>
+                                </div>
+                                <div className="mt-8">
+                                    <button
+                                        onClick={() => test.status === 'completed' ? onReview(test) : onStartTest(test)}
+                                        className="w-full bg-white text-black hover:bg-gray-200 py-3.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2"
+                                    >
+                                        {test.status === 'completed' ? "Natijani Ko'rish" : "Imtihonni Boshlash"}
+                                        {test.status !== 'completed' && <Play size={16} fill="currentColor" />}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    );
+                }
+
+                if (test.isSet) {
+                    return (
+                        <motion.div variants={itemVariants} key={test.id || index} onClick={() => onSelectSet(test)} className="group bg-[#181210] rounded-[28px] p-6 border border-white/5 hover:border-blue-500/30 transition cursor-pointer flex flex-col justify-between h-full relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-bl-full -mr-6 -mt-6 transition group-hover:bg-blue-500/20"></div>
+                            <div>
+                                <div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center mb-4 border border-blue-500/20">
+                                    <Folder className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-2">{test.title}</h3>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                        <div className="h-full bg-blue-500" style={{ width: `${(test.completedTests / test.totalTests) * 100}%` }}></div>
+                                    </div>
+                                    <span className="text-[10px] text-gray-400 font-medium">{test.completedTests}/{test.totalTests}</span>
+                                </div>
+                            </div>
+                            <div className="mt-6 flex justify-between items-center text-blue-400 text-xs font-bold uppercase tracking-wider">
+                                <span>To'plamni Ochish</span>
+                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
+                        </motion.div>
+                    );
+                }
+
+                return (
+                    <TestCard
+                        key={test.id || index}
+                        test={test}
+                        onStart={onStartTest}
+                        onReview={onReview}
+                    />
+                );
+            })}
+        </motion.div>
+    );
 }

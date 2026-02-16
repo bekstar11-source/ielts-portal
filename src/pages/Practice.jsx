@@ -10,6 +10,7 @@ import PlanetBackground from "../components/dashboard/PlanetBackground";
 import TestGrid from "../components/dashboard/TestGrid";
 import FiltersBar from "../components/dashboard/FiltersBar";
 import DashboardModals from "../components/dashboard/DashboardModals";
+import Pagination from "../components/common/Pagination"; // Pagination Component import
 
 // --- LOGIC HELPERS ---
 const safeDate = (dateString) => {
@@ -63,6 +64,10 @@ export default function Practice() {
     const [accessKeyInput, setAccessKeyInput] = useState("");
     const [checkingKey, setCheckingKey] = useState(false);
     const [keyError, setKeyError] = useState("");
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8; // Sahifada nechta test ko'rinishi kerak
 
     // Data Fetching Logic (Taken from StudentDashboard)
     useEffect(() => {
@@ -167,7 +172,9 @@ export default function Practice() {
                     }
                     else {
                         const testDataFromDb = testsMap[assign.id];
-                        if (testDataFromDb || assign.title) {
+                        // 🔥 FIX: Faqat bazada real mavjud testlarni chiqaramiz.
+                        // Aks holda bosganda "Test topilmadi" deb dashboardga qaytarib yuboradi.
+                        if (testDataFromDb) {
                             const finalTestData = {
                                 ...testDataFromDb,
                                 ...assign,
@@ -218,6 +225,18 @@ export default function Practice() {
             return matchesSearch && matchesType;
         });
     }, [rawAssignments, searchQuery, filterType]);
+
+    // PAGINATION LOGIC
+    const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
+    const currentTests = filteredTests.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    // Filter o'zgarsa 1-sahifaga qaytish
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, filterType]);
 
     const handleStartTest = (test) => { setTestToStart(test); setShowStartConfirm(true); };
 
@@ -283,7 +302,7 @@ export default function Practice() {
 
             <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-8">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">Amaliyot Markazi 🎯</h1>
+                    <h1 className="text-3xl font-bold mb-2">Amaliyot Markazi</h1>
                     <p className="text-gray-400">Barcha mavjud testlar va to'plamlar shu yerda.</p>
                 </div>
 
@@ -293,13 +312,22 @@ export default function Practice() {
                 />
 
                 <TestGrid
+                    key={`${filterType}-${currentPage}`} // 🔥 FIX: Filter o'zgarganda animatsiya ishlashi uchun
                     loading={loading}
-                    tests={filteredTests}
+                    tests={currentTests} // Faqat hozirgi sahifadagi testlar
                     onStartTest={handleStartTest}
                     onSelectSet={setSelectedSet}
                     onReview={handleReview}
                     errorMsg={errorMsg}
                 />
+
+                {!loading && !errorMsg && (
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
 
                 <DashboardModals
                     showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}

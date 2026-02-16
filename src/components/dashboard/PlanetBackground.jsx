@@ -11,40 +11,28 @@ const PlanetBackground = () => {
             const particle = document.createElement('div');
             particle.classList.add('planet-particle');
 
-            // Tasodifiy o'lcham
             const size = Math.random() * 3 + 1;
             particle.style.width = `${size}px`;
             particle.style.height = `${size}px`;
-
-            // Tasodifiy joylashuv
             particle.style.left = `${Math.random() * 100}%`;
 
-            // Tasodifiy animatsiya davomiyligi
-            const duration = Math.random() * 5 + 3; // 3s dan 8s gacha
+            const duration = Math.random() * 5 + 3;
             particle.style.animationDuration = `${duration}s`;
-
-            // Tasodifiy kechikish
-            particle.style.animationDelay = `${Math.random()}s`;
 
             container.appendChild(particle);
 
-            // O'chirish
             setTimeout(() => {
                 particle.remove();
             }, duration * 1000);
         };
 
-        const interval = setInterval(createParticle, 200);
+        const interval = setInterval(createParticle, 300);
         return () => clearInterval(interval);
     }, []);
 
     return (
         <>
             <style>{`
-                /* ========================================
-                   VETRA PLANET HORIZON SYSTEM (Fixed)
-                   ========================================
-                */
                 .planet-stage {
                     position: fixed;
                     top: 0;
@@ -52,67 +40,50 @@ const PlanetBackground = () => {
                     width: 100%;
                     height: 100vh;
                     overflow: hidden;
-                    z-index: 0; /* Behind content but in front of body bg */
+                    z-index: 0; /* Changed from -1 to 0 to be part of the background stack */
                     pointer-events: none;
+                    background-color: #050505;
                 }
 
-                /* 1. The Planet Body */
                 .planet-body {
                     position: absolute;
                     left: 50%;
                     transform: translateX(-50%);
-                    width: 250vw;
-                    height: 250vw;
+                    width: 200vw;
+                    height: 200vw;
                     border-radius: 50%;
-                    bottom: calc(15vh - 250vw); 
-                    background: #000; 
+                    bottom: calc(5vh - 200vw);
+                    background: #000;
                     box-shadow: 
-                        0 -2px 10px rgba(255, 122, 80, 0.9),
-                        0 -20px 60px rgba(255, 85, 32, 0.6),
-                        0 -80px 140px rgba(255, 85, 32, 0.3);
+                        0 -2px 10px rgba(255, 122, 80, 0.8),
+                        0 -20px 60px rgba(255, 85, 32, 0.5),
+                        0 -80px 140px rgba(255, 85, 32, 0.2);
                     z-index: 2;
                 }
 
-                .planet-body::after {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 80%;
-                    height: 10%; 
-                    background: radial-gradient(ellipse at center top, rgba(255, 85, 32, 0.4), transparent 70%);
-                    opacity: 0.8;
-                    filter: blur(20px);
-                }
-
-                /* 2. The Atmosphere Glow */
                 .planet-atmosphere {
                     position: absolute;
                     bottom: -20vh;
                     left: 0;
                     width: 100%;
                     height: 60vh;
-                    background: radial-gradient(ellipse at bottom center, rgba(255, 85, 32, 0.15) 0%, transparent 70%);
+                    background: radial-gradient(ellipse at bottom center, rgba(255, 85, 32, 0.1) 0%, transparent 70%);
                     z-index: 1;
-                    pointer-events: none;
                     mix-blend-mode: screen;
                 }
 
-                /* 3. The Aurora Waves */
                 .aurora-waves {
                     position: absolute;
                     bottom: 0; 
                     left: 0;
                     width: 100%;
-                    height: 40vh;
-                    background: radial-gradient(ellipse at bottom, rgba(255, 85, 32, 0.1) 0%, transparent 60%);
-                    filter: blur(60px);
+                    height: 50vh;
+                    background: radial-gradient(ellipse at bottom, rgba(255, 85, 32, 0.08) 0%, transparent 60%);
+                    filter: blur(50px);
                     z-index: 3;
-                    animation: breatheGlow 10s ease-in-out infinite alternate;
+                    animation: breatheGlow 12s ease-in-out infinite alternate;
                 }
 
-                /* 4. Particles */
                 .planet-particle {
                     position: absolute;
                     bottom: 0;
@@ -126,35 +97,26 @@ const PlanetBackground = () => {
                     animation: floatUp linear forwards;
                 }
 
-                @keyframes floatUp {
-                    0% {
-                        transform: translateY(0) scale(1);
-                        opacity: 0;
-                    }
-                    10% {
-                        opacity: 0.8;
-                    }
-                    100% {
-                        transform: translateY(-400px) scale(0);
-                        opacity: 0;
-                    }
+                @keyframes breatheGlow {
+                    0% { opacity: 0.4; transform: scale(1); }
+                    100% { opacity: 0.7; transform: scale(1.05); }
                 }
 
-                /* Stars Background */
+                @keyframes floatUp {
+                    0% { transform: translateY(0) scale(1); opacity: 0; }
+                    10% { opacity: 0.6; }
+                    100% { transform: translateY(-400px) scale(0); opacity: 0; }
+                }
+
                 .stars {
                     background-image: 
                         radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
-                        radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
-                        radial-gradient(1px 1px at 50px 160px, #fff, rgba(0,0,0,0)),
                         radial-gradient(1px 1px at 90px 40px, #fff, rgba(0,0,0,0));
                     background-size: 200px 200px;
                     position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    z-index: -1; /* Behind planet stage */
-                    opacity: 0.3;
+                    inset: 0;
+                    z-index: -1; /* Behind everything */
+                    opacity: 0.2;
                 }
             `}</style>
 
