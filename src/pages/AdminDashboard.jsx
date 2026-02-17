@@ -16,22 +16,7 @@ import {
 import AnalyticsChart from "../components/common/AnalyticsChart";
 
 // --- MOCK CHART DATA ---
-const mockActivityData = [
-    { name: 'Mon', value: 12 },
-    { name: 'Tue', value: 19 },
-    { name: 'Wed', value: 15 },
-    { name: 'Thu', value: 25 },
-    { name: 'Fri', value: 32 },
-    { name: 'Sat', value: 20 },
-    { name: 'Sun', value: 28 },
-];
-
-const mockTestsData = [
-    { name: 'Reading', value: 45 },
-    { name: 'Listening', value: 32 },
-    { name: 'Writing', value: 28 },
-    { name: 'Speaking', value: 15 },
-];
+// --- MOCK CHART DATA REMOVED (Now using real data) ---
 
 // --- 1. ICONS (Barcha kerakli ikonkalar) ---
 const Icons = {
@@ -148,33 +133,96 @@ export default function AdminDashboard() {
     useEffect(() => {
         async function fetchInitialData() {
             try {
-                const cachedGroups = sessionStorage.getItem("admin_groups");
-                const cachedStats = sessionStorage.getItem("admin_stats");
+                // Keshni tekshirish (faqat qisqa muddatga)
+                const cachedTime = sessionStorage.getItem("admin_data_time");
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000); // 5 daqiqa
 
-                if (cachedStats && cachedGroups) {
-                    setStats(JSON.parse(cachedStats));
-                    setGroups(JSON.parse(cachedGroups));
-                } else {
-                    const usersSnap = await getCountFromServer(collection(db, "users"));
-                    const testsSnap = await getCountFromServer(collection(db, "tests"));
-                    const resultsSnap = await getCountFromServer(collection(db, "results"));
-
-                    const statsData = {
-                        users: usersSnap.data().count,
-                        tests: testsSnap.data().count,
-                        results: resultsSnap.data().count,
-                        loading: false
-                    };
-                    setStats(statsData);
-                    sessionStorage.setItem("admin_stats", JSON.stringify(statsData));
-
-                    const groupsSnap = await getDocs(collection(db, "groups"));
-                    const groupsData = groupsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    setGroups(groupsData);
-                    sessionStorage.setItem("admin_groups", JSON.stringify(groupsData));
+                if (isCacheValid) {
+                    const cachedStats = sessionStorage.getItem("admin_stats");
+                    const cachedGroups = sessionStorage.getItem("admin_groups");
+                    if (cachedStats) setStats(JSON.parse(cachedStats));
+                    if (cachedGroups) setGroups(JSON.parse(cachedGroups));
+                    return;
                 }
+
+                // 1. STATS COUNTS
+                const usersSnap = await getCountFromServer(collection(db, "users"));
+                const testsSnap = await getDocs(collection(db, "tests")); // Need docs for chart
+                const resultsSnap = await getDocs(query(collection(db, "results"), limit(500))); // Limit for performance, mostly for recent activity
+
+                const testsDocs = testsSnap.docs.map(d => d.data());
+                const resultsDocs = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: d.data().date ? new Date(d.data().date) : new Date() })); // Normalize date
+
+                // 2. PREPARE CHART DATA
+                // A) Tests Breakdown
+                const testTypes = { reading: 0, listening: 0, writing: 0, speaking: 0 };
+                testsDocs.forEach(t => {
+                    const type = t.type?.toLowerCase() || 'other';
+                    if (testTypes[type] !== undefined) testTypes[type]++;
+                });
+                const realTestsData = [
+                    { name: 'Reading', value: testTypes.reading },
+                    { name: 'Listening', value: testTypes.listening },
+                    { name: 'Writing', value: testTypes.writing },
+                    { name: 'Speaking', value: testTypes.speaking },
+                ];
+
+                // B) Activity (Last 7 days)
+                const last7Days = [...Array(7)].map((_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (6 - i));
+                    return d.toISOString().split('T')[0];
+                });
+                const activityMap = last7Days.reduce((acc, date) => ({ ...acc, [date]: 0 }), {});
+
+                resultsDocs.forEach(r => {
+                    try {
+                        // Support Firestore Timestamp or ISO string
+                        let dateObj = r.date;
+                        if (r.date && r.date.seconds) dateObj = new Date(r.date.seconds * 1000);
+                        else if (typeof r.date === 'string') dateObj = new Date(r.date);
+
+                        if (dateObj && !isNaN(dateObj)) {
+                            const dateKey = dateObj.toISOString().split('T')[0];
+                            if (activityMap[dateKey] !== undefined) activityMap[dateKey]++;
+                        }
+                    } catch (e) { console.warn("Date parse error", e); }
+                });
+
+                const realActivityData = Object.entries(activityMap).map(([date, value]) => ({
+                    name: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+                    value
+                }));
+
+                // 3. SET STATE
+                const statsData = {
+                    users: usersSnap.data().count,
+                    tests: testsSnap.size,
+                    results: resultsSnap.size, // This likely needs getCountFromServer for total, but for chart we used limit
+                    activityData: realActivityData,
+                    testsData: realTestsData,
+                    loading: false
+                };
+
+                // Get total results count accurately
+                const totalResultsSnap = await getCountFromServer(collection(db, "results"));
+                statsData.results = totalResultsSnap.data().count;
+
+                setStats(statsData);
+
+                // Groups
+                const groupsSnap = await getDocs(collection(db, "groups"));
+                const groupsData = groupsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setGroups(groupsData);
+
+                // Cache Save
+                sessionStorage.setItem("admin_stats", JSON.stringify(statsData));
+                sessionStorage.setItem("admin_groups", JSON.stringify(groupsData));
+                sessionStorage.setItem("admin_data_time", Date.now().toString());
+
             } catch (error) {
                 console.error("Stats Error:", error);
+                setStats(prev => ({ ...prev, loading: false }));
             }
         }
         if (isAuthorized) fetchInitialData();
@@ -339,10 +387,10 @@ export default function AdminDashboard() {
 
                 {/* CHARTS */}
                 <div className="col-span-12 md:col-span-8">
-                    <AnalyticsChart title="Faollik Statistikasi" data={mockActivityData} height={320} color="#3B82F6" />
+                    <AnalyticsChart title="Faollik Statistikasi" data={stats.activityData || []} height={320} color="#3B82F6" />
                 </div>
                 <div className="col-span-12 md:col-span-4">
-                    <AnalyticsChart title="Testlar Bo'limi" data={mockTestsData} height={320} type="bar" color="#8B5CF6" />
+                    <AnalyticsChart title="Testlar Bo'limi" data={stats.testsData || []} height={320} type="bar" color="#8B5CF6" />
                 </div>
 
                 {/* ACTION CARDS */}

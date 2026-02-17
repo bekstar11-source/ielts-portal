@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Check } from 'lucide-react';
 
-export default function NoteInput({ position, initialNote = "", onSave, onClose }) {
+export default function NoteInput({ position, initialNote = "", onSave, onClose, onDelete }) {
     const [note, setNote] = useState(initialNote);
     const inputRef = useRef(null);
 

@@ -10,6 +10,7 @@ export default function AdminGamification() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [recentAwards, setRecentAwards] = useState([]);
 
     useEffect(() => {
         fetchLeaderboard();
@@ -32,6 +33,17 @@ export default function AdminGamification() {
             // Sort client-side for now
             data.sort((a, b) => b.points - a.points);
             setUsers(data);
+
+            // Fetch Recent Awards (Aggregate from users)
+            let allAwards = [];
+            data.forEach(u => {
+                if (u.achievements && Array.isArray(u.achievements)) {
+                    u.achievements.forEach(a => allAwards.push({ ...a, userName: u.fullName, userId: u.id }));
+                }
+            });
+            allAwards.sort((a, b) => new Date(b.date) - new Date(a.date));
+            setRecentAwards(allAwards.slice(0, 5));
+
         } catch (error) {
             console.error("Error fetching leaderboard:", error);
         } finally {
@@ -58,6 +70,40 @@ export default function AdminGamification() {
 
     const filteredUsers = users.filter(u => u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()));
 
+    // --- DYNAMIC SEASON ---
+    const getWeekNumber = (d) => {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return weekNo;
+    };
+    const currentWeek = getWeekNumber(new Date());
+    const currentYear = new Date().getFullYear();
+    const seasonTitle = `Weekly Season #${currentWeek} (${currentYear})`;
+
+    // Reset Season Logic (Mock for now, normally would archive points)
+    const handleResetSeason = async () => {
+        if (!window.confirm("Are you sure you want to reset the season? This will reset all user points to 0.")) return;
+        // Logic to batch update all users points to 0 would go here.
+        alert("Season reset functionality coming soon (requires Batch Write for all users).");
+    };
+
+    const formatTimeAgo = (date) => {
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " years ago";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " months ago";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " days ago";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " hours ago";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + " minutes ago";
+        return Math.floor(seconds) + " seconds ago";
+    };
+
     return (
         <div className={`min-h-screen p-6 ${isDark ? 'bg-[#1E1E1E] text-white' : 'bg-gray-50 text-gray-900'}`}>
             <div className="flex justify-between items-center mb-6">
@@ -81,10 +127,13 @@ export default function AdminGamification() {
                 {/* GLOBAL STATS */}
                 <div className={`p-6 rounded-[24px] border col-span-1 lg:col-span-3 flex justify-between items-center ${isDark ? 'bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-white/5' : 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200'}`}>
                     <div>
-                        <h3 className="font-bold text-lg mb-1">Weekly Season #42</h3>
-                        <p className="opacity-60 text-sm">Ends in 3 days</p>
+                        <h3 className="font-bold text-lg mb-1">{seasonTitle}</h3>
+                        <p className="opacity-60 text-sm">Ends on Sunday</p>
                     </div>
-                    <button className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl shadow-lg shadow-yellow-500/30 transition">
+                    <button
+                        onClick={handleResetSeason}
+                        className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl shadow-lg shadow-yellow-500/30 transition"
+                    >
                         Reset Season
                     </button>
                 </div>
@@ -123,9 +172,9 @@ export default function AdminGamification() {
                                         <tr key={user.id} className={`transition ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}>
                                             <td className="p-4">
                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-yellow-500 text-white' :
-                                                        idx === 1 ? 'bg-gray-400 text-white' :
-                                                            idx === 2 ? 'bg-orange-700 text-white' :
-                                                                isDark ? 'bg-white/10' : 'bg-gray-100'
+                                                    idx === 1 ? 'bg-gray-400 text-white' :
+                                                        idx === 2 ? 'bg-orange-700 text-white' :
+                                                            isDark ? 'bg-white/10' : 'bg-gray-100'
                                                     }`}>
                                                     {idx + 1}
                                                 </div>
@@ -174,18 +223,22 @@ export default function AdminGamification() {
                 <div className={`rounded-[24px] border p-6 ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
                     <h3 className="font-bold mb-4 flex items-center gap-2"><Star className="text-yellow-500" size={18} /> Recent Awards</h3>
                     <div className="space-y-4">
-                        {[1, 2, 3, 4, 5].map((_, i) => (
-                            <div key={i} className="flex gap-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
-                                    <Medal size={20} className="text-purple-500" />
+                        {recentAwards.length > 0 ? (
+                            recentAwards.map((award, i) => (
+                                <div key={i} className="flex gap-3">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                        <Medal size={20} className="text-purple-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold">{award.title || 'Achievement Unlocked'}</p>
+                                        <p className="text-xs opacity-50">Awarded to <span className="text-blue-500">{award.userName}</span></p>
+                                        <p className="text-[10px] opacity-40 mt-1">{formatTimeAgo(award.date)}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-bold">Sharpshooter Badge</p>
-                                    <p className="text-xs opacity-50">Awarded to <span className="text-blue-500">John Doe</span></p>
-                                    <p className="text-[10px] opacity-40 mt-1">2 hours ago</p>
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <div className="text-center opacity-50 text-sm py-4">No recent awards found</div>
+                        )}
                     </div>
                     <button className="w-full mt-6 py-3 rounded-xl border border-dashed font-bold text-sm opacity-50 hover:opacity-100 transition border-current">
                         View All History

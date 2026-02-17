@@ -317,18 +317,17 @@ function GroupsTab({ groups, students, onRefresh, theme }) {
     );
 }
 
+import { logAction } from '../utils/logger';
+import { useAuth } from '../context/AuthContext';
+
+// ... (existing imports)
+
 // --- TAB 3: ASSIGN ---
 function AssignTab({ students, groups, allTests, testSets, theme }) {
     const isDark = theme === 'dark';
+    const { user } = useAuth(); // Get current admin
     const [selectedStudents, setSelectedStudents] = useState([]);
-    const [selectedGroup, setSelectedGroup] = useState(null);
-    const [assignmentType, setAssignmentType] = useState('test');
-    const [selectedItem, setSelectedItem] = useState('');
-    const [startDate, setStartDate] = useState(null);
-    const [endDate, setEndDate] = useState(null);
-    const [subTab, setSubTab] = useState('groups');
-    const [noDeadline, setNoDeadline] = useState(false);
-    const [isStrict, setIsStrict] = useState(false);
+    // ...
 
     const handleAssign = async () => {
         if ((!selectedGroup && selectedStudents.length === 0) || !selectedItem || (!noDeadline && (!startDate || !endDate))) {
@@ -351,11 +350,19 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
         };
 
         try {
-            if (selectedGroup) await updateDoc(doc(db, 'groups', selectedGroup.id), { assignedTests: arrayUnion(payload) });
-            else await Promise.all(selectedStudents.map(id => updateDoc(doc(db, 'users', id), { assignedTests: arrayUnion(payload) })));
+            if (selectedGroup) {
+                await updateDoc(doc(db, 'groups', selectedGroup.id), { assignedTests: arrayUnion(payload) });
+                logAction(user.uid, 'ASSIGN_TEST', { target: 'group', targetId: selectedGroup.id, ...payload });
+            } else {
+                await Promise.all(selectedStudents.map(id => updateDoc(doc(db, 'users', id), { assignedTests: arrayUnion(payload) })));
+                logAction(user.uid, 'ASSIGN_TEST', { target: 'students', count: selectedStudents.length, ...payload });
+            }
             alert("Tayinlandi!");
+            // Reset fields
+            setSelectedItem('');
         } catch (e) { alert("Xato: " + e.message); }
     };
+    // ...
 
     return (
         <div className="grid grid-cols-12 gap-6 h-full">
@@ -372,25 +379,54 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                    {subTab === 'groups' ? groups.map(g => (
-                        <div
-                            key={g.id}
-                            onClick={() => setSelectedGroup(g)}
-                            className={`p-3 rounded-xl border cursor-pointer transition flex justify-between items-center ${selectedGroup?.id === g.id ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-transparent hover:bg-white/5' : 'border-transparent hover:bg-gray-50')}`}
-                        >
-                            <span className="font-bold text-sm">{g.name}</span>
-                            {selectedGroup?.id === g.id && <Check size={14} className="text-blue-500" />}
-                        </div>
-                    )) : students.map(s => (
-                        <div
-                            key={s.id}
-                            onClick={() => setSelectedStudents(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
-                            className={`p-3 rounded-xl border cursor-pointer transition flex justify-between items-center ${selectedStudents.includes(s.id) ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-transparent hover:bg-white/5' : 'border-transparent hover:bg-gray-50')}`}
-                        >
-                            <span className="font-bold text-sm">{s.fullName}</span>
-                            {selectedStudents.includes(s.id) && <Check size={14} className="text-blue-500" />}
-                        </div>
-                    ))}
+                    {subTab === 'groups' ? (
+                        <>
+                            {/* Group Search - Optional, but consistent */}
+                            <div className={`flex items-center px-3 py-2 mb-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                                <Search size={14} className="text-gray-400 mr-2" />
+                                <input
+                                    type="text"
+                                    placeholder="Guruhni qidirish..."
+                                    className="bg-transparent border-none outline-none text-xs w-full"
+                                    value={searchUser} // Reusing searchUser for simplicity or create searchGroup
+                                    onChange={e => setSearchUser(e.target.value)}
+                                />
+                            </div>
+                            {groups.filter(g => g.name.toLowerCase().includes(searchUser.toLowerCase())).map(g => (
+                                <div
+                                    key={g.id}
+                                    onClick={() => setSelectedGroup(g)}
+                                    className={`p-3 rounded-xl border cursor-pointer transition flex justify-between items-center ${selectedGroup?.id === g.id ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-transparent hover:bg-white/5' : 'border-transparent hover:bg-gray-50')}`}
+                                >
+                                    <span className="font-bold text-sm">{g.name}</span>
+                                    {selectedGroup?.id === g.id && <Check size={14} className="text-blue-500" />}
+                                </div>
+                            ))}
+                        </>
+                    ) : (
+                        <>
+                            <div className={`flex items-center px-3 py-2 mb-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                                <Search size={14} className="text-gray-400 mr-2" />
+                                <input
+                                    type="text"
+                                    placeholder="O'quvchini qidirish..."
+                                    className="bg-transparent border-none outline-none text-xs w-full"
+                                    value={searchUser}
+                                    onChange={e => setSearchUser(e.target.value)}
+                                />
+                            </div>
+                            {students.filter(s => s.fullName?.toLowerCase().includes(searchUser.toLowerCase())).map(s => (
+                                <div
+                                    key={s.id}
+                                    onClick={() => setSelectedStudents(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                                    className={`p-3 rounded-xl border cursor-pointer transition flex justify-between items-center ${selectedStudents.includes(s.id) ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-transparent hover:bg-white/5' : 'border-transparent hover:bg-gray-50')}`}
+                                >
+                                    <span className="font-bold text-sm">{s.fullName}</span>
+                                    {selectedStudents.includes(s.id) && <Check size={14} className="text-blue-500" />}
+                                </div>
+                            ))}
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -404,20 +440,36 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                         <div className="w-1/3">
                             <label className="text-xs font-bold opacity-50 uppercase mb-2 block">Turi</label>
                             <div className={`flex p-1 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
-                                <button onClick={() => setAssignmentType('test')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${assignmentType === 'test' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>Test</button>
-                                <button onClick={() => setAssignmentType('set')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${assignmentType === 'set' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>To'plam</button>
+                                <button onClick={() => { setAssignmentType('test'); setSearchMaterial(''); }} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${assignmentType === 'test' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>Test</button>
+                                <button onClick={() => { setAssignmentType('set'); setSearchMaterial(''); }} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${assignmentType === 'set' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>To'plam</button>
                             </div>
                         </div>
                         <div className="w-2/3">
                             <label className="text-xs font-bold opacity-50 uppercase mb-2 block">Material</label>
+
+                            {/* Material Search Input */}
+                            <div className={`flex items-center px-3 py-1 mb-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                                <Search size={14} className="text-gray-400 mr-2" />
+                                <input
+                                    type="text"
+                                    placeholder="Qidirish..."
+                                    className="bg-transparent border-none outline-none text-xs w-full h-8"
+                                    value={searchMaterial}
+                                    onChange={e => setSearchMaterial(e.target.value)}
+                                />
+                            </div>
+
                             <select
                                 value={selectedItem}
                                 onChange={e => setSelectedItem(e.target.value)}
                                 className={`w-full h-[42px] px-3 rounded-xl border outline-none text-sm appearance-none ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}
                             >
                                 <option value="">Tanlang...</option>
-                                {(assignmentType === 'test' ? allTests : testSets).map(i => <option key={i.id} value={i.id}>{i.title || i.name}</option>)}
+                                {filteredMaterials.map(i => (
+                                    <option key={i.id} value={i.id}>{assignmentType === 'test' ? i.title : i.name}</option>
+                                ))}
                             </select>
+                            {filteredMaterials.length === 0 && <p className="text-[10px] text-red-400 mt-1 ml-1">Hech narsa topilmadi</p>}
                         </div>
                     </div>
 
@@ -477,55 +529,118 @@ function SetsTab({ allTests, testSets, onRefresh, theme }) {
     const isDark = theme === 'dark';
     const [name, setName] = useState('');
     const [selectedTests, setSelectedTests] = useState([]);
+    const [searchTest, setSearchTest] = useState('');
 
     const handleCreate = async () => {
         if (!name.trim() || !selectedTests.length) return;
-        await addDoc(collection(db, 'testSets'), { name, testIds: selectedTests, createdAt: new Date().toISOString() });
-        setName(''); setSelectedTests([]); onRefresh();
+        try {
+            await addDoc(collection(db, 'testSets'), {
+                name,
+                testIds: selectedTests,
+                createdAt: new Date().toISOString()
+            });
+            setName('');
+            setSelectedTests([]);
+            setSearchTest('');
+            onRefresh();
+            alert("To'plam yaratildi!");
+        } catch (error) {
+            console.error(error);
+            alert("Xatolik yuz berdi");
+        }
     };
 
-    const handleDelete = async (id) => { if (window.confirm("O'chirasizmi?")) { await deleteDoc(doc(db, 'testSets', id)); onRefresh(); } };
+    const handleDelete = async (id) => {
+        if (window.confirm("O'chirasizmi?")) {
+            try {
+                await deleteDoc(doc(db, 'testSets', id));
+                onRefresh();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    };
+
+    const filteredTests = allTests.filter(t =>
+        t.title?.toLowerCase().includes(searchTest.toLowerCase())
+    );
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+            {/* LEFT: Create Set */}
             <div className={`rounded-[24px] border flex flex-col overflow-hidden ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
-                <div className="p-4 border-b border-white/5">
+                <div className={`p-4 border-b space-y-3 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                     <input
                         type="text"
                         placeholder="To'plam nomi..."
-                        className={`w-full h-10 px-4 rounded-xl outline-none border transition ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}
-                        value={name} onChange={e => setName(e.target.value)}
+                        className={`w-full h-10 px-4 rounded-xl outline-none border transition ${isDark ? 'bg-[#1E1E1E] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`}
+                        value={name}
+                        onChange={e => setName(e.target.value)}
                     />
+                    <div className={`flex items-center px-3 py-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                        <Search size={16} className="text-gray-400 mr-2" />
+                        <input
+                            type="text"
+                            placeholder="Testlarni qidirish..."
+                            className="bg-transparent border-none outline-none text-sm w-full"
+                            value={searchTest}
+                            onChange={e => setSearchTest(e.target.value)}
+                        />
+                    </div>
                 </div>
+
                 <div className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-1">
-                    {allTests.map(t => (
-                        <div
-                            key={t.id}
-                            onClick={() => setSelectedTests(p => p.includes(t.id) ? p.filter(x => x !== t.id) : [...p, t.id])}
-                            className={`p-3 rounded-xl border cursor-pointer transition flex justify-between items-center ${selectedTests.includes(t.id) ? 'border-blue-500 bg-blue-500/10' : 'border-transparent hover:bg-white/5'}`}
-                        >
-                            <span className="text-sm font-medium">{t.title}</span>
-                            {selectedTests.includes(t.id) && <Check size={14} className="text-blue-500" />}
-                        </div>
-                    ))}
+                    {filteredTests.length > 0 ? (
+                        filteredTests.map(t => (
+                            <div
+                                key={t.id}
+                                onClick={() => setSelectedTests(p => p.includes(t.id) ? p.filter(x => x !== t.id) : [...p, t.id])}
+                                className={`p-3 rounded-xl border cursor-pointer transition flex justify-between items-center ${selectedTests.includes(t.id)
+                                    ? 'border-blue-500 bg-blue-500/10'
+                                    : (isDark ? 'border-transparent hover:bg-white/5' : 'border-transparent hover:bg-gray-50')
+                                    }`}
+                            >
+                                <span className="text-sm font-medium line-clamp-1">{t.title}</span>
+                                {selectedTests.includes(t.id) && <Check size={14} className="text-blue-500 shrink-0" />}
+                            </div>
+                        ))
+                    ) : (
+                        <div className="p-4 text-center text-xs opacity-50">Test topilmadi</div>
+                    )}
                 </div>
-                <div className="p-4 border-t border-white/5">
-                    <button onClick={handleCreate} className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl">Saqlash ({selectedTests.length})</button>
+
+                <div className={`p-4 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                    <button
+                        onClick={handleCreate}
+                        disabled={!name.trim() || !selectedTests.length}
+                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/20"
+                    >
+                        Saqlash ({selectedTests.length})
+                    </button>
                 </div>
             </div>
 
+            {/* RIGHT: Existing Sets */}
             <div className={`rounded-[24px] border flex flex-col overflow-hidden ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
-                <div className="p-4 border-b border-white/5 font-bold text-sm uppercase opacity-50">Mavjud To'plamlar</div>
+                <div className={`p-4 border-b font-bold text-sm uppercase opacity-50 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                    Mavjud To'plamlar
+                </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                    {testSets.map(s => (
-                        <div key={s.id} className={`p-4 rounded-xl border flex justify-between items-center ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                            <div>
-                                <p className="font-bold text-sm">{s.name}</p>
-                                <p className="text-xs opacity-50">{s.testIds?.length} tests</p>
+                    {testSets.length > 0 ? (
+                        testSets.map(s => (
+                            <div key={s.id} className={`p-4 rounded-xl border flex justify-between items-center ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                                <div>
+                                    <p className="font-bold text-sm">{s.name}</p>
+                                    <p className="text-xs opacity-50">{s.testIds?.length || 0} ta test</p>
+                                </div>
+                                <button onClick={() => handleDelete(s.id)} className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition">
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
-                            <button onClick={() => handleDelete(s.id)} className="text-gray-500 hover:text-red-500"><Trash2 size={16} /></button>
-                        </div>
-                    ))}
+                        ))
+                    ) : (
+                        <div className="text-center text-xs opacity-50 mt-10">To'plamlar yo'q</div>
+                    )}
                 </div>
             </div>
         </div>

@@ -84,7 +84,11 @@ export default function AdminHeader({ toggleSidebar }) {
                     </div>
                     <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px]">
                         <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${theme === 'dark' ? 'bg-[#2C2C2C]' : 'bg-white'}`}>
-                            <span className="font-bold text-xs">{userData?.fullName?.charAt(0) || "A"}</span>
+                            {userData?.photoURL ? (
+                                <img src={userData.photoURL} alt="Admin" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="font-bold text-xs">{userData?.fullName?.charAt(0) || "A"}</span>
+                            )}
                         </div>
                     </div>
                 </div>

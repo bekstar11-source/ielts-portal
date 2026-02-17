@@ -7,7 +7,7 @@ import {
     BarChart, Bar, Legend, PieChart, Pie, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import {
-    ArrowLeft, TrendingUp, Users, Activity, AlertTriangle, checkCircle,
+    ArrowLeft, TrendingUp, Users, Activity, AlertTriangle, CheckCircle,
     BookOpen, Headphones, PenTool, Mic, Calendar, Target
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -48,11 +48,15 @@ export default function AdminAnalytics() {
                 const totalScore = results.reduce((a, b) => a + (Number(b.score) || 0), 0);
                 const avgScore = results.length ? (totalScore / results.length).toFixed(1) : 0;
 
+                // Active Students (users who have taken at least 1 test)
+                const activeUserCount = users.filter(u => (u.data().stats?.totalTests || 0) > 0).length;
+                const completionRate = users.length ? Math.round((activeUserCount / users.length) * 100) : 0;
+
                 setStats({
                     totalTests: results.length,
                     avgScore,
-                    activeStudents: users.length,
-                    completionRate: 87 // Mock for now, or calculate if data exists
+                    activeStudents: activeUserCount,
+                    completionRate
                 });
 
                 // 2. ACTIVITY CHART (Last 7 Days)
@@ -82,10 +86,14 @@ export default function AdminAnalytics() {
                 // 3. SCORE DISTRIBUTION
                 const dist = { '0-4': 0, '4.5-5.5': 0, '6.0-7.0': 0, '7.5+': 0 };
                 results.forEach(r => {
-                    const s = Number(r.score) || 0;
-                    if (s < 4.5) dist['0-4']++;
-                    else if (s < 6) dist['4.5-5.5']++;
-                    else if (s < 7.5) dist['6.0-7.0']++;
+                    const s = Number(r.score) || 0; // Using raw correct answers as score logic in some parts, or bandScore?
+                    // Assuming 'score' in results is bandScore or we should use bandScore if available
+                    // The implemented logic uses r.score. Let's check if r.bandScore exists
+                    const val = r.bandScore !== undefined ? Number(r.bandScore) : (Number(r.score) || 0);
+
+                    if (val < 4.5) dist['0-4']++;
+                    else if (val < 6) dist['4.5-5.5']++;
+                    else if (val < 7.5) dist['6.0-7.0']++;
                     else dist['7.5+']++;
                 });
                 setScoreDist(Object.entries(dist).map(([range, count]) => ({ range, count })));
@@ -93,17 +101,17 @@ export default function AdminAnalytics() {
                 // 4. SKILL RADAR
                 const skills = { Reading: { sum: 0, n: 0 }, Listening: { sum: 0, n: 0 }, Writing: { sum: 0, n: 0 }, Speaking: { sum: 0, n: 0 } };
                 const testTypeMap = {};
-                tests.forEach(t => testTypeMap[t.id] = t.data().type); // Optimization
+                tests.forEach(t => testTypeMap[t.id] = t.data().type);
 
                 results.forEach(r => {
                     let type = r.type;
                     if (!type && r.testId) type = testTypeMap[r.testId];
-
-                    // Normalize type string
                     if (type) type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 
                     if (skills[type]) {
-                        skills[type].sum += (Number(r.score) || 0);
+                        // Use bandScore for averages if available, else score
+                        const val = r.bandScore !== undefined ? Number(r.bandScore) : (Number(r.score) || 0);
+                        skills[type].sum += val;
                         skills[type].n++;
                     }
                 });
@@ -113,6 +121,30 @@ export default function AdminAnalytics() {
                     A: data.n ? (data.sum / data.n).toFixed(1) : 0,
                     fullMark: 9
                 })));
+
+                // 5. AT-RISK STUDENTS (Low recent scores)
+                // Filter results where bandScore < 5.0 from last 30 days? Or just last attempt < 5.0
+                const atRiskMap = new Map();
+                results.forEach(r => {
+                    const val = r.bandScore !== undefined ? Number(r.bandScore) : (Number(r.score) || 0);
+                    if (val < 5.0) {
+                        // Keep the lowest or most recent? Let's keep most recent low score
+                        if (!atRiskMap.has(r.userId) || r.createdAt > atRiskMap.get(r.userId).createdAt) {
+                            atRiskMap.set(r.userId, {
+                                id: r.userId,
+                                name: r.userName || 'Unknown Student',
+                                score: val,
+                                subject: r.type ? (r.type.charAt(0).toUpperCase() + r.type.slice(1)) : 'Test',
+                                createdAt: r.createdAt
+                            });
+                        }
+                    } else {
+                        // If they scored >= 5.0 recently, maybe remove them? 
+                        // For simplicity, let's just show recent fails.
+                    }
+                });
+                // Convert to array and take top 5
+                setRecentTests(Array.from(atRiskMap.values()).slice(0, 5));
 
                 setLoading(false);
             } catch (e) {
@@ -149,7 +181,7 @@ export default function AdminAnalytics() {
                 <KPICard title="Total Tests" value={stats.totalTests} icon={Activity} color="blue" isDark={isDark} />
                 <KPICard title="Avg. Score" value={stats.avgScore} icon={Target} color="purple" isDark={isDark} />
                 <KPICard title="Active Students" value={stats.activeStudents} icon={Users} color="orange" isDark={isDark} />
-                <KPICard title="Completion Rate" value={`${stats.completionRate}%`} icon={checkCircle} color="green" isDark={isDark} />
+                <KPICard title="Completion Rate" value={`${stats.completionRate}%`} icon={CheckCircle} color="green" isDark={isDark} />
             </div>
 
             {/* CHARTS ROW 1 */}
@@ -223,20 +255,26 @@ export default function AdminAnalytics() {
                         <AlertTriangle className="text-orange-500" size={20} /> At-Risk Students
                     </h3>
                     <div className="space-y-4">
-                        {[1, 2, 3].map((_, i) => (
-                            <div key={i} className={`flex items-center justify-between p-4 rounded-xl ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-50'}`}>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-sm">
-                                        S{i + 1}
+                        {recentTests.length > 0 ? (
+                            recentTests.map((student, i) => (
+                                <div key={i} className={`flex items-center justify-between p-4 rounded-xl ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-50'}`}>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-sm">
+                                            {student.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-sm">{student.name}</p>
+                                            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Low Score in {student.subject}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-sm">Student Name</p>
-                                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Low Score in Reading</p>
-                                    </div>
+                                    <span className="text-red-500 font-bold text-sm">{student.score}</span>
                                 </div>
-                                <span className="text-red-500 font-bold text-sm">4.5</span>
+                            ))
+                        ) : (
+                            <div className={`p-4 text-center rounded-xl ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                No at-risk students detected.
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </div>

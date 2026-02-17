@@ -4,6 +4,7 @@ import { db } from "../firebase/firebase";
 import { doc, getDoc, addDoc, collection, query, where, getDocs, updateDoc, increment, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { calculateBandScore, checkAnswer } from "../utils/ieltsScoring";
+import { logAction } from "../utils/logger";
 
 export function useTestLogic() {
     const { testId } = useParams();
@@ -216,16 +217,11 @@ export function useTestLogic() {
                 let totalDuration = 3600; // Default
                 if (test.type === 'listening') totalDuration = 2400;
                 else if (test.type === 'speaking') totalDuration = 900;
-
-                // If we had a logic to store initial duration, better. 
-                // Checks default assignment above:
-                // listening: 2400, writing: 3600, speaking: 900, others: 3600
-
                 timeSpent = Math.max(0, totalDuration - timeLeft);
             }
             resultData.timeSpent = timeSpent;
 
-            // 3. Sanitize Data (Remove undefined) - CRITICAL FIX
+            // 3. Sanitize Data (Remove undefined)
             Object.keys(resultData).forEach(key => {
                 if (resultData[key] === undefined) delete resultData[key];
             });
@@ -234,7 +230,15 @@ export function useTestLogic() {
             setScore(correctCount);
             await addDoc(collection(db, "results"), resultData);
 
-            // 4. Update User Stats safely
+            // Log Action
+            logAction(user.uid, 'TEST_SUBMIT', {
+                testId: test.id,
+                title: test.title || 'Untitled',
+                score: correctCount,
+                band: resultData.bandScore
+            });
+
+            // 5. Update User Stats safely
             if (resultData.bandScore > 0) {
                 const userRef = doc(db, "users", user.uid);
                 await updateDoc(userRef, {
@@ -245,7 +249,7 @@ export function useTestLogic() {
                 }).catch(err => console.warn("Stats update failed (non-critical):", err));
             }
 
-            // 5. Cleanup LocalStorage
+            // 6. Cleanup LocalStorage
             localStorage.removeItem(`draft_${user.uid}_${test.id}`);
             localStorage.removeItem(`timer_${user.uid}_${test.id}`);
             localStorage.removeItem(`mode_${user.uid}_${test.id}`);

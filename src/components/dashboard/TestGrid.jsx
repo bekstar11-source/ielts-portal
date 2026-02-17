@@ -200,6 +200,7 @@ export default function TestGrid({ loading, tests, onStartTest, onSelectSet, onR
 
     return (
         <motion.div
+            key={tests.map(t => t.id).join(',')}
             variants={containerVariants}
             initial="hidden"
             animate="visible"

@@ -145,8 +145,8 @@ export default function TestReview() {
                             <p className="font-bold text-white text-sm truncate max-w-sm">{testData.title}</p>
                             {resultData.type !== 'mock_full' && (
                                 <span className={`text-[10px] px-2 rounded uppercase font-bold ${testData.type === 'listening' ? 'bg-purple-600' :
-                                        testData.type === 'writing' ? 'bg-yellow-600 text-black' :
-                                            'bg-blue-600'
+                                    testData.type === 'writing' ? 'bg-yellow-600 text-black' :
+                                        'bg-blue-600'
                                     }`}>
                                     {testData.type}
                                 </span>
@@ -237,7 +237,7 @@ export default function TestReview() {
                                     if (task.id !== activeWritingTab) return null;
 
                                     // Javobni olish (xavfsiz yo'l bilan)
-                                    const answer = resultData.writingAnswers ? resultData.writingAnswers[`task${task.id}`] : "";
+                                    const answer = currentAnswers ? currentAnswers[`task${task.id}`] : "";
 
                                     return (
                                         <div key={task.id} className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 h-full">

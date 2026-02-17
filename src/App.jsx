@@ -180,6 +180,7 @@ function App() {
           <Route path="results" element={<AdminResults />} />
           <Route path="logs" element={<AdminLogs />} />
           <Route path="gamification" element={<AdminGamification />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
 

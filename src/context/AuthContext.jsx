@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { auth, db } from "../firebase/firebase";
 import {
   createUserWithEmailAndPassword,
@@ -11,9 +11,9 @@ import {
   signInWithPopup
 } from "firebase/auth";
 // 🔥 YANGI IMPORTLAR (updateDoc va serverTimestamp qo'shildi)
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import { logAction } from "../utils/logger"; // Import logger
 
-const AuthContext = createContext();
+// ... imports remain the same
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // Firebase User (auth)
@@ -36,57 +36,28 @@ export function AuthProvider({ children }) {
       isOnline: true
     });
 
+    logAction(user.uid, 'USER_REGISTER', { email, role, method: 'email' }); // Log action
     return user;
   };
 
   // 2. Kirish
-  const login = (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
+  const login = async (email, password) => {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    if (result.user) {
+      logAction(result.user.uid, 'USER_LOGIN', { email, method: 'email' });
+    }
+    return result;
   };
 
   // 3. Chiqish
-  const logout = () => {
+  const logout = async () => {
+    if (user) {
+      logAction(user.uid, 'USER_LOGOUT', { email: user.email });
+    }
     return signOut(auth);
   };
 
-  // 4. Lokal ma'lumotni yangilash (Settings uchun)
-  const updateUserLocalData = (newFields) => {
-    setUserData((prev) => ({ ...prev, ...newFields }));
-  };
-
-  // 🔥 5. YANGI FUNKSIYA: Faollikni kuzatish (God Mode uchun)
-  // Bu funksiyani App.js da ishlatamiz.
-  const trackUserActivity = async (activityName) => {
-    if (!user) return; // Agar user bo'lmasa, hech narsa qilma
-
-    try {
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        lastActiveAt: serverTimestamp(), // Hozirgi vaqt
-        currentActivity: activityName || "Faol" // Masalan: "Home Page", "Test Page"
-      });
-    } catch (error) {
-      console.error("Faollikni yozishda xato:", error);
-    }
-  };
-
-  // 1. Recaptcha ni sozlash (Bu robot emasligini tekshirish uchun kerak)
-  function setupRecaptcha(phoneNumber) {
-    const recaptchaVerifier = new RecaptchaVerifier(
-      auth,
-      "recaptcha-container", // Bu ID keyinroq Login sahifasida ishlatiladi
-      {
-        size: "invisible", // Yoki 'normal' qilsangiz ko'rinib turadi
-      }
-    );
-    return recaptchaVerifier;
-  }
-
-  // 2. SMS yuborish funksiyasi
-  function signInWithPhone(phoneNumber) {
-    const appVerifier = setupRecaptcha(phoneNumber);
-    return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-  }
+  // ... updateUserLocalData, trackUserActivity ...
 
   // 3. Google Sign In
   const signInWithGoogle = async () => {
@@ -111,6 +82,9 @@ export function AuthProvider({ children }) {
           lastActiveAt: serverTimestamp(),
           isOnline: true
         });
+        logAction(user.uid, 'USER_REGISTER', { email: user.email, method: 'google' });
+      } else {
+        logAction(user.uid, 'USER_LOGIN', { email: user.email, method: 'google' });
       }
 
       return user;

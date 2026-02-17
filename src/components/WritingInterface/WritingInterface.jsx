@@ -14,7 +14,8 @@ export default function WritingInterface({
         handleAnswerChange: setSessionAnswer,
         showResumeModal,
         confirmResume,
-        confirmRestart
+        confirmRestart,
+        isDataLoaded
     } = useTestSession(`ielts_writing_session_${testData?.id || 'default'}`);
 
     const [activeTask, setActiveTask] = useState(1);
@@ -33,13 +34,14 @@ export default function WritingInterface({
     useEffect(() => {
         if (!showResumeModal && sessionAnswers && Object.keys(sessionAnswers).length > 0) {
             Object.entries(sessionAnswers).forEach(([key, val]) => {
+                // Only update if parent doesn't have it or it's different
                 if (parentAnswers && parentAnswers[key] !== val) {
                     setParentAnswer(key, val);
                 }
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showResumeModal, sessionAnswers]);
+    }, [showResumeModal, isDataLoaded]); // Removed sessionAnswers to avoid loop, rely on isDataLoaded
 
     const toggleFullScreen = () => {
         if (!document.fullscreenElement) {
@@ -103,8 +105,8 @@ export default function WritingInterface({
                         onClick={() => setActiveTask(task.id)}
                         disabled={isReviewMode}
                         className={`px-5 py-2.5 text-sm font-bold rounded-lg transition ${activeTask === task.id
-                                ? 'bg-yellow-500 text-white shadow-md'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-yellow-500 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             } ${isReviewMode ? 'cursor-not-allowed opacity-60' : ''}`}
                     >
                         {task.title}
@@ -166,8 +168,8 @@ export default function WritingInterface({
                             disabled={isReviewMode}
                             placeholder={`Start writing your ${currentTask?.title.toLowerCase()} here...`}
                             className={`flex-1 w-full p-6 border-2 rounded-lg font-serif text-base leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 ${isReviewMode
-                                    ? 'bg-gray-100 cursor-not-allowed'
-                                    : 'bg-white border-gray-300'
+                                ? 'bg-gray-100 cursor-not-allowed'
+                                : 'bg-white border-gray-300'
                                 }`}
                         />
 
