@@ -1,3 +1,8 @@
+import React, { useState, useEffect } from 'react';
+import { useTheme } from '../../context/ThemeContext';
+import { X, Save, Shield, Clock, BookOpen, AlertTriangle, User } from 'lucide-react';
+import { doc, updateDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { db } from '../../firebase/firebase';
 import { logAction } from '../../utils/logger';
 import { useAuth } from '../../context/AuthContext';
 
@@ -6,7 +11,59 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
     const { user: adminUser } = useAuth(); // Get current admin
     const isDark = theme === 'dark';
 
-    // ...
+    const [formData, setFormData] = useState({
+        fullName: '',
+        phoneNumber: '',
+        targetBand: '7.0',
+        examDate: ''
+    });
+
+    const [recentResults, setRecentResults] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                fullName: user.fullName || '',
+                phoneNumber: user.phoneNumber || '',
+                targetBand: user.targetBand || '7.0',
+                examDate: user.examDate || ''
+            });
+            fetchRecentResults(user.id);
+        }
+    }, [user]);
+
+    const fetchRecentResults = async (userId) => {
+        setLoading(true);
+        try {
+            const q = query(
+                collection(db, 'results'),
+                where('userId', '==', userId),
+                orderBy('date', 'desc'),
+                limit(5)
+            );
+            const snap = await getDocs(q);
+            setRecentResults(snap.docs.map(d => d.data()));
+        } catch (error) {
+            console.error("Error fetching results:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await updateDoc(doc(db, 'users', user.id), formData);
+            onUpdate(user.id, formData);
+            alert("Saqlandi!");
+        } catch (error) {
+            alert("Xatolik: " + error.message);
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const handleBlockToggle = async () => {
         if (!window.confirm(user.isBlocked ? "Blokdan chiqarasizmi?" : "Bloklaysizmi?")) return;

@@ -25,7 +25,28 @@ export default function AdminTests() {
     const navigate = useNavigate();
     const { user } = useAuth(); // Get admin user
     const [tests, setTests] = useState([]);
-    // ...
+    const [loading, setLoading] = useState(true);
+
+    // State: Filter & Pagination
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterType, setFilterType] = useState("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    useEffect(() => {
+        const fetchTests = async () => {
+            try {
+                const q = query(collection(db, "tests"), orderBy("createdAt", "desc"));
+                const snapshot = await getDocs(q);
+                setTests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTests();
+    }, []);
 
     const handleDelete = async (id, title) => {
         if (!window.confirm(`DIQQAT! "${title}" testini o'chirmoqchimisiz?`)) return;
@@ -123,8 +144,8 @@ export default function AdminTests() {
                                 key={type}
                                 onClick={() => { setFilterType(type); setCurrentPage(1); }}
                                 className={`flex-1 md:flex-none px-6 py-2 rounded-md text-sm font-medium transition capitalize whitespace-nowrap ${filterType === type
-                                        ? 'bg-white text-[#1A73E8] shadow-sm ring-1 ring-black/5'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-white text-[#1A73E8] shadow-sm ring-1 ring-black/5'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 {type}
@@ -216,8 +237,8 @@ export default function AdminTests() {
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
                                         className={`w-8 h-8 rounded-md text-sm font-medium transition ${currentPage === page
-                                                ? 'bg-[#1A73E8] text-white shadow-sm'
-                                                : 'text-gray-600 hover:bg-gray-100'
+                                            ? 'bg-[#1A73E8] text-white shadow-sm'
+                                            : 'text-gray-600 hover:bg-gray-100'
                                             }`}
                                     >
                                         {page}

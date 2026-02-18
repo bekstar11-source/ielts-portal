@@ -241,7 +241,9 @@ export default function Practice() {
     const handleStartTest = (test) => { setTestToStart(test); setShowStartConfirm(true); };
 
     const confirmStartTest = () => {
-        const test = testToStart; setShowStartConfirm(false);
+        const test = testToStart;
+        setShowStartConfirm(false);
+        setSelectedSet(null); // 🔥 Close set modal if open
         if (test.type === 'mock_full') { navigate('/mock-exam', { state: { mockData: test } }); return; }
         navigate(`/test/${test.id}`);
     };

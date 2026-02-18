@@ -10,10 +10,10 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from "firebase/auth";
-// 🔥 YANGI IMPORTLAR (updateDoc va serverTimestamp qo'shildi)
 import { logAction } from "../utils/logger"; // Import logger
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 
-// ... imports remain the same
+const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // Firebase User (auth)
@@ -57,7 +57,40 @@ export function AuthProvider({ children }) {
     return signOut(auth);
   };
 
-  // ... updateUserLocalData, trackUserActivity ...
+  // 4. Lokal ma'lumotni yangilash (Settings uchun)
+  const updateUserLocalData = (newFields) => {
+    setUserData((prev) => ({ ...prev, ...newFields }));
+  };
+
+  // 🔥 5. Faollikni kuzatish
+  const trackUserActivity = useCallback(async (activityName) => {
+    if (!user) return;
+    try {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        lastActiveAt: serverTimestamp(),
+        currentActivity: activityName || "Faol"
+      });
+    } catch (error) {
+      console.error("Faollikni yozishda xato:", error);
+    }
+  }, [user]);
+
+  // 1. Recaptcha
+  function setupRecaptcha(phoneNumber) {
+    const recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      "recaptcha-container",
+      { size: "invisible" }
+    );
+    return recaptchaVerifier;
+  }
+
+  // 2. SMS yuborish
+  function signInWithPhone(phoneNumber) {
+    const appVerifier = setupRecaptcha(phoneNumber);
+    return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+  }
 
   // 3. Google Sign In
   const signInWithGoogle = async () => {

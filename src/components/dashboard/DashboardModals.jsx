@@ -47,7 +47,7 @@ export default function DashboardModals({
 
             {/* START CONFIRM MODAL */}
             {showStartConfirm && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4 animate-in fade-in">
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="bg-[#18181b] p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center border border-white/10">
                         <h3 className="text-xl font-bold mb-2 text-white tracking-tight">Testni Boshlash</h3>
                         <p className="text-sm text-gray-400 mb-6 px-4">Siz testni boshlashni xoxlaysizmi?</p>
