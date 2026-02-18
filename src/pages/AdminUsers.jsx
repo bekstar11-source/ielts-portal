@@ -327,7 +327,24 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
     const isDark = theme === 'dark';
     const { user } = useAuth(); // Get current admin
     const [selectedStudents, setSelectedStudents] = useState([]);
-    // ...
+    const [subTab, setSubTab] = useState('groups');
+    const [selectedGroup, setSelectedGroup] = useState(null);
+    const [searchUser, setSearchUser] = useState('');
+    const [assignmentType, setAssignmentType] = useState('test');
+    const [searchMaterial, setSearchMaterial] = useState('');
+    const [selectedItem, setSelectedItem] = useState('');
+    const [isStrict, setIsStrict] = useState(false);
+    const [noDeadline, setNoDeadline] = useState(false);
+    const [startDate, setStartDate] = useState(null);
+    const [endDate, setEndDate] = useState(null);
+
+    const filteredMaterials = useMemo(() => {
+        const source = assignmentType === 'test' ? allTests : testSets;
+        return source.filter(item => {
+            const name = assignmentType === 'test' ? item.title : item.name;
+            return name?.toLowerCase().includes(searchMaterial.toLowerCase());
+        });
+    }, [allTests, testSets, assignmentType, searchMaterial]);
 
     const handleAssign = async () => {
         if ((!selectedGroup && selectedStudents.length === 0) || !selectedItem || (!noDeadline && (!startDate || !endDate))) {

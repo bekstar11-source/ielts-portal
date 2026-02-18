@@ -21,7 +21,8 @@ export default function Onboarding() {
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        fullName: "",
+        firstName: "",
+        lastName: "",
         ageRange: "",
         currentLevel: "",
         hasTakenIELTS: "",
@@ -47,6 +48,12 @@ export default function Onboarding() {
     };
 
     const nextStep = () => {
+        if (currentStep === 1) {
+            if (!formData.firstName.trim() || !formData.lastName.trim()) {
+                alert("Iltimos, Ism va Familiyangizni kiriting!");
+                return;
+            }
+        }
         if (currentStep < 5) setCurrentStep(c => c + 1);
     };
 
@@ -65,6 +72,7 @@ export default function Onboarding() {
 
             const dataToSave = {
                 ...formData,
+                fullName: `${formData.firstName} ${formData.lastName}`.trim(),
                 onboarding: {
                     completed: true,
                     completedAt: new Date().toISOString()
@@ -97,17 +105,32 @@ export default function Onboarding() {
             <p className="text-gray-400 mb-8">Sizga mos o'quv rejasini tuzishimiz uchun ma'lumotlaringiz kerak.</p>
 
             <div className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Ism va Familiyangiz</label>
-                    <div className="relative">
-                        <User className="absolute left-4 top-3.5 w-5 h-5 text-gray-500" />
-                        <input
-                            type="text"
-                            value={formData.fullName}
-                            onChange={(e) => handleInputChange('fullName', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-                            placeholder="Aziza Karimova"
-                        />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Ismingiz <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <User className="absolute left-4 top-3.5 w-5 h-5 text-gray-500" />
+                            <input
+                                type="text"
+                                value={formData.firstName}
+                                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                                placeholder="Aziza"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Familiyangiz <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <User className="absolute left-4 top-3.5 w-5 h-5 text-gray-500" />
+                            <input
+                                type="text"
+                                value={formData.lastName}
+                                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                                placeholder="Karimova"
+                            />
+                        </div>
                     </div>
                 </div>
 
