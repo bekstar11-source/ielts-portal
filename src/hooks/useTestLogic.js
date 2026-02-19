@@ -182,15 +182,21 @@ export function useTestLogic() {
                 test.questions.forEach(q => {
                     if (q.items && Array.isArray(q.items)) {
                         q.items.forEach(item => {
-                            totalQ++;
-                            if (checkAnswer(item.answer || item.correct_answer, userAnswers[String(item.id)] || userAnswers[item.id])) {
-                                correctCount++;
+                            const correct = item.answer || item.correct_answer;
+                            if (correct) {
+                                totalQ++;
+                                if (checkAnswer(correct, userAnswers[String(item.id)] || userAnswers[item.id])) {
+                                    correctCount++;
+                                }
                             }
                         });
                     } else {
-                        totalQ++;
-                        if (checkAnswer(q.answer || q.correct_answer, userAnswers[String(q.id)] || userAnswers[q.id])) {
-                            correctCount++;
+                        const correct = q.answer || q.correct_answer;
+                        if (correct) {
+                            totalQ++;
+                            if (checkAnswer(correct, userAnswers[String(q.id)] || userAnswers[q.id])) {
+                                correctCount++;
+                            }
                         }
                     }
                 });
