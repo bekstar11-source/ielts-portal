@@ -88,3 +88,13 @@
   50% { opacity: 1; }
   100% { opacity: 0.6; }
 }
+/* Custom utilities for Flashcard 3D flip */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
