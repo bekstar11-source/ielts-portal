@@ -30,6 +30,8 @@ export function AuthProvider({ children }) {
       email: email,
       fullName: fullName,
       role: role,
+      accountType: "public",
+      onboardingCompleted: false,
       createdAt: new Date().toISOString(),
       // 🔥 Ro'yxatdan o'tganda darhol "Online" deb belgilash
       lastActiveAt: serverTimestamp(),
@@ -111,6 +113,8 @@ export function AuthProvider({ children }) {
           fullName: user.displayName,
           photoURL: user.photoURL,
           role: "student",
+          accountType: "public",
+          onboardingCompleted: false,
           createdAt: new Date().toISOString(),
           lastActiveAt: serverTimestamp(),
           isOnline: true

@@ -3,7 +3,7 @@ import { Zap, ChevronDown, Key, LogOut } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
 
-export default function DashboardHeader({ user, userData, onKeyClick, onLogoutClick, activeTab, setActiveTab }) {
+export default function DashboardHeader({ user, userData, onKeyClick, onLogoutClick, activeTab, setActiveTab, onPremiumClick }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -17,6 +17,21 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
   ];
 
   const handleNavigation = (item) => {
+    // TEMPORARILY DISABLED: PUBLIC USER RESTRICTIONS (Free Trial Period)
+    /*
+    if (userData?.accountType === 'public') {
+      const restrictedPaths = ['/practice', '/my-results', '/archive', '/favorites'];
+      if (restrictedPaths.includes(item.path) || restrictedPaths.includes(`/${item.id}`)) {
+        if (onPremiumClick) {
+          onPremiumClick(item.id === 'practice' ? 'practice' : 'general');
+        } else {
+          alert("Premium funksiya!");
+        }
+        return; // Bloklaymiz
+      }
+    }
+    */
+
     if (item.path) {
       navigate(item.path);
     } else {
@@ -38,7 +53,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         </div>
 
         {/* Navigation */}
-        <nav className="flex items-center gap-4 md:gap-8 text-[15px] md:text-[16px] overflow-x-auto max-w-full px-2 scrollbar-hide">
+        <nav className="flex items-center gap-4 md:gap-8 text-[15px] md:text-[16px] overflow-x-auto max-w-full px-2 hide-scrollbar">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -71,16 +86,16 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
           <div className="relative">
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center gap-3 bg-white rounded-full p-1 pl-1 pr-2 md:pr-4 shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 group"
+              className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1 pr-2 md:pr-3 hover:bg-white/10 transition-all duration-300 group"
             >
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#0a1930] overflow-hidden border border-white/20">
                 <img
                   src={userData?.photoURL || user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
                   alt="Profile"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
               </div>
-              <ChevronDown className={`w-4 h-4 text-gray-500 group-hover:text-gray-800 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-[#a0b0cb] group-hover:text-white transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown Menu */}

@@ -1,7 +1,26 @@
-// src/components/ReadingInterface/HighlightMenu.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { BookPlus, Check } from "lucide-react";
 
-export default function HighlightMenu({ position, onHighlight, onClear }) {
+export default function HighlightMenu({ position, onHighlight, onClear, onAddDictionary }) {
+    const [isAdded, setIsAdded] = useState(false);
+
+    // Reset state when position changes (new selection)
+    useEffect(() => {
+        setIsAdded(false);
+    }, [position]);
+
+    const handleAddDict = async (e) => {
+        e.preventDefault();
+        const success = await onAddDictionary();
+        if (success) {
+            setIsAdded(true);
+            setTimeout(() => {
+                onClear();
+                setIsAdded(false);
+            }, 1000);
+        }
+    };
+
     // Agar pozitsiya bo'lmasa, menyuni ko'rsatma
     if (!position) return null;
 
@@ -28,6 +47,21 @@ export default function HighlightMenu({ position, onHighlight, onClear }) {
                 title="Highlight Green"
             >
                 <div className="w-3 h-3 rounded-full bg-green-300 border border-green-400 group-hover:scale-110 transition-transform"></div>
+            </button>
+
+            <div className="w-[1px] h-3 bg-gray-600 mx-1"></div>
+
+            <button
+                className={`flex items-center gap-1.5 px-2 py-1 text-xs font-semibold hover:bg-gray-700 rounded transition-colors group ${isAdded ? 'text-green-400' : 'text-blue-400'}`}
+                onMouseDown={handleAddDict}
+                title="Lug'atga qo'shish"
+                disabled={isAdded}
+            >
+                {isAdded ? (
+                    <Check size={14} className="group-hover:scale-110 transition-transform animate-in zoom-in" />
+                ) : (
+                    <BookPlus size={14} className="group-hover:scale-110 transition-transform" />
+                )}
             </button>
 
             <div className="w-[1px] h-3 bg-gray-600 mx-1"></div>

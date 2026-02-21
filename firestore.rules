@@ -19,6 +19,14 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
       allow write: if isAuth() && (request.auth.uid == userId || isAdmin());
+
+      // O'ziga tegishli subcollection'larga (vocabulary, mistakes) ruxsat
+      match /vocabulary/{wordId} {
+        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
+      }
+      match /mistakes/{mistakeId} {
+        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
+      }
     }
 
     // TESTS (O'qish hammaga, Yozish faqat adminga)

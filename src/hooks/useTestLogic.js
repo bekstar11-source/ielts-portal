@@ -178,6 +178,8 @@ export function useTestLogic() {
                 userAnswers: userAnswers || {}
             };
 
+            let mistakes = [];
+
             if ((test.type === 'reading' || test.type === 'listening') && test.questions && Array.isArray(test.questions)) {
                 test.questions.forEach(q => {
                     if (q.items && Array.isArray(q.items)) {
@@ -185,8 +187,18 @@ export function useTestLogic() {
                             const correct = item.answer || item.correct_answer;
                             if (correct) {
                                 totalQ++;
-                                if (checkAnswer(correct, userAnswers[String(item.id)] || userAnswers[item.id])) {
+                                const userResp = userAnswers[String(item.id)] || userAnswers[item.id] || "";
+                                if (checkAnswer(correct, userResp)) {
                                     correctCount++;
+                                } else if (userResp) {
+                                    mistakes.push({
+                                        questionId: item.id,
+                                        testId: test.id,
+                                        testTitle: test.title || 'Untitled Test',
+                                        attemptDate: resultData.date,
+                                        userResponse: userResp,
+                                        correctAnswer: correct
+                                    });
                                 }
                             }
                         });
@@ -194,8 +206,18 @@ export function useTestLogic() {
                         const correct = q.answer || q.correct_answer;
                         if (correct) {
                             totalQ++;
-                            if (checkAnswer(correct, userAnswers[String(q.id)] || userAnswers[q.id])) {
+                            const userResp = userAnswers[String(q.id)] || userAnswers[q.id] || "";
+                            if (checkAnswer(correct, userResp)) {
                                 correctCount++;
+                            } else if (userResp) {
+                                mistakes.push({
+                                    questionId: q.id,
+                                    testId: test.id,
+                                    testTitle: test.title || 'Untitled Test',
+                                    attemptDate: resultData.date,
+                                    userResponse: userResp,
+                                    correctAnswer: correct
+                                });
                             }
                         }
                     }
@@ -244,15 +266,46 @@ export function useTestLogic() {
                 band: resultData.bandScore
             });
 
-            // 5. Update User Stats safely
-            if (resultData.bandScore > 0) {
+            // 5. Update User Stats safely and Gamification Logic
+            if (resultData.bandScore > 0 || correctCount > 0) {
                 const userRef = doc(db, "users", user.uid);
+
+                // GAMIFICATION: Streak Calculation
+                let newStreak = userData?.streakCount || 0;
+                const lastActive = userData?.lastActiveAt?.toDate() || new Date(0);
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                if (
+                    lastActive.getFullYear() === yesterday.getFullYear() &&
+                    lastActive.getMonth() === yesterday.getMonth() &&
+                    lastActive.getDate() === yesterday.getDate()
+                ) {
+                    newStreak += 1; // Uzluksizlik davom etmoqda
+                } else if (
+                    lastActive.getFullYear() !== today.getFullYear() ||
+                    lastActive.getMonth() !== today.getMonth() ||
+                    lastActive.getDate() !== today.getDate()
+                ) {
+                    newStreak = 1; // Streak uzildi, yana 1 dan boshlanadi
+                }
+
+                const gainedXP = Math.round(resultData.bandScore * 10) || (correctCount * 5);
+
                 await updateDoc(userRef, {
                     "stats.totalTests": increment(1),
                     "stats.totalBandScore": increment(resultData.bandScore),
-                    "gamification.points": increment(Math.round(resultData.bandScore * 10)),
+                    "gamification.points": increment(gainedXP),
+                    streakCount: newStreak,
                     "lastActiveAt": serverTimestamp()
                 }).catch(err => console.warn("Stats update failed (non-critical):", err));
+            }
+
+            // 5.1 Save Mistakes Collection
+            if (mistakes.length > 0) {
+                const mistakesCollectionLog = mistakes.map(m => addDoc(collection(db, "users", user.uid, "mistakes"), m));
+                Promise.all(mistakesCollectionLog).catch(err => console.warn("Mistakes log failed:", err));
             }
 
             // 6. Cleanup LocalStorage

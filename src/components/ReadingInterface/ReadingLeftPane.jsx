@@ -36,8 +36,7 @@ const ReadingLeftPane = memo(({
     const [displayContent, setDisplayContent] = useState(content);
 
     // Hook
-    // addNoteToHighlight ni olib tashlaymiz
-    const { menuPos, handleTextSelection, applyHighlight, clearSelection } = useTextSelection();
+    const { menuPos, handleTextSelection, applyHighlight, clearSelection, addToDictionary } = useTextSelection();
 
     // --- STORAGE ---
     useEffect(() => {
@@ -114,6 +113,7 @@ const ReadingLeftPane = memo(({
                 position={menuPos}
                 onHighlight={handleMenuAction}
                 onClear={clearSelection}
+                onAddDictionary={() => addToDictionary({ sectionTitle: title, testTitle: passageLabel || "Reading Test" })}
             />
 
             <div

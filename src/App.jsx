@@ -15,6 +15,10 @@ import AdminTests from './pages/AdminTests';
 import Onboarding from './pages/Onboarding';
 import Practice from './pages/Practice';
 import Settings from './pages/Settings';
+import PublicDashboard from './pages/PublicDashboard';
+import DiagnosticIntro from './pages/DiagnosticIntro';
+import DiagnosticTestSolving from './pages/DiagnosticTestSolving';
+import DiagnosticResult from './pages/DiagnosticResult';
 import { ThemeProvider } from './context/ThemeContext';
 import AdminLayout from './components/common/AdminLayout';
 
@@ -31,7 +35,7 @@ import TestReview from './pages/TestReview';
 
 import MockExam from './pages/MockExam';
 import MyResults from './pages/MyResults';
-
+import WordBank from './pages/WordBank';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();
@@ -41,6 +45,29 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/dashboard" />;
   }
   return children;
+};
+
+const DashboardRouter = () => {
+  const { userData, loading } = useAuth();
+
+  if (loading || !userData) return <div className="flex h-screen items-center justify-center bg-[#050505] text-white">Yuklanmoqda...</div>;
+
+  if (userData.role === 'admin') {
+    return <Navigate to="/admin" />;
+  }
+
+  // Agar public user bo'lsa va Onboarding'dan o'tmagan bo'lsa
+  if (userData.accountType === 'public' && userData.onboardingCompleted === false) {
+    return <Navigate to="/onboarding" />;
+  }
+
+  // Agar public user bo'lsa va Onboarding'dan o'tgan bo'lsa
+  if (userData.accountType === 'public' && userData.onboardingCompleted === true) {
+    return <PublicDashboard />;
+  }
+
+  // Qolgan barcha holatlarda (eski o'quvchilar, groupId borlar, accountType yo'qlar)
+  return <StudentDashboard />;
 };
 
 function App() {
@@ -127,7 +154,34 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <StudentDashboard />
+              <DashboardRouter />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/diagnostic-intro"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <DiagnosticIntro />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/diagnostic-test/:testId"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <DiagnosticTestSolving />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/diagnostic-result/:id"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <DiagnosticResult />
             </ProtectedRoute>
           }
         />
@@ -164,6 +218,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['student', 'admin']}>
               <MockExam />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/vocabulary"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <WordBank />
             </ProtectedRoute>
           }
         />

@@ -1,8 +1,11 @@
-// src/hooks/useTextSelection.js
 import { useState, useCallback, useEffect } from "react";
+import { db } from "../firebase/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useAuth } from "../context/AuthContext";
 
 export default function useTextSelection() {
     const [menuPos, setMenuPos] = useState(null);
+    const { user } = useAuth();
 
     // 1. Menyu pozitsiyasi
     const handleTextSelection = useCallback(() => {
@@ -123,6 +126,42 @@ export default function useTextSelection() {
         setMenuPos(null);
     }, []);
 
+    const addToDictionary = useCallback(async (testContext = {}) => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed || !user) return false;
+
+        const word = selection.toString().trim();
+        if (word.length === 0 || word.length > 50) return false; // Too long for a single vocab
+
+        // Extract context sentence (up to 200 chars)
+        let contextSentence = "";
+        try {
+            if (selection.anchorNode && selection.anchorNode.parentNode) {
+                contextSentence = selection.anchorNode.parentNode.textContent.trim();
+                if (contextSentence.length > 250) {
+                    contextSentence = contextSentence.substring(0, 250) + "...";
+                }
+            }
+        } catch (e) {
+            console.log("Failed to extract context", e);
+        }
+
+        try {
+            await addDoc(collection(db, "users", user.uid, "vocabulary"), {
+                word: word,
+                contextSentence: contextSentence,
+                testTitle: testContext.testTitle || "Noma'lum Test",
+                sectionTitle: testContext.sectionTitle || "Noma'lum Qism",
+                addedAt: serverTimestamp(),
+                learned: false
+            });
+            return true;
+        } catch (error) {
+            console.error("Vocabulary add error:", error);
+            return false;
+        }
+    }, [user]);
+
     useEffect(() => {
         const handleResize = () => { if (menuPos) setMenuPos(null); };
         window.addEventListener('resize', handleResize);
@@ -133,6 +172,7 @@ export default function useTextSelection() {
         menuPos,
         handleTextSelection,
         applyHighlight,
-        clearSelection
+        clearSelection,
+        addToDictionary // Export new function
     };
 }

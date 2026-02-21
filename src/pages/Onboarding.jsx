@@ -77,6 +77,7 @@ export default function Onboarding() {
                     completed: true,
                     completedAt: new Date().toISOString()
                 },
+                onboardingCompleted: true,
                 // Initial values for dashboard
                 currentBand: formData.previousIELTSScore ? safeFloat(formData.previousIELTSScore, 4.0) : 4.0,
                 targetBand: safeFloat(formData.targetBand, 7.0),
@@ -88,7 +89,7 @@ export default function Onboarding() {
             // Use setDoc with merge for robustness
             await setDoc(doc(db, 'users', user.uid), dataToSave, { merge: true });
 
-            navigate('/dashboard');
+            navigate('/diagnostic-intro');
         } catch (error) {
             console.error("Onboarding error:", error);
             alert(`Xatolik yuz berdi: ${error.message}`);

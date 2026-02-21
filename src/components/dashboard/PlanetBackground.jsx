@@ -47,18 +47,41 @@ const PlanetBackground = () => {
 
                 .planet-body {
                     position: absolute;
+                    top: 85vh; /* Ufq chizig'i */
                     left: 50%;
                     transform: translateX(-50%);
-                    width: 200vw;
-                    height: 200vw;
+                    width: 250vw; /* Kengaytirilgan, yassi ko'rinishi uchun */
+                    height: 250vw;
                     border-radius: 50%;
-                    bottom: calc(5vh - 200vw);
-                    background: #000;
+                    background: radial-gradient(circle, #000000 75%, #1a0500 88%, #4a1500 95%, rgba(255, 85, 32, 0.8) 100%);
                     box-shadow: 
-                        0 -2px 10px rgba(255, 122, 80, 0.8),
-                        0 -20px 60px rgba(255, 85, 32, 0.5),
-                        0 -80px 140px rgba(255, 85, 32, 0.2);
+                        inset 0 0 120px rgba(255, 85, 32, 0.7), /* Markazlashgan ichki nur (Inner Glow) */
+                        0 -3px 10px rgba(255, 200, 180, 0.7),    /* Oq asosiy chiziq */
+                        0 -10px 40px rgba(255, 85, 32, 0.6),     /* Asosiy nur */
+                        0 -40px 100px rgba(255, 85, 32, 0.3),    
+                        0 -100px 180px rgba(255, 85, 32, 0.15); 
                     z-index: 2;
+                    animation: pulsePlanet 6s infinite ease-in-out;
+                }
+
+                @keyframes pulsePlanet {
+                    0% { 
+                        box-shadow: inset 0 0 100px rgba(255, 85, 32, 0.7), 0 -3px 10px rgba(255, 200, 180, 0.7), 0 -10px 40px rgba(255, 85, 32, 0.6), 0 -40px 100px rgba(255, 85, 32, 0.3), 0 -100px 180px rgba(255, 85, 32, 0.15); 
+                    }
+                    50% { 
+                        box-shadow: inset 0 0 150px rgba(255, 85, 32, 0.9), 0 -3px 15px rgba(255, 200, 180, 0.9), 0 -15px 50px rgba(255, 85, 32, 0.8), 0 -50px 120px rgba(255, 85, 32, 0.4), 0 -120px 220px rgba(255, 85, 32, 0.2); 
+                    }
+                    100% { 
+                        box-shadow: inset 0 0 100px rgba(255, 85, 32, 0.7), 0 -3px 10px rgba(255, 200, 180, 0.7), 0 -10px 40px rgba(255, 85, 32, 0.6), 0 -40px 100px rgba(255, 85, 32, 0.3), 0 -100px 180px rgba(255, 85, 32, 0.15); 
+                    }
+                }
+
+                @media (max-width: 768px) {
+                    .planet-body {
+                        width: 400vw;
+                        height: 400vw;
+                        top: 80vh;
+                    }
                 }
 
                 .planet-atmosphere {

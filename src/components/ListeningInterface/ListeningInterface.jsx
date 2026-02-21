@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import ListeningLeftPane from "./ListeningLeftPane";
 import ListeningRightPane from "./ListeningRightPane";
 import ListeningFooter from "./ListeningFooter";
+import HighlightMenu from "../ReadingInterface/HighlightMenu";
 
 // Hooklar (Loyiha papkasida bor deb hisoblaymiz)
 import { useResizablePane } from "../../hooks/useResizablePane";
@@ -28,7 +29,7 @@ export default function ListeningInterface({
   // --- 1. RESIZE & SELECTION HOOKS ---
   // Listeningda chap taraf (matn) odatda kichikroq bo'ladi (default 40%)
   const { leftWidth, startResizing } = useResizablePane(40);
-  const { menuPos, handleTextSelection, applyHighlight, clearSelection } = useTextSelection();
+  const { menuPos, handleTextSelection, applyHighlight, clearSelection, addToDictionary } = useTextSelection();
 
   // --- 2. STATE ---
   // const [activePart, setActivePart] = useState(0); // REMOVED: Managed by parent
@@ -144,6 +145,13 @@ export default function ListeningInterface({
         {/* 1-muammo yechimi: Chap taraf va Resizer FAQAT Review paytida ko'rinadi */}
         {isReviewMode && (
           <>
+            <HighlightMenu
+              position={menuPos}
+              onHighlight={applyHighlight}
+              onClear={clearSelection}
+              onAddDictionary={() => addToDictionary({ sectionTitle: currentPassage?.title, testTitle: "Listening Test" })}
+            />
+
             <div
               className="bg-white flex flex-col border-r border-gray-200 h-full overflow-y-auto"
               style={{ width: `${leftWidth}%` }}
