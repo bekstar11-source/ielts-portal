@@ -17,7 +17,7 @@ service cloud.firestore {
 
     // USERS
     match /users/{userId} {
-      allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
+      allow read: if isAuth();
       allow write: if isAuth() && (request.auth.uid == userId || isAdmin());
 
       // O'ziga tegishli subcollection'larga (vocabulary, mistakes) ruxsat

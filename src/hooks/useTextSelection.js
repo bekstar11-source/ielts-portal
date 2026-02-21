@@ -147,13 +147,79 @@ export default function useTextSelection() {
         }
 
         try {
+            // FIREBASE SAVE LOGIC + AUTOMATIC AI TRANSLATION
+            let aiData = {
+                definition: null,
+                example: null,
+                translation: null,
+                hasAI: false
+            };
+
+            const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+            if (apiKey) {
+                const prompt = `
+                 Analyze the English word "${word}" within the following context sentence: "${contextSentence || 'No specific context provided, use general meaning.'}".
+                 Return a JSON object with EXACTLY these three keys:
+                 - "definition": A concise English explanation of what the word means in this specific context.
+                 - "example": A good, clear English example sentence showing how to use the word (you can use the context sentence if it is good, or write a new clear one).
+                 - "translation": The precise Uzbek translation of the word reflecting its meaning in this context.
+                 Do not include any string formatting like \`\`\`json, just return the raw JSON object.
+                 `;
+
+                try {
+                    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: "gpt-4o-mini",
+                            messages: [
+                                { role: "system", content: "You are a helpful dictionary assistant." },
+                                { role: "user", content: prompt }
+                            ],
+                            temperature: 0.3
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const aiResponseText = data.choices[0].message.content.trim();
+                        const cleanJsonStr = aiResponseText.replace(/```json/gi, "").replace(/```/g, "").trim();
+                        const parsedData = JSON.parse(cleanJsonStr);
+
+                        aiData = {
+                            definition: parsedData.definition || null,
+                            example: parsedData.example || contextSentence || null,
+                            translation: parsedData.translation || null,
+                            hasAI: true
+                        };
+                    }
+                } catch (aiError) {
+                    console.error("AI Auto-Translate error: ", aiError);
+                }
+            }
+
             await addDoc(collection(db, "users", user.uid, "vocabulary"), {
                 word: word,
                 contextSentence: contextSentence,
                 testTitle: testContext.testTitle || "Noma'lum Test",
                 sectionTitle: testContext.sectionTitle || "Noma'lum Qism",
                 addedAt: serverTimestamp(),
-                learned: false
+
+                // AI Fields
+                definition: aiData.definition,
+                example: aiData.example,
+                translation: aiData.translation,
+                hasAI: aiData.hasAI,
+
+                // Spaced Repetition System (SRS) fields
+                learningStatus: 'learning', // learning, review, mastered
+                easeFactor: 2.5,
+                interval: 0,
+                nextReviewDate: serverTimestamp() // needs review immediately
             });
             return true;
         } catch (error) {

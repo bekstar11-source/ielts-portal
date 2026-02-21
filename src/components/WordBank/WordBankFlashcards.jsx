@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw, XCircle, Brain, Target, Zap, Volume2 } from 'lucide-react';
 
 export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -24,6 +24,23 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
     }
 
     const currentWord = words[currentIndex];
+    const [playingAudio, setPlayingAudio] = useState(false);
+
+    const playPronunciation = (e, text) => {
+        e.stopPropagation();
+        if (!('speechSynthesis' in window)) {
+            alert("Afsuski, brauzeringizda ovozli o'qish imkoniyati yo'q.");
+            return;
+        }
+        window.speechSynthesis.cancel();
+        setPlayingAudio(true);
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        utterance.onend = () => setPlayingAudio(false);
+        utterance.onerror = () => setPlayingAudio(false);
+        window.speechSynthesis.speak(utterance);
+    };
 
     // Card Animation Variants
     const swipeVariants = {
@@ -62,11 +79,48 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
         setIsFlipped(!isFlipped);
     };
 
-    const handleKnowledgeAction = (status) => {
-        // Option to save status like "mastered" or "needs_review" to DB via parent
-        if (onUpdateStatus) {
-            onUpdateStatus(currentWord.id, status);
+    // Spaced Repetition System (SM-2 Algorithm subset)
+    const handleKnowledgeAction = (quality) => {
+        // Quality: 1 (Qiyin), 3 (Yaxshi), 5 (Oson)
+        let easeFactor = currentWord.easeFactor || 2.5;
+        let interval = currentWord.interval || 0;
+        let learningStatus = currentWord.learningStatus || 'learning';
+
+        // Update Ease Factor: EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
+        easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+        if (easeFactor < 1.3) easeFactor = 1.3; // Minimum limit
+
+        if (quality < 3) {
+            // Hard or failed: reset interval
+            interval = 0;
+            learningStatus = 'learning';
+        } else {
+            // Good or Easy
+            if (interval === 0) {
+                interval = 1;
+            } else if (interval === 1) {
+                interval = 3; // First successful review
+            } else {
+                interval = Math.round(interval * easeFactor);
+            }
+            // If it's pushed far enough, consider it mastered (e.g. interval > 14 days)
+            if (interval > 14) learningStatus = 'mastered';
+            else learningStatus = 'review';
         }
+
+        // Calculate Next Review Date
+        const nextReviewDate = new Date();
+        nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+
+        if (onUpdateStatus) {
+            onUpdateStatus(currentWord.id, {
+                learningStatus,
+                easeFactor,
+                interval,
+                nextReviewDate
+            });
+        }
+
         handleNext();
     };
 
@@ -113,9 +167,18 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
                             }}
                         >
-                            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
-                                {currentWord.word}
-                            </h2>
+                            <div className="flex items-center justify-center gap-4 mb-6">
+                                <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+                                    {currentWord.word}
+                                </h2>
+                                <button
+                                    onClick={(e) => playPronunciation(e, currentWord.word)}
+                                    className={`p-3 rounded-full transition-all ${playingAudio ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white'}`}
+                                    title="Talaffuz"
+                                >
+                                    <Volume2 className="w-6 h-6" />
+                                </button>
+                            </div>
                             {currentWord.contextSentence && (
                                 <div className="mt-4 border-t border-white/10 pt-6">
                                     <p className="text-sm text-gray-400 italic font-medium opacity-80">
@@ -174,37 +237,53 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-between px-4 max-w-sm mx-auto w-full gap-4">
-                <button
-                    onClick={handlePrev}
-                    className="p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-105 active:scale-95"
-                >
-                    <ChevronLeft className="w-6 h-6" />
-                </button>
-
-                <div className="flex gap-2">
+            <div className="flex flex-col items-center justify-between px-4 max-w-sm mx-auto w-full gap-4">
+                <div className="flex items-center justify-between w-full">
                     <button
-                        onClick={() => handleKnowledgeAction('needs_review')}
-                        className="p-4 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all hover:scale-105 active:scale-95 border border-red-500/20"
-                        title="Yodlash kerak"
+                        onClick={handlePrev}
+                        className="p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-105 active:scale-95"
                     >
-                        <XCircle className="w-6 h-6" />
+                        <ChevronLeft className="w-6 h-6" />
                     </button>
+
+                    {isFlipped ? (
+                        <div className="flex gap-2 animate-fade-in-up">
+                            <button
+                                onClick={() => handleKnowledgeAction(1)}
+                                className="flex flex-col items-center p-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all hover:scale-105 active:scale-95 border border-red-500/20 min-w-[80px]"
+                            >
+                                <Brain className="w-5 h-5 mb-1" />
+                                <span className="text-xs font-bold">Qiyin</span>
+                                <span className="text-[10px] opacity-70 mt-1">1m</span>
+                            </button>
+                            <button
+                                onClick={() => handleKnowledgeAction(3)}
+                                className="flex flex-col items-center p-3 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all hover:scale-105 active:scale-95 border border-blue-500/20 min-w-[80px]"
+                            >
+                                <Target className="w-5 h-5 mb-1" />
+                                <span className="text-xs font-bold">Yaxshi</span>
+                                <span className="text-[10px] opacity-70 mt-1">1-3 k</span>
+                            </button>
+                            <button
+                                onClick={() => handleKnowledgeAction(5)}
+                                className="flex flex-col items-center p-3 rounded-2xl bg-green-500/10 hover:bg-green-500/20 text-green-500 transition-all hover:scale-105 active:scale-95 border border-green-500/20 min-w-[80px]"
+                            >
+                                <Zap className="w-5 h-5 mb-1" />
+                                <span className="text-xs font-bold">Oson</span>
+                                <span className="text-[10px] opacity-70 mt-1">4+ k</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="text-sm text-gray-500 italic">Javobni ko'rish uchh karta ustiga bosing</div>
+                    )}
+
                     <button
-                        onClick={() => handleKnowledgeAction('mastered')}
-                        className="p-4 rounded-full bg-green-500/10 hover:bg-green-500/20 text-green-500 transition-all hover:scale-105 active:scale-95 border border-green-500/20"
-                        title="Yodladim"
+                        onClick={handleNext}
+                        className="p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-105 active:scale-95"
                     >
-                        <CheckCircle className="w-6 h-6" />
+                        <ChevronRight className="w-6 h-6" />
                     </button>
                 </div>
-
-                <button
-                    onClick={handleNext}
-                    className="p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-105 active:scale-95"
-                >
-                    <ChevronRight className="w-6 h-6" />
-                </button>
             </div>
         </div>
     );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, RefreshCw, Trophy, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Trophy, AlertTriangle, Clock } from 'lucide-react';
 
 // Fisher-Yates shuffle
 const shuffleArray = (array) => {
@@ -24,6 +24,24 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
 
     // Stats
     const [moves, setMoves] = useState(0);
+    const [timeElapsed, setTimeElapsed] = useState(0);
+
+    // Timer logic
+    useEffect(() => {
+        let timer;
+        if (gameState === 'playing') {
+            timer = setInterval(() => {
+                setTimeElapsed(prev => prev + 1);
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [gameState]);
+
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
 
     // Initialize Game
     useEffect(() => {
@@ -50,6 +68,8 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
         setRightItems(shuffleArray(right));
         setMatchedPairs(new Set());
         setMoves(0);
+        setTimeElapsed(0);
+        setGameState('playing');
         setGameState('playing');
         setSelectedLeft(null);
         setSelectedRight(null);
@@ -80,9 +100,9 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
     useEffect(() => {
         if (leftItems.length > 0 && matchedPairs.size === leftItems.length) {
             setGameState('won');
-            if (onComplete) onComplete(moves);
+            if (onComplete) onComplete(moves, timeElapsed);
         }
-    }, [matchedPairs, leftItems.length, moves, onComplete]);
+    }, [matchedPairs, leftItems.length, moves, timeElapsed, onComplete]);
 
 
     const handleItemClick = (item) => {
@@ -118,7 +138,7 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
                     <Trophy className="w-12 h-12 text-yellow-400" />
                 </div>
                 <h2 className="text-4xl font-bold text-white mb-2 tracking-tight">O'yin yakunlandi!</h2>
-                <p className="text-gray-400 mb-8 text-lg">Siz barcha so'zlarni {moves} ta urunishda topdingiz.</p>
+                <p className="text-gray-400 mb-8 text-lg">Siz barcha so'zlarni <span className="text-white font-bold">{formatTime(timeElapsed)}</span> daqiqa ichida <span className="text-white font-bold">{moves}</span> ta urunishda topdingiz.</p>
                 <div className="flex gap-4">
                     <button onClick={onBack} className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-medium rounded-xl transition-colors border border-white/10">
                         Lug'atga qaytish
@@ -138,9 +158,8 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
     // ITEM CLASSES
     const getItemClass = (item) => {
         const isMatched = matchedPairs.has(item.id);
-        const isSelectedLeft = selectedLeft?.id === item.id;
-        const isSelectedRight = selectedRight?.id === item.id;
-        const isSelected = isSelectedLeft || isSelectedRight;
+        const isSelected = (item.type === 'left' && selectedLeft?.id === item.id) ||
+            (item.type === 'right' && selectedRight?.id === item.id);
 
         let baseClass = "p-4 w-full rounded-2xl border transition-all duration-300 font-medium cursor-pointer text-center min-h-[80px] flex items-center justify-center ";
 
@@ -170,8 +189,12 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
                     <span>Orqaga</span>
                 </button>
                 <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-400 bg-white/5 p-2 px-3 rounded-lg border border-white/10">
+                        <Clock className="w-4 h-4 text-blue-400" />
+                        <span className="text-white font-mono text-base">{formatTime(timeElapsed)}</span>
+                    </div>
                     <div className="text-sm font-medium text-gray-400">
-                        Urinishlar: <span className="text-white font-bold">{moves}</span>
+                        Urinishlar: <span className="text-white font-bold text-base">{moves}</span>
                     </div>
                 </div>
             </div>
