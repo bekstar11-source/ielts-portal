@@ -189,8 +189,8 @@ export default function AdminAnalytics() {
                 {/* ACTIVITY CHART (Area) */}
                 <div className={`col-span-2 p-6 rounded-[24px] border shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
                     <h3 className="text-lg font-bold mb-6">Weekly Activity</h3>
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: '100%', height: 300 }}>
+                        <ResponsiveContainer>
                             <AreaChart data={activityData}>
                                 <defs>
                                     <linearGradient id="colorTests" x1="0" y1="0" x2="0" y2="1">
@@ -214,8 +214,8 @@ export default function AdminAnalytics() {
                 {/* SKILL RADAR */}
                 <div className={`p-6 rounded-[24px] border shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
                     <h3 className="text-lg font-bold mb-2">Skill Balance</h3>
-                    <div className="h-[300px] w-full flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: '100%', height: 300 }}>
+                        <ResponsiveContainer>
                             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={skillRadar}>
                                 <PolarGrid stroke={isDark ? "#ffffff20" : "#e5e7eb"} />
                                 <PolarAngleAxis dataKey="subject" tick={{ fill: isDark ? '#9ca3af' : '#6b7280', fontSize: 12 }} />
@@ -236,8 +236,8 @@ export default function AdminAnalytics() {
                 {/* SCORE DISTRIBUTION (Bar) */}
                 <div className={`p-6 rounded-[24px] border shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
                     <h3 className="text-lg font-bold mb-6">Score Distribution</h3>
-                    <div className="h-[250px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ width: '100%', height: 250 }}>
+                        <ResponsiveContainer>
                             <BarChart data={scoreDist}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#ffffff10" : "#e5e7eb"} />
                                 <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#9ca3af' : '#6b7280', fontSize: 12 }} dy={10} />
