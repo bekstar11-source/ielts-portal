@@ -376,8 +376,8 @@ const ReadingRightPane = memo(({
                     <button
                         onClick={() => setActiveRightTab('questions')}
                         className={`flex-1 py-2.5 text-sm font-bold transition-all border-b-2 ${activeRightTab === 'questions'
-                                ? 'text-blue-600 border-blue-600'
-                                : 'text-gray-400 border-transparent hover:text-gray-600'
+                            ? 'text-blue-600 border-blue-600'
+                            : 'text-gray-400 border-transparent hover:text-gray-600'
                             }`}
                     >
                         Questions
@@ -385,8 +385,8 @@ const ReadingRightPane = memo(({
                     <button
                         onClick={() => setActiveRightTab('paraphrase')}
                         className={`flex-1 py-2.5 text-sm font-bold transition-all border-b-2 ${activeRightTab === 'paraphrase'
-                                ? 'text-emerald-600 border-emerald-600'
-                                : 'text-gray-400 border-transparent hover:text-gray-600'
+                            ? 'text-emerald-600 border-emerald-600'
+                            : 'text-gray-400 border-transparent hover:text-gray-600'
                             }`}
                     >
                         Paraphrase Map
@@ -426,7 +426,7 @@ const ReadingRightPane = memo(({
                                     {showStaticOptions && (
                                         <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
                                             <p className="text-xs font-bold mb-3 uppercase text-gray-500 tracking-wider">{boxTitle}</p>
-                                            <div className="flex flex-wrap gap-x-6 gap-y-2">
+                                            <div className="flex flex-col gap-y-2">
                                                 {group.options.map((opt, idx) => {
                                                     const optText = typeof opt === 'object' ? opt.text : opt;
                                                     const staticOptId = `p-${activePassage}-g-${gIdx}-static-opt-${idx}`;

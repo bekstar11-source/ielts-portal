@@ -1,5 +1,5 @@
 // src/components/ReadingInterface/ReadingInterface.jsx
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import ReadingLeftPane from "./ReadingLeftPane";
 import ReadingRightPane from "./ReadingRightPane";
 import ReadingFooter from "./ReadingFooter";
@@ -7,6 +7,22 @@ import ReadingFooter from "./ReadingFooter";
 import { useResizablePane } from "../../hooks/useResizablePane";
 import { useTestSession } from "../../hooks/useTestSession";
 import { generateId } from "../../utils/highlightUtils";
+
+// --- HIGHLIGHT PERSISTENCE HELPERS ---
+const HL_STORAGE_PREFIX = "reading_rp_hl_";
+
+function loadHighlights(testId) {
+  try {
+    const raw = localStorage.getItem(`${HL_STORAGE_PREFIX}${testId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveHighlights(testId, data) {
+  try {
+    localStorage.setItem(`${HL_STORAGE_PREFIX}${testId}`, JSON.stringify(data));
+  } catch { /* storage to'la bo'lsa ignore */ }
+}
 
 export default function ReadingInterface({
   testData,
@@ -58,28 +74,39 @@ export default function ReadingInterface({
   // --- 2. RESIZE HOOK ---
   const { leftWidth, startResizing } = useResizablePane(50);
 
-  // --- 4. HIGHLIGHT STATE (YANGI QISM) ---
-  const [allHighlights, setAllHighlights] = useState({});
+  // --- 4. HIGHLIGHT STATE (localStorage da saqlanadi) ---
+  const [allHighlights, setAllHighlights] = useState(() => loadHighlights(testData?.id));
 
-  const addHighlight = (partId, newHighlight) => {
+  // testId o'zgarganda (farqli test ochilganda) yangi storage dan yuklaymiz
+  useEffect(() => {
+    if (testData?.id) {
+      setAllHighlights(loadHighlights(testData.id));
+    }
+  }, [testData?.id]);
+
+  const addHighlight = useCallback((partId, newHighlight) => {
     setAllHighlights(prev => {
       const existing = prev[partId] || [];
-      return {
+      const next = {
         ...prev,
         [partId]: [...existing, { ...newHighlight, id: generateId() }]
       };
+      saveHighlights(testData?.id, next);
+      return next;
     });
-  };
+  }, [testData?.id]);
 
-  const removeHighlight = (partId, highlightId) => {
+  const removeHighlight = useCallback((partId, highlightId) => {
     setAllHighlights(prev => {
       const existing = prev[partId] || [];
-      return {
+      const next = {
         ...prev,
         [partId]: existing.filter(h => h.id !== highlightId)
       };
+      saveHighlights(testData?.id, next);
+      return next;
     });
-  };
+  }, [testData?.id]);
 
   // --- STATE ---
   const [activePassage, setActivePassage] = useState(0);
