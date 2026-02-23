@@ -1,51 +1,58 @@
 // src/components/ReadingInterface/ReadingInterface.jsx
-import React, { useState, useRef, useEffect } from "react"; 
+import React, { useState, useRef, useEffect } from "react";
 import ReadingLeftPane from "./ReadingLeftPane";
 import ReadingRightPane from "./ReadingRightPane";
 import ReadingFooter from "./ReadingFooter";
 
 import { useResizablePane } from "../../hooks/useResizablePane";
-import { useTestSession } from "../../hooks/useTestSession"; 
+import { useTestSession } from "../../hooks/useTestSession";
 import { generateId } from "../../utils/highlightUtils";
 
-export default function ReadingInterface({ 
-  testData, 
-  userAnswers: parentAnswers,   
-  onAnswerChange: setParentAnswer, 
-  onFlag, 
-  flaggedQuestions, 
-  isReviewMode, 
-  textSize 
+export default function ReadingInterface({
+  testData,
+  userAnswers: parentAnswers,
+  onAnswerChange: setParentAnswer,
+  onFlag,
+  flaggedQuestions,
+  isReviewMode,
+  textSize,
+  onAddToWordBank,
+  pendingPassageWord,
+  onClearPending,
+  testId,
+  testName,
+  onSaveAllWords,
+  isSavingWB
 }) {
   // --- 1. SESSION HOOK ---
-  const { 
-    answers: sessionAnswers, 
-    handleAnswerChange: setSessionAnswer, 
-    showResumeModal, 
-    confirmResume, 
-    confirmRestart 
+  const {
+    answers: sessionAnswers,
+    handleAnswerChange: setSessionAnswer,
+    showResumeModal,
+    confirmResume,
+    confirmRestart
   } = useTestSession(`ielts_reading_session_${testData?.id || 'default'}`);
 
   // 🌉 KO'PRIK 1: JAVOB O'ZGARISHI (Dual Update)
   const handleDualAnswerChange = (questionId, value) => {
-      setSessionAnswer(questionId, value);
-      if (setParentAnswer) {
-          const cleanVal = value ? String(value) : "";
-          setParentAnswer(questionId, cleanVal);
-      }
+    setSessionAnswer(questionId, value);
+    if (setParentAnswer) {
+      const cleanVal = value ? String(value) : "";
+      setParentAnswer(questionId, cleanVal);
+    }
   };
 
   // 🌉 KO'PRIK 2: RESUME QILISH (Sync Effect)
   useEffect(() => {
-      if (!showResumeModal && sessionAnswers && Object.keys(sessionAnswers).length > 0) {
-          Object.entries(sessionAnswers).forEach(([key, val]) => {
-              if (parentAnswers && parentAnswers[key] !== val) {
-                  setParentAnswer(key, val);
-              }
-          });
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showResumeModal, sessionAnswers]); 
+    if (!showResumeModal && sessionAnswers && Object.keys(sessionAnswers).length > 0) {
+      Object.entries(sessionAnswers).forEach(([key, val]) => {
+        if (parentAnswers && parentAnswers[key] !== val) {
+          setParentAnswer(key, val);
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showResumeModal, sessionAnswers]);
 
 
   // --- 2. RESIZE HOOK ---
@@ -55,23 +62,23 @@ export default function ReadingInterface({
   const [allHighlights, setAllHighlights] = useState({});
 
   const addHighlight = (partId, newHighlight) => {
-      setAllHighlights(prev => {
-          const existing = prev[partId] || [];
-          return {
-              ...prev,
-              [partId]: [...existing, { ...newHighlight, id: generateId() }]
-          };
-      });
+    setAllHighlights(prev => {
+      const existing = prev[partId] || [];
+      return {
+        ...prev,
+        [partId]: [...existing, { ...newHighlight, id: generateId() }]
+      };
+    });
   };
 
   const removeHighlight = (partId, highlightId) => {
-      setAllHighlights(prev => {
-          const existing = prev[partId] || [];
-          return {
-              ...prev,
-              [partId]: existing.filter(h => h.id !== highlightId)
-          };
-      });
+    setAllHighlights(prev => {
+      const existing = prev[partId] || [];
+      return {
+        ...prev,
+        [partId]: existing.filter(h => h.id !== highlightId)
+      };
+    });
   };
 
   // --- STATE ---
@@ -114,11 +121,11 @@ export default function ReadingInterface({
   if (!testData) return <div className="p-10">Loading Test Data...</div>;
 
   return (
-    <div 
-      className={`flex flex-col h-screen w-screen bg-ielts-bg text-black overflow-hidden relative ${textSize || 'text-base'}`} 
+    <div
+      className={`flex flex-col h-screen w-screen bg-ielts-bg text-black overflow-hidden relative ${textSize || 'text-base'}`}
       ref={rootRef}
     >
-      
+
       {showResumeModal && (
         <div className="fixed inset-0 z-[3000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center">
@@ -138,31 +145,33 @@ export default function ReadingInterface({
         {isFullScreen ? "Exit Full Screen" : "Full Screen Mode"}
       </button>
 
-      <div className="flex w-full h-[calc(100vh-50px)] overflow-hidden relative"> 
-        
+      <div className="flex w-full h-[calc(100vh-50px)] overflow-hidden relative">
+
         {/* LEFT PANE */}
-        <div 
+        <div
           className="bg-white flex flex-col border-r border-gray-200 h-full overflow-y-auto select-text"
           style={{ width: `${leftWidth}%` }}
         >
           {(() => {
-             const currentPassage = testData.passages[activePassage];
-             
-             return (
-               <ReadingLeftPane 
-                  // 🔥 O'ZGARISH 2: KEY qo'shildi!
-                  // Bu Reactga eski matnni majburan o'chirib, yangisini chizishni buyuradi.
-                  key={`${testData.id}-passage-${activePassage}`} 
+            const currentPassage = testData.passages[activePassage];
 
-                  // 🔥 TUZATISH: Regex shart emas, indeksga 1 ni qo'shamiz (0+1=1, 1+1=2)
-                  passageLabel={`READING PASSAGE ${activePassage + 1}`} 
-                  title={currentPassage?.title || ""} 
-                  content={currentPassage?.content || ""} 
-                  textSize={textSize}
-                  highlightedId={highlightedLoc}
-                  storageKey={currentStorageKey}
-               />
-             );
+            return (
+              <ReadingLeftPane
+                // 🔥 O'ZGARISH 2: KEY qo'shildi!
+                // Bu Reactga eski matnni majburan o'chirib, yangisini chizishni buyuradi.
+                key={`${testData.id}-passage-${activePassage}`}
+
+                // 🔥 TUZATISH: Regex shart emas, indeksga 1 ni qo'shamiz (0+1=1, 1+1=2)
+                passageLabel={`READING PASSAGE ${activePassage + 1}`}
+                title={currentPassage?.title || ""}
+                content={currentPassage?.content || ""}
+                textSize={textSize}
+                highlightedId={highlightedLoc}
+                storageKey={currentStorageKey}
+                isReviewMode={isReviewMode}
+                onAddToWordBank={onAddToWordBank}
+              />
+            );
           })()}
         </div>
 
@@ -171,15 +180,15 @@ export default function ReadingInterface({
         </div>
 
         {/* RIGHT PANE */}
-        <div 
+        <div
           className="flex-1 bg-slate-50 flex flex-col overflow-y-auto h-full relative select-text"
           style={{ width: `${100 - leftWidth}%` }}
         >
-          <ReadingRightPane 
-            testData={testData} 
+          <ReadingRightPane
+            testData={testData}
             activePassage={activePassage}
-            userAnswers={parentAnswers || {}} 
-            onAnswerChange={handleDualAnswerChange} 
+            userAnswers={parentAnswers || {}}
+            onAnswerChange={handleDualAnswerChange}
             onFlag={onFlag}
             flaggedQuestions={flaggedQuestions}
             isReviewMode={isReviewMode}
@@ -188,17 +197,24 @@ export default function ReadingInterface({
             highlights={allHighlights}
             onAddHighlight={addHighlight}
             onRemoveHighlight={removeHighlight}
+            onAddToWordBank={onAddToWordBank}
+            pendingPassageWord={pendingPassageWord}
+            onClearPending={onClearPending}
+            testId={testId}
+            testName={testName}
+            onSaveAllWords={onSaveAllWords}
+            isSavingWB={isSavingWB}
           />
         </div>
       </div>
 
       <div className="fixed bottom-0 left-0 w-full h-[50px] bg-white border-t border-gray-200 z-[2000] shadow-md">
-        <ReadingFooter 
-           testData={testData}
-           activePassage={activePassage}
-           setActivePassage={setActivePassage}
-           userAnswers={parentAnswers || {}} 
-           scrollToQuestionDiv={handleScrollToQuestion}
+        <ReadingFooter
+          testData={testData}
+          activePassage={activePassage}
+          setActivePassage={setActivePassage}
+          userAnswers={parentAnswers || {}}
+          scrollToQuestionDiv={handleScrollToQuestion}
         />
       </div>
     </div>

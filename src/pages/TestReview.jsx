@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import ReadingInterface from "../components/ReadingInterface/ReadingInterface";
 import ListeningInterface from '../components/ListeningInterface/ListeningInterface';
 import { useAuth } from "../context/AuthContext";
+import { batchAddWordsToBank } from "../utils/wordbankUtils";
 
 export default function TestReview() {
     const { id } = useParams(); // Result ID
@@ -31,6 +32,32 @@ export default function TestReview() {
     // Interface uchun dummy funksiyalar (Admin faqat ko'radi, o'zgartirmaydi)
     const [flaggedQuestions] = useState(new Set());
     const handleNoOp = () => { };
+
+    // --- WORDBANK STATELARI ---
+    const [pendingPassageWord, setPendingPassageWord] = useState("");
+    const [isSavingWB, setIsSavingWB] = useState(false);
+
+    const handleAddToWordBank = useCallback((word) => {
+        setPendingPassageWord(word);
+    }, []);
+
+    const handleClearPending = useCallback(() => {
+        setPendingPassageWord("");
+    }, []);
+
+    const handleSaveAllWords = useCallback(async (wordPairs) => {
+        if (!user || !wordPairs || wordPairs.length === 0) return;
+        setIsSavingWB(true);
+        try {
+            await batchAddWordsToBank(user.uid, wordPairs);
+            alert(`${wordPairs.length} ta so'z WordBank'ga saqlandi! ✅`);
+        } catch (err) {
+            console.error("WordBank batch save error:", err);
+            alert("Xato: " + err.message);
+        } finally {
+            setIsSavingWB(false);
+        }
+    }, [user]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -198,6 +225,13 @@ export default function TestReview() {
                         flaggedQuestions={flaggedQuestions}
                         isReviewMode={true}
                         textSize={textSize}
+                        onAddToWordBank={handleAddToWordBank}
+                        pendingPassageWord={pendingPassageWord}
+                        onClearPending={handleClearPending}
+                        testId={testData.id}
+                        testName={testData.title}
+                        onSaveAllWords={handleSaveAllWords}
+                        isSavingWB={isSavingWB}
                     />
                 ) : testData.type === 'listening' ? (
                     <ListeningInterface

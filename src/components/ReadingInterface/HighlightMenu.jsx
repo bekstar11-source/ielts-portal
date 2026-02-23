@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { BookPlus, Check } from "lucide-react";
+import { BookPlus, Check, ArrowRightLeft } from "lucide-react";
 
-export default function HighlightMenu({ position, onHighlight, onClear, onAddDictionary }) {
+export default function HighlightMenu({ position, onHighlight, onClear, onAddDictionary, isReviewMode, onAddToWordBank }) {
     const [isAdded, setIsAdded] = useState(false);
+    const [isWBAdded, setIsWBAdded] = useState(false);
 
     // Reset state when position changes (new selection)
     useEffect(() => {
         setIsAdded(false);
+        setIsWBAdded(false);
     }, [position]);
 
     const handleAddDict = async (e) => {
@@ -18,6 +20,22 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
                 onClear();
                 setIsAdded(false);
             }, 1000);
+        }
+    };
+
+    const handleAddToWB = (e) => {
+        e.preventDefault();
+        if (onAddToWordBank) {
+            const selection = window.getSelection();
+            const word = selection ? selection.toString().trim() : "";
+            if (word) {
+                onAddToWordBank(word);
+                setIsWBAdded(true);
+                setTimeout(() => {
+                    onClear();
+                    setIsWBAdded(false);
+                }, 800);
+            }
         }
     };
 
@@ -63,6 +81,25 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
                     <BookPlus size={14} className="group-hover:scale-110 transition-transform" />
                 )}
             </button>
+
+            {/* WordBank tugmasi — faqat Review rejimida */}
+            {isReviewMode && onAddToWordBank && (
+                <>
+                    <div className="w-[1px] h-3 bg-gray-600 mx-1"></div>
+                    <button
+                        className={`flex items-center gap-1.5 px-2 py-1 text-xs font-semibold hover:bg-gray-700 rounded transition-colors group ${isWBAdded ? 'text-green-400' : 'text-emerald-400'}`}
+                        onMouseDown={handleAddToWB}
+                        title="Paraphrase Map'ga qo'shish"
+                        disabled={isWBAdded}
+                    >
+                        {isWBAdded ? (
+                            <Check size={14} className="group-hover:scale-110 transition-transform animate-in zoom-in" />
+                        ) : (
+                            <ArrowRightLeft size={14} className="group-hover:scale-110 transition-transform" />
+                        )}
+                    </button>
+                </>
+            )}
 
             <div className="w-[1px] h-3 bg-gray-600 mx-1"></div>
 

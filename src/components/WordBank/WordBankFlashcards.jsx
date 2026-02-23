@@ -126,8 +126,15 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
 
     return (
         <div className="flex flex-col h-full w-full max-w-2xl mx-auto py-8">
+            {/* Blue Glowing Background Effect */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/60 rounded-full blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-600/50 rounded-full blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '7s' }} />
+                <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] bg-blue-500/40 rounded-full blur-[80px] animate-bounce" style={{ animationDuration: '10s' }} />
+            </div>
+
             {/* Header */}
-            <div className="flex items-center justify-between mb-8 px-4">
+            <div className="flex items-center justify-between mb-8 px-4 relative z-10">
                 <button
                     onClick={onBack}
                     className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
@@ -135,7 +142,7 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                     <ArrowLeft className="w-5 h-5" />
                     <span>Orqaga</span>
                 </button>
-                <div className="text-sm font-medium text-gray-400 bg-white/5 px-4 py-1.5 rounded-full">
+                <div className="text-sm font-medium text-gray-400 bg-white/5 px-4 py-1.5 rounded-full relative z-10">
                     {currentIndex + 1} / {words.length}
                 </div>
             </div>
@@ -169,10 +176,10 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                         >
                             <div className="flex items-center justify-center gap-4 mb-6">
                                 <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-                                    {currentWord.word}
+                                    {currentWord.passageWord || currentWord.word}
                                 </h2>
                                 <button
-                                    onClick={(e) => playPronunciation(e, currentWord.word)}
+                                    onClick={(e) => playPronunciation(e, currentWord.passageWord || currentWord.word)}
                                     className={`p-3 rounded-full transition-all ${playingAudio ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white'}`}
                                     title="Talaffuz"
                                 >
@@ -184,6 +191,14 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                                     <p className="text-sm text-gray-400 italic font-medium opacity-80">
                                         "{currentWord.contextSentence}"
                                     </p>
+                                </div>
+                            )}
+                            {currentWord.type && (
+                                <div className="mt-3">
+                                    <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase ${currentWord.type === 'synonym' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'
+                                        }`}>
+                                        {currentWord.type}
+                                    </span>
                                 </div>
                             )}
                             <div className="absolute bottom-6 text-xs text-gray-500 font-medium uppercase tracking-widest flex items-center gap-2">
@@ -203,7 +218,16 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                             }}
                         >
                             <div className="space-y-6">
-                                {currentWord.translation ? (
+                                {currentWord.questionWord ? (
+                                    <div>
+                                        <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                                            {currentWord.type === 'antonym' ? "Antonym (Zid ma'noli)" : 'Synonym (Sinonim)'}
+                                        </span>
+                                        <h3 className="text-3xl font-bold text-white leading-tight">
+                                            {currentWord.questionWord}
+                                        </h3>
+                                    </div>
+                                ) : currentWord.translation ? (
                                     <div>
                                         <span className="text-xs font-bold text-blue-400 uppercase tracking-wider block mb-1">Tarjimasi</span>
                                         <h3 className="text-2xl font-bold text-white leading-tight">

@@ -47,8 +47,10 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
     useEffect(() => {
         if (!words || words.length === 0) return;
 
-        // Take up to 6 random words that have definitions or translations
-        const validWords = words.filter(w => w.translation || w.definition);
+        // Take up to 6 random words that have definitions, translations, or are keyword pairs
+        const validWords = words.filter(w =>
+            w.translation || w.definition || (w.passageWord && w.questionWord)
+        );
 
         if (validWords.length < 3) {
             setGameState('error');
@@ -57,10 +59,14 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
 
         const selectedWords = shuffleArray(validWords).slice(0, 6);
 
-        const left = selectedWords.map(w => ({ id: w.id, text: w.word, type: 'left' }));
+        const left = selectedWords.map(w => ({
+            id: w.id,
+            text: w.passageWord || w.word,
+            type: 'left'
+        }));
         const right = selectedWords.map(w => ({
             id: w.id,
-            text: w.translation || w.definition.substring(0, 40) + '...',
+            text: w.questionWord || w.translation || (w.definition ? w.definition.substring(0, 40) + '...' : ''),
             type: 'right'
         }));
 
@@ -179,8 +185,15 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
 
     return (
         <div className="flex flex-col h-full w-full max-w-4xl mx-auto py-8">
+            {/* Blue Glowing Background Effect */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/60 rounded-full blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-600/50 rounded-full blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '7s' }} />
+                <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] bg-blue-500/40 rounded-full blur-[80px] animate-bounce" style={{ animationDuration: '10s' }} />
+            </div>
+
             {/* Header */}
-            <div className="flex items-center justify-between mb-8 px-4">
+            <div className="flex items-center justify-between mb-8 px-4 relative z-10">
                 <button
                     onClick={onBack}
                     className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
@@ -200,7 +213,7 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
             </div>
 
             {/* Game Board */}
-            <div className="flex-1 grid grid-cols-2 gap-4 md:gap-8 px-4 mb-8">
+            <div className="flex-1 grid grid-cols-2 gap-4 md:gap-8 px-4 mb-8 relative z-10">
                 {/* Left Column (English Words) */}
                 <div className="flex flex-col gap-3">
                     <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2 px-2">So'zlar</h3>

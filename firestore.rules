@@ -20,8 +20,11 @@ service cloud.firestore {
       allow read: if isAuth();
       allow write: if isAuth() && (request.auth.uid == userId || isAdmin());
 
-      // O'ziga tegishli subcollection'larga (vocabulary, mistakes) ruxsat
+      // O'ziga tegishli subcollection'larga (vocabulary, mistakes, wordbank) ruxsat
       match /vocabulary/{wordId} {
+        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
+      }
+      match /wordbank/{wordId} {
         allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
       }
       match /mistakes/{mistakeId} {

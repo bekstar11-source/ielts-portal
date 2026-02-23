@@ -30,7 +30,9 @@ const ReadingLeftPane = memo(({
     content,
     textSize = "text-base",
     highlightedId,
-    storageKey
+    storageKey,
+    isReviewMode,
+    onAddToWordBank
 }) => {
     const containerRef = useRef(null);
     const [displayContent, setDisplayContent] = useState(content);
@@ -114,6 +116,8 @@ const ReadingLeftPane = memo(({
                 onHighlight={handleMenuAction}
                 onClear={clearSelection}
                 onAddDictionary={() => addToDictionary({ sectionTitle: title, testTitle: passageLabel || "Reading Test" })}
+                isReviewMode={isReviewMode}
+                onAddToWordBank={onAddToWordBank}
             />
 
             <div

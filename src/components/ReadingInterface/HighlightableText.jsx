@@ -2,20 +2,18 @@
 import React, { memo } from 'react';
 import { applyHighlightsToText } from '../../utils/highlightUtils';
 
-const HighlightableText = memo(({ 
-    id, 
-    content, 
-    highlights, 
-    onTextSelect, 
-    onHighlightRemove, 
+const HighlightableText = memo(({
+    id,
+    content,
+    highlights,
+    onTextSelect,
+    onHighlightRemove,
     isReviewMode,
     className = ""
 }) => {
-    
+
     // Matn belgilanganda (Selection)
     const handleMouseUp = (e) => {
-        if (isReviewMode) return;
-        
         const selection = window.getSelection();
         if (!selection || selection.isCollapsed) return;
 
@@ -40,7 +38,7 @@ const HighlightableText = memo(({
             if (highlightId && onHighlightRemove) {
                 // Confirm so'rash (ixtiyoriy)
                 // if (window.confirm("Highlightni o'chirasizmi?")) {
-                    onHighlightRemove(id, highlightId);
+                onHighlightRemove(id, highlightId);
                 // }
             }
         }
@@ -50,7 +48,7 @@ const HighlightableText = memo(({
     const renderedHTML = applyHighlightsToText(content, highlights);
 
     return (
-        <span 
+        <span
             id={id}
             className={`highlightable-zone inline leading-relaxed relative ${className}`}
             dangerouslySetInnerHTML={{ __html: renderedHTML }}
@@ -60,9 +58,9 @@ const HighlightableText = memo(({
     );
 }, (prev, next) => {
     // Faqat highlightlar yoki content o'zgarganda qayta render qilamiz
-    return prev.content === next.content && 
-           JSON.stringify(prev.highlights) === JSON.stringify(next.highlights) &&
-           prev.isReviewMode === next.isReviewMode;
+    return prev.content === next.content &&
+        JSON.stringify(prev.highlights) === JSON.stringify(next.highlights) &&
+        prev.isReviewMode === next.isReviewMode;
 });
 
 export default HighlightableText;

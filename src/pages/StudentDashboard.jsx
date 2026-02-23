@@ -2,10 +2,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebase";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion, getCountFromServer } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, Headphones, PenTool, Mic } from "lucide-react";
+import { BookOpen, Headphones, PenTool, Mic, Flame, Trophy, AlertTriangle, ArrowRight, ArrowUp } from "lucide-react";
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -15,7 +15,6 @@ import AnnouncementsBoard from '../components/dashboard/AnnouncementsBoard';
 import HeroSection from "../components/dashboard/HeroSection";
 // StatsCards removed as it is integrated into HeroSection now
 import PlanetBackground from "../components/dashboard/PlanetBackground";
-import FeaturesGrid from "../components/dashboard/FeaturesGrid";
 // FiltersBar and TestGrid moved to Practice.jsx
 import DashboardModals from "../components/dashboard/DashboardModals";
 import SettingsTab from "../components/dashboard/SettingsTab";
@@ -70,6 +69,8 @@ export default function StudentDashboard() {
     const [errorMsg, setErrorMsg] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterType, setFilterType] = useState("all");
+    const [mistakesCount, setMistakesCount] = useState(0);
+    const [vocabCount, setVocabCount] = useState(0);
     const [showKeyModal, setShowKeyModal] = useState(false);
     const [showStartConfirm, setShowStartConfirm] = useState(false);
     const [testToStart, setTestToStart] = useState(null);
@@ -257,6 +258,27 @@ export default function StudentDashboard() {
         fetchData();
     }, [user]);
 
+    // Gamification ma'lumotlarini yuklash (Mistakes, Vocab)
+    useEffect(() => {
+        if (!user) return;
+        const fetchGamificationData = async () => {
+            try {
+                // 1. Mistakes Count
+                const mistakesRef = collection(db, 'users', user.uid, 'mistakes');
+                const mSnap = await getCountFromServer(mistakesRef);
+                setMistakesCount(mSnap.data().count);
+
+                // 2. Vocab Count
+                const vocabRef = collection(db, 'users', user.uid, 'vocabulary');
+                const vSnap = await getCountFromServer(vocabRef);
+                setVocabCount(vSnap.data().count);
+            } catch (err) {
+                console.error("Gamification verilarini olishda xatolik:", err);
+            }
+        };
+        fetchGamificationData();
+    }, [user]);
+
     // --- STATS ---
     const stats = useMemo(() => {
         const total = rawAssignments.length;
@@ -378,7 +400,90 @@ export default function StudentDashboard() {
 
                         <QuickAnalytics stats={skillStats} />
 
-                        <FeaturesGrid />
+                        {/* GAMIFICATION FEATURES GRID */}
+                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in-up md:mt-8 mt-6 mb-12" style={{ animationDelay: '0.4s' }}>
+                            <style>{`
+                                .glass-card {
+                                    background: rgba(15, 15, 15, 0.6);
+                                    backdrop-filter: blur(20px);
+                                    -webkit-backdrop-filter: blur(20px);
+                                    border: 1px solid rgba(255, 255, 255, 0.08);
+                                    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+                                }
+                                .glass-card:hover {
+                                    border-color: rgba(255, 85, 32, 0.5);
+                                    box-shadow: 0 0 30px rgba(255, 85, 32, 0.15);
+                                    transform: translateY(-2px);
+                                    background: rgba(20, 20, 20, 0.8);
+                                }
+                            `}</style>
+
+                            {/* Streak Card */}
+                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] group-hover:bg-orange-500/20 transition-all"></div>
+                                <div className="flex items-center gap-4 mb-3 relative z-10">
+                                    <div className={`p-2.5 rounded-xl transition-all ${(userData?.streakCount || 0) > 0 ? 'bg-orange-500/20 text-orange-400 group-hover:bg-orange-500' : 'bg-gray-800 text-gray-500'} group-hover:text-white`}>
+                                        <Flame className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="font-bold text-white text-lg">Daily Streak</h4>
+                                </div>
+                                <div className="flex items-end gap-2 relative z-10">
+                                    <span className="text-3xl font-bold tracking-tighter text-white">{userData?.streakCount || 0}</span>
+                                    <span className="text-sm font-medium text-vetra-textMuted mb-1">kun</span>
+                                </div>
+                            </div>
+
+                            {/* Total XP Card */}
+                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-[40px] group-hover:bg-yellow-500/20 transition-all"></div>
+                                <div className="flex items-center gap-4 mb-3 relative z-10">
+                                    <div className="p-2.5 rounded-xl bg-yellow-500/10 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-white transition-all">
+                                        <Trophy className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="font-bold text-white text-lg">Total XP</h4>
+                                </div>
+                                <div className="flex items-end gap-2 relative z-10">
+                                    <span className="text-3xl font-bold tracking-tighter text-white">{userData?.gamification?.points || 0}</span>
+                                    <span className="text-sm font-medium text-vetra-textMuted mb-1 flex items-center gap-1 text-green-400"><ArrowUp size={14} /> Top reytingda</span>
+                                </div>
+                            </div>
+
+                            {/* Mistakes Card */}
+                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden" onClick={() => navigate('/practice')}>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-[40px] group-hover:bg-red-500/20 transition-all"></div>
+                                <div className="flex items-center gap-4 mb-3 relative z-10">
+                                    <div className="p-2.5 rounded-xl bg-red-500/10 text-red-400 group-hover:bg-red-500 group-hover:text-white transition-all">
+                                        <AlertTriangle className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="font-bold text-white text-lg">My Mistakes</h4>
+                                </div>
+                                <div className="flex justify-between items-end relative z-10">
+                                    <div className="flex items-end gap-2">
+                                        <span className="text-3xl font-bold tracking-tighter text-white">{mistakesCount}</span>
+                                        <span className="text-sm font-medium text-vetra-textMuted mb-1">xato</span>
+                                    </div>
+                                    <ArrowRight size={18} className="text-vetra-textMuted group-hover:text-white group-hover:translate-x-1 transition-all mb-1" />
+                                </div>
+                            </div>
+
+                            {/* Vocab Card */}
+                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden" onClick={() => navigate('/vocabulary')}>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] group-hover:bg-blue-500/20 transition-all"></div>
+                                <div className="flex items-center gap-4 mb-3 relative z-10">
+                                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                        <BookOpen className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="font-bold text-white text-lg">WordBank</h4>
+                                </div>
+                                <div className="flex justify-between items-end relative z-10">
+                                    <div className="flex items-end gap-2">
+                                        <span className="text-3xl font-bold tracking-tighter text-white">{vocabCount}</span>
+                                        <span className="text-sm font-medium text-vetra-textMuted mb-1">so'zlar</span>
+                                    </div>
+                                    <ArrowRight size={18} className="text-vetra-textMuted group-hover:text-white group-hover:translate-x-1 transition-all mb-1" />
+                                </div>
+                            </div>
+                        </section>
 
                         <div className="mt-8">
                             {/* If no tests, Show WelcomeState as a section, else show Showcase */}
