@@ -2,8 +2,6 @@ import React, { memo, useState, useRef, useCallback } from "react";
 import HighlightableText from './HighlightableText';
 import HighlightMenu from './HighlightMenu';
 import { getSelectionOffsets } from '../../utils/highlightUtils';
-import ReviewWordCapture from '../ReviewInterface/ReviewWordCapture';
-
 const ReadingRightPane = memo(({
     testData,
     activePassage,
@@ -27,8 +25,6 @@ const ReadingRightPane = memo(({
     // 1. Ichki Ref (Menyu ishlashi uchun kafolat)
     const internalRef = useRef(null);
     const [tempSelection, setTempSelection] = useState(null);
-    const [activeRightTab, setActiveRightTab] = useState('questions'); // 'questions' | 'paraphrase'
-
     // 🔥 MUHIM: Ham ichki refni, ham tashqi qRefni bog'laymiz
     const setRefs = useCallback((node) => {
         // 1. O'zimiz uchun saqlaymiz
@@ -368,132 +364,97 @@ const ReadingRightPane = memo(({
                 onClear={clearSelectionMenu}
                 isReviewMode={isReviewMode}
                 onAddToWordBank={onAddToWordBank}
+                source="question"
             />
 
-            {/* Tab tizimi — faqat Review rejimida */}
-            {isReviewMode && (
-                <div className="flex border-b border-gray-200 mb-4 sticky top-0 bg-white z-10">
-                    <button
-                        onClick={() => setActiveRightTab('questions')}
-                        className={`flex-1 py-2.5 text-sm font-bold transition-all border-b-2 ${activeRightTab === 'questions'
-                            ? 'text-blue-600 border-blue-600'
-                            : 'text-gray-400 border-transparent hover:text-gray-600'
-                            }`}
-                    >
-                        Questions
-                    </button>
-                    <button
-                        onClick={() => setActiveRightTab('paraphrase')}
-                        className={`flex-1 py-2.5 text-sm font-bold transition-all border-b-2 ${activeRightTab === 'paraphrase'
-                            ? 'text-emerald-600 border-emerald-600'
-                            : 'text-gray-400 border-transparent hover:text-gray-600'
-                            }`}
-                    >
-                        Paraphrase Map
-                    </button>
-                </div>
-            )}
+            <>
 
-            {/* Paraphrase Map Tab */}
-            {isReviewMode && activeRightTab === 'paraphrase' ? (
-                <ReviewWordCapture
-                    pendingPassageWord={pendingPassageWord}
-                    onClearPending={onClearPending}
-                    testId={testId}
-                    testName={testName}
-                    onSaveAll={onSaveAllWords}
-                    isSaving={isSavingWB}
-                />
-            ) : (
-                <>
+                {testData.questions
+                    .filter(g => g.passageId === testData.passages[activePassage].id)
+                    .map((group, gIdx) => {
+                        const isChoiceType = ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => group.type && group.type.toLowerCase().includes(t));
+                        const isMultiSelect = group.type === 'pick_two' || group.type === 'pick_three' || (group.type && group.type.includes('multi'));
+                        const isMatching = group.type === 'matching' || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));
+                        const isSummary = group.type === 'gap_fill' || (group.type && group.type.includes('summary')) || group.type === 'summary_box';
+                        const isTable = group.type === 'table_completion' || group.type === 'table';
 
-                    {testData.questions
-                        .filter(g => g.passageId === testData.passages[activePassage].id)
-                        .map((group, gIdx) => {
-                            const isChoiceType = ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => group.type && group.type.toLowerCase().includes(t));
-                            const isMultiSelect = group.type === 'pick_two' || group.type === 'pick_three' || (group.type && group.type.includes('multi'));
-                            const isMatching = group.type === 'matching' || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));
-                            const isSummary = group.type === 'gap_fill' || (group.type && group.type.includes('summary')) || group.type === 'summary_box';
-                            const isTable = group.type === 'table_completion' || group.type === 'table';
+                        const showStaticOptions = (group.type === 'matching' || group.type === 'summary_box') && group.options && group.options.length > 0;
+                        const boxTitle = group.type === 'summary_box' ? "List of Words" : "List of Headings / Features";
 
-                            const showStaticOptions = (group.type === 'matching' || group.type === 'summary_box') && group.options && group.options.length > 0;
-                            const boxTitle = group.type === 'summary_box' ? "List of Words" : "List of Headings / Features";
+                        return (
+                            <div key={gIdx} className="mb-8 pb-8 border-b border-gray-200 border-dashed last:border-0">
+                                <div className="bg-white border border-gray-200 p-4 mb-5 rounded-lg text-sm font-semibold text-gray-700 shadow-sm" dangerouslySetInnerHTML={{ __html: group.instruction }} />
 
-                            return (
-                                <div key={gIdx} className="mb-8 pb-8 border-b border-gray-200 border-dashed last:border-0">
-                                    <div className="bg-white border border-gray-200 p-4 mb-5 rounded-lg text-sm font-semibold text-gray-700 shadow-sm" dangerouslySetInnerHTML={{ __html: group.instruction }} />
-
-                                    {showStaticOptions && (
-                                        <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
-                                            <p className="text-xs font-bold mb-3 uppercase text-gray-500 tracking-wider">{boxTitle}</p>
-                                            <div className="flex flex-col gap-y-2">
-                                                {group.options.map((opt, idx) => {
-                                                    const optText = typeof opt === 'object' ? opt.text : opt;
-                                                    const staticOptId = `p-${activePassage}-g-${gIdx}-static-opt-${idx}`;
-                                                    return (
-                                                        <HighlightableText
-                                                            key={idx}
-                                                            id={staticOptId}
-                                                            content={optText}
-                                                            highlights={highlights ? highlights[staticOptId] || [] : []}
-                                                            onTextSelect={handlePartSelect}
-                                                            onHighlightRemove={onRemoveHighlight}
-                                                            isReviewMode={isReviewMode}
-                                                            className="text-sm text-gray-700 py-1 px-2 rounded hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors select-text"
-                                                        />
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        {isTable ? renderTable(group) : (
-                                            group.items?.map(q => {
-                                                const isInlineQuestion = q.text.includes('[INPUT]') || q.text.includes('[DROP]');
-                                                let itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
-
-                                                if (itemOptions.length === 0 && group.type) {
-                                                    const t = group.type.toLowerCase();
-                                                    if (t.includes('tfng') || t.includes('true_false')) itemOptions = ["TRUE", "FALSE", "NOT GIVEN"];
-                                                    else if (t.includes('yesno') || t.includes('yes_no')) itemOptions = ["YES", "NO", "NOT GIVEN"];
-                                                }
-
-                                                const isFlowChart = group.type === 'flow_chart';
-                                                let containerClass = "block mb-5";
-                                                if (isSummary) containerClass = "inline leading-[2.2] text-justify";
-                                                if (isFlowChart) containerClass = "block w-full border border-gray-800 p-2 mb-4 bg-white relative shadow-sm";
-
+                                {showStaticOptions && (
+                                    <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
+                                        <p className="text-xs font-bold mb-3 uppercase text-gray-500 tracking-wider">{boxTitle}</p>
+                                        <div className="flex flex-col gap-y-2">
+                                            {group.options.map((opt, idx) => {
+                                                const optText = typeof opt === 'object' ? opt.text : opt;
+                                                const staticOptId = `p-${activePassage}-g-${gIdx}-static-opt-${idx}`;
                                                 return (
-                                                    <div key={q.id} id={`q-${q.id}`} className={`group/item relative ${containerClass}`}>
-                                                        {!isInlineQuestion && !isSummary && !isFlowChart && (
-                                                            <div className="flex gap-3 items-start">
-                                                                <div className={`min-w-[26px] w-fit px-1 h-[26px] flex items-center justify-center rounded bg-white border border-gray-400 text-xs font-bold text-gray-700 shrink-0 shadow-sm unselectable transition-colors mt-0.5 ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}`} onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}>{q.id}</div>
-                                                                <div className="flex-1">
-                                                                    {renderParts(q.text.split(/(\[INPUT\]|\[DROP\])/g), q, userAnswers[q.id] || "", isInlineQuestion, isSummary, itemOptions, isMatching, isReviewMode, onAnswerChange, group)}
-                                                                    {isChoiceType && !isMatching && renderChoices(itemOptions, q, userAnswers[q.id] || "", isMultiSelect, isReviewMode, onAnswerChange, group)}
-                                                                    {isReviewMode && !isChoiceType && !isInlineQuestion && !isSummary && !checkAnswer(userAnswers[q.id], q.answer) && (
-                                                                        <div className="mt-2 text-sm text-green-700 bg-green-50 p-2 rounded border border-green-200 inline-block"><span className="font-bold mr-1">Correct Answer:</span> {q.answer}</div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {(isInlineQuestion || isSummary || isFlowChart) && (
-                                                            <>
-                                                                {renderParts(q.text.split(/(\[INPUT\]|\[DROP\])/g), q, userAnswers[q.id] || "", isInlineQuestion, isSummary, itemOptions, isMatching, isReviewMode, onAnswerChange, group)}
-                                                                {isFlowChart && <div className="absolute -bottom-3.5 left-1/2 transform -translate-x-1/2 text-gray-800 text-lg font-bold leading-none z-10">↓</div>}
-                                                            </>
-                                                        )}
-                                                    </div>
+                                                    <HighlightableText
+                                                        key={idx}
+                                                        id={staticOptId}
+                                                        content={optText}
+                                                        highlights={highlights ? highlights[staticOptId] || [] : []}
+                                                        onTextSelect={handlePartSelect}
+                                                        onHighlightRemove={onRemoveHighlight}
+                                                        isReviewMode={isReviewMode}
+                                                        className="text-sm text-gray-700 py-1 px-2 rounded hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors select-text"
+                                                    />
                                                 );
-                                            })
-                                        )}
+                                            })}
+                                        </div>
                                     </div>
+                                )}
+
+                                <div>
+                                    {isTable ? renderTable(group) : (
+                                        group.items?.map(q => {
+                                            const isInlineQuestion = q.text.includes('[INPUT]') || q.text.includes('[DROP]');
+                                            let itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
+
+                                            if (itemOptions.length === 0 && group.type) {
+                                                const t = group.type.toLowerCase();
+                                                if (t.includes('tfng') || t.includes('true_false')) itemOptions = ["TRUE", "FALSE", "NOT GIVEN"];
+                                                else if (t.includes('yesno') || t.includes('yes_no')) itemOptions = ["YES", "NO", "NOT GIVEN"];
+                                            }
+
+                                            const isFlowChart = group.type === 'flow_chart';
+                                            let containerClass = "block mb-5";
+                                            if (isSummary) containerClass = "inline leading-[2.2] text-justify";
+                                            if (isFlowChart) containerClass = "block w-full border border-gray-800 p-2 mb-4 bg-white relative shadow-sm";
+
+                                            return (
+                                                <div key={q.id} id={`q-${q.id}`} className={`group/item relative ${containerClass}`}>
+                                                    {!isInlineQuestion && !isSummary && !isFlowChart && (
+                                                        <div className="flex gap-3 items-start">
+                                                            <div className={`min-w-[26px] w-fit px-1 h-[26px] flex items-center justify-center rounded bg-white border border-gray-400 text-xs font-bold text-gray-700 shrink-0 shadow-sm unselectable transition-colors mt-0.5 ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}`} onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}>{q.id}</div>
+                                                            <div className="flex-1">
+                                                                {renderParts(q.text.split(/(\[INPUT\]|\[DROP\])/g), q, userAnswers[q.id] || "", isInlineQuestion, isSummary, itemOptions, isMatching, isReviewMode, onAnswerChange, group)}
+                                                                {isChoiceType && !isMatching && renderChoices(itemOptions, q, userAnswers[q.id] || "", isMultiSelect, isReviewMode, onAnswerChange, group)}
+                                                                {isReviewMode && !isChoiceType && !isInlineQuestion && !isSummary && !checkAnswer(userAnswers[q.id], q.answer) && (
+                                                                    <div className="mt-2 text-sm text-green-700 bg-green-50 p-2 rounded border border-green-200 inline-block"><span className="font-bold mr-1">Correct Answer:</span> {q.answer}</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {(isInlineQuestion || isSummary || isFlowChart) && (
+                                                        <>
+                                                            {renderParts(q.text.split(/(\[INPUT\]|\[DROP\])/g), q, userAnswers[q.id] || "", isInlineQuestion, isSummary, itemOptions, isMatching, isReviewMode, onAnswerChange, group)}
+                                                            {isFlowChart && <div className="absolute -bottom-3.5 left-1/2 transform -translate-x-1/2 text-gray-800 text-lg font-bold leading-none z-10">↓</div>}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
-                            );
-                        })}
-                </>
-            )}
+                            </div>
+                        );
+                    })}
+            </>
         </div>
     );
 }, (prev, next) =>

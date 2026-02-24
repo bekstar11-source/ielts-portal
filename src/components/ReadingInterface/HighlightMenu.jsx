@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { BookPlus, Check, ArrowRightLeft } from "lucide-react";
 
-export default function HighlightMenu({ position, onHighlight, onClear, onAddDictionary, isReviewMode, onAddToWordBank }) {
+export default function HighlightMenu({ position, onHighlight, onClear, onAddDictionary, isReviewMode, onAddToWordBank, source }) {
     const [isAdded, setIsAdded] = useState(false);
     const [isWBAdded, setIsWBAdded] = useState(false);
 
@@ -28,8 +28,24 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
         if (onAddToWordBank) {
             const selection = window.getSelection();
             const word = selection ? selection.toString().trim() : "";
+
+            let contextSentence = "";
+            try {
+                if (selection.anchorNode && selection.anchorNode.parentNode) {
+                    let node = selection.anchorNode.parentNode;
+                    while (node && node.nodeName !== 'P' && node.nodeName !== 'DIV' && node.nodeName !== 'TD' && node.nodeName !== 'LI') {
+                        if (node.nodeName === 'BODY') break;
+                        node = node.parentNode;
+                    }
+                    contextSentence = (node || selection.anchorNode.parentNode).textContent.trim();
+                    if (contextSentence.length > 250) {
+                        contextSentence = contextSentence.substring(0, 250) + "...";
+                    }
+                }
+            } catch (err) { }
+
             if (word) {
-                onAddToWordBank(word);
+                onAddToWordBank(word, source || "passage", contextSentence);
                 setIsWBAdded(true);
                 setTimeout(() => {
                     onClear();

@@ -118,6 +118,7 @@ const ReadingLeftPane = memo(({
                 onAddDictionary={() => addToDictionary({ sectionTitle: title, testTitle: passageLabel || "Reading Test" })}
                 isReviewMode={isReviewMode}
                 onAddToWordBank={onAddToWordBank}
+                source="passage"
             />
 
             <div

@@ -7,6 +7,7 @@ import ReadingFooter from "./ReadingFooter";
 import { useResizablePane } from "../../hooks/useResizablePane";
 import { useTestSession } from "../../hooks/useTestSession";
 import { generateId } from "../../utils/highlightUtils";
+import VocabularyCanvas from "../ReviewInterface/VocabularyCanvas";
 
 // --- HIGHLIGHT PERSISTENCE HELPERS ---
 const HL_STORAGE_PREFIX = "reading_rp_hl_";
@@ -33,8 +34,8 @@ export default function ReadingInterface({
   isReviewMode,
   textSize,
   onAddToWordBank,
-  pendingPassageWord,
-  onClearPending,
+  captureData,
+  onClearCapture,
   testId,
   testName,
   onSaveAllWords,
@@ -225,12 +226,7 @@ export default function ReadingInterface({
             onAddHighlight={addHighlight}
             onRemoveHighlight={removeHighlight}
             onAddToWordBank={onAddToWordBank}
-            pendingPassageWord={pendingPassageWord}
-            onClearPending={onClearPending}
             testId={testId}
-            testName={testName}
-            onSaveAllWords={onSaveAllWords}
-            isSavingWB={isSavingWB}
           />
         </div>
       </div>
@@ -244,6 +240,17 @@ export default function ReadingInterface({
           scrollToQuestionDiv={handleScrollToQuestion}
         />
       </div>
+
+      {isReviewMode && (
+        <VocabularyCanvas
+          captureData={captureData}
+          onClearCapture={onClearCapture}
+          testId={testId}
+          testName={testName}
+          onSaveAll={onSaveAllWords}
+          isSaving={isSavingWB}
+        />
+      )}
     </div>
   );
 }

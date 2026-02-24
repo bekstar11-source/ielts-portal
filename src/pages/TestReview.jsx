@@ -34,15 +34,15 @@ export default function TestReview() {
     const handleNoOp = () => { };
 
     // --- WORDBANK STATELARI ---
-    const [pendingPassageWord, setPendingPassageWord] = useState("");
+    const [captureData, setCaptureData] = useState(null);
     const [isSavingWB, setIsSavingWB] = useState(false);
 
-    const handleAddToWordBank = useCallback((word) => {
-        setPendingPassageWord(word);
+    const handleAddToWordBank = useCallback((word, source, context) => {
+        setCaptureData({ word, source, context, timestamp: Date.now() });
     }, []);
 
-    const handleClearPending = useCallback(() => {
-        setPendingPassageWord("");
+    const handleClearCapture = useCallback(() => {
+        setCaptureData(null);
     }, []);
 
     const handleSaveAllWords = useCallback(async (wordPairs) => {
@@ -226,8 +226,8 @@ export default function TestReview() {
                         isReviewMode={true}
                         textSize={textSize}
                         onAddToWordBank={handleAddToWordBank}
-                        pendingPassageWord={pendingPassageWord}
-                        onClearPending={handleClearPending}
+                        captureData={captureData}
+                        onClearCapture={handleClearCapture}
                         testId={testData.id}
                         testName={testData.title}
                         onSaveAllWords={handleSaveAllWords}
