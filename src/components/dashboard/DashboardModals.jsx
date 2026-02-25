@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Icons } from './Icons';
 
 // --- STYLES FOR SET ITEMS ---
@@ -27,6 +27,8 @@ export default function DashboardModals({
     showLogoutConfirm, setShowLogoutConfirm, confirmLogout,
     selectedSet, setSelectedSet, handleStartTest, handleReview
 }) {
+    const [setSearch, setSetSearch] = useState('');
+
     return (
         <>
             {/* KEY MODAL */}
@@ -76,18 +78,30 @@ export default function DashboardModals({
             {/* SET DETAILS MODAL */}
             {selectedSet && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-[#18181b] rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border border-white/10">
-                        <div className="p-5 border-b border-white/10 flex justify-between items-center bg-[#18181b] z-10">
+                    <div className="bg-[#18181b] rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border border-white/10">
+                        <div className="p-5 border-b border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#18181b] z-10">
                             <div>
                                 <h3 className="text-lg font-bold text-white tracking-tight">{selectedSet.title}</h3>
                                 <p className="text-xs text-gray-400 font-medium mt-0.5">{selectedSet.totalTests} ta test mavjud</p>
                             </div>
-                            <button onClick={() => setSelectedSet(null)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition"><Icons.Close className="w-5 h-5 text-gray-400" /></button>
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <div className="relative w-full sm:w-64">
+                                    <input
+                                        type="text"
+                                        placeholder="Testni qidirish..."
+                                        className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        value={setSearch}
+                                        onChange={(e) => setSetSearch(e.target.value)}
+                                    />
+                                    <Icons.Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                </div>
+                                <button onClick={() => setSelectedSet(null)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition shrink-0"><Icons.Close className="w-5 h-5 text-gray-400" /></button>
+                            </div>
                         </div>
 
                         <div className="p-5 overflow-y-auto bg-[#18181b]">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {selectedSet.subTests.map(sub => {
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {selectedSet.subTests.filter(sub => sub.title?.toLowerCase().includes(setSearch.toLowerCase())).map(sub => {
                                     const isSubDone = sub.status === 'completed';
                                     return (
                                         <div key={sub.id} className={`rounded-xl p-5 border shadow-sm hover:shadow-md transition flex flex-col justify-between h-40 ${getCardStyle(sub.type)}`}>

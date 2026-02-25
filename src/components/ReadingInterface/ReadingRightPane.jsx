@@ -378,8 +378,39 @@ const ReadingRightPane = memo(({
                         const isSummary = group.type === 'gap_fill' || (group.type && group.type.includes('summary')) || group.type === 'summary_box';
                         const isTable = group.type === 'table_completion' || group.type === 'table';
 
-                        const showStaticOptions = (group.type === 'matching' || group.type === 'summary_box') && group.options && group.options.length > 0;
-                        const boxTitle = group.type === 'summary_box' ? "List of Words" : "List of Headings / Features";
+                        const isJustLetters = group.options && group.options.length > 0 && group.options.every(opt => {
+                            const text = String(typeof opt === 'object' ? opt.text : opt).trim();
+                            return text.length <= 3 || /^[A-Z][\.\)]?\s*$/i.test(text);
+                        });
+
+                        const showStaticOptions = (group.type === 'matching' || group.type === 'summary_box') && group.options && group.options.length > 0 && !isJustLetters;
+
+                        let boxTitle = "List of Options";
+                        if (group.type === 'summary_box') {
+                            boxTitle = "List of Words";
+                        } else {
+                            const tempType = String(group.type || "").toLowerCase();
+                            const inst = String(group.instruction || "").toLowerCase();
+
+                            const listMatch = inst.match(/list of\s+([a-zA-Z]+)/);
+                            if (listMatch && listMatch[1] && !['the', 'following', 'options'].includes(listMatch[1])) {
+                                boxTitle = `List of ${listMatch[1].charAt(0).toUpperCase() + listMatch[1].slice(1)}`;
+                            } else if (tempType.includes("heading") || inst.includes("heading")) {
+                                boxTitle = "List of Headings";
+                            } else if (tempType.includes("feature") || inst.includes("feature")) {
+                                boxTitle = "List of Features";
+                            } else if (inst.includes("researcher")) {
+                                boxTitle = "List of Researchers";
+                            } else if (inst.includes("people") || inst.includes("person")) {
+                                boxTitle = "List of People";
+                            } else if (inst.includes("countr")) {
+                                boxTitle = "List of Countries";
+                            } else if (inst.includes("cit")) {
+                                boxTitle = "List of Cities";
+                            } else if (inst.includes("name")) {
+                                boxTitle = "List of Names";
+                            }
+                        }
 
                         return (
                             <div key={gIdx} className="mb-8 pb-8 border-b border-gray-200 border-dashed last:border-0">
