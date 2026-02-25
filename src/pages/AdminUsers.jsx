@@ -547,30 +547,52 @@ function SetsTab({ allTests, testSets, onRefresh, theme }) {
     const [name, setName] = useState('');
     const [selectedTests, setSelectedTests] = useState([]);
     const [searchTest, setSearchTest] = useState('');
+    const [editingSetId, setEditingSetId] = useState(null);
 
-    const handleCreate = async () => {
+    const resetForm = () => {
+        setName('');
+        setSelectedTests([]);
+        setSearchTest('');
+        setEditingSetId(null);
+    };
+
+    const handleCreateOrUpdate = async () => {
         if (!name.trim() || !selectedTests.length) return;
         try {
-            await addDoc(collection(db, 'testSets'), {
-                name,
-                testIds: selectedTests,
-                createdAt: new Date().toISOString()
-            });
-            setName('');
-            setSelectedTests([]);
-            setSearchTest('');
+            if (editingSetId) {
+                await updateDoc(doc(db, 'testSets', editingSetId), {
+                    name,
+                    testIds: selectedTests,
+                    updatedAt: new Date().toISOString()
+                });
+                alert("To'plam yangilandi!");
+            } else {
+                await addDoc(collection(db, 'testSets'), {
+                    name,
+                    testIds: selectedTests,
+                    createdAt: new Date().toISOString()
+                });
+                alert("To'plam yaratildi!");
+            }
+            resetForm();
             onRefresh();
-            alert("To'plam yaratildi!");
         } catch (error) {
             console.error(error);
             alert("Xatolik yuz berdi");
         }
     };
 
+    const handleEdit = (set) => {
+        setName(set.name);
+        setSelectedTests(set.testIds || []);
+        setEditingSetId(set.id);
+    };
+
     const handleDelete = async (id) => {
         if (window.confirm("O'chirasizmi?")) {
             try {
                 await deleteDoc(doc(db, 'testSets', id));
+                if (editingSetId === id) resetForm();
                 onRefresh();
             } catch (error) {
                 console.error(error);
@@ -626,14 +648,23 @@ function SetsTab({ allTests, testSets, onRefresh, theme }) {
                     )}
                 </div>
 
-                <div className={`p-4 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                <div className={`p-4 border-t ${isDark ? 'border-white/5' : 'border-gray-100'} flex gap-2`}>
                     <button
-                        onClick={handleCreate}
+                        onClick={handleCreateOrUpdate}
                         disabled={!name.trim() || !selectedTests.length}
-                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/20"
+                        className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/20"
                     >
-                        Saqlash ({selectedTests.length})
+                        {editingSetId ? `Yangilash (${selectedTests.length})` : `Saqlash (${selectedTests.length})`}
                     </button>
+                    {editingSetId && (
+                        <button
+                            onClick={resetForm}
+                            className={`px-4 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-xl transition flex items-center justify-center`}
+                            title="Bekor qilish"
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -645,14 +676,19 @@ function SetsTab({ allTests, testSets, onRefresh, theme }) {
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                     {testSets.length > 0 ? (
                         testSets.map(s => (
-                            <div key={s.id} className={`p-4 rounded-xl border flex justify-between items-center ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                            <div key={s.id} className={`p-4 rounded-xl border flex justify-between items-center ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100'} ${editingSetId === s.id ? (isDark ? 'border-blue-500 bg-blue-500/10' : 'border-blue-500 bg-blue-50') : ''}`}>
                                 <div>
                                     <p className="font-bold text-sm">{s.name}</p>
                                     <p className="text-xs opacity-50">{s.testIds?.length || 0} ta test</p>
                                 </div>
-                                <button onClick={() => handleDelete(s.id)} className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition">
-                                    <Trash2 size={16} />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleEdit(s)} className={`p-2 rounded-lg transition ${editingSetId === s.id ? 'text-blue-500 bg-blue-500/10' : 'text-gray-500 hover:text-blue-500 hover:bg-blue-500/10'}`}>
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button onClick={() => handleDelete(s.id)} className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
                         ))
                     ) : (

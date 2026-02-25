@@ -388,7 +388,7 @@ const ReadingRightPane = memo(({
                                 {showStaticOptions && (
                                     <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
                                         <p className="text-xs font-bold mb-3 uppercase text-gray-500 tracking-wider">{boxTitle}</p>
-                                        <div className="flex flex-col gap-y-2">
+                                        <div className={group.type === 'matching' ? "flex flex-col gap-y-2" : "grid grid-cols-2 gap-x-4 gap-y-2"}>
                                             {group.options.map((opt, idx) => {
                                                 const optText = typeof opt === 'object' ? opt.text : opt;
                                                 const staticOptId = `p-${activePassage}-g-${gIdx}-static-opt-${idx}`;
