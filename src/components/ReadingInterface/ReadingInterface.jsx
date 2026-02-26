@@ -1,12 +1,12 @@
 // src/components/ReadingInterface/ReadingInterface.jsx
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ReadingLeftPane from "./ReadingLeftPane";
 import ReadingRightPane from "./ReadingRightPane";
 import ReadingFooter from "./ReadingFooter";
 
 import { useResizablePane } from "../../hooks/useResizablePane";
 import { useTestSession } from "../../hooks/useTestSession";
-import { generateId } from "../../utils/highlightUtils";
+import { generateId, injectKeywordsToHTML } from "../../utils/highlightUtils";
 import VocabularyCanvas from "../ReviewInterface/VocabularyCanvas";
 
 // --- HIGHLIGHT PERSISTENCE HELPERS ---
@@ -39,7 +39,8 @@ export default function ReadingInterface({
   testId,
   testName,
   onSaveAllWords,
-  isSavingWB
+  isSavingWB,
+  keywordTable = []
 }) {
   // --- 1. SESSION HOOK ---
   const {
@@ -146,6 +147,14 @@ export default function ReadingInterface({
   // Oldin faqat "reading_passage_0" edi, endi "reading_session_testID_passage_0"
   const currentStorageKey = `reading_session_${testData.id}_passage_${activePassage}`;
 
+  // 🔑 KEYWORD HIGHLIGHT: useMemo bilan passage contentni boyatamiz
+  // isReviewMode bo'lmasa — original kontent qaytariladi (performance)
+  const currentPassageRaw = testData.passages?.[activePassage];
+  const highlightedPassageContent = useMemo(() => {
+    if (!isReviewMode || !keywordTable?.length) return currentPassageRaw?.content;
+    return injectKeywordsToHTML(currentPassageRaw?.content, keywordTable, false);
+  }, [currentPassageRaw?.content, keywordTable, isReviewMode]);
+
   if (!testData) return <div className="p-10">Loading Test Data...</div>;
 
   return (
@@ -181,8 +190,6 @@ export default function ReadingInterface({
           style={{ width: `${leftWidth}%` }}
         >
           {(() => {
-            const currentPassage = testData.passages[activePassage];
-
             return (
               <ReadingLeftPane
                 // 🔥 O'ZGARISH 2: KEY qo'shildi!
@@ -191,8 +198,8 @@ export default function ReadingInterface({
 
                 // 🔥 TUZATISH: Regex shart emas, indeksga 1 ni qo'shamiz (0+1=1, 1+1=2)
                 passageLabel={`READING PASSAGE ${activePassage + 1}`}
-                title={currentPassage?.title || ""}
-                content={currentPassage?.content || ""}
+                title={currentPassageRaw?.title || ""}
+                content={highlightedPassageContent || ""}
                 textSize={textSize}
                 highlightedId={highlightedLoc}
                 storageKey={currentStorageKey}
@@ -227,6 +234,7 @@ export default function ReadingInterface({
             onRemoveHighlight={removeHighlight}
             onAddToWordBank={onAddToWordBank}
             testId={testId}
+            keywordTable={keywordTable}
           />
         </div>
       </div>

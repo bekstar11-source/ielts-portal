@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useCallback } from "react";
 import HighlightableText from './HighlightableText';
 import HighlightMenu from './HighlightMenu';
-import { getSelectionOffsets } from '../../utils/highlightUtils';
+import { getSelectionOffsets, injectKeywordsToHTML } from '../../utils/highlightUtils';
 const ReadingRightPane = memo(({
     testData,
     activePassage,
@@ -20,7 +20,8 @@ const ReadingRightPane = memo(({
     testId,
     testName,
     onSaveAllWords,
-    isSavingWB
+    isSavingWB,
+    keywordTable = []
 }) => {
     // 1. Ichki Ref (Menyu ishlashi uchun kafolat)
     const internalRef = useRef(null);
@@ -217,12 +218,16 @@ const ReadingRightPane = memo(({
             if (!cleanPart.trim()) return null;
 
             const partId = `p-${activePassage}-q-${q.id}-part-${i}`;
+            // Review rejimida item text ichiga questionWord inject qilamiz (q.id bo'yicha filter)
+            const injectedPart = (isReviewMode && keywordTable?.length)
+                ? injectKeywordsToHTML(cleanPart, keywordTable, true, q.id)
+                : cleanPart;
 
             return (
                 <HighlightableText
                     key={i}
                     id={partId}
-                    content={cleanPart}
+                    content={injectedPart}
                     highlights={highlights ? highlights[partId] || [] : []}
                     onTextSelect={handlePartSelect}
                     onHighlightRemove={onRemoveHighlight}
@@ -299,7 +304,9 @@ const ReadingRightPane = memo(({
                             </div>
                             <HighlightableText
                                 id={partId}
-                                content={rawText}
+                                content={isReviewMode && keywordTable?.length
+                                    ? injectKeywordsToHTML(rawText, keywordTable, true, null)
+                                    : rawText}
                                 highlights={highlights ? highlights[partId] || [] : []}
                                 onTextSelect={handlePartSelect}
                                 onHighlightRemove={onRemoveHighlight}
@@ -414,7 +421,14 @@ const ReadingRightPane = memo(({
 
                         return (
                             <div key={gIdx} className="mb-8 pb-8 border-b border-gray-200 border-dashed last:border-0">
-                                <div className="bg-white border border-gray-200 p-4 mb-5 rounded-lg text-sm font-semibold text-gray-700 shadow-sm" dangerouslySetInnerHTML={{ __html: group.instruction }} />
+                                <div
+                                    className="bg-white border border-gray-200 p-4 mb-5 rounded-lg text-sm font-semibold text-gray-700 shadow-sm"
+                                    dangerouslySetInnerHTML={{
+                                        __html: isReviewMode && keywordTable?.length
+                                            ? injectKeywordsToHTML(group.instruction, keywordTable, true)
+                                            : group.instruction
+                                    }}
+                                />
 
                                 {showStaticOptions && (
                                     <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
@@ -423,11 +437,16 @@ const ReadingRightPane = memo(({
                                             {group.options.map((opt, idx) => {
                                                 const optText = typeof opt === 'object' ? opt.text : opt;
                                                 const staticOptId = `p-${activePassage}-g-${gIdx}-static-opt-${idx}`;
+                                                // Review rejimida options textiga questionWord inject qilamiz
+                                                // Static options uchun questionId yo'q — barcha questionWordlar qidiriladi
+                                                const injectedOptText = (isReviewMode && keywordTable?.length)
+                                                    ? injectKeywordsToHTML(optText, keywordTable, true, null)
+                                                    : optText;
                                                 return (
                                                     <HighlightableText
                                                         key={idx}
                                                         id={staticOptId}
-                                                        content={optText}
+                                                        content={injectedOptText}
                                                         highlights={highlights ? highlights[staticOptId] || [] : []}
                                                         onTextSelect={handlePartSelect}
                                                         onHighlightRemove={onRemoveHighlight}
@@ -494,7 +513,8 @@ const ReadingRightPane = memo(({
     prev.activePassage === next.activePassage &&
     prev.isReviewMode === next.isReviewMode &&
     prev.highlights === next.highlights &&
-    prev.pendingPassageWord === next.pendingPassageWord
+    prev.pendingPassageWord === next.pendingPassageWord &&
+    prev.keywordTable === next.keywordTable
 );
 
 export default ReadingRightPane;

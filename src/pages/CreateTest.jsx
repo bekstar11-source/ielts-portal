@@ -58,7 +58,8 @@ export default function CreateTest() {
                             title: data.title,
                             introDuration: data.introDuration,
                             passages: data.passages?.map(p => ({ ...p, audio: "" })) || [],
-                            questions: data.questions || []
+                            questions: data.questions || [],
+                            keywordTable: data.keywordTable || []
                         }, null, 2));
 
                         const audioMap = {};
@@ -88,7 +89,8 @@ export default function CreateTest() {
                 audio_url: parsed.audio || prev.audio_url,
                 introDuration: parsed.introDuration || prev.introDuration,
                 passages: updatedPassages,
-                questions: parsed.questions || prev.questions
+                questions: parsed.questions || prev.questions,
+                keywordTable: parsed.keywordTable || prev.keywordTable || []
             }));
             setJsonError("");
         } catch (err) { setJsonError("JSON Xato: " + err.message); }
@@ -246,6 +248,7 @@ export default function CreateTest() {
             const payload = {
                 ...testData,
                 questions: processedQuestions,
+                keywordTable: testData.keywordTable || [],
                 introDuration: Number(testData.introDuration),
                 isExclusive: isMockMode,
                 updatedAt: new Date().toISOString()

@@ -20,7 +20,7 @@ export const applyHighlightsToText = (htmlContent, highlights = []) => {
     // 3. Har bir highlight uchun ishlaymiz
     sortedHighlights.forEach(({ id, start, end, color }) => {
         const range = document.createRange();
-        
+
         // Start va End nuqtalarini DOM Node'lar ichidan topamiz
         const startNodeInfo = findTextNodeAtOffset(wrapper, start);
         const endNodeInfo = findTextNodeAtOffset(wrapper, end);
@@ -73,7 +73,7 @@ const findTextNodeAtOffset = (root, globalOffset) => {
 
     while ((node = walker.nextNode())) {
         const nodeLength = node.textContent.length;
-        
+
         // Agar qidirilayotgan offset shu node ichida bo'lsa
         if (currentOffset + nodeLength >= globalOffset) {
             return {
@@ -91,17 +91,64 @@ const findTextNodeAtOffset = (root, globalOffset) => {
  */
 export const getSelectionOffsets = (selection, containerNode) => {
     if (selection.rangeCount === 0) return { start: 0, end: 0, text: '' };
-    
+
     const range = selection.getRangeAt(0);
     const preSelectionRange = range.cloneRange();
-    
+
     // Konteyner boshidan kursorgacha bo'lgan qismini belgilaymiz
     preSelectionRange.selectNodeContents(containerNode);
     preSelectionRange.setEnd(range.startContainer, range.startOffset);
-    
+
     // Va uning uzunligini o'lchaymiz
     const start = preSelectionRange.toString().length;
     const end = start + range.toString().length;
 
     return { start, end, text: range.toString() };
+};
+
+/**
+ * HTML string ichiga keywordTable asosida <mark> teglarini joylaydi.
+ * Faqat Review rejimida chaqiriladi.
+ *
+ * @param {string} htmlContent  - Original HTML string
+ * @param {Array}  keywordTable - [{ id, locationId, passageWord, questionWord, questionId }]
+ * @param {boolean} isQuestion  - true = questionWord, false = passageWord
+ * @param {string|null} questionId - (isQuestion=true paytida) faqat shu savolga oid so'zlarni ol
+ * @returns {string} - O'zgartirilgan HTML string
+ */
+export const injectKeywordsToHTML = (htmlContent, keywordTable, isQuestion = false, questionId = null) => {
+    if (!htmlContent || !keywordTable?.length) return htmlContent;
+
+    let result = htmlContent;
+
+    // Question rejimida: questionId berilsa faqat shu savolga tegishli keywordlarni olish
+    const activeKeywords = (isQuestion && questionId !== null)
+        ? keywordTable.filter(k => String(k.questionId) === String(questionId))
+        : keywordTable;
+
+    activeKeywords.forEach(({ id, locationId, passageWord, questionWord }) => {
+        const word = isQuestion ? questionWord : passageWord;
+        if (!word) return;
+
+        const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const wordRe = new RegExp(`(?<![\\w])(${escapedWord})(?![\\w])`, 'gi');
+        const markFn = (matched) =>
+            `<mark class="keyword-highlight" data-keyword-id="${id}"><span class="kw-badge">${id}</span>${matched}</mark>`;
+
+        if (!isQuestion && locationId) {
+            // PASSAGE rejimi: faqat loc_X span ichidan qidiradi
+            const locRe = new RegExp(
+                `(<span\\s[^>]*id=["']${locationId}["'][^>]*>)([\\s\\S]*?)(</span>)`,
+                'i'
+            );
+            result = result.replace(locRe, (_, open, inner, close) =>
+                open + inner.replace(wordRe, markFn) + close
+            );
+        } else if (isQuestion) {
+            // QUESTION rejimi: locationId shart emas, butun text ichidan qidiradi
+            result = result.replace(wordRe, markFn);
+        }
+    });
+
+    return result;
 };
