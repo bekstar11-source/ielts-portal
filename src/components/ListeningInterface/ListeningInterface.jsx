@@ -24,7 +24,8 @@ export default function ListeningInterface({
   setActivePart,    // State setter lifted to TestSolving
   playingPartIndex,
   isPlaying,
-  onPlayPartAudio
+  onPlayPartAudio,
+  onIntroEnd        // <-- Exam modeda intro tugagach audio play triggerini yuboradi
 }) {
   // --- 1. RESIZE & SELECTION HOOKS ---
   // Listeningda chap taraf (matn) odatda kichikroq bo'ladi (default 40%)
@@ -194,6 +195,7 @@ export default function ListeningInterface({
             hasStarted={hasStarted}
             audioCurrentTime={audioCurrentTime}
             handleLocationClick={handleLocationClick} // Review funksiyasi
+            onIntroEnd={onIntroEnd}
           />
         </div>
       </div>

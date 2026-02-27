@@ -1,5 +1,5 @@
 // src/components/TestSolving/TestHeader.jsx
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { formatTime } from '../../utils/ieltsScoring';
 
 const TestHeader = ({
@@ -13,9 +13,24 @@ const TestHeader = ({
     showResult,
     showModeSelection,
     activePart,
-    setAudioTime
+    setActivePart,
+    setAudioTime,
+    triggerPlay,          // <-- exam mode: intro tugagach shu o'zgarsa audio play bo'ladi
+    onPartChange          // <-- optional: Part o'zgarganda xabar berish
 }) => {
     const isListening = test?.type?.toLowerCase() === 'listening';
+    const hasTriggered = useRef(false); // bir marta ishga tushirish uchun
+
+    // --- EXAM MODE AUTO PLAY ---
+    // triggerPlay true bo'lganda 0-partni avtomatik play qiladi
+    useEffect(() => {
+        if (!triggerPlay || testMode !== 'exam' || hasTriggered.current) return;
+        hasTriggered.current = true;
+        const audio = document.getElementById(`audio-part-0`);
+        if (audio) {
+            audio.play().catch(err => console.warn('Auto-play blocked:', err));
+        }
+    }, [triggerPlay, testMode]);
 
     return (
         <header className="h-16 bg-white/95 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-50 transition-all relative">
@@ -29,7 +44,7 @@ const TestHeader = ({
                 </div>
             </div>
 
-            {/* PLAYER MARKAZI */}
+            {/* AUDIO PLAYER — har bir Part uchun bitta audio element */}
             {isListening && !showModeSelection && !showResult && (
                 <div className={`absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md flex justify-center z-[100] ${testMode === 'exam' ? 'pointer-events-none select-none' : 'pointer-events-auto'}`}>
                     {test?.passages?.map((passage, index) => {
@@ -39,13 +54,34 @@ const TestHeader = ({
 
                         return (
                             <audio
+                                id={`audio-part-${index}`}
                                 key={index}
                                 controls
                                 controlsList="nodownload"
                                 src={src}
+                                preload="auto"
                                 style={{ display: isVisible ? 'block' : 'none' }}
                                 onTimeUpdate={(e) => isVisible && setAudioTime(e.target.currentTime)}
-                                onPause={(e) => { if (testMode === 'exam' && !e.target.ended) e.target.play() }}
+                                onPause={(e) => {
+                                    // Exam modeda foydalanuvchi pauzaga bosa olmaydi
+                                    if (testMode === 'exam' && !e.target.ended) {
+                                        e.target.play();
+                                    }
+                                }}
+                                onEnded={() => {
+                                    // Oxirgi Part emas — keyingisiga o'tib avtomatik play
+                                    if (test?.passages?.length && index < test.passages.length - 1) {
+                                        const nextIdx = index + 1;
+                                        setActivePart(nextIdx);
+                                        if (onPartChange) onPartChange(nextIdx);
+                                        setTimeout(() => {
+                                            const nextAudio = document.getElementById(`audio-part-${nextIdx}`);
+                                            if (nextAudio) {
+                                                nextAudio.play().catch(err => console.error('Auto-play next part err:', err));
+                                            }
+                                        }, 150);
+                                    }
+                                }}
                                 className="h-10 w-full shadow-md rounded-full bg-gray-50 border border-gray-200"
                             />
                         );

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import ReadingInterface from "../components/ReadingInterface/ReadingInterface";
 import ListeningInterface from "../components/ListeningInterface/ListeningInterface";
 import WritingInterface from "../components/WritingInterface/WritingInterface";
@@ -16,6 +16,9 @@ export default function TestSolving() {
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate
     } = useTestLogic();
+
+    // Exam modeda intro countdown tugagach audio play bo'lishi uchun trigger
+    const [triggerPlay, setTriggerPlay] = useState(false);
 
     if (loading) return <div className="flex h-screen items-center justify-center font-bold text-xl text-gray-500">Test yuklanmoqda...</div>;
     if (!test) return <div className="flex h-screen items-center justify-center font-bold text-red-500">Test topilmadi.</div>;
@@ -39,7 +42,9 @@ export default function TestSolving() {
                 showResult={showResult}
                 showModeSelection={showModeSelection}
                 activePart={activePart}
+                setActivePart={setActivePart}
                 setAudioTime={setAudioTime}
+                triggerPlay={triggerPlay}
             />
 
             {/* CONTENT AREA */}
@@ -51,6 +56,7 @@ export default function TestSolving() {
                     setTestMode={setTestMode}
                     setTimeLeft={setTimeLeft}
                     setShowModeSelection={setShowModeSelection}
+                    test={test}
                 />
 
                 <ResultModal
@@ -94,6 +100,7 @@ export default function TestSolving() {
                                 activePart={activePart}
                                 setActivePart={setActivePart}
                                 audioCurrentTime={audioTime}
+                                onIntroEnd={() => setTriggerPlay(true)}
                             />
                         </div>
                     ) : isWriting ? (

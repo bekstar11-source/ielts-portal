@@ -11,7 +11,8 @@ const ListeningRightPane = memo(({
     isReviewMode,
     textSize = "text-base",
     handleLocationClick,
-    testMode
+    testMode,
+    onIntroEnd      // <-- intro tugagach audio play triggerini yuboradi
 }) => {
     // --- HIGHLIGHT HOOK (localStorage da saqlanadi — part o'zgarganda yo'qolmaydi) ---
     const {
@@ -23,19 +24,31 @@ const ListeningRightPane = memo(({
 
     // --- INTRO BLUR LOGIC ---
     const [introTimeLeft, setIntroTimeLeft] = React.useState(0);
+    const introEndFiredRef = React.useRef(false); // bir marta ishga tushirish
 
     React.useEffect(() => {
         if (isReviewMode || testMode === 'practice') return;
+        introEndFiredRef.current = false; // reset when test starts
         const duration = Number(testData.introDuration) || 10;
         setIntroTimeLeft(duration);
+
+        // Countdown boshlanishi bilan audio ham boshlansin
+        if (!introEndFiredRef.current && onIntroEnd) {
+            introEndFiredRef.current = true;
+            setTimeout(() => onIntroEnd(), 100);
+        }
+
         const timer = setInterval(() => {
             setIntroTimeLeft((prev) => {
-                if (prev <= 1) { clearInterval(timer); return 0; }
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
                 return prev - 1;
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [testData.introDuration, isReviewMode, testMode]);
+    }, [testData.introDuration, isReviewMode, testMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Guard Clause
     if (!testData?.questions || !testData?.passages) {
