@@ -8,8 +8,8 @@ export const HighlighterIcon = ({ active }) => (
 );
 
 export const QuestionBadge = ({ id, isReviewMode, onClick }) => (
-    <span 
-        className={`min-w-[24px] h-[24px] flex items-center justify-center rounded bg-white border border-gray-400 text-[11px] font-bold text-gray-700 shrink-0 shadow-sm select-none mr-2 
+    <span
+        className={`min-w-[30px] h-[30px] flex items-center justify-center rounded bg-white border border-gray-400 text-[13px] font-bold text-gray-700 shrink-0 shadow-sm select-none mr-1 
         ${isReviewMode ? 'cursor-pointer hover:border-blue-600 hover:text-blue-600' : ''}`}
         onClick={onClick}
     >
@@ -27,10 +27,10 @@ export const SelectInput = ({ value, onChange, options, isReviewMode, isCorrect,
     const styles = getStatusStyles(isReviewMode, isCorrect, false, 'input');
     return (
         <div className="relative shrink-0 ml-auto sm:ml-0">
-            <select 
-                value={value} 
-                disabled={isReviewMode} 
-                onChange={onChange} 
+            <select
+                value={value}
+                disabled={isReviewMode}
+                onChange={onChange}
                 className={`h-[30px] ${width} pl-2 pr-6 border rounded text-sm font-bold appearance-none cursor-pointer transition-all shadow-sm focus:outline-none ${styles}`}
             >
                 <option value="">...</option>
@@ -39,7 +39,7 @@ export const SelectInput = ({ value, onChange, options, isReviewMode, isCorrect,
                 ))}
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
-                <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
             </div>
             {isReviewMode && !isCorrect && <CorrectAnswerTooltip answer={correctAnswer} />}
         </div>
@@ -55,10 +55,10 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
     return (
         <span className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative group/input">
             <QuestionBadge id={id} isReviewMode={isReviewMode} onClick={() => isReviewMode && locationId && handleLocationClick(locationId)} />
-            <input 
+            <input
                 className={`w-[130px] h-[30px] border rounded px-2 text-center font-semibold text-sm focus:outline-none transition-all placeholder-transparent shadow-sm ${styles}`}
-                value={val} 
-                onChange={(e) => onAnswerChange(id, e.target.value)} 
+                value={val}
+                onChange={(e) => onAnswerChange(id, e.target.value)}
                 disabled={isReviewMode}
                 autoComplete="off"
             />

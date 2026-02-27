@@ -20,7 +20,7 @@ const ListeningRightPane = memo(({
         isHighlighterActive,
         setIsHighlighterActive,
         handleTextSelection,
-    } = useListeningHighlight(testData?.id, activePart);
+    } = useListeningHighlight(testData?.id, activePart, userAnswers);
 
     // --- INTRO BLUR LOGIC ---
     const [introTimeLeft, setIntroTimeLeft] = React.useState(0);
@@ -105,7 +105,11 @@ const ListeningRightPane = memo(({
     return (
         <div
             ref={containerRef}
-            className={`p-6 pb-5 bg-white ${textSize} select-text w-full relative`}
+            className={`p-6 pb-5 bg-white select-text w-full relative`}
+            style={{
+                fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-xl' ? '20px' : '16px',
+                transition: 'font-size 0.3s ease-in-out'
+            }}
             onMouseUp={handleTextSelection}
         >
             {/* INTRO BLUR */}
@@ -143,9 +147,13 @@ const ListeningRightPane = memo(({
                 const lastId = allItems.length > 0 ? allItems[allItems.length - 1].id : (group.id != null ? group.id : null);
                 let questionRange = (firstId && lastId && String(firstId) !== String(lastId)) ? `Questions ${firstId}–${lastId}` : (firstId ? `Question ${firstId}` : "");
 
-                // Hide question range for single multiple choice questions to avoid redundancy ("Question 22" -> badge [22] is enough)
-                const isMCQ = !['map_labeling', 'matching', 'selection', 'pick_two', 'multi_choice_box', 'multiple_choice_multiple_answer', 'table_completion', 'note_completion', 'gap_fill', 'flow_chart'].includes(group.type);
-                if (isMCQ && String(firstId) === String(lastId)) {
+                // MCQ savollarda badge allaqachon raqamni ko'rsatadi — questionRange ortiqcha
+                // Non-MCQ typelar ro'yxatiga KIRMAGANLAR = MCQ
+                const NON_MCQ_TYPES = ['map_labeling', 'matching', 'selection', 'pick_two', 'multi_choice_box', 'multiple_choice_multiple_answer', 'table_completion', 'note_completion', 'gap_fill', 'flow_chart'];
+                const isMCQ = !NON_MCQ_TYPES.includes(group.type);
+                // Flat MCQ (group.id bor, ichida questions/items yo'q) yoki bitta savollik MCQ — range ko'rsatma
+                const isFlatMCQ = isMCQ && !Array.isArray(group.questions) && !Array.isArray(group.items) && group.id != null;
+                if (isMCQ && (isFlatMCQ || String(firstId) === String(lastId))) {
                     questionRange = "";
                 }
 

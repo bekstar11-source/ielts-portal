@@ -122,7 +122,7 @@ const ReadingRightPane = memo(({
         }
 
         const inlineNumberClass = `
-            inline-flex min-w-[24px] w-fit px-1 h-[24px] items-center justify-center rounded bg-white border border-gray-400 text-[10px] font-bold text-gray-700 mr-1 align-middle select-none shadow-sm transition-colors
+            inline-flex min-w-[24px] w-fit px-1 h-[24px] items-center justify-center rounded bg-white border border-gray-400 text-[15px] font-bold text-gray-700 mr-1 align-middle select-none shadow-sm transition-colors
             ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}
         `;
 
@@ -142,7 +142,7 @@ const ReadingRightPane = memo(({
                     autoComplete="off"
                 />
                 {isReviewMode && !isCorrect && (
-                    <span className="ml-1 text-[10px] font-bold text-green-600 bg-green-100 px-1 py-0.5 rounded border border-green-200 whitespace-nowrap">
+                    <span className="ml-1 text-[px] font-bold text-green-600 bg-green-100 px-1 py-0.5 rounded border border-green-200 whitespace-nowrap">
                         ✓ {answer}
                     </span>
                 )}
@@ -153,7 +153,7 @@ const ReadingRightPane = memo(({
     // --- RENDER PARTS ---
     const renderParts = (parts, q, val, isInlineQuestion, isSummary, itemOptions, isMatching, isReviewMode, onAnswerChange, group) => {
         const inlineNumberClass = `
-            inline-flex min-w-[26px] w-fit px-1 h-[26px] items-center justify-center rounded bg-white border border-gray-400 text-xs font-bold text-gray-700 mr-2 align-middle select-none shadow-sm transition-colors
+            inline-flex min-w-[26px] w-fit px-1 h-[26px] items-center justify-center rounded bg-white border border-gray-400 text-[15px] font-bold text-gray-700 mr-2 align-middle select-none shadow-sm transition-colors
             ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}
         `;
 
@@ -278,7 +278,7 @@ const ReadingRightPane = memo(({
 
                     return (
                         <label key={key} className={`flex items-center gap-3 cursor-pointer p-1.5 rounded-lg border transition-all ${containerClass}`}>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 shadow-sm border select-none ${badgeClass}`}>{letters[idx] || letters[0]}</div>
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[15px] font-bold shrink-0 shadow-sm border select-none ${badgeClass}`}>{letters[idx] || letters[0]}</div>
                             <div className="relative flex items-center justify-center shrink-0 select-none">
                                 <input
                                     type={isMultiSelect ? "checkbox" : "radio"}
@@ -311,7 +311,7 @@ const ReadingRightPane = memo(({
                                 onTextSelect={handlePartSelect}
                                 onHighlightRemove={onRemoveHighlight}
                                 isReviewMode={isReviewMode}
-                                className="text-sm text-gray-700 font-medium leading-relaxed grow select-text"
+                                className="text-gray-700 font-medium leading-relaxed grow select-text"
                             />
                         </label>
                     );
@@ -325,7 +325,7 @@ const ReadingRightPane = memo(({
         const rows = group.rows || group.items || [];
         return (
             <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
-                <table className="w-full text-sm text-left border-collapse">
+                <table className="w-full text-left border-collapse">
                     <tbody>
                         {rows.map((row, rIdx) => (
                             <tr key={rIdx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50/50">
@@ -362,7 +362,11 @@ const ReadingRightPane = memo(({
     // 3. REF ULANDI (setRefs orqali)
     return (
         <div
-            className={`h-full overflow-y-auto p-6 pb-20 box-border relative select-text bg-white ${textSize}`}
+            className={`h-full overflow-y-auto p-6 pb-20 box-border relative select-text bg-white`}
+            style={{
+                fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',
+                transition: 'font-size 0.3s ease-in-out'
+            }}
             ref={setRefs} // 🔥 Dual Ref
         >
             <HighlightMenu
@@ -422,7 +426,7 @@ const ReadingRightPane = memo(({
                         return (
                             <div key={gIdx} className="mb-8 pb-8 border-b border-gray-200 border-dashed last:border-0">
                                 {(!gIdx || (gIdx > 0 && String(filteredQuestions[gIdx - 1].instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase() !== String(group.instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase())) && group.instruction && (
-                                    <div className="bg-white border border-gray-200 p-4 mb-5 rounded-lg text-sm font-semibold text-gray-700 shadow-sm" dangerouslySetInnerHTML={{ __html: group.instruction }} />
+                                    <div className="bg-white border border-gray-200 p-4 mb-5 rounded-lg font-semibold text-gray-700 shadow-sm" dangerouslySetInnerHTML={{ __html: group.instruction }} />
                                 )}
 
                                 {showStaticOptions && (
@@ -446,7 +450,7 @@ const ReadingRightPane = memo(({
                                                         onTextSelect={handlePartSelect}
                                                         onHighlightRemove={onRemoveHighlight}
                                                         isReviewMode={isReviewMode}
-                                                        className="text-sm text-gray-700 py-1 px-2 rounded hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors select-text"
+                                                        className="text-gray-700 py-1 px-2 rounded hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors select-text"
                                                     />
                                                 );
                                             })}
@@ -475,7 +479,7 @@ const ReadingRightPane = memo(({
                                                 <div key={q.id} id={`q-${q.id}`} className={`group/item relative ${containerClass}`}>
                                                     {!isInlineQuestion && !isSummary && !isFlowChart && (
                                                         <div className="flex gap-3 items-start">
-                                                            <div className={`min-w-[26px] w-fit px-1 h-[26px] flex items-center justify-center rounded bg-white border border-gray-400 text-xs font-bold text-gray-700 shrink-0 shadow-sm unselectable transition-colors mt-0.5 ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}`} onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}>{q.id}</div>
+                                                            <div className={`min-w-[26px] w-fit px-1 h-[26px] flex items-center justify-center rounded bg-white border border-gray-400 text-[15px] font-bold text-gray-700 shrink-0 shadow-sm unselectable transition-colors mt-0.5 ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}`} onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}>{q.id}</div>
                                                             <div className="flex-1">
                                                                 {renderParts(q.text.split(/(\[INPUT\]|\[DROP\])/g), q, userAnswers[q.id] || "", isInlineQuestion, isSummary, itemOptions, isMatching, isReviewMode, onAnswerChange, group)}
                                                                 {isChoiceType && !isMatching && renderChoices(itemOptions, q, userAnswers[q.id] || "", isMultiSelect, isReviewMode, onAnswerChange, group)}

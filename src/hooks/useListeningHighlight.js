@@ -74,11 +74,24 @@ function restoreHighlight(serialized, container) {
     }
 }
 
+/** Containerdan barcha listening-hl spanlarni DOM dan olib tashlaydi (span contentni saqlab) */
+function clearHighlightSpans(container) {
+    const spans = Array.from(container.querySelectorAll(".listening-hl"));
+    spans.forEach((span) => {
+        const parent = span.parentNode;
+        if (!parent) return;
+        parent.replaceChild(document.createTextNode(span.textContent), span);
+        parent.normalize();
+    });
+}
+
 // ─── HOOK ─────────────────────────────────────────────────────────────────────
 
-export function useListeningHighlight(testId, activePart) {
+export function useListeningHighlight(testId, activePart, userAnswers) {
     const [isHighlighterActive, setIsHighlighterActive] = useState(false);
     const containerRef = useRef(null);
+    // Restore guard: bir restore tugamay turib ikkinchisi boshlanmasin
+    const isRestoringRef = useRef(false);
 
     const storageKey = `${STORAGE_PREFIX}${testId ?? "test"}_p${activePart}`;
 
@@ -111,20 +124,38 @@ export function useListeningHighlight(testId, activePart) {
         save(list);
     }, [save]);
 
+    // Highlightlarni DOM ga qayta qo'llash (umumiy util)
+    const applyStoredHighlights = useCallback(() => {
+        const container = containerRef.current;
+        if (!container || isRestoringRef.current) return;
+        const saved = load();
+        if (saved.length === 0) return;
+        isRestoringRef.current = true;
+        // Avval mavjud spanlarni tozalash (double-wrap oldini olish)
+        clearHighlightSpans(container);
+        saved.forEach((s) => restoreHighlight(s, container));
+        isRestoringRef.current = false;
+    }, [load]);
+
     // Part o'zgarganda saqlangan highlightlarni DOM ga qayta qo'llash
     useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        // DOM yangi part bilan render bo'lishini kutamiz
         const timer = setTimeout(() => {
-            const saved = load();
-            if (saved.length === 0) return;
-            saved.forEach((s) => restoreHighlight(s, container));
+            applyStoredHighlights();
         }, 180);          // 180ms — React render + layout uchun yetarli
-
         return () => clearTimeout(timer);
-    }, [activePart, load]);   // activePart o'zgarganda qayta chaqiriladi
+    }, [activePart, applyStoredHighlights]);
+
+    // userAnswers o'zgarganda (input/select trigger) highlight lar qayta restore qilinadi
+    useEffect(() => {
+        // Faqat highlight bor bo'lsa restore qilish kerak
+        const saved = load();
+        if (saved.length === 0) return;
+        // React DOM ni yangilagandan keyin restore
+        const timer = setTimeout(() => {
+            applyStoredHighlights();
+        }, 50);
+        return () => clearTimeout(timer);
+    }, [userAnswers, applyStoredHighlights, load]);
 
     // Mouse up — highlight qo'shish yoki olib tashlash
     const handleTextSelection = useCallback((e) => {

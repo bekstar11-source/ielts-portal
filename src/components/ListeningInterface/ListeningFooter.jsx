@@ -1,10 +1,10 @@
 import React from "react";
 
-export default function ListeningFooter({ 
-    testData, 
-    activePart, 
-    setActivePart, 
-    userAnswers, 
+export default function ListeningFooter({
+    testData,
+    activePart,
+    setActivePart,
+    userAnswers,
     scrollToQuestionDiv,
     playingPartIndex,
     isPlaying
@@ -16,7 +16,9 @@ export default function ListeningFooter({
         let questions = [];
         if (group.questions && Array.isArray(group.questions)) questions.push(...group.questions);
         else if (group.items && Array.isArray(group.items)) questions.push(...group.items);
-        
+        // Flat MCQ: group.id bor, lekin questions/items array yo'q — group o'zi bitta savol
+        else if (group.id != null && !group.groups && !group.rows) questions.push(group);
+
         if (group.groups && Array.isArray(group.groups)) {
             group.groups.forEach(subGroup => {
                 if (subGroup.items) questions.push(...subGroup.items);
@@ -27,8 +29,8 @@ export default function ListeningFooter({
             group.rows.forEach(row => {
                 let cellsToIterate = Array.isArray(row) ? row : (row.cells || []);
                 cellsToIterate.forEach(cell => {
-                    if (cell.id) questions.push(cell); 
-                    if (cell.isMixed && cell.parts) { 
+                    if (cell.id) questions.push(cell);
+                    if (cell.isMixed && cell.parts) {
                         cell.parts.forEach(part => { if (part.type === 'input') questions.push(part); });
                     }
                 });
@@ -39,29 +41,29 @@ export default function ListeningFooter({
 
     return (
         <div className="h-full w-full flex bg-white z-[2000]">
-            
+
             {/* 1. SCROLLABLE PARTS (Chap tomon - egiluvchan) */}
             <div className="flex-1 h-full overflow-x-auto hide-scrollbar flex">
                 {testData.passages.map((passage, idx) => {
                     const isActive = activePart === idx;
                     const isAudioPlaying = playingPartIndex === idx && isPlaying;
-                    
-                    const partGroups = testData.questions 
-                        ? testData.questions.filter(g => String(g.passageId) === String(passage.id)) 
+
+                    const partGroups = testData.questions
+                        ? testData.questions.filter(g => String(g.passageId) === String(passage.id))
                         : [];
 
                     const partQuestions = partGroups
                         .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
                         .filter(q => q.id !== undefined && q.id !== null)
-                        .filter((q, index, self) => 
+                        .filter((q, index, self) =>
                             index === self.findIndex((t) => String(t.id) === String(q.id))
                         );
 
                     const qCount = partQuestions.length;
 
                     return (
-                        <div 
-                            key={passage.id || idx} 
+                        <div
+                            key={passage.id || idx}
                             onClick={() => setActivePart(idx)}
                             className={`
                                 h-full flex items-center px-2 cursor-pointer border-r border-gray-200 
@@ -78,7 +80,7 @@ export default function ListeningFooter({
                                 <span className={`font-bold text-xs ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                                     Part {idx + 1}
                                 </span>
-                                
+
                                 {/* PLAYING INDICATOR */}
                                 {isAudioPlaying && (
                                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-sm"></div>
@@ -90,20 +92,20 @@ export default function ListeningFooter({
                                 <div className="flex gap-1 h-full items-center overflow-x-auto px-0 hide-scrollbar w-full flex-nowrap whitespace-nowrap">
                                     {partQuestions.map(q => {
                                         const isAnswered = userAnswers[q.id] && String(userAnswers[q.id]).trim() !== "";
-                                        
+
                                         return (
-                                            <button 
-                                                key={q.id} 
-                                                onClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    scrollToQuestionDiv(q.id); 
+                                            <button
+                                                key={q.id}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    scrollToQuestionDiv(q.id);
                                                 }}
                                                 // 👇 TUGMALAR JUDAYAM IXCHAM (22px)
                                                 className={`
                                                     w-[22px] h-[22px] flex items-center justify-center rounded 
                                                     text-[10px] font-bold shrink-0 transition-all border shadow-sm
-                                                    ${isAnswered 
-                                                        ? 'bg-blue-600 text-white border-blue-600' 
+                                                    ${isAnswered
+                                                        ? 'bg-blue-600 text-white border-blue-600'
                                                         : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-600'
                                                     }
                                                 `}

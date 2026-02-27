@@ -130,7 +130,11 @@ const ReadingLeftPane = memo(({
 
             <div
                 ref={containerRef}
-                className={`p-8 pb-20 h-full overflow-y-auto leading-relaxed text-gray-800 selectable-text relative ${textSize}`}
+                className={`p-8 pb-20 h-full overflow-y-auto leading-relaxed text-gray-800 selectable-text relative`}
+                style={{
+                    fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',
+                    transition: 'font-size 0.3s ease-in-out'
+                }}
                 onMouseUp={handleTextSelection}
             >
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 select-none">
@@ -138,7 +142,7 @@ const ReadingLeftPane = memo(({
                 </div>
 
                 {title && (
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 mt-0 leading-tight">
+                    <h1 className="text-[1.6em] font-bold text-gray-900 mb-6 mt-0 leading-tight">
                         {title}
                     </h1>
                 )}

@@ -37,6 +37,7 @@ export default function TestReview() {
     // --- MOCK REVIEW STATE ---
     const [activeMockPart, setActiveMockPart] = useState('listening'); // listening, reading, writing
     const [currentAnswers, setCurrentAnswers] = useState({}); // Active part answers
+    const [listeningActivePart, setListeningActivePart] = useState(0); // Listening part tab
 
     // Interface uchun dummy funksiyalar (Admin faqat ko'radi, o'zgartirmaydi)
     const [flaggedQuestions] = useState(new Set());
@@ -291,6 +292,7 @@ export default function TestReview() {
                     />
                 ) : testData.type === 'listening' ? (
                     <ListeningInterface
+                        key={testData.id}  // testData o'zgarganda to'liq remount
                         testData={testData}
                         userAnswers={currentAnswers}
                         onAnswerChange={handleNoOp}
@@ -298,6 +300,9 @@ export default function TestReview() {
                         flaggedQuestions={flaggedQuestions}
                         isReviewMode={true}
                         textSize={textSize}
+                        testMode="practice"
+                        activePart={listeningActivePart}
+                        setActivePart={setListeningActivePart}
                     />
                 ) : testData.type === 'writing' ? (
 

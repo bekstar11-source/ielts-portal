@@ -33,7 +33,11 @@ export default function ListeningInterface({
   const { menuPos, handleTextSelection, applyHighlight, clearSelection, addToDictionary } = useTextSelection();
 
   // --- 2. STATE ---
-  // const [activePart, setActivePart] = useState(0); // REMOVED: Managed by parent
+  // activePart parent dan kelishi kerak, lekin fallback uchun ichki state ham saqlaymiz
+  const [_internalActivePart, _setInternalActivePart] = useState(0);
+  const effectiveActivePart = activePart !== undefined ? activePart : _internalActivePart;
+  const effectiveSetActivePart = setActivePart || _setInternalActivePart;
+
   const [highlightedLoc, setHighlightedLoc] = useState(null); // Review paytida bosilganda highlight qilish
   const [isFullScreen, setIsFullScreen] = useState(false); // 🔥 Yangi State
 
@@ -68,7 +72,7 @@ export default function ListeningInterface({
   // --- 3. DATA GUARD ---
   // JSON strukturasi bo'yicha "passages" ishlatamiz
   const passages = testData?.passages || [];
-  const currentPassage = passages[activePart] || {};
+  const currentPassage = passages[effectiveActivePart] || {};
 
   // --- 4. NAVIGATION HANDLERS ---
 
@@ -89,8 +93,8 @@ export default function ListeningInterface({
     );
 
     // 2. Agar boshqa Partda bo'lsa, o'sha Partga o'tamiz
-    if (questionPartIndex !== -1 && questionPartIndex !== activePart) {
-      setActivePart(questionPartIndex);
+    if (questionPartIndex !== -1 && questionPartIndex !== effectiveActivePart) {
+      effectiveSetActivePart(questionPartIndex);
       // State o'zgargandan keyin scroll qilish uchun timeout
       setTimeout(() => scrollToElement(questionId), 100);
     } else {
@@ -159,7 +163,7 @@ export default function ListeningInterface({
               onMouseUp={handleTextSelection}
             >
               <ListeningLeftPane
-                content={passages[activePart]?.content} // Transkript
+                content={passages[effectiveActivePart]?.content} // Transkript
                 textSize={textSize}
                 highlightedId={highlightedLoc}
                 title={currentPassage.title}
@@ -183,7 +187,7 @@ export default function ListeningInterface({
         >
           <ListeningRightPane
             testData={testData}
-            activePart={activePart} // Hozirgi bo'lim indeksi
+            activePart={effectiveActivePart} // Hozirgi bo'lim indeksi
             userAnswers={userAnswers}
             onAnswerChange={onAnswerChange}
             onFlag={onFlag}
@@ -205,8 +209,8 @@ export default function ListeningInterface({
       <div className="absolute bottom-0 left-0 w-full h-[36px] bg-white border-t border-gray-200 z-[50] shadow-sm">
         <ListeningFooter
           testData={testData}
-          activePart={activePart}
-          setActivePart={setActivePart}
+          activePart={effectiveActivePart}
+          setActivePart={effectiveSetActivePart}
           userAnswers={userAnswers}
           isReviewMode={isReviewMode}
           scrollToQuestionDiv={handleScrollToQuestion} // Scroll funksiyasi
