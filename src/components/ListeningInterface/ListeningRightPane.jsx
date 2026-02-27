@@ -128,7 +128,13 @@ const ListeningRightPane = memo(({
                 const allItems = group.questions || group.items || [];
                 const firstId = allItems.length > 0 ? allItems[0].id : (group.id != null ? group.id : null);
                 const lastId = allItems.length > 0 ? allItems[allItems.length - 1].id : (group.id != null ? group.id : null);
-                const questionRange = (firstId && lastId && String(firstId) !== String(lastId)) ? `Questions ${firstId}–${lastId}` : (firstId ? `Question ${firstId}` : "");
+                let questionRange = (firstId && lastId && String(firstId) !== String(lastId)) ? `Questions ${firstId}–${lastId}` : (firstId ? `Question ${firstId}` : "");
+
+                // Hide question range for single multiple choice questions to avoid redundancy ("Question 22" -> badge [22] is enough)
+                const isMCQ = !['map_labeling', 'matching', 'selection', 'pick_two', 'multi_choice_box', 'multiple_choice_multiple_answer', 'table_completion', 'note_completion', 'gap_fill', 'flow_chart'].includes(group.type);
+                if (isMCQ && String(firstId) === String(lastId)) {
+                    questionRange = "";
+                }
 
                 const prevGroup = gIdx > 0 ? questionsForPart[gIdx - 1] : null;
                 const normalizeHTML = (html) => (typeof html === 'string') ? html.replace(/<[^>]*>/g, '').trim().toLowerCase() : '';

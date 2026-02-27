@@ -421,7 +421,9 @@ const ReadingRightPane = memo(({
 
                         return (
                             <div key={gIdx} className="mb-8 pb-8 border-b border-gray-200 border-dashed last:border-0">
-                                <div className="bg-white border border-gray-200 p-4 mb-5 rounded-lg text-sm font-semibold text-gray-700 shadow-sm" dangerouslySetInnerHTML={{ __html: group.instruction }} />
+                                {(!gIdx || (gIdx > 0 && String(filteredQuestions[gIdx - 1].instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase() !== String(group.instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase())) && group.instruction && (
+                                    <div className="bg-white border border-gray-200 p-4 mb-5 rounded-lg text-sm font-semibold text-gray-700 shadow-sm" dangerouslySetInnerHTML={{ __html: group.instruction }} />
+                                )}
 
                                 {showStaticOptions && (
                                     <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
