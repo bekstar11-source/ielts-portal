@@ -4,6 +4,7 @@
 
 /* 1. GLOBAL QOIDALAR (BASE LAYER) */
 @layer base {
+
   /* Body uchun umumiy sozlamalar */
   body {
     @apply bg-ielts-bg text-text-primary font-sans;
@@ -17,6 +18,7 @@
 
 /* 2. YORDAMCHI KLASSLAR (UTILITIES) - ENG MUHIMI SHU YERDA */
 @layer utilities {
+
   /* Foydalanuvchi matnni belgilay oladigan joylar (Passage, Inputlar) */
   .selectable-text {
     -webkit-user-select: text;
@@ -37,30 +39,37 @@
 
 /* 3. KOMPONENTLAR (COMPONENTS) */
 @layer components {
+
   /* --- CUSTOM SCROLLBARS --- */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     @apply bg-gray-100 rounded-lg;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-gray-300 rounded-lg;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400;
   }
+
   /* Firefox */
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #d1d5db #f3f4f6; /* gray-300 gray-100 */
+    scrollbar-color: #d1d5db #f3f4f6;
+    /* gray-300 gray-100 */
   }
 
   /* --- HIDE SCROLLBAR --- */
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -69,8 +78,10 @@
   /* --- HIGHLIGHT STYLES (Sariq marker) --- */
   .highlight-span {
     @apply bg-highlight-yellow cursor-pointer rounded-sm transition-colors duration-200;
-    mix-blend-mode: multiply; /* Matnni yopib qo'ymasligi uchun */
+    mix-blend-mode: multiply;
+    /* Matnni yopib qo'ymasligi uchun */
   }
+
   .highlight-span:hover {
     @apply bg-yellow-300;
   }
@@ -80,21 +91,82 @@
     @apply bg-highlight-green;
     animation: pulse-green 2s infinite;
   }
+
+  /* --- KEYWORD HIGHLIGHT (Review rejimida keywordTable asosida) --- */
+  .keyword-highlight {
+    background-color: rgba(253, 224, 71, 0.4);
+    padding: 0 3px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    display: inline-block;
+    margin-top: 10px;
+    border-bottom: 2px solid #facc15;
+  }
+
+  .keyword-highlight .kw-badge {
+    display: none;
+    /* ::before bilan almashtirildi */
+  }
+
+  /* CSS pseudo-element orqali raqam badge — span parsing muammosi yo'q */
+  .keyword-highlight::before {
+    content: attr(data-keyword-id);
+    position: absolute;
+    top: -13px;
+    left: -7px;
+    width: 18px;
+    height: 18px;
+    background-color: #2563eb;
+    color: #ffffff;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 800;
+    font-style: normal;
+    line-height: 18px;
+    text-align: center;
+    text-indent: 0;
+    letter-spacing: 0;
+    z-index: 10;
+    pointer-events: none;
+    box-sizing: border-box;
+  }
+
+  .keyword-highlight.active-sync {
+    background-color: #4ade80;
+    color: #064e3b;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.75);
+    border-bottom-color: #16a34a;
+    transform: scale(1.04);
+    z-index: 10;
+  }
 }
 
 /* 4. ANIMATIONS */
 @keyframes pulse-green {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
 }
+
 /* Custom utilities for Flashcard 3D flip */
 .perspective-1000 {
   perspective: 1000px;
 }
+
 .preserve-3d {
   transform-style: preserve-3d;
 }
+
 .backface-hidden {
   backface-visibility: hidden;
 }

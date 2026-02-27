@@ -42,12 +42,19 @@ const ReadingLeftPane = memo(({
 
     // --- STORAGE ---
     useEffect(() => {
+        // Review rejimida localStorage ni o'tkazib yuboramiz —
+        // content allaqachon inject qilingan highlight bilan kelgan
+        if (isReviewMode) {
+            setDisplayContent(content);
+            return;
+        }
+
         if (!storageKey) return;
         const saved = localStorage.getItem(storageKey);
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                // 30 kunlik muddat (shart emas, lekin optimizatsiya)
+                // 30 kunlik muddat
                 if (Date.now() - parsed.timestamp < 30 * 24 * 60 * 60 * 1000) {
                     setDisplayContent(parsed.html);
                 }
@@ -58,7 +65,7 @@ const ReadingLeftPane = memo(({
             // Agar saqlangan narsa bo'lmasa, original kontentni qo'yamiz
             setDisplayContent(content);
         }
-    }, [storageKey, content]);
+    }, [storageKey, content, isReviewMode]);
 
     const saveCurrentContent = useCallback(() => {
         if (!containerRef.current || !storageKey) return;

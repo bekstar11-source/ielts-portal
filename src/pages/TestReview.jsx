@@ -7,6 +7,15 @@ import ListeningInterface from '../components/ListeningInterface/ListeningInterf
 import { useAuth } from "../context/AuthContext";
 import { batchAddWordsToBank } from "../utils/wordbankUtils";
 
+// --- MOCK KEYWORD TABLE (real JSON tayyor bo'lgach testData.keywordTable ga almashtiriladi) ---
+// Format: { id: number, locationId: string, passageWord: string, questionWord: string }
+const MOCK_KEYWORD_TABLE = [];
+// Misol (o'chirib qo'ying yoki o'zgartiring real testga moslash uchun):
+// const MOCK_KEYWORD_TABLE = [
+//   { id: 1, locationId: "loc_1", passageWord: "nature", questionWord: "natural" },
+//   { id: 2, locationId: "loc_3", passageWord: "climate", questionWord: "weather" },
+// ];
+
 export default function TestReview() {
     const { id } = useParams(); // Result ID
     const navigate = useNavigate();
@@ -43,6 +52,52 @@ export default function TestReview() {
 
     const handleClearCapture = useCallback(() => {
         setCaptureData(null);
+    }, []);
+
+    // --- KEYWORD HOVER + CLICK SINXRONIZATSIYA (Event Delegation) ---
+    useEffect(() => {
+        // Hover: faqat yashil neon effekti
+        const handleMouseOver = (e) => {
+            const el = e.target.closest('.keyword-highlight');
+            if (!el) return;
+            const kwId = el.getAttribute('data-keyword-id');
+            document.querySelectorAll(`.keyword-highlight[data-keyword-id="${kwId}"]`)
+                .forEach(x => x.classList.add('active-sync'));
+        };
+
+        const handleMouseOut = (e) => {
+            const el = e.target.closest('.keyword-highlight');
+            if (!el) return;
+            const kwId = el.getAttribute('data-keyword-id');
+            document.querySelectorAll(`.keyword-highlight[data-keyword-id="${kwId}"]`)
+                .forEach(x => x.classList.remove('active-sync'));
+        };
+
+        // Click: qarama-qarshi panelga scroll
+        const handleClick = (e) => {
+            const el = e.target.closest('.keyword-highlight');
+            if (!el) return;
+            const kwId = el.getAttribute('data-keyword-id');
+            document.querySelectorAll(`.keyword-highlight[data-keyword-id="${kwId}"]`)
+                .forEach(counterpart => {
+                    if (counterpart !== el) {
+                        counterpart.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                    }
+                });
+        };
+
+        document.addEventListener('mouseover', handleMouseOver);
+        document.addEventListener('mouseout', handleMouseOut);
+        document.addEventListener('click', handleClick);
+        return () => {
+            document.removeEventListener('mouseover', handleMouseOver);
+            document.removeEventListener('mouseout', handleMouseOut);
+            document.removeEventListener('click', handleClick);
+        };
     }, []);
 
     const handleSaveAllWords = useCallback(async (wordPairs) => {
@@ -232,6 +287,7 @@ export default function TestReview() {
                         testName={testData.title}
                         onSaveAllWords={handleSaveAllWords}
                         isSavingWB={isSavingWB}
+                        keywordTable={testData.keywordTable || MOCK_KEYWORD_TABLE}
                     />
                 ) : testData.type === 'listening' ? (
                     <ListeningInterface
