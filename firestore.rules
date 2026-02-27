@@ -62,6 +62,13 @@ service cloud.firestore {
         allow read: if isAuth();
         allow write: if isAdmin();
     }
+
+    // LOGS
+    match /logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if true; // anyone can log (login, register, etc.)
+      allow update, delete: if isAdmin();
+    }
     
     // ACCESS KEYS
     match /accessKeys/{keyId} {

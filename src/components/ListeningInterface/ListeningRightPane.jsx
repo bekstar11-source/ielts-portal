@@ -130,13 +130,20 @@ const ListeningRightPane = memo(({
                 const lastId = allItems.length > 0 ? allItems[allItems.length - 1].id : (group.id != null ? group.id : null);
                 const questionRange = (firstId && lastId && String(firstId) !== String(lastId)) ? `Questions ${firstId}–${lastId}` : (firstId ? `Question ${firstId}` : "");
 
+                const prevGroup = gIdx > 0 ? questionsForPart[gIdx - 1] : null;
+                const normalizeHTML = (html) => (typeof html === 'string') ? html.replace(/<[^>]*>/g, '').trim().toLowerCase() : '';
+                const isDuplicateInstruction = prevGroup && normalizeHTML(prevGroup.instruction) === normalizeHTML(group.instruction);
+
+                // Nested holat uchun group.text ni ham tekshirib qo'yishimiz mumkin, agar u ham huddi shunday takrorlanayotgan bo'lsa
+                const isDuplicateGroupText = prevGroup && normalizeHTML(prevGroup.text) === normalizeHTML(group.text);
+
                 return (
                     <div key={gIdx} className="mb-10 animate-in fade-in duration-500">
                         <div className="mb-5 flex flex-col gap-3">
                             {questionRange && <h3 className="text-lg font-bold text-gray-900 border-b border-gray-300 pb-1 inline-block w-fit">{questionRange}</h3>}
-                            {group.instruction && <div className="text-base font-bold text-black"><span dangerouslySetInnerHTML={{ __html: group.instruction }} /></div>}
+                            {!isDuplicateInstruction && group.instruction && <div className="text-base font-bold text-black"><span dangerouslySetInnerHTML={{ __html: group.instruction }} /></div>}
                             {/* group.text faqat nested savollar uchun — flat MCQ da StandardMCQ o'zi render qiladi */}
-                            {group.text && (group.questions?.length > 0 || group.items?.length > 0) && <div className="text-base font-bold text-black leading-relaxed"><span dangerouslySetInnerHTML={{ __html: group.text }} /></div>}
+                            {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0) && <div className="text-base font-bold text-black leading-relaxed"><span dangerouslySetInnerHTML={{ __html: group.text }} /></div>}
                         </div>
                         {renderGroupContent(group)}
                     </div>

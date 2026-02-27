@@ -378,7 +378,7 @@ const ReadingRightPane = memo(({
 
                 {testData.questions
                     .filter(g => g.passageId === testData.passages[activePassage].id)
-                    .map((group, gIdx) => {
+                    .map((group, gIdx, filteredQuestions) => {
                         const isChoiceType = ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => group.type && group.type.toLowerCase().includes(t));
                         const isMultiSelect = group.type === 'pick_two' || group.type === 'pick_three' || (group.type && group.type.includes('multi'));
                         const isMatching = group.type === 'matching' || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));
@@ -421,14 +421,7 @@ const ReadingRightPane = memo(({
 
                         return (
                             <div key={gIdx} className="mb-8 pb-8 border-b border-gray-200 border-dashed last:border-0">
-                                <div
-                                    className="bg-white border border-gray-200 p-4 mb-5 rounded-lg text-sm font-semibold text-gray-700 shadow-sm"
-                                    dangerouslySetInnerHTML={{
-                                        __html: isReviewMode && keywordTable?.length
-                                            ? injectKeywordsToHTML(group.instruction, keywordTable, true)
-                                            : group.instruction
-                                    }}
-                                />
+                                <div className="bg-white border border-gray-200 p-4 mb-5 rounded-lg text-sm font-semibold text-gray-700 shadow-sm" dangerouslySetInnerHTML={{ __html: group.instruction }} />
 
                                 {showStaticOptions && (
                                     <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
