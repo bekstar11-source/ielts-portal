@@ -71,26 +71,8 @@ const DashboardRouter = () => {
 };
 
 function App() {
-  const { user, userData, loading, trackUserActivity } = useAuth();
+  const { user, userData, loading } = useAuth();
   const location = useLocation();
-
-  // GOD MODE KUZATUVCHISI
-  useEffect(() => {
-    if (user && trackUserActivity) {
-      const path = location.pathname;
-      let activityName = "Saytda";
-
-      if (path === '/dashboard') activityName = "Bosh sahifada (Dashboard)";
-      else if (path.includes('/test/')) activityName = "Reading Test ishlamoqda... 統";
-      else if (path === '/mock-exam') activityName = "Mock Exam bo'limida";
-      else if (path.includes('/review/')) activityName = "Xatolarini tahlil qilmoqda";
-      else if (path === '/my-results') activityName = "Natijalarini ko'rmoqda";
-      else if (path.includes('/admin')) activityName = "Admin Panelda 屏";
-      else activityName = `Ko'rib chiqmoqda: ${path}`;
-
-      trackUserActivity(activityName);
-    }
-  }, [location, user, trackUserActivity]);
 
 
   if (loading) return <div className="flex h-screen items-center justify-center">IELTS Portal...</div>;

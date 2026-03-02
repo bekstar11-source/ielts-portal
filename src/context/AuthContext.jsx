@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../firebase/firebase";
 import {
   createUserWithEmailAndPassword,
@@ -11,7 +11,7 @@ import {
   signInWithPopup
 } from "firebase/auth";
 import { logAction } from "../utils/logger"; // Import logger
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -64,19 +64,6 @@ export function AuthProvider({ children }) {
     setUserData((prev) => ({ ...prev, ...newFields }));
   };
 
-  // 🔥 5. Faollikni kuzatish
-  const trackUserActivity = useCallback(async (activityName) => {
-    if (!user) return;
-    try {
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        lastActiveAt: serverTimestamp(),
-        currentActivity: activityName || "Faol"
-      });
-    } catch (error) {
-      console.error("Faollikni yozishda xato:", error);
-    }
-  }, [user]);
 
   // 1. Recaptcha
   function setupRecaptcha(phoneNumber) {
@@ -145,21 +132,22 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
-  // 2. User Data (Firestore) Kuzatish - Real-time
+  // 2. User Data (Firestore) Yuklash - Bir marta
   useEffect(() => {
     if (user) {
-      const unsubscribeSnapshot = onSnapshot(doc(db, "users", user.uid), (doc) => {
-        if (doc.exists()) {
-          setUserData(doc.data());
-          // Vaqtni yangilashni bu yerda qilsak har safar update bo'lganda yozadi, bu yaxshi emas.
-          // Lekin hozircha mayli.
+      const fetchUserData = async () => {
+        try {
+          const docSnap = await getDoc(doc(db, "users", user.uid));
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+          }
+        } catch (error) {
+          console.error("Firestore error:", error);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
-      }, (error) => {
-        console.error("Firestore error:", error);
-        setLoading(false);
-      });
-      return () => unsubscribeSnapshot();
+      };
+      fetchUserData();
     }
   }, [user]);
 
@@ -170,7 +158,6 @@ export function AuthProvider({ children }) {
     login,
     logout,
     updateUserLocalData,
-    trackUserActivity, // 🔥 Exportga qo'shildi
     signInWithPhone,
     signInWithGoogle,
     loading

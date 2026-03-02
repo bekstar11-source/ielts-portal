@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
-import { doc, getDoc, addDoc, collection, query, where, getDocs, updateDoc, increment, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection, query, where, getDocs, updateDoc, setDoc, increment, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { calculateBandScore, checkAnswer } from "../utils/ieltsScoring";
 import { logAction } from "../utils/logger";
@@ -302,10 +302,15 @@ export function useTestLogic() {
                 }).catch(err => console.warn("Stats update failed (non-critical):", err));
             }
 
-            // 5.1 Save Mistakes Collection
+            // 5.1 Save Mistakes as a single document
             if (mistakes.length > 0) {
-                const mistakesCollectionLog = mistakes.map(m => addDoc(collection(db, "users", user.uid, "mistakes"), m));
-                Promise.all(mistakesCollectionLog).catch(err => console.warn("Mistakes log failed:", err));
+                const mistakeSessionRef = doc(collection(db, "users", user.uid, "mistakeSessions"));
+                setDoc(mistakeSessionRef, {
+                    mistakes,
+                    date: resultData.date,
+                    testId: test.id,
+                    testTitle: test.title || 'Untitled Test'
+                }).catch(err => console.warn("Mistakes session log failed:", err));
             }
 
             // 6. Cleanup LocalStorage

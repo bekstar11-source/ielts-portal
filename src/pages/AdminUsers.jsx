@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, forwardRef } from 'react';
 import { db } from '../firebase/firebase';
 import {
     collection, getDocs, addDoc, doc, updateDoc,
-    arrayUnion, query, orderBy, deleteDoc, where, getDoc
+    arrayUnion, query, orderBy, deleteDoc, where, getDoc, writeBatch
 } from 'firebase/firestore';
 import { useTheme } from '../context/ThemeContext';
 import UserDetailPanel from '../components/admin/UserDetailPanel';
@@ -371,7 +371,11 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                 await updateDoc(doc(db, 'groups', selectedGroup.id), { assignedTests: arrayUnion(payload) });
                 logAction(user.uid, 'ASSIGN_TEST', { target: 'group', targetId: selectedGroup.id, ...payload });
             } else {
-                await Promise.all(selectedStudents.map(id => updateDoc(doc(db, 'users', id), { assignedTests: arrayUnion(payload) })));
+                const batch = writeBatch(db);
+                selectedStudents.forEach(id => {
+                    batch.update(doc(db, 'users', id), { assignedTests: arrayUnion(payload) });
+                });
+                await batch.commit();
                 logAction(user.uid, 'ASSIGN_TEST', { target: 'students', count: selectedStudents.length, ...payload });
             }
             alert("Tayinlandi!");
