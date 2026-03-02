@@ -218,15 +218,20 @@ export default function StudentDashboard() {
                         const testDataFromDb = testsMap[assign.id];
                         // 🔥 FIX: Faqat bazada real mavjud testlarni chiqaramiz.
                         if (testDataFromDb) {
+                            const bestResult = findBestResult(assign.id);
+                            const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim() && r.mode === 'exam').length;
+                            const maxAttempts = assign.maxAttempts || 1;
+
                             const finalTestData = {
                                 ...testDataFromDb,
                                 ...assign,
                                 id: assign.id, // ID aniq bo'lishi kerak
                                 title: testDataFromDb?.title || assign.title || "IELTS Test",
-                                type: testDataFromDb?.type || assign.type || "unknown"
+                                type: testDataFromDb?.type || assign.type || "unknown",
+                                attemptsCount,
+                                maxAttempts
                             };
 
-                            const bestResult = findBestResult(assign.id);
                             const now = new Date();
                             const start = safeDate(assign.startDate);
                             const end = safeDate(assign.endDate);

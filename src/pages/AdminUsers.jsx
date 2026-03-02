@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore';
 import { useTheme } from '../context/ThemeContext';
 import UserDetailPanel from '../components/admin/UserDetailPanel';
+import GroupDetailPanel from '../components/admin/GroupDetailPanel';
 
 // Icons
 import {
@@ -251,6 +252,8 @@ function SmartUserTable({ students, onRefresh, theme }) {
 function GroupsTab({ groups, students, onRefresh, theme }) {
     const isDark = theme === 'dark';
     const [name, setName] = useState('');
+    const [selectedGroup, setSelectedGroup] = useState(null);
+    const [showPanel, setShowPanel] = useState(false);
 
     const handleCreate = async () => {
         if (!name.trim()) return;
@@ -305,14 +308,24 @@ function GroupsTab({ groups, students, onRefresh, theme }) {
                         </div>
 
                         <div className="flex gap-2">
-                            {/* Placeholder buttons - functionality would be similar to Assign tab */}
-                            <button className={`flex-1 h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border ${isDark ? 'border-white/10 hover:bg-white/5' : 'border-gray-200 hover:bg-gray-50'}`}>
-                                <Users size={14} /> Manage
+                            <button
+                                onClick={() => { setSelectedGroup(g); setShowPanel(true); }}
+                                className={`flex-1 h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition ${isDark ? 'border-white/10 hover:bg-white/5' : 'border-gray-200 hover:bg-gray-50'}`}
+                            >
+                                <Users size={14} /> Boshqarish
                             </button>
                         </div>
                     </div>
                 ))}
             </div>
+
+            <GroupDetailPanel
+                group={selectedGroup}
+                isOpen={showPanel}
+                onClose={() => setShowPanel(false)}
+                onUpdate={onRefresh}
+                allStudents={students}
+            />
         </div>
     );
 }
@@ -335,6 +348,7 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
     const [selectedItem, setSelectedItem] = useState('');
     const [isStrict, setIsStrict] = useState(false);
     const [noDeadline, setNoDeadline] = useState(false);
+    const [maxAttempts, setMaxAttempts] = useState(1);
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
 
@@ -363,7 +377,8 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
             endDate: noDeadline ? null : endDate.toISOString(),
             status: 'assigned',
             assignedAt: new Date().toISOString(),
-            isStrict
+            isStrict,
+            maxAttempts: parseInt(maxAttempts) || 1
         };
 
         try {
@@ -512,7 +527,19 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div>
+                            <span className="text-xs opacity-50 mb-1 block w-full truncate">Urinishlar Soni</span>
+                            <div className={`w-full flex items-center h-10 px-3 rounded-xl border transition ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    className="bg-transparent border-none outline-none w-full text-sm"
+                                    value={maxAttempts}
+                                    onChange={e => setMaxAttempts(e.target.value)}
+                                />
+                            </div>
+                        </div>
                         <div>
                             <span className="text-xs opacity-50 mb-1 block">Boshlash</span>
                             <DatePicker

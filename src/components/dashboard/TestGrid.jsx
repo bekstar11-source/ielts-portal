@@ -55,10 +55,11 @@ const TestCardContent = ({ test, onStart, onReview }) => {
     const [hasDraft, setHasDraft] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
-    const { type, title, duration, questionsCount, status, result } = test;
+    const { type, title, duration, questionsCount, status, result, attemptsCount = 0, maxAttempts = 1 } = test;
+    const canRetake = attemptsCount < maxAttempts;
 
     useEffect(() => {
-        if (user && status !== 'completed') {
+        if (user && status !== 'completed' && canRetake) {
             const key = `draft_${user.uid}_${test.id}`;
             if (localStorage.getItem(key)) {
                 setHasDraft(true);
@@ -153,6 +154,11 @@ const TestCardContent = ({ test, onStart, onReview }) => {
                             <span>{duration || 60} daqiqada</span>
                         </div>
                     </div>
+
+                    {/* Urinishlar ko'rsatkichi */}
+                    <div className={`mt-3 text-[11px] font-bold uppercase tracking-wider ${attemptsCount >= maxAttempts ? 'text-red-400' : 'text-blue-400'}`}>
+                        Urinishlar: {attemptsCount} / {maxAttempts}
+                    </div>
                 </div>
 
                 {/* Footer / Action */}
@@ -176,18 +182,30 @@ const TestCardContent = ({ test, onStart, onReview }) => {
                         <div className="h-2"></div>
                     )}
 
-                    <motion.button
-                        onClick={() => isCompleted ? onReview(test) : onStart(test)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`
-            w-full py-3.5 rounded-xl flex items-center justify-center gap-2 
-            text-white font-semibold text-sm transition-colors duration-300
-            ${isCompleted ? 'bg-white/10 hover:bg-white/20' : theme.button}
-          `}>
-                        {isCompleted ? 'Tahlilni Ko\'rish' : (hasDraft ? 'Davom ettirish' : 'Boshlash')}
-                        {!isCompleted && <Play size={16} fill="currentColor" />}
-                    </motion.button>
+                    <div className="flex gap-2">
+                        {isCompleted && (
+                            <motion.button
+                                onClick={() => onReview(test)}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="flex-1 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-colors flex items-center justify-center"
+                            >
+                                Tahlil
+                            </motion.button>
+                        )}
+
+                        {(!isCompleted || canRetake) && (
+                            <motion.button
+                                onClick={() => onStart(test)}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className={`flex-1 py-3.5 rounded-xl ${theme.button} text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2`}
+                            >
+                                {isCompleted ? 'Qayta' : (hasDraft ? 'Davom' : 'Boshlash')}
+                                {!isCompleted && <Play size={16} fill="currentColor" />}
+                            </motion.button>
+                        )}
+                    </div>
                 </div>
             </div>
         </motion.div>

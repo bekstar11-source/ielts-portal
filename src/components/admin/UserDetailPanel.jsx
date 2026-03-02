@@ -15,7 +15,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
         fullName: '',
         phoneNumber: '',
         targetBand: '7.0',
-        examDate: ''
+        examDate: '',
+        maxTestAttempts: 1
     });
 
     const [recentResults, setRecentResults] = useState([]);
@@ -28,7 +29,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                 fullName: user.fullName || '',
                 phoneNumber: user.phoneNumber || '',
                 targetBand: user.targetBand || '7.0',
-                examDate: user.examDate || ''
+                examDate: user.examDate || '',
+                maxTestAttempts: user.maxTestAttempts || 1
             });
             fetchRecentResults(user.id);
         }
@@ -148,13 +150,24 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                                     {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'].map(b => <option key={b} value={b}>{b}</option>)}
                                 </select>
                             </div>
-                            <div className="col-span-2 space-y-1">
+                            <div className="space-y-1">
                                 <label className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Imtihon Sanasi</label>
                                 <input
                                     type="date"
                                     value={formData.examDate}
                                     onChange={e => setFormData({ ...formData, examDate: e.target.value })}
                                     className={`w-full p-2.5 rounded-xl border outline-none transition text-sm ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white/50 focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Test urinishlari soni</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={formData.maxTestAttempts}
+                                    onChange={e => setFormData({ ...formData, maxTestAttempts: parseInt(e.target.value) || 1 })}
+                                    className={`w-full p-2.5 rounded-xl border outline-none transition text-sm ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
+                                    placeholder="1 ta"
                                 />
                             </div>
                         </div>

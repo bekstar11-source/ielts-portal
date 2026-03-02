@@ -5,24 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { IoChevronBack, IoDocumentTextOutline, IoHeadsetOutline, IoMicOutline, IoCreateOutline, IoTimeOutline, IoArrowForward, IoChevronForward } from "react-icons/io5";
 
-// --- HELPERS (O'ZGARMADI) ---
-const calculateBandScore = (score, type) => {
-  if (type === 'listening' || type === 'reading') {
-    if (score >= 39) return 9.0;
-    if (score >= 37) return 8.5;
-    if (score >= 35) return 8.0;
-    if (score >= 32) return 7.5;
-    if (score >= 30) return 7.0;
-    if (score >= 26) return 6.5;
-    if (score >= 23) return 6.0;
-    if (score >= 18) return 5.5;
-    if (score >= 16) return 5.0;
-    if (score >= 13) return 4.5;
-    if (score >= 10) return 4.0;
-    return 3.5;
-  }
-  return null;
-};
+import { calculateBandScore } from "../utils/ieltsScoring";
 
 const getTestTheme = (type) => {
   switch (type) {
@@ -223,7 +206,7 @@ export default function MyResults() {
               {results.map((res) => {
                 const theme = getTestTheme(res.type);
                 const bandScore = (res.type === 'reading' || res.type === 'listening')
-                  ? (res.bandScore || calculateBandScore(res.score, res.type))
+                  ? (res.bandScore || calculateBandScore(res.score, res.type, res.totalQuestions))
                   : res.score;
                 const isGraded = res.status === 'graded' || res.score !== null;
 

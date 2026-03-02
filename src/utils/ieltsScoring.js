@@ -5,27 +5,32 @@ export const calculateBandScore = (score, type, totalQuestions = 40) => {
     const t = type?.toLowerCase();
 
     if (t === 'listening' || t === 'reading') {
-        let finalScore = score;
+        if (!totalQuestions || totalQuestions <= 0) return 0;
 
-        // Agar test to'liq bo'lmasa (masalan, 35 dan kam savol bo'lsa),
-        // ballni 40 talik shkalaga proporsional o'tkazamiz.
-        if (totalQuestions > 0 && totalQuestions < 35) {
-            finalScore = Math.round((score / totalQuestions) * 40);
+        // Agar test to'liq 40 ta savoldan iborat bo'lsa, rasmiy IELTS jadvalidan foydalanish
+        if (totalQuestions === 40) {
+            if (score >= 39) return 9.0;
+            if (score >= 37) return 8.5;
+            if (score >= 35) return 8.0;
+            if (score >= 32) return 7.5;
+            if (score >= 30) return 7.0;
+            if (score >= 26) return 6.5;
+            if (score >= 23) return 6.0;
+            if (score >= 18) return 5.5;
+            if (score >= 16) return 5.0;
+            if (score >= 13) return 4.5;
+            if (score >= 10) return 4.0;
+            return score > 0 ? 3.5 : 0;
         }
 
-        // Standart jadval (40 talik shkala bo'yicha)
-        if (finalScore >= 39) return 9.0;
-        if (finalScore >= 37) return 8.5;
-        if (finalScore >= 35) return 8.0;
-        if (finalScore >= 32) return 7.5;
-        if (finalScore >= 30) return 7.0;
-        if (finalScore >= 26) return 6.5;
-        if (finalScore >= 23) return 6.0;
-        if (finalScore >= 18) return 5.5;
-        if (finalScore >= 16) return 5.0;
-        if (finalScore >= 13) return 4.5;
-        if (finalScore >= 10) return 4.0;
-        return 3.5;
+        // Agar savollar soni 40 tadan farq qilsa, berilgan savollar soniga nisbatan 
+        // 9 ballik tizimda to'g'ridan to'g'ri baholash:
+        let rawBand = (score / totalQuestions) * 9;
+
+        // 0.5 ga karrali qilib yaxlitlash
+        let band = Math.round(rawBand * 2) / 2;
+
+        return Math.min(Math.max(band, 0), 9.0);
     }
     return null;
 };

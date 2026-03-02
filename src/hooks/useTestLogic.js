@@ -62,13 +62,44 @@ export function useTestLogic() {
 
                     // ✅ YECHIM 1 & 2: Exam modeda qayta bajarishni bloklash
                     if (userData?.role !== 'admin') {
-                        // 1) Avval tez LocalStorage tekshiruvi
+                        // Max attemptsni assignment lardan topish
+                        const setsSnap = await getDocs(collection(db, 'testSets'));
+                        const setsMap = {};
+                        setsSnap.docs.forEach(d => { setsMap[d.id] = d.data(); });
+
+                        const userRef = doc(db, 'users', user.uid);
+                        const userSnap = await getDoc(userRef);
+                        const currentUserData = userSnap.data();
+                        const groupsQuery = query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid));
+                        const groupsSnap = await getDocs(groupsQuery);
+                        let rawAssignments = [];
+                        if (currentUserData?.assignedTests) rawAssignments = [...rawAssignments, ...currentUserData.assignedTests];
+                        groupsSnap.docs.forEach(d => { const gData = d.data(); if (gData.assignedTests) rawAssignments = [...rawAssignments, ...gData.assignedTests]; });
+
+                        let maxAttempts = 1;
+                        rawAssignments.forEach(a => {
+                            const aid = typeof a === 'string' ? a.trim() : String(a.id).trim();
+                            const atype = typeof a === 'string' ? 'test' : (a.type || 'test');
+                            const aMax = a.maxAttempts || 1;
+
+                            if (aid === String(testId).trim() && atype === 'test') {
+                                if (aMax > maxAttempts) maxAttempts = aMax;
+                            } else if (atype === 'set') {
+                                const setSchema = setsMap[aid];
+                                const hasTestInSet = setSchema?.testIds?.some(tid => String(tid).trim() === String(testId).trim());
+                                if (hasTestInSet && aMax > maxAttempts) maxAttempts = aMax;
+                            }
+                        });
+
+                        // 1) Avval tez LocalStorage tekshiruvi (faqat shu test bo'yicha localStorage da saqlangan sanoqni ko'ramiz)
                         const completedKey = `completed_${user.uid}_${testId}_exam`;
-                        if (localStorage.getItem(completedKey)) {
-                            alert("Siz bu testni allaqachon yakunlagansiz!");
+                        const localAttempts = parseInt(localStorage.getItem(completedKey) || '0', 10);
+                        if (localAttempts >= maxAttempts) {
+                            alert(`Siz bu testni topshirish limitiga yetgansiz (${maxAttempts} marta)!`);
                             navigate("/dashboard");
                             return;
                         }
+
                         // 2) Keyin Firestore tekshiruvi (to'liq ishonchlilik)
                         const prevSnap = await getDocs(
                             query(
@@ -78,10 +109,10 @@ export function useTestLogic() {
                                 where('mode', '==', 'exam')
                             )
                         );
-                        if (!prevSnap.empty) {
-                            // Firestore da topildi — localStorage ni ham sinxronlash
-                            localStorage.setItem(completedKey, '1');
-                            alert("Siz bu testni allaqachon yakunlagansiz!");
+                        if (prevSnap.size >= maxAttempts) {
+                            // Firestore da limitga yetildi — localStorage ni ham sinxronlash
+                            localStorage.setItem(completedKey, prevSnap.size.toString());
+                            alert(`Siz bu testni topshirish limitiga yetgansiz (${maxAttempts} marta)!`);
                             navigate("/dashboard");
                             return;
                         }
@@ -294,9 +325,11 @@ export function useTestLogic() {
             batch.set(resultRef, resultData);
             await batch.commit();
 
-            // ✅ YECHIM 1: Exam yakunlandi — LocalStorage ga belgi qo'yish
+            // ✅ YECHIM 1: Exam yakunlandi — LocalStorage dagi urinishlar sonini oshirish
             if (testMode === 'exam' && userData?.role !== 'admin') {
-                localStorage.setItem(`completed_${user.uid}_${test.id}_exam`, '1');
+                const completedKey = `completed_${user.uid}_${test.id}_exam`;
+                const currCount = parseInt(localStorage.getItem(completedKey) || '0', 10);
+                localStorage.setItem(completedKey, (currCount + 1).toString());
             }
 
             // Log Action

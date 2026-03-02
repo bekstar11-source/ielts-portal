@@ -151,9 +151,28 @@ export default function ReadingInterface({
   // isReviewMode bo'lmasa — original kontent qaytariladi (performance)
   const currentPassageRaw = testData.passages?.[activePassage];
   const highlightedPassageContent = useMemo(() => {
-    if (!isReviewMode || !keywordTable?.length) return currentPassageRaw?.content;
-    return injectKeywordsToHTML(currentPassageRaw?.content, keywordTable, false);
-  }, [currentPassageRaw?.content, keywordTable, isReviewMode]);
+    let baseContent = currentPassageRaw?.content;
+
+    // Review rejimida avval practice paytidagi highlightlarni onlaymiz 
+    // (agar localStorage da bo'lsa)
+    if (isReviewMode && testData?.id) {
+      const storageKey = `reading_session_${testData.id}_passage_${activePassage}`;
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Date.now() - parsed.timestamp < 30 * 24 * 60 * 60 * 1000) {
+            baseContent = parsed.html;
+          }
+        }
+      } catch (e) {
+        console.error("Error loading user highlights for review:", e);
+      }
+    }
+
+    if (!isReviewMode || !keywordTable?.length) return baseContent;
+    return injectKeywordsToHTML(baseContent, keywordTable, false);
+  }, [currentPassageRaw?.content, keywordTable, isReviewMode, testData?.id, activePassage]);
 
   if (!testData) return <div className="p-10">Loading Test Data...</div>;
 
