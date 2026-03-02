@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
-import { doc, getDoc, addDoc, collection, query, where, getDocs, updateDoc, setDoc, increment, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, setDoc, increment, serverTimestamp, writeBatch } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { calculateBandScore, checkAnswer } from "../utils/ieltsScoring";
 import { logAction } from "../utils/logger";
@@ -59,6 +59,34 @@ export function useTestLogic() {
                 if (docSnap.exists()) {
                     const data = { id: docSnap.id, ...docSnap.data() };
                     if (data.type) data.type = data.type.toLowerCase(); // 🔥 NORMALIZE TYPE
+
+                    // ✅ YECHIM 1 & 2: Exam modeda qayta bajarishni bloklash
+                    if (userData?.role !== 'admin') {
+                        // 1) Avval tez LocalStorage tekshiruvi
+                        const completedKey = `completed_${user.uid}_${testId}_exam`;
+                        if (localStorage.getItem(completedKey)) {
+                            alert("Siz bu testni allaqachon yakunlagansiz!");
+                            navigate("/dashboard");
+                            return;
+                        }
+                        // 2) Keyin Firestore tekshiruvi (to'liq ishonchlilik)
+                        const prevSnap = await getDocs(
+                            query(
+                                collection(db, 'results'),
+                                where('userId', '==', user.uid),
+                                where('testId', '==', testId),
+                                where('mode', '==', 'exam')
+                            )
+                        );
+                        if (!prevSnap.empty) {
+                            // Firestore da topildi — localStorage ni ham sinxronlash
+                            localStorage.setItem(completedKey, '1');
+                            alert("Siz bu testni allaqachon yakunlagansiz!");
+                            navigate("/dashboard");
+                            return;
+                        }
+                    }
+
                     setTest(data);
                     const type = data.type;
 
@@ -103,8 +131,11 @@ export function useTestLogic() {
 
         const timerId = setInterval(() => {
             setTimeLeft(prev => {
-                let newVal = testMode === 'practice' ? prev + 1 : prev - 1;
-                localStorage.setItem(`timer_${user.uid}_${testId}`, newVal);
+                const newVal = testMode === 'practice' ? prev + 1 : prev - 1;
+                // ✅ YECHIM 4: Har 30 soniyada bir marta localStorage ga yozish
+                if (newVal % 30 === 0) {
+                    localStorage.setItem(`timer_${user.uid}_${testId}`, newVal);
+                }
                 return newVal;
             });
         }, 1000);
@@ -256,7 +287,17 @@ export function useTestLogic() {
 
             // 4. Save to Firestore
             setScore(correctCount);
-            await addDoc(collection(db, "results"), resultData);
+
+            // ✅ YECHIM 3: Faqat natijani batch orqali saqlash (ENG MUHIM)
+            const batch = writeBatch(db);
+            const resultRef = doc(collection(db, "results"));
+            batch.set(resultRef, resultData);
+            await batch.commit();
+
+            // ✅ YECHIM 1: Exam yakunlandi — LocalStorage ga belgi qo'yish
+            if (testMode === 'exam' && userData?.role !== 'admin') {
+                localStorage.setItem(`completed_${user.uid}_${test.id}_exam`, '1');
+            }
 
             // Log Action
             logAction(user.uid, 'TEST_SUBMIT', {
@@ -266,51 +307,59 @@ export function useTestLogic() {
                 band: resultData.bandScore
             });
 
-            // 5. Update User Stats safely and Gamification Logic
-            if (resultData.bandScore > 0 || correctCount > 0) {
-                const userRef = doc(db, "users", user.uid);
-
-                // GAMIFICATION: Streak Calculation
-                let newStreak = userData?.streakCount || 0;
-                const lastActive = userData?.lastActiveAt?.toDate() || new Date(0);
-                const today = new Date();
-                const yesterday = new Date(today);
-                yesterday.setDate(yesterday.getDate() - 1);
-
-                if (
-                    lastActive.getFullYear() === yesterday.getFullYear() &&
-                    lastActive.getMonth() === yesterday.getMonth() &&
-                    lastActive.getDate() === yesterday.getDate()
-                ) {
-                    newStreak += 1; // Uzluksizlik davom etmoqda
-                } else if (
-                    lastActive.getFullYear() !== today.getFullYear() ||
-                    lastActive.getMonth() !== today.getMonth() ||
-                    lastActive.getDate() !== today.getDate()
-                ) {
-                    newStreak = 1; // Streak uzildi, yana 1 dan boshlanadi
+            // NON-CRITICAL: Mistakes — xato bo'lsa natijaga ta'sir qilmaydi
+            if (mistakes.length > 0) {
+                try {
+                    const mistakeSessionRef = doc(collection(db, "users", user.uid, "mistakeSessions"));
+                    await setDoc(mistakeSessionRef, {
+                        mistakes,
+                        date: resultData.date,
+                        testId: test.id,
+                        testTitle: test.title || 'Untitled Test'
+                    });
+                } catch (mErr) {
+                    console.warn("Mistakes session log failed (non-critical):", mErr);
                 }
-
-                const gainedXP = Math.round(resultData.bandScore * 10) || (correctCount * 5);
-
-                await updateDoc(userRef, {
-                    "stats.totalTests": increment(1),
-                    "stats.totalBandScore": increment(resultData.bandScore),
-                    "gamification.points": increment(gainedXP),
-                    streakCount: newStreak,
-                    "lastActiveAt": serverTimestamp()
-                }).catch(err => console.warn("Stats update failed (non-critical):", err));
             }
 
-            // 5.1 Save Mistakes as a single document
-            if (mistakes.length > 0) {
-                const mistakeSessionRef = doc(collection(db, "users", user.uid, "mistakeSessions"));
-                setDoc(mistakeSessionRef, {
-                    mistakes,
-                    date: resultData.date,
-                    testId: test.id,
-                    testTitle: test.title || 'Untitled Test'
-                }).catch(err => console.warn("Mistakes session log failed:", err));
+            // 4c. User stats va gamification — NON-CRITICAL (xato bo'lsa natija saqlanadi)
+            if (resultData.bandScore > 0 || correctCount > 0) {
+                try {
+                    const userRef = doc(db, "users", user.uid);
+
+                    // GAMIFICATION: Streak Calculation
+                    let newStreak = userData?.streakCount || 0;
+                    const lastActive = userData?.lastActiveAt?.toDate() || new Date(0);
+                    const today = new Date();
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+
+                    if (
+                        lastActive.getFullYear() === yesterday.getFullYear() &&
+                        lastActive.getMonth() === yesterday.getMonth() &&
+                        lastActive.getDate() === yesterday.getDate()
+                    ) {
+                        newStreak += 1;
+                    } else if (
+                        lastActive.getFullYear() !== today.getFullYear() ||
+                        lastActive.getMonth() !== today.getMonth() ||
+                        lastActive.getDate() !== today.getDate()
+                    ) {
+                        newStreak = 1;
+                    }
+
+                    const gainedXP = Math.round(resultData.bandScore * 10) || (correctCount * 5);
+
+                    await updateDoc(userRef, {
+                        "stats.totalTests": increment(1),
+                        "stats.totalBandScore": increment(resultData.bandScore),
+                        "gamification.points": increment(gainedXP),
+                        streakCount: newStreak,
+                        "lastActiveAt": serverTimestamp()
+                    });
+                } catch (statsErr) {
+                    console.warn("Stats update failed (non-critical):", statsErr);
+                }
             }
 
             // 6. Cleanup LocalStorage
