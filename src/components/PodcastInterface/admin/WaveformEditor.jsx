@@ -4,7 +4,7 @@ import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin from "wavesurfer.js/plugins/regions";
 import TimelinePlugin from "wavesurfer.js/plugins/timeline";
 import {
-    collection, getDocs, orderBy, query, updateDoc, doc,
+    collection, getDocs, orderBy, query, updateDoc, deleteDoc, doc, writeBatch,
 } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
 import "../shared/PodcastStyles.css";
@@ -37,6 +37,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
     const [editText, setEditText] = useState("");
     const [editStartTime, setEditStartTime] = useState(""); // string input
     const [editEndTime, setEditEndTime] = useState("");     // string input
+    const [isDirty, setIsDirty] = useState(false);         // saqlalmagan o'zgartirish bor
 
     // Transport state
     const [isPlaying, setIsPlaying] = useState(false);
@@ -208,6 +209,18 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
         }
     }, [selectedIdx, segments]);
 
+    // ── Unsaved changes guard ──────────────────────────────────────
+    // Brauzer refresh / tab yopish / oyna yopish
+    useEffect(() => {
+        const onBeforeUnload = (e) => {
+            if (!isDirty) return;
+            e.preventDefault();
+            e.returnValue = "";
+        };
+        window.addEventListener("beforeunload", onBeforeUnload);
+        return () => window.removeEventListener("beforeunload", onBeforeUnload);
+    }, [isDirty]);
+
     // ── Keyboard shortcuts ──────────────────────────────────────────
     useEffect(() => {
         const onKey = (e) => {
@@ -239,7 +252,63 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
         } catch (e) {
             alert("Saqlashda xato: " + e.message);
         } finally {
+            setIsDirty(false); // Muvaffaqiyatli saqlandi
             setSaving(false);
+        }
+    };
+
+    // ── Delete segment ─────────────────────────────────────────────
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDelete = async () => {
+        if (selectedIdx === null) return;
+        const seg = segments[selectedIdx];
+        const confirmed = window.confirm(
+            `#${selectedIdx + 1} segmentni o'chirishni tasdiqlaysizmi?\n"${seg.text.slice(0, 80)}"`
+        );
+        if (!confirmed) return;
+
+        setDeleting(true);
+        try {
+            // 1. Firestore'dan o'chirish
+            await deleteDoc(doc(db, "podcasts", podcastId, "segments", seg.id));
+
+            // 2. WaveSurfer regionni o'chirish
+            if (regionsRef.current) {
+                const allRegions = regionsRef.current.getRegions();
+                const region = allRegions.find(r => r.id === seg.id);
+                if (region) region.remove();
+            }
+
+            // 3. Local state'dan o'chirib, qolganlarini re-index qilish
+            const newSegments = segments
+                .filter((_, i) => i !== selectedIdx)
+                .map((s, i) => ({ ...s, index: i }));
+
+            // 4. Qolgan segmentlarning index'ini Firestore'da ham yangilash
+            const batch = writeBatch(db);
+            newSegments.forEach(s => {
+                batch.update(doc(db, "podcasts", podcastId, "segments", s.id), { index: s.index });
+            });
+            await batch.commit();
+
+            setSegments(newSegments);
+            setIsDirty(false); // O'chirildi, tozalandi
+
+            // Keyin kelgan segmentni tanlash
+            if (newSegments.length > 0) {
+                const nextIdx = Math.min(selectedIdx, newSegments.length - 1);
+                setSelectedIdx(nextIdx);
+                setEditText(newSegments[nextIdx]?.text || "");
+                setEditStartTime(String(newSegments[nextIdx]?.startTime || ""));
+                setEditEndTime(String(newSegments[nextIdx]?.endTime || ""));
+            } else {
+                setSelectedIdx(null);
+            }
+        } catch (e) {
+            alert("O'chirishda xato: " + e.message);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -250,6 +319,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
             setEditEndTime(String(segments[selectedIdx].endTime));
         }
     }, [selectedIdx]); // eslint-disable-line
+
 
     if (loading) return <div style={{ padding: 40, color: "var(--pod-text-2)" }}>Segmentlar yuklanmoqda...</div>;
 
@@ -445,7 +515,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                         min={0}
                                         step={0.1}
                                         value={editStartTime}
-                                        onChange={e => handleStartTimeChange(e.target.value)}
+                                        onChange={e => { handleStartTimeChange(e.target.value); setIsDirty(true); }}
                                         style={{
                                             width: 70, background: "transparent", border: "none", outline: "none",
                                             fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "#818cf8",
@@ -466,7 +536,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                         min={0}
                                         step={0.1}
                                         value={editEndTime}
-                                        onChange={e => handleEndTimeChange(e.target.value)}
+                                        onChange={e => { handleEndTimeChange(e.target.value); setIsDirty(true); }}
                                         style={{
                                             width: 70, background: "transparent", border: "none", outline: "none",
                                             fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "#818cf8",
@@ -491,7 +561,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                             {/* Textarea */}
                             <textarea
                                 value={editText}
-                                onChange={(e) => setEditText(e.target.value)}
+                                onChange={(e) => { setEditText(e.target.value); setIsDirty(true); }}
                                 rows={10}
                                 style={{
                                     width: "100%", boxSizing: "border-box",
@@ -527,6 +597,20 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                     title="O'zgarishlarni bekor qilish"
                                 >
                                     ↩ Reset
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={deleting}
+                                    style={{
+                                        ...tbtn,
+                                        padding: "10px 14px", borderRadius: 10, fontSize: 13,
+                                        background: deleting ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.15)",
+                                        color: "#f87171",
+                                        border: "1px solid rgba(239,68,68,0.3)",
+                                    }}
+                                    title="Segmentni o'chirish"
+                                >
+                                    {deleting ? "⏳" : "🗑"}
                                 </button>
                             </div>
 

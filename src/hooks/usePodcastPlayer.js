@@ -11,6 +11,8 @@ export function usePodcastPlayer(segments = []) {
 
     const currentSegment = segments[currentSegmentIndex] || null;
 
+    // (Sinxronlashtirish uchun DictationStage dagi <audio> tag native onPlay/onPause eventlarini chaqiradi)
+
     // Audio elementni boshqarish
     const playSegment = useCallback(
         (segIndex, audioUrl) => {
@@ -98,6 +100,7 @@ export function usePodcastPlayer(segments = []) {
         setCurrentSegmentIndex,
         currentSegment,
         isPlaying,
+        setIsPlaying,
         isLoaded,
         setIsLoaded,
         togglePlay,

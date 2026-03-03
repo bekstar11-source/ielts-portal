@@ -67,21 +67,14 @@ async function transcribePodcast(data, context) {
                 return (word || "").toLowerCase().replace(/[^a-z0-9]/g, "");
             }
 
-            // Script'ni gaplarga bo'lish
-            // Bo'lish usullari (uchta qatlam):
-            //   1. \n  — admin Enter bosib ajratgan joylar (asosiy)
-            //   2. " - " — tire belgisi bilan ajratilgan uzun gaplar (qo'shimcha)
-            //   3. ." !" dan keyin katta harf — bitta qatorda 2 gap qolgan bo'lsa
-            const userSentences = script
+            const rawSentences = script
                 .replace(/\r\n/g, "\n")
                 .replace(/\r/g, "\n")
-                // " - " ni ham \n ga aylantir (faqat ikkala tomonida bo'sh joy bo'lsa)
                 .replace(/\s+[-\u2013\u2014]\s+/g, "\n")
                 .split("\n")
                 .flatMap(line => {
                     line = line.trim().replace(/^[""]/g, "").replace(/[""]$/g, "").trim();
                     if (!line) return [];
-                    // Bitta qatorda bir nechta gap bo'lsa, ularni ham ajrat
                     return line
                         .replace(/([.!?;])(["'\u201C\u201D]?)\s+(?=[A-Z\u201C"])/g, "$1$2\n")
                         .split("\n")
@@ -89,9 +82,68 @@ async function transcribePodcast(data, context) {
                         .filter(Boolean);
                 });
 
+            // ── So'z chegaralari: min=10, max=20 ────────────────────────────────
+            const MIN_WORDS = 10;
+            const MAX_WORDS = 20;
+            const BREAK_WORDS = new Set(["and", "but", "or", "where", "which", "who", "because", "so", "then", "however", "although", "while", "when", "that"]);
+
+            function splitLong(sent) {
+                const words = sent.trim().split(/\s+/).filter(Boolean);
+                if (words.length <= MAX_WORDS) return [words.join(" ")];
+                // O'rtasiga yaqin eng tabiiy bo'linish nuqtasini topamiz
+                const mid = Math.floor(words.length / 2);
+                let bestIdx = mid;
+                let bestScore = Infinity;
+                const lo = Math.max(MIN_WORDS, mid - 8);
+                const hi = Math.min(words.length - MIN_WORDS, mid + 8);
+                for (let i = lo; i <= hi; i++) {
+                    const prevWord = words[i - 1] || "";
+                    const nextWord = (words[i] || "").toLowerCase().replace(/[^a-z]/g, "");
+                    const isNatural = prevWord.endsWith(",") || prevWord.endsWith(";") || BREAK_WORDS.has(nextWord);
+                    const score = Math.abs(i - mid) - (isNatural ? 6 : 0);
+                    if (score < bestScore) { bestScore = score; bestIdx = i; }
+                }
+                const left = words.slice(0, bestIdx).join(" ");
+                const right = words.slice(bestIdx).join(" ");
+                return [...splitLong(left), ...splitLong(right)]; // rekursiv — juda uzun bo'lsa yana bo'ladi
+            }
+
+            function mergeShort(sents) {
+                const out = [];
+                let i = 0;
+                while (i < sents.length) {
+                    const wc = sents[i].split(/\s+/).filter(Boolean).length;
+                    if (wc < MIN_WORDS) {
+                        if (i + 1 < sents.length) {
+                            const nextWc = sents[i + 1].split(/\s+/).filter(Boolean).length;
+                            // Ikkalasini birlashtirish MAX * 1.5 dan oshmasin
+                            if (wc + nextWc <= Math.floor(MAX_WORDS * 1.5)) {
+                                out.push(sents[i] + " " + sents[i + 1]);
+                                i += 2; continue;
+                            }
+                        }
+                        // Oldingi bilan birlashtir
+                        if (out.length > 0) {
+                            out[out.length - 1] += " " + sents[i];
+                            i++; continue;
+                        }
+                    }
+                    out.push(sents[i]);
+                    i++;
+                }
+                return out;
+            }
+
+            // 1. Uzunlarni bo'l
+            const afterSplit = rawSentences.flatMap(s => splitLong(s));
+            // 2. Qisqalarni birlashtir
+            const userSentences = mergeShort(afterSplit);
+
+            console.log(`[Alignment] Jami segmentlar: ${userSentences.length} (raw: ${rawSentences.length})`);
 
             const whisperWords = transcription.words; // [{word, start, end}]
             let wPos = 0; // hozirgi qidiruv pozitsiyasi
+
 
             userSentences.forEach((sentence, index) => {
                 const sentWordRaw = sentence.split(/\s+/).filter(Boolean);

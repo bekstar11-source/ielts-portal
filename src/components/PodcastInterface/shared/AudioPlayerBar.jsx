@@ -1,67 +1,175 @@
 // src/components/PodcastInterface/shared/AudioPlayerBar.jsx
-import React from "react";
+// Segment-based mini player — har segment alohida qisqa audio faylday ko'rsatiladi
+
+import React, { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw, RefreshCw } from "lucide-react";
 import "./PodcastStyles.css";
 
-export default function AudioPlayerBar({ isPlaying, onTogglePlay, onRewind, onReplay, currentSegment, totalSegments, currentIndex }) {
+function fmt(seconds) {
+    if (!isFinite(seconds) || seconds < 0) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Props:
+ *  isPlaying       - bool
+ *  onTogglePlay    - fn
+ *  onRewind        - fn  (3s orqaga, lekin segmentdan chiqmaydi)
+ *  onReplay        - fn  (segmentni boshidan)
+ *  currentIndex    - number  (joriy segment indeksi)
+ *  totalSegments   - number
+ *  audioRef        - React ref to <audio> element
+ *  segStartTime    - number  (segment.startTime, soniyada)
+ *  segEndTime      - number  (segment.endTime, soniyada)
+ */
+export default function AudioPlayerBar({
+    isPlaying,
+    onTogglePlay,
+    onRewind,
+    onReplay,
+    currentIndex,
+    totalSegments,
+    audioRef,
+    segStartTime = 0,
+    segEndTime = 0,
+}) {
+    const [relTime, setRelTime] = useState(0);    // joriy vaqt (segmentga nisbatan)
+    const segDuration = Math.max(0, segEndTime - segStartTime); // segment davomiyligi
+    const barRef = useRef(null);
+    const rafRef = useRef(null);
+
+    // ── Real-time vaqtni kuzatish ──────────────────
+    useEffect(() => {
+        const audio = audioRef?.current;
+        if (!audio) return;
+
+        let interval;
+        if (isPlaying) {
+            // Har 50ms da progressni yangilaymiz
+            interval = setInterval(() => {
+                const current = audio.currentTime || 0;
+                const rel = Math.max(0, Math.min(current - segStartTime, segDuration));
+                setRelTime(rel);
+            }, 50);
+        } else {
+            // Paused: to'xtagan joyini qayd etamiz
+            const current = audio.currentTime || 0;
+            const rel = Math.max(0, Math.min(current - segStartTime, segDuration));
+            setRelTime(rel);
+        }
+
+        return () => { if (interval) clearInterval(interval); };
+    }, [isPlaying, audioRef, segStartTime, segDuration]);
+
+    // Yangi segment boshlanganda progress 0 ga qaytsin
+    useEffect(() => { setRelTime(0); }, [currentIndex]);
+
+    // ── Progress bar bosish – seek ──────────────────
+    const handleBarClick = (e) => {
+        const audio = audioRef?.current;
+        if (!audio || segDuration <= 0) return;
+        const rect = barRef.current.getBoundingClientRect();
+        const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        audio.currentTime = segStartTime + pct * segDuration;
+    };
+
+    const pct = segDuration > 0 ? (relTime / segDuration) * 100 : 0;
+
     return (
-        <div className="pod-audio-bar">
-            <audio style={{ display: "none" }} />
-
-            {/* Play / Pause */}
-            <button className="pod-play-btn" onClick={onTogglePlay} title="Space - ijro/to'xtat">
-                {isPlaying ? <Pause /> : <Play />}
+        <div style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 12, padding: "12px 16px",
+        }}>
+            {/* ─ Play / Pause ─ */}
+            <button
+                onClick={onTogglePlay}
+                title="Space — ijro/pauza"
+                style={{
+                    width: 38, height: 38, borderRadius: "50%", border: "none",
+                    background: "#6366f1",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer", flexShrink: 0,
+                    boxShadow: "0 0 16px rgba(99,102,241,0.35)",
+                    transition: "transform 0.15s, box-shadow 0.15s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
+                onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+            >
+                {isPlaying
+                    ? <Pause size={16} color="white" />
+                    : <Play size={16} color="white" style={{ marginLeft: 2 }} />
+                }
             </button>
 
-            {/* Rewind */}
+            {/* ─ Rewind 3s ─ */}
             <button
-                className="pod-btn pod-btn-ghost"
-                style={{ padding: "8px 12px" }}
                 onClick={onRewind}
-                title="R - 3 soniya orqaga"
+                title="R — 3 soniya orqaga"
+                style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    background: "none", border: "none",
+                    color: "rgba(255,255,255,0.4)", cursor: "pointer",
+                    padding: "6px 4px", fontSize: 12, fontFamily: "inherit",
+                    transition: "color 0.15s", flexShrink: 0,
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
+                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}
             >
-                <RotateCcw size={16} />
-                <span style={{ fontSize: 12 }}>-3s</span>
+                <RotateCcw size={14} />
+                <span>-3s</span>
             </button>
 
-            {/* Replay */}
+            {/* ─ Replay ─ */}
             <button
-                className="pod-btn pod-btn-ghost"
-                style={{ padding: "8px 12px" }}
                 onClick={onReplay}
-                title="Shift+R - qayta boshlash"
+                title="Shift+R — boshidan"
+                style={{
+                    display: "flex", alignItems: "center",
+                    background: "none", border: "none",
+                    color: "rgba(255,255,255,0.4)", cursor: "pointer",
+                    padding: "6px 4px",
+                    transition: "color 0.15s", flexShrink: 0,
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
+                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}
             >
-                <RefreshCw size={16} />
+                <RefreshCw size={14} />
             </button>
 
-            {/* Progress */}
-            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                    style={{
-                        flex: 1, height: 4, background: "var(--pod-surface-3)",
-                        borderRadius: 99, overflow: "hidden"
-                    }}
-                >
-                    <div
-                        style={{
-                            height: "100%",
-                            background: "linear-gradient(90deg, var(--pod-accent), var(--pod-accent-2))",
-                            borderRadius: 99,
-                            width: `${totalSegments > 0 ? ((currentIndex + 1) / totalSegments) * 100 : 0}%`,
-                            transition: "width 0.4s ease"
-                        }}
-                    />
+            {/* ─ Progress area ─ */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+                {/* Time row */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 12, fontFamily: "monospace", color: "rgba(255,255,255,0.65)", fontVariantNumeric: "tabular-nums" }}>
+                        {fmt(relTime)}
+                    </span>
+                    <span style={{ fontSize: 12, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", fontVariantNumeric: "tabular-nums" }}>
+                        {fmt(segDuration)}
+                    </span>
                 </div>
-                <span style={{ fontSize: 12, color: "var(--pod-text-2)", whiteSpace: "nowrap" }}>
-                    {currentIndex + 1} / {totalSegments}
-                </span>
-            </div>
 
-            {/* Keyboard hints */}
-            <div className="pod-shortcut-hint">
-                <span className="pod-shortcut-key">Space</span>
-                <span className="pod-shortcut-key">R</span>
-                <span className="pod-shortcut-key">Shift+R</span>
+                {/* Seekable progress bar */}
+                <div
+                    ref={barRef}
+                    onClick={handleBarClick}
+                    style={{
+                        height: 5, background: "rgba(255,255,255,0.1)",
+                        borderRadius: 99, overflow: "hidden", cursor: "pointer",
+                        position: "relative",
+                    }}
+                    title="Vaqtni o'zgartirish uchun bosing"
+                >
+                    <div style={{
+                        height: "100%", borderRadius: 99,
+                        background: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+                        width: `${pct}%`,
+                        transition: isPlaying ? "none" : "width 0.15s",
+                    }} />
+                </div>
             </div>
         </div>
     );
