@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -11,19 +11,6 @@ export default function AdminHeader({ toggleSidebar }) {
     const location = useLocation();
 
     const notificationRef = useRef(null);
-
-    // Close notifications on outside click
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-                setShowNotifications(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-
 
     // Breadcrumb Logic
     const pathnames = location.pathname.split('/').filter((x) => x);

@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Users, BookOpen, CreditCard, Settings,
     LogOut, ChevronLeft, ChevronRight, FileText, Megaphone,
-    BarChart2, Shield, Radio, PenTool, Trophy, ScrollText
+    BarChart2, Shield, Radio, PenTool, Trophy, ScrollText, Headphones
 } from 'lucide-react';
 
 export default function AdminSidebar({ isOpen, setIsOpen }) {
@@ -34,7 +34,8 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
             title: "CONTENT",
             items: [
                 { name: "Tests", path: "/admin/tests", icon: FileText },
-                { name: "Results", path: "/admin/results", icon: BookOpen }
+                { name: "Results", path: "/admin/results", icon: BookOpen },
+                { name: "Podcast Mastery", path: "/admin/podcasts", icon: Headphones }
             ]
         },
         {

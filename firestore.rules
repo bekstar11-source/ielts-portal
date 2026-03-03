@@ -75,5 +75,36 @@ service cloud.firestore {
       allow read: if true; // Kalitni tekshirish uchun
       allow write: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isUsed', 'usedBy', 'usedByName', 'usedAt']));
     }
+
+    // PODCASTS (O'qish autentifikatsiya bo'lganlarga, Yozish faqat adminga)
+    match /podcasts/{podcastId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+
+      match /segments/{segmentId} {
+        allow read: if isAuth();
+        allow write: if isAdmin();
+      }
+      match /mcqQuestions/{questionId} {
+        allow read: if isAuth();
+        allow write: if isAdmin();
+      }
+      match /gapFill/{docId} {
+        allow read: if isAuth();
+        allow write: if isAdmin();
+      }
+      match /vocabulary/{wordId} {
+        allow read: if isAuth();
+        allow write: if isAdmin();
+      }
+    }
+
+    // PODCAST ATTEMPTS (O'quvchi o'z urinishini boshqaradi)
+    match /podcastAttempts/{attemptId} {
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuth();
+      allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
   }
 }

@@ -36,6 +36,9 @@ import TestReview from './pages/TestReview';
 import MockExam from './pages/MockExam';
 import MyResults from './pages/MyResults';
 import WordBank from './pages/WordBank';
+import PodcastPlayer from './pages/PodcastPlayer';
+import AdminPodcasts from './pages/AdminPodcasts';
+import CreatePodcast from './pages/CreatePodcast';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();
@@ -213,6 +216,15 @@ function App() {
           }
         />
 
+        <Route
+          path="/podcast/:podcastId"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <PodcastPlayer />
+            </ProtectedRoute>
+          }
+        />
+
         {/* --- ADMIN YO'NALISHLARI (LAYOUT BILAN) --- */}
         <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
           <Route index element={<AdminDashboard />} />
@@ -225,6 +237,9 @@ function App() {
           <Route path="results" element={<AdminResults />} />
           <Route path="logs" element={<AdminLogs />} />
           <Route path="gamification" element={<AdminGamification />} />
+          <Route path="podcasts" element={<AdminPodcasts />} />
+          <Route path="create-podcast" element={<CreatePodcast />} />
+          <Route path="edit-podcast/:id" element={<CreatePodcast />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 
