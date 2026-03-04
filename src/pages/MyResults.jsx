@@ -234,9 +234,20 @@ export default function MyResults() {
                       <h3 className="text-lg font-bold text-white mb-1 line-clamp-1 group-hover:text-blue-400 transition-colors">
                         {res.testTitle}
                       </h3>
-                      <div className="flex items-center text-[#a0b0cb] text-sm font-medium gap-1.5 mb-4">
-                        <IoTimeOutline className="w-4 h-4 opacity-70" />
-                        {formatDate(res.date)}
+                      <div className="flex items-center text-[#a0b0cb] text-xs font-medium gap-3 mb-4">
+                        <div className="flex items-center gap-1.5">
+                          <IoTimeOutline className="w-4 h-4 opacity-70" />
+                          {formatDate(res.date)}
+                        </div>
+                        {res.timeSpent !== undefined && res.timeSpent !== null && typeof res.timeSpent === 'number' && (
+                          <>
+                            <div className="w-1 h-1 rounded-full bg-[#a0b0cb]/40"></div>
+                            <div className="flex items-center gap-1" title="Sarflangan vaqt">
+                              {Math.floor(res.timeSpent / 60) > 0 ? `${Math.floor(res.timeSpent / 60)} daq ` : ''}
+                              {Math.floor(res.timeSpent % 60)} son
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 

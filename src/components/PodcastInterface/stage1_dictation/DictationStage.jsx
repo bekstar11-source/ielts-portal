@@ -407,14 +407,26 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
             {/* ── Correct answer display (Daily Dictation style) ── */}
             {hasError && showFullAnswer && correctWordDiff.length > 0 && (
                 <div style={{ marginBottom: 16, lineHeight: 2.0, fontSize: 17, fontWeight: 500 }}>
-                    {correctWordDiff.map((item, i) => (
-                        <span key={i} style={{
-                            color: item.status === "correct" ? "#e2e8f0" : "#34d399",
-                            fontWeight: item.status === "incorrect" ? 700 : 400,
-                        }}>
-                            {item.word}{i < correctWordDiff.length - 1 ? " " : ""}
-                        </span>
-                    ))}
+                    {(() => {
+                        const firstErrIdx = correctWordDiff.findIndex(w => w.status === "incorrect");
+                        return correctWordDiff.map((item, i) => {
+                            // Faqat birinchi xato so'zni to'liq va yashil (tuzatish) qilib ko'rsatamiz
+                            // Undan keyingi hamma xato / topilmagan so'zlarni yashiramiz (___)
+                            const isFirstErr = item.status === "incorrect" && i === firstErrIdx;
+                            const isPastErr = item.status === "incorrect" && i > firstErrIdx;
+                            return (
+                                <span key={i} style={{
+                                    color: isPastErr ? "rgba(255,255,255,0.2)" : (item.status === "correct" ? "#e2e8f0" : "#34d399"),
+                                    fontWeight: isPastErr ? 400 : (item.status === "incorrect" ? 700 : 400),
+                                    letterSpacing: isPastErr ? 1 : 0,
+                                    textDecoration: isFirstErr ? "underline wavy #f97316" : "none",
+                                    textUnderlineOffset: 4,
+                                }}>
+                                    {isPastErr ? "___" : item.word}{i < correctWordDiff.length - 1 ? " " : ""}
+                                </span>
+                            );
+                        });
+                    })()}
                 </div>
             )}
 

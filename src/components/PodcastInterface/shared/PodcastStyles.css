@@ -34,6 +34,20 @@
     --diff-super-hard: #a855f7;
 }
 
+html.light {
+    --pod-bg: #f8fafc;
+    --pod-surface: #ffffff;
+    --pod-surface-2: #f1f5f9;
+    --pod-surface-3: #e2e8f0;
+    --pod-border: rgba(148, 163, 184, 0.3);
+    --pod-border-active: rgba(99, 102, 241, 0.6);
+    --pod-text: #0f172a;
+    --pod-text-2: #475569;
+    --pod-muted: #64748b;
+    --pod-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --pod-shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
+}
+
 /* Base layout */
 .podcast-layout {
     min-height: 100vh;

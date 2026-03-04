@@ -70,9 +70,9 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
             insertPosition: "beforebegin",
             style: {
                 fontSize: "10px",
-                color: "rgba(255,255,255,0.45)",
-                background: "#0a0e1a",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                color: "var(--pod-text-2)",
+                background: "var(--pod-bg)",
+                borderBottom: "1px solid var(--pod-border)",
             },
             formatTimeCallback: (sec) => {
                 if (sec === 0) return "0s";
@@ -86,7 +86,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
             container: waveRef.current,
             waveColor: "rgba(99,102,241,0.5)",
             progressColor: "rgba(99,102,241,1)",
-            cursorColor: "rgba(255,255,255,0.9)",
+            cursorColor: "var(--pod-text)",
             cursorWidth: 2,
             height: 140,
             barWidth: 2,
@@ -126,6 +126,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                         : seg
                 )
             );
+            setIsDirty(true);
         });
 
         regions.on("region-clicked", (region, e) => {
@@ -183,7 +184,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
     // ── Time input handlers ─────────────────────────────────────────
     const handleStartTimeChange = useCallback((val) => {
         setEditStartTime(val);
-        const parsed = parseFloat(val);
+        const parsed = parseFloat(val.replace(',', '.'));
         if (isNaN(parsed) || parsed < 0) return;
         setSegments(prev => prev.map((s, i) => i === selectedIdx ? { ...s, startTime: parsed } : s));
         // Move wavesurfer region
@@ -197,7 +198,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
 
     const handleEndTimeChange = useCallback((val) => {
         setEditEndTime(val);
-        const parsed = parseFloat(val);
+        const parsed = parseFloat(val.replace(',', '.'));
         if (isNaN(parsed) || parsed < 0) return;
         setSegments(prev => prev.map((s, i) => i === selectedIdx ? { ...s, endTime: parsed } : s));
         // Move wavesurfer region
@@ -208,6 +209,21 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
             if (region) region.setOptions({ end: parsed });
         }
     }, [selectedIdx, segments]);
+
+    // ── Sinxronlashtirish: Drag qilinganda inputlarni yangilash ─────
+    useEffect(() => {
+        if (selectedIdx !== null && segments[selectedIdx]) {
+            const seg = segments[selectedIdx];
+            const pStart = parseFloat(editStartTime);
+            if (isNaN(pStart) || Math.abs(pStart - seg.startTime) > 0.05) {
+                setEditStartTime(String(seg.startTime));
+            }
+            const pEnd = parseFloat(editEndTime);
+            if (isNaN(pEnd) || Math.abs(pEnd - seg.endTime) > 0.05) {
+                setEditEndTime(String(seg.endTime));
+            }
+        }
+    }, [segments, selectedIdx]);
 
     // ── Unsaved changes guard ──────────────────────────────────────
     // Brauzer refresh / tab yopish / oyna yopish
@@ -280,30 +296,69 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                 if (region) region.remove();
             }
 
-            // 3. Local state'dan o'chirib, qolganlarini re-index qilish
-            const newSegments = segments
+            // 3. Local state'dan yulib olishdan oldin, uning vaqtini boshqa segmentga ulash
+            let updatedSegments = [...segments];
+
+            if (updatedSegments.length > 1) {
+                if (selectedIdx > 0) {
+                    // Agar oldinroq kelgan segment bor bo'lsa, o'zining vaqtini shu prev-segmentga qo'shadi
+                    updatedSegments[selectedIdx - 1] = {
+                        ...updatedSegments[selectedIdx - 1],
+                        endTime: seg.endTime,
+                        editedBy: "admin"
+                    };
+                } else if (selectedIdx === 0) {
+                    // Agar eng 1-segment o'chayotgan bo'lsa, vaqtni 2-siga o'tkazadi
+                    updatedSegments[1] = {
+                        ...updatedSegments[1],
+                        startTime: seg.startTime,
+                        editedBy: "admin"
+                    };
+                }
+            }
+
+            const newSegments = updatedSegments
                 .filter((_, i) => i !== selectedIdx)
                 .map((s, i) => ({ ...s, index: i }));
 
-            // 4. Qolgan segmentlarning index'ini Firestore'da ham yangilash
+            // 4. Qolgan segmentlarning index'ini va vaqti o'zgarganini Firestore'da yangilash
             const batch = writeBatch(db);
             newSegments.forEach(s => {
-                batch.update(doc(db, "podcasts", podcastId, "segments", s.id), { index: s.index });
+                batch.update(doc(db, "podcasts", podcastId, "segments", s.id), {
+                    index: s.index,
+                    startTime: s.startTime,
+                    endTime: s.endTime,
+                    editedBy: s.editedBy || "admin" // update if needed
+                });
             });
             await batch.commit();
+
+            // 5. O'zgarib qolgan WaveSurfer region chegaralarini moslash
+            if (regionsRef.current && newSegments.length > 0) {
+                const allRegions = regionsRef.current.getRegions();
+                if (selectedIdx > 0) {
+                    const prevRegion = allRegions.find(r => r.id === newSegments[selectedIdx - 1]?.id);
+                    if (prevRegion) prevRegion.setOptions({ end: seg.endTime });
+                } else if (selectedIdx === 0) {
+                    const nextRegion = allRegions.find(r => r.id === newSegments[0]?.id);
+                    if (nextRegion) nextRegion.setOptions({ start: seg.startTime });
+                }
+            }
 
             setSegments(newSegments);
             setIsDirty(false); // O'chirildi, tozalandi
 
-            // Keyin kelgan segmentni tanlash
+            // 6. Oldingi/Keyingi elementni tanlash
             if (newSegments.length > 0) {
                 const nextIdx = Math.min(selectedIdx, newSegments.length - 1);
+                const nextSeg = newSegments[nextIdx];
                 setSelectedIdx(nextIdx);
-                setEditText(newSegments[nextIdx]?.text || "");
-                setEditStartTime(String(newSegments[nextIdx]?.startTime || ""));
-                setEditEndTime(String(newSegments[nextIdx]?.endTime || ""));
+                setEditText(nextSeg?.text || "");
+                setEditStartTime(String(nextSeg?.startTime || ""));
+                setEditEndTime(String(nextSeg?.endTime || ""));
             } else {
                 setSelectedIdx(null);
+                setEditText("");
             }
         } catch (e) {
             alert("O'chirishda xato: " + e.message);
@@ -327,37 +382,37 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
     const selectedSeg = selectedIdx !== null ? segments[selectedIdx] : null;
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, background: "#111827", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0, background: "var(--pod-surface)", borderRadius: 16, overflow: "hidden", border: "1px solid var(--pod-border)" }}>
 
             {/* ── WAVEFORM AREA ─────────────────────────────────────── */}
-            <div style={{ padding: "20px 20px 0", background: "#0f1623" }}>
+            <div style={{ padding: "20px 20px 0", background: "var(--pod-surface-2)" }}>
                 <div ref={waveRef} style={{ borderRadius: 8, overflow: "hidden" }} />
             </div>
 
             {/* ── TIMELINE BAR ─────────────────────────────────────── */}
-            <div style={{ background: "#0f1623", padding: "8px 20px 0" }}>
-                <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 99, position: "relative" }}>
+            <div style={{ background: "var(--pod-surface-2)", padding: "8px 20px 0" }}>
+                <div style={{ height: 3, background: "var(--pod-border)", borderRadius: 99, position: "relative" }}>
                     <div style={{ height: "100%", background: "linear-gradient(90deg, #6366f1, #8b5cf6)", borderRadius: 99, width: `${pct}%`, transition: "width 0.1s linear" }} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "monospace" }}>{fmtTime(currentTime)}</span>
-                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "monospace" }}>{fmtTime(duration)}</span>
+                    <span style={{ fontSize: 10, color: "var(--pod-text-2)", fontFamily: "monospace" }}>{fmtTime(currentTime)}</span>
+                    <span style={{ fontSize: 10, color: "var(--pod-text-2)", fontFamily: "monospace" }}>{fmtTime(duration)}</span>
                 </div>
             </div>
 
             {/* ── TRANSPORT BAR ──────────────────────────────────────── */}
             <div style={{
                 display: "flex", alignItems: "center", gap: 8,
-                padding: "12px 20px", background: "#161d2e",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                padding: "12px 20px", background: "var(--pod-surface-3)",
+                borderBottom: "1px solid var(--pod-border)",
                 flexWrap: "wrap",
             }}>
                 {/* Time display */}
-                <div style={{ fontFamily: "monospace", fontSize: 18, fontWeight: 700, color: "#e2e8f0", minWidth: 90, letterSpacing: 1 }}>
+                <div style={{ fontFamily: "monospace", fontSize: 18, fontWeight: 700, color: "var(--pod-text)", minWidth: 90, letterSpacing: 1 }}>
                     {fmtTime(currentTime)}
                 </div>
 
-                <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
+                <div style={{ width: 1, height: 28, background: "var(--pod-border)", margin: "0 4px" }} />
 
                 {/* Rewind 5s */}
                 <button onClick={() => seek(-5)} title="5s orqaga (←)" style={tbtn}>
@@ -370,7 +425,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                 </button>
 
                 {/* Play/Pause */}
-                <button onClick={togglePlay} title="Play/Pause (Space)" style={{ ...tbtn, width: 44, height: 44, borderRadius: "50%", background: isPlaying ? "rgba(99,102,241,0.3)" : "#6366f1", color: "white", fontSize: 18 }} disabled={!wsReady}>
+                <button onClick={togglePlay} title="Play/Pause (Space)" style={{ ...tbtn, width: 44, height: 44, borderRadius: "50%", background: isPlaying ? "rgba(99,102,241,0.3)" : "#6366f1", color: "var(--pod-text)", fontSize: 18 }} disabled={!wsReady}>
                     {isPlaying
                         ? <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
                         : <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
@@ -393,34 +448,34 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15A9 9 0 1 1 20 11.57" /><text x="8" y="16" fontSize="8" fill="currentColor" stroke="none">5</text></svg>
                 </button>
 
-                <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
+                <div style={{ width: 1, height: 28, background: "var(--pod-border)", margin: "0 4px" }} />
 
                 {/* Volume */}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)"><path d="M11 5 6 9H2v6h4l5 4V5zm6.07 2.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--pod-text-2)"><path d="M11 5 6 9H2v6h4l5 4V5zm6.07 2.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
                     <input type="range" min={0} max={1} step={0.05} value={volume} onChange={e => changeVolume(Number(e.target.value))} style={slider} title="Ovoz balandligi" />
-                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", minWidth: 24 }}>{Math.round(volume * 100)}%</span>
+                    <span style={{ fontSize: 10, color: "var(--pod-text-2)", minWidth: 24 }}>{Math.round(volume * 100)}%</span>
                 </div>
 
-                <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
+                <div style={{ width: 1, height: 28, background: "var(--pod-border)", margin: "0 4px" }} />
 
                 {/* Speed */}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>TEZLIK</span>
+                    <span style={{ fontSize: 10, color: "var(--pod-text-2)" }}>TEZLIK</span>
                     {[0.5, 0.75, 1, 1.25, 1.5].map(s => (
                         <button key={s} onClick={() => changeSpeed(s)}
-                            style={{ ...tbtn, fontSize: 10, padding: "3px 7px", borderRadius: 6, minWidth: 0, height: 26, background: speed === s ? "#6366f1" : "rgba(255,255,255,0.06)", color: speed === s ? "white" : "rgba(255,255,255,0.5)" }}>
+                            style={{ ...tbtn, fontSize: 10, padding: "3px 7px", borderRadius: 6, minWidth: 0, height: 26, background: speed === s ? "#6366f1" : "var(--pod-border)", color: speed === s ? "white" : "var(--pod-text-2)" }}>
                             {s}x
                         </button>
                     ))}
                 </div>
 
                 {/* Segment indicator */}
-                <div style={{ marginLeft: "auto", fontSize: 12, color: "rgba(255,255,255,0.4)", fontFamily: "monospace" }}>
+                <div style={{ marginLeft: "auto", fontSize: 12, color: "var(--pod-text-2)", fontFamily: "monospace" }}>
                     {selectedIdx !== null ? (
                         <span style={{ color: "#6366f1" }}>
                             #{selectedIdx + 1}/{segments.length} &nbsp;
-                            <span style={{ color: "rgba(255,255,255,0.35)" }}>{fmtTime(selectedSeg?.startTime)} → {fmtTime(selectedSeg?.endTime)}</span>
+                            <span style={{ color: "var(--pod-text-2)" }}>{fmtTime(selectedSeg?.startTime)} → {fmtTime(selectedSeg?.endTime)}</span>
                         </span>
                     ) : (
                         <span>{segments.length} segment</span>
@@ -429,10 +484,10 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
             </div>
 
             {/* ── KEYBOARD SHORTCUTS HINT ────────────────────────────── */}
-            <div style={{ display: "flex", gap: 16, padding: "6px 20px", background: "#0f1623", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 16, padding: "6px 20px", background: "var(--pod-surface-2)", flexWrap: "wrap" }}>
                 {[["Space", "Play/Pause"], ["←/→", "±5s"], ["↑/↓", "Seg nav"], ["P", "Seg play"], ["Click", "Tanlash"]].map(([k, v]) => (
-                    <span key={k} style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>
-                        <kbd style={{ background: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 4, fontFamily: "monospace", marginRight: 4 }}>{k}</kbd>{v}
+                    <span key={k} style={{ fontSize: 10, color: "var(--pod-muted)" }}>
+                        <kbd style={{ background: "var(--pod-border)", padding: "1px 5px", borderRadius: 4, fontFamily: "monospace", marginRight: 4 }}>{k}</kbd>{v}
                     </span>
                 ))}
             </div>
@@ -441,8 +496,8 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
             <div style={{ display: "flex", gap: 0, flex: 1, minHeight: 500 }}>
 
                 {/* Segment list */}
-                <div style={{ flex: 1, overflowY: "auto", maxHeight: 580, padding: 16, display: "flex", flexDirection: "column", gap: 6, borderRight: "1px solid rgba(255,255,255,0.06)" }}>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                <div style={{ flex: 1, overflowY: "auto", maxHeight: 580, padding: 16, display: "flex", flexDirection: "column", gap: 6, borderRight: "1px solid var(--pod-border)" }}>
+                    <div style={{ fontSize: 11, color: "var(--pod-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
                         {segments.length} ta segment
                     </div>
                     {segments.map((seg, i) => (
@@ -453,8 +508,8 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                 padding: "10px 14px",
                                 cursor: "pointer",
                                 borderRadius: 10,
-                                border: `1px solid ${selectedIdx === i ? "#6366f1" : "rgba(255,255,255,0.06)"}`,
-                                background: selectedIdx === i ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.02)",
+                                border: `1px solid ${selectedIdx === i ? "#6366f1" : "var(--pod-border)"}`,
+                                background: selectedIdx === i ? "rgba(99,102,241,0.12)" : "var(--pod-surface)",
                                 transition: "all 0.15s",
                             }}
                         >
@@ -463,9 +518,9 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                     <span style={{
                                         fontSize: 10, fontWeight: 700, fontFamily: "monospace",
                                         background: REGION_COLORS[i % REGION_COLORS.length].replace("0.3", "0.8").replace("0.35", "0.8").replace("0.28", "0.8"),
-                                        padding: "2px 7px", borderRadius: 99, color: "white",
+                                        padding: "2px 7px", borderRadius: 99, color: "var(--pod-text)",
                                     }}>#{i + 1}</span>
-                                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "monospace" }}>
+                                    <span style={{ fontSize: 10, color: "var(--pod-text-2)", fontFamily: "monospace" }}>
                                         {fmtTime(seg.startTime)} → {fmtTime(seg.endTime)}
                                     </span>
                                 </div>
@@ -483,7 +538,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                     </button>
                                 </div>
                             </div>
-                            <p style={{ margin: 0, fontSize: 12, color: selectedIdx === i ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
+                            <p style={{ margin: 0, fontSize: 12, color: selectedIdx === i ? "var(--pod-text)" : "var(--pod-text-2)", lineHeight: 1.5 }}>
                                 {seg.text}
                             </p>
                         </div>
@@ -491,12 +546,12 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                 </div>
 
                 {/* Edit panel */}
-                <div style={{ width: 400, flexShrink: 0, padding: 20, display: "flex", flexDirection: "column", gap: 14, background: "#0f1623", position: "sticky", top: 0, height: "fit-content" }}>
+                <div style={{ width: 400, flexShrink: 0, padding: 20, display: "flex", flexDirection: "column", gap: 14, background: "var(--pod-surface-2)", position: "sticky", top: 0, height: "fit-content" }}>
                     {selectedIdx !== null ? (
                         <>
                             {/* Header */}
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--pod-text)" }}>
                                     Segment #{selectedIdx + 1}
                                 </span>
                                 <div style={{ display: "flex", gap: 6 }}>
@@ -523,10 +578,10 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                         }}
                                         title="Boshlash vaqti (sekund)"
                                     />
-                                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>s</span>
+                                    <span style={{ fontSize: 9, color: "var(--pod-muted)" }}>s</span>
                                 </div>
 
-                                <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>→</span>
+                                <span style={{ color: "var(--pod-muted)", fontSize: 12 }}>→</span>
 
                                 {/* End time */}
                                 <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(99,102,241,0.12)", borderRadius: 8, padding: "2px 8px 2px 4px", border: "1px solid rgba(99,102,241,0.3)" }}>
@@ -544,11 +599,11 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                         }}
                                         title="Tugash vaqti (sekund)"
                                     />
-                                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>s</span>
+                                    <span style={{ fontSize: 9, color: "var(--pod-muted)" }}>s</span>
                                 </div>
 
                                 {/* Duration badge */}
-                                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: 2 }}>
+                                <span style={{ fontSize: 11, color: "var(--pod-muted)", marginLeft: 2 }}>
                                     ({((selectedSeg?.endTime || 0) - (selectedSeg?.startTime || 0)).toFixed(2)}s)
                                 </span>
 
@@ -565,16 +620,16 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                 rows={10}
                                 style={{
                                     width: "100%", boxSizing: "border-box",
-                                    background: "rgba(255,255,255,0.04)",
-                                    border: "1px solid rgba(255,255,255,0.1)",
-                                    borderRadius: 10, color: "#e2e8f0",
+                                    background: "var(--pod-surface-2)",
+                                    border: "1px solid var(--pod-border)",
+                                    borderRadius: 10, color: "var(--pod-text)",
                                     fontSize: 14, lineHeight: 1.7,
                                     padding: "12px 14px", resize: "vertical",
                                     fontFamily: "system-ui, sans-serif",
                                     outline: "none",
                                 }}
                                 onFocus={e => e.target.style.borderColor = "#6366f1"}
-                                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+                                onBlur={e => e.target.style.borderColor = "var(--pod-border)"}
                                 placeholder="Segment matni..."
                             />
 
@@ -586,7 +641,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                                     style={{
                                         flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
                                         background: saving ? "rgba(99,102,241,0.3)" : "#6366f1",
-                                        color: "white", fontWeight: 700, fontSize: 14, cursor: saving ? "wait" : "pointer",
+                                        color: "var(--pod-text)", fontWeight: 700, fontSize: 14, cursor: saving ? "wait" : "pointer",
                                     }}
                                 >
                                     {saving ? "⏳ Saqlanmoqda..." : "💾 Saqlash"}
@@ -615,16 +670,16 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
                             </div>
 
                             {/* Word count */}
-                            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "right" }}>
+                            <div style={{ fontSize: 11, color: "var(--pod-muted)", textAlign: "right" }}>
                                 {editText.trim().split(/\s+/).filter(Boolean).length} so'z
                             </div>
                         </>
                     ) : (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, flex: 1, opacity: 0.4, padding: 40 }}>
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                            <p style={{ color: "#e2e8f0", fontSize: 13, textAlign: "center", margin: 0 }}>
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--pod-text-2)" strokeWidth="1.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+                            <p style={{ color: "var(--pod-text)", fontSize: 13, textAlign: "center", margin: 0 }}>
                                 Segmentni tanlang<br />
-                                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>ro'yxatdan yoki waveformdan</span>
+                                <span style={{ fontSize: 11, color: "var(--pod-text-2)" }}>ro'yxatdan yoki waveformdan</span>
                             </p>
                         </div>
                     )}
@@ -638,7 +693,7 @@ export default function WaveformEditor({ podcastId, audioUrl }) {
 const tbtn = {
     display: "flex", alignItems: "center", justifyContent: "center",
     width: 36, height: 36, borderRadius: 8, border: "none",
-    background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)",
+    background: "var(--pod-border)", color: "rgba(255,255,255,0.7)",
     cursor: "pointer", flexShrink: 0, transition: "all 0.15s",
     fontSize: 14,
 };
