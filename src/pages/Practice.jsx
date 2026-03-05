@@ -176,7 +176,7 @@ export default function Practice() {
                         // Aks holda bosganda "Test topilmadi" deb dashboardga qaytarib yuboradi.
                         if (testDataFromDb) {
                             const bestResult = findBestResult(assign.id);
-                            const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim() && r.mode === 'exam').length;
+                            const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim()).length;
                             const maxAttempts = assign.maxAttempts || 1;
 
                             const finalTestData = {

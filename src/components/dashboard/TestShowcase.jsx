@@ -27,6 +27,14 @@ const ShowcaseCard = ({ test, onStart }) => {
 
     const isMock = test.type === 'mock_full';
 
+    // TestGrid bilan bir xil tekshiruvlar
+    const { status, attemptsCount = 0, maxAttempts = 1, isStrict, endDate } = test;
+    const canRetake = attemptsCount < maxAttempts;
+    const isCompleted = status === 'completed';
+    const isExpired = status === 'expired';
+    const isUpcoming = status === 'upcoming';
+    const canStart = canRetake && !(isExpired && isStrict) && !isUpcoming;
+
     return (
         <motion.div
             whileHover={{ y: -5 }}
@@ -53,14 +61,32 @@ const ShowcaseCard = ({ test, onStart }) => {
                     <span className="flex items-center gap-1"><Clock size={12} /> {test.duration || 40} min</span>
                     <span className="flex items-center gap-1"><Star size={12} className="text-yellow-500" /> {test.difficulty || 'Medium'}</span>
                 </div>
+
+                <div className="mt-4 flex flex-col gap-1">
+                    <div className={`text-[11px] font-bold uppercase tracking-wider ${attemptsCount >= maxAttempts ? 'text-red-400' : 'text-blue-400'}`}>
+                        Urinishlar: {attemptsCount} / {maxAttempts}
+                    </div>
+                    {endDate && (
+                        <div className="text-[11px] font-medium text-red-400 opacity-90 flex items-center gap-1.5">
+                            <Clock size={12} />
+                            Deadline: {new Date(endDate).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <button
-                onClick={() => onStart(test)}
-                className="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-xl text-white text-xs font-bold transition flex items-center justify-center gap-2 group-hover:border-white/10"
-            >
-                {hasDraft ? 'Davom ettirish' : 'Boshlash'} <ArrowRight size={14} />
-            </button>
+            {canStart ? (
+                <button
+                    onClick={() => onStart(test)}
+                    className="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-xl text-white text-xs font-bold transition flex items-center justify-center gap-2 group-hover:border-white/10"
+                >
+                    {isCompleted ? 'Qayta' : (hasDraft ? 'Davom' : 'Boshlash')} <ArrowRight size={14} />
+                </button>
+            ) : (
+                <div className="mt-6 w-full py-3 bg-white/5 border border-white/5 rounded-xl text-gray-500 text-xs font-bold flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
+                    {isCompleted && !canRetake ? "Tugallangan" : (isExpired && isStrict ? "Muddati o'tgan" : (isUpcoming ? "Kutilmoqda" : "Urinishlar tugagan"))}
+                </div>
+            )}
         </motion.div>
     );
 };

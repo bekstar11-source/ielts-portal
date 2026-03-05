@@ -77,19 +77,42 @@ export function useTestLogic() {
                         groupsSnap.docs.forEach(d => { const gData = d.data(); if (gData.assignedTests) rawAssignments = [...rawAssignments, ...gData.assignedTests]; });
 
                         let maxAttempts = 1;
+                        let isBlockedByStrict = false;
+                        let hasValidAssignment = false;
+                        const now = new Date();
+
                         rawAssignments.forEach(a => {
                             const aid = typeof a === 'string' ? a.trim() : String(a.id).trim();
                             const atype = typeof a === 'string' ? 'test' : (a.type || 'test');
                             const aMax = a.maxAttempts || 1;
+                            const isStrict = a.isStrict || false;
+                            const end = a.endDate ? new Date(a.endDate) : null;
+                            const isExpired = end && now > end;
+
+                            let appliesToThisTest = false;
 
                             if (aid === String(testId).trim() && atype === 'test') {
-                                if (aMax > maxAttempts) maxAttempts = aMax;
+                                appliesToThisTest = true;
                             } else if (atype === 'set') {
                                 const setSchema = setsMap[aid];
-                                const hasTestInSet = setSchema?.testIds?.some(tid => String(tid).trim() === String(testId).trim());
-                                if (hasTestInSet && aMax > maxAttempts) maxAttempts = aMax;
+                                appliesToThisTest = setSchema?.testIds?.some(tid => String(tid).trim() === String(testId).trim());
+                            }
+
+                            if (appliesToThisTest) {
+                                if (aMax > maxAttempts) maxAttempts = aMax;
+                                if (isStrict && isExpired) {
+                                    isBlockedByStrict = true;
+                                } else {
+                                    hasValidAssignment = true;
+                                }
                             }
                         });
+
+                        if (isBlockedByStrict && !hasValidAssignment) {
+                            alert("Ushbu testning muddati tugagan (Strict Mode)!");
+                            navigate("/dashboard");
+                            return;
+                        }
 
                         // 1) Avval tez LocalStorage tekshiruvi (faqat shu test bo'yicha localStorage da saqlangan sanoqni ko'ramiz)
                         const completedKey = `completed_${user.uid}_${testId}_exam`;
@@ -105,8 +128,7 @@ export function useTestLogic() {
                             query(
                                 collection(db, 'results'),
                                 where('userId', '==', user.uid),
-                                where('testId', '==', testId),
-                                where('mode', '==', 'exam')
+                                where('testId', '==', testId)
                             )
                         );
                         if (prevSnap.size >= maxAttempts) {
@@ -326,7 +348,7 @@ export function useTestLogic() {
             await batch.commit();
 
             // ✅ YECHIM 1: Exam yakunlandi — LocalStorage dagi urinishlar sonini oshirish
-            if (testMode === 'exam' && userData?.role !== 'admin') {
+            if (userData?.role !== 'admin') {
                 const completedKey = `completed_${user.uid}_${test.id}_exam`;
                 const currCount = parseInt(localStorage.getItem(completedKey) || '0', 10);
                 localStorage.setItem(completedKey, (currCount + 1).toString());

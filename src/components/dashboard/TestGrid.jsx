@@ -55,8 +55,14 @@ const TestCardContent = ({ test, onStart, onReview }) => {
     const [hasDraft, setHasDraft] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
-    const { type, title, duration, questionsCount, status, result, attemptsCount = 0, maxAttempts = 1 } = test;
+    const { type, title, duration, questionsCount, status, result, attemptsCount = 0, maxAttempts = 1, isStrict, endDate } = test;
     const canRetake = attemptsCount < maxAttempts;
+
+    // Status checks
+    const isCompleted = status === 'completed';
+    const isExpired = status === 'expired';
+    const isUpcoming = status === 'upcoming';
+    const canStart = canRetake && !(isExpired && isStrict) && !isUpcoming;
 
     useEffect(() => {
         if (user && status !== 'completed' && canRetake) {
@@ -69,7 +75,6 @@ const TestCardContent = ({ test, onStart, onReview }) => {
 
     const color = getColor(type);
     const icon = getIcon(type);
-    const isCompleted = status === 'completed';
     // const progress = isCompleted ? 100 : 0; 
 
     // Color mapping
@@ -156,8 +161,16 @@ const TestCardContent = ({ test, onStart, onReview }) => {
                     </div>
 
                     {/* Urinishlar ko'rsatkichi */}
-                    <div className={`mt-3 text-[11px] font-bold uppercase tracking-wider ${attemptsCount >= maxAttempts ? 'text-red-400' : 'text-blue-400'}`}>
-                        Urinishlar: {attemptsCount} / {maxAttempts}
+                    <div className="mt-3 flex flex-col gap-1">
+                        <div className={`text-[11px] font-bold uppercase tracking-wider ${attemptsCount >= maxAttempts ? 'text-red-400' : 'text-blue-400'}`}>
+                            Urinishlar: {attemptsCount} / {maxAttempts}
+                        </div>
+                        {endDate && (
+                            <div className="text-[11px] font-medium text-red-400 opacity-90 flex items-center gap-1.5">
+                                <Clock size={12} />
+                                Deadline: {new Date(endDate).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -194,7 +207,7 @@ const TestCardContent = ({ test, onStart, onReview }) => {
                             </motion.button>
                         )}
 
-                        {(!isCompleted || canRetake) && (
+                        {canStart ? (
                             <motion.button
                                 onClick={() => onStart(test)}
                                 whileHover={{ scale: 1.02 }}
@@ -204,6 +217,10 @@ const TestCardContent = ({ test, onStart, onReview }) => {
                                 {isCompleted ? 'Qayta' : (hasDraft ? 'Davom' : 'Boshlash')}
                                 {!isCompleted && <Play size={16} fill="currentColor" />}
                             </motion.button>
+                        ) : (
+                            <div className="flex-1 py-3.5 rounded-xl bg-white/5 border border-white/5 text-gray-500 font-semibold text-xs transition-colors flex items-center justify-center gap-2 opacity-50 cursor-not-allowed text-center">
+                                {isCompleted && !canRetake ? "Tugallangan" : (isExpired && isStrict ? "Muddati o'tgan" : (isUpcoming ? "Kutilmoqda" : "Urinishlar tugagan"))}
+                            </div>
                         )}
                     </div>
                 </div>
