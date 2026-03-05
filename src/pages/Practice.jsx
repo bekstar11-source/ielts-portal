@@ -157,7 +157,18 @@ export default function Practice() {
                                 const testDetail = testsMap[cleanId];
                                 if (testDetail) {
                                     const bestResult = findBestResult(cleanId);
-                                    return { ...testDetail, status: bestResult ? 'completed' : 'open', result: bestResult };
+                                    const subAttemptsCount = myResults.filter(r => String(r.testId).trim() === cleanId).length;
+                                    // assign (set assignment) dan maxAttempts va deadline olamiz
+                                    const subMaxAttempts = assign.maxAttempts || 1;
+                                    return {
+                                        ...testDetail,
+                                        status: bestResult ? 'completed' : 'open',
+                                        result: bestResult,
+                                        attemptsCount: subAttemptsCount,
+                                        maxAttempts: subMaxAttempts,
+                                        endDate: assign.endDate || null,
+                                        startDate: assign.startDate || null,
+                                    };
                                 }
                                 return null;
                             }).filter(Boolean);
@@ -218,17 +229,45 @@ export default function Practice() {
     }, [user]);
 
     const filteredTests = useMemo(() => {
-        let baseList = rawAssignments;
-        return baseList.filter(item => {
-            const matchesSearch = item.title?.toLowerCase().includes(searchQuery.toLowerCase());
+        const q = searchQuery.toLowerCase();
+
+        const result = [];
+        rawAssignments.forEach(item => {
+            // Type filteri
             let matchesType = true;
             if (filterType !== 'all') {
                 if (filterType === 'mock') matchesType = item.isMock;
                 else if (filterType === 'set') matchesType = item.isSet;
                 else matchesType = item.type === filterType;
             }
-            return matchesSearch && matchesType;
+            if (!matchesType) return;
+
+            // Qidiruv bo'lmasa — hammasi oddiy ko'rinadi
+            if (!q) {
+                result.push(item);
+                return;
+            }
+
+            // To'plam uchun: qidiruv bo'lsa subTestlarni alohida kartochka sifatida chiqar
+            if (item.isSet) {
+                const titleMatch = item.title?.toLowerCase().includes(q);
+                const matchingSubTests = item.subTests?.filter(s => s.title?.toLowerCase().includes(q)) || [];
+
+                if (titleMatch) {
+                    // To'plam nomi mos kelsa — ichidagi BARCHA testlarni alohida chiqar
+                    item.subTests?.forEach(sub => result.push({ ...sub, _fromSet: item.title }));
+                } else if (matchingSubTests.length > 0) {
+                    // Faqat mos kelgan subTestlarni alohida chiqar
+                    matchingSubTests.forEach(sub => result.push({ ...sub, _fromSet: item.title }));
+                }
+                return;
+            }
+
+            // Oddiy test uchun
+            const matchesSearch = !q || item.title?.toLowerCase().includes(q);
+            if (matchesSearch) result.push(item);
         });
+        return result;
     }, [rawAssignments, searchQuery, filterType]);
 
     // PAGINATION LOGIC

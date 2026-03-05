@@ -7,7 +7,7 @@ import ReadingFooter from "./ReadingFooter";
 import { useResizablePane } from "../../hooks/useResizablePane";
 import { useTestSession } from "../../hooks/useTestSession";
 import { generateId, injectKeywordsToHTML } from "../../utils/highlightUtils";
-import VocabularyCanvas from "../ReviewInterface/VocabularyCanvas";
+import VocabSynonymCanvas from "../ReviewInterface/VocabSynonymCanvas";
 
 // --- HIGHLIGHT PERSISTENCE HELPERS ---
 const HL_STORAGE_PREFIX = "reading_rp_hl_";
@@ -40,7 +40,8 @@ export default function ReadingInterface({
   testName,
   onSaveAllWords,
   isSavingWB,
-  keywordTable = []
+  keywordTable = [],
+  userId,
 }) {
   // --- 1. SESSION HOOK ---
   const {
@@ -269,13 +270,12 @@ export default function ReadingInterface({
       </div>
 
       {isReviewMode && (
-        <VocabularyCanvas
+        <VocabSynonymCanvas
           captureData={captureData}
           onClearCapture={onClearCapture}
+          userId={userId}
           testId={testId}
-          testName={testName}
-          onSaveAll={onSaveAllWords}
-          isSaving={isSavingWB}
+          testTitle={testData?.title || testName || testId}
         />
       )}
     </div>

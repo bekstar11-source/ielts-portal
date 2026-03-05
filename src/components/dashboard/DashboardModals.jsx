@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icons } from './Icons';
+import { Clock, HelpCircle } from 'lucide-react';
 
 // --- STYLES FOR SET ITEMS ---
 const getCardStyle = (type) => {
@@ -78,7 +79,7 @@ export default function DashboardModals({
             {/* SET DETAILS MODAL */}
             {selectedSet && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-[#18181b] rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border border-white/10">
+                    <div className="bg-[#18181b] rounded-2xl w-full max-w-7xl max-h-[92vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border border-white/10">
                         <div className="p-5 border-b border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#18181b] z-10">
                             <div>
                                 <h3 className="text-lg font-bold text-white tracking-tight">{selectedSet.title}</h3>
@@ -103,25 +104,58 @@ export default function DashboardModals({
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {selectedSet.subTests.filter(sub => sub.title?.toLowerCase().includes(setSearch.toLowerCase())).map(sub => {
                                     const isSubDone = sub.status === 'completed';
+                                    const attemptsCount = sub.attemptsCount ?? 0;
+                                    const maxAttempts = sub.maxAttempts ?? 1;
+                                    const canRetake = attemptsCount < maxAttempts;
                                     return (
-                                        <div key={sub.id} className={`rounded-xl p-5 border shadow-sm hover:shadow-md transition flex flex-col justify-between h-40 ${getCardStyle(sub.type)}`}>
-                                            <div className="flex justify-between items-start">
-                                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${getBadgeStyle(sub.type)}`}>{sub.type}</span>
-                                                {isSubDone && <Icons.Check className="w-4 h-4 text-green-500" />}
+                                        <div key={sub.id} className={`rounded-xl p-5 border shadow-sm hover:shadow-md transition flex flex-col justify-between min-h-[200px] ${getCardStyle(sub.type)}`}>
+                                            <div>
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${getBadgeStyle(sub.type)}`}>{sub.type}</span>
+                                                    {isSubDone && <Icons.Check className="w-4 h-4 text-green-500" />}
+                                                </div>
+
+                                                <h4 className="text-[15px] font-semibold text-white leading-snug line-clamp-2 mb-3">{sub.title}</h4>
+
+                                                {/* Savol va daqiqa */}
+                                                <div className="flex items-center gap-3 text-[11px] text-gray-400 mb-2">
+                                                    {sub.questionsCount && (
+                                                        <div className="flex items-center gap-1">
+                                                            <HelpCircle size={11} className="opacity-70" />
+                                                            <span>{sub.questionsCount} savol</span>
+                                                        </div>
+                                                    )}
+                                                    {sub.duration && (
+                                                        <div className="flex items-center gap-1">
+                                                            <Clock size={11} className="opacity-70" />
+                                                            <span>{sub.duration} daq</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Urinishlar */}
+                                                <div className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${attemptsCount >= maxAttempts ? 'text-red-400' : 'text-blue-400'}`}>
+                                                    Urinishlar: {attemptsCount} / {maxAttempts}
+                                                </div>
+
+                                                {/* Deadline */}
+                                                {sub.endDate && (
+                                                    <div className="text-[10px] font-medium text-red-400 flex items-center gap-1">
+                                                        <Clock size={10} />
+                                                        {new Date(sub.endDate).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            <h4 className="text-[15px] font-semibold text-white leading-snug line-clamp-2">{sub.title}</h4>
-
-                                            <div className="flex items-end justify-between border-t border-white/5 pt-3 mt-2">
+                                            <div className="flex items-end justify-between border-t border-white/5 pt-3 mt-3">
                                                 {isSubDone ? (
                                                     <>
                                                         <div className="cursor-pointer" title="Score">
                                                             <span className="text-[9px] font-bold text-gray-500 uppercase block">Score</span>
-                                                            <span className="text-xl font-bold text-white">{sub.result.bandScore || sub.result.score}</span>
+                                                            <span className="text-xl font-bold text-white">{sub.result?.bandScore || sub.result?.score}</span>
                                                         </div>
 
                                                         <div className="flex items-center gap-1">
-                                                            {/* 🔥 SET ICHIDAGI REVIEW TUGMASI */}
                                                             <button
                                                                 onClick={() => handleReview(sub)}
                                                                 className="px-2 py-1.5 bg-white/5 hover:bg-white/10 text-xs font-bold rounded-lg text-gray-300 transition"
@@ -129,16 +163,23 @@ export default function DashboardModals({
                                                             >
                                                                 Tahlil
                                                             </button>
-
-                                                            <button onClick={() => handleStartTest(sub)} className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10" title="Qayta ishlash">
-                                                                <Icons.Refresh className="w-3.5 h-3.5 text-gray-400" />
-                                                            </button>
+                                                            {canRetake && (
+                                                                <button onClick={() => handleStartTest(sub)} className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10" title="Qayta ishlash">
+                                                                    <Icons.Refresh className="w-3.5 h-3.5 text-gray-400" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </>
                                                 ) : (
-                                                    <button onClick={() => handleStartTest(sub)} className="w-full bg-white text-black border border-transparent py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition">
-                                                        Start
-                                                    </button>
+                                                    canRetake ? (
+                                                        <button onClick={() => handleStartTest(sub)} className="w-full bg-white text-black border border-transparent py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition">
+                                                            Start
+                                                        </button>
+                                                    ) : (
+                                                        <div className="w-full py-1.5 rounded-lg bg-white/5 text-gray-500 text-xs font-bold text-center cursor-not-allowed opacity-50">
+                                                            Urinishlar tugagan
+                                                        </div>
+                                                    )
                                                 )}
                                             </div>
                                         </div>

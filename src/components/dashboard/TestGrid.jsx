@@ -145,6 +145,14 @@ const TestCardContent = ({ test, onStart, onReview }) => {
                         </span>
                     </div>
 
+                    {/* To'plamdan kelganligi ko'rsatkichi */}
+                    {test._fromSet && (
+                        <div className="flex items-center gap-1.5 mb-2">
+                            <Folder size={11} className="text-blue-400 opacity-70" />
+                            <span className="text-[10px] text-blue-400 font-medium truncate">{test._fromSet}</span>
+                        </div>
+                    )}
+
                     <h3 className="text-2xl font-semibold leading-[1.1] mb-2 text-white tracking-tight line-clamp-2">
                         {title}
                     </h3>

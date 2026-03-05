@@ -67,3 +67,70 @@ export async function batchAddWordsToBank(userId, wordsArray) {
 
     await batch.commit();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SYNONYM / ANTONYM PAIRS  (users/{uid}/synonymPairs/{testId}/pairs/{pairId})
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Barcha juftlarni Firestore ga saqlash.
+ * Har bir juft uchun doc ID = pair.id (lokal state dagi)
+ * Bu funksiya har gal Canvas "Saqlash" bosilganda chaqiriladi.
+ */
+export async function saveSynonymPairs(userId, testId, pairs) {
+    if (!userId || !testId || !pairs || pairs.length === 0) return;
+    const batch = writeBatch(db);
+
+    pairs.forEach((pair) => {
+        const ref = doc(db, "users", userId, "synonymPairs", testId, "pairs", pair.id);
+        batch.set(ref, {
+            passageWord: pair.passageWord || "",
+            questionWord: pair.questionWord || "",
+            type: pair.type || "synonym",
+            testId,
+            createdAt: serverTimestamp(),
+        }, { merge: true });
+    });
+
+    await batch.commit();
+}
+
+
+/**
+ * Bitta test uchun barcha juftlarni yuklash.
+ */
+export async function getSynonymPairs(userId, testId) {
+    if (!userId || !testId) return [];
+    const ref = collection(db, "users", userId, "synonymPairs", testId, "pairs");
+    const snapshot = await getDocs(query(ref, orderBy("createdAt", "asc")));
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * Bir nechta testId uchun juftlar sonini parallel olish.
+ * Qaytadi: { [testId]: count }
+ */
+export async function getSynonymPairCounts(userId, testIds) {
+    if (!userId || !testIds || testIds.length === 0) return {};
+    const counts = {};
+    await Promise.all(
+        testIds.map(async (testId) => {
+            try {
+                const ref = collection(db, "users", userId, "synonymPairs", testId, "pairs");
+                const snapshot = await getDocs(ref);
+                counts[testId] = snapshot.size;
+            } catch {
+                counts[testId] = 0;
+            }
+        })
+    );
+    return counts;
+}
+
+/**
+ * Bitta juftni o'chirish.
+ */
+export async function deleteSynonymPair(userId, testId, pairId) {
+    const ref = doc(db, "users", userId, "synonymPairs", testId, "pairs", pairId);
+    await deleteDoc(ref);
+}

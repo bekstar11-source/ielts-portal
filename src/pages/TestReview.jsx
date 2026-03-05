@@ -289,6 +289,7 @@ export default function TestReview() {
                         onSaveAllWords={handleSaveAllWords}
                         isSavingWB={isSavingWB}
                         keywordTable={testData.keywordTable || MOCK_KEYWORD_TABLE}
+                        userId={user?.uid}
                     />
                 ) : testData.type === 'listening' ? (
                     <ListeningInterface

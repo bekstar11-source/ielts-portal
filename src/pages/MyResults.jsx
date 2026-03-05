@@ -4,7 +4,7 @@ import { collection, query, where, getDocs, orderBy, limit, startAfter, endBefor
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { IoChevronBack, IoDocumentTextOutline, IoHeadsetOutline, IoMicOutline, IoCreateOutline, IoTimeOutline, IoArrowForward, IoChevronForward } from "react-icons/io5";
-
+import { getSynonymPairCounts } from "../utils/wordbankUtils";
 import { calculateBandScore } from "../utils/ieltsScoring";
 
 const getTestTheme = (type) => {
@@ -34,6 +34,7 @@ export default function MyResults() {
 
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [synonymCounts, setSynonymCounts] = useState({}); // { [testId]: count }
 
   const [lastDoc, setLastDoc] = useState(null);
   const [firstDoc, setFirstDoc] = useState(null);
@@ -65,6 +66,18 @@ export default function MyResults() {
         setPageHistory([]);
         setIsNextAvailable(snapshot.docs.length === itemsPerPage);
 
+        // Reading testlar uchun sinonim sonini yuklaymiz
+        if (user) {
+          const readingTestIds = data
+            .filter((r) => r.type === 'reading' && r.testId)
+            .map((r) => r.testId);
+          if (readingTestIds.length > 0) {
+            getSynonymPairCounts(user.uid, readingTestIds)
+              .then(setSynonymCounts)
+              .catch(console.error);
+          }
+        }
+
       } catch (error) {
         console.error("Firebase Error:", error);
       } finally {
@@ -94,6 +107,16 @@ export default function MyResults() {
         setFirstDoc(snapshot.docs[0]);
         setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
         setIsNextAvailable(snapshot.docs.length === itemsPerPage);
+
+        // Yangi sahifa uchun sinonim sonini ham olamiz
+        const readingTestIds = data
+          .filter((r) => r.type === 'reading' && r.testId)
+          .map((r) => r.testId);
+        if (readingTestIds.length > 0) {
+          getSynonymPairCounts(user.uid, readingTestIds)
+            .then(setSynonymCounts)
+            .catch(console.error);
+        }
       } else {
         setIsNextAvailable(false);
       }
@@ -245,6 +268,19 @@ export default function MyResults() {
                             <div className="flex items-center gap-1" title="Sarflangan vaqt">
                               {Math.floor(res.timeSpent / 60) > 0 ? `${Math.floor(res.timeSpent / 60)} daq ` : ''}
                               {Math.floor(res.timeSpent % 60)} son
+                            </div>
+                          </>
+                        )}
+                        {/* Sinonim badge - faqat reading uchun */}
+                        {res.type === 'reading' && res.testId && synonymCounts[res.testId] > 0 && (
+                          <>
+                            <div className="w-1 h-1 rounded-full bg-[#a0b0cb]/40"></div>
+                            <div
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300 font-semibold"
+                              title="Topilgan sinonim / antonim juftlari"
+                            >
+                              <span className="text-[10px]">📖</span>
+                              <span>{synonymCounts[res.testId]} sinonim</span>
                             </div>
                           </>
                         )}
