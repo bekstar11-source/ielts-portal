@@ -81,7 +81,10 @@ export function usePodcastAttempt(podcastId) {
     // Bosqich natijasini saqlash va keyingi bosqichga o'tish
     const completeStage = useCallback(
         async (stage, results) => {
-            if (!attempt) return;
+            if (!attempt) {
+                alert("Xato: Attempt hook is null or not loaded!");
+                return;
+            }
             setSaving(true);
 
             const stageKey = ["dictation", "mcq", "gapFill", "vocab", "speaking"][stage - 1];
@@ -108,6 +111,8 @@ export function usePodcastAttempt(podcastId) {
 
                 if (stage === 5) return "/podcast-completed";
             } catch (err) {
+                console.error("completeStage error:", err);
+                alert("Baza bilan xato: " + err.message);
                 setError(err.message);
             } finally {
                 setSaving(false);

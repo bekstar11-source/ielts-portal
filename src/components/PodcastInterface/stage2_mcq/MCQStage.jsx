@@ -22,13 +22,19 @@ export default function MCQStage({ podcastId, audioUrl, onComplete }) {
     useEffect(() => {
         if (!podcastId) return;
         const fetch = async () => {
-            const q = query(
-                collection(db, "podcasts", podcastId, "mcqQuestions"),
-                orderBy("index")
-            );
-            const snap = await getDocs(q);
-            setQuestions(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-            setLoading(false);
+            try {
+                const q = query(
+                    collection(db, "podcasts", podcastId, "mcqQuestions"),
+                    orderBy("index")
+                );
+                const snap = await getDocs(q);
+                setQuestions(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+            } catch (err) {
+                console.error("MCQ savollarni yuklashda xatolik:", err);
+                alert("MCQ savollarini yuklashda xato yuz berdi: " + err.message);
+            } finally {
+                setLoading(false);
+            }
         };
         fetch();
     }, [podcastId]);
@@ -160,6 +166,16 @@ export default function MCQStage({ podcastId, audioUrl, onComplete }) {
 
     return (
         <div className="pod-animate-in" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <button
+                onClick={() => onComplete({ correct: 0, total: questions.length })}
+                style={{
+                    padding: "8px 16px", background: "var(--pod-warning)",
+                    color: "white", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: "bold",
+                    boxShadow: "0 4px 12px rgba(245,158,11,0.3)", width: "fit-content"
+                }}
+            >
+                Tuzatish: MCQ'ni tez o'tkazib yuborish (Skip to Stage 3)
+            </button>
             <audio ref={audioRef} style={{ display: "none" }} />
 
             {/* ── Score + progress bar ─────────────────── */}

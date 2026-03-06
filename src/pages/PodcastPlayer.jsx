@@ -42,24 +42,51 @@ export default function PodcastPlayer() {
     const [vocabPhase, setVocabPhase] = useState("practice"); // 'practice' | 'exam'
     const [vocabWords, setVocabWords] = useState([]);
 
-    const { attempt, currentStage, stageResults, saving, completeStage } = usePodcastAttempt(podcastId);
+    const { attempt, currentStage, stageResults, saving, completeStage, loading: attemptLoading } = usePodcastAttempt(podcastId);
 
     useEffect(() => {
-        getDoc(doc(db, "podcasts", podcastId)).then((snap) => {
-            if (snap.exists()) setPodcast({ id: snap.id, ...snap.data() });
-            setLoading(false);
-        });
+        getDoc(doc(db, "podcasts", podcastId))
+            .then((snap) => {
+                if (snap.exists()) setPodcast({ id: snap.id, ...snap.data() });
+            })
+            .catch(err => console.error("Error fetching podcast:", err))
+            .finally(() => setLoading(false));
     }, [podcastId]);
 
     const handleStageComplete = async (results) => {
-        await completeStage(currentStage, results);
-        if (currentStage === 4) setVocabPhase("practice");
+        try {
+            console.log("Saving stage:", currentStage, "with results:", results);
+            await completeStage(currentStage, results);
+            if (currentStage === 4) setVocabPhase("practice");
+        } catch (err) {
+            console.error(err);
+            alert("Error saving: " + err.message);
+        }
     };
 
-    if (loading || !podcast) {
+    if (loading || attemptLoading) {
         return (
             <div className="podcast-layout" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-                <div style={{ color: "var(--pod-text-2)" }}>Yuklanmoqda...</div>
+                <div style={{ color: "var(--pod-text-2)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                    <div className="pod-spinner" />
+                    <span>{loading ? "Podcast ma'lumotlari yuklanmoqda..." : "Natijalar tekshirilmoqda..."}</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (!podcast) {
+        return (
+            <div className="podcast-layout" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+                <div style={{ color: "var(--pod-error)" }}>Xatolik: Bunday podcast topilmadi.</div>
+            </div>
+        );
+    }
+
+    if (!attempt) {
+        return (
+            <div className="podcast-layout" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+                <div style={{ color: "var(--pod-error)" }}>Xatolik: Sizning urinishingizni bazadan olish imkoni bo'lmadi.</div>
             </div>
         );
     }
