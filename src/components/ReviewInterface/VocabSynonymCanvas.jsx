@@ -79,7 +79,7 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
         setStep(0);
     };
 
-    // Save to synonymPairs AND WordBank keywords
+    // Save to synonymPairs (single source of truth)
     const handleSave = useCallback(async () => {
         if (!userId || !testId) {
             alert('userId yoki testId topilmadi!');
@@ -90,15 +90,18 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
 
         setIsSaving(true);
         try {
-            const withRealIds = toSave.map((p) => ({
-                ...p,
-                id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-            }));
+            // Generate stable IDs for unsaved pairs
+            const idMap = {};
+            const withRealIds = toSave.map((p) => {
+                const newId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                idMap[p.id] = newId;
+                return { ...p, id: newId };
+            });
 
-            // 1. Save to synonymPairs subcollection
+            // Save to synonymPairs subcollection
             await saveSynonymPairs(userId, testId, withRealIds);
 
-            // 2. Save to WordBank keywords
+            // Also save to WordBank keywords for the Keywords tab
             const wordbankEntries = withRealIds.map((p) => ({
                 passageWord: p.passageWord || '',
                 questionWord: p.questionWord || '',
@@ -108,9 +111,11 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
             }));
             await batchAddWordsToBank(userId, wordbankEntries);
 
-            // Reload
-            const fresh = await getSynonymPairs(userId, testId);
-            setPairs(fresh);
+            // Update local state with new IDs — no extra re-fetch needed
+            setPairs(prev => prev.map(p => {
+                if (idMap[p.id]) return { ...p, id: idMap[p.id] };
+                return p;
+            }));
             setUnsavedIds(new Set());
             setSavedFlash(true);
             setTimeout(() => setSavedFlash(false), 2500);

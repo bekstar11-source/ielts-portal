@@ -10,6 +10,7 @@ import { db, storage } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
 import WaveformEditor from "../components/PodcastInterface/admin/WaveformEditor";
 import VocabAIHelper from "../components/PodcastInterface/admin/VocabAIHelper";
+import MCQEditor from "../components/PodcastInterface/admin/MCQEditor";
 import "../components/PodcastInterface/shared/PodcastStyles.css";
 
 const DIFFICULTIES = [
@@ -275,25 +276,32 @@ export default function CreatePodcast() {
                     <>
                         {/* Tabs */}
                         <div style={{ display: "flex", gap: 0, marginBottom: 16, background: "var(--pod-surface-2)", padding: 4, borderRadius: "var(--pod-radius)", width: "fit-content" }}>
-                            {["segments", "vocab"].map((tab) => (
+                            {[
+                                { key: "segments", label: "🌊 Segmentlar" },
+                                { key: "mcq", label: "✅ MCQ Savollar" },
+                                { key: "vocab", label: "📚 Lug'at (AI)" },
+                            ].map(({ key, label }) => (
                                 <button
-                                    key={tab}
+                                    key={key}
                                     className="pod-btn"
                                     style={{
                                         padding: "8px 20px", fontSize: 13, borderRadius: 10,
-                                        background: activeTab === tab ? "var(--pod-accent)" : "transparent",
-                                        color: activeTab === tab ? "white" : "var(--pod-text-2)",
+                                        background: activeTab === key ? "var(--pod-accent)" : "transparent",
+                                        color: activeTab === key ? "white" : "var(--pod-text-2)",
                                         boxShadow: "none",
                                     }}
-                                    onClick={() => setActiveTab(tab)}
+                                    onClick={() => setActiveTab(key)}
                                 >
-                                    {tab === "segments" ? "🌊 Segmentlar" : "📚 Lug'at (AI)"}
+                                    {label}
                                 </button>
                             ))}
                         </div>
 
                         {activeTab === "segments" && (
                             <WaveformEditor podcastId={podcast.id} audioUrl={podcast.audioUrl} />
+                        )}
+                        {activeTab === "mcq" && (
+                            <MCQEditor podcastId={podcast.id} audioUrl={podcast.audioUrl} />
                         )}
                         {activeTab === "vocab" && (
                             <VocabAIHelper podcastId={podcast.id} transcript={podcast.fullTranscript} level={form.level} hintWords={form.hintWords} />

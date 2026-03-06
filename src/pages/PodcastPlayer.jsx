@@ -102,12 +102,24 @@ export default function PodcastPlayer() {
                         </h3>
 
                         {currentStage === 1 && (
-                            <DictationStage
-                                podcastId={podcastId}
-                                audioUrl={podcast.audioUrl}
-                                hintWords={podcast.hintWords}
-                                onComplete={(r) => handleStageComplete(r)}
-                            />
+                            <>
+                                <button
+                                    onClick={() => handleStageComplete({ accuracyPct: 0, segments: [], skippedAll: true })}
+                                    style={{
+                                        marginBottom: 16, padding: "8px 16px", background: "var(--pod-warning)",
+                                        color: "white", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: "bold",
+                                        boxShadow: "0 4px 12px rgba(245,158,11,0.3)"
+                                    }}
+                                >
+                                    Tuzatish: Dictation'ni tez o'tkazib yuborish (Skip to Stage 2)
+                                </button>
+                                <DictationStage
+                                    podcastId={podcastId}
+                                    audioUrl={podcast.audioUrl}
+                                    hintWords={podcast.hintWords}
+                                    onComplete={(r) => handleStageComplete(r)}
+                                />
+                            </>
                         )}
 
                         {currentStage === 2 && (

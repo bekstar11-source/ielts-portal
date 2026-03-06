@@ -435,8 +435,8 @@ export default function Wordbank() {
                                                         <tr key={kw.id} className="border-t border-white/5 hover:bg-white/5 transition-colors group">
                                                             <td className="py-3 px-4 font-bold">{kw.passageWord}</td>
                                                             <td className="py-3 px-4 text-center">
-                                                                <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase ${kw.type === 'synonym' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'}`}>
-                                                                    {kw.type === 'synonym' ? 'SYN' : 'ANT'}
+                                                                <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase ${kw.type === 'synonym' ? 'bg-emerald-500/20 text-emerald-400' : kw.type === 'antonym' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                                                    {kw.type === 'synonym' ? 'SYN' : kw.type === 'antonym' ? 'ANT' : 'PHR'}
                                                                 </span>
                                                             </td>
                                                             <td className="py-3 px-4 font-semibold text-emerald-300">{kw.questionWord}</td>

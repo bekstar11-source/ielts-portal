@@ -232,7 +232,7 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
     };
 
     if (loading) return (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 60, color: "rgba(255,255,255,0.4)", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 60, color: "var(--pod-text-2)", flexDirection: "column" }}>
             <div style={{ width: 32, height: 32, border: "2px solid rgba(99,102,241,0.2)", borderTopColor: "#6366f1", borderRadius: "50%", animation: "dspin 0.8s linear infinite" }} />
             Yuklanmoqda...
         </div>
@@ -262,8 +262,8 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                     onClick={() => goToSegment(currentIdx - 1)}
                     disabled={currentIdx === 0}
                     style={{
-                        background: "none", border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: 8, color: currentIdx === 0 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
+                        background: "none", border: "1px solid var(--pod-border)",
+                        borderRadius: 8, color: currentIdx === 0 ? "var(--pod-muted)" : "var(--pod-text-2)",
                         padding: "6px 12px", cursor: currentIdx === 0 ? "default" : "pointer",
                         fontSize: 16, transition: "all 0.15s",
                     }}
@@ -271,7 +271,7 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
 
                 {/* Counter */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0", letterSpacing: 0.3 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--pod-text)", letterSpacing: 0.3 }}>
                         {currentIdx + 1} / {segments.length}
                     </span>
                     {/* Progress dots */}
@@ -285,7 +285,7 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                                     style={{
                                         width: absIdx === currentIdx ? 20 : 6,
                                         height: 6, borderRadius: 3,
-                                        background: absIdx === currentIdx ? "#6366f1" : allResults.find(r => r.segmentIndex === absIdx) ? "#10b981" : "rgba(255,255,255,0.12)",
+                                        background: absIdx === currentIdx ? "#6366f1" : allResults.find(r => r.segmentIndex === absIdx) ? "#10b981" : "var(--pod-border)",
                                         border: "none", cursor: "pointer", padding: 0,
                                         transition: "all 0.2s",
                                     }}
@@ -300,8 +300,8 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                     onClick={() => goToSegment(currentIdx + 1)}
                     disabled={currentIdx === segments.length - 1}
                     style={{
-                        background: "none", border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: 8, color: currentIdx === segments.length - 1 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
+                        background: "none", border: "1px solid var(--pod-border)",
+                        borderRadius: 8, color: currentIdx === segments.length - 1 ? "var(--pod-muted)" : "var(--pod-text-2)",
                         padding: "6px 12px", cursor: currentIdx === segments.length - 1 ? "default" : "pointer",
                         fontSize: 16, transition: "all 0.15s",
                     }}
@@ -326,12 +326,12 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
             {/* ── Hint words ─────────────────────────────── */}
             {hintWords && hintWords.trim() && (
                 <div style={{ marginBottom: 16, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginRight: 2 }}>💡</span>
+                    <span style={{ fontSize: 11, color: "var(--pod-text-2)", marginRight: 2 }}>💡</span>
                     {hintWords.split(",").map((w, i) => w.trim() && (
                         <span key={i} style={{
-                            fontSize: 12, color: "#fcd34d",
-                            background: "rgba(245,158,11,0.1)",
-                            border: "1px solid rgba(245,158,11,0.15)",
+                            fontSize: 12, color: "var(--pod-warning)",
+                            background: "var(--pod-surface-3)",
+                            border: "1px solid var(--pod-border)",
                             padding: "2px 8px", borderRadius: 6, fontFamily: "monospace",
                         }}>{w.trim()}</span>
                     ))}
@@ -349,10 +349,10 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                 disabled={hasOk} // faqat to'g'ri bo'lganda yopiladi
                 style={{
                     width: "100%", boxSizing: "border-box",
-                    background: "rgba(255,255,255,0.04)",
+                    background: "var(--pod-surface-2)",
                     border: `2px solid ${hasError ? "rgba(239,68,68,0.5)" : hasOk ? "rgba(16,185,129,0.5)" : "rgba(99,102,241,0.5)"}`,
                     borderRadius: 12,
-                    color: "#e2e8f0", fontFamily: "'Inter', sans-serif",
+                    color: "var(--pod-text)", fontFamily: "'Inter', sans-serif",
                     fontSize: 17, lineHeight: 1.7, padding: "14px 18px",
                     resize: "none", outline: "none",
                     transition: "border-color 0.2s, box-shadow 0.2s",
@@ -368,7 +368,7 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                 {/* Status */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {isListening && (
-                        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 13, color: "var(--pod-text-2)", display: "flex", alignItems: "center", gap: 6 }}>
                             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#6366f1", display: "inline-block", animation: "dripple 1.4s ease infinite" }} />
                             Tinglang...
                         </span>
@@ -376,7 +376,7 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                     {hasError && (
                         <span style={{ fontSize: 14, color: "#f59e0b", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
                             ⚠ Xato
-                            {attemptCount > 1 && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>({attemptCount}-urinish)</span>}
+                            {attemptCount > 1 && <span style={{ fontSize: 11, color: "var(--pod-text-2)", fontWeight: 400 }}>({attemptCount}-urinish)</span>}
                         </span>
                     )}
                     {hasOk && (
@@ -390,14 +390,14 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                         onClick={handleSkip}
                         style={{
                             padding: "6px 16px", borderRadius: 8,
-                            background: "rgba(255,255,255,0.06)",
-                            border: "1px solid rgba(255,255,255,0.12)",
-                            color: "rgba(255,255,255,0.5)",
+                            background: "var(--pod-surface-2)",
+                            border: "1px solid var(--pod-border)",
+                            color: "var(--pod-text-2)",
                             fontSize: 13, cursor: "pointer",
                             fontFamily: "inherit", transition: "all 0.15s",
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "var(--pod-surface-3)"; e.currentTarget.style.color = "var(--pod-text)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "var(--pod-surface-2)"; e.currentTarget.style.color = "var(--pod-text-2)"; }}
                     >
                         Skip
                     </button>
@@ -405,30 +405,32 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
             </div>
 
             {/* ── Correct answer display (Daily Dictation style) ── */}
-            {hasError && showFullAnswer && correctWordDiff.length > 0 && (
-                <div style={{ marginBottom: 16, lineHeight: 2.0, fontSize: 17, fontWeight: 500 }}>
-                    {(() => {
-                        const firstErrIdx = correctWordDiff.findIndex(w => w.status === "incorrect");
-                        return correctWordDiff.map((item, i) => {
-                            // Faqat birinchi xato so'zni to'liq va yashil (tuzatish) qilib ko'rsatamiz
-                            // Undan keyingi hamma xato / topilmagan so'zlarni yashiramiz (___)
-                            const isFirstErr = item.status === "incorrect" && i === firstErrIdx;
-                            const isPastErr = item.status === "incorrect" && i > firstErrIdx;
-                            return (
-                                <span key={i} style={{
-                                    color: isPastErr ? "rgba(255,255,255,0.2)" : (item.status === "correct" ? "#e2e8f0" : "#34d399"),
-                                    fontWeight: isPastErr ? 400 : (item.status === "incorrect" ? 700 : 400),
-                                    letterSpacing: isPastErr ? 1 : 0,
-                                    textDecoration: isFirstErr ? "underline wavy #f97316" : "none",
-                                    textUnderlineOffset: 4,
-                                }}>
-                                    {isPastErr ? "___" : item.word}{i < correctWordDiff.length - 1 ? " " : ""}
-                                </span>
-                            );
-                        });
-                    })()}
-                </div>
-            )}
+            {
+                hasError && showFullAnswer && correctWordDiff.length > 0 && (
+                    <div style={{ marginBottom: 16, lineHeight: 2.0, fontSize: 17, fontWeight: 500 }}>
+                        {(() => {
+                            const firstErrIdx = correctWordDiff.findIndex(w => w.status === "incorrect");
+                            return correctWordDiff.map((item, i) => {
+                                // Faqat birinchi xato so'zni to'liq va yashil (tuzatish) qilib ko'rsatamiz
+                                // Undan keyingi hamma xato / topilmagan so'zlarni yashiramiz (___)
+                                const isFirstErr = item.status === "incorrect" && i === firstErrIdx;
+                                const isPastErr = item.status === "incorrect" && i > firstErrIdx;
+                                return (
+                                    <span key={i} style={{
+                                        color: isPastErr ? "var(--pod-muted)" : (item.status === "correct" ? "var(--pod-text)" : "#34d399"),
+                                        fontWeight: isPastErr ? 400 : (item.status === "incorrect" ? 700 : 400),
+                                        letterSpacing: isPastErr ? 1 : 0,
+                                        textDecoration: isFirstErr ? "underline wavy #f97316" : "none",
+                                        textUnderlineOffset: 4,
+                                    }}>
+                                        {isPastErr ? "___" : item.word}{i < correctWordDiff.length - 1 ? " " : ""}
+                                    </span>
+                                );
+                            });
+                        })()}
+                    </div>
+                )
+            }
 
             {/* ── Action buttons ─────────────────────────── */}
             <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
@@ -445,7 +447,7 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                         }}
                     >
-                        Tekshirish <kbd style={{ fontSize: 11, opacity: 0.6, background: "rgba(255,255,255,0.15)", padding: "2px 7px", borderRadius: 4, fontFamily: "monospace" }}>Enter</kbd>
+                        Tekshirish <kbd style={{ fontSize: 11, opacity: 0.6, background: "var(--pod-muted)", padding: "2px 7px", borderRadius: 4, fontFamily: "monospace" }}>Enter</kbd>
                     </button>
                 )}
 
@@ -455,8 +457,8 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                             onClick={handleRelisten}
                             style={{
                                 padding: "12px 16px", borderRadius: 10,
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                background: "transparent", color: "rgba(255,255,255,0.4)",
+                                border: "1px solid var(--pod-border)",
+                                background: "transparent", color: "var(--pod-text-2)",
                                 fontSize: 13, cursor: "pointer",
                                 fontFamily: "inherit", transition: "all 0.15s",
                             }}
@@ -503,12 +505,12 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
             </div>
 
             {/* ── Options row (Daily Dictation style) ──── */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 4, borderTop: "1px solid var(--pod-border)" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
                     <span style={{
                         width: 20, height: 20, borderRadius: 5,
-                        background: showFullAnswer ? "#6366f1" : "rgba(255,255,255,0.08)",
-                        border: showFullAnswer ? "none" : "1px solid rgba(255,255,255,0.15)",
+                        background: showFullAnswer ? "#6366f1" : "var(--pod-surface-3)",
+                        border: showFullAnswer ? "none" : "1px solid var(--pod-muted)",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         flexShrink: 0, transition: "all 0.15s",
                     }}>
@@ -520,15 +522,18 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                         onChange={e => setShowFullAnswer(e.target.checked)}
                         style={{ display: "none" }}
                     />
-                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>To'g'ri javobni ko'rsat (xato bo'lganda)</span>
+                    <span style={{ fontSize: 13, color: "var(--pod-text-2)" }}>To'g'ri javobni ko'rsat (xato bo'lganda)</span>
                 </label>
             </div>
 
             {/* ── Keyboard hints ──────────────────────────── */}
             <div style={{ display: "flex", gap: 16, paddingTop: 12, flexWrap: "wrap" }}>
                 {[["Space", "Ijro/Pauza"], ["Esc", "Yozish"], ["Enter", "Tekshirish"]].map(([k, l]) => (
-                    <span key={k} style={{ fontSize: 11, color: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", gap: 4 }}>
-                        <kbd style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "1px 5px", borderRadius: 4, fontFamily: "monospace", fontSize: 10 }}>{k}</kbd>
+                    <span key={k} style={{ fontSize: 11, color: "var(--pod-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                        <kbd style={{
+                            background: "var(--pod-surface-2)", border: "1px solid var(--pod-border)",
+                            padding: "1px 5px", borderRadius: 4, fontFamily: "monospace", fontSize: 10
+                        }}>{k}</kbd>
                         {l}
                     </span>
                 ))}

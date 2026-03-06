@@ -80,8 +80,8 @@ export default function AudioPlayerBar({
     return (
         <div style={{
             display: "flex", alignItems: "center", gap: 12,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "var(--pod-surface-2)",
+            border: "1px solid var(--pod-border)",
             borderRadius: 12, padding: "12px 16px",
         }}>
             {/* ─ Play / Pause ─ */}
@@ -112,12 +112,12 @@ export default function AudioPlayerBar({
                 style={{
                     display: "flex", alignItems: "center", gap: 4,
                     background: "none", border: "none",
-                    color: "rgba(255,255,255,0.4)", cursor: "pointer",
+                    color: "var(--pod-text-2)", cursor: "pointer",
                     padding: "6px 4px", fontSize: 12, fontFamily: "inherit",
                     transition: "color 0.15s", flexShrink: 0,
                 }}
-                onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
-                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}
+                onMouseEnter={e => e.currentTarget.style.color = "var(--pod-text)"}
+                onMouseLeave={e => e.currentTarget.style.color = "var(--pod-text-2)"}
             >
                 <RotateCcw size={14} />
                 <span>-3s</span>
@@ -130,12 +130,12 @@ export default function AudioPlayerBar({
                 style={{
                     display: "flex", alignItems: "center",
                     background: "none", border: "none",
-                    color: "rgba(255,255,255,0.4)", cursor: "pointer",
+                    color: "var(--pod-text-2)", cursor: "pointer",
                     padding: "6px 4px",
                     transition: "color 0.15s", flexShrink: 0,
                 }}
-                onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
-                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}
+                onMouseEnter={e => e.currentTarget.style.color = "var(--pod-text)"}
+                onMouseLeave={e => e.currentTarget.style.color = "var(--pod-text-2)"}
             >
                 <RefreshCw size={14} />
             </button>
@@ -144,10 +144,10 @@ export default function AudioPlayerBar({
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
                 {/* Time row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12, fontFamily: "monospace", color: "rgba(255,255,255,0.65)", fontVariantNumeric: "tabular-nums" }}>
+                    <span style={{ fontSize: 12, fontFamily: "monospace", color: "var(--pod-text-2)", fontVariantNumeric: "tabular-nums" }}>
                         {fmt(relTime)}
                     </span>
-                    <span style={{ fontSize: 12, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", fontVariantNumeric: "tabular-nums" }}>
+                    <span style={{ fontSize: 12, fontFamily: "monospace", color: "var(--pod-text-2)", fontVariantNumeric: "tabular-nums" }}>
                         {fmt(segDuration)}
                     </span>
                 </div>
@@ -157,7 +157,7 @@ export default function AudioPlayerBar({
                     ref={barRef}
                     onClick={handleBarClick}
                     style={{
-                        height: 5, background: "rgba(255,255,255,0.1)",
+                        height: 5, background: "var(--pod-surface-3)",
                         borderRadius: 99, overflow: "hidden", cursor: "pointer",
                         position: "relative",
                     }}
