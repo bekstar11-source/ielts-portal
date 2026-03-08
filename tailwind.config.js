@@ -37,6 +37,7 @@ export default {
       animation: {
         'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
         'breathe-glow': 'breatheGlow 10s ease-in-out infinite alternate',
+        'meteor-effect': 'meteor 5s linear infinite',
       },
       keyframes: {
         fadeInUp: {
@@ -51,7 +52,12 @@ export default {
           '0%': { transform: 'translateY(0) scale(1)', opacity: '0' },
           '10%': { opacity: '0.8' },
           '100%': { transform: 'translateY(-400px) scale(0)', opacity: '0' },
-        }
+        },
+        meteor: {
+          '0%': { transform: 'rotate(215deg) translateX(0)', opacity: '1' },
+          '70%': { opacity: '1' },
+          '100%': { transform: 'rotate(215deg) translateX(-500px)', opacity: '0' },
+        },
       }
     },
   },

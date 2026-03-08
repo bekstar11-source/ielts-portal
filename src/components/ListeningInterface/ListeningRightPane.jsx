@@ -1,5 +1,4 @@
 import React, { memo } from "react";
-import { HighlighterIcon } from "./ListeningComponents";
 import { MapLabeling, Matching, SelectionBox, TableCompletion, NoteCompletion, FlowChart, StandardMCQ } from "./ListeningQuestionTypes";
 import { useListeningHighlight } from "../../hooks/useListeningHighlight";
 
@@ -12,15 +11,15 @@ const ListeningRightPane = memo(({
     textSize = "text-base",
     handleLocationClick,
     testMode,
-    onIntroEnd      // <-- intro tugagach audio play triggerini yuboradi
+    onIntroEnd,
+    isHighlighterActive: isHighlighterActiveProp,
 }) => {
-    // --- HIGHLIGHT HOOK (localStorage da saqlanadi — part o'zgarganda yo'qolmaydi) ---
+    // --- HIGHLIGHT HOOK ---
+    // isHighlighterActiveProp props orqali kelsa hookka uzatiladi (tashqaridan boshqariladi)
     const {
         containerRef,
-        isHighlighterActive,
-        setIsHighlighterActive,
         handleTextSelection,
-    } = useListeningHighlight(testData?.id, activePart, userAnswers);
+    } = useListeningHighlight(testData?.id, activePart, userAnswers, isHighlighterActiveProp);
 
     // --- INTRO BLUR LOGIC ---
     const [introTimeLeft, setIntroTimeLeft] = React.useState(0);
@@ -126,13 +125,6 @@ const ListeningRightPane = memo(({
 
             {/* HEADER */}
             <div className="mb-6 border-b border-gray-200 pb-4 flex items-center gap-4">
-                <button
-                    onClick={() => setIsHighlighterActive(!isHighlighterActive)}
-                    className={`p-2 rounded-lg transition-all border shrink-0 ${isHighlighterActive ? 'bg-yellow-100 border-yellow-300 ring-2 ring-yellow-200' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}
-                    title="Highlight Text"
-                >
-                    <HighlighterIcon active={isHighlighterActive} />
-                </button>
                 <div>
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">{currentPassage?.title}</h2>
                     <p className="text-sm text-gray-500 mt-1 font-medium">Listen carefully and answer the questions.</p>
@@ -184,7 +176,8 @@ const ListeningRightPane = memo(({
     prev.isReviewMode === next.isReviewMode &&
     prev.textSize === next.textSize &&
     prev.testMode === next.testMode &&
-    prev.testData === next.testData
+    prev.testData === next.testData &&
+    prev.isHighlighterActive === next.isHighlighterActive
 );
 
 export default ListeningRightPane;

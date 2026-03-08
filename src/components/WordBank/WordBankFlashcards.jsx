@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw, XCircle, Brain, Target, Zap, Volume2 } from 'lucide-react';
+import { Meteors } from '@/components/ui/meteors';
 
 export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -167,7 +168,7 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                     >
                         {/* FRONT FACE (English Word) */}
                         <div
-                            className={`absolute w-full h-full backface-hidden rounded-3xl p-8 flex flex-col items-center justify-center text-center inset-0 ${isFlipped ? 'invisible' : 'visible'}`}
+                            className={`absolute w-full h-full backface-hidden rounded-3xl p-8 flex flex-col items-center justify-center text-center inset-0 overflow-hidden ${isFlipped ? 'invisible' : 'visible'}`}
                             style={{
                                 background: 'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
                                 border: '1px solid rgba(255,255,255,0.1)',
@@ -201,15 +202,17 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                                     </span>
                                 </div>
                             )}
-                            <div className="absolute bottom-6 text-xs text-gray-500 font-medium uppercase tracking-widest flex items-center gap-2">
+                            <div className="absolute bottom-6 text-xs text-gray-500 font-medium uppercase tracking-widest flex items-center gap-2 relative z-10">
                                 <RefreshCw className="w-3.5 h-3.5" />
                                 O'girish uchun bosing
                             </div>
+                            {/* Meteor effect */}
+                            <Meteors number={15} />
                         </div>
 
                         {/* BACK FACE (Translation & Def) */}
                         <div
-                            className={`absolute w-full h-full backface-hidden rounded-3xl p-8 flex flex-col justify-center inset-0 ${!isFlipped ? 'invisible' : 'visible'}`}
+                            className={`absolute w-full h-full backface-hidden rounded-3xl p-8 flex flex-col justify-center inset-0 overflow-hidden ${!isFlipped ? 'invisible' : 'visible'}`}
                             style={{
                                 transform: 'rotateY(180deg)',
                                 background: 'linear-gradient(145deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0.05) 100%)',
@@ -255,6 +258,8 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                                     </div>
                                 )}
                             </div>
+                            {/* Meteor effect on back */}
+                            <Meteors number={10} />
                         </div>
                     </motion.div>
                 </AnimatePresence>

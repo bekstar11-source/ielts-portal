@@ -3,10 +3,12 @@ import ListeningLeftPane from "./ListeningLeftPane";
 import ListeningRightPane from "./ListeningRightPane";
 import ListeningFooter from "./ListeningFooter";
 import HighlightMenu from "../ReadingInterface/HighlightMenu";
+import { HighlighterIcon } from "./ListeningComponents";
 
 // Hooklar (Loyiha papkasida bor deb hisoblaymiz)
 import { useResizablePane } from "../../hooks/useResizablePane";
 import useTextSelection from "../../hooks/useTextSelection";
+import { useListeningHighlight } from "../../hooks/useListeningHighlight";
 
 export default function ListeningInterface({
   testData,
@@ -40,6 +42,12 @@ export default function ListeningInterface({
 
   const [highlightedLoc, setHighlightedLoc] = useState(null); // Review paytida bosilganda highlight qilish
   const [isFullScreen, setIsFullScreen] = useState(false); // 🔥 Yangi State
+
+  // --- HIGHLIGHT STATE (RightPane uchun) ---
+  const {
+    isHighlighterActive,
+    setIsHighlighterActive,
+  } = useListeningHighlight(testData?.id, effectiveActivePart, userAnswers);
 
   const rootRef = useRef(null);
 
@@ -124,24 +132,38 @@ export default function ListeningInterface({
       ref={rootRef}
     >
 
-      {/* 🔥 FULL SCREEN BUTTON (FLOATING TOP-RIGHT) */}
-      <button
-        onClick={toggleFullScreen}
-        className="absolute top-3 right-5 z-[100] p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md border border-gray-200 text-gray-600 hover:text-blue-600 hover:bg-white transition-all duration-200 group"
-        title={isFullScreen ? "Exit Full Screen" : "Full Screen"}
-      >
-        {isFullScreen ? (
-          // Compress Icon
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-          </svg>
-        ) : (
-          // Expand Icon
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-          </svg>
-        )}
-      </button>
+      {/* 🔥 FLOATING BUTTONS (TOP-RIGHT): Highlighter + Full Screen */}
+      <div className="absolute top-3 right-5 z-[100] flex items-center gap-2">
+        {/* HIGHLIGHTER BUTTON */}
+        <button
+          onClick={() => setIsHighlighterActive(prev => !prev)}
+          className={`p-2 rounded-full shadow-md border transition-all duration-200
+            ${isHighlighterActive
+              ? 'bg-yellow-100 border-yellow-300 text-yellow-600 ring-2 ring-yellow-200'
+              : 'bg-white/80 backdrop-blur-sm border-gray-200 text-gray-600 hover:text-yellow-500 hover:bg-yellow-50 hover:border-yellow-200'
+            }`}
+          title={isHighlighterActive ? "Highlighterni o'chirish" : "Matn belgilash"}
+        >
+          <HighlighterIcon active={isHighlighterActive} />
+        </button>
+
+        {/* FULL SCREEN BUTTON */}
+        <button
+          onClick={toggleFullScreen}
+          className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md border border-gray-200 text-gray-600 hover:text-blue-600 hover:bg-white transition-all duration-200"
+          title={isFullScreen ? "Exit Full Screen" : "Full Screen"}
+        >
+          {isFullScreen ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+          )}
+        </button>
+      </div>
 
       {/* --- MAIN SPLIT CONTENT --- */}
       {/* 👇 O'ZGARISH: pb-[60px] yoki 45px dan -> pb-[36px] ga */}
@@ -200,6 +222,7 @@ export default function ListeningInterface({
             audioCurrentTime={audioCurrentTime}
             handleLocationClick={handleLocationClick} // Review funksiyasi
             onIntroEnd={onIntroEnd}
+            isHighlighterActive={isHighlighterActive}
           />
         </div>
       </div>

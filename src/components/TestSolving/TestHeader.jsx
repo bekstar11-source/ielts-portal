@@ -62,6 +62,14 @@ const TestHeader = ({
                                 preload="auto"
                                 style={{ display: isVisible ? 'block' : 'none' }}
                                 onTimeUpdate={(e) => isVisible && setAudioTime(e.target.currentTime)}
+                                onPlay={() => {
+                                    const allAudios = document.querySelectorAll('audio[id^="audio-part-"]');
+                                    allAudios.forEach(audio => {
+                                        if (audio.id !== `audio-part-${index}` && !audio.paused) {
+                                            audio.pause();
+                                        }
+                                    });
+                                }}
                                 onPause={(e) => {
                                     // Exam modeda foydalanuvchi pauzaga bosa olmaydi
                                     if (testMode === 'exam' && !e.target.ended) {

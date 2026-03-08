@@ -87,8 +87,11 @@ function clearHighlightSpans(container) {
 
 // ─── HOOK ─────────────────────────────────────────────────────────────────────
 
-export function useListeningHighlight(testId, activePart, userAnswers) {
-    const [isHighlighterActive, setIsHighlighterActive] = useState(false);
+export function useListeningHighlight(testId, activePart, userAnswers, externalIsActive) {
+    const [_isActive, _setIsActive] = useState(false);
+    // Agar tashqaridan state uzatilsa ishlatamiz, aks holda ichki state
+    const isHighlighterActive = externalIsActive !== undefined ? externalIsActive : _isActive;
+    const setIsHighlighterActive = _setIsActive;
     const containerRef = useRef(null);
     // Restore guard: bir restore tugamay turib ikkinchisi boshlanmasin
     const isRestoringRef = useRef(false);
