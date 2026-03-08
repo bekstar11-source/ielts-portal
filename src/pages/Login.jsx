@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Loader2, AlertCircle, Mail, Lock, Zap } from 'lucide-react';
+import { ArrowRight, Loader2, AlertCircle, Mail, Lock } from 'lucide-react';
 import { db, auth } from "../firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
@@ -113,9 +113,14 @@ export default function Login() {
 
         {/* Logo Header */}
         <div className="text-center mb-8 animate-fade-in-up">
-          <div className="inline-flex items-center justify-center gap-2 mb-2">
-            <Zap className="w-8 h-8 text-[#FF5520] fill-[#FF5520]" />
-            <span className="font-bold text-3xl tracking-tight text-white">Vetra<span className="text-[#FF5520]">IELTS</span></span>
+          <div className="inline-flex items-center justify-center gap-3 mb-2">
+            <img src="/englev-logo.png" alt="ENGLEV" className="h-12 w-auto object-contain drop-shadow-xl" />
+            <span
+              style={{ fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.14em' }}
+              className="font-black text-3xl bg-gradient-to-r from-white via-slate-200 to-blue-300 bg-clip-text text-transparent"
+            >
+              ENGLEV
+            </span>
           </div>
           <p className="text-[#9CA3AF] text-sm">Kelajak ta'limiga xush kelibsiz</p>
         </div>

@@ -108,8 +108,15 @@ export default function Register() {
             <div className="w-full max-w-md mx-4 relative z-10">
 
                 <div className="text-center mb-8 animate-fade-in-up">
-                    {/* Reusing the same header or similar */}
-                    <h2 class="text-3xl font-bold tracking-tight text-white mb-2">Vetra<span className="text-[#FF5520]">IELTS</span></h2>
+                    <div className="inline-flex items-center justify-center gap-3 mb-2">
+                        <img src="/englev-logo.png" alt="ENGLEV" className="h-12 w-auto object-contain drop-shadow-xl" />
+                        <h2
+                            style={{ fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.14em' }}
+                            className="font-black text-3xl bg-gradient-to-r from-white via-slate-200 to-blue-300 bg-clip-text text-transparent"
+                        >
+                            ENGLEV
+                        </h2>
+                    </div>
                     <p className="text-[#9CA3AF] text-sm">Yangi hisob yaratish</p>
                 </div>
 

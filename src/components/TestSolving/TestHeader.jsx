@@ -35,8 +35,14 @@ const TestHeader = ({
     return (
         <header className="h-16 bg-white/95 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-50 transition-all relative">
             <div className="flex items-center gap-4 flex-1">
-                <div className="font-bold text-xl tracking-tight text-gray-900 cursor-default shrink-0">
-                    CLC <span className="text-gray-400 font-medium">Portal</span>
+                <div className="flex items-center gap-2 cursor-default shrink-0">
+                    <img src="/englev-logo-dark.png" alt="ENGLEV" className="h-8 w-auto object-contain" />
+                    <span
+                        style={{ fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.13em' }}
+                        className="font-black text-[15px] bg-[linear-gradient(90deg,#f97316,#fb923c,#ea580c)] bg-clip-text text-transparent"
+                    >
+                        ENGLEV
+                    </span>
                 </div>
                 <div className="h-5 w-px bg-gray-300 hidden sm:block shrink-0"></div>
                 <div className="hidden sm:block">

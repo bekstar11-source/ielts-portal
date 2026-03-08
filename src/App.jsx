@@ -78,7 +78,7 @@ function App() {
   const location = useLocation();
 
 
-  if (loading) return <div className="flex h-screen items-center justify-center">IELTS Portal...</div>;
+  if (loading) return <div className="flex h-screen items-center justify-center">ENGLEV...</div>;
 
   return (
     <ThemeProvider>

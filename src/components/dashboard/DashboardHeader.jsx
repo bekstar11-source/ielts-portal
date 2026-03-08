@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Zap, ChevronDown, Key, LogOut } from 'lucide-react';
+import { ChevronDown, Key, LogOut } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -43,11 +43,14 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
     <div className="w-full relative z-50 pt-6 mb-10 md:mb-16 pointer-events-none">
       <div className="max-w-7xl mx-auto px-6 md:px-8 flex flex-col md:flex-row justify-between items-center gap-6 md:gap-0 pointer-events-auto">
         {/* Logo */}
-        <div className="hidden md:block w-32 cursor-pointer" onClick={() => navigate('/dashboard')}>
-          <div className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
-            <Zap className="w-6 h-6 text-vetra-orange fill-vetra-orange" />
-            <span className="font-bold text-xl tracking-tight text-white">
-              Vetra<span className="text-vetra-orange">IELTS</span>
+        <div className="hidden md:block cursor-pointer" onClick={() => navigate('/dashboard')}>
+          <div className="flex items-center gap-2.5 opacity-90 hover:opacity-100 transition-opacity">
+            <img src="/englev-logo.png" alt="ENGLEV" className="h-9 w-auto object-contain drop-shadow-lg" />
+            <span
+              style={{ fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.12em' }}
+              className="font-black text-[17px] tracking-widest bg-gradient-to-r from-white via-slate-200 to-blue-300 bg-clip-text text-transparent"
+            >
+              ENGLEV
             </span>
           </div>
         </div>

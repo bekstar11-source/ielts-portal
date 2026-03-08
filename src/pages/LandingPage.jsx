@@ -51,8 +51,14 @@ const Navbar = () => {
         transition={{ duration: 0.6, ease: "circOut" }}
         className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12 backdrop-blur-xl bg-white/80 border-b border-white/20 supports-[backdrop-filter]:bg-white/60"
       >
-        <div className="text-xl font-semibold tracking-tight text-gray-900 cursor-pointer z-50">
-          IELTS Portal
+        <div className="flex items-center gap-2 cursor-pointer z-50">
+          <img src="/englev-logo.png" alt="ENGLEV" className="h-8 w-auto object-contain" />
+          <span
+            style={{ fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.12em' }}
+            className="font-black text-lg text-gray-900"
+          >
+            ENGLEV
+          </span>
         </div>
 
         {/* Desktop Menu */}
@@ -582,7 +588,7 @@ const FooterCTA = () => (
 const Footer = () => (
   <footer className="px-6 py-12 bg-gray-50 border-t border-gray-200 text-sm font-medium text-gray-500">
     <div className="flex flex-col items-center justify-between max-w-6xl mx-auto gap-4 md:flex-row">
-      <p>© 2026 IELTS Portal. Barcha huquqlar himoyalangan.</p>
+      <p>© 2026 ENGLEV. Barcha huquqlar himoyalangan.</p>
       <div className="flex gap-6">
         <a href="#" className="hover:text-black transition-colors">Biz haqimizda</a>
         <a href="#" className="hover:text-black transition-colors">Aloqa</a>

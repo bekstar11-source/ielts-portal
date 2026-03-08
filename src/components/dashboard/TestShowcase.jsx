@@ -91,33 +91,7 @@ const ShowcaseCard = ({ test, onStart }) => {
     );
 };
 
-const DiagnosticBanner = () => (
-    <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-blue-600 to-indigo-700 p-8 md:p-10 text-white shadow-2xl shadow-blue-900/20 mb-10">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-40 h-40 bg-black/10 rounded-full blur-2xl -ml-10 -mb-10"></div>
 
-        <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold mb-4 border border-white/20">
-                <Star size={12} fill="currentColor" /> Tavsiya etiladi
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Darajangizni aniqlaymiz!</h2>
-            <p className="text-blue-100 text-sm md:text-base mb-8 max-w-lg leading-relaxed">
-                Hozirgi IELTS darajangizni bilish uchun 40 daqiqalik diagnostik testdan o'ting.
-                Natijaga qarab sizga mos o'quv rejasini tuzib beramiz.
-            </p>
-            <button className="bg-white text-blue-700 px-8 py-3.5 rounded-2xl font-bold text-sm hover:scale-105 active:scale-95 transition shadow-xl shadow-blue-900/10 flex items-center gap-2">
-                Diagnostik Testni Boshlash <ArrowRight size={16} />
-            </button>
-        </div>
-
-        {/* Decorative Image/Icon placeholder for right side */}
-        <div className="hidden md:block absolute right-10 top-1/2 -translate-y-1/2">
-            <div className="w-32 h-32 bg-white/10 backdrop-blur-md rounded-3xl rotate-12 flex items-center justify-center border border-white/20 shadow-xl">
-                <span className="text-6xl">🎯</span>
-            </div>
-        </div>
-    </div>
-);
 
 export default function TestShowcase({ tests, onStartTest }) {
     const scrollRef = useRef(null);
@@ -134,12 +108,8 @@ export default function TestShowcase({ tests, onStartTest }) {
     const recommendedTests = tests.slice(0, 6); // Just take first 6 for now
     const newArrivals = tests.filter(t => t.isNew).slice(0, 4);
 
-    // Assume user has NO results for now to show Banner
-    const showBanner = true;
-
     return (
         <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {showBanner && <DiagnosticBanner />}
 
             {/* Recommended Carousel */}
             <div className="mb-10">
