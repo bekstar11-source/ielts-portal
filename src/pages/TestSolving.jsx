@@ -59,11 +59,15 @@ export default function TestSolving() {
 
     // "Yes, Finish Test" bosilganda — testni finish qilib, navigate qiling
     const handleConfirmFinish = async () => {
+        const wasBackTriggered = backBlockedRef.current;
         setShowFinishWarning(false);
         backBlockedRef.current = false;
         await handleSubmit();
-        // Submit qilinganidan keyin navigate
-        navigate('/my-results');
+        // Faqat back bosilganda navigate qilamiz (ResultModal o'tkazib yuboriladi)
+        // Finish tugmasi bosilganda - handleSubmit showResult=true qiladi va ResultModal ochiladi
+        if (wasBackTriggered) {
+            navigate('/my-results');
+        }
     };
 
     // "No, Continue" bosilganda — testga qaytish
