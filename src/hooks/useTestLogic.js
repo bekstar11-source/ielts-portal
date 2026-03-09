@@ -242,7 +242,6 @@ export function useTestLogic() {
     };
 
     const handleSubmit = async () => {
-        if (!window.confirm("Testni yakunlashga ishonchingiz komilmi?")) return;
         await new Promise(resolve => setTimeout(resolve, 100)); // Small UI delay
         setSaving(true);
 
