@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Users, BookOpen, CreditCard, Settings,
     LogOut, ChevronLeft, ChevronRight, FileText, Megaphone,
-    BarChart2, Shield, Radio, PenTool, Trophy, ScrollText, Headphones
+    BarChart2, Shield, Radio, PenTool, Trophy, ScrollText, Headphones, Key
 } from 'lucide-react';
 
 export default function AdminSidebar({ isOpen, setIsOpen }) {
@@ -34,6 +34,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
             title: "CONTENT",
             items: [
                 { name: "Tests", path: "/admin/tests", icon: FileText },
+                { name: "Mock Keys", path: "/admin/key-manager", icon: Key },
                 { name: "Results", path: "/admin/results", icon: BookOpen },
                 { name: "Podcast Mastery", path: "/admin/podcasts", icon: Headphones }
             ]
@@ -118,16 +119,6 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                 ))}
             </div>
 
-            {/* FOOTER */}
-            <div className={`p-4 border-t border-inherit ${theme === 'dark' ? 'border-white/5' : 'border-gray-200'}`}>
-                <button
-                    onClick={logout}
-                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-colors ${theme === 'dark' ? 'text-red-400 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-50'}`}
-                >
-                    <LogOut size={20} />
-                    <span className={`font-medium text-sm ${!isOpen ? 'md:hidden' : ''}`}>Chiqish</span>
-                </button>
-            </div>
         </aside>
     );
 }

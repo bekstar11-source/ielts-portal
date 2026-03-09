@@ -39,6 +39,7 @@ import WordBank from './pages/WordBank';
 import PodcastPlayer from './pages/PodcastPlayer';
 import AdminPodcasts from './pages/AdminPodcasts';
 import CreatePodcast from './pages/CreatePodcast';
+import KeyManager from './pages/KeyManager';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();
@@ -240,6 +241,7 @@ function App() {
           <Route path="podcasts" element={<AdminPodcasts />} />
           <Route path="create-podcast" element={<CreatePodcast />} />
           <Route path="edit-podcast/:id" element={<CreatePodcast />} />
+          <Route path="key-manager" element={<KeyManager />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
@@ -28,6 +28,11 @@ export default function MockExam() {
     const [activePart, setActivePart] = useState(0); // For Listening
     const [audioTime, setAudioTime] = useState(0);
     const [textSize, setTextSize] = useState('text-base');
+    const stageRef = useRef(stage);
+
+    useEffect(() => {
+        stageRef.current = stage;
+    }, [stage]);
 
     // 1. TESTLARNI YUKLASH
     useEffect(() => {
@@ -80,6 +85,7 @@ export default function MockExam() {
             });
         }, 1000);
         return () => clearInterval(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeLeft]);
 
     // 3. ACTIONS
@@ -89,14 +95,36 @@ export default function MockExam() {
     };
 
     const handleNextStage = () => {
-        if (stage === 'listening') {
+        const currentStage = stageRef.current;
+        if (currentStage === 'listening') {
+            setStage('reading_intro');
+        } else if (currentStage === 'reading_intro') {
             setStage('reading');
             setTimeLeft(60 * 60); // 60 min
-        } else if (stage === 'reading') {
+        } else if (currentStage === 'reading') {
+            setStage('writing_intro');
+        } else if (currentStage === 'writing_intro') {
             setStage('writing');
             setTimeLeft(60 * 60); // 60 min (Writing)
-        } else if (stage === 'writing') {
+        } else if (currentStage === 'writing') {
             finishExam();
+        }
+    };
+
+    const handleFinishClick = () => {
+        const currentStage = stageRef.current;
+        let sectionName = "";
+        if (currentStage === 'listening') sectionName = "Listening";
+        else if (currentStage === 'reading') sectionName = "Reading";
+        else if (currentStage === 'writing') sectionName = "Writing";
+        else return;
+
+        const confirmMsg = currentStage === 'writing'
+            ? "Writing qismini yakunlab, butun imtihonni topshirmoqchimisiz?"
+            : `${sectionName} qismini yakunlamoqchimisiz? Keyin bu qismga qayta olmaysiz.`;
+
+        if (window.confirm(confirmMsg)) {
+            handleNextStage();
         }
     };
 
@@ -165,6 +193,49 @@ export default function MockExam() {
         );
     }
 
+    if (stage === 'reading_intro') {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+                <div className="bg-white max-w-lg w-full p-8 rounded-2xl text-center shadow-2xl">
+                    <h1 className="text-3xl font-bold mb-4 text-blue-800">📖 Reading Section</h1>
+                    <div className="text-left bg-blue-50 p-6 rounded-lg mb-6 space-y-3 text-sm text-gray-700 border border-blue-100">
+                        <p><b>Duration:</b> 60 minutes</p>
+                        <p><b>Format:</b> 3 reading passages</p>
+                        <p><b>Questions:</b> 40 questions total</p>
+                        <p className="mt-4 pt-4 border-t border-blue-200">
+                            Please note that no extra time is given to transfer your answers to an answer sheet. Time management is crucial.
+                        </p>
+                    </div>
+                    <button onClick={handleNextStage} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.98]">
+                        Start Reading Test
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (stage === 'writing_intro') {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+                <div className="bg-white max-w-lg w-full p-8 rounded-2xl text-center shadow-2xl">
+                    <h1 className="text-3xl font-bold mb-4 text-blue-800">📝 Writing Section</h1>
+                    <div className="text-left bg-blue-50 p-6 rounded-lg mb-6 space-y-3 text-sm text-gray-700 border border-blue-100">
+                        <p><b>Duration:</b> 60 minutes</p>
+                        <p><b>Format:</b> 2 tasks</p>
+                        <p><b>Task 1:</b> Minimum 150 words (recommended: 20 minutes)</p>
+                        <p><b>Task 2:</b> Minimum 250 words (recommended: 40 minutes)</p>
+                        <p className="mt-4 pt-4 border-t border-blue-200">
+                            Make sure to read the prompts carefully and manage your time appropriately between the two tasks.
+                        </p>
+                    </div>
+                    <button onClick={handleNextStage} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.98]">
+                        Start Writing Test
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (stage === 'result') {
         return (
             <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
@@ -179,7 +250,6 @@ export default function MockExam() {
     }
 
     const currentTest = tests[stage];
-    const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
     return (
         <div className="flex flex-col h-screen bg-gray-50 overflow-hidden font-sans">
@@ -189,13 +259,14 @@ export default function MockExam() {
                 timeLeft={timeLeft}
                 saving={stage === 'saving'}
                 testMode="exam"
-                onFinish={handleNextStage}
+                onFinish={handleFinishClick}
                 textSize={textSize}
                 setTextSize={setTextSize}
                 showResult={stage === 'result'}
                 showModeSelection={false}
                 activePart={activePart}
                 setAudioTime={setAudioTime}
+                triggerPlay={stage === 'listening'}
             />
 
             <div className="flex-1 overflow-hidden relative">

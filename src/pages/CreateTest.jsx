@@ -25,6 +25,8 @@ export default function CreateTest() {
     const [jsonError, setJsonError] = useState("");
 
     const [partAudios, setPartAudios] = useState({ 0: "", 1: "", 2: "", 3: "" });
+    const [audioMode, setAudioMode] = useState("multiple"); // 'multiple' | 'single'
+    const [singleAudioUrl, setSingleAudioUrl] = useState("");
     const [uploadedMaps, setUploadedMaps] = useState([]);
     const [activeWritingTask, setActiveWritingTask] = useState(0);
 
@@ -65,6 +67,14 @@ export default function CreateTest() {
                         const audioMap = {};
                         data.passages?.forEach((p, i) => { if (p.audio) audioMap[i] = p.audio; });
                         setPartAudios(audioMap);
+
+                        // Check single audio mode
+                        if (data.audio_url || (data.passages && data.passages.length > 0 && data.passages.every(p => p.audio && p.audio === data.passages[0].audio))) {
+                            setAudioMode("single");
+                            setSingleAudioUrl(data.audio_url || data.passages[0].audio);
+                        } else {
+                            setAudioMode("multiple");
+                        }
                     }
                 } catch (error) { console.error(error); }
                 finally { setLoading(false); }
@@ -78,10 +88,10 @@ export default function CreateTest() {
             if (!jsonStr.trim()) return;
             const parsed = JSON.parse(jsonStr);
             let updatedPassages = parsed.passages || [];
-            updatedPassages = updatedPassages.map((p, idx) => ({
-                ...p,
-                audio: partAudios[idx] || (testData.passages[idx]?.audio) || ""
-            }));
+            updatedPassages = updatedPassages.map((p, idx) => {
+                let audioUrl = audioMode === 'single' ? singleAudioUrl : (partAudios[idx] || (testData.passages[idx]?.audio) || "");
+                return { ...p, audio: audioUrl };
+            });
 
             setTestData(prev => ({
                 ...prev,
@@ -116,6 +126,61 @@ export default function CreateTest() {
                 return { ...prev, passages: newPassages };
             });
         } catch (err) { alert(err.message); } finally { setUploading(false); }
+    };
+
+    const handleSingleAudioUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+            const url = await uploadToFirebase(file, "part_audios");
+            setSingleAudioUrl(url);
+
+            setTestData(prev => {
+                const newPassages = [...(prev.passages || [])];
+                for (let i = 0; i < 4; i++) {
+                    if (!newPassages[i]) {
+                        newPassages[i] = { id: 100 + i, title: `Part ${i + 1}`, content: "", audio: url, startTime: 0, endTime: 0 };
+                    } else {
+                        newPassages[i] = { ...newPassages[i], audio: url };
+                    }
+                }
+                return { ...prev, passages: newPassages, audio_url: url };
+            });
+
+            setJsonInput(prev => {
+                try {
+                    const parsed = JSON.parse(prev || '{"passages":[]}');
+                    if (!parsed.passages) parsed.passages = [];
+                    for (let i = 0; i < 4; i++) {
+                        if (!parsed.passages[i]) parsed.passages[i] = { audio: url, startTime: 0, endTime: 0 };
+                        else parsed.passages[i].audio = url;
+                    }
+                    return JSON.stringify(parsed, null, 2);
+                } catch (err) { return prev; }
+            });
+        } catch (err) { alert(err.message); } finally { setUploading(false); }
+    };
+
+    const updatePartTime = (idx, field, value) => {
+        const finalVal = value;
+        setTestData(prev => {
+            const newPassages = [...(prev.passages || [])];
+            if (!newPassages[idx]) {
+                newPassages[idx] = { id: 100 + idx, title: `Part ${idx + 1}`, content: "", audio: singleAudioUrl };
+            }
+            newPassages[idx][field] = finalVal;
+            return { ...prev, passages: newPassages };
+        });
+        setJsonInput(prev => {
+            try {
+                const parsed = JSON.parse(prev || '{"passages":[]}');
+                if (!parsed.passages) parsed.passages = [];
+                if (!parsed.passages[idx]) parsed.passages[idx] = {};
+                parsed.passages[idx][field] = finalVal;
+                return JSON.stringify(parsed, null, 2);
+            } catch (err) { return prev; }
+        });
     };
 
     const handleMapUpload = async (e) => {
@@ -245,14 +310,30 @@ export default function CreateTest() {
                 return q;
             }) || [];
 
-            const payload = {
+            const processTime = (val) => {
+                if (val === undefined || val === null || val === '') return 0;
+                if (typeof val === 'string' && val.includes(':')) {
+                    const parts = val.split(':');
+                    return (Number(parts[0]) || 0) * 60 + (Number(parts[1]) || 0);
+                }
+                return Number(val) || 0;
+            };
+
+            const processedPassages = (testData.passages || []).map(p => ({
+                ...p,
+                startTime: p.startTime !== undefined ? processTime(p.startTime) : undefined,
+                endTime: p.endTime !== undefined ? processTime(p.endTime) : undefined
+            }));
+
+            const payload = JSON.parse(JSON.stringify({
                 ...testData,
+                passages: processedPassages,
                 questions: processedQuestions,
                 keywordTable: testData.keywordTable || [],
                 introDuration: Number(testData.introDuration),
                 isExclusive: isMockMode,
                 updatedAt: new Date().toISOString()
-            };
+            }));
 
             if (isEditMode) {
                 await updateDoc(doc(db, "tests", id), payload);
@@ -327,16 +408,61 @@ export default function CreateTest() {
 
                 {testData.type === 'listening' && (
                     <div className="bg-white p-6 rounded-[30px] border border-gray-200 mb-6 shadow-sm">
-                        <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#9757D7]" /> Audio Fayllar</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            {[0, 1, 2, 3].map((idx) => (
-                                <label key={idx} className={`relative flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
-                                    <span className="text-xs font-bold text-gray-500 uppercase mb-1">Part {idx + 1}</span>
-                                    {partAudios[idx] ? <span className="text-[10px] text-[#45B26B] font-bold flex items-center gap-1"><Icons.Check className="w-3 h-3" /> Yuklandi</span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
-                                    <input type="file" accept="audio/*" onChange={(e) => handlePartAudioUpload(e, idx)} disabled={uploading} className="hidden" />
-                                </label>
-                            ))}
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-medium text-gray-900 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#9757D7]" /> Audio Yuklash</h3>
+                            <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                                <button onClick={() => setAudioMode("multiple")} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${audioMode === 'multiple' ? 'bg-white text-[#9757D7] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Partma-part (4 ta)</button>
+                                <button onClick={() => setAudioMode("single")} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${audioMode === 'single' ? 'bg-white text-[#9757D7] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Bitta Fayl</button>
+                            </div>
                         </div>
+
+                        {audioMode === 'multiple' ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                {[0, 1, 2, 3].map((idx) => (
+                                    <label key={idx} className={`relative flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+                                        <span className="text-xs font-bold text-gray-500 uppercase mb-1">Part {idx + 1}</span>
+                                        {partAudios[idx] ? <span className="text-[10px] text-[#45B26B] font-bold flex items-center gap-1"><Icons.Check className="w-3 h-3" /> Yuklandi</span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
+                                        <input type="file" accept="audio/*" onChange={(e) => handlePartAudioUpload(e, idx)} disabled={uploading} className="hidden" />
+                                    </label>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <label className={`relative flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${singleAudioUrl ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+                                    <span className="text-xs font-bold text-gray-500 uppercase mb-1">Butun Audio Fayl</span>
+                                    {singleAudioUrl ? <span className="text-[10px] text-[#45B26B] font-bold flex items-center gap-1"><Icons.Check className="w-3 h-3" /> Yuklandi</span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
+                                    <input type="file" accept="audio/*" onChange={handleSingleAudioUpload} disabled={uploading} className="hidden" />
+                                </label>
+
+                                {singleAudioUrl && (
+                                    <div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                                        <h4 className="text-xs font-bold text-gray-900 mb-3 uppercase tracking-wider">Partlar vaqtini belgilash (sekund yoki mm:ss)</h4>
+                                        <div className="space-y-2">
+                                            {[0, 1, 2, 3].map(idx => (
+                                                <div key={idx} className="flex items-center gap-3">
+                                                    <span className="text-xs font-bold text-gray-600 w-12">Part {idx + 1}</span>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Start"
+                                                        value={testData.passages[idx]?.startTime ?? ''}
+                                                        onChange={(e) => updatePartTime(idx, 'startTime', e.target.value)}
+                                                        className="w-full bg-white border border-gray-200 rounded-xl p-2 text-xs text-gray-900 focus:outline-none focus:border-[#3772FF]"
+                                                    />
+                                                    <span className="text-xs text-gray-400">-</span>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="End"
+                                                        value={testData.passages[idx]?.endTime ?? ''}
+                                                        onChange={(e) => updatePartTime(idx, 'endTime', e.target.value)}
+                                                        className="w-full bg-white border border-gray-200 rounded-xl p-2 text-xs text-gray-900 focus:outline-none focus:border-[#3772FF]"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 

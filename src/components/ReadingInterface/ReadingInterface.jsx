@@ -179,7 +179,7 @@ export default function ReadingInterface({
 
   return (
     <div
-      className={`flex flex-col h-screen w-screen bg-ielts-bg text-black overflow-hidden relative ${textSize || 'text-base'}`}
+      className={`flex flex-col h-full w-full bg-ielts-bg text-black overflow-hidden relative ${textSize || 'text-base'}`}
       ref={rootRef}
     >
 

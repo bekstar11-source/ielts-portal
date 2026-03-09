@@ -71,7 +71,7 @@ export default function WritingInterface({
     const isUnderLimit = wordCount < minWords;
 
     return (
-        <div className={`flex flex-col h-screen w-screen bg-gray-50 overflow-hidden ${textSize || 'text-base'}`}>
+        <div className={`flex flex-col h-full w-full bg-gray-50 overflow-hidden ${textSize || 'text-base'}`}>
 
             {/* Resume Modal */}
             {showResumeModal && (

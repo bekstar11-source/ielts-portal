@@ -89,7 +89,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
     );
 };
 
-export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode }) => {
+export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
     const questions = group.questions || group.items || [];
     const options = group.options || [];
     if (questions.length === 0 || options.length === 0) return null;
@@ -112,8 +112,20 @@ export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode 
 
     return (
         <div className="mb-6 border border-gray-200 rounded-lg p-3 bg-gray-50/50 shadow-sm">
-            <div className="mb-2 border-b border-gray-200 pb-2">
-                <p className="text-sm text-gray-500 italic font-medium">Select <strong>{maxSelection}</strong> correct options (Questions {questionIds.join(", ")})</p>
+            <div className="mb-3 border-b border-gray-200 pb-3">
+                <div className="text-sm text-gray-600 font-medium flex flex-wrap items-center gap-2">
+                    <span>Select <strong>{maxSelection}</strong> correct options for:</span>
+                    <div className="flex items-center gap-1.5">
+                        {questions.map((q) => (
+                            <QuestionBadge
+                                key={q.id}
+                                id={q.id}
+                                isReviewMode={isReviewMode}
+                                onClick={() => isReviewMode && handleLocationClick(q.locationId)}
+                            />
+                        ))}
+                    </div>
+                </div>
             </div>
             <div className="flex flex-col gap-1">
                 {options.map((opt, idx) => {
@@ -143,12 +155,12 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
         <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm mb-6 bg-white">
             <table className="w-full text-sm text-left border-collapse">
                 <thead className="bg-gray-100 text-gray-700 uppercase font-bold text-xs">
-                    <tr>{group.headers.map((h, i) => (<th key={i} className="px-4 py-3 border-b border-gray-200">{h}</th>))}</tr>
+                    <tr>{(group.headers || []).map((h, i) => (<th key={i} className="px-4 py-3 border-b border-gray-200">{h}</th>))}</tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                    {group.rows.map((row, rIdx) => (
+                    {(group.rows || []).map((row, rIdx) => (
                         <tr key={rIdx} className="hover:bg-gray-50/50 transition-colors">
-                            {(row.cells || row).map((cell, cIdx) => (
+                            {(row.cells || (Array.isArray(row) ? row : [])).map((cell, cIdx) => (
                                 <td key={cIdx} className="px-4 py-3 border-r border-gray-100 last:border-r-0 align-top">
                                     {!cell.isMixed && cell.text ? (
                                         <span className="text-gray-800 leading-relaxed" dangerouslySetInnerHTML={{ __html: cell.text }} />
@@ -239,25 +251,82 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
 };
 
 export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+    const options = group.options || [];
+
     return (
-        <div className="mb-8 flex flex-col items-center">
-            <div className="flex flex-col gap-3 w-full max-w-lg">
-                {group.items.map((item, index) => (
-                    <div key={item.id || index} className="relative flex flex-col items-center">
-                        <div className="w-full border border-gray-300 rounded-lg p-4 bg-white text-center shadow-sm relative z-10 hover:shadow-md transition-shadow">
-                            {item.isQuestion ? (
-                                <div className="flex flex-col items-center gap-2">
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Step {index + 1}</span>
-                                    <div className="flex items-center justify-center w-full gap-2">
-                                        <ListeningTextInput id={item.id} answer={item.answer} locationId={item.locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />
-                                    </div>
-                                    {item.text && <span className="text-sm mt-1 text-gray-600">{item.text.replace('[INPUT]', '')}</span>}
-                                </div>
-                            ) : <span className="text-gray-800 font-semibold text-sm">{item.text}</span>}
-                        </div>
-                        {index !== group.items.length - 1 && <div className="h-6 w-px bg-gray-300 my-1 relative"><div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 text-gray-400">▼</div></div>}
+        <div className="mb-6 flex flex-col items-center w-full">
+            {options.length > 0 && (
+                <div className="mb-5 border border-gray-300 p-3 rounded-xl bg-gray-50/50 w-full shadow-sm">
+                    <h4 className="font-bold text-xs text-gray-500 uppercase mb-3 tracking-widest text-center">Options</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {options.map((opt, idx) => (
+                            <div key={idx} className="font-bold text-gray-800 flex items-start gap-2 leading-tight">
+                                <span className="min-w-[20px] text-gray-900">{opt.label}</span>
+                                <span className="font-normal text-gray-700">{opt.text}</span>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                </div>
+            )}
+
+            <div className="flex flex-col gap-2 w-full max-w-2xl">
+                {group.items.map((item, index) => {
+                    const hasInput = item.text && item.text.includes('[INPUT]');
+                    let content = null;
+
+                    if (item.isQuestion || hasInput) {
+                        const parts = item.text ? item.text.split('[INPUT]') : ['', ''];
+                        const cleanBefore = stripLeadingId(parts[0], item.id);
+                        const isCorrect = isReviewMode ? checkAnswer(userAnswers[item.id], item.answer) : false;
+
+                        content = (
+                            <div className="font-normal text-gray-800 leading-[2.2] flex flex-wrap items-baseline justify-center text-center">
+                                {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
+
+                                {options.length > 0 ? (
+                                    <div className="inline-block mx-1">
+                                        <SelectInput
+                                            value={userAnswers[item.id] || ""}
+                                            onChange={(e) => onAnswerChange(item.id, e.target.value)}
+                                            options={options}
+                                            isReviewMode={isReviewMode}
+                                            isCorrect={isCorrect}
+                                            correctAnswer={item.answer}
+                                            width="min-w-[100px]"
+                                        />
+                                    </div>
+                                ) : (
+                                    <ListeningTextInput
+                                        id={item.id}
+                                        answer={item.answer}
+                                        locationId={item.locationId}
+                                        userAnswers={userAnswers}
+                                        onAnswerChange={onAnswerChange}
+                                        isReviewMode={isReviewMode}
+                                        handleLocationClick={handleLocationClick}
+                                    />
+                                )}
+
+                                {parts[1] && <span className="ml-2" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
+                            </div>
+                        );
+                    } else {
+                        content = <span className="text-gray-900 font-medium text-center inline-block w-full">{item.text}</span>;
+                    }
+
+                    return (
+                        <div key={item.id || index} className="relative flex flex-col items-center">
+                            <div className={`w-full border border-gray-300 rounded-lg p-3 shadow-sm relative z-10 hover:shadow-md transition-shadow ${!item.isQuestion && !hasInput ? 'bg-gray-50' : 'bg-white'}`}>
+                                {content}
+                            </div>
+                            {index !== group.items.length - 1 && (
+                                <div className="h-5 w-px bg-gray-400 my-1 relative">
+                                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[6px] text-gray-500 text-[10px]">▼</div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
