@@ -13,6 +13,7 @@ const ListeningRightPane = memo(({
     testMode,
     onIntroEnd,
     isHighlighterActive: isHighlighterActiveProp,
+    hideSecondaryIntro
 }) => {
     // --- HIGHLIGHT HOOK ---
     // isHighlighterActiveProp props orqali kelsa hookka uzatiladi (tashqaridan boshqariladi)
@@ -29,6 +30,17 @@ const ListeningRightPane = memo(({
         if (isReviewMode || testMode === 'practice') return;
         introEndFiredRef.current = false; // reset when test starts
         const duration = Number(testData.introDuration) || 10;
+        
+        // Agar ikkinchi oyna yashirilgan bo'lsa (Masalan MockExam da Volume Check bo'lsa)
+        if (hideSecondaryIntro) {
+             setIntroTimeLeft(0);
+             if (!introEndFiredRef.current && onIntroEnd) {
+                 introEndFiredRef.current = true;
+                 setTimeout(() => onIntroEnd(), 100);
+             }
+             return;
+        }
+
         setIntroTimeLeft(duration);
 
         // Countdown boshlanishi bilan audio ham boshlansin
@@ -47,7 +59,7 @@ const ListeningRightPane = memo(({
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [testData.introDuration, isReviewMode, testMode]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [testData.introDuration, isReviewMode, testMode, hideSecondaryIntro]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Guard Clause
     if (!testData?.questions || !testData?.passages) {
@@ -112,7 +124,7 @@ const ListeningRightPane = memo(({
             onMouseUp={handleTextSelection}
         >
             {/* INTRO BLUR */}
-            {introTimeLeft > 0 && !isReviewMode && (
+            {introTimeLeft > 0 && !isReviewMode && !hideSecondaryIntro && (
                 <div className="fixed inset-0 z-[3000] bg-white/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500">
                     <div className="text-6xl mb-4 animate-bounce">🎧</div>
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Test is about to start</h2>
