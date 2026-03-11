@@ -7,6 +7,7 @@ import ReadingInterface from "../components/ReadingInterface/ReadingInterface";
 import ListeningInterface from "../components/ListeningInterface/ListeningInterface";
 import WritingInterface from "../components/WritingInterface/WritingInterface";
 import TestHeader from "../components/TestSolving/TestHeader";
+import { Particles } from "../components/ui/particles";
 
 export default function MockExam() {
     const navigate = useNavigate();
@@ -33,10 +34,15 @@ export default function MockExam() {
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, msg: '' });
     const [cheatWarning, setCheatWarning] = useState({ isOpen: false, count: 0, msg: '' });
     const stageRef = useRef(stage);
+    const answersRef = useRef(answers);
 
     useEffect(() => {
         stageRef.current = stage;
     }, [stage]);
+
+    useEffect(() => {
+        answersRef.current = answers;
+    }, [answers]);
 
     // 1. TESTLARNI YUKLASH
     useEffect(() => {
@@ -144,16 +150,38 @@ export default function MockExam() {
         
         const handleBeforeUnload = (e) => {
             if (isProtectedStage) {
+                finishExam(); // Try to save before leaving
                 e.preventDefault();
                 e.returnValue = "Imtihonni tark etmoqchimisiz? Ma'lumotlar saqlanmasligi mumkin.";
             }
         };
+
+        const handlePopState = (e) => {
+            if (isProtectedStage) {
+                alert("Imtihonni tark etyapsiz! Javoblaringiz avtomatik saqlanmoqda...");
+                finishExam(); // If user clicks back
+            }
+        };
+
+        // If user already cheated 3 times, finish it
+        if (cheatWarning.count >= 3 && isProtectedStage) {
+            alert("⚠️ QOIDABUZARLIK! Siz qoidalarni 3 marta buzdingiz. Imtihon avtomatik tarzda yakunlandi va javoblaringiz baholashga yuborildi.");
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(err => console.log(err));
+            }
+            setCheatWarning(prev => ({ ...prev, isOpen: false }));
+            finishExam();
+        }
+
+        // Popstate mock guard
+        window.history.pushState({ mockTestGuard: true }, '');
 
         document.addEventListener('fullscreenchange', handleFullScreenChange);
         document.addEventListener('visibilitychange', handleVisibilityChange);
         document.addEventListener('contextmenu', handleContextMenu);
         document.addEventListener('copy', handleCopy);
         window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('popstate', handlePopState);
 
         return () => {
             document.removeEventListener('fullscreenchange', handleFullScreenChange);
@@ -161,8 +189,9 @@ export default function MockExam() {
             document.removeEventListener('contextmenu', handleContextMenu);
             document.removeEventListener('copy', handleCopy);
             window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('popstate', handlePopState);
         };
-    }, [stage, cheatWarning.isOpen]);
+    }, [stage, cheatWarning.isOpen, cheatWarning.count]);
 
     // 4. ACTIONS
     const startExam = async () => {
@@ -231,15 +260,15 @@ export default function MockExam() {
     const finishExam = async () => {
         setStage('saving');
 
-        // Baholash (Listening & Reading)
+        const currentAnswers = answersRef.current;
         let lScore = 0, rScore = 0;
 
         tests.listening.questions.forEach(q => {
-            if (String(answers.listening[q.id] || "").trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) lScore++;
+            if (String(currentAnswers.listening[q.id] || "").trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) lScore++;
         });
 
         tests.reading.questions.forEach(q => {
-            if (String(answers.reading[q.id] || "").trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) rScore++;
+            if (String(currentAnswers.reading[q.id] || "").trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) rScore++;
         });
 
         // Saqlash
@@ -249,19 +278,19 @@ export default function MockExam() {
             testTitle: "FULL MOCK EXAM",
             type: "mock_full",
             mockKey: mockData.mockKey,
-            subTests: mockData.subTests, // Save subtest IDs for review compatibility
+            subTests: mockData.subTests, 
             date: new Date().toISOString(),
             scores: {
                 listening: lScore,
                 reading: rScore,
-                writing: null // Admin tekshiradi
+                writing: null 
             },
             details: {
-                listeningAnswers: answers.listening,
-                readingAnswers: answers.reading,
-                writingAnswers: answers.writing // Now an object {task1: ..., task2: ...}
+                listeningAnswers: currentAnswers.listening,
+                readingAnswers: currentAnswers.reading,
+                writingAnswers: currentAnswers.writing 
             },
-            status: 'pending_review' // Writing tekshirilmagan
+            status: 'pending_review'
         });
 
         setStage('result');
@@ -272,15 +301,79 @@ export default function MockExam() {
 
     if (stage === 'intro') {
         return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-                <div className="bg-white max-w-lg w-full p-8 rounded-2xl text-center">
-                    <h1 className="text-3xl font-bold mb-4">🎓 IELTS Mock Exam</h1>
-                    <div className="text-left bg-slate-100 p-4 rounded-lg mb-6 space-y-2 text-sm">
-                        <p><b>1. Listening:</b> 30 daqiqa (4 qism)</p>
-                        <p><b>2. Reading:</b> 60 daqiqa (3 ta matn)</p>
-                        <p><b>3. Writing:</b> 60 daqiqa (Task 1 & 2)</p>
+            <div className="relative min-h-screen bg-gray-50 flex items-center justify-center p-4 overflow-hidden font-sans select-none">
+                {/* Background Particles */}
+                <Particles
+                    className="absolute inset-0 z-0 pointer-events-none"
+                    quantity={120}
+                    ease={80}
+                    color="#64748b"
+                    refresh
+                />
+
+                {/* Main Content */}
+                <div className="relative z-10 w-full max-w-4xl bg-white/80 backdrop-blur-xl border border-gray-200 p-10 md:p-14 rounded-[32px] text-center shadow-2xl animate-in fade-in zoom-in duration-700">
+                    <div className="inline-flex items-center justify-center p-4 bg-gray-100 rounded-full mb-8 shadow-sm border border-gray-200">
+                         <svg className="w-10 h-10 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 14l9-5-9-5-9 5 9 5z" />
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 14l9-5-9-5-9 5 9 5z" />
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21l9-5-9-5-9 5 9 5z" />
+                         </svg>
                     </div>
-                    <button onClick={startExam} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">BOSHLASH</button>
+
+                    <h1 className="text-4xl md:text-6xl font-black mb-4 tracking-tight text-gray-900 uppercase" style={{ letterSpacing: "-0.03em" }}>
+                        IELTS Mock Exam
+                    </h1>
+                    
+                    <p className="text-gray-500 text-lg md:text-xl mb-12 font-medium">Please read the instructions carefully before starting the test.</p>
+
+                    <div className="grid md:grid-cols-3 gap-6 mb-12 text-left">
+                        <div className="bg-white border border-gray-200 p-6 rounded-2xl flex flex-col gap-3 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 transform hover:-translate-y-1">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                                </div>
+                                <span className="text-blue-600 font-bold uppercase tracking-wider text-xs">Section 1</span>
+                            </div>
+                            <span className="text-gray-900 text-2xl font-black mt-1">Listening</span>
+                            <span className="text-gray-500 text-sm font-medium">30 minutes • 4 parts</span>
+                        </div>
+                        <div className="bg-white border border-gray-200 p-6 rounded-2xl flex flex-col gap-3 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 transform hover:-translate-y-1">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                                </div>
+                                <span className="text-emerald-600 font-bold uppercase tracking-wider text-xs">Section 2</span>
+                            </div>
+                            <span className="text-gray-900 text-2xl font-black mt-1">Reading</span>
+                            <span className="text-gray-500 text-sm font-medium">60 minutes • 3 passages</span>
+                        </div>
+                        <div className="bg-white border border-gray-200 p-6 rounded-2xl flex flex-col gap-3 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 transform hover:-translate-y-1">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                </div>
+                                <span className="text-purple-600 font-bold uppercase tracking-wider text-xs">Section 3</span>
+                            </div>
+                            <span className="text-gray-900 text-2xl font-black mt-1">Writing</span>
+                            <span className="text-gray-500 text-sm font-medium">60 minutes • 2 tasks</span>
+                        </div>
+                    </div>
+
+                    <div className="max-w-3xl mx-auto mb-12 bg-red-50 border border-red-200 rounded-2xl p-5 text-left flex items-start gap-4">
+                        <svg className="w-7 h-7 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        <p className="text-gray-700 text-[15px] leading-relaxed">
+                            <strong className="text-red-900 block mb-1">Strict Proctoring Rules:</strong> This test requires Full-Screen mode. Leaving the screen, opening new tabs, or returning to normal mode will be caught by our anti-cheat system. Violating the rules 3 times will result in an automatic termination.
+                        </p>
+                    </div>
+
+                    <button 
+                        onClick={startExam} 
+                        className="w-full md:w-auto px-16 py-5 bg-gray-900 text-white rounded-full font-black tracking-widest text-lg hover:bg-black transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95"
+                    >
+                        START EXAMINATION
+                    </button>
+                    <p className="mt-8 text-gray-500 text-[13px] uppercase tracking-widest font-semibold font-mono">Connect your headphones 🔊</p>
                 </div>
             </div>
         );
@@ -288,18 +381,18 @@ export default function MockExam() {
 
     if (stage === 'reading_intro') {
         return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-                <div className="bg-white max-w-lg w-full p-8 rounded-2xl text-center shadow-2xl">
-                    <h1 className="text-3xl font-bold mb-4 text-blue-800">📖 Reading Section</h1>
-                    <div className="text-left bg-blue-50 p-6 rounded-lg mb-6 space-y-3 text-sm text-gray-700 border border-blue-100">
-                        <p><b>Duration:</b> 60 minutes</p>
-                        <p><b>Format:</b> 3 reading passages</p>
-                        <p><b>Questions:</b> 40 questions total</p>
-                        <p className="mt-4 pt-4 border-t border-blue-200">
+            <div className="min-h-screen bg-gradient-to-br from-white via-orange-50/50 to-white flex items-center justify-center p-4">
+                <div className="bg-white/90 backdrop-blur-md max-w-lg w-full p-8 rounded-[32px] text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-orange-100/60">
+                    <h1 className="text-3xl font-black mb-4 text-gray-900 tracking-tight">📖 Reading Section</h1>
+                    <div className="text-left bg-orange-50/50 p-6 rounded-2xl mb-8 space-y-3 text-sm text-gray-700 border border-orange-100 shadow-sm shadow-orange-100/20">
+                        <p><b className="text-gray-900">Duration:</b> 60 minutes</p>
+                        <p><b className="text-gray-900">Format:</b> 3 reading passages</p>
+                        <p><b className="text-gray-900">Questions:</b> 40 questions total</p>
+                        <p className="mt-4 pt-4 border-t border-orange-200/50 leading-relaxed text-gray-600">
                             Please note that no extra time is given to transfer your answers to an answer sheet. Time management is crucial.
                         </p>
                     </div>
-                    <button onClick={handleNextStage} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.98]">
+                    <button onClick={handleNextStage} className="w-full bg-gradient-to-r from-orange-400 to-orange-500 text-white py-4 rounded-2xl font-black text-lg hover:from-orange-500 hover:to-orange-600 transition-all shadow-lg shadow-orange-500/25 active:scale-[0.98]">
                         Start Reading Test
                     </button>
                 </div>
@@ -309,19 +402,19 @@ export default function MockExam() {
 
     if (stage === 'writing_intro') {
         return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-                <div className="bg-white max-w-lg w-full p-8 rounded-2xl text-center shadow-2xl">
-                    <h1 className="text-3xl font-bold mb-4 text-blue-800">📝 Writing Section</h1>
-                    <div className="text-left bg-blue-50 p-6 rounded-lg mb-6 space-y-3 text-sm text-gray-700 border border-blue-100">
-                        <p><b>Duration:</b> 60 minutes</p>
-                        <p><b>Format:</b> 2 tasks</p>
-                        <p><b>Task 1:</b> Minimum 150 words (recommended: 20 minutes)</p>
-                        <p><b>Task 2:</b> Minimum 250 words (recommended: 40 minutes)</p>
-                        <p className="mt-4 pt-4 border-t border-blue-200">
+            <div className="min-h-screen bg-gradient-to-br from-white via-orange-50/50 to-white flex items-center justify-center p-4">
+                <div className="bg-white/90 backdrop-blur-md max-w-lg w-full p-8 rounded-[32px] text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-orange-100/60">
+                    <h1 className="text-3xl font-black mb-4 text-gray-900 tracking-tight">📝 Writing Section</h1>
+                    <div className="text-left bg-orange-50/50 p-6 rounded-2xl mb-8 space-y-3 text-sm text-gray-700 border border-orange-100 shadow-sm shadow-orange-100/20">
+                        <p><b className="text-gray-900">Duration:</b> 60 minutes</p>
+                        <p><b className="text-gray-900">Format:</b> 2 tasks</p>
+                        <p><b className="text-gray-900">Task 1:</b> Minimum 150 words (recommended: 20 minutes)</p>
+                        <p><b className="text-gray-900">Task 2:</b> Minimum 250 words (recommended: 40 minutes)</p>
+                        <p className="mt-4 pt-4 border-t border-orange-200/50 leading-relaxed text-gray-600">
                             Make sure to read the prompts carefully and manage your time appropriately between the two tasks.
                         </p>
                     </div>
-                    <button onClick={handleNextStage} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.98]">
+                    <button onClick={handleNextStage} className="w-full bg-gradient-to-r from-orange-400 to-orange-500 text-white py-4 rounded-2xl font-black text-lg hover:from-orange-500 hover:to-orange-600 transition-all shadow-lg shadow-orange-500/25 active:scale-[0.98]">
                         Start Writing Test
                     </button>
                 </div>
@@ -374,23 +467,23 @@ export default function MockExam() {
 
             <div className="flex-1 overflow-hidden relative">
                 {stage === 'listening_volume_check' ? (
-                    <div className="absolute inset-0 bg-slate-900 z-50 flex items-center justify-center text-white">
-                        <div className="text-center max-w-lg p-10 bg-slate-800 rounded-3xl shadow-2xl border border-slate-700 animate-fade-in-up">
-                            <div className="w-24 h-24 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white via-orange-50/50 to-white z-50 flex items-center justify-center text-gray-900">
+                        <div className="text-center max-w-lg p-10 bg-white/90 backdrop-blur-md rounded-[32px] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-orange-100/60 animate-fade-in-up">
+                            <div className="w-24 h-24 bg-gradient-to-br from-orange-50 to-orange-100/50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-orange-200/50">
+                                <svg className="w-12 h-12 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                                 </svg>
                             </div>
-                            <h2 className="text-3xl font-bold mb-4">Volume Check</h2>
-                            <p className="text-slate-300 mb-8 font-medium leading-relaxed">
+                            <h2 className="text-3xl font-black mb-4 tracking-tight text-gray-900">Volume Check</h2>
+                            <p className="text-gray-500 mb-8 font-medium leading-relaxed">
                                 Please ensure you can hear the audio clearly. Adjust the volume below if necessary. The test will automatically begin in:
                             </p>
                             
-                            <div className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-purple-500 mb-8 font-mono tabular-nums">
+                            <div className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-orange-400 to-orange-600 mb-8 font-mono tabular-nums">
                                 {introWait}s
                             </div>
 
-                            <div className="flex items-center gap-4 bg-slate-9000/50 p-4 rounded-xl border border-slate-600 mb-8">
+                            <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 mb-8 shadow-inner shadow-gray-50/50">
                                 <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                                 </svg>
@@ -401,7 +494,7 @@ export default function MockExam() {
                                     step="0.01"
                                     value={systemVolume}
                                     onChange={volumeChange}
-                                    className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500 shadow-sm"
                                 />
                             </div>
 

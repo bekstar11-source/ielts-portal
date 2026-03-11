@@ -38,6 +38,7 @@ export default {
         'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
         'breathe-glow': 'breatheGlow 10s ease-in-out infinite alternate',
         'meteor-effect': 'meteor 5s linear infinite',
+        'shine': 'shine var(--duration) infinite linear',
       },
       keyframes: {
         fadeInUp: {
@@ -57,6 +58,11 @@ export default {
           '0%': { transform: 'rotate(215deg) translateX(0)', opacity: '1' },
           '70%': { opacity: '1' },
           '100%': { transform: 'rotate(215deg) translateX(-500px)', opacity: '0' },
+        },
+        shine: {
+          '0%': { 'background-position': '0% 0%' },
+          '50%': { 'background-position': '100% 100%' },
+          'to': { 'background-position': '0% 0%' },
         },
       }
     },

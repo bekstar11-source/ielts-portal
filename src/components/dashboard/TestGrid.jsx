@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Headphones, PenTool, Mic, Clock, HelpCircle, Play, Check, Folder, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { ShineBorder } from '../ui/shine-border';
 
 // --- STYLES & VARIANTS ---
 const containerVariants = {
@@ -255,24 +256,32 @@ export default function TestGrid({ loading, tests, onStartTest, onSelectSet, onR
 
                 if (test.isMock) {
                     return (
-                        <motion.div variants={itemVariants} key={index} className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-gray-900 to-black text-white p-6 shadow-xl border border-white/10 group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Check className="w-32 h-32" /></div>
-                            <div className="relative z-10 flex flex-col h-full justify-between">
-                                <div>
-                                    <span className="inline-block px-2 py-1 bg-yellow-500/20 text-yellow-400 text-[10px] font-bold rounded mb-3 uppercase tracking-wider border border-yellow-500/20">Mock Exam</span>
-                                    <h3 className="text-2xl font-bold leading-tight mb-1">Full IELTS Mock</h3>
-                                    <p className="text-gray-400 text-xs">Listening • Reading • Writing</p>
+                        <motion.div variants={itemVariants} key={index}>
+                            <ShineBorder
+                                borderRadius={28}
+                                borderWidth={1.5}
+                                duration={10}
+                                color={["#FFD700", "#FFA040", "#FFFDE7", "#FFC107"]}
+                                className="relative overflow-hidden bg-gradient-to-br from-gray-900 to-black text-white p-6 shadow-xl group h-full flex flex-col justify-between min-h-[220px]"
+                            >
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Check className="w-32 h-32" /></div>
+                                <div className="relative z-10 flex flex-col h-full justify-between">
+                                    <div>
+                                        <span className="inline-block px-2 py-1 bg-yellow-500/20 text-yellow-400 text-[10px] font-bold rounded mb-3 uppercase tracking-wider border border-yellow-500/20">Mock Exam</span>
+                                        <h3 className="text-2xl font-bold leading-tight mb-1">Full IELTS Mock</h3>
+                                        <p className="text-gray-400 text-xs">Listening • Reading • Writing</p>
+                                    </div>
+                                    <div className="mt-8">
+                                        <button
+                                            onClick={() => test.status === 'completed' ? onReview(test) : onStartTest(test)}
+                                            className="w-full bg-white text-black hover:bg-gray-200 py-3.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2"
+                                        >
+                                            {test.status === 'completed' ? "Natijani Ko'rish" : "Imtihonni Boshlash"}
+                                            {test.status !== 'completed' && <Play size={16} fill="currentColor" />}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="mt-8">
-                                    <button
-                                        onClick={() => test.status === 'completed' ? onReview(test) : onStartTest(test)}
-                                        className="w-full bg-white text-black hover:bg-gray-200 py-3.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2"
-                                    >
-                                        {test.status === 'completed' ? "Natijani Ko'rish" : "Imtihonni Boshlash"}
-                                        {test.status !== 'completed' && <Play size={16} fill="currentColor" />}
-                                    </button>
-                                </div>
-                            </div>
+                            </ShineBorder>
                         </motion.div>
                     );
                 }

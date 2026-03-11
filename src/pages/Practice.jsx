@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebase";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
@@ -347,9 +347,45 @@ export default function Practice() {
             <PlanetBackground />
 
             <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">Amaliyot Markazi</h1>
-                    <p className="text-gray-400">Barcha mavjud testlar va to'plamlar shu yerda.</p>
+                <div className="mb-12 text-center">
+                    <style>{`
+                        @keyframes word-appear {
+                            0%   { opacity: 0; transform: translateY(20px); filter: blur(10px); }
+                            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+                        }
+                        .hero-word {
+                            display: inline-block;
+                            opacity: 0;
+                            animation: word-appear 0.8s ease-out forwards;
+                        }
+                        .hero-header {
+                            color: #ffffff;
+                            font-weight: 700;
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                            letter-spacing: -0.04em;
+                            line-height: 1.1;
+                        }
+                        .hero-description {
+                            color: #a1a1aa; /* A slightly darker gray to match the image */
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                            font-weight: 500;
+                            font-size: 0.95rem; /* Make it a bit smaller */
+                            letter-spacing: -0.02em;
+                            max-width: 600px;
+                            margin-left: auto;
+                            margin-right: auto;
+                        }
+                    `}</style>
+
+                    <h1 className="hero-header text-6xl md:text-7xl mb-2">
+                        <span className="hero-word" style={{ animationDelay: '0.1s' }}>Amaliyot</span>
+                        {' '}
+                        <span className="hero-word" style={{ animationDelay: '0.2s' }}>Markazi</span>
+                    </h1>
+                    <p className="hero-description text-lg md:text-xl opacity-90 leading-relaxed">
+                        Barcha mavjud testlar va to&apos;plamlar shu yerda.
+                    </p>
+                    <div className="mt-10 w-24 h-0 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent mx-auto opacity-30"></div>
                 </div>
 
                 <FiltersBar

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { IoChevronBack, IoDocumentTextOutline, IoHeadsetOutline, IoMicOutline, IoCreateOutline, IoTimeOutline, IoArrowForward, IoChevronForward } from "react-icons/io5";
 import { getSynonymPairCounts } from "../utils/wordbankUtils";
 import { calculateBandScore } from "../utils/ieltsScoring";
+import DashboardHeader from "../components/dashboard/DashboardHeader";
 
 const getTestTheme = (type) => {
   switch (type) {
@@ -29,8 +30,9 @@ const formatDate = (dateString) => {
 };
 
 export default function MyResults() {
-  const { user } = useAuth();
+  const { user, userData, logout } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('results');
 
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,7 @@ export default function MyResults() {
   const [pageHistory, setPageHistory] = useState([]);
   const [isNextAvailable, setIsNextAvailable] = useState(true);
 
-  const itemsPerPage = 6;
+  const itemsPerPage = 9;
 
   useEffect(() => {
     if (!user) return;
@@ -195,25 +197,60 @@ export default function MyResults() {
       <div className="diag-result-planet"></div>
 
       {/* NAVBAR */}
-      <div className="relative z-10 bg-white/5 backdrop-blur-md border-b border-white/10 h-16 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
-        <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="group flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-all active:scale-95 border border-white/5"
-            >
-              <IoChevronBack className="text-blue-400 w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
-            </button>
-            <h1 className="text-base font-bold text-white tracking-tight">Asosiy sahifaga</h1>
-          </div>
-        </div>
-      </div>
+      <DashboardHeader
+        user={user}
+        userData={userData}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onKeyClick={() => alert("Access Key larni Practice yoki Dashboard sahifasidan kiritishingiz mumkin.")}
+        onLogoutClick={() => {
+            if (window.confirm("Haqiqatan ham hisobdan chiqmoqchimisiz?")) {
+                logout();
+            }
+        }}
+      />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 mt-8 pb-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 mt-2 pb-20">
 
-        <div className="mb-8 text-center md:text-left">
-          <h2 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-[#8ca1c4] tracking-tight mb-2 filter drop-shadow-sm">Mening Natijalarim</h2>
-          <p className="text-[#a0b0cb] text-lg font-normal">Eng so'nggi natijalar.</p>
+        <div className="mb-12 text-center">
+            <style>{`
+                @keyframes word-appear {
+                    0%   { opacity: 0; transform: translateY(20px); filter: blur(10px); }
+                    100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+                }
+                .hero-word {
+                    display: inline-block;
+                    opacity: 0;
+                    animation: word-appear 0.8s ease-out forwards;
+                }
+                .hero-header {
+                    color: #ffffff;
+                    font-weight: 700;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    letter-spacing: -0.04em;
+                    line-height: 1.1;
+                }
+                .hero-description {
+                    color: #a1a1aa;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    font-weight: 500;
+                    font-size: 0.95rem;
+                    letter-spacing: -0.02em;
+                    max-width: 600px;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+            `}</style>
+
+            <h1 className="hero-header text-6xl md:text-7xl mb-4">
+                <span className="hero-word" style={{ animationDelay: '0.1s' }}>Mening</span>
+                {' '}
+                <span className="hero-word" style={{ animationDelay: '0.2s' }}>Natijalarim</span>
+            </h1>
+            <p className="hero-description text-lg md:text-xl opacity-90 leading-relaxed">
+                Eng so'nggi natijalar va tahlillar.
+            </p>
+            <div className="mt-8 w-24 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent mx-auto opacity-30"></div>
         </div>
 
         {results.length === 0 && !loading ? (
