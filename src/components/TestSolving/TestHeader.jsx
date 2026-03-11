@@ -386,14 +386,20 @@ const TestHeader = ({
 
     const handleEnded = (index) => {
         if (test?.passages?.length && index < test.passages.length - 1) {
-            const nextIdx = index + 1;
-            if (setActivePart) setActivePart(nextIdx);
-            if (onPartChange) onPartChange(nextIdx);
-            // Keyingi partga o'tgandan sal keyin audio'ni play qilamiz
+            const currentPassage = test.passages[index];
+            const extraTimeMs = (Number(currentPassage?.extraSilentTime) || 0) * 1000;
+            const delay = extraTimeMs > 0 ? extraTimeMs : 500; // Small default delay
+
             setTimeout(() => {
-                const nextAudio = document.getElementById(`audio-part-${nextIdx}`);
-                if (nextAudio) nextAudio.play().catch(() => { });
-            }, 200);
+                const nextIdx = index + 1;
+                if (setActivePart) setActivePart(nextIdx);
+                if (onPartChange) onPartChange(nextIdx);
+                // Keyingi partga o'tgandan sal keyin audio'ni play qilamiz
+                setTimeout(() => {
+                    const nextAudio = document.getElementById(`audio-part-${nextIdx}`);
+                    if (nextAudio) nextAudio.play().catch(() => { });
+                }, 200);
+            }, delay);
         }
     };
 

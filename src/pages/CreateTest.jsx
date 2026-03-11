@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { db, storage } from "../firebase/firebase";
 import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate, useParams } from "react-router-dom";
 
 // --- ICONS (Ranglar moslashtirildi) ---
@@ -19,6 +19,7 @@ export default function CreateTest() {
 
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isMockMode, setIsMockMode] = useState(false);
     const [jsonInput, setJsonInput] = useState("");
@@ -39,10 +40,47 @@ export default function CreateTest() {
         ],
     });
 
-    const uploadToFirebase = async (file, folderName) => {
-        const storageRef = ref(storage, `${folderName}/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, file);
-        return await getDownloadURL(storageRef);
+    const getFileNameFromUrl = (url) => {
+        try {
+            if (!url) return '';
+            const decoded = decodeURIComponent(url);
+            const fullName = decoded.split('?')[0].split('/').pop();
+            return fullName.substring(fullName.indexOf('_') + 1) || fullName;
+        } catch (e) {
+            return 'Fayl';
+        }
+    };
+
+    const toMMSS = (seconds) => {
+        if (seconds === undefined || seconds === null || seconds === "") return "";
+        const s = Number(seconds);
+        if (isNaN(s)) return seconds;
+        const min = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${min}:${sec.toString().padStart(2, '0')}`;
+    };
+
+    const uploadToFirebase = (file, folderName) => {
+        return new Promise((resolve, reject) => {
+            setUploadProgress(0);
+            const storageRef = ref(storage, `${folderName}/${Date.now()}_${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on(
+                "state_changed",
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setUploadProgress(Math.round(progress));
+                },
+                (error) => {
+                    reject(error);
+                },
+                async () => {
+                    const url = await getDownloadURL(uploadTask.snapshot.ref);
+                    resolve(url);
+                }
+            );
+        });
     };
 
     useEffect(() => {
@@ -54,27 +92,47 @@ export default function CreateTest() {
                     const docSnap = await getDoc(doc(db, "tests", id));
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        setTestData(data);
+
+                        const newPassages = data.passages ? data.passages.map(p => ({
+                            ...p,
+                            startTime: p.startTime !== undefined && p.startTime !== null ? toMMSS(p.startTime) : "",
+                            endTime: p.endTime !== undefined && p.endTime !== null ? toMMSS(p.endTime) : ""
+                        })) : [];
+
+                        setTestData({ ...data, passages: newPassages });
                         setIsMockMode(data.isExclusive || false);
                         setJsonInput(JSON.stringify({
                             title: data.title,
                             introDuration: data.introDuration,
-                            passages: data.passages?.map(p => ({ ...p, audio: "" })) || [],
+                            passages: newPassages.map(p => ({ ...p, audio: "" })) || [],
                             questions: data.questions || [],
                             keywordTable: data.keywordTable || []
                         }, null, 2));
 
                         const audioMap = {};
-                        data.passages?.forEach((p, i) => { if (p.audio) audioMap[i] = p.audio; });
+                        newPassages.forEach((p, i) => { if (p.audio) audioMap[i] = p.audio; });
                         setPartAudios(audioMap);
 
                         // Check single audio mode
-                        if (data.audio_url || (data.passages && data.passages.length > 0 && data.passages.every(p => p.audio && p.audio === data.passages[0].audio))) {
+                        if (data.audio_url || (newPassages && newPassages.length > 0 && newPassages.every(p => p.audio && p.audio === newPassages[0].audio))) {
                             setAudioMode("single");
-                            setSingleAudioUrl(data.audio_url || data.passages[0].audio);
+                            setSingleAudioUrl(data.audio_url || newPassages[0].audio);
                         } else {
                             setAudioMode("multiple");
                         }
+
+                        const existingMaps = [];
+                        if (data.questions) {
+                            data.questions.forEach(q => {
+                                if ((q.type === 'map_labeling' || q.type === 'map' || q.type === 'matching') && q.image) {
+                                    // Make sure not to add duplicates
+                                    if (!existingMaps.some(m => m.url === q.image)) {
+                                        existingMaps.push({ name: getFileNameFromUrl(q.image), url: q.image });
+                                    }
+                                }
+                            });
+                        }
+                        setUploadedMaps(existingMaps);
                     }
                 } catch (error) { console.error(error); }
                 finally { setLoading(false); }
@@ -140,7 +198,7 @@ export default function CreateTest() {
                 const newPassages = [...(prev.passages || [])];
                 for (let i = 0; i < 4; i++) {
                     if (!newPassages[i]) {
-                        newPassages[i] = { id: 100 + i, title: `Part ${i + 1}`, content: "", audio: url, startTime: 0, endTime: 0 };
+                        newPassages[i] = { id: 100 + i, title: `Part ${i + 1}`, content: "", audio: url, startTime: 0, endTime: 0, extraSilentTime: 0 };
                     } else {
                         newPassages[i] = { ...newPassages[i], audio: url };
                     }
@@ -153,7 +211,7 @@ export default function CreateTest() {
                     const parsed = JSON.parse(prev || '{"passages":[]}');
                     if (!parsed.passages) parsed.passages = [];
                     for (let i = 0; i < 4; i++) {
-                        if (!parsed.passages[i]) parsed.passages[i] = { audio: url, startTime: 0, endTime: 0 };
+                        if (!parsed.passages[i]) parsed.passages[i] = { audio: url, startTime: 0, endTime: 0, extraSilentTime: 0 };
                         else parsed.passages[i].audio = url;
                     }
                     return JSON.stringify(parsed, null, 2);
@@ -211,20 +269,47 @@ export default function CreateTest() {
                         const newJsonStr = JSON.stringify(parsedJson, null, 2);
                         setJsonInput(newJsonStr);
                         updateTestDataFromJSON(newJsonStr);
-                        alert("Rasm yuklandi va JSON ga joylandi! ✅");
+                        alert("Rasm yuklandi!");
                     } else {
                         copyToClipboard(url);
-                        alert("Rasm yuklandi, lekin 'map_labeling' topilmadi. Link nusxalandi. 📋");
+                        alert("Rasm yuklandi!");
                     }
                 } catch (jsonErr) {
                     copyToClipboard(url);
                     console.error(jsonErr);
+                    alert("Rasm yuklandi!");
                 }
             } else {
                 copyToClipboard(url);
-                alert("Rasm yuklandi! Link nusxalandi.");
+                alert("Rasm yuklandi!");
             }
         } catch (err) { alert("Xatolik: " + err.message); } finally { setUploading(false); }
+    };
+
+    const handleDeleteMap = (index) => {
+        const mapToDelete = uploadedMaps[index];
+        setUploadedMaps(prev => prev.filter((_, i) => i !== index));
+
+        if (jsonInput.trim()) {
+            try {
+                const parsedJson = JSON.parse(jsonInput);
+                if (parsedJson.questions && Array.isArray(parsedJson.questions)) {
+                    parsedJson.questions = parsedJson.questions.map(q => {
+                        if ((q.type === 'map_labeling' || q.type === 'map' || q.type === 'matching') && q.image === mapToDelete.url) {
+                            const newQ = { ...q };
+                            delete newQ.image;
+                            return newQ;
+                        }
+                        return q;
+                    });
+                }
+                const newJsonStr = JSON.stringify(parsedJson, null, 2);
+                setJsonInput(newJsonStr);
+                updateTestDataFromJSON(newJsonStr);
+            } catch (e) {
+                console.error(e);
+            }
+        }
     };
 
     const handleWritingImageUpload = async (e) => {
@@ -322,7 +407,8 @@ export default function CreateTest() {
             const processedPassages = (testData.passages || []).map(p => ({
                 ...p,
                 startTime: p.startTime !== undefined ? processTime(p.startTime) : undefined,
-                endTime: p.endTime !== undefined ? processTime(p.endTime) : undefined
+                endTime: p.endTime !== undefined ? processTime(p.endTime) : undefined,
+                extraSilentTime: p.extraSilentTime ? Number(p.extraSilentTime) : 0
             }));
 
             const payload = JSON.parse(JSON.stringify({
@@ -350,6 +436,25 @@ export default function CreateTest() {
 
     return (
         <div className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#F5F5F7] text-gray-900 selection:bg-[#3772FF]/30">
+            {/* UPLOAD OVERLAY */}
+            {uploading && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm">
+                    <div className="bg-white p-8 rounded-[24px] shadow-2xl flex flex-col items-center gap-5 min-w-[320px] animate-in zoom-in-95 fade-in duration-200">
+                        <div className="relative flex items-center justify-center">
+                            <svg className="w-20 h-20 transform -rotate-90">
+                                <circle cx="40" cy="40" r="36" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
+                                <circle cx="40" cy="40" r="36" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="226" strokeDashoffset={226 - (226 * uploadProgress) / 100} className="text-[#3772FF] transition-all duration-300" />
+                            </svg>
+                            <span className="absolute text-lg font-bold text-gray-900">{uploadProgress}%</span>
+                        </div>
+                        <div className="text-center">
+                            <h3 className="text-lg font-bold text-gray-900 mb-1">Fayl Yuklanmoqda...</h3>
+                            <p className="text-sm text-gray-500 font-medium">Iltimos kuting, jarayon <br/>internet tezligiga bog'liq.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* MOBILE HEADER */}
             <div className="md:hidden p-4 flex items-center justify-between bg-white border-b border-gray-200">
                 <button onClick={() => navigate('/admin/tests')} className="text-gray-600"><Icons.Back className="w-6 h-6" /></button>
@@ -417,45 +522,68 @@ export default function CreateTest() {
                         </div>
 
                         {audioMode === 'multiple' ? (
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-4">
                                 {[0, 1, 2, 3].map((idx) => (
-                                    <label key={idx} className={`relative flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
-                                        <span className="text-xs font-bold text-gray-500 uppercase mb-1">Part {idx + 1}</span>
-                                        {partAudios[idx] ? <span className="text-[10px] text-[#45B26B] font-bold flex items-center gap-1"><Icons.Check className="w-3 h-3" /> Yuklandi</span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
-                                        <input type="file" accept="audio/*" onChange={(e) => handlePartAudioUpload(e, idx)} disabled={uploading} className="hidden" />
-                                    </label>
+                                    <div key={idx} className="flex flex-col gap-2 p-3 bg-gray-50 border border-gray-200 rounded-2xl">
+                                        <label className={`relative px-2 flex flex-col items-center justify-center h-20 rounded-xl border-2 border-dashed cursor-pointer transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-white'}`}>
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase mb-1">Part {idx + 1} Audio</span>
+                                            {partAudios[idx] ? <span className="text-[10px] text-[#45B26B] font-bold flex flex-col items-center gap-1 leading-tight text-center overflow-hidden w-full"><Icons.Check className="w-3 h-3" /> <span className="truncate w-full px-1">{getFileNameFromUrl(partAudios[idx])}</span></span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
+                                            <input type="file" accept="audio/*" onChange={(e) => handlePartAudioUpload(e, idx)} disabled={uploading} className="hidden" />
+                                        </label>
+                                        <div className="flex items-center justify-between mt-1 px-1">
+                                            <span className="text-[10px] text-gray-500 font-bold uppercase">Qo'shimcha vaqt (sek):</span>
+                                            <input 
+                                                type="number" 
+                                                className="w-16 bg-white border border-gray-200 rounded-lg p-1.5 text-center text-[10px] font-bold text-gray-900 outline-none focus:border-[#3772FF]"
+                                                placeholder="0"
+                                                value={testData.passages[idx]?.extraSilentTime ?? ''}
+                                                onChange={(e) => updatePartTime(idx, 'extraSilentTime', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <label className={`relative flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${singleAudioUrl ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+                                <label className={`relative px-4 flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${singleAudioUrl ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
                                     <span className="text-xs font-bold text-gray-500 uppercase mb-1">Butun Audio Fayl</span>
-                                    {singleAudioUrl ? <span className="text-[10px] text-[#45B26B] font-bold flex items-center gap-1"><Icons.Check className="w-3 h-3" /> Yuklandi</span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
+                                    {singleAudioUrl ? <span className="text-[10px] text-[#45B26B] font-bold flex flex-col items-center gap-1 leading-tight text-center w-full overflow-hidden"><Icons.Check className="w-3 h-3" /> <span className="truncate w-full">{getFileNameFromUrl(singleAudioUrl)}</span></span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
                                     <input type="file" accept="audio/*" onChange={handleSingleAudioUpload} disabled={uploading} className="hidden" />
                                 </label>
-
                                 {singleAudioUrl && (
                                     <div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
                                         <h4 className="text-xs font-bold text-gray-900 mb-3 uppercase tracking-wider">Partlar vaqtini belgilash (sekund yoki mm:ss)</h4>
-                                        <div className="space-y-2">
+                                        <div className="space-y-3">
                                             {[0, 1, 2, 3].map(idx => (
-                                                <div key={idx} className="flex items-center gap-3">
-                                                    <span className="text-xs font-bold text-gray-600 w-12">Part {idx + 1}</span>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Start"
-                                                        value={testData.passages[idx]?.startTime ?? ''}
-                                                        onChange={(e) => updatePartTime(idx, 'startTime', e.target.value)}
-                                                        className="w-full bg-white border border-gray-200 rounded-xl p-2 text-xs text-gray-900 focus:outline-none focus:border-[#3772FF]"
-                                                    />
-                                                    <span className="text-xs text-gray-400">-</span>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="End"
-                                                        value={testData.passages[idx]?.endTime ?? ''}
-                                                        onChange={(e) => updatePartTime(idx, 'endTime', e.target.value)}
-                                                        className="w-full bg-white border border-gray-200 rounded-xl p-2 text-xs text-gray-900 focus:outline-none focus:border-[#3772FF]"
-                                                    />
+                                                <div key={idx} className="flex flex-col gap-2 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-bold text-gray-500 uppercase w-10">Part {idx + 1}</span>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Start"
+                                                            value={testData.passages[idx]?.startTime ?? ''}
+                                                            onChange={(e) => updatePartTime(idx, 'startTime', e.target.value)}
+                                                            className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-900 focus:outline-none focus:border-[#3772FF] focus:bg-white transition"
+                                                        />
+                                                        <span className="text-xs text-gray-400">-</span>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="End"
+                                                            value={testData.passages[idx]?.endTime ?? ''}
+                                                            onChange={(e) => updatePartTime(idx, 'endTime', e.target.value)}
+                                                            className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-900 focus:outline-none focus:border-[#3772FF] focus:bg-white transition"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center justify-between border-t border-gray-100 mt-1 pt-2">
+                                                        <span className="text-[10px] text-gray-500 font-bold uppercase">End Section Extra Silence (s):</span>
+                                                        <input 
+                                                            type="number" 
+                                                            className="w-20 bg-gray-50 border border-gray-200 rounded-lg p-1.5 text-center text-[10px] font-bold text-gray-900 outline-none focus:border-[#3772FF] focus:bg-white transition"
+                                                            placeholder="0"
+                                                            value={testData.passages[idx]?.extraSilentTime ?? ''}
+                                                            onChange={(e) => updatePartTime(idx, 'extraSilentTime', e.target.value)}
+                                                        />
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -477,9 +605,14 @@ export default function CreateTest() {
                         </div>
                         <div className="space-y-2">
                             {uploadedMaps.map((map, idx) => (
-                                <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200">
-                                    <span className="text-xs text-gray-600 truncate w-40">{map.name}</span>
-                                    <button onClick={() => copyToClipboard(map.url)} className="text-[#3772FF] hover:text-[#2e62e0] transition p-1"><Icons.Copy className="w-4 h-4" /></button>
+                                <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200 group">
+                                    <span className="text-xs text-gray-600 truncate w-40" title={map.name}>{map.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => copyToClipboard(map.url)} className="text-[#3772FF] hover:text-[#2e62e0] transition p-1 opacity-60 hover:opacity-100" title="Linkni nusxalash"><Icons.Copy className="w-4 h-4" /></button>
+                                        <button onClick={() => handleDeleteMap(idx)} className="text-red-400 hover:text-red-600 transition p-1 opacity-0 group-hover:opacity-100" title="O'chirish">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                             {uploadedMaps.length === 0 && <p className="text-xs text-gray-400 text-center py-2">Rasm yuklanmagan</p>}

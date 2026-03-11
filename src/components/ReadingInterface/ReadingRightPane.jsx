@@ -168,7 +168,10 @@ const ReadingRightPane = memo(({
         }
 
         return parts.map((part, i) => {
-            if (part === '[INPUT]') {
+            const hasOptions = itemOptions && itemOptions.length > 0;
+            const isSelectDropdown = part === '[DROP]' || (part === '[INPUT]' && hasOptions && (isSummary || isMatching || group.type === 'summary_box'));
+
+            if (part === '[INPUT]' && !isSelectDropdown) {
                 return (
                     <span key={i} className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative">
                         {(isInlineQuestion || isSummary) && (
@@ -187,7 +190,7 @@ const ReadingRightPane = memo(({
                     </span>
                 );
             }
-            if (part === '[DROP]') {
+            if (isSelectDropdown) {
                 return (
                     <span key={i} className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative">
                         {(isInlineQuestion || isSummary) && (
