@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, collection, query, where, getDocs, updateDoc, setDoc, increment, serverTimestamp, writeBatch } from "firebase/firestore";
@@ -27,6 +27,7 @@ export function useTestLogic() {
     const [isReviewing, setIsReviewing] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [startedAt] = useState(new Date());
+    const stateRef = useRef({});
 
     // Audio States
     const [activePart, setActivePart] = useState(0);
@@ -162,7 +163,11 @@ export function useTestLogic() {
                     } else if (savedDraft) { try { setUserAnswers(JSON.parse(savedDraft)); } catch (e) { } }
 
                     // Mode Logic
-                    if (type === 'reading' || type === 'listening') {
+                    const savedMode = localStorage.getItem(`mode_${user.uid}_${data.id}`);
+                    if (savedMode && (type === 'reading' || type === 'listening')) {
+                        setTestMode(savedMode);
+                        setShowModeSelection(false);
+                    } else if (type === 'reading' || type === 'listening') {
                         setShowModeSelection(true);
                     } else {
                         setTestMode('exam');
@@ -185,10 +190,8 @@ export function useTestLogic() {
         const timerId = setInterval(() => {
             setTimeLeft(prev => {
                 const newVal = testMode === 'practice' ? prev + 1 : prev - 1;
-                // ✅ YECHIM 4: Har 30 soniyada bir marta localStorage ga yozish
-                if (newVal % 30 === 0) {
-                    localStorage.setItem(`timer_${user.uid}_${testId}`, newVal);
-                }
+                // ✅ YECHIM 4: Har 1 soniyada bir marta localStorage ga yozish
+                localStorage.setItem(`timer_${user.uid}_${testId}`, newVal);
                 return newVal;
             });
         }, 1000);
@@ -209,6 +212,41 @@ export function useTestLogic() {
             localStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
         }
     }, [writingEssay, userAnswers, test, user.uid, showResult, testMode]);
+
+    // ANTI-CHEAT: TAB CLOSE DETECTION
+    useEffect(() => {
+        stateRef.current = { testMode, showResult, saving, submitFunc: handleSubmit };
+    }, [testMode, showResult, saving]); // we don't put handleSubmit in deps to avoid constant updates if it's not memoized, but in React it's recreated. Let's just update the ref on render.
+
+    useEffect(() => {
+        stateRef.current.submitFunc = handleSubmit;
+    });
+
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            const { testMode, showResult, saving } = stateRef.current;
+            if (testMode && !showResult && !saving) {
+                e.preventDefault();
+                e.returnValue = "Sahifani yopsangiz, test natijangiz avtomatik yuboriladi!";
+                return e.returnValue;
+            }
+        };
+
+        const handlePageHide = () => {
+            const { testMode, showResult, saving, submitFunc } = stateRef.current;
+            if (testMode && !showResult && !saving && submitFunc) {
+                submitFunc('tab_closed');
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('pagehide', handlePageHide);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('pagehide', handlePageHide);
+        };
+    }, []);
 
     // HANDLERS
     const handleSelectAnswer = (questionId, option) => {
@@ -241,7 +279,8 @@ export function useTestLogic() {
         }
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (violationType = null) => {
+        const vType = typeof violationType === 'string' ? violationType : null;
         await new Promise(resolve => setTimeout(resolve, 100)); // Small UI delay
         setSaving(true);
 
@@ -260,6 +299,10 @@ export function useTestLogic() {
                 startedAt: typeof startedAt === 'object' ? startedAt.toISOString() : new Date().toISOString(),
                 userAnswers: userAnswers || {}
             };
+            
+            if (vType) {
+                resultData.violation = vType;
+            }
 
             let mistakes = [];
 

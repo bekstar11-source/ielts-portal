@@ -84,7 +84,7 @@ export default function Practice() {
                     getDocs(query(collection(db, 'results'), where('userId', '==', user.uid)))
                 ]);
 
-                const myResults = resultsSnap.docs.map(d => d.data());
+                const myResults = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
                 let allAssignments = [];
                 const currentUserData = userSnap.data();
 

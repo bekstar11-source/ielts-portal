@@ -51,22 +51,33 @@ export default function AdminResults() {
           // DURATION HISOBLASH LOGIKASI
           // DURATION HISOBLASH LOGIKASI
           let durationStr = "-";
+          let timeSpentSeconds = 0;
           if (d.timeSpent) {
             // Agar yangi timeSpent (sekundlarda) bo'lsa
+            timeSpentSeconds = d.timeSpent;
             const mins = Math.floor(d.timeSpent / 60);
             const secs = d.timeSpent % 60;
             durationStr = `${mins} daq ${secs} sek`;
           } else if (d.duration) {
             // Agar eski duration raqami bo'lsa (daqiqada)
+            timeSpentSeconds = d.duration * 60;
             durationStr = `${d.duration} daq`;
           } else if (d.startedAt && d.date) {
             // Agar boshlanish va tugash vaqti bo'lsa (Timestamp)
             const start = d.startedAt.toDate ? d.startedAt.toDate() : new Date(d.startedAt);
             const end = d.date.toDate ? d.date.toDate() : new Date(d.date);
             const diffMs = end - start;
-            const diffMins = Math.floor(diffMs / 60000);
+            timeSpentSeconds = Math.floor(diffMs / 1000);
+            const diffMins = Math.floor(timeSpentSeconds / 60);
             durationStr = `${diffMins} daq`;
           }
+          
+          const isFast = (d.status === 'graded' || d.status === 'published') && timeSpentSeconds > 0 && timeSpentSeconds < 600 && d.type !== 'speaking';
+          const hasViolation = !!d.violation || isFast;
+          let violationText = null;
+          if (d.violation === 'tab_closed') violationText = 'Tab yopilgan (erta yakunlangan)';
+          else if (isFast) violationText = 'Tez bajarilgan (< 10 daq)';
+          else if (d.violation) violationText = d.violation;
 
           return {
             id: doc.id,
@@ -79,7 +90,9 @@ export default function AdminResults() {
             date: d.date ? (d.date.toDate ? d.date.toDate() : new Date(d.date)) : null,
             // ORPHAN TEKSHIRUVI: Agar test ID bazada yo'q bo'lsa
             isOrphan: d.testId && !validTestIds.has(d.testId),
-            durationDisplay: durationStr // <--- Yangi maydon
+            durationDisplay: durationStr, // <--- Yangi maydon
+            hasViolation,
+            violationText
           };
         });
 
@@ -373,20 +386,32 @@ export default function AdminResults() {
                           </span>
                         </td>
 
-                        {/* STATUS */}
+                        {/* STATUS VA QOIDABUZARLIK */}
                         <td className="py-3 px-4 align-middle text-center">
-                          {res.isOrphan ? (
-                            <span className="inline-flex px-2 py-1 rounded-[4px] text-[11px] font-semibold bg-red-100 text-red-700 border border-red-200">
-                              Arxiv
-                            </span>
-                          ) : (
-                            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] text-[11px] font-semibold border ${res.status === 'graded' || res.status === 'published'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : 'bg-orange-50 text-orange-700 border-orange-200'
-                              }`}>
-                              {res.status === 'graded' || res.status === 'published' ? 'Baholangan' : 'Kutilmoqda'}
-                            </span>
-                          )}
+                          <div className="flex flex-col items-center gap-1">
+                            {res.isOrphan ? (
+                              <span className="inline-flex px-2 py-1 rounded-[4px] text-[11px] font-semibold bg-red-100 text-red-700 border border-red-200">
+                                Arxiv
+                              </span>
+                            ) : (
+                              <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] text-[11px] font-semibold border ${res.status === 'graded' || res.status === 'published'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : 'bg-orange-50 text-orange-700 border-orange-200'
+                                }`}>
+                                {res.status === 'graded' || res.status === 'published' ? 'Baholangan' : 'Kutilmoqda'}
+                              </span>
+                            )}
+                            
+                            {res.hasViolation && (
+                              <span 
+                                title={res.violationText} 
+                                className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 cursor-help w-fit"
+                              >
+                                <Icons.Alert className="w-3 h-3" />
+                                Qoidabuzarlik
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* AMALLAR */}

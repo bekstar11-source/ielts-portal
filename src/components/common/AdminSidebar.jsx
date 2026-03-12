@@ -52,78 +52,83 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
     ];
 
     return (
-        <aside
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            className={`
-                fixed md:relative z-30 h-full flex flex-col
-                transition-all duration-300 ease-in-out
-                ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-                ${expanded ? 'w-64' : 'w-20'}
-                ${theme === 'dark' ? 'bg-[#2C2C2C] border-r border-white/5' : 'bg-white border-r border-gray-200'}
-                shadow-xl md:shadow-none
-            `}
-        >
-            {/* LOGO AREA */}
-            <div className="h-16 flex items-center px-4 border-b border-inherit relative flex-shrink-0">
-                <div className={`font-bold text-xl tracking-tighter flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white flex-shrink-0 text-sm font-black">A</div>
-                    <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${expanded ? 'max-w-[120px] opacity-100' : 'max-w-0 opacity-0'}`}>
-                        Control
-                    </span>
+        <>
+            {/* Desktop placeholder to occupy space without pushing content when expanded */}
+            <div className="hidden md:block w-20 flex-shrink-0"></div>
+
+            <aside
+                onMouseEnter={() => setHovered(true)}
+                onMouseLeave={() => setHovered(false)}
+                className={`
+                    fixed left-0 top-0 bottom-0 z-30 h-full flex flex-col
+                    transition-all duration-300 ease-in-out
+                    ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                    ${expanded ? 'w-64' : 'w-20'}
+                    ${theme === 'dark' ? 'bg-[#2C2C2C] border-r border-white/5' : 'bg-white border-r border-gray-200'}
+                    shadow-xl ${expanded ? 'md:shadow-2xl' : 'md:shadow-none'}
+                `}
+            >
+                {/* LOGO AREA */}
+                <div className="h-16 flex items-center px-4 border-b border-inherit relative flex-shrink-0 bg-inherit">
+                    <div className={`font-bold text-xl tracking-tighter flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white flex-shrink-0 text-sm font-black">A</div>
+                        <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${expanded ? 'max-w-[120px] opacity-100' : 'max-w-0 opacity-0'}`}>
+                            Control
+                        </span>
+                    </div>
+
+                    {/* Mobile close button */}
+                    <button
+                        onClick={() => setIsOpen(false)}
+                        className="absolute -right-3 top-6 bg-blue-600 text-white p-1 rounded-full shadow-lg md:hidden"
+                    >
+                        <ChevronLeft size={14} />
+                    </button>
                 </div>
 
-                {/* Mobile close button */}
-                <button
-                    onClick={() => setIsOpen(false)}
-                    className="absolute -right-3 top-6 bg-blue-600 text-white p-1 rounded-full shadow-lg md:hidden"
-                >
-                    <ChevronLeft size={14} />
-                </button>
-            </div>
+                {/* MENU ITEMS */}
+                <div className="flex-1 overflow-y-auto py-4 px-3 custom-scrollbar bg-inherit">
+                    {menuGroups.map((group, idx) => (
+                        <div key={idx} className="mb-5">
+                            <div className={`px-3 mb-2 text-[10px] font-bold uppercase tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap
+                                ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}
+                                ${expanded ? 'max-h-6 opacity-100' : 'max-h-0 opacity-0'}
+                            `}>
+                                {group.title}
+                            </div>
+                            <div className="space-y-1">
+                                {group.items.map((item) => {
+                                    const isActive = item.exact
+                                        ? location.pathname === item.path
+                                        : location.pathname.startsWith(item.path);
 
-            {/* MENU ITEMS */}
-            <div className="flex-1 overflow-y-auto py-4 px-3 custom-scrollbar">
-                {menuGroups.map((group, idx) => (
-                    <div key={idx} className="mb-5">
-                        <div className={`px-3 mb-2 text-[10px] font-bold uppercase tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap
-                            ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}
-                            ${expanded ? 'max-h-6 opacity-100' : 'max-h-0 opacity-0'}
-                        `}>
-                            {group.title}
+                                    return (
+                                        <NavLink
+                                            key={item.path}
+                                            to={item.path}
+                                            className={`
+                                                flex items-center gap-3 px-3 py-2.5 rounded-xl
+                                                transition-all duration-200
+                                                ${isActive
+                                                    ? (theme === 'dark' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-blue-50 text-blue-600')
+                                                    : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100')
+                                                }
+                                            `}
+                                        >
+                                            <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
+                                            <span className={`font-medium text-sm whitespace-nowrap transition-all duration-300 overflow-hidden
+                                                ${expanded ? 'max-w-[160px] opacity-100' : 'max-w-0 opacity-0'}
+                                            `}>
+                                                {item.name}
+                                            </span>
+                                        </NavLink>
+                                    );
+                                })}
+                            </div>
                         </div>
-                        <div className="space-y-1">
-                            {group.items.map((item) => {
-                                const isActive = item.exact
-                                    ? location.pathname === item.path
-                                    : location.pathname.startsWith(item.path);
-
-                                return (
-                                    <NavLink
-                                        key={item.path}
-                                        to={item.path}
-                                        className={`
-                                            flex items-center gap-3 px-3 py-2.5 rounded-xl
-                                            transition-all duration-200
-                                            ${isActive
-                                                ? (theme === 'dark' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-blue-50 text-blue-600')
-                                                : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100')
-                                            }
-                                        `}
-                                    >
-                                        <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
-                                        <span className={`font-medium text-sm whitespace-nowrap transition-all duration-300 overflow-hidden
-                                            ${expanded ? 'max-w-[160px] opacity-100' : 'max-w-0 opacity-0'}
-                                        `}>
-                                            {item.name}
-                                        </span>
-                                    </NavLink>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </aside>
+                    ))}
+                </div>
+            </aside>
+        </>
     );
 }
