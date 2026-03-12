@@ -112,7 +112,7 @@ export function useDiagnosticLogic() {
 
             if (test.questions && Array.isArray(test.questions)) {
                 test.questions.forEach(q => {
-                    if (q.items && Array.isArray(q.items)) {
+                    if (q.items && Array.isArray(q.items) && q.items.length > 0) {
                         q.items.forEach(item => {
                             const correct = item.answer || item.correct_answer;
                             if (correct) {
@@ -122,7 +122,31 @@ export function useDiagnosticLogic() {
                                 }
                             }
                         });
-                    } else {
+                    } 
+                    
+                    if (q.rows && Array.isArray(q.rows) && q.rows.length > 0) {
+                        q.rows.forEach(row => {
+                            if (row.cells && Array.isArray(row.cells)) {
+                                row.cells.forEach(cell => {
+                                    if (cell.isMixed && cell.parts && Array.isArray(cell.parts)) {
+                                        cell.parts.forEach(part => {
+                                            if (part.type === 'input') {
+                                                const correct = part.answer || part.correct_answer;
+                                                if (correct) {
+                                                    totalQ++;
+                                                    if (checkAnswer(correct, userAnswers[String(part.id)] || userAnswers[part.id])) {
+                                                        correctCount++;
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    } 
+                    
+                    if ((!q.items || q.items.length === 0) && (!q.rows || q.rows.length === 0)) {
                         const correct = q.answer || q.correct_answer;
                         if (correct) {
                             totalQ++;

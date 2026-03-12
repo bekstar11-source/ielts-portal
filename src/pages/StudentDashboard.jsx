@@ -337,8 +337,12 @@ export default function StudentDashboard() {
     };
 
     const handleReview = (test) => {
-        if (test.type === 'mock_full') { navigate(`/mock-result/${test.mockKey || test.id}`); }
-        else { navigate(`/test/${test.id}/review`); }
+        const resultId = test.result?.id;
+        if (!resultId) {
+            alert("Natija topilmadi!");
+            return;
+        }
+        navigate(`/review/${resultId}`);
     };
 
     const handleVerifyKey = async () => {

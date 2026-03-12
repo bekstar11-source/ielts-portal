@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo, forwardRef } from 'react';
 import { db } from '../firebase/firebase';
 import {
     collection, getDocs, addDoc, doc, updateDoc,
-    arrayUnion, query, orderBy, deleteDoc, where, getDoc, writeBatch
+    arrayUnion, arrayRemove, query, orderBy, deleteDoc, where, getDoc, writeBatch
 } from 'firebase/firestore';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { logAction } from '../utils/logger';
 import UserDetailPanel from '../components/admin/UserDetailPanel';
 import GroupDetailPanel from '../components/admin/GroupDetailPanel';
 
@@ -73,6 +75,7 @@ export default function AdminUsers() {
 
     const [activeTab, setActiveTab] = useState('students');
     const [students, setStudents] = useState([]);
+    const [teachers, setTeachers] = useState([]);
     const [groups, setGroups] = useState([]);
     const [allTests, setAllTests] = useState([]);
     const [testSets, setTestSets] = useState([]);
@@ -82,13 +85,15 @@ export default function AdminUsers() {
     const refreshData = async () => {
         setLoading(true);
         try {
-            const [u, g, t, s] = await Promise.all([
-                getDocs(query(collection(db, 'users'), where('role', '!=', 'admin'))),
+            const [u, teacherSnap, g, t, s] = await Promise.all([
+                getDocs(query(collection(db, 'users'), where('role', 'not-in', ['admin', 'teacher']))),
+                getDocs(query(collection(db, 'users'), where('role', '==', 'teacher'))),
                 getDocs(query(collection(db, 'groups'), orderBy('createdAt', 'desc'))),
                 getDocs(query(collection(db, 'tests'), orderBy('createdAt', 'desc'))),
                 getDocs(query(collection(db, 'testSets'), orderBy('createdAt', 'desc'))),
             ]);
             setStudents(u.docs.map(d => ({ id: d.id, ...d.data() })));
+            setTeachers(teacherSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             setGroups(g.docs.map(d => ({ id: d.id, ...d.data() })));
             setAllTests(t.docs.map(d => ({ id: d.id, ...d.data() })));
             setTestSets(s.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -124,7 +129,7 @@ export default function AdminUsers() {
                 )}
 
                 {activeTab === 'students' && <SmartUserTable students={students} onRefresh={refreshData} theme={theme} />}
-                {activeTab === 'groups' && <GroupsTab groups={groups} students={students} onRefresh={refreshData} theme={theme} />}
+                {activeTab === 'groups' && <GroupsTab groups={groups} students={students} teachers={teachers} onRefresh={refreshData} theme={theme} />}
                 {activeTab === 'assign' && <AssignTab students={students} groups={groups} allTests={allTests} testSets={testSets} theme={theme} />}
                 {activeTab === 'sets' && <SetsTab allTests={allTests} testSets={testSets} onRefresh={refreshData} theme={theme} />}
             </div>
@@ -249,15 +254,18 @@ function SmartUserTable({ students, onRefresh, theme }) {
 }
 
 // --- TAB 2: GROUPS ---
-function GroupsTab({ groups, students, onRefresh, theme }) {
+function GroupsTab({ groups, students, teachers, onRefresh, theme }) {
     const isDark = theme === 'dark';
     const [name, setName] = useState('');
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [showPanel, setShowPanel] = useState(false);
+    const [assigningTeacherFor, setAssigningTeacherFor] = useState(null); // group id
+    const [teacherDropdown, setTeacherDropdown] = useState(''); // selected teacher uid
+    const [savingTeacher, setSavingTeacher] = useState(false);
 
     const handleCreate = async () => {
         if (!name.trim()) return;
-        await addDoc(collection(db, 'groups'), { name, studentIds: [], assignedTests: [], createdAt: new Date().toISOString() });
+        await addDoc(collection(db, 'groups'), { name, studentIds: [], assignedTests: [], teacherIds: [], createdAt: new Date().toISOString() });
         setName(''); onRefresh();
     };
 
@@ -265,6 +273,47 @@ function GroupsTab({ groups, students, onRefresh, theme }) {
         if (window.confirm("O'chirasizmi?")) {
             await deleteDoc(doc(db, 'groups', id));
             onRefresh();
+        }
+    };
+
+    const handleAssignTeacher = async (group) => {
+        if (!teacherDropdown) return alert('Ustoz tanlang');
+        setSavingTeacher(true);
+        try {
+            // Add teacher to group's teacherIds array
+            const currentTeacherIds = group.teacherIds || [];
+            if (currentTeacherIds.includes(teacherDropdown)) {
+                return alert('Bu ustoz allaqachon bu guruhda');
+            }
+            await updateDoc(doc(db, 'groups', group.id), {
+                teacherIds: arrayUnion(teacherDropdown)
+            });
+            // Add groupId to teacher's assignedGroupIds
+            await updateDoc(doc(db, 'users', teacherDropdown), {
+                assignedGroupIds: arrayUnion(group.id)
+            });
+            setAssigningTeacherFor(null);
+            setTeacherDropdown('');
+            onRefresh();
+        } catch (e) {
+            alert('Xato: ' + e.message);
+        } finally {
+            setSavingTeacher(false);
+        }
+    };
+
+    const handleRemoveTeacher = async (group, teacherId) => {
+        if (!window.confirm("Ustozni guruhdan olib tashlaysizmi?")) return;
+        try {
+            await updateDoc(doc(db, 'groups', group.id), {
+                teacherIds: (group.teacherIds || []).filter(id => id !== teacherId)
+            });
+            await updateDoc(doc(db, 'users', teacherId), {
+                assignedGroupIds: (teachers.find(t => t.id === teacherId)?.assignedGroupIds || []).filter(id => id !== group.id)
+            });
+            onRefresh();
+        } catch (e) {
+            alert('Xato: ' + e.message);
         }
     };
 
@@ -287,36 +336,99 @@ function GroupsTab({ groups, students, onRefresh, theme }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pb-10 custom-scrollbar">
-                {groups.map(g => (
-                    <div key={g.id} className={`rounded-[24px] border p-6 transition group relative ${isDark ? 'bg-[#2C2C2C] border-white/5 hover:border-blue-500/50' : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm'}`}>
-                        <div className="flex justify-between items-start mb-4">
-                            <h3 className="font-bold text-lg">{g.name}</h3>
-                            <button onClick={() => handleDelete(g.id)} className="opacity-0 group-hover:opacity-100 transition p-2 hover:bg-red-500/10 text-red-500 rounded-lg">
-                                <Trash2 size={16} />
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mb-6">
-                            <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                                <p className="text-xs opacity-50 uppercase tracking-wider mb-1">Students</p>
-                                <p className="text-2xl font-bold text-blue-500">{g.studentIds?.length || 0}</p>
+                {groups.map(g => {
+                    const groupTeachers = (g.teacherIds || []).map(tid => teachers.find(t => t.id === tid)).filter(Boolean);
+                    return (
+                        <div key={g.id} className={`rounded-[24px] border p-6 transition group relative ${isDark ? 'bg-[#2C2C2C] border-white/5 hover:border-blue-500/50' : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm'}`}>
+                            <div className="flex justify-between items-start mb-4">
+                                <h3 className="font-bold text-lg">{g.name}</h3>
+                                <button onClick={() => handleDelete(g.id)} className="opacity-0 group-hover:opacity-100 transition p-2 hover:bg-red-500/10 text-red-500 rounded-lg">
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
-                            <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                                <p className="text-xs opacity-50 uppercase tracking-wider mb-1">Tests</p>
-                                <p className="text-2xl font-bold text-purple-500">{g.assignedTests?.length || 0}</p>
+
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                                    <p className="text-xs opacity-50 uppercase tracking-wider mb-1">Students</p>
+                                    <p className="text-2xl font-bold text-blue-500">{g.studentIds?.length || 0}</p>
+                                </div>
+                                <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                                    <p className="text-xs opacity-50 uppercase tracking-wider mb-1">Tests</p>
+                                    <p className="text-2xl font-bold text-purple-500">{g.assignedTests?.length || 0}</p>
+                                </div>
+                            </div>
+
+                            {/* Teacher Section */}
+                            <div className="mb-4">
+                                <p className={`text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Ustoz(lar)</p>
+                                {groupTeachers.length > 0 ? (
+                                    <div className="space-y-1.5">
+                                        {groupTeachers.map(t => (
+                                            <div key={t.id} className={`flex items-center justify-between px-3 py-1.5 rounded-xl ${isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-200'}`}>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-white text-[9px] font-bold">
+                                                        {t.fullName?.charAt(0)?.toUpperCase()}
+                                                    </div>
+                                                    <span className="text-xs font-semibold text-emerald-600">{t.fullName}</span>
+                                                </div>
+                                                <button onClick={() => handleRemoveTeacher(g, t.id)} className="text-red-400 hover:text-red-500 p-0.5 transition">
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs opacity-30 italic">Ustoz tayinlanmagan</p>
+                                )}
+
+                                {/* Teacher Assignment Dropdown */}
+                                {assigningTeacherFor === g.id ? (
+                                    <div className="mt-2 flex gap-2">
+                                        <select
+                                            value={teacherDropdown}
+                                            onChange={e => setTeacherDropdown(e.target.value)}
+                                            className={`flex-1 h-9 px-2 text-xs rounded-xl border outline-none ${isDark ? 'bg-[#1E1E1E] border-white/5 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
+                                        >
+                                            <option value="">Ustoz tanlang...</option>
+                                            {teachers.filter(t => !(g.teacherIds || []).includes(t.id)).map(t => (
+                                                <option key={t.id} value={t.id}>{t.fullName}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            onClick={() => handleAssignTeacher(g)}
+                                            disabled={savingTeacher}
+                                            className="h-9 px-3 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition"
+                                        >
+                                            {savingTeacher ? <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> : <Check size={14} />}
+                                        </button>
+                                        <button
+                                            onClick={() => { setAssigningTeacherFor(null); setTeacherDropdown(''); }}
+                                            className={`h-9 px-2 rounded-xl text-xs transition ${isDark ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => { setAssigningTeacherFor(g.id); setTeacherDropdown(''); }}
+                                        className={`mt-2 w-full h-8 text-xs font-bold rounded-xl border flex items-center justify-center gap-1.5 transition ${isDark ? 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
+                                    >
+                                        <Plus size={13} /> Ustoz tayinlash
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => { setSelectedGroup(g); setShowPanel(true); }}
+                                    className={`flex-1 h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition ${isDark ? 'border-white/10 hover:bg-white/5' : 'border-gray-200 hover:bg-gray-50'}`}
+                                >
+                                    <Users size={14} /> Boshqarish
+                                </button>
                             </div>
                         </div>
-
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => { setSelectedGroup(g); setShowPanel(true); }}
-                                className={`flex-1 h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition ${isDark ? 'border-white/10 hover:bg-white/5' : 'border-gray-200 hover:bg-gray-50'}`}
-                            >
-                                <Users size={14} /> Boshqarish
-                            </button>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             <GroupDetailPanel
@@ -329,11 +441,6 @@ function GroupsTab({ groups, students, onRefresh, theme }) {
         </div>
     );
 }
-
-import { logAction } from '../utils/logger';
-import { useAuth } from '../context/AuthContext';
-
-// ... (existing imports)
 
 // --- TAB 3: ASSIGN ---
 function AssignTab({ students, groups, allTests, testSets, theme }) {
@@ -385,6 +492,17 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
             if (selectedGroup) {
                 await updateDoc(doc(db, 'groups', selectedGroup.id), { assignedTests: arrayUnion(payload) });
                 logAction(user.uid, 'ASSIGN_TEST', { target: 'group', targetId: selectedGroup.id, ...payload });
+
+                // Guruhning barcha teacherlariga ham test tayinlash
+                const teacherIds = selectedGroup.teacherIds || [];
+                if (teacherIds.length > 0) {
+                    const teacherPayload = { ...payload, assignedByAdmin: true };
+                    const batch = writeBatch(db);
+                    teacherIds.forEach(tid => {
+                        batch.update(doc(db, 'users', tid), { assignedTests: arrayUnion(teacherPayload) });
+                    });
+                    await batch.commit();
+                }
             } else {
                 const batch = writeBatch(db);
                 selectedStudents.forEach(id => {
@@ -398,7 +516,6 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
             setSelectedItem('');
         } catch (e) { alert("Xato: " + e.message); }
     };
-    // ...
 
     return (
         <div className="grid grid-cols-12 gap-6 h-full">

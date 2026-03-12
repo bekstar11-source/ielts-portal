@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,10 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
     const { theme } = useTheme();
     const { logout } = useAuth();
     const location = useLocation();
+    const [hovered, setHovered] = useState(false);
+
+    // Desktop: hover bilan kengayadi. Mobile: toggle bilan
+    const expanded = isOpen || hovered;
 
     const menuGroups = [
         {
@@ -25,8 +29,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
         {
             title: "USERS",
             items: [
-                { name: "Students", path: "/admin/users", icon: Users },
-                { name: "Admins", path: "/admin/admins", icon: Shield },
+                { name: "Students & Teachers", path: "/admin/users", icon: Users },
                 { name: "Gamification", path: "/admin/gamification", icon: Trophy }
             ]
         },
@@ -50,35 +53,43 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
 
     return (
         <aside
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
             className={`
-                fixed md:relative z-30 h-full transition-all duration-300 ease-in-out
-                ${isOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'}
+                fixed md:relative z-30 h-full flex flex-col
+                transition-all duration-300 ease-in-out
+                ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                ${expanded ? 'w-64' : 'w-20'}
                 ${theme === 'dark' ? 'bg-[#2C2C2C] border-r border-white/5' : 'bg-white border-r border-gray-200'}
+                shadow-xl md:shadow-none
             `}
         >
             {/* LOGO AREA */}
-            <div className="h-16 flex items-center justify-center border-b border-inherit relative">
-                <div className={`font-bold text-xl tracking-tighter flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">A</div>
-                    <span className={`transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 hidden md:block md:w-0 overflow-hidden'}`}>
+            <div className="h-16 flex items-center px-4 border-b border-inherit relative flex-shrink-0">
+                <div className={`font-bold text-xl tracking-tighter flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white flex-shrink-0 text-sm font-black">A</div>
+                    <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${expanded ? 'max-w-[120px] opacity-100' : 'max-w-0 opacity-0'}`}>
                         Control
                     </span>
                 </div>
 
-                {/* Toggle Button (Mobile only inside, Desktop handled by layout or hover if needed) */}
+                {/* Mobile close button */}
                 <button
-                    onClick={() => setIsOpen(!isOpen)}
+                    onClick={() => setIsOpen(false)}
                     className="absolute -right-3 top-6 bg-blue-600 text-white p-1 rounded-full shadow-lg md:hidden"
                 >
-                    {isOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+                    <ChevronLeft size={14} />
                 </button>
             </div>
 
             {/* MENU ITEMS */}
             <div className="flex-1 overflow-y-auto py-4 px-3 custom-scrollbar">
                 {menuGroups.map((group, idx) => (
-                    <div key={idx} className="mb-6">
-                        <div className={`px-4 mb-2 text-[10px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} ${!isOpen ? 'md:hidden' : ''}`}>
+                    <div key={idx} className="mb-5">
+                        <div className={`px-3 mb-2 text-[10px] font-bold uppercase tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap
+                            ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}
+                            ${expanded ? 'max-h-6 opacity-100' : 'max-h-0 opacity-0'}
+                        `}>
                             {group.title}
                         </div>
                         <div className="space-y-1">
@@ -92,25 +103,20 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                                         key={item.path}
                                         to={item.path}
                                         className={`
-                                            flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative
+                                            flex items-center gap-3 px-3 py-2.5 rounded-xl
+                                            transition-all duration-200
                                             ${isActive
                                                 ? (theme === 'dark' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-blue-50 text-blue-600')
                                                 : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100')
                                             }
                                         `}
-                                        title={!isOpen ? item.name : ""}
                                     >
-                                        <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                                        <span className={`font-medium text-sm whitespace-nowrap transition-all duration-200 ${!isOpen ? 'md:hidden' : ''}`}>
+                                        <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
+                                        <span className={`font-medium text-sm whitespace-nowrap transition-all duration-300 overflow-hidden
+                                            ${expanded ? 'max-w-[160px] opacity-100' : 'max-w-0 opacity-0'}
+                                        `}>
                                             {item.name}
                                         </span>
-
-                                        {/* Hover Tooltip for collapsed state */}
-                                        {!isOpen && (
-                                            <div className="absolute left-full ml-4 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap hidden md:block">
-                                                {item.name}
-                                            </div>
-                                        )}
                                     </NavLink>
                                 );
                             })}
@@ -118,7 +124,6 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                     </div>
                 ))}
             </div>
-
         </aside>
     );
 }

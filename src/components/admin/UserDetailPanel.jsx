@@ -17,7 +17,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
         phoneNumber: '',
         targetBand: '7.0',
         examDate: '',
-        maxTestAttempts: 1
+        maxTestAttempts: 1,
+        role: 'student'
     });
 
     const [recentResults, setRecentResults] = useState([]);
@@ -31,7 +32,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                 phoneNumber: user.phoneNumber || '',
                 targetBand: user.targetBand || '7.0',
                 examDate: user.examDate || '',
-                maxTestAttempts: user.maxTestAttempts || 1
+                maxTestAttempts: user.maxTestAttempts || 1,
+                role: user.role || 'student'
             });
             fetchRecentResults(user.id);
         }
@@ -121,13 +123,18 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
                                 {user.fullName ? user.fullName.charAt(0).toUpperCase() : <User size={16} />}
                             </div>
-                            <div>
-                                <h2 className={`font-bold text-base leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.fullName}</h2>
-                                <p className="text-xs text-gray-500">{user.email}</p>
-                            </div>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-lg font-bold ml-2 ${user.isBlocked ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                                {user.isBlocked ? 'Bloklangan' : 'Faol'}
+                        <div>
+                            <h2 className={`font-bold text-base leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.fullName}</h2>
+                            <p className="text-xs text-gray-500">{user.email}</p>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-lg font-bold ml-2 ${user.isBlocked ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                            {user.isBlocked ? 'Bloklangan' : 'Faol'}
+                        </span>
+                        {user.role === 'teacher' && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold bg-emerald-500/10 text-emerald-500">
+                                Ustoz
                             </span>
+                        )}
                         </div>
                         <button onClick={onClose} className={`p-2 rounded-xl transition ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
                             <X size={20} />
@@ -142,6 +149,17 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                             <div className={`lg:col-span-4 p-6 border-r ${isDark ? 'border-white/5' : 'border-gray-100'} space-y-6`}>
                                 <div className="space-y-4">
                                     <h4 className={sectionTitle}>Shaxsiy Ma'lumotlar</h4>
+                                    <div className="space-y-1">
+                                        <label className={labelClass}>Rol</label>
+                                        <select
+                                            value={formData.role}
+                                            onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                            className={inputClass}
+                                        >
+                                            <option value="student">Student</option>
+                                            <option value="teacher">Teacher (Ustoz)</option>
+                                        </select>
+                                    </div>
                                     <div className="space-y-1">
                                         <label className={labelClass}>Telefon raqam</label>
                                         <input

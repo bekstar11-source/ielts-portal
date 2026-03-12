@@ -9,6 +9,12 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import StudentDashboard from './pages/StudentDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+// TEACHER SAHIFALAR
+import TeacherLayout from './components/common/TeacherLayout';
+import TeacherDashboard from './pages/TeacherDashboard';
+import TeacherTests from './pages/TeacherTests';
+import TeacherWritingReview from './pages/TeacherWritingReview';
+import TeacherGroupStats from './pages/TeacherGroupStats';
 import AdminUsers from './pages/AdminUsers';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminTests from './pages/AdminTests';
@@ -46,6 +52,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (loading) return <div className="flex h-screen items-center justify-center">Yuklanmoqda...</div>;
   if (!user) return <Navigate to="/" />;
   if (allowedRoles && !allowedRoles.includes(userData?.role)) {
+    // Rolga qarab to'g'ri sahifaga yo'naltirish (cheksiz loop oldini olish)
+    if (userData?.role === 'admin') return <Navigate to="/admin" />;
+    if (userData?.role === 'teacher') return <Navigate to="/teacher" />;
     return <Navigate to="/dashboard" />;
   }
   return children;
@@ -58,6 +67,11 @@ const DashboardRouter = () => {
 
   if (userData.role === 'admin') {
     return <Navigate to="/admin" />;
+  }
+
+  // Teacher rolga yo'naltirish
+  if (userData.role === 'teacher') {
+    return <Navigate to="/teacher" />;
   }
 
   // Agar public user bo'lsa va Onboarding'dan o'tmagan bo'lsa
@@ -89,7 +103,9 @@ function App() {
           path="/"
           element={
             user ? (
-              userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+              userData?.role === 'admin' ? <Navigate to="/admin" />
+              : userData?.role === 'teacher' ? <Navigate to="/teacher" />
+              : <Navigate to="/dashboard" />
             ) : (
               <LandingPage />
             )
@@ -101,7 +117,9 @@ function App() {
           path="/register"
           element={
             user ? (
-              userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+              userData?.role === 'admin' ? <Navigate to="/admin" />
+              : userData?.role === 'teacher' ? <Navigate to="/teacher" />
+              : <Navigate to="/dashboard" />
             ) : (
               <Register />
             )
@@ -226,6 +244,14 @@ function App() {
           }
         />
 
+        {/* --- TEACHER YO'NALISHLARI --- */}
+        <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
+          <Route index element={<TeacherDashboard />} />
+          <Route path="tests" element={<TeacherTests />} />
+          <Route path="writing-review" element={<TeacherWritingReview />} />
+          <Route path="group-stats" element={<TeacherGroupStats />} />
+        </Route>
+
         {/* --- ADMIN YO'NALISHLARI (LAYOUT BILAN) --- */}
         <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
           <Route index element={<AdminDashboard />} />
@@ -252,7 +278,9 @@ function App() {
           path="/login"
           element={
             user ? (
-              userData?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+              userData?.role === 'admin' ? <Navigate to="/admin" />
+              : userData?.role === 'teacher' ? <Navigate to="/teacher" />
+              : <Navigate to="/dashboard" />
             ) : (
               <Login />
             )
