@@ -4,7 +4,24 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { db } from '../firebase/firebase';
 import { doc, getDoc, getDocs, query, where, collection } from 'firebase/firestore';
-import { BookOpen, Play, CheckCircle, Clock, WarningCircle as AlertCircle, CaretRight as ChevronRight } from '@phosphor-icons/react';
+import { BookOpen, Play, CheckCircle, Clock, WarningCircle as AlertCircle, CaretRight as ChevronRight, Folder } from '@phosphor-icons/react';
+import DashboardModals from '../components/dashboard/DashboardModals';
+
+const fetchDocumentsByIds = async (collectionName, ids) => {
+    if (!ids || ids.length === 0) return {};
+    const uniqueIds = [...new Set(ids)];
+    const docsMap = {};
+    const promises = uniqueIds.map(async (id) => {
+        const cleanId = String(id).trim();
+        if (!cleanId) return null;
+        const snap = await getDoc(doc(db, collectionName, cleanId));
+        if (snap.exists()) return { id: snap.id, ...snap.data() };
+        return null;
+    });
+    const results = await Promise.all(promises);
+    results.forEach(d => { if (d) docsMap[d.id] = d; });
+    return docsMap;
+};
 
 export default function TeacherTests() {
     const { userData } = useAuth();
@@ -15,6 +32,7 @@ export default function TeacherTests() {
     const [assignedTests, setAssignedTests] = useState([]);
     const [myResults, setMyResults] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedSet, setSelectedSet] = useState(null);
 
     useEffect(() => {
         if (userData) fetchData();
@@ -31,27 +49,89 @@ export default function TeacherTests() {
             );
             const groups = groupDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() }));
 
-            // Collect all unique assigned tests from all groups
-            const testsMap = new Map();
+            const rawAssignments = [];
             groups.forEach(g => {
                 (g.assignedTests || []).forEach(test => {
-                    if (!testsMap.has(test.id)) {
-                        testsMap.set(test.id, { ...test, groupName: g.name });
-                    }
+                    rawAssignments.push({ ...test, groupName: g.name });
                 });
             });
-            setAssignedTests([...testsMap.values()]);
 
-            // Fetch teacher's own results (submittedBy: 'teacher' or userId === teacher uid)
             const teacherUid = userData?.uid;
+            let resultsList = [];
             if (teacherUid) {
                 const q = query(
                     collection(db, 'results'),
                     where('userId', '==', teacherUid)
                 );
                 const snap = await getDocs(q);
-                setMyResults(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                resultsList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setMyResults(resultsList);
             }
+
+            const setIdsToFetch = [];
+            const testIdsToFetch = [];
+            rawAssignments.forEach(assign => {
+                if (assign.type === 'set') setIdsToFetch.push(assign.id);
+                else testIdsToFetch.push(assign.id);
+            });
+            const setsMap = await fetchDocumentsByIds('testSets', setIdsToFetch);
+            Object.values(setsMap).forEach(s => {
+                if (s.testIds) s.testIds.forEach(id => testIdsToFetch.push(String(id).trim()));
+            });
+            const fetchedTestsMap = await fetchDocumentsByIds('tests', testIdsToFetch);
+
+            const processedList = [];
+            rawAssignments.forEach(assign => {
+                if (!assign || !assign.id) return;
+                
+                const isCompletedFn = (tid) => resultsList.some(r => String(r.testId).trim() === String(tid).trim() || r.assignmentId === tid);
+                const getBestResult = (tid) => {
+                    const r = resultsList.filter(x => String(x.testId).trim() === String(tid).trim());
+                    if (!r.length) return null;
+                    return r.sort((a,b) => parseFloat(b.bandScore||b.score||0) - parseFloat(a.bandScore||a.score||0))[0];
+                };
+
+                if (assign.type === 'set') {
+                    const set = setsMap[assign.id];
+                    if (set) {
+                        const subTests = (set.testIds || []).map(tid => {
+                            const cleanId = String(tid).trim();
+                            const td = fetchedTestsMap[cleanId];
+                            if (td) {
+                                return {
+                                    ...td,
+                                    status: isCompletedFn(cleanId) ? 'completed' : 'open',
+                                    result: getBestResult(cleanId),
+                                    attemptsCount: resultsList.filter(x => String(x.testId).trim() === cleanId).length,
+                                    maxAttempts: assign.maxAttempts || 1,
+                                    endDate: assign.endDate || null
+                                };
+                            }
+                            return null;
+                        }).filter(Boolean);
+                        const doneCount = subTests.filter(t => t.status === 'completed').length;
+                        processedList.push({
+                            ...assign, isSet: true, title: set.name || assign.title || "Test To'plam",
+                            subTests, totalTests: subTests.length, completedTests: doneCount,
+                        });
+                    }
+                } else {
+                    const td = fetchedTestsMap[assign.id];
+                    if (td) {
+                        processedList.push({
+                            ...td, ...assign, id: assign.id,
+                            title: td.title || assign.title || "Test"
+                        });
+                    }
+                }
+            });
+            
+            const uniqueMap = new Map();
+            processedList.forEach(t => {
+                if(!uniqueMap.has(t.id)) uniqueMap.set(t.id, t);
+            });
+            setAssignedTests([...uniqueMap.values()]);
+
         } catch (e) {
             console.error(e);
         } finally {
@@ -59,7 +139,7 @@ export default function TeacherTests() {
         }
     };
 
-    const isCompleted = (testId) => myResults.some(r => r.testId === testId || r.assignmentId === testId);
+    const isCompleted = (testId) => myResults.some(r => String(r.testId).trim() === String(testId).trim() || r.assignmentId === testId);
 
     const getTypeColor = (type) => {
         const t = (type || '').toLowerCase();
@@ -71,7 +151,8 @@ export default function TeacherTests() {
     };
 
     const handleStart = (test) => {
-        if (test.type === 'mock') {
+        if (selectedSet) setSelectedSet(null);
+        if (test.type === 'mock' || test.type === 'mock_full') {
             navigate('/mock-exam', { state: { testId: test.id, isTeacher: true } });
         } else {
             navigate(`/test/${test.id}`, { state: { isTeacher: true } });
@@ -100,9 +181,49 @@ export default function TeacherTests() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {assignedTests.map((test, i) => {
+                        const isExpired = test.endDate && new Date(test.endDate) < new Date();
+                        
+                        if (test.isSet) {
+                            return (
+                                <div
+                                    key={`${test.id}-${i}`}
+                                    className={`rounded-[20px] border flex flex-col transition-all cursor-pointer ${isDark ? 'bg-[#2C2C2C] border-white/5 hover:border-blue-500/30' : 'bg-white border-gray-200 hover:border-blue-300'} overflow-hidden relative ${isExpired ? 'opacity-60' : ''}`}
+                                    onClick={() => setSelectedSet(test)}
+                                >
+                                    <div className={`absolute top-0 right-0 w-24 h-24 rounded-bl-full -mr-6 -mt-6 ${isDark ? 'bg-blue-500/10' : 'bg-blue-500/5'}`}></div>
+                                    <div className="p-5 flex-1 z-10">
+                                        <div className={`w-10 h-10 text-blue-400 rounded-2xl flex items-center justify-center mb-3 border ${isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-100'}`}>
+                                            <Folder size={20} />
+                                        </div>
+                                        <h3 className={`font-bold text-sm mb-2 line-clamp-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                            {test.title}
+                                        </h3>
+                                        <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                                            <span className="opacity-50">Guruh:</span> {test.groupName}
+                                        </p>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="flex-1 h-1 bg-gray-500/20 rounded-full overflow-hidden">
+                                                <div className="h-full bg-blue-500" style={{ width: `${(test.completedTests / test.totalTests) * 100}%` }}></div>
+                                            </div>
+                                            <span className="text-[10px] text-gray-400 font-medium">{test.completedTests}/{test.totalTests}</span>
+                                        </div>
+                                        {isExpired && (
+                                            <p className={`text-xs flex items-center gap-1 text-red-500`}>
+                                                <Clock size={10} /> Muddati tugagan
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className={`px-5 pb-5 z-10`}>
+                                        <button className={`w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center transition ${isDark ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'bg-blue-50 text-blue-600 border border-blue-200'}`}>
+                                            To'plamni Ochish
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        }
+
                         const done = isCompleted(test.id);
                         const typeColor = getTypeColor(test.type);
-                        const isExpired = test.endDate && new Date(test.endDate) < new Date();
                         return (
                             <div
                                 key={`${test.id}-${i}`}
@@ -162,6 +283,17 @@ export default function TeacherTests() {
                     })}
                 </div>
             )}
+
+            {/* Set Modal */}
+            <DashboardModals 
+                selectedSet={selectedSet} 
+                setSelectedSet={setSelectedSet} 
+                handleStartTest={handleStart} 
+                handleReview={(sub) => navigate(`/review/${sub.result?.id}`)}
+                showKeyModal={false}
+                showStartConfirm={false}
+                showLogoutConfirm={false}
+            />
         </div>
     );
 }

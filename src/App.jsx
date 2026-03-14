@@ -166,7 +166,7 @@ function App() {
         <Route
           path="/diagnostic-intro"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <DiagnosticIntro />
             </ProtectedRoute>
           }
@@ -175,7 +175,7 @@ function App() {
         <Route
           path="/diagnostic-test/:testId"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <DiagnosticTestSolving />
             </ProtectedRoute>
           }
@@ -184,7 +184,7 @@ function App() {
         <Route
           path="/diagnostic-result/:id"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <DiagnosticResult />
             </ProtectedRoute>
           }
@@ -193,7 +193,7 @@ function App() {
         <Route
           path="/my-results"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <MyResults />
             </ProtectedRoute>
           }
@@ -202,7 +202,7 @@ function App() {
         <Route
           path="/test/:testId"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <TestSolving />
             </ProtectedRoute>
           }
@@ -211,7 +211,7 @@ function App() {
         <Route
           path="/review/:id"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <TestReview />
             </ProtectedRoute>
           }
@@ -220,7 +220,7 @@ function App() {
         <Route
           path="/mock-exam"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <MockExam />
             </ProtectedRoute>
           }
@@ -229,7 +229,7 @@ function App() {
         <Route
           path="/vocabulary"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <WordBank />
             </ProtectedRoute>
           }
@@ -238,7 +238,7 @@ function App() {
         <Route
           path="/podcast/:podcastId"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <PodcastPlayer />
             </ProtectedRoute>
           }
