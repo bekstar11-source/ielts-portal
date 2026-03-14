@@ -15,6 +15,7 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import TeacherTests from './pages/TeacherTests';
 import TeacherWritingReview from './pages/TeacherWritingReview';
 import TeacherGroupStats from './pages/TeacherGroupStats';
+import TeacherAllResults from './pages/TeacherAllResults';
 import AdminUsers from './pages/AdminUsers';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminTests from './pages/AdminTests';
@@ -250,6 +251,7 @@ function App() {
           <Route path="tests" element={<TeacherTests />} />
           <Route path="writing-review" element={<TeacherWritingReview />} />
           <Route path="group-stats" element={<TeacherGroupStats />} />
+          <Route path="results" element={<TeacherAllResults />} />
         </Route>
 
         {/* --- ADMIN YO'NALISHLARI (LAYOUT BILAN) --- */}

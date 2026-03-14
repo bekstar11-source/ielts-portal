@@ -4,7 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import {
     SquaresFour as LayoutDashboard, BookOpen, NotePencil as PenLine, ChartBar as BarChart2,
-    SignOut as LogOut, List as Menu, GraduationCap, CaretLeft as ChevronLeft
+    SignOut as LogOut, List as Menu, GraduationCap, CaretLeft as ChevronLeft, ClipboardText
 } from '@phosphor-icons/react';
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
     { name: "Testlar", path: "/teacher/tests", icon: BookOpen },
     { name: "Writing Tekshirish", path: "/teacher/writing-review", icon: PenLine },
     { name: "Guruh Statistikasi", path: "/teacher/group-stats", icon: BarChart2 },
+    { name: "Barcha Natijalar", path: "/teacher/results", icon: ClipboardText },
 ];
 
 function TeacherSidebar({ isOpen, setIsOpen }) {
