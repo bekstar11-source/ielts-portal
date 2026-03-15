@@ -21,6 +21,7 @@ export function useTestLogic() {
     const [flaggedQuestions, setFlaggedQuestions] = useState(new Set());
     const [showResult, setShowResult] = useState(false);
     const [score, setScore] = useState(0);
+    const [bandScore, setBandScore] = useState(0);
     const [saving, setSaving] = useState(false);
     const [timeLeft, setTimeLeft] = useState(3600);
     const [textSize, setTextSize] = useState('text-base');
@@ -308,52 +309,55 @@ export function useTestLogic() {
 
             if ((test.type === 'reading' || test.type === 'listening') && test.questions && Array.isArray(test.questions)) {
                 test.questions.forEach(q => {
+                    const scoredIds = new Set(); // bir savol ikki marta hisoblanmasin
+
+                    const scoreItem = (id, correct) => {
+                        if (id == null || scoredIds.has(String(id))) return;
+                        scoredIds.add(String(id));
+                        totalQ++; // id bo'lgan har qanday savol hisoblanadi
+                        if (!correct) return; // javob kaliti yo'q — to'g'ri hisoblanmaydi
+                        const userResp = userAnswers[String(id)] || userAnswers[id] || "";
+                        if (checkAnswer(correct, userResp)) {
+                            correctCount++;
+                        } else if (userResp) {
+                            mistakes.push({
+                                questionId: id,
+                                testId: test.id,
+                                testTitle: test.title || 'Untitled Test',
+                                attemptDate: resultData.date,
+                                userResponse: userResp,
+                                correctAnswer: correct
+                            });
+                        }
+                    };
+
+                    // 1. q.items — flow_chart, matching, map_labeling, table_completion items
                     if (q.items && Array.isArray(q.items) && q.items.length > 0) {
-                        q.items.forEach(item => {
-                            const correct = item.answer || item.correct_answer;
-                            if (correct) {
-                                totalQ++;
-                                const userResp = userAnswers[String(item.id)] || userAnswers[item.id] || "";
-                                if (checkAnswer(correct, userResp)) {
-                                    correctCount++;
-                                } else if (userResp) {
-                                    mistakes.push({
-                                        questionId: item.id,
-                                        testId: test.id,
-                                        testTitle: test.title || 'Untitled Test',
-                                        attemptDate: resultData.date,
-                                        userResponse: userResp,
-                                        correctAnswer: correct
-                                    });
-                                }
-                            }
+                        q.items.forEach(item => scoreItem(item.id, item.answer || item.correct_answer));
+                    }
+
+                    // 2. q.questions — multiple_choice grouped, map_labeling, matching, selection
+                    if (q.questions && Array.isArray(q.questions) && q.questions.length > 0) {
+                        q.questions.forEach(item => scoreItem(item.id, item.answer || item.correct_answer));
+                    }
+
+                    // 3. q.groups — note_completion, gap_fill nested groups
+                    if (q.groups && Array.isArray(q.groups) && q.groups.length > 0) {
+                        q.groups.forEach(grp => {
+                            const grpItems = grp.items || grp.questions || [];
+                            grpItems.forEach(item => scoreItem(item.id, item.answer || item.correct_answer));
                         });
-                    } 
-                    
-                    if (q.rows && Array.isArray(q.rows) && q.rows.length > 0) {
+                    }
+
+                    // 4. q.rows — table_completion fallback (faqat q.items yo'q bo'lganda)
+                    if (q.rows && Array.isArray(q.rows) && q.rows.length > 0 && (!q.items || q.items.length === 0)) {
                         q.rows.forEach(row => {
                             if (row.cells && Array.isArray(row.cells)) {
                                 row.cells.forEach(cell => {
                                     if (cell.isMixed && cell.parts && Array.isArray(cell.parts)) {
                                         cell.parts.forEach(part => {
                                             if (part.type === 'input') {
-                                                const correct = part.answer || part.correct_answer;
-                                                if (correct) {
-                                                    totalQ++;
-                                                    const userResp = userAnswers[String(part.id)] || userAnswers[part.id] || "";
-                                                    if (checkAnswer(correct, userResp)) {
-                                                        correctCount++;
-                                                    } else if (userResp) {
-                                                        mistakes.push({
-                                                            questionId: part.id,
-                                                            testId: test.id,
-                                                            testTitle: test.title || 'Untitled Test',
-                                                            attemptDate: resultData.date,
-                                                            userResponse: userResp,
-                                                            correctAnswer: correct
-                                                        });
-                                                    }
-                                                }
+                                                scoreItem(part.id, part.answer || part.correct_answer);
                                             }
                                         });
                                     }
@@ -361,25 +365,15 @@ export function useTestLogic() {
                             }
                         });
                     }
-                    
-                    if ((!q.items || q.items.length === 0) && (!q.rows || q.rows.length === 0)) {
-                        const correct = q.answer || q.correct_answer;
-                        if (correct) {
-                            totalQ++;
-                            const userResp = userAnswers[String(q.id)] || userAnswers[q.id] || "";
-                            if (checkAnswer(correct, userResp)) {
-                                correctCount++;
-                            } else if (userResp) {
-                                mistakes.push({
-                                    questionId: q.id,
-                                    testId: test.id,
-                                    testTitle: test.title || 'Untitled Test',
-                                    attemptDate: resultData.date,
-                                    userResponse: userResp,
-                                    correctAnswer: correct
-                                });
-                            }
-                        }
+
+                    // 5. Flat question — hech qanday sub-array yo'q
+                    if (
+                        (!q.items || q.items.length === 0) &&
+                        (!q.questions || q.questions.length === 0) &&
+                        (!q.groups || q.groups.length === 0) &&
+                        (!q.rows || q.rows.length === 0)
+                    ) {
+                        scoreItem(q.id, q.answer || q.correct_answer);
                     }
                 });
 
@@ -416,6 +410,7 @@ export function useTestLogic() {
 
             // 4. Save to Firestore
             setScore(correctCount);
+            setBandScore(resultData.bandScore);
 
             // ✅ YECHIM 3: Faqat natijani batch orqali saqlash (ENG MUHIM)
             const batch = writeBatch(db);
@@ -510,7 +505,7 @@ export function useTestLogic() {
     return {
         test, loading, testMode, setTestMode, showModeSelection, setShowModeSelection,
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
-        showResult, score, saving, handleSubmit, timeLeft, setTimeLeft,
+        showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate
     };

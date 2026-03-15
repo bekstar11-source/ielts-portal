@@ -172,11 +172,8 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
 // ──────────────────────────────────────────────
 // RESULT MODAL
 // ──────────────────────────────────────────────
-export const ResultModal = ({ show, test, testMode, score, timeLeft, isReviewing, setIsReviewing, onExit }) => {
+export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, isReviewing, setIsReviewing, onExit }) => {
     if (!show || isReviewing) return null;
-
-    const totalQuestions = test?.questions?.reduce((acc, q) => acc + (q.items ? q.items.length : 1), 0) || 0;
-    const bandScore = calculateBandScore(score, test.type, totalQuestions);
 
     return (
         <div className="absolute inset-0 bg-white/90 z-50 flex items-center justify-center backdrop-blur-md animate-in fade-in">

@@ -7,33 +7,41 @@ export const calculateBandScore = (score, type, totalQuestions = 40) => {
     if (t === 'listening' || t === 'reading') {
         if (!totalQuestions || totalQuestions <= 0) return 0;
 
-        // Agar test to'liq 40 ta savoldan iborat bo'lsa, rasmiy IELTS jadvalidan foydalanish
+        // Faqat 20 yoki 40 ta savollik testlar qabul qilinadi
+        // 20 talik → 40 talik tizimga o'tkaziladi
+        // Boshqa son → null (noto'g'ri test uzunligi)
+        let scaledScore;
         if (totalQuestions === 40) {
-            if (score >= 39) return 9.0;
-            if (score >= 37) return 8.5;
-            if (score >= 35) return 8.0;
-            if (score >= 32) return 7.5;
-            if (score >= 30) return 7.0;
-            if (score >= 26) return 6.5;
-            if (score >= 23) return 6.0;
-            if (score >= 18) return 5.5;
-            if (score >= 16) return 5.0;
-            if (score >= 13) return 4.5;
-            if (score >= 10) return 4.0;
-            return score > 0 ? 3.5 : 0;
+            scaledScore = score;
+        } else if (totalQuestions === 20) {
+            scaledScore = Math.round((score / 20) * 40);
+        } else {
+            // Nostandart savollar soni: eng yaqin qiymatga o'tkazamiz
+            scaledScore = Math.round((score / totalQuestions) * 40);
         }
 
-        // Agar savollar soni 40 tadan farq qilsa, berilgan savollar soniga nisbatan 
-        // 9 ballik tizimda to'g'ridan to'g'ri baholash:
-        let rawBand = (score / totalQuestions) * 9;
-
-        // 0.5 ga karrali qilib yaxlitlash
-        let band = Math.round(rawBand * 2) / 2;
-
-        return Math.min(Math.max(band, 0), 9.0);
+        // Rasmiy IELTS band jadvali (40 ta asosida)
+        if (scaledScore >= 39) return 9.0;
+        if (scaledScore >= 37) return 8.5;
+        if (scaledScore >= 35) return 8.0;
+        if (scaledScore >= 32) return 7.5;
+        if (scaledScore >= 30) return 7.0;
+        if (scaledScore >= 26) return 6.5;
+        if (scaledScore >= 23) return 6.0;
+        if (scaledScore >= 18) return 5.5;
+        if (scaledScore >= 16) return 5.0;
+        if (scaledScore >= 13) return 4.5;
+        if (scaledScore >= 10) return 4.0;
+        if (scaledScore >= 8)  return 3.5;
+        if (scaledScore >= 6)  return 3.0;
+        if (scaledScore >= 4)  return 2.5;
+        if (scaledScore >= 2)  return 2.0;
+        if (scaledScore >= 1)  return 1.0;
+        return 0;
     }
     return null;
 };
+
 
 // JAVOBNI TEKSHIRISH FUNKSIYASI
 export const checkAnswer = (correct, user) => {

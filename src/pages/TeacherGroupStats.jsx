@@ -33,6 +33,37 @@ export default function TeacherGroupStats() {
 
             const groupDocs = await Promise.all(groupIds.map(id => getDoc(doc(db, 'groups', id))));
             const fetchedGroups = groupDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() }));
+
+            let setIdsToFetch = new Set();
+            fetchedGroups.forEach(g => {
+                g.assignedTests?.forEach(test => {
+                    if (test.type === 'set') setIdsToFetch.add(test.id);
+                });
+            });
+
+            const testSetsMap = {};
+            if (setIdsToFetch.size > 0) {
+                const idsArray = Array.from(setIdsToFetch);
+                const chunks = [];
+                for (let i = 0; i < idsArray.length; i += 10) chunks.push(idsArray.slice(i, i + 10));
+                for (const chunk of chunks) {
+                    const snap = await Promise.all(chunk.map(id => getDoc(doc(db, 'testSets', id))));
+                    snap.forEach(d => { if (d.exists()) testSetsMap[d.id] = d.data(); });
+                }
+            }
+
+            fetchedGroups.forEach(g => {
+                let realTestCount = 0;
+                g.assignedTests?.forEach(test => {
+                    if (test.type === 'set' && testSetsMap[test.id]) {
+                        realTestCount += testSetsMap[test.id].testIds?.length || 0;
+                    } else {
+                        realTestCount += 1;
+                    }
+                });
+                g.realTestCount = realTestCount;
+            });
+
             setGroups(fetchedGroups);
             if (fetchedGroups.length > 0) setSelectedGroup(fetchedGroups[0].id);
 
@@ -158,7 +189,7 @@ export default function TeacherGroupStats() {
                             {[
                                 { label: "O'quvchilar", value: currentStudentIds.length, icon: Users, color: 'blue' },
                                 { label: "O'rtacha Band", value: groupAvgBand(), icon: TrendingUp, color: 'emerald' },
-                                { label: "Tayinlangan Testlar", value: currentGroup?.assignedTests?.length || 0, icon: BookOpen, color: 'purple' }
+                                { label: "Tayinlangan Testlar", value: currentGroup?.realTestCount || 0, icon: BookOpen, color: 'purple' }
                             ].map(card => (
                                 <div key={card.label} className={`rounded-[18px] border p-4 ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
                                     <div className={`mb-2 ${card.color === 'blue' ? 'text-blue-400' : card.color === 'emerald' ? 'text-emerald-400' : 'text-purple-400'}`}>

@@ -12,7 +12,7 @@ export default function TestSolving() {
     const {
         test, loading, testMode, setTestMode, showModeSelection, setShowModeSelection,
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
-        showResult, score, saving, handleSubmit, timeLeft, setTimeLeft,
+        showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate
     } = useTestLogic();
@@ -166,6 +166,7 @@ export default function TestSolving() {
                     test={test}
                     testMode={testMode}
                     score={score}
+                    bandScore={bandScore}
                     timeLeft={timeLeft}
                     isReviewing={isReviewing}
                     setIsReviewing={setIsReviewing}

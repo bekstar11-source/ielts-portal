@@ -10,6 +10,11 @@ service cloud.firestore {
       );
     }
 
+    function isTeacher() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+
     // Helper function to check if user is authenticated
     function isAuth() {
         return request.auth != null;
@@ -39,7 +44,8 @@ service cloud.firestore {
     // TESTS (O'qish hammaga, Yozish faqat adminga)
     match /tests/{testId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isAdmin() || isTeacher();
+      allow update, delete: if isAdmin() || (isTeacher() && resource.data.createdBy == request.auth.uid);
     }
 
     // ANNOUNCEMENTS (Yangiliklar)
@@ -50,15 +56,16 @@ service cloud.firestore {
 
     // RESULTS (Natijalar)
     match /results/{resultId} {
-      allow read: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin() || isTeacher());
       allow create: if isAuth(); 
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || isTeacher();
+      allow delete: if isAdmin();
     }
     
     // GROUPS
     match /groups/{groupId} {
       allow read: if isAuth();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || isTeacher();
     }
     
     // TEST SETS

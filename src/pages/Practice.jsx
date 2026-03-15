@@ -215,7 +215,7 @@ export default function Practice() {
                 });
 
                 const uniqueTests = processedList.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-                setRawAssignments(uniqueTests);
+                setRawAssignments(uniqueTests.reverse());
 
             } catch (err) {
                 console.error("Error fetching practice tests:", err);

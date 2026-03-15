@@ -324,7 +324,7 @@ const ReadingRightPane = memo(({
     };
 
     // --- RENDER TABLE ---
-    const renderTable = (group) => {
+    const renderTable = (group, gIdx) => {
         const rows = group.rows || group.items || [];
         return (
             <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
@@ -332,28 +332,55 @@ const ReadingRightPane = memo(({
                     <tbody>
                         {rows.map((row, rIdx) => (
                             <tr key={rIdx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50/50">
-                                {row.cells && row.cells.map((cell, cIdx) => (
-                                    <td key={cIdx} className="border-r border-gray-200 last:border-r-0 p-3 align-top text-gray-700 leading-relaxed">
-                                        {!cell.isMixed && (
-                                            <span dangerouslySetInnerHTML={{ __html: cell.text }} />
-                                        )}
-                                        {cell.isMixed && cell.parts && cell.parts.map((part, pIdx) => {
-                                            if (part.type === 'text') {
-                                                return <span key={pIdx} dangerouslySetInnerHTML={{ __html: part.content }} />;
-                                            }
-                                            if (part.type === 'input') {
-                                                return renderInput(
-                                                    part.id,
-                                                    part.answer,
-                                                    part.locationId,
-                                                    group.passageId,
-                                                    true
-                                                );
-                                            }
-                                            return null;
-                                        })}
-                                    </td>
-                                ))}
+                                {row.cells && row.cells.map((cell, cIdx) => {
+                                    const cellId = `p-${activePassage}-g-${gIdx}-row-${rIdx}-cell-${cIdx}`;
+                                    return (
+                                        <td key={cIdx} className="border-r border-gray-200 last:border-r-0 p-3 align-top text-gray-700 leading-relaxed">
+                                            {!cell.isMixed && (
+                                                <HighlightableText
+                                                    id={cellId}
+                                                    content={(isReviewMode && keywordTable?.length) 
+                                                        ? injectKeywordsToHTML(cell.text, keywordTable, true, null)
+                                                        : cell.text}
+                                                    highlights={highlights ? highlights[cellId] || [] : []}
+                                                    onTextSelect={handlePartSelect}
+                                                    onHighlightRemove={onRemoveHighlight}
+                                                    isReviewMode={isReviewMode}
+                                                    className="inline text-gray-800 leading-relaxed align-middle [&_strong]:font-bold [&_b]:font-bold select-text"
+                                                />
+                                            )}
+                                            {cell.isMixed && cell.parts && cell.parts.map((part, pIdx) => {
+                                                if (part.type === 'text') {
+                                                    const partId = `${cellId}-part-${pIdx}`;
+                                                    return (
+                                                        <HighlightableText
+                                                            key={pIdx}
+                                                            id={partId}
+                                                            content={(isReviewMode && keywordTable?.length) 
+                                                                ? injectKeywordsToHTML(part.content, keywordTable, true, null)
+                                                                : part.content}
+                                                            highlights={highlights ? highlights[partId] || [] : []}
+                                                            onTextSelect={handlePartSelect}
+                                                            onHighlightRemove={onRemoveHighlight}
+                                                            isReviewMode={isReviewMode}
+                                                            className="inline text-gray-800 leading-relaxed align-middle [&_strong]:font-bold [&_b]:font-bold select-text"
+                                                        />
+                                                    );
+                                                }
+                                                if (part.type === 'input') {
+                                                    return renderInput(
+                                                        part.id,
+                                                        part.answer,
+                                                        part.locationId,
+                                                        group.passageId,
+                                                        true
+                                                    );
+                                                }
+                                                return null;
+                                            })}
+                                        </td>
+                                    );
+                                })}
                             </tr>
                         ))}
                     </tbody>
@@ -462,7 +489,7 @@ const ReadingRightPane = memo(({
                                 )}
 
                                 <div>
-                                    {isTable ? renderTable(group) : (
+                                    {isTable ? renderTable(group, gIdx) : (
                                         group.items?.map(q => {
                                             const isInlineQuestion = q.text.includes('[INPUT]') || q.text.includes('[DROP]');
                                             let itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);

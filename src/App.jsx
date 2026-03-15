@@ -16,6 +16,7 @@ import TeacherTests from './pages/TeacherTests';
 import TeacherWritingReview from './pages/TeacherWritingReview';
 import TeacherGroupStats from './pages/TeacherGroupStats';
 import TeacherAllResults from './pages/TeacherAllResults';
+import TeacherCreateWriting from './pages/TeacherCreateWriting';
 import AdminUsers from './pages/AdminUsers';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminTests from './pages/AdminTests';
@@ -250,6 +251,7 @@ function App() {
           <Route index element={<TeacherDashboard />} />
           <Route path="tests" element={<TeacherTests />} />
           <Route path="writing-review" element={<TeacherWritingReview />} />
+          <Route path="create-writing" element={<TeacherCreateWriting />} />
           <Route path="group-stats" element={<TeacherGroupStats />} />
           <Route path="results" element={<TeacherAllResults />} />
         </Route>
