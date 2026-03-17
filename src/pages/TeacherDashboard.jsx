@@ -209,11 +209,11 @@ export default function TeacherDashboard() {
 
                 {/* Heading */}
                 <h1
-                    className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-5 leading-tight"
+                    className="text-7xl md:text-6xl lg:text-7xl font-black tracking-tight mb-8 leading-tight"
                     style={{ color: isDark ? '#fff' : '#0a0a0a' }}
                 >
                     Xush kelibsiz,<br />
-                    {firstName} <span className="teacher-wave">👋</span>
+                    {firstName} 
                 </h1>
 
                 {/* Subtitle */}

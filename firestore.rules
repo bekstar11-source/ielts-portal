@@ -35,6 +35,9 @@ service cloud.firestore {
       match /mistakes/{mistakeId} {
         allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
       }
+      match /mistakeSessions/{sessionId} {
+        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
+      }
       // Sinonim/antonim juftlari: nested subcollection
       match /synonymPairs/{testId}/pairs/{pairId} {
         allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
