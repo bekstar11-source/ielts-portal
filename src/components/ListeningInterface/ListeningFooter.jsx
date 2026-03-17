@@ -13,9 +13,49 @@ export default function ListeningFooter({
 
     const extractQuestionsFromGroup = (group) => {
         let questions = [];
-        if (group.questions && Array.isArray(group.questions)) questions.push(...group.questions);
-        else if (group.items && Array.isArray(group.items)) questions.push(...group.items);
-        else if (group.id != null && !group.groups && !group.rows) questions.push(group);
+        const type = String(group.type || "").toLowerCase();
+        const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
+        const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
+
+        let rawItems = [];
+        if (group.questions && Array.isArray(group.questions)) rawItems = group.questions;
+        else if (group.items && Array.isArray(group.items)) rawItems = group.items;
+        else if (group.id != null && !group.groups && !group.rows) rawItems = [group];
+
+        // Helper: "25-26" => ["25", "26"], "25" => ["25", "26"]
+        const parseMultiIds = (rawId, count) => {
+            const str = String(rawId);
+            if (str.includes('-')) {
+                const parts = str.split('-').map(Number).filter(n => !isNaN(n));
+                if (parts.length >= 2) {
+                    const ids = [];
+                    for (let n = parts[0]; n <= parts[parts.length - 1]; n++) ids.push(String(n));
+                    return ids;
+                }
+            }
+            if (!isNaN(rawId)) {
+                return Array.from({ length: count }, (_, i) => String(Number(rawId) + i));
+            }
+            return [str];
+        };
+
+        if ((isMultiTwo || isMultiThree)) {
+            rawItems.forEach(q => {
+                const count = isMultiThree ? 3 : 2;
+                const ids = parseMultiIds(q.id, count);
+                ids.forEach((splitId, i) => {
+                    questions.push({
+                        ...q,
+                        id: splitId,
+                        displayId: splitId,
+                        multiIndex: i,
+                        isMulti: true
+                    });
+                });
+            });
+        } else {
+            questions = [...rawItems];
+        }
 
         if (group.groups && Array.isArray(group.groups)) {
             group.groups.forEach(subGroup => {

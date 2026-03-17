@@ -16,9 +16,14 @@ export default function ReadingFooter({
 
     const extractQuestionsFromGroup = (group) => {
         let questions = [];
+        const type = String(group.type || "").toLowerCase();
+        const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
+        const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
+
+        let rawItems = [];
 
         if (group.items && Array.isArray(group.items)) {
-            questions = group.items;
+            rawItems = group.items;
         } else if ((group.type === 'table_completion' || group.type === 'table') && group.rows) {
             group.rows.forEach(row => {
                 let cellsToIterate = [];
@@ -28,17 +33,56 @@ export default function ReadingFooter({
                     cellsToIterate = row.cells;
                 }
                 cellsToIterate.forEach(cell => {
-                    if (cell.id) questions.push(cell);
+                    if (cell.id) rawItems.push(cell);
                     if (cell.isMultiQuestion && cell.content) {
-                        questions.push(...cell.content);
+                        rawItems.push(...cell.content);
                     }
                     if (cell.isMixed && cell.parts) {
                         cell.parts.forEach(part => {
-                            if (part.type === 'input') questions.push(part);
+                            if (part.type === 'input') rawItems.push(part);
                         });
                     }
                 });
             });
+        }
+
+        // pick_two/pick_three: "25-26" formatdagi id larni individual raqamlarga ajratish
+        // Helper: "25-26" => [25, 26], "25" => [25, 26], "abc" => ["abc"]
+        const parseMultiIds = (rawId, count) => {
+            const str = String(rawId);
+            // "25-26" format
+            if (str.includes('-')) {
+                const parts = str.split('-').map(Number).filter(n => !isNaN(n));
+                if (parts.length >= 2) {
+                    const ids = [];
+                    for (let n = parts[0]; n <= parts[parts.length - 1]; n++) ids.push(String(n));
+                    return ids;
+                }
+            }
+            // Oddiy raqam: "25" => [25, 26]
+            if (!isNaN(rawId)) {
+                return Array.from({ length: count }, (_, i) => String(Number(rawId) + i));
+            }
+            // Boshqa format — qaytaramiz
+            return [str];
+        };
+
+        if ((isMultiTwo || isMultiThree)) {
+            rawItems.forEach(q => {
+                const count = isMultiThree ? 3 : 2;
+                const ids = parseMultiIds(q.id, count);
+                ids.forEach((splitId, i) => {
+                    questions.push({
+                        ...q,
+                        id: splitId,
+                        displayId: splitId,
+                        multiIndex: i,
+                        isMulti: true
+                    });
+                });
+            });
+        } else {
+            questions = [...rawItems];
         }
 
         return questions;

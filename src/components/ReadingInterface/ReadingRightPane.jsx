@@ -509,7 +509,41 @@ const ReadingRightPane = memo(({
                                                 <div key={q.id} id={`q-${q.id}`} className={`group/item relative ${containerClass}`}>
                                                     {!isInlineQuestion && !isSummary && !isFlowChart && (
                                                         <div className="flex gap-3 items-start">
-                                                            <div className={`min-w-[26px] w-fit px-1 h-[26px] flex items-center justify-center rounded bg-white border border-gray-400 text-[15px] font-bold text-gray-700 shrink-0 shadow-sm unselectable transition-colors mt-0.5 ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}`} onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}>{q.id}</div>
+                                                            {/* pick_two/pick_three: individual raqamli badge lar */}
+                                                            {isMultiSelect ? (() => {
+                                                                // "25-26" => ["25", "26"], "25" => ["25", "26"]
+                                                                const count = group.type?.includes('three') ? 3 : 2;
+                                                                const str = String(q.id);
+                                                                let ids;
+                                                                if (str.includes('-')) {
+                                                                    const parts = str.split('-').map(Number).filter(n => !isNaN(n));
+                                                                    if (parts.length >= 2) {
+                                                                        ids = [];
+                                                                        for (let n = parts[0]; n <= parts[parts.length - 1]; n++) ids.push(String(n));
+                                                                    } else {
+                                                                        ids = [str];
+                                                                    }
+                                                                } else if (!isNaN(q.id)) {
+                                                                    ids = Array.from({ length: count }, (_, i) => String(Number(q.id) + i));
+                                                                } else {
+                                                                    ids = [str];
+                                                                }
+                                                                return (
+                                                                    <div className="flex flex-col gap-1 shrink-0 mt-0.5">
+                                                                        {ids.map((numId, i) => (
+                                                                            <div
+                                                                                key={i}
+                                                                                className={`min-w-[26px] w-fit px-1 h-[26px] flex items-center justify-center rounded bg-white border border-gray-400 text-[15px] font-bold text-gray-700 shadow-sm unselectable transition-colors ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}`}
+                                                                                onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}
+                                                                            >
+                                                                                {numId}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                );
+                                                            })() : (
+                                                                <div className={`min-w-[26px] w-fit px-1 h-[26px] flex items-center justify-center rounded bg-white border border-gray-400 text-[15px] font-bold text-gray-700 shrink-0 shadow-sm unselectable transition-colors mt-0.5 ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}`} onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}>{q.id}</div>
+                                                            )}
                                                             <div className="flex-1">
                                                                 {renderParts(q.text.split(/(\[INPUT\]|\[DROP\])/g), q, userAnswers[q.id] || "", isInlineQuestion, isSummary, itemOptions, isMatching, isReviewMode, onAnswerChange, group)}
                                                                 {isChoiceType && !isMatching && renderChoices(itemOptions, q, userAnswers[q.id] || "", isMultiSelect, isReviewMode, onAnswerChange, group)}

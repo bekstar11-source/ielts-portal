@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { db } from "../firebase/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { useAuth } from "../context/AuthContext";
 
 export default function useTextSelection() {
@@ -155,52 +156,25 @@ export default function useTextSelection() {
                 hasAI: false
             };
 
-            const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-
-            if (apiKey) {
-                const prompt = `
-                 Analyze the English word "${word}" within the following context sentence: "${contextSentence || 'No specific context provided, use general meaning.'}".
-                 Return a JSON object with EXACTLY these three keys:
-                 - "definition": A concise English explanation of what the word means in this specific context.
-                 - "example": A good, clear English example sentence showing how to use the word (you can use the context sentence if it is good, or write a new clear one).
-                 - "translation": The precise Uzbek translation of the word reflecting its meaning in this context.
-                 Do not include any string formatting like \`\`\`json, just return the raw JSON object.
-                 `;
-
                 try {
-                    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${apiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: "gpt-4o-mini",
-                            messages: [
-                                { role: "system", content: "You are a helpful dictionary assistant." },
-                                { role: "user", content: prompt }
-                            ],
-                            temperature: 0.3
-                        })
+                    const functions = getFunctions();
+                    const translateWordFn = httpsCallable(functions, "translateWord");
+                    const result = await translateWordFn({ 
+                        word: selection.text, 
+                        contextSentence: contextSentence 
                     });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        const aiResponseText = data.choices[0].message.content.trim();
-                        const cleanJsonStr = aiResponseText.replace(/```json/gi, "").replace(/```/g, "").trim();
-                        const parsedData = JSON.parse(cleanJsonStr);
-
+                    if (result.data) {
                         aiData = {
-                            definition: parsedData.definition || null,
-                            example: parsedData.example || contextSentence || null,
-                            translation: parsedData.translation || null,
+                            definition: result.data.definition || null,
+                            example: result.data.example || contextSentence || null,
+                            translation: result.data.translation || null,
                             hasAI: true
                         };
                     }
                 } catch (aiError) {
                     console.error("AI Auto-Translate error: ", aiError);
                 }
-            }
 
             await addDoc(collection(db, "users", user.uid, "vocabulary"), {
                 word: word,

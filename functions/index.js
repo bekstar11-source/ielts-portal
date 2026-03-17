@@ -7,6 +7,7 @@ admin.initializeApp();
 const { transcribePodcast } = require("./transcribePodcast");
 const { analyzeSpeaking } = require("./analyzeSpeaking");
 const { generateVocab } = require("./generateVocab");
+const { translateWord } = require("./translateWord");
 
 exports.transcribePodcast = functions
     .runWith({ timeoutSeconds: 300, memory: "512MB" })
@@ -19,3 +20,7 @@ exports.analyzeSpeaking = functions
 exports.generateVocab = functions
     .runWith({ timeoutSeconds: 60, memory: "256MB" })
     .https.onCall(generateVocab);
+
+exports.translateWord = functions
+    .runWith({ timeoutSeconds: 30, memory: "256MB" })
+    .https.onCall(translateWord);

@@ -12,7 +12,8 @@ async function generateVocab(data, context) {
     const { transcript, level = "B1", count = 10, hintWords = "" } = data;
     if (!transcript) throw new Error("transcript talab qilinadi.");
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const apiKey = (process.env.OPENAI_API_KEY || "").trim().replace(/^["']|["']$/g, '');
+    const openai = new OpenAI({ apiKey });
 
     // Podcast'ning "vocabulary review" qismidagi so'zlar — albatta kiritilishi SHART
     let hintSection = "";

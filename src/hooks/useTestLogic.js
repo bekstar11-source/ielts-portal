@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, collection, query, where, getDocs, updateDoc, setDoc, increment, serverTimestamp, writeBatch } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
-import { calculateBandScore, checkAnswer } from "../utils/ieltsScoring";
+import { calculateBandScore, checkAnswer, scoreMultiAnswer } from "../utils/ieltsScoring";
 import { logAction } from "../utils/logger";
 
 export function useTestLogic() {
@@ -311,41 +311,66 @@ export function useTestLogic() {
                 test.questions.forEach(q => {
                     const scoredIds = new Set(); // bir savol ikki marta hisoblanmasin
 
-                    const scoreItem = (id, correct) => {
+                    const scoreItem = (id, correct, groupType) => {
                         if (id == null || scoredIds.has(String(id))) return;
                         scoredIds.add(String(id));
-                        totalQ++; // id bo'lgan har qanday savol hisoblanadi
-                        if (!correct) return; // javob kaliti yo'q — to'g'ri hisoblanmaydi
+
+                        const type = String(groupType || "").toLowerCase();
+                        const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
+                        const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
                         const userResp = userAnswers[String(id)] || userAnswers[id] || "";
-                        if (checkAnswer(correct, userResp)) {
-                            correctCount++;
-                        } else if (userResp) {
-                            mistakes.push({
-                                questionId: id,
-                                testId: test.id,
-                                testTitle: test.title || 'Untitled Test',
-                                attemptDate: resultData.date,
-                                userResponse: userResp,
-                                correctAnswer: correct
-                            });
+
+                        if (isMultiTwo || isMultiThree) {
+                            const weight = isMultiThree ? 3 : 2;
+                            const result = scoreMultiAnswer(correct, userResp, weight);
+                            
+                            totalQ += result.weight;
+                            correctCount += result.matches;
+
+                            if (result.matches < result.weight && userResp) {
+                                mistakes.push({
+                                    questionId: id,
+                                    testId: test.id,
+                                    testTitle: test.title || 'Untitled Test',
+                                    attemptDate: resultData.date,
+                                    userResponse: userResp,
+                                    correctAnswer: correct
+                                });
+                            }
+                        } else {
+                            totalQ++; // id bo'lgan har qanday savol hisoblanadi
+                            if (!correct) return; // javob kaliti yo'q — to'g'ri hisoblanmaydi
+                            
+                            if (checkAnswer(correct, userResp)) {
+                                correctCount++;
+                            } else if (userResp) {
+                                mistakes.push({
+                                    questionId: id,
+                                    testId: test.id,
+                                    testTitle: test.title || 'Untitled Test',
+                                    attemptDate: resultData.date,
+                                    userResponse: userResp,
+                                    correctAnswer: correct
+                                });
+                            }
                         }
                     };
 
                     // 1. q.items — flow_chart, matching, map_labeling, table_completion items
                     if (q.items && Array.isArray(q.items) && q.items.length > 0) {
-                        q.items.forEach(item => scoreItem(item.id, item.answer || item.correct_answer));
+                        q.items.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
                     }
 
                     // 2. q.questions — multiple_choice grouped, map_labeling, matching, selection
                     if (q.questions && Array.isArray(q.questions) && q.questions.length > 0) {
-                        q.questions.forEach(item => scoreItem(item.id, item.answer || item.correct_answer));
+                        q.questions.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
                     }
 
                     // 3. q.groups — note_completion, gap_fill nested groups
                     if (q.groups && Array.isArray(q.groups) && q.groups.length > 0) {
                         q.groups.forEach(grp => {
                             const grpItems = grp.items || grp.questions || [];
-                            grpItems.forEach(item => scoreItem(item.id, item.answer || item.correct_answer));
+                            grpItems.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
                         });
                     }
 
@@ -357,7 +382,7 @@ export function useTestLogic() {
                                     if (cell.isMixed && cell.parts && Array.isArray(cell.parts)) {
                                         cell.parts.forEach(part => {
                                             if (part.type === 'input') {
-                                                scoreItem(part.id, part.answer || part.correct_answer);
+                                                scoreItem(part.id, part.answer || part.correct_answer, q.type);
                                             }
                                         });
                                     }
@@ -373,7 +398,7 @@ export function useTestLogic() {
                         (!q.groups || q.groups.length === 0) &&
                         (!q.rows || q.rows.length === 0)
                     ) {
-                        scoreItem(q.id, q.answer || q.correct_answer);
+                        scoreItem(q.id, q.answer || q.correct_answer, q.type);
                     }
                 });
 

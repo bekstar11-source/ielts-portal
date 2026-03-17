@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../firebase/firebase';
-import { collection, query, getDocs, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Search, Trash2, ArrowLeft, Loader2, Sparkles, ChevronDown, ChevronUp, Layers, MousePointer2, CheckCircle2, Volume2, RefreshCw, ArrowRightLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { updateDoc } from 'firebase/firestore';
 import WordBankFlashcards from '../components/WordBank/WordBankFlashcards';
 import WordBankMatchGame from '../components/WordBank/WordBankMatchGame';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -134,48 +134,14 @@ export default function Wordbank() {
     const generateAIContext = async (wordItem) => {
         setGeneratingId(wordItem.id);
         try {
-            const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-            if (!apiKey) {
-                alert("API kalit topilmadi. .env o'zgaruvchilarini tekshiring.");
-                setGeneratingId(null);
-                return;
-            }
-
-            const prompt = `
-            Analyze the English word "${wordItem.word}" within the following context sentence: "${wordItem.contextSentence || 'No specific context provided, use general meaning.'}".
-            Return a JSON object with EXACTLY these three keys:
-            - "definition": A concise English explanation of what the word means in this specific context.
-            - "example": A good, clear English example sentence showing how to use the word.
-            - "translation": The precise Uzbek translation of the word reflecting its meaning in this context.
-            Do not include any string formatting like \`\`\`json, just return the raw JSON object.
-            `;
-
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o-mini",
-                    messages: [
-                        { role: "system", content: "You are a helpful dictionary assistant." },
-                        { role: "user", content: prompt }
-                    ],
-                    temperature: 0.3
-                })
+            const functions = getFunctions();
+            const translateWordFn = httpsCallable(functions, "translateWord");
+            const result = await translateWordFn({ 
+                word: wordItem.word, 
+                contextSentence: wordItem.contextSentence 
             });
 
-            if (!response.ok) throw new Error("Failed to fetch from OpenAI");
-
-            const data = await response.json();
-            const aiResponseText = data.choices[0].message.content.trim();
-            const cleanJsonStr = aiResponseText.replace(/```json/gi, "").replace(/```/g, "").trim();
-            const parsedData = JSON.parse(cleanJsonStr);
-
-            const definition = parsedData.definition || "Izoh topilmadi.";
-            const example = parsedData.example || wordItem.contextSentence || "Misol topilmadi.";
-            const translation = parsedData.translation || "Tarjima topilmadi.";
+            const { definition, example, translation } = result.data;
 
             const wordRef = doc(db, "users", user.uid, "vocabulary", wordItem.id);
             await updateDoc(wordRef, {
@@ -527,9 +493,18 @@ export default function Wordbank() {
                                                                             }>
                                                                                 <Volume2 className="w-5 h-5" />
                                                                             </button >
-                                                                            <button onClick={() => setExpandedWord(isExpanded ? null : item.id)} className="p-1.5 text-gray-400 hover:text-white">
-                                                                                {
-                                                                                    isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                                                            <button 
+                                                                                onClick={() => {
+                                                                                    const nextExpanded = isExpanded ? null : item.id;
+                                                                                    setExpandedWord(nextExpanded);
+                                                                                    // Avtomatik AI chaqirish
+                                                                                    if (nextExpanded && !item.hasAI) {
+                                                                                        generateAIContext(item);
+                                                                                    }
+                                                                                }} 
+                                                                                className="p-1.5 text-gray-400 hover:text-white"
+                                                                            >
+                                                                                {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                                                                             </button>
                                                                             <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
                                                                                 < Trash2 className="w-5 h-5" />

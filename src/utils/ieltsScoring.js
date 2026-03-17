@@ -70,6 +70,28 @@ export const checkAnswer = (correct, user) => {
     return cleanCorrect === cleanUser;
 };
 
+// MULTI-CHOICE JAVOBNI TEKSHIRISH (e.g. "Choose TWO letters")
+export const scoreMultiAnswer = (correct, user, weight) => {
+    if (!correct) return { matches: 0, weight: weight || 1 };
+    
+    // To'g'ri javoblarni ajratib olamiz (vergul, slash yoki pipe orqali)
+    const correctArr = String(correct).split(/[,/|]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+    const userArr = String(user || "").split(/[,/|]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+
+    // User javobidagi dublikatlarni olib tashlaymiz
+    const uniqueUser = Array.from(new Set(userArr));
+
+    let matches = 0;
+    uniqueUser.forEach(u => {
+        if (correctArr.includes(u)) {
+            matches++;
+        }
+    });
+    
+    const finalWeight = weight || correctArr.length;
+    return { matches: Math.min(matches, finalWeight), weight: finalWeight };
+};
+
 // VAQT FORMATLASH (MM:SS)
 export const formatTime = (seconds) => {
     const h = Math.floor(seconds / 3600);
