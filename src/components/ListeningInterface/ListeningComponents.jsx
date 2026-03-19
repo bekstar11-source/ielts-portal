@@ -9,7 +9,7 @@ export const HighlighterIcon = ({ active }) => (
 
 export const QuestionBadge = ({ id, isReviewMode, onClick }) => (
     <span
-        className={`min-w-[30px] h-[30px] flex items-center justify-center rounded bg-white border border-gray-400 text-[13px] font-bold text-gray-700 shrink-0 shadow-sm select-none mr-1 
+        className={`min-w-[30px] h-[30px] flex items-center justify-center rounded bg-white border border-gray-400 text-[0.8em] font-bold text-gray-700 shrink-0 shadow-sm select-none mr-1 
         ${isReviewMode ? 'cursor-pointer hover:border-blue-600 hover:text-blue-600' : ''}`}
         onClick={onClick}
     >
@@ -18,8 +18,8 @@ export const QuestionBadge = ({ id, isReviewMode, onClick }) => (
 );
 
 export const CorrectAnswerTooltip = ({ answer }) => (
-    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-10 whitespace-nowrap bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded border border-green-300 font-bold shadow-sm animate-in fade-in zoom-in-95">
-        ✓ {Array.isArray(answer) ? answer[0] : answer}
+    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-10 whitespace-nowrap bg-green-100 text-green-800 text-[0.625em] px-2 py-0.5 rounded border border-green-300 font-bold shadow-sm animate-in fade-in zoom-in-95">
+        ✓ {Array.isArray(answer) ? answer.join(' / ') : answer}
     </div>
 );
 
@@ -31,7 +31,7 @@ export const SelectInput = ({ value, onChange, options, isReviewMode, isCorrect,
                 value={value}
                 disabled={isReviewMode}
                 onChange={onChange}
-                className={`h-[30px] ${width} pl-2 pr-6 border rounded text-sm font-bold appearance-none cursor-pointer transition-all shadow-sm focus:outline-none ${styles}`}
+                className={`h-[30px] ${width} pl-2 pr-6 border rounded text-[0.875em] font-bold appearance-none cursor-pointer transition-all shadow-sm focus:outline-none ${styles}`}
             >
                 <option value="">...</option>
                 {options.map((opt, idx) => (
@@ -56,7 +56,7 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
         <span className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative group/input">
             <QuestionBadge id={id} isReviewMode={isReviewMode} onClick={() => isReviewMode && locationId && handleLocationClick(locationId)} />
             <input
-                className={`w-[130px] h-[30px] border rounded px-2 text-center font-semibold text-sm focus:outline-none transition-all placeholder-transparent shadow-sm ${styles}`}
+                className={`w-[130px] h-[30px] border rounded px-2 text-center font-semibold text-[0.875em] focus:outline-none transition-all placeholder-transparent shadow-sm ${styles}`}
                 value={val}
                 onChange={(e) => onAnswerChange(id, e.target.value)}
                 disabled={isReviewMode}
@@ -64,7 +64,7 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
             />
             {isReviewMode && !isCorrect && (
                 <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-10 hidden group-hover/input:block animate-in fade-in zoom-in-95 duration-200">
-                    <span className="text-[10px] font-bold text-white bg-green-600 px-2 py-1 rounded shadow-lg whitespace-nowrap">✓ {answer}</span>
+                    <span className="text-[0.625em] font-bold text-white bg-green-600 px-2 py-1 rounded shadow-lg whitespace-nowrap">✓ {Array.isArray(answer) ? answer.join(' / ') : answer}</span>
                     <div className="w-2 h-2 bg-green-600 rotate-45 absolute left-1/2 -translate-x-1/2 -bottom-1"></div>
                 </div>
             )}

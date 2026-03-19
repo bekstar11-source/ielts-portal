@@ -53,11 +53,11 @@ const ListeningLeftPane = memo(({ content, highlightedId }) => {
     return (
         <div 
             ref={containerRef}
-            className="p-8 pb-32 h-full text-base leading-relaxed text-gray-800 selectable-text"
+            className="p-8 pb-32 h-full leading-relaxed text-gray-800 selectable-text"
         >
             <div 
                 className="
-                    [&_p]:mb-4 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mb-3 
+                    [&_p]:mb-4 [&_h3]:text-[1.25em] [&_h3]:font-bold [&_h3]:mb-3 
                     [&_span.location-marker]:border-b-2 [&_span.location-marker]:border-dotted [&_span.location-marker]:border-gray-400 [&_span.location-marker]:cursor-help
                 "
                 dangerouslySetInnerHTML={{ __html: content }} 

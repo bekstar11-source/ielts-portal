@@ -30,6 +30,7 @@ export default function CreateTest() {
     const [singleAudioUrl, setSingleAudioUrl] = useState("");
     const [uploadedMaps, setUploadedMaps] = useState([]);
     const [activeWritingTask, setActiveWritingTask] = useState(0);
+    const [listeningPartCount, setListeningPartCount] = useState(4);
 
     const [testData, setTestData] = useState({
         title: "", type: "reading", difficulty: "medium", passages: [],
@@ -121,6 +122,10 @@ export default function CreateTest() {
                             setAudioMode("multiple");
                         }
 
+                        if (data.type === 'listening') {
+                            setListeningPartCount(newPassages.length || 4);
+                        }
+
                         const existingMaps = [];
                         if (data.questions) {
                             data.questions.forEach(q => {
@@ -196,7 +201,7 @@ export default function CreateTest() {
 
             setTestData(prev => {
                 const newPassages = [...(prev.passages || [])];
-                for (let i = 0; i < 4; i++) {
+                for (let i = 0; i < listeningPartCount; i++) {
                     if (!newPassages[i]) {
                         newPassages[i] = { id: 100 + i, title: `Part ${i + 1}`, content: "", audio: url, startTime: 0, endTime: 0, extraSilentTime: 0 };
                     } else {
@@ -210,7 +215,7 @@ export default function CreateTest() {
                 try {
                     const parsed = JSON.parse(prev || '{"passages":[]}');
                     if (!parsed.passages) parsed.passages = [];
-                    for (let i = 0; i < 4; i++) {
+                    for (let i = 0; i < listeningPartCount; i++) {
                         if (!parsed.passages[i]) parsed.passages[i] = { audio: url, startTime: 0, endTime: 0, extraSilentTime: 0 };
                         else parsed.passages[i].audio = url;
                     }
@@ -404,17 +409,24 @@ export default function CreateTest() {
                 return Number(val) || 0;
             };
 
-            const processedPassages = (testData.passages || []).map(p => ({
+            let processedPassages = (testData.passages || []).map(p => ({
                 ...p,
                 startTime: p.startTime !== undefined ? processTime(p.startTime) : undefined,
                 endTime: p.endTime !== undefined ? processTime(p.endTime) : undefined,
                 extraSilentTime: p.extraSilentTime ? Number(p.extraSilentTime) : 0
             }));
 
+            let finalQuestions = processedQuestions;
+            if (testData.type === 'listening') {
+                processedPassages = processedPassages.slice(0, listeningPartCount);
+                const validPassageIds = processedPassages.map(p => String(p.id));
+                finalQuestions = finalQuestions.filter(q => !q.passageId || validPassageIds.includes(String(q.passageId)));
+            }
+
             const payload = JSON.parse(JSON.stringify({
                 ...testData,
                 passages: processedPassages,
-                questions: processedQuestions,
+                questions: finalQuestions,
                 keywordTable: testData.keywordTable || [],
                 introDuration: Number(testData.introDuration),
                 isExclusive: isMockMode,
@@ -504,9 +516,18 @@ export default function CreateTest() {
                     </div>
 
                     {testData.type === 'listening' && (
-                        <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center justify-between shadow-sm">
-                            <span className="text-sm font-medium text-gray-600">Intro Delay (Sekund)</span>
-                            <input type="number" className="w-20 bg-gray-50 border border-gray-200 rounded-xl p-2 text-center text-gray-900 focus:border-[#3772FF] outline-none transition" value={testData.introDuration} onChange={(e) => setTestData({ ...testData, introDuration: e.target.value })} />
+                        <div className="space-y-4">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center justify-between shadow-sm">
+                                <span className="text-sm font-medium text-gray-600">Intro Delay (Sekund)</span>
+                                <input type="number" className="w-20 bg-gray-50 border border-gray-200 rounded-xl p-2 text-center text-gray-900 focus:border-[#3772FF] outline-none transition" value={testData.introDuration} onChange={(e) => setTestData({ ...testData, introDuration: e.target.value })} />
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center justify-between shadow-sm">
+                                <span className="text-sm font-medium text-gray-600">Listening Parts</span>
+                                <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                                    <button onClick={() => setListeningPartCount(2)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${listeningPartCount === 2 ? 'bg-white text-[#3772FF] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>2 Parts</button>
+                                    <button onClick={() => setListeningPartCount(4)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${listeningPartCount === 4 ? 'bg-white text-[#3772FF] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>4 Parts</button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -523,7 +544,7 @@ export default function CreateTest() {
 
                         {audioMode === 'multiple' ? (
                             <div className="grid grid-cols-2 gap-4">
-                                {[0, 1, 2, 3].map((idx) => (
+                                {Array.from({ length: listeningPartCount }).map((_, idx) => (
                                     <div key={idx} className="flex flex-col gap-2 p-3 bg-gray-50 border border-gray-200 rounded-2xl">
                                         <label className={`relative px-2 flex flex-col items-center justify-center h-20 rounded-xl border-2 border-dashed cursor-pointer transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-white'}`}>
                                             <span className="text-[10px] font-bold text-gray-500 uppercase mb-1">Part {idx + 1} Audio</span>
@@ -554,7 +575,7 @@ export default function CreateTest() {
                                     <div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
                                         <h4 className="text-xs font-bold text-gray-900 mb-3 uppercase tracking-wider">Partlar vaqtini belgilash (sekund yoki mm:ss)</h4>
                                         <div className="space-y-3">
-                                            {[0, 1, 2, 3].map(idx => (
+                                            {Array.from({ length: listeningPartCount }).map((_, idx) => (
                                                 <div key={idx} className="flex flex-col gap-2 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[10px] font-bold text-gray-500 uppercase w-10">Part {idx + 1}</span>
@@ -656,7 +677,7 @@ export default function CreateTest() {
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2 relative z-10">
                     <h1 className="text-3xl font-bold text-gray-900 leading-tight">{testData.title || "Test Nomi..."}</h1>
-                    {testData.passages?.map((p, i) => (
+                    {testData.passages?.slice(0, testData.type === 'listening' ? listeningPartCount : testData.passages.length).map((p, i) => (
                         <div key={i} className="bg-white p-6 rounded-[24px] border border-gray-200 shadow-sm">
                             <div className="flex justify-between items-center mb-4">
                                 <h4 className="text-lg font-bold text-gray-900">{p.title || `Part ${i + 1}`}</h4>

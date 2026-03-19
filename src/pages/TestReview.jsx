@@ -6,6 +6,7 @@ import ReadingInterface from "../components/ReadingInterface/ReadingInterface";
 import ListeningInterface from '../components/ListeningInterface/ListeningInterface';
 import { useAuth } from "../context/AuthContext";
 import { batchAddWordsToBank } from "../utils/wordbankUtils";
+import CustomAudioPlayer from "../components/TestSolving/CustomAudioPlayer";
 
 // --- MOCK KEYWORD TABLE (real JSON tayyor bo'lgach testData.keywordTable ga almashtiriladi) ---
 // Format: { id: number, locationId: string, passageWord: string, questionWord: string }
@@ -38,6 +39,7 @@ export default function TestReview() {
     const [activeMockPart, setActiveMockPart] = useState('listening'); // listening, reading, writing
     const [currentAnswers, setCurrentAnswers] = useState({}); // Active part answers
     const [listeningActivePart, setListeningActivePart] = useState(0); // Listening part tab
+    const [audioTime, setAudioTime] = useState(0); // Audio vaqti
 
     // Interface uchun dummy funksiyalar (Admin faqat ko'radi, o'zgartirmaydi)
     const [flaggedQuestions] = useState(new Set());
@@ -292,19 +294,53 @@ export default function TestReview() {
                         userId={user?.uid}
                     />
                 ) : testData.type === 'listening' ? (
-                    <ListeningInterface
-                        key={testData.id}  // testData o'zgarganda to'liq remount
-                        testData={testData}
-                        userAnswers={currentAnswers}
-                        onAnswerChange={handleNoOp}
-                        onFlag={handleNoOp}
-                        flaggedQuestions={flaggedQuestions}
-                        isReviewMode={true}
-                        textSize={textSize}
-                        testMode="practice"
-                        activePart={listeningActivePart}
-                        setActivePart={setListeningActivePart}
-                    />
+                    <div className="flex flex-col w-full h-full bg-gray-50">
+                        {/* Audio Player for Review */}
+                        <div className="bg-white border-b border-gray-200 px-6 py-4 flex flex-col items-center justify-center shadow-sm z-10">
+                            <div className="text-[10px] font-bold text-indigo-600 uppercase mb-2 tracking-widest flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                Review Part {listeningActivePart + 1} Audio
+                            </div>
+                            <div className="w-full max-w-lg">
+                                {testData?.passages?.map((passage, index) => {
+                                    const src = passage.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file;
+                                    if (!src) return null;
+                                    return (
+                                        <CustomAudioPlayer
+                                            key={index}
+                                            src={src}
+                                            index={index}
+                                            activePart={listeningActivePart}
+                                            testMode="practice"
+                                            setAudioTime={setAudioTime}
+                                            onEnded={() => {
+                                                if (testData?.passages?.length && index < testData.passages.length - 1) {
+                                                    setListeningActivePart(index + 1);
+                                                }
+                                            }}
+                                            startTime={passage.startTime || 0}
+                                            endTime={passage.endTime || 0}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <ListeningInterface
+                            key={testData.id}  // testData o'zgarganda to'liq remount
+                            testData={testData}
+                            userAnswers={currentAnswers}
+                            onAnswerChange={handleNoOp}
+                            onFlag={handleNoOp}
+                            flaggedQuestions={flaggedQuestions}
+                            isReviewMode={true}
+                            textSize={textSize}
+                            testMode="practice"
+                            activePart={listeningActivePart}
+                            setActivePart={setListeningActivePart}
+                            audioCurrentTime={audioTime}
+                        />
+                    </div>
                 ) : testData.type === 'writing' ? (
 
                     // 2. WRITING REVIEW (Admin uchun)

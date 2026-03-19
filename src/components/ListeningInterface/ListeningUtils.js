@@ -1,10 +1,9 @@
 export const checkAnswer = (userVal, correctVal) => {
-    if (!userVal && !correctVal) return true;
-    if (!userVal || !correctVal) return false;
+    if (!correctVal || (Array.isArray(correctVal) && correctVal.length === 0)) return false;
+    if (!userVal) return false;
     const u = String(userVal).trim().toLowerCase();
-    const correctList = Array.isArray(correctVal) 
-        ? correctVal.map(c => String(c).trim().toLowerCase()) 
-        : [String(correctVal).trim().toLowerCase()];
+    const correctList = (Array.isArray(correctVal) ? correctVal : String(correctVal).split(/[\/|]/))
+        .map(c => String(c).trim().toLowerCase());
     return correctList.includes(u);
 };
 

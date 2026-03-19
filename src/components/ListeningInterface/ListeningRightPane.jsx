@@ -138,8 +138,8 @@ const ListeningRightPane = memo(({
             {/* HEADER */}
             <div className="mb-6 border-b border-gray-200 pb-4 flex items-center gap-4">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">{currentPassage?.title}</h2>
-                    <p className="text-sm text-gray-500 mt-1 font-medium">Listen carefully and answer the questions.</p>
+                    <h2 className="text-[1.25em] md:text-[1.5em] font-bold text-gray-900 leading-tight">{currentPassage?.title}</h2>
+                    <p className="text-[0.875em] text-gray-500 mt-1 font-medium">Listen carefully and answer the questions.</p>
                 </div>
             </div>
 
@@ -157,7 +157,10 @@ const ListeningRightPane = memo(({
                 const isMCQ = !NON_MCQ_TYPES.includes(group.type);
                 // Flat MCQ (group.id bor, ichida questions/items yo'q) yoki bitta savollik MCQ — range ko'rsatma
                 const isFlatMCQ = isMCQ && !Array.isArray(group.questions) && !Array.isArray(group.items) && group.id != null;
-                if (isMCQ && (isFlatMCQ || String(firstId) === String(lastId))) {
+                
+                // Redundant headersni o'chirish (Agar savol o'zi ichida raqamni render qilsa)
+                const SHOWS_OWN_BADGES = ['note_completion', 'gap_fill', 'table_completion', 'map_labeling', 'matching'];
+                if ((isMCQ || SHOWS_OWN_BADGES.includes(group.type)) && (isFlatMCQ || String(firstId) === String(lastId))) {
                     questionRange = "";
                 }
 
@@ -171,10 +174,10 @@ const ListeningRightPane = memo(({
                 return (
                     <div key={gIdx} className="mb-10 animate-in fade-in duration-500">
                         <div className="mb-5 flex flex-col gap-3">
-                            {questionRange && <h3 className="text-lg font-bold text-gray-900 border-b border-gray-300 pb-1 inline-block w-fit">{questionRange}</h3>}
-                            {!isDuplicateInstruction && group.instruction && <div className="text-base font-bold text-black"><span dangerouslySetInnerHTML={{ __html: group.instruction }} /></div>}
+                            {questionRange && <h3 className="text-[1.125em] font-bold text-gray-900 border-b border-gray-300 pb-1 inline-block w-fit">{questionRange}</h3>}
+                            {!isDuplicateInstruction && group.instruction && <div className="text-[1em] font-bold text-black leading-relaxed"><span dangerouslySetInnerHTML={{ __html: group.instruction }} /></div>}
                             {/* group.text faqat nested savollar uchun — flat MCQ da StandardMCQ o'zi render qiladi */}
-                            {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0) && <div className="text-base font-bold text-black leading-relaxed"><span dangerouslySetInnerHTML={{ __html: group.text }} /></div>}
+                            {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0) && <div className="text-[1em] font-bold text-black leading-relaxed"><span dangerouslySetInnerHTML={{ __html: group.text }} /></div>}
                         </div>
                         {renderGroupContent(group)}
                     </div>

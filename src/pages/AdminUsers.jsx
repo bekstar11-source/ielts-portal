@@ -40,14 +40,14 @@ const TabButton = ({ id, active, onClick, icon: Icon, label, theme }) => (
     <button
         onClick={() => onClick(id)}
         className={`
-            flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-sm font-medium
+            flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl transition-all text-sm font-medium whitespace-nowrap
             ${active === id
                 ? (theme === 'dark' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200')
                 : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100')}
         `}
     >
         <Icon size={16} />
-        {label}
+        <span className="md:inline">{label}</span>
     </button>
 );
 
@@ -107,12 +107,12 @@ export default function AdminUsers() {
             <style>{customDatepickerStyles}</style>
 
             {/* HEADER & TABS */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 md:mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Foydalanuvchilar Boshqaruvi</h1>
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>O'quvchilar, guruhlar va tayinlovlar</p>
+                    <h1 className={`text-xl md:text-2xl font-bold font-display ${isDark ? 'text-white' : 'text-gray-900'}`}>Boshqaruv Paneli</h1>
+                    <p className={`text-xs md:text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tizim foydalanuvchilari va guruhlarni boshqarish</p>
                 </div>
-                <div className={`flex p-1 rounded-2xl ${isDark ? 'bg-[#2C2C2C]' : 'bg-gray-100'}`}>
+                <div className={`flex p-1 rounded-2xl overflow-x-auto w-full lg:w-auto no-scrollbar ${isDark ? 'bg-[#2C2C2C]' : 'bg-gray-100'}`}>
                     <TabButton id="students" active={activeTab} onClick={setActiveTab} label="O'quvchilar" icon={Users} theme={theme} />
                     <TabButton id="groups" active={activeTab} onClick={setActiveTab} label="Guruhlar" icon={Layers} theme={theme} />
                     <TabButton id="assign" active={activeTab} onClick={setActiveTab} label="Tayinlash" icon={UserCheck} theme={theme} />
@@ -121,7 +121,7 @@ export default function AdminUsers() {
             </div>
 
             {/* CONTENT AREA */}
-            <div className="flex-1 overflow-hidden relative">
+            <div className="flex-1 overflow-y-auto md:overflow-hidden relative">
                 {loading && (
                     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-3xl">
                         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -156,14 +156,14 @@ function SmartUserTable({ students, onRefresh, theme }) {
     return (
         <div className={`rounded-[24px] border h-full flex flex-col overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
             {/* Toolbar */}
-            <div className={`p-4 border-b flex justify-between items-center ${isDark ? 'border-white/5 bg-[#2C2C2C]' : 'border-gray-100 bg-gray-50'}`}>
-                <div className="flex items-center gap-3">
+            <div className={`p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${isDark ? 'border-white/5 bg-[#2C2C2C]' : 'border-gray-100 bg-gray-50'}`}>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     <div className={`flex items-center px-3 py-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
                         <Search size={16} className="text-gray-400 mr-2" />
                         <input
                             type="text"
                             placeholder="Qidirish..."
-                            className="bg-transparent border-none outline-none text-sm w-48"
+                            className="bg-transparent border-none outline-none text-sm w-full sm:w-48"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                         />
@@ -177,7 +177,7 @@ function SmartUserTable({ students, onRefresh, theme }) {
                         {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'].map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                 </div>
-                <div className="text-xs font-bold uppercase tracking-wider opacity-50">
+                <div className="text-xs font-bold uppercase tracking-wider opacity-50 self-end sm:self-auto">
                     Jami: {filteredStudents.length}
                 </div>
             </div>
@@ -187,46 +187,46 @@ function SmartUserTable({ students, onRefresh, theme }) {
                 <table className="w-full text-left border-collapse">
                     <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#1E1E1E]' : 'bg-white'}`}>
                         <tr>
-                            <th className={`py-3 px-6 text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>O'quvchi</th>
-                            <th className={`py-3 px-6 text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>Aloqa</th>
-                            <th className={`py-3 px-6 text-xs font-bold uppercase tracking-wider border-b text-center ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>Target</th>
-                            <th className={`py-3 px-6 text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>Sana</th>
-                            <th className={`py-3 px-6 text-xs font-bold uppercase tracking-wider border-b text-right ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>Amallar</th>
+                            <th className={`py-3 px-4 md:px-6 text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>O'quvchi</th>
+                            <th className={`hidden md:table-cell py-3 px-6 text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>Aloqa</th>
+                            <th className={`py-3 px-4 md:px-6 text-xs font-bold uppercase tracking-wider border-b text-center ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>Target</th>
+                            <th className={`hidden sm:table-cell py-3 px-6 text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>Sana</th>
+                            <th className={`py-3 px-4 md:px-6 text-xs font-bold uppercase tracking-wider border-b text-right ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>Amallar</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                         {filteredStudents.map(student => (
                             <tr key={student.id} className={`group transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50 border-gray-100'}`}>
-                                <td className="py-4 px-6">
+                                <td className="py-4 px-4 md:px-6">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs md:text-sm shadow-sm shrink-0">
                                             {student.fullName ? student.fullName.charAt(0).toUpperCase() : 'U'}
                                         </div>
-                                        <div>
-                                            <p className={`font-bold text-sm ${student.isBlocked ? 'text-red-500 line-through' : ''}`}>{student.fullName || "Ismsiz"}</p>
-                                            <p className="text-xs opacity-50">ID: {student.id.slice(0, 8)}</p>
+                                        <div className="min-w-0">
+                                            <p className={`font-bold text-sm truncate ${student.isBlocked ? 'text-red-500 line-through' : ''}`}>{student.fullName || "Ismsiz"}</p>
+                                            <p className="text-[10px] md:text-xs opacity-50 truncate">ID: {student.id.slice(0, 8)}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="py-4 px-6">
+                                <td className="hidden md:table-cell py-4 px-6">
                                     <div className="flex flex-col gap-1">
                                         <p className="text-xs opacity-70 flex items-center gap-2"><span className="opacity-50">@</span> {student.email}</p>
                                         {student.phoneNumber && <p className="text-xs opacity-70 flex items-center gap-2"><span className="opacity-50">#</span> {student.phoneNumber}</p>}
                                     </div>
                                 </td>
-                                <td className="py-4 px-6 text-center">
-                                    <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-bold ${isDark ? 'bg-white/5 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                                <td className="py-4 px-4 md:px-6 text-center">
+                                    <span className={`inline-flex px-2 py-1 rounded-lg text-[10px] md:text-xs font-bold ${isDark ? 'bg-white/5 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
                                         {student.targetBand || "-"}
                                     </span>
                                 </td>
-                                <td className="py-4 px-6">
+                                <td className="hidden sm:table-cell py-4 px-6">
                                     {student.examDate ? (
                                         <span className={`text-xs font-medium px-2 py-1 rounded border ${isDark ? 'border-green-500/20 text-green-400 bg-green-500/5' : 'border-green-200 text-green-700 bg-green-50'}`}>
                                             {new Date(student.examDate).toLocaleDateString()}
                                         </span>
                                     ) : <span className="text-xs opacity-30">-</span>}
                                 </td>
-                                <td className="py-4 px-6 text-right">
+                                <td className="py-4 px-4 md:px-6 text-right">
                                     <button
                                         onClick={() => { setSelectedUser(student); setShowDetailPanel(true); }}
                                         className={`p-2 rounded-lg transition ${isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-900'}`}
@@ -319,17 +319,17 @@ function GroupsTab({ groups, students, teachers, onRefresh, theme }) {
 
     return (
         <div className="h-full flex flex-col gap-6">
-            <div className={`p-4 rounded-[20px] border flex items-center justify-between shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+            <div className={`p-4 rounded-[20px] border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
                 <span className="font-bold text-sm ml-2">Jami: {groups.length} ta guruh</span>
                 <div className="flex gap-2">
                     <input
                         type="text"
                         placeholder="Yangi guruh nomi..."
-                        className={`w-64 h-10 px-4 text-sm rounded-xl outline-none border transition ${isDark ? 'bg-[#1E1E1E] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`}
+                        className={`flex-1 sm:w-64 h-10 px-4 text-sm rounded-xl outline-none border transition ${isDark ? 'bg-[#1E1E1E] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`}
                         value={name}
                         onChange={e => setName(e.target.value)}
                     />
-                    <button onClick={handleCreate} className="h-10 px-6 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20">
+                    <button onClick={handleCreate} className="h-10 px-4 sm:px-6 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20">
                         Qo'shish
                     </button>
                 </div>
@@ -518,9 +518,10 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
     };
 
     return (
-        <div className="grid grid-cols-12 gap-6 h-full">
+        <div className="relative flex flex-col h-full">
+            <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-6 pb-24 md:pb-0 overflow-y-auto md:overflow-hidden p-1">
             {/* LEFT: Target Selection */}
-            <div className={`col-span-12 md:col-span-4 rounded-[24px] border overflow-hidden flex flex-col ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+            <div className={`col-span-12 lg:col-span-4 p-4 md:p-6 border-b lg:border-b-0 lg:border-r ${isDark ? 'border-white/5 bg-[#1A1A1A]' : 'border-gray-100 bg-gray-50'} flex flex-col min-h-[300px] max-h-[400px] md:max-h-full`}>
                 <div className={`p-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'} flex justify-between items-center`}>
                     <span className="text-xs font-bold uppercase tracking-wider opacity-60">1. Kimga?</span>
                     <div className={`flex p-1 rounded-lg ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-100'}`}>
@@ -531,7 +532,7 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                         ))}
                     </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar min-h-[250px] md:max-h-full">
                     {subTab === 'groups' ? (
                         <>
                             {/* Group Search - Optional, but consistent */}
@@ -588,16 +589,16 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                 <div className={`p-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                     <span className="text-xs font-bold uppercase tracking-wider opacity-60">2. Nima?</span>
                 </div>
-                <div className="p-6 space-y-6">
-                    <div className="flex gap-4">
-                        <div className="w-1/3">
+                <div className="p-4 md:p-6 space-y-6">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="w-full sm:w-1/3">
                             <label className="text-xs font-bold opacity-50 uppercase mb-2 block">Turi</label>
                             <div className={`flex p-1 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                                 <button onClick={() => { setAssignmentType('test'); setSearchMaterial(''); }} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${assignmentType === 'test' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>Test</button>
                                 <button onClick={() => { setAssignmentType('set'); setSearchMaterial(''); }} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${assignmentType === 'set' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>To'plam</button>
                             </div>
                         </div>
-                        <div className="w-2/3">
+                        <div className="w-full sm:w-2/3">
                             <label className="text-xs font-bold opacity-50 uppercase mb-2 block">Material</label>
 
                             {/* Material Search Input */}
@@ -615,7 +616,7 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                             <select
                                 value={selectedItem}
                                 onChange={e => setSelectedItem(e.target.value)}
-                                className={`w-full h-[42px] px-3 rounded-xl border outline-none text-sm appearance-none ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}
+                                className={`w-full h-[42px] px-3 rounded-xl border outline-none text-sm ${isDark ? 'bg-[#1E1E1E] border-white/5 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
                             >
                                 <option value="">Tanlang...</option>
                                 {filteredMaterials.map(i => (
@@ -644,7 +645,7 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         <div>
                             <span className="text-xs opacity-50 mb-1 block w-full truncate">Urinishlar Soni</span>
                             <div className={`w-full flex items-center h-10 px-3 rounded-xl border transition ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
@@ -679,13 +680,20 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                         </div>
                     </div>
                 </div>
-                <div className={`p-4 border-t mt-auto flex justify-end ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50'}`}>
-                    <button onClick={handleAssign} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition active:scale-95">
-                        Tayinlash
-                    </button>
-                </div>
             </div>
         </div>
+
+        {/* FINAL ACTION BUTTON - Sticky for mobile */}
+        <div className={`fixed md:static lg:absolute bottom-0 left-0 right-0 p-4 md:p-6 border-t md:border-none z-30 flex justify-end animate-in slide-in-from-bottom duration-300 ${isDark ? 'bg-[#1E1E1E] md:bg-transparent border-white/10' : 'bg-white md:bg-transparent border-gray-100 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]'}`}>
+            <button 
+                onClick={handleAssign} 
+                className={`w-full md:w-auto px-10 py-4 md:py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl md:rounded-xl shadow-xl shadow-blue-600/20 transition active:scale-95 flex items-center justify-center gap-2`}
+            >
+                <Check size={20} className="md:w-5 md:h-5" />
+                <span>Tayinlash</span>
+            </button>
+        </div>
+    </div>
     );
 }
 

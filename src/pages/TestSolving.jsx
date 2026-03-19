@@ -145,6 +145,7 @@ export default function TestSolving() {
                 showModeSelection={showModeSelection}
                 activePart={activePart}
                 setActivePart={setActivePart}
+                isReviewing={isReviewing}
                 setAudioTime={setAudioTime}
                 triggerPlay={triggerPlay}
             />
