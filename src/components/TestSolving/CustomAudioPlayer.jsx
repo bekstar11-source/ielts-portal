@@ -14,7 +14,8 @@ export default function CustomAudioPlayer({
     setAudioTime, 
     onEnded, 
     startTime = 0, 
-    endTime = 0 
+    endTime = 0,
+    variant = 'light' // 'light' (default) or 'dark' (for dark headers)
 }) {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -25,6 +26,20 @@ export default function CustomAudioPlayer({
     const progressRef = useRef(null);
     const isVisible = index === activePart;
     const isExam = testMode === 'exam';
+
+    // Theme values
+    const isDark = variant === 'dark';
+    const containerClass = isDark 
+        ? "w-full flex items-center gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/5 px-3 py-1 shadow-sm backdrop-blur-sm" 
+        : "w-full flex items-center gap-3 overflow-hidden rounded-xl border border-gray-200 bg-white px-3 py-1.5 shadow-sm";
+    
+    const timeClass = isDark ? "text-[10px] font-mono text-gray-400 shrink-0 tabular-nums" : "text-[11px] font-mono text-gray-400 shrink-0 tabular-nums";
+    const railClass = isDark ? "flex-1 h-1 bg-white/10 cursor-pointer relative rounded-full group touch-none" : "flex-1 h-1.5 bg-gray-100 cursor-pointer relative rounded-full group touch-none";
+    const fillClass = isDark ? "absolute top-0 left-0 h-full bg-blue-500 rounded-full group-hover:bg-blue-400" : "absolute top-0 left-0 h-full bg-blue-500 rounded-full group-hover:bg-blue-600";
+    const thumbClass = isDark ? "absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity" : "absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-blue-600 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity";
+    const btnClass = isDark 
+        ? `flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition-colors focus:outline-none ${isExam ? 'text-white/20' : 'bg-white/10 hover:bg-white/20 text-white'}` 
+        : `flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-colors focus:outline-none ${isExam ? 'bg-gray-100 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}`;
 
     // Wire up audio events
     useEffect(() => {
@@ -145,19 +160,21 @@ export default function CustomAudioPlayer({
     };
 
     const VolumeIcon = () => {
+        const baseClass = `w-4 h-4 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-700'}`;
+        
         if (volume === 0) return (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className={baseClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
             </svg>
         );
         if (volume < 0.5) return (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className={baseClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
             </svg>
         );
         return (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className={baseClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
             </svg>
         );
@@ -188,17 +205,13 @@ export default function CustomAudioPlayer({
             />
 
             {/* Player UI */}
-            <div className="w-full flex items-center gap-3 overflow-hidden rounded-xl border border-gray-200 bg-white px-3 py-1.5 shadow-sm">
+            <div className={containerClass}>
 
                 {/* Play / Pause */}
                 <button
                     onClick={togglePlay}
                     disabled={isExam}
-                    className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-colors focus:outline-none
-                        ${isExam
-                            ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                            : 'bg-gray-100 hover:bg-gray-200 text-gray-800 cursor-pointer'
-                        }`}
+                    className={btnClass}
                 >
                     {isPlaying ? (
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -214,12 +227,12 @@ export default function CustomAudioPlayer({
 
                 {/* Progress Bar & Time */}
                 <div className="flex-1 flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-gray-400 shrink-0 tabular-nums">
+                    <span className={timeClass}>
                         {fmtTime(currentTime)}
                     </span>
                     <div
                         ref={progressRef}
-                        className="flex-1 h-1.5 bg-gray-100 cursor-pointer relative rounded-full group touch-none"
+                        className={railClass}
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
                         onPointerUp={handlePointerUp}
@@ -228,16 +241,16 @@ export default function CustomAudioPlayer({
                     >
                         {/* Progress Fill */}
                         <div
-                            className="absolute top-0 left-0 h-full bg-blue-500 rounded-full group-hover:bg-blue-600"
+                            className={fillClass}
                             style={{ width: `${progress}%` }}
                         />
                         {/* Thumb */}
                         <div
-                            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-blue-600 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                            style={{ left: `calc(${progress}% - 5px)` }}
+                            className={thumbClass}
+                            style={{ left: `calc(${progress}% - 4px)` }}
                         />
                     </div>
-                    <span className="text-[11px] font-mono text-gray-400 shrink-0 tabular-nums">
+                    <span className={timeClass}>
                         {fmtTime(duration)}
                     </span>
                 </div>
@@ -245,7 +258,7 @@ export default function CustomAudioPlayer({
                 {/* Volume Inline */}
                 <div className="flex items-center gap-2 shrink-0 group">
                     <button
-                        className="text-gray-400 hover:text-gray-700 transition-colors"
+                        className="transition-colors"
                         onClick={() => {
                             if (audioRef.current) audioRef.current.muted = !audioRef.current.muted;
                         }}
@@ -259,7 +272,7 @@ export default function CustomAudioPlayer({
                         step="0.02"
                         value={volume}
                         onChange={handleVolumeChange}
-                        className="w-16 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all opacity-70 group-hover:opacity-100"
+                        className={`w-12 sm:w-16 h-1 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all opacity-40 group-hover:opacity-100 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}
                         style={{ outline: "none" }}
                     />
                 </div>

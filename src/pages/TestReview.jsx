@@ -239,24 +239,53 @@ export default function TestReview() {
                         </div>
                     </div>
                 </div>
+                <div className="flex-1 flex justify-center px-4 overflow-hidden">
+                    {/* 1. MOCK PART SWITCHER (Agar mock bo'lsa) */}
+                    {resultData.type === 'mock_full' ? (
+                        <div className="flex bg-slate-800 rounded-lg p-1 gap-1 shrink-0">
+                            {['listening', 'reading', 'writing'].map(part => (
+                                <button
+                                    key={part}
+                                    onClick={() => setActiveMockPart(part)}
+                                    className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase transition ${activeMockPart === part ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                                        }`}
+                                >
+                                    {part}
+                                </button>
+                            ))}
+                        </div>
+                    ) : null}
 
-                {/* PART SWITCHER FOR MOCK */}
-                {resultData.type === 'mock_full' && (
-                    <div className="flex bg-slate-800 rounded-lg p-1 gap-1">
-                        {['listening', 'reading', 'writing'].map(part => (
-                            <button
-                                key={part}
-                                onClick={() => setActiveMockPart(part)}
-                                className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase transition ${activeMockPart === part ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
-                                    }`}
-                            >
-                                {part}
-                            </button>
-                        ))}
-                    </div>
-                )}
+                    {/* 2. AUDIO PLAYER (Agar listening bo'lsa) */}
+                    {(testData.type === 'listening' || activeMockPart === 'listening') && (
+                        <div className={`flex-1 max-w-md ${resultData.type === 'mock_full' ? 'ml-4' : ''}`}>
+                            {testData?.passages?.map((passage, index) => {
+                                const src = passage.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file;
+                                if (!src) return null;
+                                return (
+                                    <CustomAudioPlayer
+                                        key={index}
+                                        src={src}
+                                        index={index}
+                                        variant="dark"
+                                        activePart={listeningActivePart}
+                                        testMode="practice"
+                                        setAudioTime={setAudioTime}
+                                        onEnded={() => {
+                                            if (testData?.passages?.length && index < testData.passages.length - 1) {
+                                                setListeningActivePart(index + 1);
+                                            }
+                                        }}
+                                        startTime={passage.startTime || 0}
+                                        endTime={passage.endTime || 0}
+                                    />
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
 
-                <div className="pr-4 flex items-center gap-4">
+                <div className="pr-4 flex items-center gap-4 shrink-0">
                     {userData?.role === 'admin' && (
                         <div className="text-right hidden sm:block">
                             <p className="text-[10px] text-gray-400 uppercase">O'quvchi</p>
@@ -295,37 +324,6 @@ export default function TestReview() {
                     />
                 ) : testData.type === 'listening' ? (
                     <div className="flex flex-col w-full h-full bg-gray-50">
-                        {/* Audio Player for Review */}
-                        <div className="bg-white border-b border-gray-200 px-6 py-4 flex flex-col items-center justify-center shadow-sm z-10">
-                            <div className="text-[10px] font-bold text-indigo-600 uppercase mb-2 tracking-widest flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                                Review Part {listeningActivePart + 1} Audio
-                            </div>
-                            <div className="w-full max-w-lg">
-                                {testData?.passages?.map((passage, index) => {
-                                    const src = passage.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file;
-                                    if (!src) return null;
-                                    return (
-                                        <CustomAudioPlayer
-                                            key={index}
-                                            src={src}
-                                            index={index}
-                                            activePart={listeningActivePart}
-                                            testMode="practice"
-                                            setAudioTime={setAudioTime}
-                                            onEnded={() => {
-                                                if (testData?.passages?.length && index < testData.passages.length - 1) {
-                                                    setListeningActivePart(index + 1);
-                                                }
-                                            }}
-                                            startTime={passage.startTime || 0}
-                                            endTime={passage.endTime || 0}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        </div>
-
                         <ListeningInterface
                             key={testData.id}  // testData o'zgarganda to'liq remount
                             testData={testData}
