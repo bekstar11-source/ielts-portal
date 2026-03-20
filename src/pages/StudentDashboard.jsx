@@ -5,7 +5,7 @@ import { db } from "../firebase/firebase";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion, getCountFromServer } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, Headphones, PenTool, Mic, Flame, Trophy, AlertTriangle, ArrowRight, ArrowUp } from "lucide-react";
+import { BookOpen, Headphones, PenTool, Mic, Flame, Trophy, AlertTriangle, ArrowRight, ArrowUp, RotateCw } from "lucide-react";
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -71,6 +71,7 @@ export default function StudentDashboard() {
     const [filterType, setFilterType] = useState("all");
     const [mistakesCount, setMistakesCount] = useState(0);
     const [vocabCount, setVocabCount] = useState(0);
+    const [userResults, setUserResults] = useState([]);
     const [showKeyModal, setShowKeyModal] = useState(false);
     const [showStartConfirm, setShowStartConfirm] = useState(false);
     const [testToStart, setTestToStart] = useState(null);
@@ -80,8 +81,8 @@ export default function StudentDashboard() {
     const [checkingKey, setCheckingKey] = useState(false);
     const [keyError, setKeyError] = useState("");
 
-    // 🔥 ANALYTICS HOOK
-    const { stats: analyticsStats } = useAnalytics(user?.uid);
+    // 🔥 ANALYTICS HOOK (Read larni tejash uchun userResults ni uzatamiz)
+    const { stats: analyticsStats } = useAnalytics(user?.uid, userResults);
 
     // 🔥 RECOMMENDATIONS
     const recommendedTests = useMemo(() => {
@@ -111,6 +112,25 @@ export default function StudentDashboard() {
             setErrorMsg(null);
 
             try {
+                // 🚀 CACHE LOGIC: 5 daqiqalik kesh yordamida read larni tejash
+                const CACHE_KEY = `student_assignments_${user.uid}`;
+                const CACHE_TIME_KEY = `student_assignments_time_${user.uid}`;
+                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
+
+                if (isCacheValid) {
+                    const cachedData = sessionStorage.getItem(CACHE_KEY);
+                    if (cachedData) {
+                        try {
+                            const parsedData = JSON.parse(cachedData);
+                            console.log("Keshdan olindi (Tezlik 2x):", parsedData.length);
+                            setRawAssignments(parsedData);
+                            setLoading(false);
+                            return; // <- BU YERDA TO'XTAYDI SHU BILAN READ KETMAYDI
+                        } catch(e) { console.warn("Cache parse error", e); }
+                    }
+                }
+
                 console.log("Firebase'dan yuklash boshlandi...");
                 const [userSnap, groupsSnap, resultsSnap] = await Promise.all([
                     getDoc(doc(db, 'users', user.uid)),
@@ -118,13 +138,14 @@ export default function StudentDashboard() {
                     getDocs(query(collection(db, 'results'), where('userId', '==', user.uid)))
                 ]);
 
-                const myResults = resultsSnap.docs.map(d => d.data());
+                const myResults = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setUserResults(myResults);
 
                 // 🔥 MA'LUMOTLARNI TOZALASH (NORMALIZATION)
                 let allAssignments = [];
                 const currentUserData = userSnap.data();
 
-                // Helper: String yoki Object bo'lishidan qat'iy nazar to'g'irlash
+                // Helper: String yoki Object bo'lishidan qat'i nazar to'g'irlash
                 const normalizeAssignment = (assign) => {
                     if (!assign) return null;
                     if (typeof assign === 'string') {
@@ -250,11 +271,16 @@ export default function StudentDashboard() {
                 const uniqueTests = processedList.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
 
                 console.log("Yakuniy ro'yxat:", uniqueTests.length);
+                
+                // 🚀 CACHE GA SAQLASH
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(uniqueTests));
+                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+
                 setRawAssignments(uniqueTests);
 
             } catch (err) {
-                console.error("DEBUG ERROR:", err);
-                setErrorMsg("Ma'lumot yuklashda xatolik yuz berdi.");
+                console.error("Fetch Error:", err);
+                setErrorMsg(err.message);
             } finally {
                 setLoading(false);
             }
@@ -262,6 +288,17 @@ export default function StudentDashboard() {
 
         fetchData();
     }, [user]);
+
+    const handleManualRefresh = async () => {
+        if (!user) return;
+        setLoading(true);
+        // Keshni o'chiramiz
+        sessionStorage.removeItem(`student_assignments_${user.uid}`);
+        sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
+        sessionStorage.removeItem(`analytics_stats_${user.uid}`);
+        // Sahifani qayta yuklaymiz (bu eng ishonchli usul useEffect ni qayta ishga tushirish uchun)
+        window.location.reload();
+    };
 
     // Gamification ma'lumotlarini yuklash (Mistakes, Vocab)
     useEffect(() => {
@@ -372,7 +409,10 @@ export default function StudentDashboard() {
             await updateDoc(doc(db, "accessKeys", keyDoc.id), { isUsed: true, usedBy: user.uid, usedByName: userData?.fullName, usedAt: new Date().toISOString() });
 
             alert("Test qo'shildi! 🚀");
-            sessionStorage.removeItem(`dashboard_data_${user.uid}`);
+            // Cache Invalidation
+            sessionStorage.removeItem(`student_assignments_${user.uid}`);
+            sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
+            
             setShowKeyModal(false); setAccessKeyInput("");
             window.location.reload();
         } catch (error) { setKeyError(error.message); } finally { setCheckingKey(false); }
@@ -525,7 +565,10 @@ export default function StudentDashboard() {
             <DashboardHeader
                 user={user} userData={userData}
                 activeTab={activeTab} setActiveTab={setActiveTab}
-                onKeyClick={() => setShowKeyModal(true)} onLogoutClick={() => setShowLogoutConfirm(true)}
+                onKeyClick={() => setShowKeyModal(true)} 
+                onLogoutClick={() => setShowLogoutConfirm(true)}
+                onRefreshClick={handleManualRefresh}
+                loading={loading}
             />
             <PlanetBackground />
             <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-8">

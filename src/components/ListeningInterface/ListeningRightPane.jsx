@@ -72,7 +72,11 @@ const ListeningRightPane = memo(({
         if (group.type === 'matching') return <Matching group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
         if (['selection', 'pick_two', 'multi_choice_box', 'multiple_choice_multiple_answer'].includes(group.type)) return <SelectionBox group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
         if (group.type === 'table_completion') return <TableCompletion group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
-        if ((group.type === 'note_completion' || group.type === 'gap_fill') && group.groups) return <NoteCompletion group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
+        const completionTypes = ['note_completion', 'gap_fill', 'sentence_completion', 'summary_completion'];
+        if (completionTypes.includes(group.type)) {
+            const normalized = group.groups ? group : { ...group, groups: [{ items: group.items || group.questions || [] }] };
+            return <NoteCompletion group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
+        }
         if (group.type === 'flow_chart') return <FlowChart group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
 
         // --- MCQ HANDLER ---
@@ -136,48 +140,94 @@ const ListeningRightPane = memo(({
             )}
 
             {/* HEADER */}
-            <div className="mb-6 border-b border-gray-200 pb-4 flex items-center gap-4">
-                <div>
-                    <h2 className="text-[1.25em] md:text-[1.5em] font-bold text-gray-900 leading-tight">{currentPassage?.title}</h2>
-                    <p className="text-[0.875em] text-gray-500 mt-1 font-medium">Listen carefully and answer the questions.</p>
-                </div>
-            </div>
+            {(() => {
+                let partMinId = Infinity;
+                let partMaxId = -Infinity;
+                questionsForPart.forEach(group => {
+                    let items = [];
+                    if (Array.isArray(group.groups)) {
+                        group.groups.forEach(sub => { items = [...items, ...(sub.items || sub.questions || [])]; });
+                    } else {
+                        items = group.questions || group.items || [];
+                    }
+                    items.forEach(it => {
+                        const idNum = parseInt(it.id);
+                        if (!isNaN(idNum)) {
+                            if (idNum < partMinId) partMinId = idNum;
+                            if (idNum > partMaxId) partMaxId = idNum;
+                        }
+                    });
+                });
+
+                const rangeStr = partMinId !== Infinity ? `${partMinId}–${partMaxId}` : "";
+                let partNum = activePart + 1;
+                if (partMinId !== Infinity) {
+                    partNum = Math.floor((partMinId - 1) / 10) + 1;
+                }
+
+                return (
+                    <div className="bg-[#f4f4f2] border border-[#e8e8e6] rounded-sm px-5 py-4 mb-8">
+                        <h2 className="text-[1.125em] font-bold text-black mb-1 leading-none">
+                            Part {partNum}
+                        </h2>
+                        <p className="text-[1.05em] text-black font-normal">
+                            Listen and answer questions {rangeStr}.
+                        </p>
+                    </div>
+                );
+            })()}
 
             {/* QUESTIONS LOOP */}
             {questionsForPart.map((group, gIdx) => {
-                // Flat MCQ (id to'g'ridan to'g'ri group da) yoki nested (questions/items arrayda)
-                const allItems = group.questions || group.items || [];
-                const firstId = allItems.length > 0 ? allItems[0].id : (group.id != null ? group.id : null);
-                const lastId = allItems.length > 0 ? allItems[allItems.length - 1].id : (group.id != null ? group.id : null);
-                let questionRange = (firstId && lastId && String(firstId) !== String(lastId)) ? `Questions ${firstId}–${lastId}` : (firstId ? `Question ${firstId}` : "");
+                // Savol raqamlarini aniqlash (Oddiy yoki nested guruhlar uchun)
+                let allSubItems = [];
+                if (Array.isArray(group.groups)) {
+                    group.groups.forEach(sub => {
+                        allSubItems = [...allSubItems, ...(sub.items || sub.questions || [])];
+                    });
+                } else {
+                    allSubItems = group.questions || group.items || [];
+                }
 
-                // MCQ savollarda badge allaqachon raqamni ko'rsatadi — questionRange ortiqcha
-                // Non-MCQ typelar ro'yxatiga KIRMAGANLAR = MCQ
-                const NON_MCQ_TYPES = ['map_labeling', 'matching', 'selection', 'pick_two', 'multi_choice_box', 'multiple_choice_multiple_answer', 'table_completion', 'note_completion', 'gap_fill', 'flow_chart'];
-                const isMCQ = !NON_MCQ_TYPES.includes(group.type);
-                // Flat MCQ (group.id bor, ichida questions/items yo'q) yoki bitta savollik MCQ — range ko'rsatma
-                const isFlatMCQ = isMCQ && !Array.isArray(group.questions) && !Array.isArray(group.items) && group.id != null;
-                
-                // Redundant headersni o'chirish (Agar savol o'zi ichida raqamni render qilsa)
-                const SHOWS_OWN_BADGES = ['note_completion', 'gap_fill', 'table_completion', 'map_labeling', 'matching'];
-                if ((isMCQ || SHOWS_OWN_BADGES.includes(group.type)) && (isFlatMCQ || String(firstId) === String(lastId))) {
-                    questionRange = "";
+                const firstId = allSubItems[0]?.id || group.id;
+                const lastId = allSubItems[allSubItems.length - 1]?.id || group.id;
+
+                let questionRange = "";
+                if (firstId && lastId) {
+                    questionRange = String(firstId) === String(lastId) ? `Question ${firstId}` : `Questions ${firstId} – ${lastId}`;
                 }
 
                 const prevGroup = gIdx > 0 ? questionsForPart[gIdx - 1] : null;
                 const normalizeHTML = (html) => (typeof html === 'string') ? html.replace(/<[^>]*>/g, '').trim().toLowerCase() : '';
                 const isDuplicateInstruction = prevGroup && normalizeHTML(prevGroup.instruction) === normalizeHTML(group.instruction);
-
-                // Nested holat uchun group.text ni ham tekshirib qo'yishimiz mumkin, agar u ham huddi shunday takrorlanayotgan bo'lsa
                 const isDuplicateGroupText = prevGroup && normalizeHTML(prevGroup.text) === normalizeHTML(group.text);
 
                 return (
-                    <div key={gIdx} className="mb-10 animate-in fade-in duration-500">
-                        <div className="mb-5 flex flex-col gap-3">
-                            {questionRange && <h3 className="text-[1.125em] font-bold text-gray-900 border-b border-gray-300 pb-1 inline-block w-fit">{questionRange}</h3>}
-                            {!isDuplicateInstruction && group.instruction && <div className="text-[1em] font-bold text-black leading-relaxed"><span dangerouslySetInnerHTML={{ __html: group.instruction }} /></div>}
-                            {/* group.text faqat nested savollar uchun — flat MCQ da StandardMCQ o'zi render qiladi */}
-                            {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0) && <div className="text-[1em] font-bold text-black leading-relaxed"><span dangerouslySetInnerHTML={{ __html: group.text }} /></div>}
+                    <div key={gIdx} className="mb-8 animate-in fade-in duration-500">
+                        <div className="mb-4 flex flex-col">
+                            {questionRange && (
+                                <div className="flex items-center gap-3 mb-3">
+                                    <h3 className="text-[0.9em] font-black text-black uppercase tracking-[0.2em] py-1">
+                                        {questionRange}
+                                    </h3>
+                                    <div className="h-[1px] bg-gray-100 grow"></div>
+                                </div>
+                            )}
+
+                            {((!isDuplicateInstruction && group.instruction) || (!isDuplicateGroupText && group.text)) && (
+                                <div className="mb-6 px-1">
+                                    {!isDuplicateInstruction && group.instruction && (
+                                        <div className={`text-[1em] font-bold text-gray-900 italic leading-relaxed ${(!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0)) ? 'border-b border-gray-200 pb-3 mb-3' : ''}`}>
+                                            <span dangerouslySetInnerHTML={{ __html: group.instruction }} />
+                                        </div>
+                                    )}
+                                    {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0) && (
+                                        <div className="text-[1.1em] font-bold text-gray-900 leading-tight tracking-tight">
+                                            <span dangerouslySetInnerHTML={{ __html: group.text }} />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         {renderGroupContent(group)}
                     </div>

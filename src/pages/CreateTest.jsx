@@ -24,6 +24,9 @@ export default function CreateTest() {
     const [isMockMode, setIsMockMode] = useState(false);
     const [jsonInput, setJsonInput] = useState("");
     const [jsonError, setJsonError] = useState("");
+    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+    const [duplicateInfo, setDuplicateInfo] = useState(null);
+    const [isBypassingDuplicate, setIsBypassingDuplicate] = useState(false);
 
     const [partAudios, setPartAudios] = useState({ 0: "", 1: "", 2: "", 3: "" });
     const [audioMode, setAudioMode] = useState("multiple"); // 'multiple' | 'single'
@@ -31,6 +34,7 @@ export default function CreateTest() {
     const [uploadedMaps, setUploadedMaps] = useState([]);
     const [activeWritingTask, setActiveWritingTask] = useState(0);
     const [listeningPartCount, setListeningPartCount] = useState(4);
+    const [uploadingPart, setUploadingPart] = useState(null); // idx or 'single' or 'writing' or 'map'
 
     const [testData, setTestData] = useState({
         title: "", type: "reading", difficulty: "medium", passages: [],
@@ -178,6 +182,7 @@ export default function CreateTest() {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
+        setUploadingPart(index);
         try {
             const url = await uploadToFirebase(file, "part_audios");
 
@@ -188,13 +193,62 @@ export default function CreateTest() {
                 else newPassages[index] = { ...newPassages[index], audio: url };
                 return { ...prev, passages: newPassages };
             });
-        } catch (err) { alert(err.message); } finally { setUploading(false); }
+        } catch (err) { alert(err.message); } finally { setUploading(false); setUploadingPart(null); }
+    };
+
+    const handleAudioUrlChange = (url, index) => {
+        setPartAudios(prev => ({ ...prev, [index]: url }));
+        setTestData(prev => {
+            const newPassages = [...(prev.passages || [])];
+            if (!newPassages[index]) newPassages[index] = { id: 100 + index, title: `Part ${index + 1}`, content: "", audio: url };
+            else newPassages[index] = { ...newPassages[index], audio: url };
+            return { ...prev, passages: newPassages };
+        });
+
+        // Update JSON input to reflect audio change
+        setJsonInput(prev => {
+            try {
+                const parsed = JSON.parse(prev || '{"passages":[]}');
+                if (!parsed.passages) parsed.passages = [];
+                if (!parsed.passages[index]) parsed.passages[index] = { audio: url, startTime: 0, endTime: 0, extraSilentTime: 0 };
+                else parsed.passages[index].audio = url;
+                return JSON.stringify(parsed, null, 2);
+            } catch (err) { return prev; }
+        });
+    };
+
+    const handleSingleAudioUrlChange = (url) => {
+        setSingleAudioUrl(url);
+        setTestData(prev => {
+            const newPassages = [...(prev.passages || [])];
+            for (let i = 0; i < listeningPartCount; i++) {
+                if (!newPassages[i]) {
+                    newPassages[i] = { id: 100 + i, title: `Part ${i + 1}`, content: "", audio: url, startTime: 0, endTime: 0, extraSilentTime: 0 };
+                } else {
+                    newPassages[i] = { ...newPassages[i], audio: url };
+                }
+            }
+            return { ...prev, passages: newPassages, audio_url: url };
+        });
+
+        setJsonInput(prev => {
+            try {
+                const parsed = JSON.parse(prev || '{"passages":[]}');
+                if (!parsed.passages) parsed.passages = [];
+                for (let i = 0; i < listeningPartCount; i++) {
+                    if (!parsed.passages[i]) parsed.passages[i] = { audio: url, startTime: 0, endTime: 0, extraSilentTime: 0 };
+                    else parsed.passages[i].audio = url;
+                }
+                return JSON.stringify(parsed, null, 2);
+            } catch (err) { return prev; }
+        });
     };
 
     const handleSingleAudioUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
+        setUploadingPart('single');
         try {
             const url = await uploadToFirebase(file, "part_audios");
             setSingleAudioUrl(url);
@@ -222,7 +276,7 @@ export default function CreateTest() {
                     return JSON.stringify(parsed, null, 2);
                 } catch (err) { return prev; }
             });
-        } catch (err) { alert(err.message); } finally { setUploading(false); }
+        } catch (err) { alert(err.message); } finally { setUploading(false); setUploadingPart(null); }
     };
 
     const updatePartTime = (idx, field, value) => {
@@ -250,6 +304,7 @@ export default function CreateTest() {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
+        setUploadingPart('map');
 
         try {
             const url = await uploadToFirebase(file, "map_images");
@@ -274,21 +329,17 @@ export default function CreateTest() {
                         const newJsonStr = JSON.stringify(parsedJson, null, 2);
                         setJsonInput(newJsonStr);
                         updateTestDataFromJSON(newJsonStr);
-                        alert("Rasm yuklandi!");
                     } else {
                         copyToClipboard(url);
-                        alert("Rasm yuklandi!");
                     }
                 } catch (jsonErr) {
                     copyToClipboard(url);
                     console.error(jsonErr);
-                    alert("Rasm yuklandi!");
                 }
             } else {
                 copyToClipboard(url);
-                alert("Rasm yuklandi!");
             }
-        } catch (err) { alert("Xatolik: " + err.message); } finally { setUploading(false); }
+        } catch (err) { alert("Xatolik: " + err.message); } finally { setUploading(false); setUploadingPart(null); }
     };
 
     const handleDeleteMap = (index) => {
@@ -321,6 +372,7 @@ export default function CreateTest() {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
+        setUploadingPart('writing');
         try {
             const url = await uploadToFirebase(file, "writing_images");
             setTestData(prev => {
@@ -328,8 +380,7 @@ export default function CreateTest() {
                 newTasks[activeWritingTask] = { ...newTasks[activeWritingTask], image: url };
                 return { ...prev, writingTasks: newTasks };
             });
-            alert("Rasm yuklandi!");
-        } catch (err) { alert(err.message); } finally { setUploading(false); }
+        } catch (err) { alert(err.message); } finally { setUploading(false); setUploadingPart(null); }
     };
 
     const handleWritingUpdate = (field, value) => {
@@ -342,12 +393,12 @@ export default function CreateTest() {
 
     const copyToClipboard = (text) => { navigator.clipboard.writeText(text); alert("Link nusxalandi!"); };
 
-    const handleSave = async () => {
+    const handleSave = async (bypass = false) => {
         if (!testData.title) return alert("Test nomini yozing!");
         setLoading(true);
         try {
             // DUPLICATE CHECK
-            if (!isEditMode) {
+            if (!isEditMode && !bypass) {
                 const q = query(collection(db, "tests"), where("type", "==", testData.type));
                 const snapshot = await getDocs(q);
                 let isDuplicate = false;
@@ -389,7 +440,9 @@ export default function CreateTest() {
 
                 if (isDuplicate) {
                     setLoading(false);
-                    return alert(`Xatolik: Bu test bazada allaqachon "${duplicateTitle}" nomi bilan mavjud! (Matn ichidagi nom yoki kontent asosida topildi)`);
+                    setDuplicateInfo(duplicateTitle);
+                    setShowDuplicateModal(true);
+                    return;
                 }
             }
 
@@ -448,24 +501,7 @@ export default function CreateTest() {
 
     return (
         <div className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#F5F5F7] text-gray-900 selection:bg-[#3772FF]/30">
-            {/* UPLOAD OVERLAY */}
-            {uploading && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm">
-                    <div className="bg-white p-8 rounded-[24px] shadow-2xl flex flex-col items-center gap-5 min-w-[320px] animate-in zoom-in-95 fade-in duration-200">
-                        <div className="relative flex items-center justify-center">
-                            <svg className="w-20 h-20 transform -rotate-90">
-                                <circle cx="40" cy="40" r="36" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
-                                <circle cx="40" cy="40" r="36" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="226" strokeDashoffset={226 - (226 * uploadProgress) / 100} className="text-[#3772FF] transition-all duration-300" />
-                            </svg>
-                            <span className="absolute text-lg font-bold text-gray-900">{uploadProgress}%</span>
-                        </div>
-                        <div className="text-center">
-                            <h3 className="text-lg font-bold text-gray-900 mb-1">Fayl Yuklanmoqda...</h3>
-                            <p className="text-sm text-gray-500 font-medium">Iltimos kuting, jarayon <br/>internet tezligiga bog'liq.</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* UPLOAD OVERLAY REMOVED AS PER REQUEST */}
 
             {/* MOBILE HEADER */}
             <div className="md:hidden p-4 flex items-center justify-between bg-white border-b border-gray-200">
@@ -546,15 +582,41 @@ export default function CreateTest() {
                             <div className="grid grid-cols-2 gap-4">
                                 {Array.from({ length: listeningPartCount }).map((_, idx) => (
                                     <div key={idx} className="flex flex-col gap-2 p-3 bg-gray-50 border border-gray-200 rounded-2xl">
-                                        <label className={`relative px-2 flex flex-col items-center justify-center h-20 rounded-xl border-2 border-dashed cursor-pointer transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-white'}`}>
-                                            <span className="text-[10px] font-bold text-gray-500 uppercase mb-1">Part {idx + 1} Audio</span>
-                                            {partAudios[idx] ? <span className="text-[10px] text-[#45B26B] font-bold flex flex-col items-center gap-1 leading-tight text-center overflow-hidden w-full"><Icons.Check className="w-3 h-3" /> <span className="truncate w-full px-1">{getFileNameFromUrl(partAudios[idx])}</span></span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
-                                            <input type="file" accept="audio/*" onChange={(e) => handlePartAudioUpload(e, idx)} disabled={uploading} className="hidden" />
-                                        </label>
+                                        <div className={`relative px-2 py-3 flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                                            <div className="w-full flex flex-col gap-2">
+                                                <div className="flex items-center justify-between px-1">
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase">Part {idx + 1} Audio</span>
+                                                    {partAudios[idx] && <Icons.Check className="w-3.5 h-3.5 text-[#45B26B]" />}
+                                                </div>
+
+                                                <div className="flex gap-1.5 items-center">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Link joylang..."
+                                                        className="flex-1 bg-white border border-gray-200 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-[#3772FF] transition"
+                                                        value={partAudios[idx] || ""}
+                                                        onChange={(e) => handleAudioUrlChange(e.target.value, idx)}
+                                                    />
+                                                    <label className="cursor-pointer p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
+                                                        <Icons.Cloud className="w-4 h-4" />
+                                                        <input type="file" accept="audio/*" onChange={(e) => handlePartAudioUpload(e, idx)} disabled={uploading} className="hidden" />
+                                                    </label>
+                                                </div>
+
+                                                {uploading && uploadingPart === idx && (
+                                                    <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden mt-1">
+                                                        <div
+                                                            className="h-full bg-[#3772FF] transition-all duration-300"
+                                                            style={{ width: `${uploadProgress}%` }}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                         <div className="flex items-center justify-between mt-1 px-1">
                                             <span className="text-[10px] text-gray-500 font-bold uppercase">Qo'shimcha vaqt (sek):</span>
-                                            <input 
-                                                type="number" 
+                                            <input
+                                                type="number"
                                                 className="w-16 bg-white border border-gray-200 rounded-lg p-1.5 text-center text-[10px] font-bold text-gray-900 outline-none focus:border-[#3772FF]"
                                                 placeholder="0"
                                                 value={testData.passages[idx]?.extraSilentTime ?? ''}
@@ -566,11 +628,38 @@ export default function CreateTest() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <label className={`relative px-4 flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-dashed cursor-pointer transition ${singleAudioUrl ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
-                                    <span className="text-xs font-bold text-gray-500 uppercase mb-1">Butun Audio Fayl</span>
-                                    {singleAudioUrl ? <span className="text-[10px] text-[#45B26B] font-bold flex flex-col items-center gap-1 leading-tight text-center w-full overflow-hidden"><Icons.Check className="w-3 h-3" /> <span className="truncate w-full">{getFileNameFromUrl(singleAudioUrl)}</span></span> : <span className="text-[10px] text-[#3772FF]">Yuklash</span>}
-                                    <input type="file" accept="audio/*" onChange={handleSingleAudioUpload} disabled={uploading} className="hidden" />
-                                </label>
+                                <div className={`relative px-4 py-5 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed transition ${singleAudioUrl ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                                    <div className="w-full flex flex-col gap-3">
+                                        <div className="flex items-center justify-between px-1">
+                                            <span className="text-xs font-bold text-gray-500 uppercase">Butun Audio Fayl</span>
+                                            {singleAudioUrl && <Icons.Check className="w-4 h-4 text-[#45B26B]" />}
+                                        </div>
+
+                                        <div className="flex gap-2 items-center">
+                                            <input
+                                                type="text"
+                                                placeholder="Audio linkini joylang (URL)..."
+                                                className="flex-1 bg-white border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#3772FF] transition"
+                                                value={singleAudioUrl || ""}
+                                                onChange={(e) => handleSingleAudioUrlChange(e.target.value)}
+                                            />
+                                            <label className="cursor-pointer p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 transition flex items-center gap-2">
+                                                <Icons.Cloud className="w-5 h-5" />
+                                                <span className="text-xs font-bold hidden sm:inline">Yuklash</span>
+                                                <input type="file" accept="audio/*" onChange={handleSingleAudioUpload} disabled={uploading} className="hidden" />
+                                            </label>
+                                        </div>
+
+                                        {uploading && uploadingPart === 'single' && (
+                                            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                                                <div
+                                                    className="h-full bg-[#3772FF] transition-all duration-300"
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                                 {singleAudioUrl && (
                                     <div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
                                         <h4 className="text-xs font-bold text-gray-900 mb-3 uppercase tracking-wider">Partlar vaqtini belgilash (sekund yoki mm:ss)</h4>
@@ -597,8 +686,8 @@ export default function CreateTest() {
                                                     </div>
                                                     <div className="flex items-center justify-between border-t border-gray-100 mt-1 pt-2">
                                                         <span className="text-[10px] text-gray-500 font-bold uppercase">End Section Extra Silence (s):</span>
-                                                        <input 
-                                                            type="number" 
+                                                        <input
+                                                            type="number"
                                                             className="w-20 bg-gray-50 border border-gray-200 rounded-lg p-1.5 text-center text-[10px] font-bold text-gray-900 outline-none focus:border-[#3772FF] focus:bg-white transition"
                                                             placeholder="0"
                                                             value={testData.passages[idx]?.extraSilentTime ?? ''}
@@ -619,8 +708,10 @@ export default function CreateTest() {
                     <div className="bg-white p-6 rounded-[30px] border border-gray-200 mb-6 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-medium text-gray-900 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#3772FF]" /> Map & Images</h3>
-                            <label className="bg-[#3772FF] hover:bg-[#2e62e0] text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition shadow-sm hover:shadow-md">
-                                + Rasm
+                            <label className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition shadow-sm hover:shadow-md flex items-center gap-2 ${uploading && uploadingPart === 'map' ? 'bg-gray-100 text-[#3772FF]' : 'bg-[#3772FF] hover:bg-[#2e62e0] text-white'}`}>
+                                {uploading && uploadingPart === 'map' ? (
+                                    <><div className="animate-spin h-3 w-3 border-2 border-[#3772FF] border-t-transparent rounded-full" /> {uploadProgress}%</>
+                                ) : "+ Rasm"}
                                 <input type="file" accept="image/*" onChange={handleMapUpload} disabled={uploading} className="hidden" />
                             </label>
                         </div>
@@ -647,11 +738,13 @@ export default function CreateTest() {
                             {[0, 1].map(i => (<button key={i} onClick={() => setActiveWritingTask(i)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeWritingTask === i ? 'bg-white text-[#3772FF] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Task {i + 1}</button>))}
                         </div>
                         <div className="flex items-center gap-3 mb-4">
-                            <label className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition flex-1 text-center">
-                                Rasm Yuklash
+                            <label className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition flex-1 text-center flex items-center justify-center gap-2 ${uploading && uploadingPart === 'writing' ? 'bg-gray-100 text-[#3772FF]' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}>
+                                {uploading && uploadingPart === 'writing' ? (
+                                    <><div className="animate-spin h-3 w-3 border-2 border-[#3772FF] border-t-transparent rounded-full" /> {uploadProgress}%</>
+                                ) : "Rasm Yuklash"}
                                 <input type="file" accept="image/*" onChange={handleWritingImageUpload} className="hidden" />
                             </label>
-                            {testData.writingTasks[activeWritingTask].image && <span className="text-xs text-[#45B26B]">Rasm mavjud</span>}
+                            {testData.writingTasks[activeWritingTask].image && <div className="flex items-center gap-1.5 bg-green-50 px-3 py-2 rounded-xl border border-green-100"><Icons.Check className="w-3.5 h-3.5 text-[#45B26B]" /><span className="text-xs font-bold text-[#45B26B]">Rasm mavjud</span></div>}
                         </div>
                         <textarea className="w-full flex-1 bg-gray-50 border border-gray-200 rounded-2xl p-4 text-gray-900 text-sm focus:border-[#3772FF] outline-none resize-none leading-relaxed placeholder:text-gray-400" placeholder="Task description..." value={testData.writingTasks[activeWritingTask].prompt} onChange={e => handleWritingUpdate("prompt", e.target.value)}></textarea>
                     </div>
@@ -711,10 +804,88 @@ export default function CreateTest() {
                         ))}
                     </div>
                 </div>
-                <div className="mt-6 pt-6 border-t border-gray-200 relative z-10">
-                    <button onClick={handleSave} disabled={loading || uploading} className={`w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg shadow-blue-500/20 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isEditMode ? 'bg-[#FFD166] text-black hover:bg-[#ffc642]' : 'bg-[#3772FF] hover:bg-[#2e62e0]'}`}>
-                        {loading ? "Jarayonda..." : (isEditMode ? "O'zgarishlarni Saqlash" : "Testni Yaratish")}
+            </div>
+
+            {/* --- DUPLICATE WARNING MODAL --- */}
+            {showDuplicateModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in transition-all">
+                    <div className="bg-white rounded-[32px] shadow-2xl max-w-md w-full p-8 overflow-hidden relative group">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-400 to-red-500" />
+
+                        <div className="mb-6 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mb-4 border border-orange-100">
+                                <svg className="w-8 h-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Test Mavjud!</h3>
+                            <p className="text-gray-500 text-sm leading-relaxed">
+                                Bu test (yoki unga juda o'xshash kontent) bazada allaqachon <span className="font-bold text-gray-900">"{duplicateInfo}"</span> nomi bilan mavjud ekan.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => { setShowDuplicateModal(false); handleSave(true); }}
+                                className="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition shadow-lg shadow-gray-200 active:scale-[0.98]"
+                            >
+                                Baribir Yaratish/Saqlash
+                            </button>
+                            <button
+                                onClick={() => setShowDuplicateModal(false)}
+                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-4 rounded-2xl transition active:scale-[0.98]"
+                            >
+                                Bekor Qilish
+                            </button>
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Administrator nazorati</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- SAVE BUTTON FLOATING (Rang va dizayn premiumlashtirildi) --- */}
+            <div className={`fixed bottom-8 right-8 z-50 transition-all duration-300 transform ${loading ? 'scale-95 opacity-80' : 'hover:scale-105'}`}>
+                <div className="relative group">
+                    {/* Hover bo'lganda chiqadigan ogohlantirish (User so'ragan hover effekti) */}
+                    {!isEditMode && duplicateInfo && !showDuplicateModal && (
+                        <div className="absolute bottom-full right-0 mb-4 w-64 bg-white p-4 rounded-2xl shadow-xl border border-orange-100 animate-bounce transition-all opacity-0 group-hover:opacity-100 pointer-events-none">
+                            <div className="flex items-start gap-3">
+                                <div className="p-1.5 bg-orange-100 rounded-lg"><svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-bold text-orange-600 uppercase mb-1">Diqqat: Dublikat topildi</p>
+                                    <p className="text-xs text-gray-600 font-medium">Bu test allaqachon bazada bor bo'lishi mumkin.</p>
+                                </div>
+                            </div>
+                            <div className="absolute bottom-[-6px] right-8 w-3 h-3 bg-white border-r border-b border-orange-100 rotate-45" />
+                        </div>
+                    )}
+
+                    <button
+                        onClick={() => handleSave(false)}
+                        disabled={loading}
+                        className={`min-w-[100px] h-[54px] rounded-[24px] flex items-center justify-center gap-3 px-6 font-bold text-white shadow-2xl transition-all duration-500 ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#3772FF] hover:bg-[#2e62e0] shadow-[#3772FF]/25 hover:shadow-[#3772FF]/40'}`}
+                    >
+                        {loading ? (
+                            <>
+                                <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>Kutilmoqda...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Icons.Check className="w-4 h-4" />
+                                <span>{isEditMode ? "Yangilash" : "Testni Yaratish"}</span>
+                            </>
+                        )}
                     </button>
+                    {/* Progress indicator for uploading images/audios if any */}
+                    {uploading && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-purple-500 rounded-full border-2 border-white flex items-center justify-center animate-pulse">
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

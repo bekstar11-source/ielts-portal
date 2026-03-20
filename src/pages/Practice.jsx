@@ -3,6 +3,9 @@ import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebase";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { Search, Filter, BookOpen, Clock, ChevronRight, 
+    Trophy, LayoutGrid, List, Star, ExternalLink, Key, RotateCw
+} from 'lucide-react';
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -78,6 +81,24 @@ export default function Practice() {
             setErrorMsg(null);
 
             try {
+                // 🚀 CACHE LOGIC (Shared with StudentDashboard)
+                const CACHE_KEY = `student_assignments_${user.uid}`;
+                const CACHE_TIME_KEY = `student_assignments_time_${user.uid}`;
+                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
+
+                if (isCacheValid) {
+                    const cachedData = sessionStorage.getItem(CACHE_KEY);
+                    if (cachedData) {
+                        try {
+                            const parsedData = JSON.parse(cachedData);
+                            setRawAssignments(parsedData.reverse());
+                            setLoading(false);
+                            return;
+                        } catch(e) { console.warn("Cache parse error", e); }
+                    }
+                }
+
                 const [userSnap, groupsSnap, resultsSnap] = await Promise.all([
                     getDoc(doc(db, 'users', user.uid)),
                     getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))),
@@ -215,6 +236,11 @@ export default function Practice() {
                 });
 
                 const uniqueTests = processedList.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+                
+                // 🚀 CACHE GA SAQLASH (Dashboard bilan umumiy cache)
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(uniqueTests));
+                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+
                 setRawAssignments(uniqueTests.reverse());
 
             } catch (err) {
@@ -227,6 +253,13 @@ export default function Practice() {
 
         fetchData();
     }, [user]);
+
+    const handleManualRefresh = () => {
+        if (!user) return;
+        sessionStorage.removeItem(`student_assignments_${user.uid}`);
+        sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
+        window.location.reload();
+    };
 
     const filteredTests = useMemo(() => {
         const q = searchQuery.toLowerCase();
@@ -328,6 +361,11 @@ export default function Practice() {
             await updateDoc(doc(db, "accessKeys", keyDoc.id), { isUsed: true, usedBy: user.uid, usedByName: userData?.fullName, usedAt: new Date().toISOString() });
 
             alert("Test qo'shildi! 🚀");
+            
+            // Cache Invalidation
+            sessionStorage.removeItem(`student_assignments_${user.uid}`);
+            sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
+
             setShowKeyModal(false); setAccessKeyInput("");
             window.location.reload(); // Reload to fetch new test
         } catch (error) { setKeyError(error.message); } finally { setCheckingKey(false); }
@@ -342,10 +380,13 @@ export default function Practice() {
                 }
             `}</style>
 
-            <DashboardHeader
-                user={user} userData={userData}
-                activeTab={activeTab} setActiveTab={setActiveTab}
-                onKeyClick={() => setShowKeyModal(true)} onLogoutClick={() => setShowLogoutConfirm(true)}
+            <DashboardHeader 
+                user={user} userData={userData} 
+                activeTab="practice" 
+                onKeyClick={() => setShowKeyModal(true)} 
+                onLogoutClick={() => setShowLogoutConfirm(true)}
+                onRefreshClick={handleManualRefresh}
+                loading={loading}
             />
 
             <PlanetBackground />

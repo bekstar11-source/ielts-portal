@@ -16,10 +16,12 @@ import { QuestionBadge, SelectInput, ListeningTextInput } from './ListeningCompo
  * Masalan: "Visual research with 34 " + id=34 => "Visual research with "
  * Badge allaqachon raqamni ko'rsatadi, qayta ko'rsatmaslik uchun.
  */
-const stripLeadingId = (text, id) => {
-    if (!text || id == null) return text;
+const stripLeadingId = (val, id) => {
+    if (!val) return "";
+    const text = (typeof val === 'object') ? (val.text || val.label || val.content || "") : val;
+    if (id == null) return text;
     // Matn oxirida yoki boshida savol raqami turishi mumkin (masalan "34 " yoki " 34")
-    return text
+    return String(text)
         .replace(new RegExp(`\\b${id}\\s*$`), '')   // oxirida: "... 34 "
         .replace(new RegExp(`^\\s*${id}\\b\.?\\s*`), '') // boshida: "34. ..."
         .trim();
@@ -67,7 +69,7 @@ const DraggableOption = ({ label, text, isReviewMode, isUsed }) => {
     const style = transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         zIndex: 1000,
-        transition: 'none', // Siltanishni oldini olish uchun drag paytida transitionni o'chiramiz
+        transition: 'none',
     } : {
         transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease'
     };
@@ -79,16 +81,14 @@ const DraggableOption = ({ label, text, isReviewMode, isUsed }) => {
             {...listeners}
             {...attributes}
             className={`
-                px-4 py-3 border rounded-xl cursor-grab active:cursor-grabbing
-                select-none flex items-center gap-3 w-full
-                ${isDragging ? 'opacity-40 ring-2 ring-blue-500 shadow-2xl scale-105 z-[1000] border-blue-400 bg-white' : ''}
-                ${isUsed && !isDragging ? 'bg-gray-50 border-gray-200 opacity-60 grayscale-[0.5]' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'}
+                px-4 py-2 border border-gray-300 rounded-lg cursor-grab active:cursor-grabbing
+                select-none flex items-center justify-start w-fit transition-all
+                ${isDragging ? 'opacity-40 ring-2 ring-blue-500 shadow-2xl scale-105 z-[1000] bg-white border-blue-400' : ''}
+                ${isUsed && !isDragging ? 'bg-gray-50 border-gray-200 opacity-40 grayscale' : 'bg-white hover:border-gray-400 hover:shadow-sm'}
                 ${isReviewMode ? 'cursor-default opacity-100 grayscale-0' : ''}
             `}
         >
-            <span className={`w-6 h-6 flex items-center justify-center rounded text-xs shrink-0 font-bold ${isUsed ? 'bg-gray-200 text-gray-400' : 'bg-blue-50 text-blue-600'}`}>{label}</span>
-            <span className={`flex-1 leading-tight text-[0.95em] font-medium ${isUsed ? 'text-gray-400' : 'text-gray-700'}`}>{text}</span>
-            {isUsed && !isDragging && <div className="text-[10px] font-black text-gray-300 uppercase tracking-tighter">Placed</div>}
+            <span className={`leading-tight text-[1.1em] font-medium text-black ${isUsed ? 'text-gray-400' : 'text-gray-800'}`}>{text}</span>
         </div>
     );
 };
@@ -105,28 +105,29 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
         <div
             ref={setNodeRef}
             className={`
-                min-w-[140px] md:min-w-[180px] min-h-[44px] border-2 rounded-xl flex items-center justify-center relative
+                min-w-[140px] md:min-w-[180px] min-h-[38px] border-2 rounded-xl flex items-center justify-center relative
                 transition-all duration-300 px-3 py-1 group/slot
-                ${isOver ? 'bg-blue-50 border-blue-400 border-solid scale-[1.02] shadow-md' : 'border-dashed border-gray-200 bg-gray-50/20'}
-                ${value ? 'border-solid border-gray-300 bg-white ring-1 ring-gray-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]' : ''}
-                ${isReviewMode ? (isCorrect ? 'border-green-500 bg-green-50 ring-green-100' : 'border-red-500 bg-red-50 ring-red-100') : ''}
+                ${isOver ? 'bg-blue-50 border-blue-400 border-solid scale-[1.02] shadow-md' : 'border-dashed border-gray-300 bg-gray-50/50'}
+                ${value ? 'border-solid border-gray-400 bg-white shadow-sm' : ''}
+                ${isReviewMode ? (isCorrect ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') : ''}
             `}
         >
             {value ? (
-                <div className="flex items-center gap-2 w-full animate-in fade-in zoom-in-95 duration-200">
-                    <span className="w-5 h-5 flex items-center justify-center bg-gray-800 text-white text-[10px] rounded shrink-0 font-bold">{value}</span>
-                    <span className="text-[0.9em] font-bold text-gray-900 truncate flex-1">{selectedOption?.text || value}</span>
+                <div className="flex items-center justify-center w-full animate-in fade-in zoom-in-95 duration-200">
+                    <span className="text-[1.05em] font-bold text-gray-900 text-center leading-tight">
+                        {selectedOption?.text || value}
+                    </span>
                     {!isReviewMode && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onClear(); }}
-                            className="bg-gray-100 hover:bg-red-100 hover:text-red-500 text-gray-400 rounded-full p-0.5 opacity-0 group-hover/slot:opacity-100 transition-opacity"
+                            className="absolute -top-1 -right-1 bg-white border border-gray-200 shadow-sm hover:bg-red-50 hover:text-red-500 text-gray-400 rounded-full p-0.5 opacity-0 group-hover/slot:opacity-100 transition-opacity z-10"
                         >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     )}
                 </div>
             ) : (
-                <span className="text-gray-300 text-[10px] font-bold uppercase tracking-widest">Drop here</span>
+                <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest animate-pulse opacity-50">Drop here</span>
             )}
 
             {isReviewMode && !isCorrect && (
@@ -146,9 +147,11 @@ const PoolDroppable = ({ children, isDragging }) => {
     return (
         <div
             ref={setNodeRef}
+            id="pool-zone"
             className={`
-                p-6 md:p-8 rounded-[32px] min-h-[300px] flex flex-col transition-colors duration-300
-                ${isOver && isDragging ? 'bg-red-50/50' : 'bg-gray-50/50'}
+                p-4 md:p-5 h-auto flex flex-col transition-colors duration-300 rounded-2xl
+                ${isOver && isDragging ? 'bg-blue-50/30' : 'bg-gray-50/10'}
+                border-2 border-dashed border-gray-100/50
             `}
         >
             {children}
@@ -162,8 +165,8 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
     const questions = group.questions || group.items || [];
 
     // JSON'dan sarlavhalarni o'qiymiz, agar yo'q bo'lsa standart nomlarni ishlatamiz
-    const questionTitle = group.questionHeader || "Targets";
-    const optionTitle = group.optionHeader || "Options pool";
+    const questionTitle = (group.questionHeader?.text || group.questionHeader) || "Targets";
+    const optionTitle = (group.optionHeader?.text || group.optionHeader) || "Options pool";
 
     // Sensorlarni sozlaymiz (sichqoncha tezroq ishlashi uchun)
     const sensors = useSensors(
@@ -215,16 +218,17 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 mb-10 mt-4 items-start">
                 {/* LEFT: QUESTIONS */}
                 <div className="flex flex-col gap-4">
-                    <h4 className="text-[0.85em] font-black text-gray-400 uppercase tracking-[0.15em] mb-2 px-1">{questionTitle}</h4>
-                    <div className="flex flex-col gap-2">
+                    <h4 className="text-[0.8em] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 px-1">{questionTitle}</h4>
+                    <div className="flex flex-col gap-0.5">
                         {questions.map((q) => {
                             const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer) : false;
-                            const cleanText = q.text ? q.text.replace('[DROP]', '').trim() : "";
+                            const qText = (typeof q.text === 'object' ? q.text.text : q.text) || "";
+                            const cleanText = String(qText).replace('[DROP]', '').trim();
                             return (
-                                <div key={q.id} className="flex items-center justify-between gap-6 p-3 rounded-2xl transition-all">
+                                <div key={q.id} className="flex items-center justify-between gap-6 py-1.5 px-3 rounded-2xl transition-all hover:bg-gray-50/50">
                                     <div className="flex items-center gap-4 flex-1">
                                         <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
-                                        <div className="font-bold text-gray-800 text-[1.1em]" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
+                                        <div className="font-bold text-gray-800 text-[1em]" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
                                     </div>
                                     <DroppableSlot
                                         id={q.id}
@@ -243,21 +247,33 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
 
                 {/* RIGHT: OPTIONS */}
                 <PoolDroppable isDragging={!!activeId}>
-                    <h4 className="text-[0.85em] font-black text-gray-400 uppercase tracking-[0.15em] mb-6 text-center">{optionTitle}</h4>
-                    <div className="flex flex-col gap-3">
+                    <h4 className="text-[0.8em] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">{optionTitle}</h4>
+                    <div className="flex flex-col gap-2 items-start justify-center">
                         {options.map((opt, idx) => {
-                            const isUsed = Object.values(userAnswers).includes(opt.label);
+                            const label = opt.label || String.fromCharCode(65 + idx);
+                            const text = opt.text || (typeof opt === 'string' ? opt : "");
+                            const isUsed = Object.values(userAnswers).includes(label);
+                            
                             return (
-                                <DraggableOption
-                                    key={idx}
-                                    label={opt.label}
-                                    text={opt.text}
-                                    isReviewMode={isReviewMode}
-                                    isUsed={isUsed}
-                                />
+                                <div 
+                                    key={label} 
+                                    className={`${isUsed ? 'invisible pointer-events-none' : 'visible'} w-fit`}
+                                >
+                                    <DraggableOption
+                                        label={label}
+                                        text={text}
+                                        isUsed={false}
+                                        isReviewMode={isReviewMode}
+                                    />
+                                </div>
                             );
                         })}
                     </div>
+                    {options.length > 0 && Object.values(userAnswers).filter(val => options.some(o => (o.label || String.fromCharCode(65 + options.indexOf(o))) === val)).length === options.length && (
+                        <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-xl italic">
+                            All options placed
+                        </div>
+                    )}
                     {!isReviewMode && (
                         <div className="mt-auto pt-8">
                             <p className="text-[0.65em] text-gray-400 font-bold uppercase tracking-widest text-center animate-pulse">
@@ -293,20 +309,17 @@ export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode,
     };
 
     return (
-        <div className="mb-6 border border-gray-200 rounded-lg p-3 bg-gray-50/50 shadow-sm">
-            <div className="mb-3 border-b border-gray-200 pb-3">
-                <div className="text-[0.875em] text-gray-600 font-medium flex flex-wrap items-center gap-2">
-                    <span>Select <strong>{maxSelection}</strong> correct options for:</span>
-                    <div className="flex items-center gap-1.5">
-                        {questions.map((q) => (
-                            <QuestionBadge
-                                key={q.id}
-                                id={q.id}
-                                isReviewMode={isReviewMode}
-                                onClick={() => isReviewMode && handleLocationClick(q.locationId)}
-                            />
-                        ))}
-                    </div>
+        <div className="mb-6 py-2 px-1">
+            <div className="mb-3 border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-1.5">
+                    {questions.map((q) => (
+                        <QuestionBadge
+                            key={q.id}
+                            id={q.id}
+                            isReviewMode={isReviewMode}
+                            onClick={() => isReviewMode && handleLocationClick(q.locationId)}
+                        />
+                    ))}
                 </div>
             </div>
             <div className="flex flex-col gap-1">
@@ -323,7 +336,7 @@ export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode,
                                 <input type="checkbox" className="appearance-none w-5 h-5 border border-gray-400 rounded checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer" checked={isSelected} onChange={() => handleToggle(opt.label)} disabled={isReviewMode} />
                                 <svg className={`absolute w-3.5 h-3.5 text-white pointer-events-none ${isSelected ? 'block' : 'hidden'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                             </div>
-                            <span className="text-gray-900 font-medium">{opt.text}</span>
+                            <span className="text-gray-900 font-medium">{typeof opt.text === 'object' ? opt.text.text : opt.text}</span>
                         </div>
                     );
                 })}
@@ -334,23 +347,28 @@ export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode,
 
 export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
     return (
-        <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm mb-6 bg-white">
-            <table className="w-full text-[0.875em] text-left border-collapse">
-                <thead className="bg-gray-100 text-gray-700 uppercase font-bold text-[0.75em]">
-                    <tr>{(group.headers || []).map((h, i) => (<th key={i} className="px-4 py-3 border-b border-gray-200">{h}</th>))}</tr>
+        <div className="overflow-x-auto mb-8 bg-white">
+            <table className="w-full text-[1em] text-left border-collapse border border-black">
+                <thead className="bg-gray-100 text-gray-700 uppercase font-black text-[0.8em] tracking-wider">
+                    <tr>
+                        {(group.headers || []).map((h, i) => (
+                            <th key={i} className="px-4 py-3 border border-black">
+                                {typeof h === 'object' ? h.text : h}
+                            </th>
+                        ))}
+                    </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody>
                     {(group.rows || []).map((row, rIdx) => (
                         <tr key={rIdx} className="hover:bg-gray-50/50 transition-colors">
                             {(row.cells || (Array.isArray(row) ? row : [])).map((cell, cIdx) => (
-                                <td key={cIdx} className="px-4 py-3 border-r border-gray-100 last:border-r-0 align-top">
-                                    {!cell.isMixed && cell.text ? (
-                                        <span className="text-gray-800 leading-relaxed" dangerouslySetInnerHTML={{ __html: cell.text }} />
+                                <td key={cIdx} className="px-4 py-3 border border-black align-top">
+                                    {!cell.isMixed && (cell.text || typeof cell !== 'object') ? (
+                                        <div className="text-gray-800 font-semibold leading-relaxed pt-0.5 w-full" dangerouslySetInnerHTML={{ __html: cell.text || cell }} />
                                     ) : (
-                                        <div className="leading-[2.2] text-gray-800">
+                                        <div className="leading-[2.2] text-gray-900 font-semibold">
                                             {cell.parts?.map((p, i) => {
                                                 if (p.type === 'text') {
-                                                    // Keyingi part input bo'lsa, undagi id ni matn oxiridan olib tashlash
                                                     const nextPart = cell.parts[i + 1];
                                                     const cleanContent = (nextPart?.type === 'input')
                                                         ? stripLeadingId(p.content, nextPart.id)
@@ -360,8 +378,6 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
                                                 if (p.type === 'input') {
                                                     const lookupItems = (group.items || group.questions || []);
                                                     const item = lookupItems.find(it => String(it.id) === String(p.id));
-
-                                                    // Muhim: Ayrim hollarda javob "cell" obyektining o'zida bo'ladi
                                                     const answer = item?.answer || cell.answer;
                                                     const locationId = item?.locationId || cell.locationId;
 
@@ -385,32 +401,33 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
     return (
         <div className="mb-6 space-y-6">
             {group.groups.map((sub, sIdx) => (
-                <div key={`sub-${sIdx}`} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+        <div className="bg-white py-4 rounded-xl">
                     {sub.header && (
-                        <h3 className="text-[1.25em] font-black text-gray-900 mb-4 uppercase tracking-wide border-b border-gray-300 pb-2">{sub.header}</h3>
+                        <h3 className="text-[1.1em] font-black text-gray-900 mb-6 uppercase tracking-wider border-b border-gray-100 pb-3">{typeof sub.header === 'object' ? sub.header.text : sub.header}</h3>
                     )}
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {(sub.items || sub.questions || []).map((q, qIdx) => {
                             // 🔥 O'ZGARISH: Har bir key unikal bo'lishi uchun prefiks qo'shildi
 
-                            if (q.type === 'heading') return <div key={`head-${qIdx}`} className="font-bold text-black text-[1.125em] mt-4 mb-2">{q.text}</div>;
+                            if (q.type === 'heading') return <div key={`head-${qIdx}`} className="font-bold text-black text-[1.125em] mt-4 mb-2">{typeof q.text === 'object' ? q.text.text : q.text}</div>;
 
-                            const hasInput = q.text && q.text.includes('[INPUT]');
+                            const qText = (typeof q.text === 'object' ? q.text.text : q.text) || "";
+                            const hasInput = qText && String(qText).includes('[INPUT]');
 
                             if (q.type === 'text' || (q.text && !hasInput && !q.parts)) {
                                 return (
                                     <div key={`text-${qIdx}`} className="font-normal text-gray-800 pl-4 leading-relaxed">
-                                        <span dangerouslySetInnerHTML={{ __html: q.text }} />
+                                        <span dangerouslySetInnerHTML={{ __html: qText }} />
                                     </div>
                                 );
                             }
 
                             if (q.text && hasInput) {
-                                const parts = q.text.split('[INPUT]');
+                                const parts = String(qText).split('[INPUT]');
                                 // Badge allaqachon id ni ko'rsatadi — matn oxiridagi takroriy raqamni olib tashlash
                                 const cleanBefore = stripLeadingId(parts[0], q.id);
                                 return (
-                                    <div key={`q-${q.id}`} className="font-normal text-gray-800 leading-[2.6] pl-4 flex flex-wrap items-baseline">
+                                    <div key={`q-${q.id}`} className="font-semibold text-gray-900 leading-[2.6] pl-4 flex flex-wrap items-baseline">
                                         {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
                                         <ListeningTextInput id={q.id} answer={q.answer} locationId={q.locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />
                                         {parts[1] && <span className="ml-2" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
@@ -420,7 +437,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
 
                             if (q.isMixed && q.parts) {
                                 return (
-                                    <div key={`mixed-${q.id}`} className="font-normal text-gray-800 leading-[2.6] pl-4">
+                                    <div key={`mixed-${q.id}`} className="font-semibold text-gray-900 leading-[2.6] pl-4">
                                         {q.parts.map((p, pIdx) => {
                                             if (p.type === 'text') {
                                                 const nextPart = q.parts[pIdx + 1];
@@ -452,26 +469,27 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
     return (
         <div className="mb-6 flex flex-col items-center w-full">
             {options.length > 0 && (
-                <div className="mb-5 border border-gray-300 p-3 rounded-xl bg-gray-50/50 w-full shadow-sm">
-                    <h4 className="font-bold text-[0.75em] text-gray-500 uppercase mb-3 tracking-widest text-center">Options</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <div className="mb-6 p-4 rounded-xl bg-gray-50/30 w-full">
+                    <h4 className="font-bold text-[0.8em] text-gray-400 uppercase mb-4 tracking-[0.2em] text-center">Reference Options</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {options.map((opt, idx) => (
                             <div key={idx} className="font-bold text-gray-800 flex items-start gap-2 leading-tight">
-                                <span className="min-w-[20px] text-gray-900">{opt.label}</span>
-                                <span className="font-normal text-gray-700">{opt.text}</span>
+                                <span className="min-w-[20px] text-ielts-blue">{opt.label}</span>
+                                <span className="font-normal text-gray-600">{typeof opt.text === 'object' ? opt.text.text : opt.text}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             )}
 
-            <div className="flex flex-col gap-2 w-full max-w-2xl">
+            <div className="flex flex-col gap-4 w-full max-w-2xl">
                 {(group.items || group.questions || []).map((item, index) => {
-                    const hasInput = item.text && item.text.includes('[INPUT]');
+                    const itemText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
+                    const hasInput = itemText && String(itemText).includes('[INPUT]');
                     let content = null;
 
                     if (item.isQuestion || hasInput) {
-                        const parts = item.text ? item.text.split('[INPUT]') : ['', ''];
+                        const parts = itemText ? String(itemText).split('[INPUT]') : ['', ''];
                         const cleanBefore = stripLeadingId(parts[0], item.id);
                         const isCorrect = isReviewMode ? checkAnswer(userAnswers[item.id], item.answer) : false;
 
@@ -507,12 +525,12 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
                             </div>
                         );
                     } else {
-                        content = <span className="text-gray-900 font-medium text-center inline-block w-full">{item.text}</span>;
+                        content = <span className="text-gray-900 font-medium text-center inline-block w-full">{typeof item.text === 'object' ? item.text.text : item.text}</span>;
                     }
 
                     return (
                         <div key={item.id || index} className="relative flex flex-col items-center">
-                            <div className={`w-full border border-gray-300 rounded-lg p-3 shadow-sm relative z-10 hover:shadow-md transition-shadow ${!item.isQuestion && !hasInput ? 'bg-gray-50' : 'bg-white'}`}>
+                            <div className={`w-full border-b border-gray-100 p-4 transition-colors ${!item.isQuestion && !hasInput ? 'bg-gray-50/30' : 'bg-white'}`}>
                                 {content}
                             </div>
                             {index !== group.items.length - 1 && (
@@ -551,7 +569,7 @@ export const StandardMCQ = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                                     <input type="radio" className="appearance-none w-5 h-5 border border-gray-300 rounded-full checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer" checked={isSelected} onChange={() => !isReviewMode && onAnswerChange(q.id, String(opt.label))} disabled={isReviewMode} />
                                     <div className={`absolute w-2.5 h-2.5 rounded-full opacity-0 transition-opacity pointer-events-none ${isSelected ? 'opacity-100' : ''} bg-white`}></div>
                                 </div>
-                                <span className="text-gray-900 font-medium leading-tight">{opt.text}</span>
+                                <span className="text-gray-900 font-semibold leading-tight">{typeof opt.text === 'object' ? opt.text.text : opt.text}</span>
                             </div>
                         );
                     })}

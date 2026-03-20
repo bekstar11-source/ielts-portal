@@ -40,19 +40,57 @@ export function useTestLogic() {
 
         const fetchTest = async () => {
             try {
-                // --- PERMISSION CHECK ---
+                // --- PERMISSION AND DATA FETCHING WITH CACHE ---
+                let rawAssignments = [];
+                let setsMap = {};
+                
                 if (userData?.role !== 'admin') {
-                    const userRef = doc(db, 'users', user.uid);
-                    const userSnap = await getDoc(userRef);
-                    const currentUserData = userSnap.data();
-                    const groupsQuery = query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid));
-                    const groupsSnap = await getDocs(groupsQuery);
-                    let rawAssignments = [];
-                    if (currentUserData?.assignedTests) rawAssignments = [...rawAssignments, ...currentUserData.assignedTests];
-                    groupsSnap.docs.forEach(doc => { const gData = doc.data(); if (gData.assignedTests) rawAssignments = [...rawAssignments, ...gData.assignedTests]; });
+                    // 1) CACHE TEKSHIRUVI (User va Groups)
+                    const CACHE_KEY = `student_raw_assignments_${user.uid}`;
+                    const CACHE_TIME_KEY = `student_raw_time_${user.uid}`;
+                    const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+                    const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
+
+                    if (isCacheValid && sessionStorage.getItem(CACHE_KEY)) {
+                        rawAssignments = JSON.parse(sessionStorage.getItem(CACHE_KEY));
+                    } else {
+                        const [userSnap, groupsSnap] = await Promise.all([
+                            getDoc(doc(db, 'users', user.uid)),
+                            getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid)))
+                        ]);
+                        const currentUserData = userSnap.data();
+                        if (currentUserData?.assignedTests) rawAssignments.push(...currentUserData.assignedTests);
+                        groupsSnap.docs.forEach(doc => { 
+                            const gData = doc.data(); 
+                            if (gData.assignedTests) rawAssignments.push(...gData.assignedTests); 
+                        });
+                        sessionStorage.setItem(CACHE_KEY, JSON.stringify(rawAssignments));
+                        sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                    }
+
+                    // 2) Kesh testSets (Faqatgina to'plamlar kiritilgan bo'lsa)
+                    const needSets = rawAssignments.some(a => (typeof a === 'object' && a.type === 'set') || (typeof a === 'string' && a.startsWith('SET_')));
+                    if (needSets) {
+                        const SETS_CACHE_KEY = `student_sets_map`;
+                        const SETS_TIME_KEY = `student_sets_time`;
+                        const setsTime = sessionStorage.getItem(SETS_TIME_KEY);
+                        const isSetsCacheValid = setsTime && (Date.now() - parseInt(setsTime) < 15 * 60 * 1000);
+                        
+                        if (isSetsCacheValid && sessionStorage.getItem(SETS_CACHE_KEY)) {
+                            setsMap = JSON.parse(sessionStorage.getItem(SETS_CACHE_KEY));
+                        } else {
+                            const setsSnap = await getDocs(collection(db, 'testSets'));
+                            setsSnap.docs.forEach(d => { setsMap[d.id] = d.data(); });
+                            sessionStorage.setItem(SETS_CACHE_KEY, JSON.stringify(setsMap));
+                            sessionStorage.setItem(SETS_TIME_KEY, Date.now().toString());
+                        }
+                    }
+
+                    // Permission tekshirish qismi
                     const allowedIds = rawAssignments.map(item => { if (typeof item === 'string') return item.trim(); if (item && item.id) return String(item.id).trim(); return null; }).filter(Boolean);
                     let hasPermission = allowedIds.includes(String(testId).trim());
-                    if (!hasPermission) { const potentialSets = rawAssignments.filter(a => typeof a === 'object' || (typeof a === 'string' && a.startsWith('SET_'))); if (potentialSets.length > 0) hasPermission = true; }
+                    if (!hasPermission && needSets) hasPermission = true; 
+                    // Note: If no permission, we could block it here if needed, but the original code just sets hasPermission.
                 }
 
                 const docRef = doc(db, "tests", testId);
@@ -64,19 +102,6 @@ export function useTestLogic() {
 
                     // ✅ YECHIM 1 & 2: Exam modeda qayta bajarishni bloklash
                     if (userData?.role !== 'admin') {
-                        // Max attemptsni assignment lardan topish
-                        const setsSnap = await getDocs(collection(db, 'testSets'));
-                        const setsMap = {};
-                        setsSnap.docs.forEach(d => { setsMap[d.id] = d.data(); });
-
-                        const userRef = doc(db, 'users', user.uid);
-                        const userSnap = await getDoc(userRef);
-                        const currentUserData = userSnap.data();
-                        const groupsQuery = query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid));
-                        const groupsSnap = await getDocs(groupsQuery);
-                        let rawAssignments = [];
-                        if (currentUserData?.assignedTests) rawAssignments = [...rawAssignments, ...currentUserData.assignedTests];
-                        groupsSnap.docs.forEach(d => { const gData = d.data(); if (gData.assignedTests) rawAssignments = [...rawAssignments, ...gData.assignedTests]; });
 
                         let maxAttempts = 1;
                         let isBlockedByStrict = false;
@@ -297,6 +322,7 @@ export function useTestLogic() {
                 type: test.type,
                 mode: testMode || 'practice',
                 date: new Date().toISOString(),
+                createdAt: serverTimestamp(),
                 startedAt: typeof startedAt === 'object' ? startedAt.toISOString() : new Date().toISOString(),
                 userAnswers: userAnswers || {}
             };

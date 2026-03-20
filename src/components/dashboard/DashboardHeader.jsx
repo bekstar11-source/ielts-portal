@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ChevronDown, Key, LogOut } from 'lucide-react';
+import { ChevronDown, Key, LogOut, RotateCw } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
 
-export default function DashboardHeader({ user, userData, onKeyClick, onLogoutClick, activeTab, setActiveTab, onPremiumClick }) {
+export default function DashboardHeader({ user, userData, onKeyClick, onLogoutClick, activeTab, setActiveTab, onPremiumClick, onRefreshClick, loading }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -77,6 +77,14 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         {/* Right Side: Key & Profile */}
         <div className="w-auto md:w-32 flex justify-end items-center gap-3">
           {/* Mobile/Tablet: Key Button visible */}
+          <button
+            onClick={onRefreshClick}
+            className="p-2 rounded-full bg-white/5 hover:bg-vetra-blue/20 text-white hover:text-vetra-blue transition-colors group"
+            title="Yangilash"
+          >
+            <RotateCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+
           <button
             onClick={onKeyClick}
             className="p-2 rounded-full bg-white/10 hover:bg-vetra-orange/20 text-white hover:text-vetra-orange transition-colors"

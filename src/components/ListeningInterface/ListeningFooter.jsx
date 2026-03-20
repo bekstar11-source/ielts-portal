@@ -100,6 +100,15 @@ export default function ListeningFooter({
                         userAnswers[q.id] && String(userAnswers[q.id]).trim() !== ""
                     ).length;
 
+                    const partMinId = partQuestions.length > 0 
+                        ? Math.min(...partQuestions.map(q => parseInt(q.id)).filter(id => !isNaN(id))) 
+                        : Infinity;
+                        
+                    let partNum = idx + 1;
+                    if (partMinId !== Infinity) {
+                        partNum = Math.floor((partMinId - 1) / 10) + 1;
+                    }
+
                     return (
                         <div
                             key={passage.id || idx}
@@ -116,7 +125,7 @@ export default function ListeningFooter({
                             {/* Part nomi + indikator */}
                             <div className="flex items-center gap-1.5 shrink-0 mr-2">
                                 <span className={`font-bold text-xs whitespace-nowrap ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                                    Part {idx + 1}
+                                    Part {partNum}
                                 </span>
                                 {isAudioPlaying && (
                                     <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
-import { doc, getDoc, addDoc, collection } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import ReadingInterface from "../components/ReadingInterface/ReadingInterface";
 import ListeningInterface from "../components/ListeningInterface/ListeningInterface";
@@ -280,6 +280,7 @@ export default function MockExam() {
             mockKey: mockData.mockKey,
             subTests: mockData.subTests, 
             date: new Date().toISOString(),
+            createdAt: serverTimestamp(),
             scores: {
                 listening: lScore,
                 reading: rScore,

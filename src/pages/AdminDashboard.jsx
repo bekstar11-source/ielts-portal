@@ -14,6 +14,7 @@ import {
     arrayUnion,
 } from "firebase/firestore";
 import AnalyticsChart from "../components/common/AnalyticsChart";
+import AdvancedAnalyticsChart from "../components/common/AdvancedAnalyticsChart";
 
 // --- MOCK CHART DATA ---
 // --- MOCK CHART DATA REMOVED (Now using real data) ---
@@ -119,6 +120,9 @@ export default function AdminDashboard() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [processing, setProcessing] = useState(false);
 
+    // ANALYTICS RANGE
+    const [chartRange, setChartRange] = useState("week"); // week or month
+
     // --- AUTH CHECK ---
     useEffect(() => {
         if (userData === undefined) return;
@@ -133,28 +137,39 @@ export default function AdminDashboard() {
     useEffect(() => {
         async function fetchInitialData() {
             try {
-                // Keshni tekshirish (faqat qisqa muddatga)
+                // Keshni tekshirish (10 daqiqalik kesh)
                 const cachedTime = sessionStorage.getItem("admin_data_time");
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000); // 5 daqiqa
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 10 * 60 * 1000); 
 
                 if (isCacheValid) {
                     const cachedStats = sessionStorage.getItem("admin_stats");
                     const cachedGroups = sessionStorage.getItem("admin_groups");
-                    if (cachedStats) setStats(JSON.parse(cachedStats));
-                    if (cachedGroups) setGroups(JSON.parse(cachedGroups));
-                    return;
+                    if (cachedStats) {
+                        const parsedStats = JSON.parse(cachedStats);
+                        setStats(parsedStats);
+                        if (cachedGroups) setGroups(JSON.parse(cachedGroups));
+                        return;
+                    }
                 }
 
                 // 1. STATS COUNTS
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
                 const usersSnap = await getCountFromServer(collection(db, "users"));
-                const testsSnap = await getDocs(collection(db, "tests")); // Need docs for chart
-                const resultsSnap = await getDocs(query(collection(db, "results"), limit(500))); // Limit for performance, mostly for recent activity
+                const testsSnap = await getDocs(collection(db, "tests")); 
+                
+                // Faqat oxirgi 30 kunlik natijalarni olamiz (Readlarni tejash uchun)
+                const resultsQuery = query(
+                    collection(db, "results"), 
+                    where("date", ">=", thirtyDaysAgo)
+                );
+                const resultsSnap = await getDocs(resultsQuery);
 
                 const testsDocs = testsSnap.docs.map(d => d.data());
-                const resultsDocs = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: d.data().date ? new Date(d.data().date) : new Date() })); // Normalize date
+                const resultsDocs = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: d.data().date ? new Date(d.data().date) : new Date() })); 
 
                 // 2. PREPARE CHART DATA
-                // A) Tests Breakdown
                 const testTypes = { reading: 0, listening: 0, writing: 0, speaking: 0 };
                 testsDocs.forEach(t => {
                     const type = t.type?.toLowerCase() || 'other';
@@ -167,39 +182,65 @@ export default function AdminDashboard() {
                     { name: 'Speaking', value: testTypes.speaking },
                 ];
 
-                // B) Activity (Last 7 days)
-                const last7Days = [...Array(7)].map((_, i) => {
+                const last30Days = [...Array(30)].map((_, i) => {
                     const d = new Date();
-                    d.setDate(d.getDate() - (6 - i));
+                    d.setDate(d.getDate() - (29 - i));
                     return d.toISOString().split('T')[0];
                 });
-                const activityMap = last7Days.reduce((acc, date) => ({ ...acc, [date]: 0 }), {});
 
+                const activityDataMap = last30Days.reduce((acc, date) => ({
+                    ...acc,
+                    [date]: { name: date, tests: 0, score: 0, users: 0, totalScore: 0 }
+                }), {});
+
+                // Aggregating Results (Tests & Scores)
                 resultsDocs.forEach(r => {
                     try {
-                        // Support Firestore Timestamp or ISO string
                         let dateObj = r.date;
                         if (r.date && r.date.seconds) dateObj = new Date(r.date.seconds * 1000);
                         else if (typeof r.date === 'string') dateObj = new Date(r.date);
 
                         if (dateObj && !isNaN(dateObj)) {
                             const dateKey = dateObj.toISOString().split('T')[0];
-                            if (activityMap[dateKey] !== undefined) activityMap[dateKey]++;
+                            if (activityDataMap[dateKey]) {
+                                activityDataMap[dateKey].tests++;
+                                const s = parseFloat(r.bandScore || r.score || 0);
+                                activityDataMap[dateKey].totalScore += s;
+                            }
                         }
-                    } catch (e) { console.warn("Date parse error", e); }
+                    } catch (e) { }
                 });
 
-                const realActivityData = Object.entries(activityMap).map(([date, value]) => ({
-                    name: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-                    value
+                Object.values(activityDataMap).forEach(day => {
+                    if (day.tests > 0) day.score = day.totalScore / day.tests;
+                });
+
+                // Aggregating New Users (Faqat oxirgi 30 kundagilar)
+                const recentUsersQuery = query(
+                    collection(db, "users"), 
+                    where("createdAt", ">=", thirtyDaysAgo)
+                );
+                const usersListSnap = await getDocs(recentUsersQuery);
+                usersListSnap.docs.forEach(d => {
+                    const u = d.data();
+                    if (u.createdAt) {
+                        const dateObj = u.createdAt.seconds ? new Date(u.createdAt.seconds * 1000) : new Date(u.createdAt);
+                        const dateKey = dateObj.toISOString().split('T')[0];
+                        if (activityDataMap[dateKey]) activityDataMap[dateKey].users++;
+                    }
+                });
+
+                const allActivityData = Object.values(activityDataMap).map(item => ({
+                    ...item,
+                    name: new Date(item.name).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                 }));
 
                 // 3. SET STATE
                 const statsData = {
                     users: usersSnap.data().count,
-                    tests: testsSnap.size,
-                    results: resultsSnap.size, // This likely needs getCountFromServer for total, but for chart we used limit
-                    activityData: realActivityData,
+                    tests: testsDocs.length,
+                    results: 0, // Will update below
+                    activityData: allActivityData, // Full 30 days
                     testsData: realTestsData,
                     loading: false
                 };
@@ -387,7 +428,32 @@ export default function AdminDashboard() {
 
                 {/* CHARTS */}
                 <div className="col-span-12 md:col-span-8">
-                    <AnalyticsChart title="Faollik Statistikasi" data={stats.activityData || []} height={320} color="#3B82F6" />
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-gray-900 dark:text-white font-medium">Faollik Statistikasi</h3>
+                        <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
+                            <button 
+                                onClick={() => setChartRange("week")}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${chartRange === 'week' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-white/70'}`}
+                            >
+                                Haftalik
+                            </button>
+                            <button 
+                                onClick={() => setChartRange("month")}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${chartRange === 'month' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-white/70'}`}
+                            >
+                                Oylik
+                            </button>
+                        </div>
+                    </div>
+                    <AdvancedAnalyticsChart 
+                        data={chartRange === 'week' ? stats.activityData.slice(-7) : stats.activityData} 
+                        height={320}
+                        seriesConfig={[
+                            { key: 'tests', label: 'Bajarilgan Testlar', color: '#3B82F6', type: 'count' },
+                            { key: 'score', label: 'O\'rtacha Ball', color: '#F59E0B', type: 'decimal' },
+                            { key: 'users', label: 'Yangi O\'quvchilar', color: '#EC4899', type: 'count' },
+                        ]}
+                    />
                 </div>
                 <div className="col-span-12 md:col-span-4">
                     <AnalyticsChart title="Testlar Bo'limi" data={stats.testsData || []} height={320} type="bar" color="#8B5CF6" />
