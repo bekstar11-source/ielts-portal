@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, forwardRef } from 'react';
 import { db } from '../firebase/firebase';
 import {
     collection, getDocs, addDoc, doc, updateDoc,
-    arrayUnion, arrayRemove, query, orderBy, deleteDoc, where, getDoc, writeBatch
+    arrayUnion, arrayRemove, query, orderBy, deleteDoc, where, getDoc, writeBatch,
+    limit, startAfter, getCountFromServer
 } from 'firebase/firestore';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -80,23 +81,60 @@ export default function AdminUsers() {
     const [allTests, setAllTests] = useState([]);
     const [testSets, setTestSets] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [lastDoc, setLastDoc] = useState(null);
+    const [hasMoreStudents, setHasMoreStudents] = useState(true);
+    const [totalStudents, setTotalStudents] = useState(0);
 
     // Refresh Data
     const refreshData = async () => {
         setLoading(true);
         try {
-            const [u, teacherSnap, g, t, s] = await Promise.all([
-                getDocs(query(collection(db, 'users'), where('role', 'not-in', ['admin', 'teacher']))),
+            const [teacherSnap, g, t, s] = await Promise.all([
                 getDocs(query(collection(db, 'users'), where('role', '==', 'teacher'))),
                 getDocs(query(collection(db, 'groups'), orderBy('createdAt', 'desc'))),
                 getDocs(query(collection(db, 'tests'), orderBy('createdAt', 'desc'))),
                 getDocs(query(collection(db, 'testSets'), orderBy('createdAt', 'desc'))),
             ]);
+
+            // Paginated Students
+            const studentQuery = query(
+                collection(db, 'users'), 
+                where('role', 'not-in', ['admin', 'teacher']), 
+                limit(20)
+            );
+            const u = await getDocs(studentQuery);
+            
+            // Total Students Count
+            const countSnap = await getCountFromServer(query(collection(db, 'users'), where('role', 'not-in', ['admin', 'teacher'])));
+            setTotalStudents(countSnap.data().count);
+
             setStudents(u.docs.map(d => ({ id: d.id, ...d.data() })));
+            setLastDoc(u.docs[u.docs.length - 1]);
+            setHasMoreStudents(u.docs.length === 20);
+
             setTeachers(teacherSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             setGroups(g.docs.map(d => ({ id: d.id, ...d.data() })));
             setAllTests(t.docs.map(d => ({ id: d.id, ...d.data() })));
             setTestSets(s.docs.map(d => ({ id: d.id, ...d.data() })));
+        } catch (e) { console.error(e); } finally { setLoading(false); }
+    };
+
+    const loadMoreStudents = async () => {
+        if (!lastDoc || !hasMoreStudents) return;
+        setLoading(true);
+        try {
+            const nextQuery = query(
+                collection(db, 'users'),
+                where('role', 'not-in', ['admin', 'teacher']),
+                startAfter(lastDoc),
+                limit(20)
+            );
+            const snap = await getDocs(nextQuery);
+            const newStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            setStudents(prev => [...prev, ...newStudents]);
+            setLastDoc(snap.docs[snap.docs.length - 1]);
+            setHasMoreStudents(snap.docs.length === 20);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
@@ -128,7 +166,16 @@ export default function AdminUsers() {
                     </div>
                 )}
 
-                {activeTab === 'students' && <SmartUserTable students={students} onRefresh={refreshData} theme={theme} />}
+                {activeTab === 'students' && (
+                    <SmartUserTable 
+                        students={students} 
+                        onRefresh={refreshData} 
+                        theme={theme} 
+                        hasMore={hasMoreStudents} 
+                        onLoadMore={loadMoreStudents}
+                        totalCount={totalStudents}
+                    />
+                )}
                 {activeTab === 'groups' && <GroupsTab groups={groups} students={students} teachers={teachers} onRefresh={refreshData} theme={theme} />}
                 {activeTab === 'assign' && <AssignTab students={students} groups={groups} allTests={allTests} testSets={testSets} theme={theme} />}
                 {activeTab === 'sets' && <SetsTab allTests={allTests} testSets={testSets} onRefresh={refreshData} theme={theme} />}
@@ -138,7 +185,7 @@ export default function AdminUsers() {
 }
 
 // --- TAB 1: SMART USER TABLE ---
-function SmartUserTable({ students, onRefresh, theme }) {
+function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, totalCount }) {
     const isDark = theme === 'dark';
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState(null);
@@ -178,7 +225,7 @@ function SmartUserTable({ students, onRefresh, theme }) {
                     </select>
                 </div>
                 <div className="text-xs font-bold uppercase tracking-wider opacity-50 self-end sm:self-auto">
-                    Jami: {filteredStudents.length}
+                    Ko'rsatilmoqda: {students.length} / {totalCount}
                 </div>
             </div>
 
@@ -242,6 +289,22 @@ function SmartUserTable({ students, onRefresh, theme }) {
                     <div className="p-12 text-center opacity-30 text-sm">O'quvchi topilmadi</div>
                 )}
             </div>
+
+            {hasMore && (
+                <div className={`p-4 border-t flex justify-center ${isDark ? 'border-white/5 bg-[#2C2C2C]' : 'border-gray-100 bg-gray-50'}`}>
+                    <button
+                        onClick={onLoadMore}
+                        className={`
+                            px-6 py-2 rounded-xl text-sm font-bold transition-all
+                            ${isDark 
+                                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20' 
+                                : 'bg-white border border-gray-200 text-blue-600 hover:bg-gray-50 shadow-sm'}
+                        `}
+                    >
+                        Yanada ko'proq yuklash
+                    </button>
+                </div>
+            )}
 
             <UserDetailPanel
                 user={selectedUser}

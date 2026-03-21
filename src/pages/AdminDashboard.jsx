@@ -12,6 +12,8 @@ import {
     doc,
     updateDoc,
     arrayUnion,
+    startAfter,
+    orderBy
 } from "firebase/firestore";
 import AnalyticsChart from "../components/common/AnalyticsChart";
 import AdvancedAnalyticsChart from "../components/common/AdvancedAnalyticsChart";
@@ -106,6 +108,8 @@ export default function AdminDashboard() {
     const [allUsers, setAllUsers] = useState([]);
     const [displayedUsers, setDisplayedUsers] = useState([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
+    const [lastVisible, setLastVisible] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
 
     // SEARCH & FILTER STATE
     const [searchTerm, setSearchTerm] = useState("");
@@ -272,14 +276,7 @@ export default function AdminDashboard() {
     // --- USERLARNI YUKLASH ---
     useEffect(() => {
         if (isAuthorized) {
-            const cachedUsers = sessionStorage.getItem("admin_all_users");
-            if (cachedUsers) {
-                const parsedUsers = JSON.parse(cachedUsers);
-                setAllUsers(parsedUsers);
-                applyFilterAndSearch(parsedUsers, searchTerm, sortOption);
-            } else {
-                fetchAllUsers();
-            }
+            fetchAllUsers();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthorized]);
@@ -292,15 +289,50 @@ export default function AdminDashboard() {
     const fetchAllUsers = async () => {
         setLoadingUsers(true);
         try {
-            const q = query(collection(db, "users"), limit(1000));
+            const q = query(
+                collection(db, "users"), 
+                where("role", "not-in", ["admin", "teacher"]),
+                limit(20)
+            );
             const snap = await getDocs(q);
             const usersList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
             setAllUsers(usersList);
+            setLastVisible(snap.docs[snap.docs.length - 1]);
+            setHasMore(usersList.length === 20);
             sessionStorage.setItem("admin_all_users", JSON.stringify(usersList));
             applyFilterAndSearch(usersList, searchTerm, sortOption);
         } catch (err) {
             console.error("Fetch Error:", err);
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
+
+    const loadMoreUsers = async () => {
+        if (!lastVisible || !hasMore) return;
+        setLoadingUsers(true);
+        try {
+            const q = query(
+                collection(db, "users"),
+                where("role", "not-in", ["admin", "teacher"]),
+                startAfter(lastVisible),
+                limit(20)
+            );
+            const snap = await getDocs(q);
+            const usersList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            if (usersList.length > 0) {
+                const combined = [...allUsers, ...usersList];
+                setAllUsers(combined);
+                setLastVisible(snap.docs[snap.docs.length - 1]);
+                setHasMore(usersList.length === 20);
+                sessionStorage.setItem("admin_all_users", JSON.stringify(combined));
+            } else {
+                setHasMore(false);
+            }
+        } catch (err) {
+            console.error("Load More Error:", err);
         } finally {
             setLoadingUsers(false);
         }
@@ -470,7 +502,14 @@ export default function AdminDashboard() {
                 {/* USER MANAGEMENT LIST */}
                 <div className="col-span-12 bg-[#272727] dark:bg-[#272727] bg-white rounded-[24px] p-4 md:p-6 border border-white/5 dark:border-white/5 border-gray-200 shadow-sm dark:shadow-none transition-colors">
                     <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                        <h3 className="text-gray-900 dark:text-white font-medium">O'quvchilar Boshqaruvi</h3>
+                        <h3 className="text-gray-900 dark:text-white font-medium flex items-center gap-2">
+                            O'quvchilar Boshqaruvi
+                            {stats.users > 0 && (
+                                <span className="text-[10px] font-normal text-gray-500 dark:text-white/40 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full border border-gray-200 dark:border-white/5">
+                                    {displayedUsers.length} / {stats.users}
+                                </span>
+                            )}
+                        </h3>
                         <div className="flex gap-2 w-full md:w-auto">
                             <div className="relative group">
                                 <button className="flex items-center gap-2 bg-gray-100 dark:bg-[#303030] px-3 py-2 rounded-xl text-xs text-gray-700 dark:text-white border border-transparent dark:border-white/5 hover:bg-gray-200 dark:hover:bg-[#383838] transition">
@@ -574,6 +613,23 @@ export default function AdminDashboard() {
                             );
                         })}
                     </div>
+
+                    {hasMore && (
+                        <div className="mt-6 flex justify-center">
+                            <button
+                                onClick={loadMoreUsers}
+                                disabled={loadingUsers}
+                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-2xl text-sm font-bold shadow-lg shadow-blue-600/20 transition active:scale-95 disabled:opacity-50"
+                            >
+                                {loadingUsers ? (
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <Icons.Plus className="w-4 h-4" />
+                                )}
+                                <span>Yanada ko'proq yuklash</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -170,9 +170,11 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                         <div
                             className={`absolute w-full h-full backface-hidden rounded-3xl p-8 flex flex-col items-center justify-center text-center inset-0 overflow-hidden ${isFlipped ? 'invisible' : 'visible'}`}
                             style={{
-                                background: 'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                                backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)'
                             }}
                         >
                             <div className="flex items-center justify-center gap-4 mb-6">
@@ -215,9 +217,11 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                             className={`absolute w-full h-full backface-hidden rounded-3xl p-8 flex flex-col justify-center inset-0 overflow-hidden ${!isFlipped ? 'invisible' : 'visible'}`}
                             style={{
                                 transform: 'rotateY(180deg)',
-                                background: 'linear-gradient(145deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0.05) 100%)',
-                                border: '1px solid rgba(59, 130, 246, 0.2)',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                background: 'linear-gradient(145deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 64, 175, 0.1) 100%)',
+                                backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
+                                border: '1px solid rgba(59, 130, 246, 0.4)',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)'
                             }}
                         >
                             <div className="space-y-6">

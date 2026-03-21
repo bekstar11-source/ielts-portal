@@ -180,7 +180,7 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
             return baseClass + "bg-blue-500/20 border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)] scale-[1.02]";
         }
 
-        return baseClass + "bg-white/5 hover:bg-white/10 border-white/10 text-gray-200 hover:border-white/20";
+        return baseClass + "bg-white/10 backdrop-blur-md hover:bg-white/20 border-white/20 text-white hover:border-white/40 shadow-lg";
     };
 
     return (
@@ -202,7 +202,7 @@ export default function WordBankMatchGame({ words, onBack, onComplete }) {
                     <span>Orqaga</span>
                 </button>
                 <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-400 bg-white/5 p-2 px-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-200 bg-white/15 backdrop-blur-md p-2 px-3 rounded-lg border border-white/20 shadow-lg">
                         <Clock className="w-4 h-4 text-blue-400" />
                         <span className="text-white font-mono text-base">{formatTime(timeElapsed)}</span>
                     </div>

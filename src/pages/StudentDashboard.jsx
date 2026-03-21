@@ -561,6 +561,34 @@ export default function StudentDashboard() {
                     font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; 
                     background-color: #050505;
                 }
+                .top-glow {
+                    position: fixed;
+                    top: -200px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 120vw;
+                    height: 500px;
+                    background: radial-gradient(circle at 50% 0%, rgba(255, 85, 32, 0.18) 0%, rgba(255, 85, 32, 0.05) 50%, transparent 80%);
+                    filter: blur(100px);
+                    z-index: 1;
+                    pointer-events: none;
+                    animation: topGlowBreathe 10s ease-in-out infinite alternate;
+                }
+                .top-gradient {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 50vh;
+                    background: linear-gradient(to bottom, rgba(255, 85, 32, 0.06) 0%, transparent 100%);
+                    z-index: 1;
+                    pointer-events: none;
+                }
+                @keyframes topGlowBreathe {
+                    0% { transform: translateX(-50%) translateY(0) scale(1); opacity: 0.6; }
+                    50% { transform: translateX(-50%) translateY(20px) scale(1.05); opacity: 0.8; }
+                    100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 0.6; }
+                }
             `}</style>
             <DashboardHeader
                 user={user} userData={userData}
@@ -571,6 +599,8 @@ export default function StudentDashboard() {
                 loading={loading}
             />
             <PlanetBackground />
+            <div className="top-glow" />
+            <div className="top-gradient" />
             <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-8">
                 {renderContent()}
                 <DashboardModals

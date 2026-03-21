@@ -254,12 +254,12 @@ export default function Wordbank() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
+                <div className="wb-glass rounded-2xl p-5 flex items-center justify-between">
                     <div>
-                        <p className="text-gray-400 text-sm font-medium mb-1">Jami So'zlar</p>
+                        <p className="text-gray-300 text-sm font-semibold mb-1">Jami So'zlar</p>
                         <h3 className="text-3xl font-bold text-white">{words.length}</h3>
                     </div>
-                    <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400">
+                    <div className="p-3 bg-blue-500/20 rounded-xl text-blue-300">
                         <BookOpen className="w-6 h-6" />
                     </div>
                 </div>
@@ -269,50 +269,50 @@ export default function Wordbank() {
                         setFilterTab('due');
                         setPracticeMode('flashcards');
                     }}
-                    className="bg-gradient-to-br from-amber-900/50 to-orange-900/50 border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between group hover:border-amber-400/50 transition-all text-left relative overflow-hidden"
+                    className="bg-gradient-to-br from-amber-900/60 to-orange-900/60 backdrop-blur-md border border-amber-500/40 rounded-2xl p-5 flex items-center justify-between group hover:border-amber-400/60 hover:shadow-lg hover:shadow-orange-500/10 transition-all text-left relative overflow-hidden"
                 >
                     {dueForReviewCount > 0 && (
-                        <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-bl-xl">
+                        <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-bl-xl shadow-lg">
                             {dueForReviewCount} ta qoldi
                         </span>
                     )}
                     <div>
-                        <p className="text-amber-200 text-sm font-medium mb-1 group-hover:text-white transition-colors">Bugungi Takrorlash</p>
+                        <p className="text-amber-100 text-sm font-bold mb-1 group-hover:text-white transition-colors">Bugungi Takrorlash</p>
                         <h3 className="text-xl font-bold text-white">Spaced Repetition</h3>
                     </div>
-                    <div className="p-3 bg-amber-500/20 rounded-xl text-amber-400 group-hover:scale-110 transition-transform">
+                    <div className="p-3 bg-amber-500/30 rounded-xl text-amber-300 group-hover:scale-110 transition-transform">
                         <RefreshCw className="w-6 h-6" />
                     </div>
                 </button>
 
                 <button
                     onClick={() => setPracticeMode('flashcards')}
-                    className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 border border-indigo-500/30 rounded-2xl p-5 flex items-center justify-between group hover:border-indigo-400/50 transition-all text-left"
+                    className="bg-gradient-to-br from-indigo-900/60 to-purple-900/60 backdrop-blur-md border border-indigo-500/40 rounded-2xl p-5 flex items-center justify-between group hover:border-indigo-400/60 hover:shadow-lg hover:shadow-indigo-500/10 transition-all text-left"
                 >
                     <div>
-                        <p className="text-indigo-200 text-sm font-medium mb-1 group-hover:text-white transition-colors">Flashcards</p>
+                        <p className="text-indigo-100 text-sm font-bold mb-1 group-hover:text-white transition-colors">Flashcards</p>
                         <h3 className="text-xl font-bold text-white">Kartochkalar</h3>
                     </div>
-                    <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400 group-hover:scale-110 transition-transform">
+                    <div className="p-3 bg-indigo-500/30 rounded-xl text-indigo-300 group-hover:scale-110 transition-transform">
                         <Layers className="w-6 h-6" />
                     </div>
                 </button>
 
                 <button
                     onClick={() => setPracticeMode('match')}
-                    className="bg-gradient-to-br from-teal-900/50 to-emerald-900/50 border border-teal-500/30 rounded-2xl p-5 flex items-center justify-between group hover:border-teal-400/50 transition-all text-left"
+                    className="bg-gradient-to-br from-teal-900/60 to-emerald-900/60 backdrop-blur-md border border-teal-500/40 rounded-2xl p-5 flex items-center justify-between group hover:border-teal-400/60 hover:shadow-lg hover:shadow-emerald-500/10 transition-all text-left"
                 >
                     <div>
-                        <p className="text-emerald-200 text-sm font-medium mb-1 group-hover:text-white transition-colors">Match Game</p>
+                        <p className="text-emerald-100 text-sm font-bold mb-1 group-hover:text-white transition-colors">Match Game</p>
                         <h3 className="text-xl font-bold text-white">Moslashtirish</h3>
                     </div>
-                    <div className="p-3 bg-emerald-500/20 rounded-xl text-emerald-400 group-hover:scale-110 transition-transform">
+                    <div className="p-3 bg-emerald-500/30 rounded-xl text-emerald-300 group-hover:scale-110 transition-transform">
                         <MousePointer2 className="w-6 h-6" />
                     </div>
                 </button>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 w-full overflow-hidden">
+            <div className="wb-glass rounded-2xl p-6 mb-8 w-full overflow-hidden">
                 <h3 className="text-lg font-bold text-white mb-4">Lug'at faolligi (Yangi so'zlar)</h3>
                 <div className="h-40 w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -335,7 +335,7 @@ export default function Wordbank() {
                 </div>
             </div>
 
-            <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 mb-6 max-w-md">
+            <div className="flex wb-glass p-1 rounded-xl mb-6 max-w-md">
                 <button
                     onClick={() => setMainTab('vocabulary')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${mainTab === 'vocabulary' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
@@ -356,17 +356,17 @@ export default function Wordbank() {
                 mainTab === 'keywords' ? (
                     <div>
                         <div className="relative mb-6">
-                            <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-500" />
+                            <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                             <input
                                 type="text"
                                 placeholder="Keywords qidirish..."
-                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-emerald-500/50"
+                                className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-xl py-3 pl-11 pr-4 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all font-medium"
                                 value={keywordSearch}
                                 onChange={(e) => setKeywordSearch(e.target.value)}
                             />
                         </div>
                         {keywords.length === 0 ? (
-                            <div className="text-center py-20 bg-white/5 border border-white/10 rounded-2xl">
+                            <div className="text-center py-20 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl">
                                 <ArrowRightLeft className="w-16 h-16 text-gray-600 mx-auto mb-4 opacity-50" />
                                 <h3 className="text-xl font-semibold text-gray-300">Hali keyword qo'shilmagan</h3>
                             </div>
@@ -389,7 +389,7 @@ export default function Wordbank() {
                                         <div className="overflow-x-auto rounded-xl border border-white/10">
                                             <table className="w-full text-sm">
                                                 <thead>
-                                                    <tr className="bg-white/5 text-gray-400 uppercase">
+                                                    <tr className="bg-white/15 text-gray-200 font-bold uppercase tracking-wider backdrop-blur-md">
                                                         <th className="text-left py-3 px-4">Passage Word</th>
                                                         <th className="text-center py-3 px-4">Turi</th>
                                                         <th className="text-left py-3 px-4">Question Word</th>
@@ -398,7 +398,7 @@ export default function Wordbank() {
                                                 </thead>
                                                 <tbody>
                                                     {kwList.map(kw => (
-                                                        <tr key={kw.id} className="border-t border-white/5 hover:bg-white/5 transition-colors group">
+                                                        <tr key={kw.id} className="border-t bg-white/10 backdrop-blur-sm transition-colors group">
                                                             <td className="py-3 px-4 font-bold">{kw.passageWord}</td>
                                                             <td className="py-3 px-4 text-center">
                                                                 <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase ${kw.type === 'synonym' ? 'bg-emerald-500/20 text-emerald-400' : kw.type === 'antonym' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
@@ -425,22 +425,22 @@ export default function Wordbank() {
                     <>
                         <div className="flex flex-col md:flex-row gap-4 mb-6 relative">
                             <div className="relative flex-1">
-                                <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-500" />
+                                <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                                 <input
                                     type="text"
                                     placeholder="So'zlarni qidirish..."
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-blue-500/50 transition-all"
+                                    className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-xl py-3 pl-11 pr-4 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all font-medium"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
-                            <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto hide-scrollbar">
+                            <div className="flex bg-white/10 backdrop-blur-md p-1 rounded-xl border border-white/20 overflow-x-auto hide-scrollbar">
                                 {
                                     ['all', 'due', 'review', 'mastered'].map(tab => (
                                         <button
                                             key={tab}
                                             onClick={() => setFilterTab(tab)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterTab === tab ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:bg-white/5'}`}
+                                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${filterTab === tab ? 'bg-blue-500/30 text-blue-300 shadow-lg' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}
                                         >
                                             {tab === 'all' ? 'Barchasi' : tab === 'due' ? 'Bugun' : tab === 'review' ? 'Yodlanmagan' : 'Yodlangan'}
                                         </button>
@@ -456,7 +456,7 @@ export default function Wordbank() {
                                     <p className="text-gray-400">So'zlar yuklanmoqda...</p>
                                 </div>
                             ) : filteredWords.length === 0 ? (
-                                <div className="text-center py-20 bg-white/5 border border-white/10 rounded-2xl">
+                                <div className="text-center py-20 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl">
                                     < BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4 opacity-50" />
                                     < h3 className="text-xl font-semibold text-gray-300">Hech qanday so'z topilmadi</h3>
                                 </div>
@@ -476,7 +476,7 @@ export default function Wordbank() {
                                                                     initial={{ opacity: 0, y: 10 }}
                                                                     animate={{ opacity: 1, y: 0 }}
                                                                     transition={{ delay: index * 0.05 }}
-                                                                    className="bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-blue-500/30 transition-all flex flex-col group"
+                                                                    className="wb-glass wb-glass-hover p-5 rounded-2xl transition-all flex flex-col group relative overflow-hidden"
                                                                 >
                                                                     <div className="flex justify-between items-start">
                                                                         < div >
@@ -521,7 +521,7 @@ export default function Wordbank() {
                                                                                 ) : (
                                                                                     <div className="space-y-3">
                                                                                         < div > <span className="text-xs font-bold text-blue-400">Tarjimasi</span><p className="text-base text-white">{item.translation}</p></div>
-                                                                                        < div className="bg-black/20 p-3 rounded-xl"><span className="text-xs font-bold text-indigo-400">Izohi</span><p className="text-sm text-gray-300">{item.definition}</p></div>
+                                                                                        < div className="bg-black/30 backdrop-blur-sm p-3 rounded-xl border border-white/5"><span className="text-xs font-bold text-indigo-400">Izohi</span><p className="text-sm text-gray-200">{item.definition}</p></div>
                                                                                         < div > <span className="text-xs font-bold text-gray-500">Misol</span><p className="text-sm text-gray-400 italic">"{item.example}"</p></div>
                                                                                     </div>
                                                                                 )}
@@ -596,6 +596,22 @@ export default function Wordbank() {
                         0 -30px 80px rgba(0, 100, 255, 0.4),
                         0 -80px 150px rgba(0, 50, 150, 0.2);
                     animation: wb-pulseGlow 6s infinite ease-in-out;
+                }
+
+                /* Glassmorphism Classes */
+                .wb-glass {
+                    background: rgba(255, 255, 255, 0.08);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+                }
+
+                .wb-glass-hover:hover {
+                    background: rgba(255, 255, 255, 0.12);
+                    border: 1px solid rgba(255, 255, 255, 0.25);
+                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+                    transform: translateY(-2px);
                 }
 
                 @keyframes wb-float {
