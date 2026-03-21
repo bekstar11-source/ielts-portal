@@ -9,7 +9,7 @@ export const HighlighterIcon = ({ active }) => (
 
 export const QuestionBadge = ({ id, isReviewMode, onClick }) => (
     <span
-        className={`min-w-[30px] h-[30px] flex items-center justify-center rounded bg-white border border-gray-400 text-[0.8em] font-bold text-gray-700 shrink-0 shadow-sm select-none mr-1 
+        className={`min-w-[26px] h-[26px] flex items-center justify-center rounded bg-white border border-gray-400 text-[0.8em] font-bold text-gray-700 shrink-0 shadow-sm select-none mr-1 
         ${isReviewMode ? 'cursor-pointer hover:border-blue-600 hover:text-blue-600' : ''}`}
         onClick={onClick}
     >
@@ -31,7 +31,7 @@ export const SelectInput = ({ value, onChange, options, isReviewMode, isCorrect,
                 value={value}
                 disabled={isReviewMode}
                 onChange={onChange}
-                className={`h-[30px] ${width} pl-2 pr-6 border rounded text-[0.875em] font-bold appearance-none cursor-pointer transition-all shadow-sm focus:outline-none ${styles}`}
+                className={`h-[26px] ${width} pl-2 pr-6 border rounded text-[0.875em] font-bold appearance-none cursor-pointer transition-all shadow-sm focus:outline-none ${styles}`}
             >
                 <option value="">...</option>
                 {options.map((opt, idx) => (
@@ -54,10 +54,13 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
 
     return (
         <span className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative group/input">
-            <QuestionBadge id={id} isReviewMode={isReviewMode} onClick={() => isReviewMode && locationId && handleLocationClick(locationId)} />
+            {isReviewMode && (
+                <QuestionBadge id={id} isReviewMode={isReviewMode} onClick={() => locationId && handleLocationClick(locationId)} />
+            )}
             <input
-                className={`w-[130px] h-[30px] border rounded px-2 text-center font-semibold text-[0.875em] focus:outline-none transition-all placeholder-transparent shadow-sm ${styles}`}
+                className={`w-[130px] h-[26px] border rounded px-2 text-center font-semibold text-[0.875em] focus:outline-none transition-all shadow-sm ${styles} ${!isReviewMode ? 'placeholder-gray-400' : 'placeholder-transparent'}`}
                 value={val}
+                placeholder={!isReviewMode ? String(id) : ""}
                 onChange={(e) => onAnswerChange(id, e.target.value)}
                 disabled={isReviewMode}
                 autoComplete="off"

@@ -64,8 +64,9 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                     transition-all duration-300 ease-in-out
                     ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
                     ${expanded ? 'w-64' : 'w-20'}
-                    ${theme === 'dark' ? 'bg-[#2C2C2C] border-r border-white/5' : 'bg-white border-r border-gray-200'}
+                    ${theme === 'dark' ? 'bg-[#1E1E1E] border-r border-white/5' : 'bg-white border-r border-gray-200'}
                     shadow-xl ${expanded ? 'md:shadow-2xl' : 'md:shadow-none'}
+
                 `}
             >
                 {/* LOGO AREA */}

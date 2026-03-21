@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
+
 import { db } from "../firebase/firebase";
 import {
     collection,
@@ -45,33 +47,39 @@ const Icons = {
 // --- 2. SKELETON LOADER COMPONENT ---
 function DashboardSkeleton() {
     return (
-        <div className="flex h-screen bg-[#1E1E1E] font-sans overflow-hidden">
-            <div className="w-[72px] bg-[#2C2C2C] m-4 mr-0 rounded-[30px] shadow-2xl border border-white/5 animate-pulse hidden md:block"></div>
+        <div className="flex h-screen bg-[#F5F5F7] dark:bg-[#121212] font-sans overflow-hidden transition-colors">
+            <div className="w-[72px] bg-white dark:bg-[#1E1E1E] m-4 mr-0 rounded-[30px] shadow-2xl border border-gray-200 dark:border-white/5 animate-pulse hidden md:block"></div>
+
+
             <main className="flex-1 p-4 lg:p-6 flex flex-col gap-6 w-full">
                 <div className="flex justify-between items-center mb-2 animate-pulse">
                     <div className="space-y-2">
-                        <div className="h-4 w-32 bg-[#333] rounded"></div>
-                        <div className="h-8 w-48 bg-[#333] rounded"></div>
+                        <div className="h-4 w-32 bg-gray-200 dark:bg-[#333] rounded"></div>
+                        <div className="h-8 w-48 bg-gray-200 dark:bg-[#333] rounded"></div>
                     </div>
-                    <div className="h-10 w-10 bg-[#333] rounded-full"></div>
+                    <div className="h-10 w-10 bg-gray-200 dark:bg-[#333] rounded-full"></div>
+
                 </div>
                 <div className="grid grid-cols-12 gap-6 h-full overflow-hidden">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className="col-span-12 md:col-span-4 h-32 bg-[#272727] rounded-[24px] border border-white/5 animate-pulse"></div>
+                        <div key={i} className="col-span-12 md:col-span-4 h-32 bg-white dark:bg-[#272727] rounded-[24px] border border-gray-200 dark:border-white/5 animate-pulse"></div>
                     ))}
+
                     <div className="col-span-12 h-4 bg-[#333] w-32 mt-2 rounded animate-pulse"></div>
                     {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="col-span-6 md:col-span-3 h-36 bg-[#272727] rounded-[24px] border border-white/5 animate-pulse"></div>
+                        <div key={i} className="col-span-6 md:col-span-3 h-36 bg-white dark:bg-[#272727] rounded-[24px] border border-gray-200 dark:border-white/5 animate-pulse"></div>
                     ))}
-                    <div className="col-span-12 bg-[#272727] rounded-[24px] p-6 h-96 border border-white/5 animate-pulse">
+                    <div className="col-span-12 bg-white dark:bg-[#272727] rounded-[24px] p-6 h-96 border border-gray-200 dark:border-white/5 animate-pulse">
+
                         <div className="flex justify-between mb-6">
-                            <div className="h-6 w-1/4 bg-[#333] rounded"></div>
-                            <div className="h-8 w-1/4 bg-[#333] rounded"></div>
+                            <div className="h-6 w-1/4 bg-gray-200 dark:bg-[#333] rounded"></div>
+                            <div className="h-8 w-1/4 bg-gray-200 dark:bg-[#333] rounded"></div>
                         </div>
                         {[1, 2, 3, 4, 5].map(j => (
-                            <div key={j} className="h-16 bg-[#333] mb-3 rounded-xl w-full"></div>
+                            <div key={j} className="h-16 bg-gray-200 dark:bg-[#333] mb-3 rounded-xl w-full"></div>
                         ))}
                     </div>
+
                 </div>
             </main>
         </div>
@@ -98,7 +106,10 @@ const getTimeStatus = (lastActiveAt) => {
 // --- 4. MAIN COMPONENT ---
 export default function AdminDashboard() {
     const { logout, userData } = useAuth();
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const navigate = useNavigate();
+
     const [isAuthorized, setIsAuthorized] = useState(false);
 
     // STATISTIKA STATE
@@ -143,7 +154,7 @@ export default function AdminDashboard() {
             try {
                 // Keshni tekshirish (10 daqiqalik kesh)
                 const cachedTime = sessionStorage.getItem("admin_data_time");
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 10 * 60 * 1000); 
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 10 * 60 * 1000);
 
                 if (isCacheValid) {
                     const cachedStats = sessionStorage.getItem("admin_stats");
@@ -161,17 +172,17 @@ export default function AdminDashboard() {
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
                 const usersSnap = await getCountFromServer(collection(db, "users"));
-                const testsSnap = await getDocs(collection(db, "tests")); 
-                
+                const testsSnap = await getDocs(collection(db, "tests"));
+
                 // Faqat oxirgi 30 kunlik natijalarni olamiz (Readlarni tejash uchun)
                 const resultsQuery = query(
-                    collection(db, "results"), 
+                    collection(db, "results"),
                     where("date", ">=", thirtyDaysAgo)
                 );
                 const resultsSnap = await getDocs(resultsQuery);
 
                 const testsDocs = testsSnap.docs.map(d => d.data());
-                const resultsDocs = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: d.data().date ? new Date(d.data().date) : new Date() })); 
+                const resultsDocs = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: d.data().date ? new Date(d.data().date) : new Date() }));
 
                 // 2. PREPARE CHART DATA
                 const testTypes = { reading: 0, listening: 0, writing: 0, speaking: 0 };
@@ -221,7 +232,7 @@ export default function AdminDashboard() {
 
                 // Aggregating New Users (Faqat oxirgi 30 kundagilar)
                 const recentUsersQuery = query(
-                    collection(db, "users"), 
+                    collection(db, "users"),
                     where("createdAt", ">=", thirtyDaysAgo)
                 );
                 const usersListSnap = await getDocs(recentUsersQuery);
@@ -290,7 +301,7 @@ export default function AdminDashboard() {
         setLoadingUsers(true);
         try {
             const q = query(
-                collection(db, "users"), 
+                collection(db, "users"),
                 where("role", "not-in", ["admin", "teacher"]),
                 limit(20)
             );
@@ -415,7 +426,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-12 gap-6">
 
                 {/* STATS */}
-                <div className="col-span-12 md:col-span-4 bg-[#272727] dark:bg-[#272727] bg-white rounded-[24px] p-6 border border-white/5 dark:border-white/5 border-gray-200 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
+                <div className="col-span-12 md:col-span-4 bg-white dark:bg-[#272727] rounded-[24px] p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
                     <div className="flex justify-between items-start z-10 relative">
                         <div>
                             <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">O'quvchilar</h3>
@@ -429,7 +440,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
                 </div>
-                <div className="col-span-12 md:col-span-4 bg-[#272727] dark:bg-[#272727] bg-white rounded-[24px] p-6 border border-white/5 dark:border-white/5 border-gray-200 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
+                <div className="col-span-12 md:col-span-4 bg-white dark:bg-[#272727] rounded-[24px] p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
                     <div className="flex justify-between items-start z-10 relative">
                         <div>
                             <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">Testlar</h3>
@@ -443,7 +454,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-colors"></div>
                 </div>
-                <div className="col-span-12 md:col-span-4 bg-[#272727] dark:bg-[#272727] bg-white rounded-[24px] p-6 border border-white/5 dark:border-white/5 border-gray-200 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
+                <div className="col-span-12 md:col-span-4 bg-white dark:bg-[#272727] rounded-[24px] p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
                     <div className="flex justify-between items-start z-10 relative">
                         <div>
                             <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">Natijalar</h3>
@@ -458,18 +469,19 @@ export default function AdminDashboard() {
                     <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-colors"></div>
                 </div>
 
+
                 {/* CHARTS */}
                 <div className="col-span-12 md:col-span-8">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-gray-900 dark:text-white font-medium">Faollik Statistikasi</h3>
                         <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
-                            <button 
+                            <button
                                 onClick={() => setChartRange("week")}
                                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${chartRange === 'week' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-white/70'}`}
                             >
                                 Haftalik
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setChartRange("month")}
                                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${chartRange === 'month' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-white/70'}`}
                             >
@@ -477,8 +489,8 @@ export default function AdminDashboard() {
                             </button>
                         </div>
                     </div>
-                    <AdvancedAnalyticsChart 
-                        data={chartRange === 'week' ? stats.activityData.slice(-7) : stats.activityData} 
+                    <AdvancedAnalyticsChart
+                        data={chartRange === 'week' ? stats.activityData.slice(-7) : stats.activityData}
                         height={320}
                         seriesConfig={[
                             { key: 'tests', label: 'Bajarilgan Testlar', color: '#3B82F6', type: 'count' },
@@ -493,14 +505,17 @@ export default function AdminDashboard() {
 
                 {/* ACTION CARDS */}
                 <div className="col-span-12 text-gray-400 dark:text-white/40 font-medium text-xs mt-2 uppercase tracking-widest pl-1">Tezkor Menyular</div>
-                <ActionCard title="Test Yaratish" desc="Yangi Reading/Listening" icon={<Icons.Plus className="w-6 h-6 text-white" />} bg="bg-blue-600 hover:bg-blue-500" onClick={() => navigate('/admin/create-test')} />
-                <ActionCard title="Analitika" desc="Statistika va tahlillar" icon={<Icons.Analytics className="w-6 h-6 text-white" />} bg="bg-purple-600 hover:bg-purple-500" onClick={() => navigate('/admin/analytics')} />
-                <ActionCard title="O'quvchilar" desc="Tahrirlash va ko'rish" icon={<Icons.Users className="w-6 h-6 text-white" />} bg="dark:bg-[#353535] dark:hover:bg-[#404040] bg-gray-800 hover:bg-gray-700" onClick={() => navigate('/admin/users')} />
-                <ActionCard title="Baholash" desc="Natijalarni tekshirish" icon={<Icons.Stats className="w-6 h-6 text-white" />} bg="dark:bg-[#353535] dark:hover:bg-[#404040] bg-gray-800 hover:bg-gray-700" onClick={() => navigate('/admin/results')} />
-                <ActionCard title="E'lonlar" desc="Yangiliklar yuborish" icon={<Icons.Megaphone className="w-6 h-6 text-white" />} bg="dark:bg-[#353535] dark:hover:bg-[#404040] bg-gray-800 hover:bg-gray-700" onClick={() => navigate('/admin/announcements')} />
+
+                <ActionCard title="Test Yaratish" desc="Yangi Reading/Listening" icon={<Icons.Plus className="w-6 h-6 text-white" />} bg="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20" onClick={() => navigate('/admin/create-test')} />
+                <ActionCard title="Analitika" desc="Statistika va tahlillar" icon={<Icons.Analytics className="w-6 h-6 text-white" />} bg="bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-600/20" onClick={() => navigate('/admin/analytics')} />
+                <ActionCard title="O'quvchilar" desc="Tahrirlash va ko'rish" icon={<Icons.Users className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none" onClick={() => navigate('/admin/users')} />
+                <ActionCard title="Baholash" desc="Natijalarni tekshirish" icon={<Icons.Stats className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/results')} />
+                <ActionCard title="E'lonlar" desc="Yangiliklar yuborish" icon={<Icons.Megaphone className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/announcements')} />
+
 
                 {/* USER MANAGEMENT LIST */}
-                <div className="col-span-12 bg-[#272727] dark:bg-[#272727] bg-white rounded-[24px] p-4 md:p-6 border border-white/5 dark:border-white/5 border-gray-200 shadow-sm dark:shadow-none transition-colors">
+                <div className="col-span-12 bg-white dark:bg-[#272727] rounded-[24px] p-4 md:p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors">
+
                     <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                         <h3 className="text-gray-900 dark:text-white font-medium flex items-center gap-2">
                             O'quvchilar Boshqaruvi
@@ -657,9 +672,11 @@ export default function AdminDashboard() {
 }
 
 // --- SUB COMPONENTS (Tuzatilgan Modal bilan) ---
-
 function UserDetailModal({ user, onClose, onBlock, onUpdateType }) {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [results, setResults] = useState([]);
+
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -701,110 +718,119 @@ function UserDetailModal({ user, onClose, onBlock, onUpdateType }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-[#2C2C2C] border border-white/10 w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative flex flex-col max-h-[90vh]">
+            <div className={`border w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative flex flex-col max-h-[90vh] transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
+
                 <div className="flex justify-between items-start mb-6">
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
                             {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 {user.fullName}
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full border ${user.studentType === 'group' ? 'border-purple-500 text-purple-400' : 'border-blue-500 text-blue-400'}`}>
                                     {user.studentType === 'group' ? "Guruh o'quvchisi" : "Individual"}
                                 </span>
                             </h2>
-                            <p className="text-white/40 text-sm">{user.email}</p>
-                            <p className="text-white/20 text-xs mt-1">ID: {user.id}</p>
+                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-sm`}>{user.email}</p>
+                            <p className={`${isDark ? 'text-white/20' : 'text-gray-400'} text-xs mt-1`}>ID: {user.id}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-white/40 hover:text-white transition p-2 bg-white/5 rounded-full">
+                    <button onClick={onClose} className={`${isDark ? 'text-white/40 hover:text-white bg-white/5' : 'text-gray-400 hover:text-gray-600 bg-gray-100'} transition p-2 rounded-full`}>
                         <Icons.Close className="w-5 h-5" />
                     </button>
                 </div>
+
                 <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-6">
                     <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-[#222] p-4 rounded-2xl border border-white/5">
-                            <p className="text-white/40 text-xs uppercase">O'rtacha Ball</p>
-                            <p className="text-2xl font-bold text-yellow-400">{avgScore}</p>
+                        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-[#222] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-xs uppercase`}>O'rtacha Ball</p>
+                            <p className="text-2xl font-bold text-yellow-500">{avgScore}</p>
                         </div>
-                        <div className="bg-[#222] p-4 rounded-2xl border border-white/5">
-                            <p className="text-white/40 text-xs uppercase">Testlar</p>
-                            <p className="text-2xl font-bold text-white">{totalTests}</p>
+                        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-[#222] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-xs uppercase`}>Testlar</p>
+                            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{totalTests}</p>
                         </div>
-                        <div className="bg-[#222] p-4 rounded-2xl border border-white/5">
-                            <p className="text-white/40 text-xs uppercase">Holat</p>
-                            <p className={`text-lg font-bold ${user.isBlocked ? 'text-red-400' : 'text-green-400'}`}>
+                        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-[#222] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-xs uppercase`}>Holat</p>
+                            <p className={`text-lg font-bold ${user.isBlocked ? 'text-red-500' : 'text-green-500'}`}>
                                 {user.isBlocked ? "Bloklangan" : "Faol"}
                             </p>
                         </div>
                     </div>
+
                     <div>
-                        <h3 className="text-white font-medium mb-3 text-sm">Oxirgi Natijalar</h3>
-                        {loading ? <p className="text-white/30 text-xs">Yuklanmoqda...</p> : (
+                        <h3 className={`font-medium mb-3 text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>Oxirgi Natijalar</h3>
+                        {loading ? <p className={`${isDark ? 'text-white/30' : 'text-gray-400'} text-xs`}>Yuklanmoqda...</p> : (
                             <div className="space-y-2">
                                 {results.length > 0 ? results.map((res, idx) => (
-                                    <div key={idx} className="flex justify-between items-center bg-[#222] p-3 rounded-xl border border-white/5">
+                                    <div key={idx} className={`flex justify-between items-center p-3 rounded-xl border ${isDark ? 'bg-[#222] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
                                         <div>
-                                            <p className="text-white text-sm font-medium">{res.testTitle || "Test Nomi Yo'q"}</p>
-                                            <p className="text-white/30 text-[10px]">
+                                            <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{res.testTitle || "Test Nomi Yo'q"}</p>
+                                            <p className={`${isDark ? 'text-white/30' : 'text-gray-400'} text-[10px]`}>
                                                 {res.date ? new Date(res.date.seconds * 1000).toLocaleDateString() :
                                                     res.createdAt ? new Date(res.createdAt.seconds * 1000).toLocaleDateString() : "Sana yo'q"}
                                             </p>
                                         </div>
-                                        <div className="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs font-bold">
+                                        <div className="bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded text-xs font-bold">
                                             {res.score || "N/A"}
                                         </div>
                                     </div>
-                                )) : <p className="text-white/20 text-xs italic">Natijalar topilmadi.</p>}
+                                )) : <p className={`${isDark ? 'text-white/20' : 'text-gray-400'} text-xs italic`}>Natijalar topilmadi.</p>}
                             </div>
                         )}
                     </div>
+
                     <div>
-                        <h3 className="text-white font-medium mb-3 text-sm">Biriktirilgan Testlar</h3>
+                        <h3 className={`font-medium mb-3 text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>Biriktirilgan Testlar</h3>
                         <div className="flex flex-wrap gap-2">
                             {user.assignedTests && user.assignedTests.length > 0 ? (
                                 user.assignedTests.map((test, i) => {
                                     const testId = typeof test === 'string' ? test : test.id;
                                     return (
-                                        <span key={i} className="px-2 py-1 bg-white/5 border border-white/10 rounded text-[10px] text-gray-300">
+                                        <span key={i} className={`px-2 py-1 rounded text-[10px] border ${isDark ? 'bg-white/5 border-white/10 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-600'}`}>
                                             {testId ? testId.substring(0, 8) + "..." : "ID Yo'q"}
                                         </span>
                                     )
                                 })
                             ) : (
-                                <p className="text-white/20 text-xs italic">Hozircha test biriktirilmagan.</p>
+                                <p className={`${isDark ? 'text-white/20' : 'text-gray-400'} text-xs italic`}>Hozircha test biriktirilmagan.</p>
                             )}
                         </div>
                     </div>
                 </div>
-                <div className="mt-6 pt-6 border-t border-white/5 flex justify-between items-center">
+                <div className={`mt-6 pt-6 border-t flex justify-between items-center ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                     <button
                         onClick={() => onBlock(user.id, user.isBlocked)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition ${user.isBlocked ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-500/20'}`}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm ${user.isBlocked ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-red-600/10 hover:bg-red-600/20 text-red-600 border border-red-200'}`}
                     >
-                        {user.isBlocked ? "Blokdan chiqarish" : "Foydalanuvchini bloklash"}
+                        {user.isBlocked ? "Blokdan chiqarish" : "Bloklash"}
                     </button>
                     <div className="flex gap-2">
-                        <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs font-medium text-white hover:bg-white/5 transition">Yopish</button>
+                        <button onClick={onClose} className={`px-4 py-2 rounded-xl text-xs font-medium transition ${isDark ? 'text-white hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}>Yopish</button>
                     </div>
                 </div>
+
             </div>
         </div>
     );
 }
 
 function GroupSelectionModal({ user, groups, onClose, onAdd, processing }) {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-[#2C2C2C] border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative">
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white transition">
+            <div className={`border w-full max-w-sm rounded-3xl p-6 shadow-2xl relative transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
+
+                <button onClick={onClose} className={`absolute top-4 right-4 transition ${isDark ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`}>
                     <Icons.Close className="w-6 h-6" />
                 </button>
                 <div className="text-center mb-6">
-                    <h2 className="text-xl font-bold text-white">Guruh tanlang</h2>
-                    <p className="text-gray-400 text-sm mt-1">
-                        <span className="text-white font-bold">{user.fullName}</span> ni qaysi guruhga biriktiramiz?
+                    <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Guruh tanlang</h2>
+                    <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-sm mt-1`}>
+                        <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.fullName}</span> ni qaysi guruhga biriktiramiz?
                     </p>
                 </div>
                 <div className="space-y-2 mb-6 max-h-48 overflow-y-auto custom-scrollbar">
@@ -813,19 +839,20 @@ function GroupSelectionModal({ user, groups, onClose, onAdd, processing }) {
                             <button
                                 key={group.id}
                                 onClick={() => onAdd(group.id)}
-                                className="w-full p-3.5 rounded-xl border border-white/5 bg-[#222] hover:bg-[#333] text-left transition flex items-center justify-between group"
+                                className={`w-full p-3.5 rounded-xl border text-left transition flex items-center justify-between group-hover ${isDark ? 'border-white/5 bg-[#222] hover:bg-[#333]' : 'border-gray-100 bg-gray-50 hover:bg-gray-100'}`}
                             >
-                                <span className="font-medium text-sm text-gray-300 group-hover:text-white">{group.name}</span>
-                                <Icons.Plus className="w-4 h-4 text-gray-500 group-hover:text-white" />
+                                <span className={`font-medium text-sm transition ${isDark ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-gray-900'}`}>{group.name}</span>
+                                <Icons.Plus className="w-4 h-4 text-gray-500" />
                             </button>
                         ))
                     ) : (
-                        <p className="text-center text-gray-500 text-xs">Guruhlar mavjud emas.</p>
+                        <p className={`text-center text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Guruhlar mavjud emas.</p>
                     )}
                 </div>
-                {processing && <p className="text-center text-xs text-blue-400 animate-pulse">Bajarilmoqda...</p>}
+                {processing && <p className="text-center text-xs text-blue-500 animate-pulse">Bajarilmoqda...</p>}
             </div>
         </div>
+
     );
 }
 
@@ -838,10 +865,17 @@ function SidebarBtn({ icon, active, onClick }) {
 }
 
 function ActionCard({ title, desc, icon, bg, onClick }) {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+    const isPrimaryAction = bg.includes('bg-blue-600') || bg.includes('bg-purple-600');
+
     return (
-        <button onClick={onClick} className={`col-span-6 md:col-span-3 rounded-[24px] p-5 text-left transition-all duration-200 active:scale-95 flex flex-col justify-between h-36 border border-white/5 ${bg}`}>
-            <div className="p-2 bg-white/10 rounded-xl w-fit backdrop-blur-sm">{icon}</div>
-            <div><h4 className="text-white font-bold text-lg leading-tight">{title}</h4><p className="text-white/60 text-xs mt-1">{desc}</p></div>
+        <button onClick={onClick} className={`col-span-6 md:col-span-3 rounded-[24px] p-5 text-left transition-all duration-200 active:scale-95 flex flex-col justify-between h-36 border ${isDark ? 'border-white/5' : 'border-gray-200'} ${bg}`}>
+            <div className={`p-2 rounded-xl w-fit backdrop-blur-sm ${isPrimaryAction ? 'bg-white/10' : 'bg-gray-100 dark:bg-white/10'}`}>{icon}</div>
+            <div>
+                <h4 className={`font-bold text-lg leading-tight ${isPrimaryAction ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{title}</h4>
+                <p className={`text-xs mt-1 ${isPrimaryAction ? 'text-white/60' : 'text-gray-500 dark:text-white/40'}`}>{desc}</p>
+            </div>
         </button>
     );
 }

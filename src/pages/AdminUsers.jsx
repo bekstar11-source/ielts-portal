@@ -141,7 +141,8 @@ export default function AdminUsers() {
     useEffect(() => { refreshData(); }, []);
 
     return (
-        <div className={`h-full flex flex-col font-sans ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <div className={`h-full flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+
             <style>{customDatepickerStyles}</style>
 
             {/* HEADER & TABS */}
@@ -150,7 +151,8 @@ export default function AdminUsers() {
                     <h1 className={`text-xl md:text-2xl font-bold font-display ${isDark ? 'text-white' : 'text-gray-900'}`}>Boshqaruv Paneli</h1>
                     <p className={`text-xs md:text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tizim foydalanuvchilari va guruhlarni boshqarish</p>
                 </div>
-                <div className={`flex p-1 rounded-2xl overflow-x-auto w-full lg:w-auto no-scrollbar ${isDark ? 'bg-[#2C2C2C]' : 'bg-gray-100'}`}>
+                <div className={`flex p-1 rounded-2xl overflow-x-auto w-full lg:w-auto no-scrollbar transition-colors ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-100'}`}>
+
                     <TabButton id="students" active={activeTab} onClick={setActiveTab} label="O'quvchilar" icon={Users} theme={theme} />
                     <TabButton id="groups" active={activeTab} onClick={setActiveTab} label="Guruhlar" icon={Layers} theme={theme} />
                     <TabButton id="assign" active={activeTab} onClick={setActiveTab} label="Tayinlash" icon={UserCheck} theme={theme} />
@@ -203,7 +205,8 @@ function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, total
     return (
         <div className={`rounded-[24px] border h-full flex flex-col overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
             {/* Toolbar */}
-            <div className={`p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${isDark ? 'border-white/5 bg-[#2C2C2C]' : 'border-gray-100 bg-gray-50'}`}>
+            <div className={`p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50'}`}>
+
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     <div className={`flex items-center px-3 py-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
                         <Search size={16} className="text-gray-400 mr-2" />
@@ -291,7 +294,8 @@ function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, total
             </div>
 
             {hasMore && (
-                <div className={`p-4 border-t flex justify-center ${isDark ? 'border-white/5 bg-[#2C2C2C]' : 'border-gray-100 bg-gray-50'}`}>
+                <div className={`p-4 border-t flex justify-center transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50'}`}>
+
                     <button
                         onClick={onLoadMore}
                         className={`
@@ -382,8 +386,9 @@ function GroupsTab({ groups, students, teachers, onRefresh, theme }) {
 
     return (
         <div className="h-full flex flex-col gap-6">
-            <div className={`p-4 rounded-[20px] border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+            <div className={`p-4 rounded-[20px] border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
                 <span className="font-bold text-sm ml-2">Jami: {groups.length} ta guruh</span>
+
                 <div className="flex gap-2">
                     <input
                         type="text"
@@ -402,7 +407,8 @@ function GroupsTab({ groups, students, teachers, onRefresh, theme }) {
                 {groups.map(g => {
                     const groupTeachers = (g.teacherIds || []).map(tid => teachers.find(t => t.id === tid)).filter(Boolean);
                     return (
-                        <div key={g.id} className={`rounded-[24px] border p-6 transition group relative ${isDark ? 'bg-[#2C2C2C] border-white/5 hover:border-blue-500/50' : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm'}`}>
+                        <div key={g.id} className={`rounded-[24px] border p-6 transition-all group relative ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-blue-500/50 shadow-lg' : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm'}`}>
+
                             <div className="flex justify-between items-start mb-4">
                                 <h3 className="font-bold text-lg">{g.name}</h3>
                                 <button onClick={() => handleDelete(g.id)} className="opacity-0 group-hover:opacity-100 transition p-2 hover:bg-red-500/10 text-red-500 rounded-lg">
@@ -584,7 +590,8 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
         <div className="relative flex flex-col h-full">
             <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-6 pb-24 md:pb-0 overflow-y-auto md:overflow-hidden p-1">
             {/* LEFT: Target Selection */}
-            <div className={`col-span-12 lg:col-span-4 p-4 md:p-6 border-b lg:border-b-0 lg:border-r ${isDark ? 'border-white/5 bg-[#1A1A1A]' : 'border-gray-100 bg-gray-50'} flex flex-col min-h-[300px] max-h-[400px] md:max-h-full`}>
+            <div className={`col-span-12 lg:col-span-4 p-4 md:p-6 border-b lg:border-b-0 lg:border-r transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50'} flex flex-col min-h-[300px] max-h-[400px] md:max-h-full`}>
+
                 <div className={`p-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'} flex justify-between items-center`}>
                     <span className="text-xs font-bold uppercase tracking-wider opacity-60">1. Kimga?</span>
                     <div className={`flex p-1 rounded-lg ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-100'}`}>
@@ -648,7 +655,8 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
             </div>
 
             {/* RIGHT: Settings */}
-            <div className={`col-span-12 md:col-span-8 rounded-[24px] border flex flex-col ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+            <div className={`col-span-12 md:col-span-8 rounded-[24px] border flex flex-col transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+
                 <div className={`p-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                     <span className="text-xs font-bold uppercase tracking-wider opacity-60">2. Nima?</span>
                 </div>

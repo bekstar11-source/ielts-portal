@@ -9,9 +9,10 @@ export default function AdminLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
 
     return (
-        <div className={`flex h-screen overflow-hidden font-sans transition-colors duration-300 ${theme === 'dark' ? 'bg-[#1E1E1E] text-white' : 'bg-gray-50 text-gray-900'}`}>
+        <div className={`flex h-screen overflow-hidden font-sans transition-colors duration-300 ${theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
             {/* SIDEBAR */}
             <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+
 
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 flex flex-col h-full overflow-hidden relative w-full">

@@ -45,7 +45,9 @@ export default function AdminHeader({ toggleSidebar }) {
 
 
     return (
-        <header className={`h-16 px-4 md:px-6 flex items-center justify-between border-b transition-colors duration-300 relative ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+        <header className={`h-16 px-4 md:px-6 flex items-center justify-between border-b transition-all duration-200 relative ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+
+
 
             {/* LEFT: Toggle & Breadcrumbs */}
             <div className="flex items-center gap-4">
@@ -66,7 +68,8 @@ export default function AdminHeader({ toggleSidebar }) {
             <div className="flex items-center gap-3 md:gap-4">
 
                 {/* Search (Desktop) */}
-                <div className={`hidden md:flex items-center px-3 py-1.5 rounded-full border transition-colors ${theme === 'dark' ? 'bg-[#2C2C2C] border-white/10' : 'bg-gray-100 border-transparent'}`}>
+                <div className={`hidden md:flex items-center px-3 py-1.5 rounded-full border transition-all ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/10' : 'bg-gray-100 border-transparent'}`}>
+
                     <Search size={16} className="text-gray-400" />
                     <input
                         type="text"
@@ -104,7 +107,8 @@ export default function AdminHeader({ toggleSidebar }) {
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px]">
-                            <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${theme === 'dark' ? 'bg-[#2C2C2C]' : 'bg-white'}`}>
+                            <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${theme === 'dark' ? 'bg-[#1E1E1E]' : 'bg-white'}`}>
+
                                 {userData?.photoURL ? (
                                     <img src={userData.photoURL} alt="Admin" className="w-full h-full object-cover" />
                                 ) : (
@@ -123,8 +127,9 @@ export default function AdminHeader({ toggleSidebar }) {
 
                     {/* Logout Confirmation Modal */}
                     {showLogoutConfirm && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                            <div className={`w-full max-w-sm rounded-xl p-6 shadow-xl ${theme === 'dark' ? 'bg-[#2C2C2C] text-white' : 'bg-white text-gray-900'}`}>
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                            <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl transition-all scale-100 opacity-100 ${theme === 'dark' ? 'bg-[#1E1E1E] border border-white/10 text-white' : 'bg-white text-gray-900'}`}>
+
                                 <h3 className="text-lg font-bold mb-2">Are you sure?</h3>
                                 <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                     Haqiqatan ham tizimdan chiqmoqchimisiz?

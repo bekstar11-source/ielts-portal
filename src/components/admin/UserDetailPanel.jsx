@@ -97,9 +97,10 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
         });
     }, [recentResults]);
 
-    const inputClass = `w-full p-2.5 rounded-xl border outline-none transition text-sm ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`;
-    const labelClass = `text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`;
-    const sectionTitle = `text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`;
+    const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all text-sm ${isDark ? 'bg-[#1E1E1E] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`;
+    const labelClass = `text-xs font-medium transition-colors ${isDark ? 'text-gray-400' : 'text-gray-600'}`;
+    const sectionTitle = `text-xs font-bold uppercase tracking-wider transition-colors ${isDark ? 'text-gray-500' : 'text-gray-400'}`;
+
 
     if (!isOpen || !user) return null;
 
@@ -136,9 +137,10 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                             </span>
                         )}
                         </div>
-                        <button onClick={onClose} className={`p-2 rounded-xl transition ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
+                        <button onClick={onClose} className={`p-2 rounded-xl transition-all ${isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500'}`}>
                             <X size={20} />
                         </button>
+
                     </div>
 
                     {/* Body */}
@@ -220,7 +222,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                                     ) : recentResults.length > 0 ? (
                                         <div className="space-y-2">
                                             {recentResults.slice().reverse().slice(0, 5).map((res, i) => (
-                                                <div key={i} className={`flex justify-between items-center p-3 rounded-xl border ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                                                <div key={i} className={`flex justify-between items-center p-3 rounded-xl border transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100 shadow-sm'}`}>
+
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         <div className={`p-2 rounded-lg flex-shrink-0 ${isDark ? 'bg-white/5 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
                                                             <BookOpen size={14} />
@@ -261,7 +264,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                             <div className="lg:col-span-8 p-6 space-y-6">
                                 <h4 className={sectionTitle}>O'sish Dinamikasi — Band Scores</h4>
 
-                                <div className={`rounded-3xl border p-6 ${isDark ? 'border-white/5 bg-[#2C2C2C]' : 'border-gray-100 bg-gray-50'}`}>
+                                <div className={`rounded-3xl border p-6 transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50 shadow-sm'}`}>
+
                                     {loading ? (
                                         <div className="min-h-[340px] flex items-center justify-center">
                                             <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -311,7 +315,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                                                 : null;
                                             const colors = { reading: 'text-blue-400 border-blue-500/20 bg-blue-500/5', listening: 'text-purple-400 border-purple-500/20 bg-purple-500/5', writing: 'text-orange-400 border-orange-500/20 bg-orange-500/5', speaking: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' };
                                             return (
-                                                <div key={type} className={`p-4 rounded-2xl border ${colors[type]} ${isDark ? '' : 'bg-opacity-30'}`}>
+                                                <div key={type} className={`p-4 rounded-2xl border transition-all ${colors[type]} ${isDark ? '' : 'bg-opacity-30 shadow-sm'}`}>
+
                                                     <p className="text-xs font-bold uppercase tracking-wider opacity-70 capitalize">{type}</p>
                                                     <p className="text-2xl font-bold mt-1">{avg ?? '—'}</p>
                                                     <p className="text-[10px] opacity-60 mt-0.5">{typeResults.length} ta natija</p>

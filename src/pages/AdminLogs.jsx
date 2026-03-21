@@ -54,7 +54,9 @@ export default function AdminLogs() {
     };
 
     return (
-        <div className={`min-h-screen p-6 ${isDark ? 'bg-[#1E1E1E] text-white' : 'bg-gray-50 text-gray-900'}`}>
+        <div className={`min-h-screen p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+
+
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold">System Audit Logs</h1>
@@ -64,8 +66,9 @@ export default function AdminLogs() {
                     <select
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
-                        className={`px-4 py-2 rounded-xl outline-none border ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}
+                        className={`px-4 py-2 rounded-xl outline-none border transition-all ${isDark ? 'bg-[#1E1E1E] border-white/5 text-white' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
+
                         <option value="ALL">All Actions</option>
                         <option value="LOGIN">Login</option>
                         <option value="USER_EDIT">User Edits</option>
@@ -75,10 +78,12 @@ export default function AdminLogs() {
                 </div>
             </div>
 
-            <div className={`rounded-[24px] border overflow-hidden ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+            <div className={`rounded-[24px] border overflow-hidden transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
                 <div className="overflow-x-auto">
+
                     <table className="w-full text-left">
-                        <thead className={`border-b ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50'}`}>
+                        <thead className={`border-b transition-colors ${isDark ? 'border-white/5 bg-[#121212]' : 'border-gray-100 bg-gray-50'}`}>
+
                             <tr>
                                 <th className="p-4 text-xs font-bold uppercase tracking-wider opacity-60">Timestamp</th>
                                 <th className="p-4 text-xs font-bold uppercase tracking-wider opacity-60">User ID</th>

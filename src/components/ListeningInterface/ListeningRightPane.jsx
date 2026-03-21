@@ -2,6 +2,39 @@ import React, { memo } from "react";
 import { MapLabeling, Matching, SelectionBox, TableCompletion, NoteCompletion, FlowChart, StandardMCQ } from "./ListeningQuestionTypes";
 import { useListeningHighlight } from "../../hooks/useListeningHighlight";
 
+const formatIELTSInstruction = (text) => {
+    if (!text) return "";
+    // IELTS so'z limitlarini bold (bold) qilish
+    const patterns = [
+        /\b(NO MORE THAN (?:THREE|TWO|ONE|[A-Z]+) WORDS? AND\/OR A NUMBER)\b/gi,
+        /\b(NO MORE THAN (?:THREE|TWO|ONE|[A-Z]+) WORDS?)\b/gi,
+        /\b(ONE WORD AND\/OR A NUMBER)\b/gi,
+        /\b(ONE WORD ONLY)\b/gi,
+        /\b(A NUMBER)\b/gi
+    ];
+
+    let result = text;
+    patterns.forEach(p => {
+        result = result.replace(p, (match) => `<strong>${match.toUpperCase()}</strong>`);
+    });
+
+    // Ko'rsatmalarni yangi qatordan boshlash
+    const breakPatterns = [
+        { search: '. Write', replace: '. <div class="mt-1 mb-1">Write' },
+        { search: '. Choose', replace: '. <div class="mt-1 mb-1">Choose' },
+        { search: '? Choose', replace: '? <div class="mt-1 mb-1">Choose' }
+    ];
+
+    breakPatterns.forEach(p => {
+        if (result.includes(p.search)) {
+            result = result.replace(p.search, p.replace);
+            result += '</div>';
+        }
+    });
+
+    return result;
+};
+
 const ListeningRightPane = memo(({
     testData,
     activePart,
@@ -30,15 +63,15 @@ const ListeningRightPane = memo(({
         if (isReviewMode || testMode === 'practice') return;
         introEndFiredRef.current = false; // reset when test starts
         const duration = Number(testData.introDuration) || 10;
-        
+
         // Agar ikkinchi oyna yashirilgan bo'lsa (Masalan MockExam da Volume Check bo'lsa)
         if (hideSecondaryIntro) {
-             setIntroTimeLeft(0);
-             if (!introEndFiredRef.current && onIntroEnd) {
-                 introEndFiredRef.current = true;
-                 setTimeout(() => onIntroEnd(), 100);
-             }
-             return;
+            setIntroTimeLeft(0);
+            if (!introEndFiredRef.current && onIntroEnd) {
+                introEndFiredRef.current = true;
+                setTimeout(() => onIntroEnd(), 100);
+            }
+            return;
         }
 
         setIntroTimeLeft(duration);
@@ -130,9 +163,9 @@ const ListeningRightPane = memo(({
             {/* INTRO BLUR */}
             {introTimeLeft > 0 && !isReviewMode && !hideSecondaryIntro && (
                 <div className="fixed inset-0 z-[3000] bg-white/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500">
-                    <div className="text-6xl mb-4 animate-bounce">🎧</div>
+                    <div className="text-6xl mb-1 animate-bounce">🎧</div>
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Test is about to start</h2>
-                    <p className="text-gray-500 font-medium mb-6">Please put on your headphones</p>
+                    <p className="text-gray-500 font-medium mb-2">Please put on your headphones</p>
                     <div className="w-24 h-24 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shadow-lg">
                         <span className="text-3xl font-bold text-blue-600 animate-pulse">{introTimeLeft}</span>
                     </div>
@@ -189,12 +222,19 @@ const ListeningRightPane = memo(({
                     allSubItems = group.questions || group.items || [];
                 }
 
-                const firstId = allSubItems[0]?.id || group.id;
-                const lastId = allSubItems[allSubItems.length - 1]?.id || group.id;
+                // Barcha savol ID larini yig'ish (faqat raqamlilarni)
+                const allIds = allSubItems
+                    .map(it => parseInt(it.id))
+                    .filter(id => !isNaN(id));
+
+                const firstId = allIds.length > 0 ? Math.min(...allIds) : group.id;
+                const lastId = allIds.length > 0 ? Math.max(...allIds) : group.id;
 
                 let questionRange = "";
                 if (firstId && lastId) {
-                    questionRange = String(firstId) === String(lastId) ? `Question ${firstId}` : `Questions ${firstId} – ${lastId}`;
+                    questionRange = String(firstId) === String(lastId)
+                        ? `Question ${firstId}`
+                        : `Questions ${firstId}–${lastId}`;
                 }
 
                 const prevGroup = gIdx > 0 ? questionsForPart[gIdx - 1] : null;
@@ -204,30 +244,27 @@ const ListeningRightPane = memo(({
 
                 return (
                     <div key={gIdx} className="mb-8 animate-in fade-in duration-500">
-                        <div className="mb-4 flex flex-col">
+                        <div className="mb-1 flex flex-col">
                             {questionRange && (
-                                <div className="flex items-center gap-3 mb-3">
-                                    <h3 className="text-[0.9em] font-black text-black uppercase tracking-[0.2em] py-1">
+                                <div className="mb-0.5">
+                                    <h3 className="text-[1.2em] font-bold text-black leading-tight">
                                         {questionRange}
                                     </h3>
-                                    <div className="h-[1px] bg-gray-100 grow"></div>
                                 </div>
                             )}
 
-                            {((!isDuplicateInstruction && group.instruction) || (!isDuplicateGroupText && group.text)) && (
-                                <div className="mb-6 px-1">
-                                    {!isDuplicateInstruction && group.instruction && (
-                                        <div className={`text-[1em] font-bold text-gray-900 italic leading-relaxed ${(!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0)) ? 'border-b border-gray-200 pb-3 mb-3' : ''}`}>
-                                            <span dangerouslySetInnerHTML={{ __html: group.instruction }} />
-                                        </div>
-                                    )}
-                                    {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0) && (
-                                        <div className="text-[1.1em] font-bold text-gray-900 leading-tight tracking-tight">
-                                            <span dangerouslySetInnerHTML={{ __html: group.text }} />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                            <div className="mb-2">
+                                {!isDuplicateInstruction && group.instruction && (
+                                    <div className="text-[1.1em] font-normal text-gray-900 leading-snug">
+                                        <span dangerouslySetInnerHTML={{ __html: formatIELTSInstruction(group.instruction) }} />
+                                    </div>
+                                )}
+                                {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0) && (
+                                    <div className="mt-4 text-[1.1em] font-bold text-gray-900 leading-tight">
+                                        <span dangerouslySetInnerHTML={{ __html: group.text }} />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         {renderGroupContent(group)}
                     </div>

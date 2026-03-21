@@ -154,21 +154,40 @@ export default function CreateTest() {
         try {
             if (!jsonStr.trim()) return;
             const parsed = JSON.parse(jsonStr);
-            let updatedPassages = parsed.passages || [];
-            updatedPassages = updatedPassages.map((p, idx) => {
-                let audioUrl = audioMode === 'single' ? singleAudioUrl : (partAudios[idx] || (testData.passages[idx]?.audio) || "");
-                return { ...p, audio: audioUrl };
-            });
 
-            setTestData(prev => ({
-                ...prev,
-                title: parsed.title || prev.title,
-                audio_url: parsed.audio || prev.audio_url,
-                introDuration: parsed.introDuration || prev.introDuration,
-                passages: updatedPassages,
-                questions: parsed.questions || prev.questions,
-                keywordTable: parsed.keywordTable || prev.keywordTable || []
-            }));
+            setTestData(prev => {
+                const passagesFromJSON = parsed.passages || [];
+                
+                // Merge JSON passages with existing state to preserve times and audio if not in JSON
+                const updatedPassages = passagesFromJSON.map((p, idx) => {
+                    const existing = (prev.passages && prev.passages[idx]) ? prev.passages[idx] : {};
+                    
+                    // Priority for audio: 
+                    // 1. Single audio mode URL (if active)
+                    // 2. Part-specific state (partAudios)
+                    // 3. Current JSON passage audio
+                    // 4. Existing state passage audio
+                    const audioUrl = audioMode === 'single' 
+                        ? (singleAudioUrl || p.audio || existing.audio || "")
+                        : (partAudios[idx] || p.audio || existing.audio || "");
+
+                    return {
+                        ...existing,
+                        ...p,
+                        audio: audioUrl
+                    };
+                });
+
+                return {
+                    ...prev,
+                    title: parsed.title || prev.title,
+                    audio_url: parsed.audio || prev.audio_url,
+                    introDuration: parsed.introDuration || prev.introDuration,
+                    passages: parsed.passages ? updatedPassages : prev.passages,
+                    questions: parsed.questions || prev.questions,
+                    keywordTable: parsed.keywordTable || prev.keywordTable || []
+                };
+            });
             setJsonError("");
         } catch (err) { setJsonError("JSON Xato: " + err.message); }
     };

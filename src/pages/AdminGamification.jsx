@@ -105,7 +105,9 @@ export default function AdminGamification() {
     };
 
     return (
-        <div className={`min-h-screen p-6 ${isDark ? 'bg-[#1E1E1E] text-white' : 'bg-gray-50 text-gray-900'}`}>
+        <div className={`min-h-screen p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+
+
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -116,10 +118,11 @@ export default function AdminGamification() {
                 <div className="flex gap-2">
                     <button
                         onClick={fetchLeaderboard}
-                        className={`p-2 rounded-xl transition ${isDark ? 'bg-[#2C2C2C] hover:bg-[#3B3B3B]' : 'bg-white hover:bg-gray-100'}`}
+                        className={`p-2 rounded-xl transition-all ${isDark ? 'bg-[#1E1E1E] border border-white/5 hover:bg-white/10' : 'bg-white border border-gray-200 hover:bg-gray-50'}`}
                     >
-                        <RefreshCw size={20} />
+                        <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
                     </button>
+
                 </div>
             </div>
 
@@ -139,8 +142,9 @@ export default function AdminGamification() {
                 </div>
 
                 {/* LEADERBOARD TABLE */}
-                <div className={`lg:col-span-2 rounded-[24px] border overflow-hidden flex flex-col h-[600px] ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
-                    <div className={`p-4 border-b flex items-center justify-between ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                <div className={`lg:col-span-2 rounded-[24px] border overflow-hidden flex flex-col h-[600px] transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+                    <div className={`p-4 border-b flex items-center justify-between transition-colors ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+
                         <h3 className="font-bold flex items-center gap-2"><Medal size={18} /> Top Students</h3>
                         <div className={`flex items-center px-3 py-1.5 rounded-lg border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                             <Search size={14} className="opacity-50 mr-2" />
@@ -156,10 +160,11 @@ export default function AdminGamification() {
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
                         {loading ? (
-                            <div className="p-8 text-center opacity-50">Loading...</div>
+                            <div className={`p-8 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Loading...</div>
                         ) : (
                             <table className="w-full text-left">
-                                <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#2C2C2C]' : 'bg-white'}`}>
+                                <thead className={`sticky top-0 z-10 transition-colors ${isDark ? 'bg-[#1E1E1E]' : 'bg-white'}`}>
+
                                     <tr>
                                         <th className="p-4 text-xs font-bold uppercase opacity-50">Rank</th>
                                         <th className="p-4 text-xs font-bold uppercase opacity-50">Student</th>
@@ -220,8 +225,9 @@ export default function AdminGamification() {
                 </div>
 
                 {/* RECENT AWARDS */}
-                <div className={`rounded-[24px] border p-6 ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+                <div className={`rounded-[24px] border p-6 transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
                     <h3 className="font-bold mb-4 flex items-center gap-2"><Star className="text-yellow-500" size={18} /> Recent Awards</h3>
+
                     <div className="space-y-4">
                         {recentAwards.length > 0 ? (
                             recentAwards.map((award, i) => (

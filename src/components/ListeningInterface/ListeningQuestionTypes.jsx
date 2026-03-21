@@ -81,14 +81,14 @@ const DraggableOption = ({ label, text, isReviewMode, isUsed }) => {
             {...listeners}
             {...attributes}
             className={`
-                px-4 py-2 border border-gray-300 rounded-lg cursor-grab active:cursor-grabbing
+                px-3 py-1.5 border border-gray-300 rounded-lg cursor-grab active:cursor-grabbing
                 select-none flex items-center justify-start w-fit transition-all
                 ${isDragging ? 'opacity-40 ring-2 ring-blue-500 shadow-2xl scale-105 z-[1000] bg-white border-blue-400' : ''}
                 ${isUsed && !isDragging ? 'bg-gray-50 border-gray-200 opacity-40 grayscale' : 'bg-white hover:border-gray-400 hover:shadow-sm'}
                 ${isReviewMode ? 'cursor-default opacity-100 grayscale-0' : ''}
             `}
         >
-            <span className={`leading-tight text-[1.1em] font-medium text-black ${isUsed ? 'text-gray-400' : 'text-gray-800'}`}>{text}</span>
+            <span className={`leading-tight text-[1em] font-medium text-black ${isUsed ? 'text-gray-400' : 'text-gray-800'}`}>{text}</span>
         </div>
     );
 };
@@ -218,7 +218,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 mb-10 mt-4 items-start">
                 {/* LEFT: QUESTIONS */}
                 <div className="flex flex-col gap-4">
-                    <h4 className="text-[0.8em] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 px-1">{questionTitle}</h4>
+                    <h4 className="text-[20px] font-bold text-black uppercase tracking-wide mb-1 px-1 text-center">{questionTitle}</h4>
                     <div className="flex flex-col gap-0.5">
                         {questions.map((q) => {
                             const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer) : false;
@@ -247,16 +247,16 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
 
                 {/* RIGHT: OPTIONS */}
                 <PoolDroppable isDragging={!!activeId}>
-                    <h4 className="text-[0.8em] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">{optionTitle}</h4>
+                    <h4 className="text-[20px] font-bold text-black uppercase tracking-wide mb-4 text-center">{optionTitle}</h4>
                     <div className="flex flex-col gap-2 items-start justify-center">
                         {options.map((opt, idx) => {
                             const label = opt.label || String.fromCharCode(65 + idx);
                             const text = opt.text || (typeof opt === 'string' ? opt : "");
                             const isUsed = Object.values(userAnswers).includes(label);
-                            
+
                             return (
-                                <div 
-                                    key={label} 
+                                <div
+                                    key={label}
                                     className={`${isUsed ? 'invisible pointer-events-none' : 'visible'} w-fit`}
                                 >
                                     <DraggableOption
@@ -399,17 +399,17 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
 
 export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
     return (
-        <div className="mb-6 space-y-6">
+        <div className="mb-2 space-y-8">
             {group.groups.map((sub, sIdx) => (
-        <div className="bg-white py-4 rounded-xl">
+                <div className="bg-white py-2 rounded-xl">
                     {sub.header && (
-                        <h3 className="text-[1.1em] font-black text-gray-900 mb-6 uppercase tracking-wider border-b border-gray-100 pb-3">{typeof sub.header === 'object' ? sub.header.text : sub.header}</h3>
+                        <h3 className="text-[1.1em] font-black text-gray-900 mb-4 mt-2 pt-3 uppercase tracking-wider border-t border-gray-100">{typeof sub.header === 'object' ? sub.header.text : sub.header}</h3>
                     )}
-                    <div className="space-y-4">
+                    <div className="space-y-1">
                         {(sub.items || sub.questions || []).map((q, qIdx) => {
                             // 🔥 O'ZGARISH: Har bir key unikal bo'lishi uchun prefiks qo'shildi
 
-                            if (q.type === 'heading') return <div key={`head-${qIdx}`} className="font-bold text-black text-[1.125em] mt-4 mb-2">{typeof q.text === 'object' ? q.text.text : q.text}</div>;
+                            if (q.type === 'heading') return <div key={`head-${qIdx}`} className={`font-bold text-black text-[1.125em] ${qIdx > 0 ? '!mt-6' : 'mt-1'} mb-1`}>{typeof q.text === 'object' ? q.text.text : q.text}</div>;
 
                             const qText = (typeof q.text === 'object' ? q.text.text : q.text) || "";
                             const hasInput = qText && String(qText).includes('[INPUT]');
@@ -427,7 +427,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                                 // Badge allaqachon id ni ko'rsatadi — matn oxiridagi takroriy raqamni olib tashlash
                                 const cleanBefore = stripLeadingId(parts[0], q.id);
                                 return (
-                                    <div key={`q-${q.id}`} className="font-semibold text-gray-900 leading-[2.6] pl-4 flex flex-wrap items-baseline">
+                                    <div key={`q-${q.id}`} className="font-normal text-gray-800 leading-[1.8] pl-4 flex flex-wrap items-baseline">
                                         {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
                                         <ListeningTextInput id={q.id} answer={q.answer} locationId={q.locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />
                                         {parts[1] && <span className="ml-2" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
@@ -437,7 +437,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
 
                             if (q.isMixed && q.parts) {
                                 return (
-                                    <div key={`mixed-${q.id}`} className="font-semibold text-gray-900 leading-[2.6] pl-4">
+                                    <div key={`mixed-${q.id}`} className="font-normal text-gray-800 leading-[1.8] pl-4">
                                         {q.parts.map((p, pIdx) => {
                                             if (p.type === 'text') {
                                                 const nextPart = q.parts[pIdx + 1];
@@ -550,12 +550,12 @@ export const StandardMCQ = ({ group, userAnswers, onAnswerChange, isReviewMode, 
     return (group.questions || group.items || []).map(q => {
         const options = q.options || group.options || [];
         return (
-            <div key={q.id} className="mb-6 p-1 rounded-xl">
+            <div key={q.id} className="mb-3 p-1 rounded-xl">
                 <div className="flex gap-2 mb-2 items-start">
                     <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
                     {q.text && <div className="font-semibold text-gray-900 leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />}
                 </div>
-                <div className="flex flex-col gap-1 pl-2 sm:pl-10">
+                <div className="flex flex-col gap-0 pl-2 sm:pl-10">
                     {options.map((opt, idx) => {
                         const isSelected = String(userAnswers[q.id]) === String(opt.label);
                         const isCorrect = isReviewMode ? checkAnswer(opt.label, q.answer) : false;
@@ -563,13 +563,13 @@ export const StandardMCQ = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                         const badgeStyle = getStatusStyles(isReviewMode, isCorrect, isSelected, 'badge');
 
                         return (
-                            <div key={idx} className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${containerStyle}`}>
+                            <div key={idx} className={`flex items-center gap-3 p-1 rounded-lg border transition-all ${containerStyle}`}>
                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[0.75em] font-bold shrink-0 border transition-colors ${badgeStyle}`}>{opt.label}</div>
                                 <div className="relative flex items-center justify-center shrink-0">
                                     <input type="radio" className="appearance-none w-5 h-5 border border-gray-300 rounded-full checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer" checked={isSelected} onChange={() => !isReviewMode && onAnswerChange(q.id, String(opt.label))} disabled={isReviewMode} />
                                     <div className={`absolute w-2.5 h-2.5 rounded-full opacity-0 transition-opacity pointer-events-none ${isSelected ? 'opacity-100' : ''} bg-white`}></div>
                                 </div>
-                                <span className="text-gray-900 font-semibold leading-tight">{typeof opt.text === 'object' ? opt.text.text : opt.text}</span>
+                                <span className="text-gray-900 font-normal leading-tight">{typeof opt.text === 'object' ? opt.text.text : opt.text}</span>
                             </div>
                         );
                     })}

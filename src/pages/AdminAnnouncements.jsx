@@ -5,10 +5,15 @@ import {
     collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, serverTimestamp
 } from 'firebase/firestore';
 import { FaArrowLeft, FaBullhorn, FaPlus, FaTrash, FaCheck, FaInfoCircle, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
+import { useTheme } from '../context/ThemeContext';
+
 
 export default function AdminAnnouncements() {
     const navigate = useNavigate();
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [announcements, setAnnouncements] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({ title: '', message: '', type: 'info' });
@@ -83,21 +88,25 @@ export default function AdminAnnouncements() {
     };
 
     return (
-        <div className="min-h-screen bg-[#1E1E1E] font-sans text-white p-6">
+        <div className={`min-h-screen font-sans p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => navigate('/admin')} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition">
+                        <button onClick={() => navigate('/admin')} className={`p-2 rounded-xl transition ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-white border border-gray-200 hover:bg-gray-50'}`}>
+
                             <FaArrowLeft />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-bold flex items-center gap-2">
+                            <h1 className={`text-2xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 <FaBullhorn className="text-yellow-500" />
+
                                 E'lonlar Boshqaruvi
                             </h1>
-                            <p className="text-white/40 text-sm">O'quvchilar uchun yangiliklar va xabarlar</p>
+                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-sm`}>O'quvchilar uchun yangiliklar va xabarlar</p>
                         </div>
+
                     </div>
                     <button
                         onClick={() => setShowModal(true)}
@@ -110,42 +119,43 @@ export default function AdminAnnouncements() {
                 {/* List */}
                 <div className="grid gap-4">
                     {loading ? (
-                        <div className="text-center py-10 text-white/40">Yuklanmoqda...</div>
+                        <div className={`text-center py-10 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>Yuklanmoqda...</div>
                     ) : announcements.length === 0 ? (
-                        <div className="text-center py-20 bg-[#272727] rounded-3xl border border-white/5 border-dashed text-white/30">
+                        <div className={`text-center py-20 rounded-3xl border border-dashed transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5 text-white/30' : 'bg-white border-gray-200 text-gray-400'}`}>
                             Hozircha e'lonlar mavjud emas.
                         </div>
                     ) : (
                         announcements.map((item) => {
                             const typeStyle = getTypeLabel(item.type);
                             return (
-                                <div key={item.id} className="bg-[#272727] p-5 rounded-2xl border border-white/5 flex justify-between items-start group hover:border-white/10 transition">
+                                <div key={item.id} className={`p-5 rounded-2xl border flex justify-between items-start group transition ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'}`}>
                                     <div className="flex gap-4">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl bg-[#333]`}>
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-colors ${isDark ? 'bg-white/5' : 'bg-gray-50 border border-gray-100'}`}>
                                             {getTypeIcon(item.type)}
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-bold text-lg">{item.title}</h3>
+                                                <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.title}</h3>
                                                 <span className={`text-[10px] px-2 py-0.5 rounded border uppercase font-bold ${typeStyle.bg}`}>
                                                     {typeStyle.text}
                                                 </span>
                                             </div>
-                                            <p className="text-white/60 text-sm whitespace-pre-wrap">{item.message}</p>
-                                            <p className="text-white/20 text-xs mt-2">
+                                            <p className={`text-sm whitespace-pre-wrap ${isDark ? 'text-white/60' : 'text-gray-600'}`}>{item.message}</p>
+                                            <p className={`text-xs mt-2 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>
                                                 {item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleString() : 'Sana yo\'q'}
                                             </p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => handleDelete(item.id)}
-                                        className="p-2 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition opacity-0 group-hover:opacity-100"
+                                        className={`p-2 rounded-lg transition opacity-0 group-hover:opacity-100 ${isDark ? 'text-white/20 hover:text-red-500 hover:bg-red-500/10' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`}
                                     >
                                         <FaTrash />
                                     </button>
                                 </div>
                             );
                         })
+
                     )}
                 </div>
             </div>
@@ -153,48 +163,54 @@ export default function AdminAnnouncements() {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-[#2C2C2C] w-full max-w-md rounded-3xl p-6 border border-white/10 relative">
-                        <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-white/40 hover:text-white">
+                    <div className={`w-full max-w-md rounded-3xl p-6 border relative transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
+                        <button onClick={() => setShowModal(false)} className={`absolute top-4 right-4 hover:text-white transition-colors ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
                             <FaTimes />
                         </button>
-                        <h2 className="text-xl font-bold mb-6">Yangi E'lon Yaratish</h2>
+                        <h2 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>Yangi E'lon Yaratish</h2>
+
                         <form onSubmit={handleCreate} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-white/40 uppercase mb-1">Sarlavha</label>
+                                <label className={`block text-xs font-bold uppercase mb-1 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>Sarlavha</label>
                                 <input
                                     type="text"
-                                    className="w-full bg-[#222] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
+                                    className={`w-full border rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
                                     placeholder="Masalan: Ertaga Mock Imtihon!"
                                     value={formData.title}
                                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                                     required
                                 />
                             </div>
+
                             <div>
-                                <label className="block text-xs font-bold text-white/40 uppercase mb-1">Xabar Matni</label>
+                                <label className={`block text-xs font-bold uppercase mb-1 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>Xabar Matni</label>
                                 <textarea
-                                    className="w-full bg-[#222] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition h-32 resize-none"
+                                    className={`w-full border rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all h-32 resize-none ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
                                     placeholder="Batafsil ma'lumot..."
                                     value={formData.message}
                                     onChange={e => setFormData({ ...formData, message: e.target.value })}
                                     required
                                 />
                             </div>
+
                             <div>
-                                <label className="block text-xs font-bold text-white/40 uppercase mb-1">Turi</label>
+                                <label className={`block text-xs font-bold uppercase mb-1 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>Turi</label>
                                 <div className="grid grid-cols-4 gap-2">
                                     {['info', 'success', 'warning', 'danger'].map(type => (
                                         <button
                                             key={type}
                                             type="button"
                                             onClick={() => setFormData({ ...formData, type })}
-                                            className={`p-2 rounded-lg border text-xs font-bold capitalize transition ${formData.type === type ? 'bg-white text-black border-white' : 'bg-[#222] text-white/40 border-white/5 hover:bg-[#333]'}`}
+                                            className={`p-2 rounded-lg border text-xs font-bold capitalize transition-all ${formData.type === type 
+                                                ? (isDark ? 'bg-white text-black border-white' : 'bg-blue-600 text-white border-blue-600') 
+                                                : (isDark ? 'bg-white/5 text-white/40 border-white/5 hover:bg-white/10' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50')}`}
                                         >
                                             {type}
                                         </button>
                                     ))}
                                 </div>
                             </div>
+
                             <button
                                 type="submit"
                                 disabled={processing}

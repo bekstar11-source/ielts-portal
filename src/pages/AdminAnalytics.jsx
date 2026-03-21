@@ -156,13 +156,14 @@ export default function AdminAnalytics() {
     }, []);
 
     if (loading) return (
-        <div className={`h-screen flex items-center justify-center ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-50'}`}>
-            <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+        <div className={`h-screen flex items-center justify-center transition-colors ${isDark ? 'bg-[#121212]' : 'bg-gray-50'}`}>
+            <div className={`animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full`}></div>
         </div>
     );
 
     return (
-        <div className={`min-h-screen p-6 ${isDark ? 'bg-[#1E1E1E] text-white' : 'bg-gray-50 text-gray-900'}`}>
+        <div className={`min-h-screen p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+
             {/* HEADER */}
             <div className="flex items-center justify-between mb-8">
                 <div>
@@ -187,7 +188,8 @@ export default function AdminAnalytics() {
             {/* CHARTS ROW 1 */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {/* ACTIVITY CHART (Area) */}
-                <div className={`col-span-2 p-6 rounded-[24px] border shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+                <div className={`col-span-2 p-6 rounded-[24px] border shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+
                     <h3 className="text-lg font-bold mb-6">Weekly Activity</h3>
                     <div style={{ width: '100%', height: 300 }}>
                         <ResponsiveContainer>
@@ -212,7 +214,8 @@ export default function AdminAnalytics() {
                 </div>
 
                 {/* SKILL RADAR */}
-                <div className={`p-6 rounded-[24px] border shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+                <div className={`p-6 rounded-[24px] border shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+
                     <h3 className="text-lg font-bold mb-2">Skill Balance</h3>
                     <div style={{ width: '100%', height: 300 }}>
                         <ResponsiveContainer>
@@ -234,7 +237,8 @@ export default function AdminAnalytics() {
             {/* CHARTS ROW 2 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* SCORE DISTRIBUTION (Bar) */}
-                <div className={`p-6 rounded-[24px] border shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+                <div className={`p-6 rounded-[24px] border shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+
                     <h3 className="text-lg font-bold mb-6">Score Distribution</h3>
                     <div style={{ width: '100%', height: 250 }}>
                         <ResponsiveContainer>
@@ -250,14 +254,16 @@ export default function AdminAnalytics() {
                 </div>
 
                 {/* RECENT ALERTS (Mock) */}
-                <div className={`p-6 rounded-[24px] border shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+                <div className={`p-6 rounded-[24px] border shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                         <AlertTriangle className="text-orange-500" size={20} /> At-Risk Students
                     </h3>
                     <div className="space-y-4">
                         {recentTests.length > 0 ? (
                             recentTests.map((student, i) => (
-                                <div key={i} className={`flex items-center justify-between p-4 rounded-xl ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-50'}`}>
+                                <div key={i} className={`flex items-center justify-between p-4 rounded-xl transition-colors ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-sm">
                                             {student.name.charAt(0)}
@@ -284,14 +290,15 @@ export default function AdminAnalytics() {
 
 function KPICard({ title, value, icon: Icon, color, isDark }) {
     const colorClasses = {
-        blue: isDark ? 'bg-blue-500/10 text-blue-500' : 'bg-blue-50 text-blue-600',
-        purple: isDark ? 'bg-purple-500/10 text-purple-500' : 'bg-purple-50 text-purple-600',
-        orange: isDark ? 'bg-orange-500/10 text-orange-500' : 'bg-orange-50 text-orange-600',
-        green: isDark ? 'bg-green-500/10 text-green-500' : 'bg-green-50 text-green-600',
+        blue: isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600',
+        purple: isDark ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-50 text-purple-600',
+        orange: isDark ? 'bg-orange-500/10 text-orange-400' : 'bg-orange-50 text-orange-600',
+        green: isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-600',
     };
 
     return (
-        <div className={`p-6 rounded-[24px] border shadow-sm ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+        <div className={`p-6 rounded-[24px] border shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+
             <div className="flex justify-between items-start mb-4">
                 <div className={`p-3 rounded-xl ${colorClasses[color]}`}>
                     <Icon size={20} />

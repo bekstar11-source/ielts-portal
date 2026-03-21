@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfig }) {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
     // Default series if none provided (but we'll pass them from AdminDashboard)
     const defaultConfig = [
         { key: 'tests', label: 'Testlar', color: '#3B82F6', type: 'count' },
@@ -49,15 +53,17 @@ export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfi
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-[#2C2C2C] border border-white/10 p-3 rounded-lg shadow-xl text-xs">
-                    <p className="text-white/50 mb-2 font-medium">{label}</p>
+                <div className={`p-3 rounded-lg shadow-xl text-xs border ${isDark ? 'bg-[#2C2C2C] border-white/10' : 'bg-white border-gray-200'}`}>
+                    <p className={`${isDark ? 'text-white/50' : 'text-gray-500'} mb-2 font-medium`}>{label}</p>
+
                     {payload.map((entry, index) => {
                         const s = config.find(c => c.key === entry.dataKey);
                         return (
                             <div key={index} className="flex items-center gap-2 mb-1">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                                <span className="text-white/70">{s?.label}:</span>
-                                <span className="text-white font-bold">
+                                <span className={isDark ? "text-white/70" : "text-gray-600"}>{s?.label}:</span>
+                                <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+
                                     {s?.type === 'decimal' ? entry.value.toFixed(1) : entry.value.toLocaleString()}
                                 </span>
                             </div>
@@ -70,7 +76,9 @@ export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfi
     };
 
     return (
-        <div className="bg-[#1A1A1B] border border-white/5 rounded-[24px] p-6 flex flex-col md:flex-row gap-8 min-h-[400px]">
+        <div className={`border rounded-[24px] p-6 flex flex-col md:flex-row gap-8 min-h-[400px] transition-all duration-300 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+
+
             {/* LEGEND ON THE LEFT */}
             <div className="w-full md:w-36 flex flex-col gap-6 pt-8">
                 {config.map(s => (
@@ -83,8 +91,10 @@ export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfi
                         onToggle={() => toggleSeries(s.key)} 
                         format={(val) => formatNumber(val, s.type)}
                         isAvg={s.type === 'decimal'}
+                        isDark={isDark}
                     />
                 ))}
+
             </div>
 
             {/* CHART AREA */}
@@ -97,16 +107,17 @@ export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfi
                                 dataKey="name" 
                                 axisLine={false} 
                                 tickLine={false} 
-                                tick={{ fill: '#ffffff50', fontSize: 11 }}
+                                tick={{ fill: isDark ? '#ffffff50' : '#9CA3AF', fontSize: 11 }}
                                 dy={10}
                             />
                             <YAxis 
                                 axisLine={false} 
                                 tickLine={false} 
-                                tick={{ fill: '#ffffff50', fontSize: 11 }}
+                                tick={{ fill: isDark ? '#ffffff50' : '#9CA3AF', fontSize: 11 }}
                                 tickFormatter={(val) => formatNumber(val, 'count')}
                             />
-                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#ffffff20', strokeWidth: 1 }} />
+                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: isDark ? '#ffffff20' : '#e5e7eb', strokeWidth: 1 }} />
+
                             
                             {config.map(s => visibleSeries[s.key] && (
                                 <Line 
@@ -124,22 +135,24 @@ export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfi
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="text-center text-[10px] text-white/30 font-medium uppercase tracking-widest mt-2">
+                <div className={`text-center text-[10px] font-medium uppercase tracking-widest mt-2 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
                     Analitika (kunlik tahlil)
                 </div>
+
             </div>
         </div>
     );
 }
 
-function SeriesToggle({ label, value, color, isActive, onToggle, format, isAvg }) {
+function SeriesToggle({ label, value, color, isActive, onToggle, format, isAvg, isDark }) {
+
     return (
         <div className="flex flex-col gap-2">
-            <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider truncate" title={label}>{label}</p>
+            <p className={`text-[11px] font-medium uppercase tracking-wider truncate transition-colors ${isActive ? (isDark ? 'text-white/60' : 'text-gray-700') : (isDark ? 'text-white/20' : 'text-gray-400')}`} title={label}>{label}</p>
             <div className="flex items-center gap-3">
                 <button 
                     onClick={onToggle}
-                    className={`w-4 h-4 rounded-sm flex items-center justify-center transition-colors border ${isActive ? '' : 'border-white/20'}`}
+                    className={`w-4 h-4 rounded-sm flex items-center justify-center transition-colors border ${isActive ? '' : (isDark ? 'border-white/20' : 'border-gray-300')}`}
                     style={{ backgroundColor: isActive ? color : 'transparent', borderColor: isActive ? color : '' }}
                 >
                     {isActive && (
@@ -149,12 +162,13 @@ function SeriesToggle({ label, value, color, isActive, onToggle, format, isAvg }
                     )}
                 </button>
                 <div className="flex items-baseline gap-1.5">
-                    <span className="text-xl font-bold text-white tracking-tight" style={{ color: isActive ? color : '#ffffff50' }}>
+                    <span className="text-xl font-bold tracking-tight transition-colors" style={{ color: isActive ? color : (isDark ? '#ffffff20' : '#e5e7eb') }}>
                         {format(value)}
                     </span>
-                    <span className="text-[10px] text-white/30 font-medium">{isAvg ? 'avg' : 'total'}</span>
+                    <span className={`text-[10px] font-medium transition-colors ${isDark ? 'text-white/30' : 'text-gray-400'}`}>{isAvg ? 'avg' : 'total'}</span>
                 </div>
             </div>
         </div>
+
     );
 }

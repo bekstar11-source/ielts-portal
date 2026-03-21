@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { db } from "../firebase/firebase";
 import { collection, getDocs, orderBy, query, deleteDoc, doc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
+
 
 // --- ICONS (SVG) ---
 const Icons = {
@@ -20,7 +22,10 @@ const Icons = {
 
 export default function AdminResults() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [results, setResults] = useState([]);
+
   const [filteredResults, setFilteredResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -197,37 +202,36 @@ export default function AdminResults() {
           onClick={() => setCurrentPage(i)}
           className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${currentPage === i
               ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-              : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+              : isDark 
+                ? "bg-[#2C2C2C] border-white/10 text-gray-400 hover:bg-[#3C3C3C] hover:border-white/20"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
             }`}
         >
           {i}
         </button>
+
       );
     }
     return pages;
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-[#F5F5F7] p-6 font-sans text-slate-800">
+    <div className={`min-h-screen p-6 font-sans transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-slate-800'}`}>
 
       <div className="max-w-7xl mx-auto">
+
         {/* NAVIGATSIYA: Orqaga qaytish */}
         <div className="mb-4">
           <button
             onClick={() => navigate('/admin')}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors font-medium text-sm group"
+            className={`flex items-center gap-2 transition-colors font-medium text-sm group ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
           >
-            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-gray-200 shadow-sm group-hover:border-gray-300 transition-all">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm transition-all ${isDark ? 'bg-[#1E1E1E] border-white/5 group-hover:border-white/10' : 'bg-white border-gray-200 group-hover:border-gray-300'}`}>
               <Icons.ArrowLeft className="w-4 h-4" />
             </div>
             Bosh sahifa
           </button>
+
         </div>
 
         {/* HEADER SECTION: Filtrlar chapda, Sarlavha o'ngda */}
@@ -238,15 +242,16 @@ export default function AdminResults() {
 
             {/* 1. Qidiruv */}
             <div className="relative w-full md:w-64 group">
-              <Icons.Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+              <Icons.Search className={`absolute left-3 top-2.5 w-5 h-5 transition-colors ${isDark ? 'text-white/20 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
               <input
                 type="text"
                 placeholder="Qidirish..."
-                className="w-full bg-white border border-gray-200 pl-9 pr-4 py-2 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-sm placeholder:text-gray-400"
+                className={`w-full border pl-9 pr-4 py-2 rounded-lg text-sm outline-none transition-all shadow-sm ${isDark ? 'bg-[#1E1E1E] border-white/5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 text-white placeholder:text-gray-600' : 'bg-white border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 placeholder:text-gray-400'}`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+
 
             {/* 2. Turlar Filtri */}
             <div className="relative w-full sm:w-40">
@@ -256,7 +261,7 @@ export default function AdminResults() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-full bg-white border border-gray-200 pl-9 pr-8 py-2 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-sm appearance-none cursor-pointer text-gray-600 font-medium"
+                className={`w-full border pl-9 pr-8 py-2 rounded-lg text-sm outline-none transition-all shadow-sm appearance-none cursor-pointer font-medium ${isDark ? 'bg-[#1E1E1E] border-white/5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 text-gray-400' : 'bg-white border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-gray-600'}`}
               >
                 <option value="all">Barcha Turlar</option>
                 <option value="reading">Reading</option>
@@ -275,7 +280,7 @@ export default function AdminResults() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-white border border-gray-200 pl-9 pr-8 py-2 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-sm appearance-none cursor-pointer text-gray-600 font-medium"
+                className={`w-full border pl-9 pr-8 py-2 rounded-lg text-sm outline-none transition-all shadow-sm appearance-none cursor-pointer font-medium ${isDark ? 'bg-[#1E1E1E] border-white/5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 text-gray-400' : 'bg-white border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-gray-600'}`}
               >
                 <option value="all">Barcha Statuslar</option>
                 <option value="pending">Kutilmoqda</option>
@@ -284,6 +289,7 @@ export default function AdminResults() {
               </select>
               <Icons.ChevronDown className="absolute right-3 top-3 w-3 h-3 text-gray-400 pointer-events-none" />
             </div>
+
 
             {/* Tozalash tugmasi */}
             {(typeFilter !== 'all' || statusFilter !== 'all' || searchTerm) && (
@@ -302,27 +308,29 @@ export default function AdminResults() {
 
           {/* O'NG TARAF: SARLAVHA */}
           <div className="flex flex-col items-end">
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight font-sans">Natijalar</h1>
+            <h1 className={`text-xl font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-gray-900'}`}>Natijalar</h1>
             <p className="text-xs text-gray-500 font-medium mt-0.5">Jami {filteredResults.length} ta yechim</p>
           </div>
+
         </div>
 
         {/* TABLE */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <div className={`border rounded-lg shadow-sm overflow-hidden transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse font-sans">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50/50">
-                  <th className="py-3 px-4 text-[13px] font-semibold text-gray-600 tracking-wide w-32">Sana</th>
-                  <th className="py-3 px-4 text-[13px] font-semibold text-gray-600 tracking-wide">O'quvchi</th>
-                  <th className="py-3 px-4 text-[13px] font-semibold text-gray-600 tracking-wide">Test Nomi</th>
-                  <th className="py-3 px-4 text-[13px] font-semibold text-gray-600 tracking-wide text-center">Vaqt</th>
-                  <th className="py-3 px-4 text-[13px] font-semibold text-gray-600 tracking-wide text-center">Baho</th>
-                  <th className="py-3 px-4 text-[13px] font-semibold text-gray-600 tracking-wide text-center">Status</th>
+                <tr className={`border-b transition-colors ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-200 bg-gray-50/50'}`}>
+                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide w-32 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Sana</th>
+                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>O'quvchi</th>
+                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Test Nomi</th>
+                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Vaqt</th>
+                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Baho</th>
+                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Status</th>
                   {/* AMAL: O'ng burchakka tiralib qolmasligi uchun text-center qilindi */}
-                  <th className="py-3 px-4 text-[13px] font-semibold text-gray-600 tracking-wide text-center">Amal</th>
+                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Amal</th>
                 </tr>
               </thead>
+
 
               <tbody className="divide-y divide-gray-100">
                 {currentItems.length === 0 ? (
@@ -334,57 +342,65 @@ export default function AdminResults() {
                     return (
                       <tr
                         key={res.id}
-                        className={`group transition-colors duration-150 hover:bg-gray-50 ${res.isOrphan ? 'bg-red-50/40' : ''
+                        className={`group transition-colors duration-150 ${res.isOrphan ? (isDark ? 'bg-red-500/10' : 'bg-red-50/40') : (isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50')
                           }`}
                       >
                         {/* SANA: Ixcham va raqamli */}
                         <td className="py-3 px-4 whitespace-nowrap align-middle">
                           <div className="flex flex-col leading-tight">
-                            <span className="text-[13px] font-medium text-gray-700">{date}</span>
-                            <span className="text-[11px] text-gray-400 mt-0.5">{time}</span>
+                            <span className={`text-[13px] font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{date}</span>
+                            <span className="text-[11px] text-gray-500 mt-0.5">{time}</span>
                           </div>
                         </td>
+
 
                         {/* O'QUVCHI: Avatarsiz, toza matn */}
                         <td className="py-3 px-4 align-middle">
                           <div className="flex flex-col leading-tight">
-                            <span className="text-[14px] font-medium text-gray-900">{res.userName}</span>
-                            <span className="text-[11px] text-gray-400 font-mono mt-0.5">ID: {res.id.slice(0, 6)}</span>
+                            <span className={`text-[14px] font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{res.userName}</span>
+                            <span className="text-[11px] text-gray-500 font-mono mt-0.5">ID: {res.id.slice(0, 6)}</span>
                           </div>
                         </td>
+
 
                         {/* TEST NOMI & TURI */}
                         <td className="py-3 px-4 align-middle">
                           <div className="flex flex-col gap-1">
-                            <span className={`text-[13px] font-medium truncate max-w-[220px] ${res.isOrphan ? 'text-red-600 line-through decoration-red-400' : 'text-gray-700'}`}>
+                            <span className={`text-[13px] font-medium truncate max-w-[220px] ${res.isOrphan ? 'text-red-500 line-through decoration-red-400' : isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                               {res.testTitle}
                             </span>
-                            <span className={`w-fit px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider border ${res.type === 'listening' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                                res.type === 'reading' ? 'bg-sky-50 text-sky-700 border-sky-100' :
-                                  res.type === 'writing' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                    'bg-rose-50 text-rose-700 border-rose-100'
+                            <span className={`w-fit px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider border ${res.type === 'listening' 
+                                ? (isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-700 border-indigo-100') :
+                                res.type === 'reading' 
+                                ? (isDark ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-sky-50 text-sky-700 border-sky-100') :
+                                res.type === 'writing' 
+                                ? (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100') :
+                                (isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-100')
                               }`}>
                               {res.type}
                             </span>
                           </div>
                         </td>
 
+
                         {/* DURATION */}
                         <td className="py-3 px-4 align-middle text-center">
-                          <span className="text-[12px] font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                          <span className={`text-[12px] font-medium px-2 py-1 rounded ${isDark ? 'text-gray-400 bg-white/5' : 'text-gray-600 bg-gray-100'}`}>
                             {res.durationDisplay}
                           </span>
                         </td>
 
+
                         {/* BAHO */}
                         <td className="py-3 px-4 align-middle text-center">
                           <span className={`text-[14px] font-bold font-mono ${res.bandScore || (res.score && res.score !== '-')
-                              ? 'text-gray-800'
-                              : 'text-gray-300'
+                              ? (isDark ? 'text-white' : 'text-gray-800')
+                              : (isDark ? 'text-gray-700' : 'text-gray-300')
                             }`}>
                             {res.bandScore ? res.bandScore : res.score}
                           </span>
                         </td>
+
 
                         {/* STATUS VA QOIDABUZARLIK */}
                         <td className="py-3 px-4 align-middle text-center">
@@ -427,12 +443,15 @@ export default function AdminResults() {
                             </button>
 
                             <button
-                              onClick={() => navigate(`/review/${res.id}`)}
-                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-bold uppercase tracking-wide transition-all ${!res.isOrphan && res.status !== 'graded' && res.status !== 'published' && (res.type === 'writing' || res.type === 'speaking')
-                                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow'
-                                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                                }`}
+                                onClick={() => navigate(`/review/${res.id}`)}
+                                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-bold uppercase tracking-wide transition-all ${!res.isOrphan && res.status !== 'graded' && res.status !== 'published' && (res.type === 'writing' || res.type === 'speaking')
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow'
+                                    : isDark
+                                      ? 'bg-white/5 border border-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                                  }`}
                             >
+
                               <Icons.Eye className="w-3.5 h-3.5" />
                               {(!res.isOrphan && res.status === 'pending' && (res.type === 'writing' || res.type === 'speaking')) ? 'Baholash' : 'Ko\'rish'}
                             </button>
@@ -447,13 +466,13 @@ export default function AdminResults() {
           </div>
 
           {/* PAGINATION: "Jami" yozuvi o'ng tomonda */}
-          <div className="bg-white border-t border-gray-200 p-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className={`p-3 flex flex-col sm:flex-row justify-between items-center gap-4 transition-colors ${isDark ? 'bg-[#1E1E1E] border-t border-white/5' : 'bg-white border-t border-gray-200'}`}>
             {/* Chap tomon: Pagination tugmalari */}
             <div className="flex items-center gap-1">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => prev - 1)}
-                className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-600 transition-all"
+                className={`w-8 h-8 flex items-center justify-center rounded disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark ? 'bg-[#2C2C2C] border border-white/10 text-gray-400 hover:bg-[#3C3C3C]' : 'bg-white border border-gray-300 hover:bg-gray-50 text-gray-600'}`}
               >
                 <Icons.ChevronLeft className="w-4 h-4" />
               </button>
@@ -465,17 +484,18 @@ export default function AdminResults() {
               <button
                 disabled={currentPage === totalPages || totalPages === 0}
                 onClick={() => setCurrentPage(prev => prev + 1)}
-                className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-600 transition-all"
+                className={`w-8 h-8 flex items-center justify-center rounded disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark ? 'bg-[#2C2C2C] border border-white/10 text-gray-400 hover:bg-[#3C3C3C]' : 'bg-white border border-gray-300 hover:bg-gray-50 text-gray-600'}`}
               >
                 <Icons.ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
             {/* O'ng tomon: Statistika */}
-            <span className="text-[13px] font-medium text-gray-500">
-              Jami <span className="text-gray-900 font-bold">{filteredResults.length}</span> tadan <span className="text-gray-900">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)}</span> ko'rsatilmoqda
+            <span className={`text-[13px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              Jami <span className={`font-bold ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{filteredResults.length}</span> tadan <span className={`${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)}</span> ko'rsatilmoqda
             </span>
           </div>
+
         </div>
       </div>
     </div>
