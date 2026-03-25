@@ -25,6 +25,9 @@ export default function Wordbank() {
     const [mainTab, setMainTab] = useState('vocabulary'); // 'vocabulary' | 'keywords'
     const [keywords, setKeywords] = useState([]);
     const [keywordSearch, setKeywordSearch] = useState('');
+    const [batchProcessing, setBatchProcessing] = useState(false);
+    const [batchTotal, setBatchTotal] = useState(0);
+    const [batchCurrent, setBatchCurrent] = useState(0);
 
     useEffect(() => {
         const fetchWords = async () => {
@@ -163,6 +166,51 @@ export default function Wordbank() {
         }
     };
 
+    const handleTranslateAll = async () => {
+        const untranslated = words.filter(w => !w.hasAI);
+        if (untranslated.length === 0) return;
+
+        setBatchProcessing(true);
+        setBatchTotal(untranslated.length);
+        setBatchCurrent(0);
+
+        const functions = getFunctions();
+        const translateWordFn = httpsCallable(functions, "translateWord");
+
+        let currentWords = [...words];
+
+        for (let i = 0; i < untranslated.length; i++) {
+            const wordItem = untranslated[i];
+            setBatchCurrent(i + 1);
+            
+            try {
+                const result = await translateWordFn({ 
+                    word: wordItem.word, 
+                    contextSentence: wordItem.contextSentence 
+                });
+
+                const { definition, example, translation } = result.data;
+
+                const wordRef = doc(db, "users", user.uid, "vocabulary", wordItem.id);
+                await updateDoc(wordRef, {
+                    definition,
+                    example,
+                    translation,
+                    hasAI: true
+                });
+
+                currentWords = currentWords.map(w => w.id === wordItem.id ? {
+                    ...w, definition, example, translation, hasAI: true
+                } : w);
+                setWords(currentWords);
+
+            } catch (error) {
+                console.error("Batch translation error for: " + wordItem.word, error);
+            }
+        }
+        setBatchProcessing(false);
+    };
+
     const handleUpdateWordStatus = async (wordId, updateData) => {
         try {
             const wordRef = doc(db, "users", user.uid, "vocabulary", wordId);
@@ -258,6 +306,26 @@ export default function Wordbank() {
                     <div>
                         <p className="text-gray-300 text-sm font-semibold mb-1">Jami So'zlar</p>
                         <h3 className="text-3xl font-bold text-white">{words.length}</h3>
+                        {words.some(w => !w.hasAI) && !batchProcessing && (
+                            <button 
+                                onClick={handleTranslateAll}
+                                className="mt-2 text-xs flex items-center gap-1.5 px-2 py-1 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-all cursor-pointer border border-blue-500/30"
+                            >
+                                <Sparkles className="w-3 h-3" />
+                                Hammasini tarjima qilish
+                            </button>
+                        )}
+                        {batchProcessing && (
+                            <div className="mt-2">
+                                <p className="text-[10px] text-blue-400 mb-1">Tarjima qilinmoqda: {batchCurrent}/{batchTotal}</p>
+                                <div className="w-full bg-blue-900/40 h-1 rounded-full overflow-hidden">
+                                    <div 
+                                        className="bg-blue-500 h-full transition-all duration-300" 
+                                        style={{ width: `${(batchCurrent/batchTotal) * 100}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div className="p-3 bg-blue-500/20 rounded-xl text-blue-300">
                         <BookOpen className="w-6 h-6" />

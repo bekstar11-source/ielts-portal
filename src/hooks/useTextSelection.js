@@ -160,7 +160,7 @@ export default function useTextSelection() {
                     const functions = getFunctions();
                     const translateWordFn = httpsCallable(functions, "translateWord");
                     const result = await translateWordFn({ 
-                        word: selection.text, 
+                        word: word, 
                         contextSentence: contextSentence 
                     });
 
