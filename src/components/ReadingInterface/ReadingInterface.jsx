@@ -210,14 +210,32 @@ export default function ReadingInterface({
           style={{ width: `${leftWidth}%` }}
         >
           {(() => {
+            const currentPassageId = testData.passages?.[activePassage]?.id;
+            const passageQuestions = testData.questions?.filter(g => g.passageId === currentPassageId) || [];
+            
+            let labelSuffix = activePassage + 1;
+            
+            if (passageQuestions.length > 0) {
+              const allIds = [];
+              passageQuestions.forEach(group => {
+                group.items?.forEach(item => {
+                  const id = parseInt(item.id);
+                  if (!isNaN(id)) allIds.push(id);
+                });
+              });
+              
+              if (allIds.length > 0) {
+                const minId = Math.min(...allIds);
+                if (minId >= 27) labelSuffix = 3;
+                else if (minId >= 14) labelSuffix = 2;
+                else labelSuffix = 1;
+              }
+            }
+
             return (
               <ReadingLeftPane
-                // 🔥 O'ZGARISH 2: KEY qo'shildi!
-                // Bu Reactga eski matnni majburan o'chirib, yangisini chizishni buyuradi.
                 key={`${testData.id}-passage-${activePassage}`}
-
-                // 🔥 TUZATISH: Regex shart emas, indeksga 1 ni qo'shamiz (0+1=1, 1+1=2)
-                passageLabel={`READING PASSAGE ${activePassage + 1}`}
+                passageLabel={`READING PASSAGE ${labelSuffix}`}
                 title={currentPassageRaw?.title || ""}
                 content={highlightedPassageContent || ""}
                 textSize={textSize}

@@ -130,19 +130,19 @@ const ReadingLeftPane = memo(({
 
             <div
                 ref={containerRef}
-                className={`p-8 pb-20 h-full overflow-y-auto leading-relaxed text-gray-800 selectable-text relative`}
+                className={`p-8 pb-20 h-full overflow-y-auto leading-relaxed text-black selectable-text relative`}
                 style={{
                     fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',
                     transition: 'font-size 0.3s ease-in-out'
                 }}
                 onMouseUp={handleTextSelection}
             >
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 select-none">
+                <div className="text-xs font-bold text-black uppercase tracking-widest mb-1 select-none">
                     {passageLabel || "READING PASSAGE 1"}
                 </div>
 
                 {title && (
-                    <h1 className="text-[1.6em] font-bold text-gray-900 mb-6 mt-0 leading-tight">
+                    <h1 className="text-[1.6em] font-bold text-black mb-6 mt-0 leading-tight">
                         {title}
                     </h1>
                 )}

@@ -7,7 +7,7 @@ export const styles = `
     --ielts-blue: #2563eb; 
     --ielts-bg: #f3f4f6;
     --text-primary: #000000;
-    --text-secondary: #374151;
+    --text-secondary: #000000;
     --border-color: #e5e7eb;
     --highlight-yellow: #fef08a;
     --footer-height: 50px; 
@@ -162,7 +162,7 @@ export const styles = `
       justify-content: center; 
       font-weight: 600; 
       font-size: 13px; 
-      color: #374151; 
+      color: #000000; 
       flex-shrink: 0; 
       cursor: pointer; 
       transition: all 0.2s;
@@ -205,7 +205,7 @@ export const styles = `
       background: #fff; /* Oq fon */
       border: 1px solid #d1d5db; 
       border-radius: 4px; 
-      font-size: 13px; font-weight: 600; color: #374151;
+      font-size: 13px; font-weight: 600; color: #000000;
       margin-right: 4px; /* Inputga juda yaqin */
       vertical-align: middle; cursor: pointer;
       user-select: none; transition: all 0.2s;
@@ -214,7 +214,7 @@ export const styles = `
 
   /* Options Box (Matching Heading va boshqalar uchun) */
   .static-options-box { margin-bottom: 24px; padding: 10px 0; }
-  .static-option-item { font-size: 0.9em; font-weight: 500; color: #374151; line-height: 1.4; margin-bottom: 4px; display: block; }
+  .static-option-item { font-size: 0.9em; font-weight: 500; color: #000000; line-height: 1.4; margin-bottom: 4px; display: block; }
   
   /* Highlight Tools */
   .highlight-span { background-color: var(--highlight-yellow); cursor: pointer; mix-blend-mode: multiply; border-radius: 2px; }
@@ -299,7 +299,7 @@ export const styles = `
   .q-nav-btn {
     width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
     border: 1px solid #d1d5db; background: #fff; border-radius: 4px;
-    font-size: 11px; font-weight: 600; color: #374151; cursor: pointer; flex-shrink: 0;
+    font-size: 11px; font-weight: 600; color: #000000; cursor: pointer; flex-shrink: 0;
   }
   .q-nav-btn:hover { border-color: #2563eb; color: #2563eb; transform: translateY(-1px); }
   .q-nav-btn.answered { background: #2563eb; color: #fff; border-color: #2563eb; }
