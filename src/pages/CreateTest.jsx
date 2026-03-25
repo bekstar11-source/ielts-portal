@@ -1,9 +1,11 @@
 // src/pages/CreateTest.jsx
 import { useState, useEffect } from "react";
+import { useTheme } from "../context/ThemeContext";
 import { db, storage } from "../firebase/firebase";
 import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate, useParams } from "react-router-dom";
+import TagSelector from "../components/ui/TagSelector";
 
 // --- ICONS (Ranglar moslashtirildi) ---
 const Icons = {
@@ -14,6 +16,8 @@ const Icons = {
 };
 
 export default function CreateTest() {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const navigate = useNavigate();
     const { id } = useParams();
 
@@ -43,6 +47,7 @@ export default function CreateTest() {
             { id: 1, title: "Task 1", prompt: "", image: "", minWords: 150 },
             { id: 2, title: "Task 2", prompt: "", image: "", minWords: 250 }
         ],
+        tags: [],
     });
 
     const getFileNameFromUrl = (url) => {
@@ -149,6 +154,10 @@ export default function CreateTest() {
             fetchTest();
         }
     }, [id]);
+
+    const handleTagsChange = (tags) => {
+        setTestData(prev => ({ ...prev, tags }));
+    };
 
     const updateTestDataFromJSON = (jsonStr) => {
         try {
@@ -519,50 +528,50 @@ export default function CreateTest() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#F5F5F7] text-gray-900 selection:bg-[#3772FF]/30">
+        <div className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#F5F5F7] dark:bg-[#0A0A0B] text-gray-900 dark:text-gray-100 selection:bg-[#3772FF]/30">
             {/* UPLOAD OVERLAY REMOVED AS PER REQUEST */}
 
             {/* MOBILE HEADER */}
-            <div className="md:hidden p-4 flex items-center justify-between bg-white border-b border-gray-200">
-                <button onClick={() => navigate('/admin/tests')} className="text-gray-600"><Icons.Back className="w-6 h-6" /></button>
-                <span className="font-bold text-gray-900">Test Manager</span>
+            <div className="md:hidden p-4 flex items-center justify-between bg-white dark:bg-[#121214] border-b border-gray-200 dark:border-gray-800">
+                <button onClick={() => navigate('/admin/tests')} className="text-gray-600 dark:text-gray-400"><Icons.Back className="w-6 h-6" /></button>
+                <span className="font-bold text-gray-900 dark:text-gray-100">Test Manager</span>
             </div>
 
             {/* --- LEFT PANEL --- */}
-            <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col h-full overflow-y-auto custom-scrollbar border-r border-gray-200 bg-white">
+            <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col h-full overflow-y-auto custom-scrollbar border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121214]">
                 <div className="flex justify-between items-center mb-8">
-                    <button onClick={() => navigate('/admin/tests')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition group">
-                        <div className="p-2 rounded-full bg-white group-hover:bg-gray-100 border border-gray-200 shadow-sm"><Icons.Back className="w-4 h-4" /></div>
+                    <button onClick={() => navigate('/admin/tests')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition group">
+                        <div className="p-2 rounded-full bg-white dark:bg-[#1C1C1E] group-hover:bg-gray-100 dark:group-hover:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm"><Icons.Back className="w-4 h-4" /></div>
                         <span className="text-sm font-medium">Orqaga</span>
                     </button>
-                    <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
-                        <button onClick={() => setIsMockMode(false)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${!isMockMode ? 'bg-white text-[#3772FF] shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-900'}`}>Standard</button>
-                        <button onClick={() => setIsMockMode(true)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${isMockMode ? 'bg-[#FFD166] text-black shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Mock Exam</button>
+                    <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+                        <button onClick={() => setIsMockMode(false)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${!isMockMode ? 'bg-white dark:bg-[#2C2C2E] text-[#3772FF] shadow-sm border border-gray-100 dark:border-gray-700' : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'}`}>Standard</button>
+                        <button onClick={() => setIsMockMode(true)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${isMockMode ? 'bg-[#FFD166] text-black shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'}`}>Mock Exam</button>
                     </div>
                 </div>
 
-                <h1 className="text-3xl font-bold mb-8 tracking-tight text-gray-900">{isEditMode ? "Testni Tahrirlash" : "Yangi Test Yaratish"}</h1>
+                <h1 className="text-3xl font-bold mb-8 tracking-tight text-gray-900 dark:text-gray-100">{isEditMode ? "Testni Tahrirlash" : "Yangi Test Yaratish"}</h1>
 
                 <div className="space-y-6 mb-8">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Test Nomi</label>
-                        <input type="text" className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition font-medium placeholder:text-gray-400" placeholder="Masalan: Cambridge 18 - Test 1" value={testData.title} onChange={e => setTestData({ ...testData, title: e.target.value })} />
+                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-1">Test Nomi</label>
+                        <input type="text" className="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition font-medium placeholder:text-gray-400" placeholder="Masalan: Cambridge 18 - Test 1" value={testData.title} onChange={e => setTestData({ ...testData, title: e.target.value })} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Turi</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-1">Turi</label>
                             <div className="relative">
-                                <select className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.type} onChange={e => setTestData({ ...testData, type: e.target.value })}>
+                                <select className="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-gray-900 dark:text-gray-100 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.type} onChange={e => setTestData({ ...testData, type: e.target.value })}>
                                     <option value="reading">Reading</option><option value="listening">Listening</option><option value="writing">Writing</option><option value="speaking">Speaking</option>
                                 </select>
                                 <div className="absolute right-4 top-4 text-gray-400 pointer-events-none">▼</div>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Qiyinlik</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-1">Qiyinlik</label>
                             <div className="relative">
-                                <select className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.difficulty} onChange={e => setTestData({ ...testData, difficulty: e.target.value })}>
+                                <select className="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-gray-900 dark:text-gray-100 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.difficulty} onChange={e => setTestData({ ...testData, difficulty: e.target.value })}>
                                     <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
                                 </select>
                                 <div className="absolute right-4 top-4 text-gray-400 pointer-events-none">▼</div>
@@ -570,17 +579,27 @@ export default function CreateTest() {
                         </div>
                     </div>
 
+                    <div className="bg-gray-50/50 dark:bg-white/5 p-6 rounded-[24px] border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <label className="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-4 ml-1 tracking-widest">Test Taglari (MacOS Style)</label>
+                        <TagSelector 
+                            selectedTags={testData.tags || []} 
+                            onChange={(tags) => setTestData(prev => ({ ...prev, tags }))} 
+                            isDark={isDark} 
+                            allowEdit={true}
+                        />
+                    </div>
+
                     {testData.type === 'listening' && (
                         <div className="space-y-4">
-                            <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center justify-between shadow-sm">
-                                <span className="text-sm font-medium text-gray-600">Intro Delay (Sekund)</span>
-                                <input type="number" className="w-20 bg-gray-50 border border-gray-200 rounded-xl p-2 text-center text-gray-900 focus:border-[#3772FF] outline-none transition" value={testData.introDuration} onChange={(e) => setTestData({ ...testData, introDuration: e.target.value })} />
+                            <div className="bg-white dark:bg-[#1C1C1E] p-4 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-sm">
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Intro Delay (Sekund)</span>
+                                <input type="number" className="w-20 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2 text-center text-gray-900 dark:text-gray-100 focus:border-[#3772FF] outline-none transition" value={testData.introDuration} onChange={(e) => setTestData({ ...testData, introDuration: e.target.value })} />
                             </div>
-                            <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center justify-between shadow-sm">
-                                <span className="text-sm font-medium text-gray-600">Listening Parts</span>
-                                <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
-                                    <button onClick={() => setListeningPartCount(2)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${listeningPartCount === 2 ? 'bg-white text-[#3772FF] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>2 Parts</button>
-                                    <button onClick={() => setListeningPartCount(4)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${listeningPartCount === 4 ? 'bg-white text-[#3772FF] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>4 Parts</button>
+                            <div className="bg-white dark:bg-[#1C1C1E] p-4 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-sm">
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Listening Parts</span>
+                                <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+                                    <button onClick={() => setListeningPartCount(2)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${listeningPartCount === 2 ? 'bg-white dark:bg-[#2C2C2E] text-[#3772FF] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}>2 Parts</button>
+                                    <button onClick={() => setListeningPartCount(4)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${listeningPartCount === 4 ? 'bg-white dark:bg-[#2C2C2E] text-[#3772FF] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}>4 Parts</button>
                                 </div>
                             </div>
                         </div>
@@ -588,23 +607,23 @@ export default function CreateTest() {
                 </div>
 
                 {testData.type === 'listening' && (
-                    <div className="bg-white p-6 rounded-[30px] border border-gray-200 mb-6 shadow-sm">
+                    <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-[30px] border border-gray-200 dark:border-gray-700 mb-6 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-medium text-gray-900 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#9757D7]" /> Audio Yuklash</h3>
-                            <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
-                                <button onClick={() => setAudioMode("multiple")} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${audioMode === 'multiple' ? 'bg-white text-[#9757D7] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Partma-part (4 ta)</button>
-                                <button onClick={() => setAudioMode("single")} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${audioMode === 'single' ? 'bg-white text-[#9757D7] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Bitta Fayl</button>
+                            <h3 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#9757D7]" /> Audio Yuklash</h3>
+                            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+                                <button onClick={() => setAudioMode("multiple")} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${audioMode === 'multiple' ? 'bg-white dark:bg-[#2C2C2E] text-[#9757D7] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}>Partma-part (4 ta)</button>
+                                <button onClick={() => setAudioMode("single")} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${audioMode === 'single' ? 'bg-white dark:bg-[#2C2C2E] text-[#9757D7] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}>Bitta Fayl</button>
                             </div>
                         </div>
 
                         {audioMode === 'multiple' ? (
                             <div className="grid grid-cols-2 gap-4">
                                 {Array.from({ length: listeningPartCount }).map((_, idx) => (
-                                    <div key={idx} className="flex flex-col gap-2 p-3 bg-gray-50 border border-gray-200 rounded-2xl">
-                                        <div className={`relative px-2 py-3 flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                                    <div key={idx} className="flex flex-col gap-2 p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 rounded-2xl">
+                                        <div className={`relative px-2 py-3 flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition ${partAudios[idx] ? 'border-[#45B26B] bg-[#45B26B]/5' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-[#1C1C1E]'}`}>
                                             <div className="w-full flex flex-col gap-2">
                                                 <div className="flex items-center justify-between px-1">
-                                                    <span className="text-[10px] font-bold text-gray-500 uppercase">Part {idx + 1} Audio</span>
+                                                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">Part {idx + 1} Audio</span>
                                                     {partAudios[idx] && <Icons.Check className="w-3.5 h-3.5 text-[#45B26B]" />}
                                                 </div>
 
@@ -612,11 +631,11 @@ export default function CreateTest() {
                                                     <input
                                                         type="text"
                                                         placeholder="Link joylang..."
-                                                        className="flex-1 bg-white border border-gray-200 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-[#3772FF] transition"
+                                                        className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-1.5 px-2 text-[10px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#3772FF] transition"
                                                         value={partAudios[idx] || ""}
                                                         onChange={(e) => handleAudioUrlChange(e.target.value, idx)}
                                                     />
-                                                    <label className="cursor-pointer p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
+                                                    <label className="cursor-pointer p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 transition">
                                                         <Icons.Cloud className="w-4 h-4" />
                                                         <input type="file" accept="audio/*" onChange={(e) => handlePartAudioUpload(e, idx)} disabled={uploading} className="hidden" />
                                                     </label>
@@ -633,10 +652,10 @@ export default function CreateTest() {
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between mt-1 px-1">
-                                            <span className="text-[10px] text-gray-500 font-bold uppercase">Qo'shimcha vaqt (sek):</span>
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">Qo'shimcha vaqt (sek):</span>
                                             <input
                                                 type="number"
-                                                className="w-16 bg-white border border-gray-200 rounded-lg p-1.5 text-center text-[10px] font-bold text-gray-900 outline-none focus:border-[#3772FF]"
+                                                className="w-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-1.5 text-center text-[10px] font-bold text-gray-900 dark:text-gray-100 outline-none focus:border-[#3772FF]"
                                                 placeholder="0"
                                                 value={testData.passages[idx]?.extraSilentTime ?? ''}
                                                 onChange={(e) => updatePartTime(idx, 'extraSilentTime', e.target.value)}
@@ -724,10 +743,10 @@ export default function CreateTest() {
                 )}
 
                 {(testData.type === 'listening' || testData.type === 'reading') && (
-                    <div className="bg-white p-6 rounded-[30px] border border-gray-200 mb-6 shadow-sm">
+                    <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-[30px] border border-gray-200 dark:border-gray-700 mb-6 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-medium text-gray-900 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#3772FF]" /> Map & Images</h3>
-                            <label className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition shadow-sm hover:shadow-md flex items-center gap-2 ${uploading && uploadingPart === 'map' ? 'bg-gray-100 text-[#3772FF]' : 'bg-[#3772FF] hover:bg-[#2e62e0] text-white'}`}>
+                            <h3 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2"><Icons.Cloud className="w-5 h-5 text-[#3772FF]" /> Map & Images</h3>
+                            <label className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition shadow-sm hover:shadow-md flex items-center gap-2 ${uploading && uploadingPart === 'map' ? 'bg-gray-100 dark:bg-gray-800 text-[#3772FF]' : 'bg-[#3772FF] hover:bg-[#2e62e0] text-white'}`}>
                                 {uploading && uploadingPart === 'map' ? (
                                     <><div className="animate-spin h-3 w-3 border-2 border-[#3772FF] border-t-transparent rounded-full" /> {uploadProgress}%</>
                                 ) : "+ Rasm"}
@@ -736,8 +755,8 @@ export default function CreateTest() {
                         </div>
                         <div className="space-y-2">
                             {uploadedMaps.map((map, idx) => (
-                                <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200 group">
-                                    <span className="text-xs text-gray-600 truncate w-40" title={map.name}>{map.name}</span>
+                                <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-white/5 p-3 rounded-xl border border-gray-200 dark:border-gray-700 group">
+                                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate w-40" title={map.name}>{map.name}</span>
                                     <div className="flex items-center gap-2">
                                         <button onClick={() => copyToClipboard(map.url)} className="text-[#3772FF] hover:text-[#2e62e0] transition p-1 opacity-60 hover:opacity-100" title="Linkni nusxalash"><Icons.Copy className="w-4 h-4" /></button>
                                         <button onClick={() => handleDeleteMap(idx)} className="text-red-400 hover:text-red-600 transition p-1 opacity-0 group-hover:opacity-100" title="O'chirish">
@@ -746,75 +765,75 @@ export default function CreateTest() {
                                     </div>
                                 </div>
                             ))}
-                            {uploadedMaps.length === 0 && <p className="text-xs text-gray-400 text-center py-2">Rasm yuklanmagan</p>}
+                            {uploadedMaps.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">Rasm yuklanmagan</p>}
                         </div>
                     </div>
                 )}
 
                 {testData.type === 'writing' && (
-                    <div className="bg-white p-6 rounded-[30px] border border-gray-200 mb-6 flex-1 flex flex-col shadow-sm">
-                        <div className="flex bg-gray-100 p-1 rounded-xl mb-4 w-fit border border-gray-200">
-                            {[0, 1].map(i => (<button key={i} onClick={() => setActiveWritingTask(i)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeWritingTask === i ? 'bg-white text-[#3772FF] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Task {i + 1}</button>))}
+                    <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-[30px] border border-gray-200 dark:border-gray-700 mb-6 flex-1 flex flex-col shadow-sm">
+                        <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-4 w-fit border border-gray-200 dark:border-gray-700">
+                            {[0, 1].map(i => (<button key={i} onClick={() => setActiveWritingTask(i)} className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeWritingTask === i ? 'bg-white dark:bg-[#2C2C2E] text-[#3772FF] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}>Task {i + 1}</button>))}
                         </div>
                         <div className="flex items-center gap-3 mb-4">
-                            <label className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition flex-1 text-center flex items-center justify-center gap-2 ${uploading && uploadingPart === 'writing' ? 'bg-gray-100 text-[#3772FF]' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}>
+                            <label className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition flex-1 text-center flex items-center justify-center gap-2 ${uploading && uploadingPart === 'writing' ? 'bg-gray-100 dark:bg-gray-800 text-[#3772FF]' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'}`}>
                                 {uploading && uploadingPart === 'writing' ? (
                                     <><div className="animate-spin h-3 w-3 border-2 border-[#3772FF] border-t-transparent rounded-full" /> {uploadProgress}%</>
                                 ) : "Rasm Yuklash"}
                                 <input type="file" accept="image/*" onChange={handleWritingImageUpload} className="hidden" />
                             </label>
-                            {testData.writingTasks[activeWritingTask].image && <div className="flex items-center gap-1.5 bg-green-50 px-3 py-2 rounded-xl border border-green-100"><Icons.Check className="w-3.5 h-3.5 text-[#45B26B]" /><span className="text-xs font-bold text-[#45B26B]">Rasm mavjud</span></div>}
+                            {testData.writingTasks[activeWritingTask].image && <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-xl border border-green-100 dark:border-green-900/30"><Icons.Check className="w-3.5 h-3.5 text-[#45B26B]" /><span className="text-xs font-bold text-[#45B26B]">Rasm mavjud</span></div>}
                         </div>
-                        <textarea className="w-full flex-1 bg-gray-50 border border-gray-200 rounded-2xl p-4 text-gray-900 text-sm focus:border-[#3772FF] outline-none resize-none leading-relaxed placeholder:text-gray-400" placeholder="Task description..." value={testData.writingTasks[activeWritingTask].prompt} onChange={e => handleWritingUpdate("prompt", e.target.value)}></textarea>
+                        <textarea className="w-full flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-gray-900 dark:text-gray-100 text-sm focus:border-[#3772FF] outline-none resize-none leading-relaxed placeholder:text-gray-400" placeholder="Task description..." value={testData.writingTasks[activeWritingTask].prompt} onChange={e => handleWritingUpdate("prompt", e.target.value)}></textarea>
                     </div>
                 )}
 
                 {(testData.type === 'reading' || testData.type === 'listening') && (
                     <div className="flex-1 flex flex-col min-h-[300px]">
                         <div className="flex justify-between items-center mb-2 px-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase">JSON Data</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">JSON Data</label>
                             {jsonError && <span className="text-xs text-[#FF5959] font-bold">{jsonError}</span>}
                         </div>
-                        <textarea className="w-full flex-1 bg-white border border-gray-200 rounded-[24px] p-5 font-mono text-xs text-gray-600 focus:text-gray-900 focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 outline-none resize-none leading-relaxed custom-scrollbar shadow-sm" value={jsonInput} onChange={handleJsonChange} placeholder='{ "passages": [], "questions": [] }' spellCheck="false" />
+                        <textarea className="w-full flex-1 bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-[24px] p-5 font-mono text-xs text-gray-600 dark:text-gray-400 focus:text-gray-900 dark:focus:text-gray-100 focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 outline-none resize-none leading-relaxed custom-scrollbar shadow-sm" value={jsonInput} onChange={handleJsonChange} placeholder='{ "passages": [], "questions": [] }' spellCheck="false" />
                     </div>
                 )}
             </div>
 
             {/* --- RIGHT PANEL: PREVIEW --- */}
-            <div className="hidden md:flex w-1/2 bg-gray-50 p-8 flex-col border-l border-gray-200 relative">
+            <div className="hidden md:flex w-1/2 bg-gray-50 dark:bg-[#0A0A0B] p-8 flex-col border-l border-gray-200 dark:border-gray-800 relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-[#3772FF]/5 to-transparent pointer-events-none" />
                 <div className="flex justify-between items-center mb-6 relative z-10">
-                    <h2 className="text-xl font-medium text-gray-900">Preview</h2>
-                    <span className="px-3 py-1 bg-white rounded-lg text-xs font-bold text-[#3772FF] uppercase border border-blue-100 shadow-sm">{testData.type}</span>
+                    <h2 className="text-xl font-medium text-gray-900 dark:text-gray-100">Preview</h2>
+                    <span className="px-3 py-1 bg-white dark:bg-[#1C1C1E] rounded-lg text-xs font-bold text-[#3772FF] uppercase border border-blue-100 dark:border-[#3772FF]/20 shadow-sm">{testData.type}</span>
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2 relative z-10">
-                    <h1 className="text-3xl font-bold text-gray-900 leading-tight">{testData.title || "Test Nomi..."}</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{testData.title || "Test Nomi..."}</h1>
                     {testData.passages?.slice(0, testData.type === 'listening' ? listeningPartCount : testData.passages.length).map((p, i) => (
-                        <div key={i} className="bg-white p-6 rounded-[24px] border border-gray-200 shadow-sm">
+                        <div key={i} className="bg-white dark:bg-[#1C1C1E] p-6 rounded-[24px] border border-gray-200 dark:border-gray-800 shadow-sm">
                             <div className="flex justify-between items-center mb-4">
-                                <h4 className="text-lg font-bold text-gray-900">{p.title || `Part ${i + 1}`}</h4>
-                                {(partAudios[i] || p.audio) && <span className="text-[10px] bg-purple-50 text-[#9757D7] px-2 py-1 rounded font-bold border border-purple-100">AUDIO</span>}
+                                <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100">{p.title || `Part ${i + 1}`}</h4>
+                                {(partAudios[i] || p.audio) && <span className="text-[10px] bg-purple-50 dark:bg-purple-900/20 text-[#9757D7] px-2 py-1 rounded font-bold border border-purple-100 dark:border-purple-900/30">AUDIO</span>}
                             </div>
-                            <div className="text-sm text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: p.content || "Matn yo'q..." }}></div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed" dangerouslySetInnerHTML={{ __html: p.content || "Matn yo'q..." }}></div>
                         </div>
                     ))}
                     <div className="space-y-4">
                         {testData.questions?.map((g, i) => (
-                            <div key={i} className="bg-white p-5 rounded-[24px] border border-gray-200 hover:border-[#3772FF]/30 transition shadow-sm">
+                            <div key={i} className="bg-white dark:bg-[#1C1C1E] p-5 rounded-[24px] border border-gray-200 dark:border-gray-800 hover:border-[#3772FF]/30 transition shadow-sm">
                                 <p className="text-xs font-bold text-[#3772FF] mb-2 uppercase tracking-wider">{g.type}</p>
-                                <div className="text-sm text-gray-900 mb-3 font-medium" dangerouslySetInnerHTML={{ __html: g.instruction }}></div>
+                                <div className="text-sm text-gray-900 dark:text-gray-100 mb-3 font-medium" dangerouslySetInnerHTML={{ __html: g.instruction }}></div>
 
                                 {/* Map Image Preview */}
                                 {g.image && (
-                                    <div className="mb-4 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex justify-center py-2">
+                                    <div className="mb-4 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex justify-center py-2">
                                         <img src={g.image} alt="Map" className="max-w-full max-h-[400px] w-auto h-auto object-contain" />
                                     </div>
                                 )}
 
                                 {g.items && Array.isArray(g.items) ? (
                                     g.items.map((q, idx) => (
-                                        <div key={q.id || idx} className="flex gap-3 text-xs py-2 border-b border-gray-100 last:border-0 text-gray-600">
-                                            <span className="font-bold w-fit min-w-[24px] text-gray-900">{q.id || '?'}.</span>
+                                        <div key={q.id || idx} className="flex gap-3 text-xs py-2 border-b border-gray-100 dark:border-gray-800 last:border-0 text-gray-600 dark:text-gray-400">
+                                            <span className="font-bold w-fit min-w-[24px] text-gray-900 dark:text-gray-100">{q.id || '?'}.</span>
                                             <span className="flex-1" dangerouslySetInnerHTML={{ __html: q.text || "Savol matni yo'q" }} />
                                         </div>
                                     ))
@@ -828,38 +847,38 @@ export default function CreateTest() {
             {/* --- DUPLICATE WARNING MODAL --- */}
             {showDuplicateModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in transition-all">
-                    <div className="bg-white rounded-[32px] shadow-2xl max-w-md w-full p-8 overflow-hidden relative group">
+                    <div className="bg-white dark:bg-[#1C1C1E] rounded-[32px] shadow-2xl max-w-md w-full p-8 overflow-hidden relative group border border-gray-100 dark:border-gray-800">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-400 to-red-500" />
 
                         <div className="mb-6 flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mb-4 border border-orange-100">
+                            <div className="w-16 h-16 bg-orange-50 dark:bg-orange-900/20 rounded-full flex items-center justify-center mb-4 border border-orange-100 dark:border-orange-900/30">
                                 <svg className="w-8 h-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Test Mavjud!</h3>
-                            <p className="text-gray-500 text-sm leading-relaxed">
-                                Bu test (yoki unga juda o'xshash kontent) bazada allaqachon <span className="font-bold text-gray-900">"{duplicateInfo}"</span> nomi bilan mavjud ekan.
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Test Mavjud!</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+                                Bu test (yoki unga juda o'xshash kontent) bazada allaqachon <span className="font-bold text-gray-900 dark:text-gray-100">"{duplicateInfo}"</span> nomi bilan mavjud ekan.
                             </p>
                         </div>
 
                         <div className="flex flex-col gap-3">
                             <button
                                 onClick={() => { setShowDuplicateModal(false); handleSave(true); }}
-                                className="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition shadow-lg shadow-gray-200 active:scale-[0.98]"
+                                className="w-full bg-gray-900 dark:bg-black hover:bg-black dark:hover:bg-[#050505] text-white font-bold py-4 rounded-2xl transition shadow-lg shadow-gray-200 dark:shadow-none active:scale-[0.98]"
                             >
                                 Baribir Yaratish/Saqlash
                             </button>
                             <button
                                 onClick={() => setShowDuplicateModal(false)}
-                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-4 rounded-2xl transition active:scale-[0.98]"
+                                className="w-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 font-bold py-4 rounded-2xl transition active:scale-[0.98]"
                             >
                                 Bekor Qilish
                             </button>
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Administrator nazorati</p>
+                        <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest">Administrator nazorati</p>
                         </div>
                     </div>
                 </div>
@@ -870,15 +889,15 @@ export default function CreateTest() {
                 <div className="relative group">
                     {/* Hover bo'lganda chiqadigan ogohlantirish (User so'ragan hover effekti) */}
                     {!isEditMode && duplicateInfo && !showDuplicateModal && (
-                        <div className="absolute bottom-full right-0 mb-4 w-64 bg-white p-4 rounded-2xl shadow-xl border border-orange-100 animate-bounce transition-all opacity-0 group-hover:opacity-100 pointer-events-none">
+                        <div className="absolute bottom-full right-0 mb-4 w-64 bg-white dark:bg-[#1C1C1E] p-4 rounded-2xl shadow-xl border border-orange-100 dark:border-orange-900/30 animate-bounce transition-all opacity-0 group-hover:opacity-100 pointer-events-none">
                             <div className="flex items-start gap-3">
-                                <div className="p-1.5 bg-orange-100 rounded-lg"><svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
+                                <div className="p-1.5 bg-orange-100 dark:bg-orange-900/20 rounded-lg"><svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
                                 <div className="flex-1">
                                     <p className="text-[10px] font-bold text-orange-600 uppercase mb-1">Diqqat: Dublikat topildi</p>
-                                    <p className="text-xs text-gray-600 font-medium">Bu test allaqachon bazada bor bo'lishi mumkin.</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Bu test allaqachon bazada bor bo'lishi mumkin.</p>
                                 </div>
                             </div>
-                            <div className="absolute bottom-[-6px] right-8 w-3 h-3 bg-white border-r border-b border-orange-100 rotate-45" />
+                            <div className="absolute bottom-[-6px] right-8 w-3 h-3 bg-white dark:bg-[#1C1C1E] border-r border-b border-orange-100 dark:border-orange-900/30 rotate-45" />
                         </div>
                     )}
 

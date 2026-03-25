@@ -196,10 +196,10 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
 
         // Agar poolga qaytarib tashlasak (return to pool)
         if (over.id === 'pool-zone') {
-            // Ushbu variant qaysi savolga tegishli bo'lsa o'shani o'chiramiz
-            const slotToClear = Object.entries(userAnswers).find(([_, val]) => val === optionLabel);
-            if (slotToClear) {
-                onAnswerChange(slotToClear[0], "");
+            // Faqat ushbu guruhdagi savollarni tekshiramiz (Object.entries emas)
+            const questionToClear = questions.find(q => userAnswers[q.id] === optionLabel);
+            if (questionToClear) {
+                onAnswerChange(questionToClear.id, "");
             }
             return;
         }
@@ -211,6 +211,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
 
     return (
         <DndContext
+            id={`dnd-matching-${group.id || (questions[0] && questions[0].id) || 'default'}`}
             sensors={sensors}
             onDragStart={handleDragStart}
             onDragEnd={isReviewMode ? undefined : handleDragEnd}
@@ -252,7 +253,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                         {options.map((opt, idx) => {
                             const label = opt.label || String.fromCharCode(65 + idx);
                             const text = opt.text || (typeof opt === 'string' ? opt : "");
-                            const isUsed = Object.values(userAnswers).includes(label);
+                            const isUsed = questions.some(q => userAnswers[q.id] === label);
 
                             return (
                                 <div
@@ -269,7 +270,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                             );
                         })}
                     </div>
-                    {options.length > 0 && Object.values(userAnswers).filter(val => options.some(o => (o.label || String.fromCharCode(65 + options.indexOf(o))) === val)).length === options.length && (
+                    {options.length > 0 && questions.filter(q => userAnswers[q.id]).length === options.length && (
                         <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-xl italic">
                             All options placed
                         </div>

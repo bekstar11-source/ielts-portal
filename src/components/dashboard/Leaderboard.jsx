@@ -24,8 +24,22 @@ export default function Leaderboard() {
     useEffect(() => {
         const fetchLeaders = async () => {
             try {
+                // 🔥 FIX: SessionStorage cache — 5 daqiqalik
+                const CACHE_KEY = 'leaderboard_data';
+                const CACHE_TIME_KEY = 'leaderboard_time';
+                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
+
+                if (isCacheValid) {
+                    const cached = sessionStorage.getItem(CACHE_KEY);
+                    if (cached) {
+                        setLeaders(JSON.parse(cached));
+                        setLoading(false);
+                        return;
+                    }
+                }
+
                 // Query users sorted by points
-                // Note: Index might be required: users -> gamification.points DESC
                 const q = query(
                     collection(db, 'users'),
                     orderBy('gamification.points', 'desc'),
@@ -33,6 +47,11 @@ export default function Leaderboard() {
                 );
                 const snapshot = await getDocs(q);
                 const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Cache ga saqlash
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+
                 setLeaders(data);
             } catch (error) {
                 console.error("Leaderboard error:", error);

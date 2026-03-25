@@ -23,9 +23,12 @@ export default function CustomAudioPlayer({
     const [duration, setDuration] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const [volume, setVolume] = useState(1);
+    const [playbackRate, setPlaybackRate] = useState(1);
     const progressRef = useRef(null);
     const isVisible = index === activePart;
     const isExam = testMode === 'exam';
+
+    const speeds = [1, 1.2, 1.5, 0.8];
 
     // Theme values
     const isDark = variant === 'dark';
@@ -56,6 +59,8 @@ export default function CustomAudioPlayer({
             } else {
                 setDuration(audio.duration || 0);
             }
+            // Apply current playback rate on load
+            audio.playbackRate = playbackRate;
         };
 
         const onTimeUpdate = () => {
@@ -82,6 +87,9 @@ export default function CustomAudioPlayer({
         audio.addEventListener('loadedmetadata', onLoaded);
         audio.addEventListener('timeupdate', onTimeUpdate);
 
+        // Sync playback rate immediately if audio is already loaded
+        audio.playbackRate = playbackRate;
+
         // Ensure we start at startTime
         if (audio.currentTime < startTime) {
             audio.currentTime = startTime;
@@ -95,7 +103,7 @@ export default function CustomAudioPlayer({
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('timeupdate', onTimeUpdate);
         };
-    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime]);
+    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate]);
 
     const togglePlay = () => {
         if (isExam) return;
@@ -159,6 +167,13 @@ export default function CustomAudioPlayer({
         if (audioRef.current) audioRef.current.volume = v;
     };
 
+    const handleSpeedToggle = () => {
+        if (isExam) return;
+        const currentIndex = speeds.indexOf(playbackRate);
+        const nextIndex = (currentIndex + 1) % speeds.length;
+        setPlaybackRate(speeds[nextIndex]);
+    };
+
     const VolumeIcon = () => {
         const baseClass = `w-4 h-4 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-700'}`;
         
@@ -212,6 +227,7 @@ export default function CustomAudioPlayer({
                     onClick={togglePlay}
                     disabled={isExam}
                     className={btnClass}
+                    title={isPlaying ? "Pause" : "Play"}
                 >
                     {isPlaying ? (
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -255,10 +271,27 @@ export default function CustomAudioPlayer({
                     </span>
                 </div>
 
+                {/* Speed Toggle */}
+                <button
+                    onClick={handleSpeedToggle}
+                    disabled={isExam}
+                    title="Playback Speed"
+                    className={`shrink-0 min-w-[32px] h-6 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all ${
+                        isExam ? 'opacity-20 cursor-not-allowed' : 'hover:scale-105 active:scale-95 cursor-pointer'
+                    } ${
+                        isDark 
+                        ? 'border-white/10 text-gray-400 bg-white/5 hover:bg-white/10 hover:text-white' 
+                        : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-blue-600'
+                    }`}
+                >
+                    {playbackRate}x
+                </button>
+
                 {/* Volume Inline */}
                 <div className="flex items-center gap-2 shrink-0 group">
                     <button
                         className="transition-colors"
+                        title="Mute/Unmute"
                         onClick={() => {
                             if (audioRef.current) audioRef.current.muted = !audioRef.current.muted;
                         }}
@@ -272,6 +305,7 @@ export default function CustomAudioPlayer({
                         step="0.02"
                         value={volume}
                         onChange={handleVolumeChange}
+                        title="Volume"
                         className={`w-12 sm:w-16 h-1 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all opacity-40 group-hover:opacity-100 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}
                         style={{ outline: "none" }}
                     />
@@ -280,3 +314,4 @@ export default function CustomAudioPlayer({
         </>
     );
 }
+

@@ -150,7 +150,8 @@ export function useTestLogic() {
                             return;
                         }
 
-                        // 2) Keyin Firestore tekshiruvi (to'liq ishonchlilik)
+                        // 2) Firestore tekshiruvi — FAQAT localStorage'da yetmagan bo'lsa
+                        // (localStorage'da to'la bo'lsa Firestore read tejab skip qilinadi)
                         const prevSnap = await getDocs(
                             query(
                                 collection(db, 'results'),

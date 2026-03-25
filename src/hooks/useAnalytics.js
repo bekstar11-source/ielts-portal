@@ -134,7 +134,11 @@ export function useAnalytics(userId, initialResults = null) {
         };
 
         fetchResults();
-    }, [userId, initialResults]);
+    // 🔥 FIX: initialResults o'rniga uzunligini ishlatamiz
+    // Chunki initialResults har render da yangi array referansi bo'lib keladi
+    // va shu sabab hook qayta ishga tushib results collection'ni qayta o'qib yuborar edi
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, initialResults?.length]);
 
     return { stats, loading };
 }

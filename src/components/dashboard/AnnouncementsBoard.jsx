@@ -12,15 +12,35 @@ export default function AnnouncementsBoard() {
     useEffect(() => {
         const fetchNews = async () => {
             try {
+                // 🔥 FIX: 15 daqiqalik sessionStorage cache
+                const CACHE_KEY = 'announcements_data';
+                const CACHE_TIME_KEY = 'announcements_time';
+                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 15 * 60 * 1000);
+
+                if (isCacheValid) {
+                    const cached = sessionStorage.getItem(CACHE_KEY);
+                    if (cached) {
+                        setAnnouncements(JSON.parse(cached));
+                        setLoading(false);
+                        return;
+                    }
+                }
+
                 // Faqat oxirgi 5 ta e'lonni olamiz
                 const q = query(
                     collection(db, 'announcements'),
-                    // where('isActive', '==', true), // Agar isActive logikasi bo'lsa
                     orderBy('createdAt', 'desc'),
                     limit(5)
                 );
                 const snap = await getDocs(q);
-                setAnnouncements(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // Cache ga saqlash
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+
+                setAnnouncements(data);
             } catch (error) {
                 console.error("News Fetch Error:", error);
             } finally {

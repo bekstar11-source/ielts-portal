@@ -172,17 +172,41 @@ export default function AdminDashboard() {
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
                 const usersSnap = await getCountFromServer(collection(db, "users"));
-                const testsSnap = await getDocs(collection(db, "tests"));
+                // 🔥 FIX: limitSIZ o'qish o'rniga getCountFromServer + limit ishlatamiz
+                const testsCountSnap = await getCountFromServer(collection(db, "tests"));
+                const testsSnap = await getDocs(query(collection(db, "tests"), limit(200)));
 
                 // Faqat oxirgi 30 kunlik natijalarni olamiz (Readlarni tejash uchun)
+                // Fetch more results and filter in-memory to handle mixed date types (String vs Timestamp)
                 const resultsQuery = query(
                     collection(db, "results"),
-                    where("date", ">=", thirtyDaysAgo)
+                    orderBy("date", "desc"),
+                    limit(1000)
                 );
                 const resultsSnap = await getDocs(resultsQuery);
 
                 const testsDocs = testsSnap.docs.map(d => d.data());
-                const resultsDocs = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: d.data().date ? new Date(d.data().date) : new Date() }));
+                const resultsDocs = resultsSnap.docs.map(d => {
+                    const data = d.data();
+                    let dateVal = data.date;
+                    let dateObj;
+                    
+                    if (dateVal && dateVal.seconds) { // Timestamp
+                        dateObj = new Date(dateVal.seconds * 1000);
+                    } else if (typeof dateVal === 'string') { // ISO String
+                        dateObj = new Date(dateVal);
+                    } else {
+                        dateObj = new Date();
+                    }
+                    
+                    return { 
+                        ...data, 
+                        id: d.id,
+                        normalizedDate: dateObj,
+                        // Maintain compatibility with existing logic
+                        date: dateVal 
+                    };
+                }).filter(r => r.normalizedDate >= thirtyDaysAgo);
 
                 // 2. PREPARE CHART DATA
                 const testTypes = { reading: 0, listening: 0, writing: 0, speaking: 0 };
@@ -211,9 +235,8 @@ export default function AdminDashboard() {
                 // Aggregating Results (Tests & Scores)
                 resultsDocs.forEach(r => {
                     try {
-                        let dateObj = r.date;
-                        if (r.date && r.date.seconds) dateObj = new Date(r.date.seconds * 1000);
-                        else if (typeof r.date === 'string') dateObj = new Date(r.date);
+                        const dateObj = r.normalizedDate;
+                        if (!dateObj || isNaN(dateObj.getTime())) return;
 
                         if (dateObj && !isNaN(dateObj)) {
                             const dateKey = dateObj.toISOString().split('T')[0];
@@ -233,7 +256,7 @@ export default function AdminDashboard() {
                 // Aggregating New Users (Faqat oxirgi 30 kundagilar)
                 const recentUsersQuery = query(
                     collection(db, "users"),
-                    where("createdAt", ">=", thirtyDaysAgo)
+                    where("createdAt", ">=", thirtyDaysAgo.toISOString())
                 );
                 const usersListSnap = await getDocs(recentUsersQuery);
                 usersListSnap.docs.forEach(d => {
@@ -253,6 +276,7 @@ export default function AdminDashboard() {
                 // 3. SET STATE
                 const statsData = {
                     users: usersSnap.data().count,
+                    totalTests: testsCountSnap.data().count,
                     tests: testsDocs.length,
                     results: 0, // Will update below
                     activityData: allActivityData, // Full 30 days
@@ -444,7 +468,7 @@ export default function AdminDashboard() {
                     <div className="flex justify-between items-start z-10 relative">
                         <div>
                             <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">Testlar</h3>
-                            <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.tests}</div>
+                            <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : (stats.totalTests ?? stats.tests)}</div>
                             <div className="text-xs text-green-500 mt-2 font-medium flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
                                 +5% yangi
@@ -684,6 +708,21 @@ function UserDetailModal({ user, onClose, onBlock, onUpdateType }) {
             if (!user?.id) return;
             setLoading(true);
             try {
+                // 🔥 FIX: sessionStorage cache — qisqa vaqtlik (2 daqiqa)
+                const CACHE_KEY = `user_results_${user.id}`;
+                const CACHE_TIME_KEY = `user_results_time_${user.id}`;
+                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 2 * 60 * 1000);
+
+                if (isCacheValid) {
+                    const cached = sessionStorage.getItem(CACHE_KEY);
+                    if (cached) {
+                        setResults(JSON.parse(cached));
+                        setLoading(false);
+                        return;
+                    }
+                }
+
                 // Oddiy so'rov (Xatosiz ishlash uchun)
                 const q = query(
                     collection(db, "results"),
@@ -700,6 +739,10 @@ function UserDetailModal({ user, onClose, onBlock, onUpdateType }) {
                     const timeB = b.date?.seconds || b.createdAt?.seconds || 0;
                     return timeB - timeA;
                 });
+
+                // Cache ga saqlash
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
 
                 setResults(data);
             } catch (err) {

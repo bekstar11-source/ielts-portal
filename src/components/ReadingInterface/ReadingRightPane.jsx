@@ -129,10 +129,12 @@ const ReadingRightPane = memo(({
                     .filter(g => g.passageId === testData.passages[activePassage].id)
                     .map((group, gIdx, filteredQuestions) => {
                         const type = String(group.type || "").toLowerCase();
+                        const instr = String(group.instruction || "").toLowerCase();
                         const isChoiceType = ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => type.includes(t));
                         const isMultiSelect = type.includes('pick_two') || type.includes('pick_three') || type.includes('multi');
                         const isMatching = type.includes('matching') || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));
-                        const isSummary = type === 'gap_fill' || type.includes('summary') || type === 'summary_box' || type === 'flow_chart';
+                        const isSummary = type === 'gap_fill' || type.includes('summary') || type === 'summary_box' || type.includes('flow') || type.includes('note');
+                        const isFlowChart = type.includes('flow') || instr.includes('flow-chart') || instr.includes('flow chart');
                         const isTable = type.includes('table');
                         const isDiagram = type.includes('diagram') || type.includes('labeling');
                         const isTFNG = type.includes('tfng') || type.includes('yesno') || type.includes('true_false') || type.includes('yes_no');
@@ -176,7 +178,7 @@ const ReadingRightPane = memo(({
                                     ) : isDiagram ? (
                                         <DiagramLabelingQuestion {...commonProps} />
                                     ) : (
-                                        group.items?.map(q => {
+                                        group.items?.map((q, qIdx) => {
                                             if (isChoiceType && !isMatching) {
                                                 return <ChoiceQuestion key={q.id} q={q} val={userAnswers[q.id] || ""} isMultiSelect={isMultiSelect} {...commonProps} />;
                                             }
@@ -186,7 +188,8 @@ const ReadingRightPane = memo(({
                                                     q={q} 
                                                     val={userAnswers[q.id] || ""} 
                                                     isSummary={isSummary} 
-                                                    isFlowChart={type === 'flow_chart'}
+                                                    isFlowChart={isFlowChart}
+                                                    isLast={qIdx === (group.items.length - 1)}
                                                     {...commonProps} 
                                                 />
                                             );

@@ -41,7 +41,7 @@ export const ReadingTextInput = ({
     }
 
     return (
-        <span className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative">
+        <span className="inline-flex items-center align-middle whitespace-nowrap relative">
             <input
                 className={`w-[110px] h-[26px] border rounded px-1 text-center font-semibold text-sm focus:outline-none focus:ring-1 transition-all bg-white disabled:bg-opacity-50 ${inputBorderClass} ${textClass}`}
                 value={value}
@@ -237,7 +237,7 @@ export const ChoiceQuestion = ({
 };
 
 export const GapFillQuestion = ({ 
-    group, q, val, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, isSummary, isFlowChart
+    group, q, val, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, isSummary, isFlowChart, isLast
 }) => {
     const itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
     const parts = q.text.split(/(\[INPUT\]|\[DROP\])/g);
@@ -250,7 +250,7 @@ export const GapFillQuestion = ({
 
             if (part === '[INPUT]' && !isSelectDropdown) {
                 return (
-                    <span key={i} className="inline-flex items-center align-middle mx-1 whitespace-nowrap">
+                    <span key={i} className="inline-flex items-center align-middle mx-0 whitespace-nowrap">
                         {isReviewMode && (
                             <span 
                                 className="inline-flex min-w-[24px] px-1 h-[24px] items-center justify-center rounded bg-white border border-gray-400 text-[13px] font-bold text-gray-700 mr-1 align-middle cursor-pointer hover:border-ielts-blue transition-colors shadow-sm"
@@ -273,10 +273,10 @@ export const GapFillQuestion = ({
             if (isSelectDropdown) {
                 let inputBorderClass = isReviewMode ? (isCorrect ? "border-green-500 bg-green-50 text-green-700" : "border-red-500 bg-red-50 text-red-700") : "border-gray-300 focus:border-ielts-blue";
                 return (
-                    <span key={i} className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative">
+                    <span key={i} className="inline-flex items-center align-middle mx-0 whitespace-nowrap relative">
                         <span 
-                            className="inline-flex min-w-[24px] px-1 h-[24px] items-center justify-center rounded bg-white border border-gray-400 text-[13px] font-bold text-gray-700 mr-1 align-middle cursor-pointer hover:border-ielts-blue transition-colors shadow-sm"
-                            onClick={() => handleLocationClick(q.locationId, group.passageId)}
+                            className={`inline-flex min-w-[24px] px-1 h-[24px] items-center justify-center rounded bg-white border border-gray-400 text-[13px] font-bold text-gray-700 mr-1 align-middle shadow-sm transition-all ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}`}
+                            onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}
                         >
                             {q.id}
                         </span>
@@ -301,7 +301,7 @@ export const GapFillQuestion = ({
             }
 
             const cleanPart = part.replace(/<\/?p>|<\/?div>/gi, "");
-            if (!cleanPart.trim()) return null;
+            if (cleanPart === "") return null;
 
             const partId = `p-${activePassage}-q-${q.id}-part-${i}`;
             const injectedPart = (isReviewMode && keywordTable?.length) ? injectKeywordsToHTML(cleanPart, keywordTable, true, q.id) : cleanPart;
@@ -322,20 +322,24 @@ export const GapFillQuestion = ({
     };
 
     let containerClass = "block mb-5";
-    if (isSummary) containerClass = "inline leading-[2.2] text-justify mr-1.5 whitespace-pre-wrap";
-    if (isFlowChart) containerClass = "block w-full border border-gray-800 p-3 mb-4 bg-white relative shadow-sm text-center";
+    if (isSummary) containerClass = "inline leading-[2.2]";
+    if (isFlowChart) containerClass = "flex flex-col items-center justify-center w-full border border-gray-200 rounded-xl p-6 mb-10 bg-white relative shadow-sm text-center font-montserrat";
 
     return (
         <div id={`q-${q.id}`} className={`group/item relative ${containerClass}`}>
             {!isSummary && !isFlowChart && (
                 <div className="flex gap-3 items-start mb-2 pl-2">
-                    <div className="flex-1 text-black">{renderParts()}</div>
+                    <span className="flex-1 text-black">{renderParts()}</span>
                 </div>
             )}
             {(isSummary || isFlowChart) && (
-                <div className="text-black">
-                    {renderParts()}
-                    {isFlowChart && <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-gray-400 text-xl">↓</div>}
+                <div className={`text-black ${isFlowChart ? 'w-full flex flex-col items-center' : ''}`}>
+                    <div className={isFlowChart ? 'text-[1.1em] font-medium leading-relaxed' : ''}>
+                        {renderParts()}
+                    </div>
+                    {isFlowChart && !isLast && (
+                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-gray-300 text-2xl animate-bounce-subtle">↓</div>
+                    )}
                 </div>
             )}
         </div>

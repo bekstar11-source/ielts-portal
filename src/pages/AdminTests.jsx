@@ -1,11 +1,10 @@
 // src/pages/AdminTests.jsx
 import { useState, useEffect, useMemo } from "react";
 import { db } from "../firebase/firebase";
-import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, updateDoc, addDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
-
-
+import TagSelector, { TAG_COLORS } from "../components/ui/TagSelector";
 // Icons
 const Icons = {
     Edit: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
@@ -19,9 +18,11 @@ const Icons = {
     ChevronRight: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
     Search: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
     Layers: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>,
+    Tag: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>,
+    X: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
 };
 
-import { addDoc } from "firebase/firestore";
+
 
 import { logAction } from "../utils/logger";
 import { useAuth } from "../context/AuthContext";
@@ -43,14 +44,38 @@ export default function AdminTests() {
     const [isMerging, setIsMerging] = useState(false);
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeTitle, setMergeTitle] = useState("");
+    const [editingTagsFor, setEditingTagsFor] = useState(null); // testId
+    const [filterTag, setFilterTag] = useState("all");
+    const [tagLabels, setTagLabels] = useState({});
     const itemsPerPage = 10;
+
+    useEffect(() => {
+        const fetchTagLabels = async () => {
+            try {
+                const docSnap = await getDoc(doc(db, "tests", "tag_metadata"));
+                if (docSnap.exists()) {
+                    setTagLabels(docSnap.data());
+                } else {
+                    const defaults = {};
+                    TAG_COLORS.forEach(t => defaults[t.id] = t.label);
+                    setTagLabels(defaults);
+                }
+            } catch (err) {
+                console.warn("Tag labels context error:", err.message);
+                const defaults = {};
+                TAG_COLORS.forEach(t => defaults[t.id] = t.label);
+                setTagLabels(defaults);
+            }
+        };
+        fetchTagLabels();
+    }, []);
 
     useEffect(() => {
         const fetchTests = async () => {
             try {
                 const q = query(collection(db, "tests"), orderBy("createdAt", "desc"));
                 const snapshot = await getDocs(q);
-                setTests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                setTests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(t => t.id !== "tag_metadata" && t.id !== "_tag_settings"));
             } catch (err) {
                 console.error(err);
             } finally {
@@ -74,6 +99,15 @@ export default function AdminTests() {
         setSelectedTests(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
+    };
+
+    const handleUpdateTags = async (testId, newTags) => {
+        try {
+            await updateDoc(doc(db, "tests", testId), { tags: newTags });
+            setTests(prev => prev.map(t => t.id === testId ? { ...t, tags: newTags } : t));
+        } catch (err) {
+            alert("Taglarni yangilashda xatolik: " + err.message);
+        }
     };
 
     const handleMergeTests = async () => {
@@ -106,6 +140,7 @@ export default function AdminTests() {
             let combinedQuestions = [];
             let combinedKeywords = [];
             let passageIdOffset = 0;
+            let questionIdCounter = 1;
 
             sortedSelected.forEach((test, testIdx) => {
                 const passages = test.passages || [];
@@ -118,15 +153,61 @@ export default function AdminTests() {
                     return { ...p, id: String(newId), originalId: p.id };
                 });
 
-                // 2. Savollarni qo'shish (passageId larni yangilash)
-                const mappedQuestions = questions.map(q => {
-                    if (q.passageId) {
-                        const originalPassageIdx = passages.findIndex(p => String(p.id) === String(q.passageId));
-                        if (originalPassageIdx !== -1) {
-                            return { ...q, passageId: String(passageIdOffset + originalPassageIdx + 1) };
-                        }
+                // 2. Savollarni qo'shish (passageId va question ID larni yangilash)
+                const mappedQuestions = questions.map(group => {
+                    // Passage ID mapping for the GROUP
+                    let newPassageId = group.passageId;
+                    const pIdx = passages.findIndex(p => String(p.id) === String(group.passageId));
+                    if (pIdx !== -1) {
+                        newPassageId = String(passageIdOffset + pIdx + 1);
                     }
-                    return q;
+
+                    // Deeply clone and remap questions
+                    const processItem = (item) => {
+                        if (!item || typeof item !== 'object') return item;
+                        if (Array.isArray(item)) return item.map(processItem);
+
+                        let updated = { ...item };
+                        
+                        // Agar bu savol bo'lsa (id si son bo'lsa), yangi ID beramiz
+                        if (updated.id && !isNaN(parseInt(updated.id))) {
+                            updated.id = String(questionIdCounter++);
+                        }
+
+                        // PassageID ni yangilaymiz (agar savol darajasida bo'lsa)
+                        if (updated.passageId) {
+                            const subPIdx = passages.findIndex(p => String(p.id) === String(updated.passageId));
+                            if (subPIdx !== -1) {
+                                updated.passageId = String(passageIdOffset + subPIdx + 1);
+                            } else {
+                                updated.passageId = newPassageId; // Default group passageId
+                            }
+                        }
+
+                        // Barcha propertylarni rekursiv tekshiramiz (masalan parts, cells, items)
+                        for (const key in updated) {
+                            if (updated[key] && typeof updated[key] === 'object' && key !== 'options' && key !== 'text') {
+                                updated[key] = processItem(updated[key]);
+                            }
+                        }
+
+                        return updated;
+                    };
+
+                    const newGroup = {
+                        ...group,
+                        passageId: newPassageId,
+                        items: group.items ? group.items.map(processItem) : [],
+                        groups: group.groups ? processItem(group.groups) : [],
+                        questions: group.questions ? group.questions.map(processItem) : []
+                    };
+
+                    // If the group itself is a standalone question (StandardMCQ flat)
+                    if (newGroup.id && !isNaN(parseInt(newGroup.id)) && !newGroup.questions && !newGroup.items && !newGroup.groups) {
+                        newGroup.id = String(questionIdCounter++);
+                    }
+
+                    return newGroup;
                 });
 
                 combinedPassages = [...combinedPassages, ...mappedPassages];
@@ -168,9 +249,10 @@ export default function AdminTests() {
         return tests.filter(test => {
             const matchesSearch = test.title?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesType = filterType === 'all' || test.type === filterType;
-            return matchesSearch && matchesType;
+            const matchesTag = filterTag === 'all' || (test.tags && test.tags.includes(filterTag));
+            return matchesSearch && matchesType && matchesTag;
         });
-    }, [tests, searchTerm, filterType]);
+    }, [tests, searchTerm, filterType, filterTag]);
 
     // 2. PAGINATION LOGIC
     const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
@@ -269,6 +351,25 @@ export default function AdminTests() {
                             </button>
                         ))}
                     </div>
+
+                    <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1 px-4">
+                        <button
+                            onClick={() => setFilterTag('all')}
+                            className={`w-6 h-6 rounded-full border-1.5 flex items-center justify-center transition ${filterTag === 'all' ? (isDark ? 'border-blue-400 bg-white/10' : 'border-[#1A73E8] bg-gray-100') : (isDark ? 'border-transparent hover:border-white/20' : 'border-transparent hover:border-gray-200')}`}
+                            title="Barcha taglar"
+                        >
+                            <Icons.Tag className="w-3 h-3" />
+                        </button>
+                        {TAG_COLORS.map(tag => (
+                            <button
+                                key={tag.id}
+                                onClick={() => setFilterTag(tag.id)}
+                                className={`w-5 h-5 rounded-full border-1.5 transition transform hover:scale-110 ${filterTag === tag.id ? 'border-blue-400 ring-2 ring-offset-1 ring-blue-500' : 'border-transparent'}`}
+                                style={{ backgroundColor: tag.color }}
+                                title={tagLabels[tag.id] || tag.label}
+                            />
+                        ))}
+                    </div>
                 </div>
 
                 {/* --- TABLE --- */}
@@ -290,6 +391,7 @@ export default function AdminTests() {
                                     </th>
                                     <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Test Nomi</th>
                                     <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Turi</th>
+                                    <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Taglar</th>
                                     <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Qiyinligi</th>
                                     <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Sana</th>
                                     <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider text-right ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Amallar</th>
@@ -322,6 +424,44 @@ export default function AdminTests() {
                                                             (isDark ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-800')}`}>
                                                     {test.type}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center -space-x-1">
+                                                    {test.tags?.map(tagId => {
+                                                        const tag = TAG_COLORS.find(t => t.id === tagId);
+                                                        return tag ? (
+                                                            <div 
+                                                                key={tagId} 
+                                                                className="w-3 h-3 rounded-full border-2 border-white dark:border-[#1E1E1E] shadow-sm" 
+                                                                style={{ backgroundColor: tag.color }}
+                                                                title={tag.label}
+                                                            />
+                                                        ) : null;
+                                                    })}
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingTagsFor(editingTagsFor === test.id ? null : test.id);
+                                                        }}
+                                                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ml-2 ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-500 hover:text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-600'}`}
+                                                    >
+                                                        <Icons.Plus className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                                {editingTagsFor === test.id && (
+                                                    <div className={`absolute mt-2 z-50 p-4 rounded-2xl shadow-2xl border animate-in fade-in zoom-in-95 duration-200 ${isDark ? 'bg-[#2C2C2C] border-white/10' : 'bg-white border-gray-200'}`}>
+                                                        <div className="flex justify-between items-center mb-3">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Taglarni tanlang</span>
+                                                            <button onClick={() => setEditingTagsFor(null)}><Icons.X className="w-4 h-4 text-gray-500" /></button>
+                                                        </div>
+                                                        <TagSelector 
+                                                            selectedTags={test.tags || []} 
+                                                            onChange={(newTags) => handleUpdateTags(test.id, newTags)}
+                                                            isDark={isDark}
+                                                            allowEdit={true}
+                                                        />
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`text-xs font-medium capitalize

@@ -303,4 +303,12 @@ export const styles = `
   }
   .q-nav-btn:hover { border-color: #2563eb; color: #2563eb; transform: translateY(-1px); }
   .q-nav-btn.answered { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+  @keyframes bounce-subtle {
+    0%, 100% { transform: translate(-50%, 0); }
+    50% { transform: translate(-50%, 4px); }
+  }
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s infinite ease-in-out;
+  }
 `;
