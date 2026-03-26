@@ -572,7 +572,9 @@ export default function CreateTest() {
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-1">Qiyinlik</label>
                             <div className="relative">
                                 <select className="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-gray-900 dark:text-gray-100 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.difficulty} onChange={e => setTestData({ ...testData, difficulty: e.target.value })}>
-                                    <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
+                                    <option value="easy">Passage 1</option>
+                                    <option value="medium">Passage 2</option>
+                                    <option value="hard">Passage 3</option>
                                 </select>
                                 <div className="absolute right-4 top-4 text-gray-400 pointer-events-none">▼</div>
                             </div>

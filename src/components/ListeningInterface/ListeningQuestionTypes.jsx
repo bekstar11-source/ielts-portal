@@ -548,10 +548,10 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
 };
 
 export const StandardMCQ = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
-    return (group.questions || group.items || []).map(q => {
+    const renderQuestion = (q) => {
         const options = q.options || group.options || [];
         return (
-            <div key={q.id} className="mb-3 p-1 rounded-xl">
+            <div key={q.id} id={`q-${q.id}`} className="mb-3 p-1 rounded-xl">
                 <div className="flex gap-2 mb-2 items-start">
                     <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
                     {q.text && <div className="font-semibold text-gray-900 leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />}
@@ -577,5 +577,20 @@ export const StandardMCQ = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                 </div>
             </div>
         );
-    });
+    };
+
+    if (group.groups && Array.isArray(group.groups)) {
+        return (
+            <div className="flex flex-col gap-6">
+                {group.groups.map((sub, sIdx) => (
+                    <div key={sIdx}>
+                        {sub.text && <div className="font-bold text-gray-900 mb-3 px-1" dangerouslySetInnerHTML={{ __html: sub.text }} />}
+                        {(sub.questions || sub.items || []).map(renderQuestion)}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    return <>{(group.questions || group.items || []).map(renderQuestion)}</>;
 };

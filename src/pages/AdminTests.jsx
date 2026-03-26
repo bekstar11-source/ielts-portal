@@ -46,6 +46,7 @@ export default function AdminTests() {
     const [mergeTitle, setMergeTitle] = useState("");
     const [editingTagsFor, setEditingTagsFor] = useState(null); // testId
     const [filterTag, setFilterTag] = useState("all");
+    const [filterDifficulty, setFilterDifficulty] = useState("all");
     const [tagLabels, setTagLabels] = useState({});
     const itemsPerPage = 10;
 
@@ -250,9 +251,10 @@ export default function AdminTests() {
             const matchesSearch = test.title?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesType = filterType === 'all' || test.type === filterType;
             const matchesTag = filterTag === 'all' || (test.tags && test.tags.includes(filterTag));
-            return matchesSearch && matchesType && matchesTag;
+            const matchesDifficulty = filterDifficulty === 'all' || test.difficulty === filterDifficulty;
+            return matchesSearch && matchesType && matchesTag && matchesDifficulty;
         });
-    }, [tests, searchTerm, filterType, filterTag]);
+    }, [tests, searchTerm, filterType, filterTag, filterDifficulty]);
 
     // 2. PAGINATION LOGIC
     const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
@@ -352,23 +354,45 @@ export default function AdminTests() {
                         ))}
                     </div>
 
-                    <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1 px-4">
-                        <button
-                            onClick={() => setFilterTag('all')}
-                            className={`w-6 h-6 rounded-full border-1.5 flex items-center justify-center transition ${filterTag === 'all' ? (isDark ? 'border-blue-400 bg-white/10' : 'border-[#1A73E8] bg-gray-100') : (isDark ? 'border-transparent hover:border-white/20' : 'border-transparent hover:border-gray-200')}`}
-                            title="Barcha taglar"
-                        >
-                            <Icons.Tag className="w-3 h-3" />
-                        </button>
-                        {TAG_COLORS.map(tag => (
+                    {/* 3. Detailed Filters (Tags & Passages) */}
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        {/* Tags Picker */}
+                        <div className={`flex items-center gap-2.5 p-1 px-3 rounded-lg border transition-colors h-10 ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-gray-100 border-gray-200'}`}>
                             <button
-                                key={tag.id}
-                                onClick={() => setFilterTag(tag.id)}
-                                className={`w-5 h-5 rounded-full border-1.5 transition transform hover:scale-110 ${filterTag === tag.id ? 'border-blue-400 ring-2 ring-offset-1 ring-blue-500' : 'border-transparent'}`}
-                                style={{ backgroundColor: tag.color }}
-                                title={tagLabels[tag.id] || tag.label}
-                            />
-                        ))}
+                                onClick={() => setFilterTag('all')}
+                                className={`w-6 h-6 rounded-full border flex items-center justify-center transition ${filterTag === 'all' ? (isDark ? 'border-blue-400 bg-blue-400/10 text-blue-400' : 'border-[#1A73E8] bg-white text-[#1A73E8]') : (isDark ? 'border-transparent text-gray-500' : 'border-transparent text-gray-400')}`}
+                                title="Barcha taglar"
+                            >
+                                <Icons.Tag className="w-3 h-3" />
+                            </button>
+                            <div className="flex gap-1.5">
+                                {TAG_COLORS.map(tag => (
+                                    <button
+                                        key={tag.id}
+                                        onClick={() => setFilterTag(tag.id)}
+                                        className={`w-5 h-5 rounded-full border-2 transition transform hover:scale-110 ${filterTag === tag.id ? 'border-blue-400 ring-2 ring-blue-500/20' : 'border-white/10'}`}
+                                        style={{ backgroundColor: tag.color }}
+                                        title={tagLabels[tag.id] || tag.label}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Passage Segmented Control */}
+                        <div className={`flex p-1 rounded-lg overflow-x-auto no-scrollbar border h-10 ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-gray-100 border-gray-200'}`}>
+                            {[{v:'all', l:'All Passages'}, {v:'easy', l:'Passage 1'}, {v:'medium', l:'Passage 2'}, {v:'hard', l:'Passage 3'}].map(diff => (
+                                <button
+                                    key={diff.v}
+                                    onClick={() => { setFilterDifficulty(diff.v); setCurrentPage(1); }}
+                                    className={`px-3 py-0 rounded-md text-[11px] font-bold transition whitespace-nowrap h-full ${filterDifficulty === diff.v
+                                        ? (isDark ? 'bg-[#3C3C3C] text-blue-400 shadow-sm ring-1 ring-white/10' : 'bg-white text-[#1A73E8] shadow-sm ring-1 ring-black/5')
+                                        : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700')
+                                        }`}
+                                >
+                                    {diff.l}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -468,7 +492,10 @@ export default function AdminTests() {
                                             ${test.difficulty === 'hard' ? 'text-red-500' :
                                                         test.difficulty === 'easy' ? 'text-green-500' :
                                                             'text-orange-500'}`}>
-                                                    {test.difficulty || "Medium"}
+                                                    {test.difficulty === 'hard' ? 'Passage 3' : 
+                                                     test.difficulty === 'medium' ? 'Passage 2' : 
+                                                     test.difficulty === 'easy' ? 'Passage 1' : 
+                                                     (test.difficulty || "Passage 2")}
                                                 </span>
                                             </td>
                                             <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>

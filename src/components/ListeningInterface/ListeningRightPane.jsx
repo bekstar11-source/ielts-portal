@@ -120,8 +120,12 @@ const ListeningRightPane = memo(({
 
         const hasNestedQuestions = Array.isArray(group.questions) && group.questions.length > 0;
         const hasNestedItems = Array.isArray(group.items) && group.items.length > 0;
+        const hasNestedGroups = Array.isArray(group.groups) && group.groups.length > 0;
 
-        if (!hasNestedQuestions && !hasNestedItems && group.id != null) {
+        if (hasNestedGroups) {
+            // StandardMCQ allaqachon groups bilan ishlashni biladi
+            normalizedGroup = group;
+        } else if (!hasNestedQuestions && !hasNestedItems && group.id != null) {
             // FLAT tuzilish: group o'zi bitta savol — uni questions arrayga o'raymiz
             normalizedGroup = {
                 ...group,
@@ -259,7 +263,7 @@ const ListeningRightPane = memo(({
                                         <span dangerouslySetInnerHTML={{ __html: formatIELTSInstruction(group.instruction) }} />
                                     </div>
                                 )}
-                                {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0) && (
+                                {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0 || group.groups?.length > 0) && (
                                     <div className="mt-4 text-[1.1em] font-bold text-gray-900 leading-tight">
                                         <span dangerouslySetInnerHTML={{ __html: group.text }} />
                                     </div>
