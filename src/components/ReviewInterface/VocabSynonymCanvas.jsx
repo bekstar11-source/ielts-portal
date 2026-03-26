@@ -81,6 +81,8 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
 
     // Save to synonymPairs (single source of truth)
     const handleSave = useCallback(async () => {
+        if (isSaving) return;
+        
         if (!userId || !testId) {
             alert('userId yoki testId topilmadi!');
             return;
@@ -98,10 +100,7 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                 return { ...p, id: newId };
             });
 
-            // Save to synonymPairs subcollection
-            await saveSynonymPairs(userId, testId, withRealIds);
-
-            // Also save to WordBank keywords for the Keywords tab
+            // Prepare wordbank entries
             const wordbankEntries = withRealIds.map((p) => ({
                 passageWord: p.passageWord || '',
                 questionWord: p.questionWord || '',
@@ -109,7 +108,12 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                 testId: testId,
                 testName: testTitle || testId,
             }));
-            await batchAddWordsToBank(userId, wordbankEntries);
+
+            // Save to synonymPairs and WordBank in parallel
+            await Promise.all([
+                saveSynonymPairs(userId, testId, withRealIds),
+                batchAddWordsToBank(userId, wordbankEntries)
+            ]);
 
             // Update local state with new IDs — no extra re-fetch needed
             setPairs(prev => prev.map(p => {

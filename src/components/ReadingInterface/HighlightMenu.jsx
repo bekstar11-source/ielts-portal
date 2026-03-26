@@ -1,30 +1,40 @@
 import React, { useState, useEffect } from "react";
-import { BookPlus, Check, ArrowRightLeft } from "lucide-react";
+import { BookPlus, Check, ArrowRightLeft, Loader2 } from "lucide-react";
 
 export default function HighlightMenu({ position, onHighlight, onClear, onAddDictionary, isReviewMode, onAddToWordBank, source }) {
     const [isAdded, setIsAdded] = useState(false);
     const [isWBAdded, setIsWBAdded] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // Reset state when position changes (new selection)
     useEffect(() => {
         setIsAdded(false);
         setIsWBAdded(false);
+        setIsProcessing(false);
     }, [position]);
 
     const handleAddDict = async (e) => {
         e.preventDefault();
+        if (isProcessing || isAdded) return;
+        
+        setIsProcessing(true);
         const success = await onAddDictionary();
         if (success) {
             setIsAdded(true);
             setTimeout(() => {
                 onClear();
                 setIsAdded(false);
+                setIsProcessing(false);
             }, 1000);
+        } else {
+            setIsProcessing(false);
         }
     };
 
     const handleAddToWB = (e) => {
         e.preventDefault();
+        if (isProcessing || isWBAdded) return;
+
         if (onAddToWordBank) {
             const selection = window.getSelection();
             const word = selection ? selection.toString().trim() : "";
@@ -47,9 +57,11 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
             if (word) {
                 onAddToWordBank(word, source || "passage", contextSentence);
                 setIsWBAdded(true);
+                setIsProcessing(true);
                 setTimeout(() => {
                     onClear();
                     setIsWBAdded(false);
+                    setIsProcessing(false);
                 }, 800);
             }
         }
@@ -89,10 +101,12 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
                 className={`flex items-center gap-1.5 px-2 py-1 text-xs font-semibold hover:bg-gray-700 rounded transition-colors group ${isAdded ? 'text-green-400' : 'text-blue-400'}`}
                 onMouseDown={handleAddDict}
                 title="Lug'atga qo'shish"
-                disabled={isAdded}
+                disabled={isAdded || isProcessing}
             >
                 {isAdded ? (
                     <Check size={14} className="group-hover:scale-110 transition-transform animate-in zoom-in" />
+                ) : isProcessing && !isWBAdded ? (
+                    <Loader2 size={14} className="animate-spin text-blue-400" />
                 ) : (
                     <BookPlus size={14} className="group-hover:scale-110 transition-transform" />
                 )}
@@ -106,10 +120,12 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
                         className={`flex items-center gap-1.5 px-2 py-1 text-xs font-semibold hover:bg-gray-700 rounded transition-colors group ${isWBAdded ? 'text-green-400' : 'text-emerald-400'}`}
                         onMouseDown={handleAddToWB}
                         title="Paraphrase Map'ga qo'shish"
-                        disabled={isWBAdded}
+                        disabled={isWBAdded || isProcessing}
                     >
                         {isWBAdded ? (
                             <Check size={14} className="group-hover:scale-110 transition-transform animate-in zoom-in" />
+                        ) : isProcessing && isWBAdded ? (
+                            <Loader2 size={14} className="animate-spin text-emerald-400" />
                         ) : (
                             <ArrowRightLeft size={14} className="group-hover:scale-110 transition-transform" />
                         )}

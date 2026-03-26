@@ -2,7 +2,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 // DIQQAT: Quyidagi ma'lumotlarni o'zingizning Firebase Console-dan olib o'zgartiring!
@@ -20,7 +20,9 @@ const app = initializeApp(firebaseConfig);
 
 // Bizga kerak bo'ladigan xizmatlarni eksport qilamiz
 export const auth = getAuth(app); // Foydalanuvchi tizimi (Login/Register)
-export const db = getFirestore(app); // Ma'lumotlar bazasi
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+}); // Ma'lumotlar bazasi
 export const storage = getStorage(app);
 
 export default app;

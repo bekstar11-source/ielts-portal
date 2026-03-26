@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase/firebase";
-import { collection, getDocs, orderBy, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, deleteDoc, doc, limit } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 
@@ -41,17 +41,18 @@ export default function AdminResults() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Natijalarni olish
-        const q = query(collection(db, "results"), orderBy("date", "desc"));
+        // 1. Natijalarni olish (Limit bilan)
+        const q = query(collection(db, "results"), orderBy("date", "desc"), limit(200));
         const querySnapshot = await getDocs(q);
 
         // 2. Mavjud testlarni olish (Tekshirish uchun)
         // Kichik va o'rta loyihalar uchun barcha test IDlarini olish normal holat.
-        const testsSnapshot = await getDocs(collection(db, "tests"));
+        const testsSnapshot = await getDocs(query(collection(db, "tests"), limit(500)));
         const validTestIds = new Set(testsSnapshot.docs.map(doc => doc.id));
 
         const data = querySnapshot.docs.map((doc) => {
           const d = doc.data();
+
 
           // DURATION HISOBLASH LOGIKASI
           // DURATION HISOBLASH LOGIKASI

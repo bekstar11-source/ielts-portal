@@ -326,17 +326,24 @@ export default function AdminDashboard() {
         try {
             const q = query(
                 collection(db, "users"),
-                where("role", "not-in", ["admin", "teacher"]),
-                limit(20)
+                limit(200)
             );
             const snap = await getDocs(q);
-            const usersList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const fetchedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            // Filter and Sort in JS (including users who might lack createdAt)
+            const studentsOnly = fetchedUsers.filter(u => u.role !== 'admin' && u.role !== 'teacher');
+            studentsOnly.sort((a, b) => {
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return dateB - dateA;
+            });
 
-            setAllUsers(usersList);
+            setAllUsers(studentsOnly);
             setLastVisible(snap.docs[snap.docs.length - 1]);
-            setHasMore(usersList.length === 20);
-            sessionStorage.setItem("admin_all_users", JSON.stringify(usersList));
-            applyFilterAndSearch(usersList, searchTerm, sortOption);
+            setHasMore(snap.docs.length === 200);
+            sessionStorage.setItem("admin_all_users", JSON.stringify(studentsOnly));
+            applyFilterAndSearch(studentsOnly, searchTerm, sortOption);
         } catch (err) {
             console.error("Fetch Error:", err);
         } finally {
@@ -350,18 +357,18 @@ export default function AdminDashboard() {
         try {
             const q = query(
                 collection(db, "users"),
-                where("role", "not-in", ["admin", "teacher"]),
                 startAfter(lastVisible),
-                limit(20)
+                limit(200)
             );
             const snap = await getDocs(q);
-            const usersList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const fetchedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            if (usersList.length > 0) {
-                const combined = [...allUsers, ...usersList];
+            if (fetchedUsers.length > 0) {
+                const studentsOnly = fetchedUsers.filter(u => u.role !== 'admin' && u.role !== 'teacher');
+                const combined = [...allUsers, ...studentsOnly];
                 setAllUsers(combined);
                 setLastVisible(snap.docs[snap.docs.length - 1]);
-                setHasMore(usersList.length === 20);
+                setHasMore(snap.docs.length === 200);
                 sessionStorage.setItem("admin_all_users", JSON.stringify(combined));
             } else {
                 setHasMore(false);
@@ -384,7 +391,9 @@ export default function AdminDashboard() {
         }
         filtered.sort((a, b) => {
             if (sort === "createdAt") {
-                return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return dateB - dateA;
             } else {
                 return (a.fullName || "").localeCompare(b.fullName || "");
             }

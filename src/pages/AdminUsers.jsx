@@ -96,21 +96,30 @@ export default function AdminUsers() {
                 getDocs(query(collection(db, 'testSets'), orderBy('createdAt', 'desc'))),
             ]);
 
-            // Paginated Students
-            const studentQuery = query(
+            // All Users (Paginated, filtered in JS)
+            const userQuery = query(
                 collection(db, 'users'), 
-                where('role', 'not-in', ['admin', 'teacher']), 
-                limit(20)
+                limit(100)
             );
-            const u = await getDocs(studentQuery);
+            const u = await getDocs(userQuery);
+            const allFetchedUsers = u.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            // Sort in JS to include users without createdAt
+            allFetchedUsers.sort((a, b) => {
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return dateB - dateA;
+            });
             
-            // Total Students Count
-            const countSnap = await getCountFromServer(query(collection(db, 'users'), where('role', 'not-in', ['admin', 'teacher'])));
+            // Total Users Count (Simple)
+            const countSnap = await getCountFromServer(collection(db, 'users'));
             setTotalStudents(countSnap.data().count);
 
-            setStudents(u.docs.map(d => ({ id: d.id, ...d.data() })));
+            // Filter out admins/teachers in JS
+            const studentList = allFetchedUsers.filter(user => user.role !== 'admin' && user.role !== 'teacher');
+            setStudents(studentList);
             setLastDoc(u.docs[u.docs.length - 1]);
-            setHasMoreStudents(u.docs.length === 20);
+            setHasMoreStudents(u.docs.length === 100);
 
             setTeachers(teacherSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             setGroups(g.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -125,16 +134,22 @@ export default function AdminUsers() {
         try {
             const nextQuery = query(
                 collection(db, 'users'),
-                where('role', 'not-in', ['admin', 'teacher']),
                 startAfter(lastDoc),
-                limit(20)
+                limit(100)
             );
             const snap = await getDocs(nextQuery);
-            const newStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const newUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             
-            setStudents(prev => [...prev, ...newStudents]);
+            // Filter and append
+            const newStudents = newUsers.filter(user => user.role !== 'admin' && user.role !== 'teacher');
+            
+            setStudents(prev => {
+                const combined = [...prev, ...newStudents];
+                // Optional: overall sort if preferred, but usually load more just appends
+                return combined;
+            });
             setLastDoc(snap.docs[snap.docs.length - 1]);
-            setHasMoreStudents(snap.docs.length === 20);
+            setHasMoreStudents(snap.docs.length === 100);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
