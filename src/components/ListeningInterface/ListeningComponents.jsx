@@ -23,7 +23,7 @@ export const CorrectAnswerTooltip = ({ answer }) => (
     </div>
 );
 
-export const SelectInput = ({ value, onChange, options, isReviewMode, isCorrect, correctAnswer, width = "w-[80px]" }) => {
+export const SelectInput = ({ id, value, onChange, options, isReviewMode, isCorrect, correctAnswer, width = "w-[80px]" }) => {
     const styles = getStatusStyles(isReviewMode, isCorrect, false, 'input');
     return (
         <div className="relative shrink-0 ml-auto sm:ml-0">
@@ -33,7 +33,7 @@ export const SelectInput = ({ value, onChange, options, isReviewMode, isCorrect,
                 onChange={onChange}
                 className={`h-[26px] ${width} pl-2 pr-6 border rounded text-[0.875em] font-bold appearance-none cursor-pointer transition-all shadow-sm focus:outline-none ${styles}`}
             >
-                <option value="">...</option>
+                <option value="">{!isReviewMode ? (id || "...") : "..."}</option>
                 {options.map((opt, idx) => (
                     <option key={idx} value={opt.label}>{opt.label}</option>
                 ))}

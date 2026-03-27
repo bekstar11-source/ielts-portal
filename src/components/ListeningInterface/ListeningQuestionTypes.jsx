@@ -44,6 +44,7 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                             <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
                             <div className="font-semibold text-gray-900 leading-snug shrink-0 min-w-[120px]">{stripLeadingId(q.text, q.id)}</div>
                             <SelectInput
+                                id={q.id}
                                 value={userAnswers[q.id] || ""}
                                 onChange={(e) => onAnswerChange(q.id, e.target.value)}
                                 options={options}
@@ -467,78 +468,106 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
 export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
     const options = group.options || [];
 
+    // Filter out items that are just arrows to avoid double arrows with automatic ones
+    const isArrow = (text) => {
+        const t = String(text).trim();
+        return ["↓", "▼", "⬇", "arrow", "⇓"].includes(t);
+    };
+
     return (
         <div className="mb-6 flex flex-col items-center w-full">
             {options.length > 0 && (
-                <div className="mb-6 p-4 rounded-xl bg-gray-50/30 w-full">
-                    <h4 className="font-bold text-[0.8em] text-gray-400 uppercase mb-4 tracking-[0.2em] text-center">Reference Options</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="mb-8 p-6 rounded-2xl bg-gray-50/50 w-full border border-gray-100">
+                    <h4 className="font-bold text-[0.75em] text-gray-400 uppercase mb-5 tracking-[0.25em] text-center">Reference Options</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {options.map((opt, idx) => (
-                            <div key={idx} className="font-bold text-gray-800 flex items-start gap-2 leading-tight">
-                                <span className="min-w-[20px] text-ielts-blue">{opt.label}</span>
-                                <span className="font-normal text-gray-600">{typeof opt.text === 'object' ? opt.text.text : opt.text}</span>
+                            <div key={idx} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-start gap-3 hover:border-ielts-blue/30 transition-colors">
+                                <span className="w-7 h-7 shrink-0 bg-ielts-blue/5 text-ielts-blue rounded-lg flex items-center justify-center font-bold text-sm border border-ielts-blue/10">{opt.label}</span>
+                                <span className="font-medium text-gray-700 text-sm leading-tight pt-1">{typeof opt.text === 'object' ? opt.text.text : opt.text}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             )}
 
-            <div className="flex flex-col gap-4 w-full max-w-2xl">
-                {(group.items || group.questions || []).map((item, index) => {
-                    const itemText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
-                    const hasInput = itemText && String(itemText).includes('[INPUT]');
-                    let content = null;
-
-                    if (item.isQuestion || hasInput) {
-                        const parts = itemText ? String(itemText).split('[INPUT]') : ['', ''];
-                        const cleanBefore = stripLeadingId(parts[0], item.id);
-                        const isCorrect = isReviewMode ? checkAnswer(userAnswers[item.id], item.answer) : false;
-
-                        content = (
-                            <div className="font-normal text-gray-800 leading-[2.2] flex flex-wrap items-baseline justify-center text-center">
-                                {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
-
-                                {options.length > 0 ? (
-                                    <div className="inline-block mx-1">
-                                        <SelectInput
-                                            value={userAnswers[item.id] || ""}
-                                            onChange={(e) => onAnswerChange(item.id, e.target.value)}
-                                            options={options}
-                                            isReviewMode={isReviewMode}
-                                            isCorrect={isCorrect}
-                                            correctAnswer={item.answer}
-                                            width="min-w-[100px]"
-                                        />
-                                    </div>
-                                ) : (
-                                    <ListeningTextInput
-                                        id={item.id}
-                                        answer={item.answer}
-                                        locationId={item.locationId}
-                                        userAnswers={userAnswers}
-                                        onAnswerChange={onAnswerChange}
-                                        isReviewMode={isReviewMode}
-                                        handleLocationClick={handleLocationClick}
-                                    />
-                                )}
-
-                                {parts[1] && <span className="ml-2" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
-                            </div>
-                        );
-                    } else {
-                        content = <span className="text-gray-900 font-medium text-center inline-block w-full">{typeof item.text === 'object' ? item.text.text : item.text}</span>;
-                    }
+            <div className="flex flex-col gap-2 w-full max-w-2xl">
+                {(group.groups || [{ items: group.items || group.questions || [] }]).map((sub, sIdx) => {
+                    // Manual arrowlarni (↓) filter qilib tashlaymiz
+                    const subItems = (sub.items || sub.questions || []).filter(it => {
+                        const itText = (typeof it.text === 'object' ? it.text.text : it.text) || "";
+                        return !isArrow(itText);
+                    });
 
                     return (
-                        <div key={item.id || index} className="relative flex flex-col items-center">
-                            <div className={`w-full border-b border-gray-100 p-4 transition-colors ${!item.isQuestion && !hasInput ? 'bg-gray-50/30' : 'bg-white'}`}>
-                                {content}
-                            </div>
-                            {index !== group.items.length - 1 && (
-                                <div className="h-5 w-px bg-gray-400 my-1 relative">
-                                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[6px] text-gray-500 text-[10px]">▼</div>
-                                </div>
+                        <div key={sIdx} className="w-full flex flex-col items-center">
+                            {sub.header && (
+                                <h4 className="text-[1em] font-black text-gray-900 mb-6 text-center w-full uppercase tracking-[0.1em] border-b border-gray-100 pb-2">
+                                    {typeof sub.header === 'object' ? sub.header.text : sub.header}
+                                </h4>
                             )}
+                            <div className="flex flex-col items-center w-full gap-0">
+                                {subItems.map((item, index) => {
+                                    const itemText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
+                                    const hasInput = itemText && String(itemText).includes('[INPUT]');
+                                    let content = null;
+
+                                    if (item.isQuestion || hasInput) {
+                                        const parts = itemText ? String(itemText).split('[INPUT]') : ['', ''];
+                                        const cleanBefore = stripLeadingId(parts[0], item.id);
+                                        const isCorrect = isReviewMode ? checkAnswer(userAnswers[item.id], item.answer) : false;
+
+                                        content = (
+                                            <div className="font-semibold text-gray-800 leading-[2.2] flex flex-wrap items-baseline justify-center text-center">
+                                                {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
+
+                                                {options.length > 0 ? (
+                                                    <div className="inline-block mx-1">
+                                                        <SelectInput
+                                                            id={item.id}
+                                                            value={userAnswers[item.id] || ""}
+                                                            onChange={(e) => onAnswerChange(item.id, e.target.value)}
+                                                            options={options}
+                                                            isReviewMode={isReviewMode}
+                                                            isCorrect={isCorrect}
+                                                            correctAnswer={item.answer}
+                                                            width="min-w-[120px]"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <ListeningTextInput
+                                                        id={item.id}
+                                                        answer={item.answer}
+                                                        locationId={item.locationId}
+                                                        userAnswers={userAnswers}
+                                                        onAnswerChange={onAnswerChange}
+                                                        isReviewMode={isReviewMode}
+                                                        handleLocationClick={handleLocationClick}
+                                                    />
+                                                )}
+
+                                                {parts[1] && <span className="ml-1" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
+                                            </div>
+                                        );
+                                    } else {
+                                        content = <span className="text-gray-800 font-bold text-center inline-block w-full">{itemText}</span>;
+                                    }
+
+                                    return (
+                                        <React.Fragment key={item.id || index}>
+                                            <div className={`w-full border-2 rounded-2xl p-4 transition-all ${!item.isQuestion && !hasInput ? 'bg-gray-50/40 border-gray-100' : 'bg-white border-gray-200 hover:border-ielts-blue/20 shadow-sm'}`}>
+                                                {content}
+                                            </div>
+                                            {index !== subItems.length - 1 && (
+                                                <div className="flex flex-col items-center py-1">
+                                                    <div className="h-6 w-px bg-gray-300 relative">
+                                                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-gray-300 text-[10px]">▼</div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </div>
                         </div>
                     );
                 })}

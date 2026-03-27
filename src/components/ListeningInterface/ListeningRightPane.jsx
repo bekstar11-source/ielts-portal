@@ -110,7 +110,10 @@ const ListeningRightPane = memo(({
             const normalized = group.groups ? group : { ...group, groups: [{ items: group.items || group.questions || [] }] };
             return <NoteCompletion group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
         }
-        if (group.type === 'flow_chart') return <FlowChart group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
+        if (group.type === 'flow_chart') {
+            const normalized = group.groups ? group : { ...group, groups: [{ items: group.items || group.questions || [] }] };
+            return <FlowChart group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
+        }
 
         // --- MCQ HANDLER ---
         // JSON da ikki xil MCQ strukturasi bo'lishi mumkin:
