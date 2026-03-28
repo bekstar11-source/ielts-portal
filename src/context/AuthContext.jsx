@@ -11,7 +11,7 @@ import {
   signInWithPopup
 } from "firebase/auth";
 import { logAction } from "../utils/logger"; // Import logger
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -132,23 +132,28 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
-  // 2. User Data (Firestore) Yuklash - Bir marta
+  // 2. User Data (Firestore) Yuklash - Real-time updates
   useEffect(() => {
+    let unsubscribe;
     if (user) {
-      const fetchUserData = async () => {
-        try {
-          const docSnap = await getDoc(doc(db, "users", user.uid));
-          if (docSnap.exists()) {
-            setUserData(docSnap.data());
-          }
-        } catch (error) {
-          console.error("Firestore error:", error);
-        } finally {
-          setLoading(false);
+      // Listen for real-time updates to the user document
+      unsubscribe = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+        if (docSnap.exists()) {
+          setUserData(docSnap.data());
+        } else {
+          setUserData(null);
         }
-      };
-      fetchUserData();
+        setLoading(false);
+      }, (error) => {
+        console.error("Firestore user snapshot error:", error);
+        setLoading(false);
+      });
+    } else {
+      setUserData(null);
+      // Wait for auth to be determined before setting loading to false
+      // But we handle this in the onAuthStateChanged useEffect too
     }
+    return () => unsubscribe?.();
   }, [user]);
 
   const value = {

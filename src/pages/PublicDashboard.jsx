@@ -116,7 +116,6 @@ export default function PublicDashboard() {
 
             {/* 3. MAIN CONTENT (Aligned with StudentDashboard) */}
             <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-8">
-
                 {/* HERO SECTION */}
                 {activeTab === 'dashboard' ? (
                     <>
@@ -223,7 +222,7 @@ export default function PublicDashboard() {
                                             </div>
                                         ))}
                                     </div>
-                                )}
+                                ) || null}
                             </div>
 
                             {/* CALL TO ACTION */}
@@ -253,14 +252,14 @@ export default function PublicDashboard() {
                         <p className="text-gray-500">Public akkaunt uchun bu bo'lim hali tayyorlanmoqda.</p>
                     </div>
                 )}
-
-                <DashboardModals
-                    showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}
-                    accessKeyInput={accessKeyInput} setAccessKeyInput={setAccessKeyInput}
-                    handleVerifyKey={handleVerifyKey} checkingKey={checkingKey} keyError={keyError}
-                    showLogoutConfirm={showLogoutConfirm} setShowLogoutConfirm={setShowLogoutConfirm} confirmLogout={logout}
-                />
             </main>
+
+            <DashboardModals
+                showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}
+                accessKeyInput={accessKeyInput} setAccessKeyInput={setAccessKeyInput}
+                handleVerifyKey={handleVerifyKey} checkingKey={checkingKey} keyError={keyError}
+                showLogoutConfirm={showLogoutConfirm} setShowLogoutConfirm={setShowLogoutConfirm} confirmLogout={logout}
+            />
 
             <PricingModal
                 isOpen={showPricingModal}

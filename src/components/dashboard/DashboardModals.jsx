@@ -60,7 +60,7 @@ export default function DashboardModals({
         <>
             {/* KEY MODAL */}
             {showKeyModal && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4 animate-in fade-in">
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="bg-[#18181b] p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center border border-white/10">
                         <div className="mx-auto w-14 h-14 bg-white/5 rounded-full flex items-center justify-center mb-5 shadow-sm border border-white/10"><Icons.Key className="w-6 h-6 text-white" /></div>
                         <h3 className="text-xl font-bold mb-2 text-white tracking-tight">Yangi Vazifa</h3>
@@ -76,7 +76,7 @@ export default function DashboardModals({
 
             {/* START CONFIRM MODAL */}
             {showStartConfirm && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] backdrop-blur-sm p-4 animate-in fade-in">
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[110] backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="bg-[#18181b] p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center border border-white/10">
                         <h3 className="text-xl font-bold mb-2 text-white tracking-tight">Testni Boshlash</h3>
                         <p className="text-sm text-gray-400 mb-6 px-4">Siz testni boshlashni xoxlaysizmi?</p>
@@ -90,7 +90,7 @@ export default function DashboardModals({
 
             {/* LOGOUT CONFIRM MODAL */}
             {showLogoutConfirm && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4 animate-in fade-in">
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="bg-[#18181b] p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center border border-white/10">
                         <h3 className="text-xl font-bold mb-2 text-white tracking-tight">Chiqish</h3>
                         <p className="text-sm text-gray-400 mb-6 px-4">Tizimdan chiqishni xohlaysizmi?</p>
@@ -104,13 +104,12 @@ export default function DashboardModals({
 
             {/* SET DETAILS MODAL */}
             {selectedSet && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
                     <div className={`rounded-[2rem] w-full max-w-7xl max-h-[92vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border ${isDark ? 'bg-[#1E1E1E]/95 border-white/10 backdrop-blur-2xl' : 'bg-[#f7f8f9]/95 border-white/80 backdrop-blur-2xl'}`}>
                         <div className={`p-6 md:px-8 md:py-6 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 z-10 ${isDark ? 'border-white/10 bg-[#1E1E1E]/50' : 'border-black/5 bg-white/50'}`}>
                             <div>
                                 <h3 className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>{selectedSet.title}</h3>
                                 <p className={`text-sm font-medium mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{selectedSet.totalTests} ta test mavjud</p>
-                                <p className="text-xs text-gray-400 font-medium mt-0.5">{selectedSet.totalTests} ta test mavjud</p>
                             </div>
                             <div className="flex items-center gap-3 w-full sm:w-auto">
                                 <div className="relative w-full sm:w-72">

@@ -99,8 +99,8 @@ export default function StudentDashboard() {
         }
 
         // Onboarding Check
-        if (userData && !userData.onboarding?.completed) {
-            navigate('/onboarding');
+        if (userData && userData.accountType === 'public' && userData.onboardingCompleted === false) {
+            navigate('/onboarding', { replace: true });
         }
     }, [userData, navigate]);
 
@@ -603,17 +603,17 @@ export default function StudentDashboard() {
             <div className="top-gradient" />
             <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-8">
                 {renderContent()}
-                <DashboardModals
-                    showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}
-                    accessKeyInput={accessKeyInput} setAccessKeyInput={setAccessKeyInput}
-                    handleVerifyKey={handleVerifyKey} checkingKey={checkingKey} keyError={keyError}
-                    showStartConfirm={showStartConfirm} setShowStartConfirm={setShowStartConfirm} confirmStartTest={confirmStartTest}
-                    showLogoutConfirm={showLogoutConfirm} setShowLogoutConfirm={setShowLogoutConfirm} confirmLogout={logout}
-                    selectedSet={selectedSet} setSelectedSet={setSelectedSet}
-                    handleStartTest={handleStartTest}
-                    handleReview={handleReview}
-                />
             </main>
+            <DashboardModals
+                showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}
+                accessKeyInput={accessKeyInput} setAccessKeyInput={setAccessKeyInput}
+                handleVerifyKey={handleVerifyKey} checkingKey={checkingKey} keyError={keyError}
+                showStartConfirm={showStartConfirm} setShowStartConfirm={setShowStartConfirm} confirmStartTest={confirmStartTest}
+                showLogoutConfirm={showLogoutConfirm} setShowLogoutConfirm={setShowLogoutConfirm} confirmLogout={logout}
+                selectedSet={selectedSet} setSelectedSet={setSelectedSet}
+                handleStartTest={handleStartTest}
+                handleReview={handleReview}
+            />
         </div>
     );
 }

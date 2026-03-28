@@ -460,18 +460,17 @@ export default function Practice() {
                         onPageChange={setCurrentPage}
                     />
                 )}
-
-                <DashboardModals
-                    showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}
-                    accessKeyInput={accessKeyInput} setAccessKeyInput={setAccessKeyInput}
-                    handleVerifyKey={handleVerifyKey} checkingKey={checkingKey} keyError={keyError}
-                    showStartConfirm={showStartConfirm} setShowStartConfirm={setShowStartConfirm} confirmStartTest={confirmStartTest}
-                    showLogoutConfirm={showLogoutConfirm} setShowLogoutConfirm={setShowLogoutConfirm} confirmLogout={logout}
-                    selectedSet={selectedSet} setSelectedSet={setSelectedSet}
-                    handleStartTest={handleStartTest}
-                    handleReview={handleReview}
-                />
             </main>
+            <DashboardModals
+                showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}
+                accessKeyInput={accessKeyInput} setAccessKeyInput={setAccessKeyInput}
+                handleVerifyKey={handleVerifyKey} checkingKey={checkingKey} keyError={keyError}
+                showStartConfirm={showStartConfirm} setShowStartConfirm={setShowStartConfirm} confirmStartTest={confirmStartTest}
+                showLogoutConfirm={showLogoutConfirm} setShowLogoutConfirm={setShowLogoutConfirm} confirmLogout={logout}
+                selectedSet={selectedSet} setSelectedSet={setSelectedSet}
+                handleStartTest={handleStartTest}
+                handleReview={handleReview}
+            />
         </div>
     );
 }
