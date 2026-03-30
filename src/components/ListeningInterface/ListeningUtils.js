@@ -11,7 +11,7 @@ export const getStatusStyles = (isReviewMode, isCorrect, isSelected = false, typ
     if (!isReviewMode) {
         if (type === 'badge') return "bg-white border-gray-400 text-gray-700";
         if (type === 'container') return isSelected ? "bg-blue-50 border-blue-200" : "bg-white border-transparent";
-        return "border-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 bg-white text-gray-900";
+        return "border-black focus:border-black focus:ring-1 focus:ring-black bg-white text-black";
     }
     if (isCorrect) {
         if (type === 'badge') return "bg-green-600 text-white border-green-600";

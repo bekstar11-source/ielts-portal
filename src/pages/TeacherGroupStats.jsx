@@ -85,15 +85,23 @@ export default function TeacherGroupStats() {
                 const rq = query(
                     collection(db, 'results'),
                     where('userId', 'in', chunk),
-                    orderBy('date', 'desc')
+                    limit(200)
                 );
                 const rsnap = await getDocs(rq);
                 allResults.push(...rsnap.docs.map(d => ({ id: d.id, ...d.data() })));
             }
+            // Final sort by date client-side
+            const sortedResults = allResults.sort((a, b) => {
+                const da = a.date ? (a.date.toDate ? a.date.toDate() : new Date(a.date)) : 0;
+                const db = b.date ? (b.date.toDate ? b.date.toDate() : new Date(b.date)) : 0;
+                return db - da;
+            });
+
+            console.log("TeacherGroupStats: Fetched " + studentsData.length + " students and " + sortedResults.length + " results.");
             setStudents(studentsData);
-            setResults(allResults);
+            setResults(sortedResults);
         } catch (e) {
-            console.error(e);
+            console.error("Error in TeacherGroupStats:", e);
         } finally {
             setLoading(false);
         }

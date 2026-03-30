@@ -160,7 +160,47 @@ export default function TestReview() {
                     if (!testSnap.exists()) {
                         setTestData({ title: "O'chirilgan Test", type: activeMockPart }); // Fallback
                     } else {
-                        setTestData({ id: testSnap.id, ...testSnap.data() });
+                        const rawTestData = { id: testSnap.id, ...testSnap.data() };
+                        
+                        // Normalizatsiya: Writing testlar (ham alohida, ham Mock tarkibida)
+                        const isWritingTest = rawTestData.type === 'writing' || 
+                                            rawTestData.type === 'Writing' || 
+                                            activeMockPart === 'writing';
+
+                        if (isWritingTest && !rawTestData.writingTasks) {
+                            console.log("Normalizing Writing data for:", rawTestData.id);
+                            rawTestData.writingTasks = [
+                                ...(rawTestData.task1 ? [{ 
+                                    id: 1, 
+                                    title: 'Task 1', 
+                                    prompt: rawTestData.task1, 
+                                    minWords: 150, 
+                                    image: rawTestData.image_url || rawTestData.image || rawTestData.task1_image 
+                                }] : []),
+                                ...(rawTestData.task2 ? [{ 
+                                    id: 2, 
+                                    title: 'Task 2', 
+                                    prompt: rawTestData.task2, 
+                                    minWords: 250,
+                                    image: rawTestData.task2_image
+                                }] : [])
+                            ];
+                            
+                            // Agar hali ham bo'sh bo'lsa, lekin passage/prompt/instruction bor bo'lsa
+                            if (rawTestData.writingTasks.length === 0) {
+                                const mainPrompt = rawTestData.passage || rawTestData.prompt || rawTestData.instruction || rawTestData.content;
+                                if (mainPrompt) {
+                                    rawTestData.writingTasks = [{ 
+                                        id: 1, 
+                                        title: 'Writing Task', 
+                                        prompt: mainPrompt, 
+                                        minWords: 150, 
+                                        image: rawTestData.image_url || rawTestData.image 
+                                    }];
+                                }
+                            }
+                        }
+                        setTestData(rawTestData);
                     }
                 } else {
                     setTestData({ title: "Test ID topilmadi", type: activeMockPart });
@@ -388,32 +428,37 @@ export default function TestReview() {
                                             <div className="bg-white p-6 rounded-xl border shadow-sm h-fit border-blue-200 relative">
                                                 <h3 className="font-bold text-blue-700 text-lg mb-4 border-b pb-2">O'quvchi Javobi</h3>
                                                 <div className="whitespace-pre-wrap font-serif text-gray-800 leading-relaxed text-base bg-gray-50 p-6 rounded border border-gray-200 min-h-[400px]">
-                                                    {answer || <span className="text-gray-400 italic">O'quvchi javob yozmadi.</span>}
+                                                    {answer || (typeof currentAnswers === 'string' ? currentAnswers : null) || <span className="text-gray-400 italic">O'quvchi javob yozmadi.</span>}
                                                 </div>
                                                 <div className="absolute top-6 right-6 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold">
-                                                    So'zlar: {(answer || "").trim().split(/\s+/).filter(Boolean).length}
+                                                    So'zlar: {((answer || (typeof currentAnswers === 'string' ? currentAnswers : "")) + "").trim().split(/\s+/).filter(Boolean).length}
                                                 </div>
                                             </div>
                                         </div>
                                     );
                                 })
                             ) : (
-                                // --- ESKI FORMAT (Single Essay) ---
+                                // --- FALLBACK (Single Essay / Old Format) ---
                                 <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border">
                                     <h3 className="font-bold text-gray-800 mb-4">Task Instructions</h3>
-                                    {testData.image_url && <img src={testData.image_url} alt="Task" className="w-full mb-4 rounded" />}
-                                    <p className="mb-6 p-4 bg-gray-50 rounded border text-sm">{testData.passage}</p>
-
+                                    {(testData.image_url || testData.image || testData.task1_image) && <img src={testData.image_url || testData.image || testData.task1_image} alt="Task" className="w-full mb-4 rounded" />}
+                                    <p className="mb-6 p-4 bg-gray-50 rounded border text-sm">{testData.passage || testData.task1 || testData.prompt || testData.instruction}</p>
+                                    
                                     <h3 className="font-bold text-blue-700 mb-2">Essay Answer</h3>
-                                    <p className="whitespace-pre-wrap font-serif text-gray-800 p-4 border rounded bg-blue-50 leading-relaxed">
-                                        {resultData.essay || "Javob yo'q"}
-                                    </p>
+                                    <div className="whitespace-pre-wrap font-serif text-gray-800 p-4 border rounded bg-blue-50 leading-relaxed min-h-[200px]">
+                                        {resultData.essay || 
+                                         (typeof currentAnswers === 'string' ? currentAnswers : null) ||
+                                         currentAnswers.task1 || 
+                                         currentAnswers.writingAnswer || 
+                                         currentAnswers.task2 || 
+                                         "Javob yo'q"}
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* 🔥 ADMIN GRADING PANEL (WRITING UCHUN) - Faqat Adminlar */}
-                        {userData?.role === 'admin' ? (
+                        {/* 🔥 ADMIN/TEACHER GRADING PANEL (WRITING UCHUN) */}
+                        {(userData?.role === 'admin' || userData?.role === 'teacher') ? (
                             <div className="bg-white border-t-4 border-t-blue-500 p-4 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] z-20">
                                 <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 items-start">
                                     <div className="flex-1 w-full">
@@ -495,8 +540,8 @@ export default function TestReview() {
                             </div>
                         </div>
 
-                        {/* 🔥 ADMIN GRADING PANEL (SPEAKING UCHUN) - Faqat Adminlar */}
-                        {userData?.role === 'admin' ? (
+                        {/* 🔥 ADMIN/TEACHER GRADING PANEL (SPEAKING UCHUN) */}
+                        {(userData?.role === 'admin' || userData?.role === 'teacher') ? (
                             <div className="bg-white border-t-4 border-t-purple-500 p-4 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] z-20">
                                 <div className="max-w-4xl mx-auto flex gap-4 items-center">
                                     <div className="flex-1">

@@ -2,10 +2,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebase";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion, getCountFromServer } from "firebase/firestore";
+import { collection, query, where, doc, updateDoc, arrayUnion, getCountFromServer } from "firebase/firestore";
+import { getDocs } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BookOpen, Headphones, PenTool, Mic, Flame, Trophy, AlertTriangle, ArrowRight, ArrowUp, RotateCw } from "lucide-react";
+import { useStudentData } from "../hooks/useStudentData";
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -23,40 +25,7 @@ import { useAnalytics } from "../hooks/useAnalytics";
 import { getRecommendations } from "../utils/recommendations";
 import Leaderboard from "../components/dashboard/Leaderboard";
 
-// --- LOGIC HELPERS ---
-const safeDate = (dateString) => {
-    if (!dateString) return null;
-    const d = new Date(dateString);
-    return isNaN(d.getTime()) ? null : d;
-};
 
-// Yordamchi: ID lar bo'yicha hujjatlarni olib kelish (Xatolikdan himoyalangan)
-const fetchDocumentsByIds = async (collectionName, ids) => {
-    if (!ids || ids.length === 0) return {};
-    const uniqueIds = [...new Set(ids)];
-    const docsMap = {};
-
-    // Har bir ID ni alohida try-catch bilan o'raymiz
-    const promises = uniqueIds.map(async (id) => {
-        try {
-            const cleanId = String(id).trim(); // Bo'sh joylarni tozalash
-            if (!cleanId) return null;
-            const snap = await getDoc(doc(db, collectionName, cleanId));
-            if (snap.exists()) return { id: snap.id, ...snap.data() };
-        } catch (e) {
-            console.warn(`Hujjat topilmadi: ${id}`, e);
-        }
-        return null;
-    });
-
-    const results = await Promise.all(promises);
-    results.forEach(doc => {
-        if (doc) docsMap[doc.id] = doc;
-    });
-    return docsMap;
-};
-
-// WelcomeState component removed
 
 
 export default function StudentDashboard() {
@@ -64,14 +33,10 @@ export default function StudentDashboard() {
     const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [rawAssignments, setRawAssignments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [errorMsg, setErrorMsg] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterType, setFilterType] = useState("all");
     const [mistakesCount, setMistakesCount] = useState(0);
     const [vocabCount, setVocabCount] = useState(0);
-    const [userResults, setUserResults] = useState([]);
     const [showKeyModal, setShowKeyModal] = useState(false);
     const [showStartConfirm, setShowStartConfirm] = useState(false);
     const [testToStart, setTestToStart] = useState(null);
@@ -81,12 +46,14 @@ export default function StudentDashboard() {
     const [checkingKey, setCheckingKey] = useState(false);
     const [keyError, setKeyError] = useState("");
 
-    // 🔥 ANALYTICS HOOK (Read larni tejash uchun userResults ni uzatamiz)
+    // 🚀 SHARED HOOK — Practice bilan bitta cache ishlatadi (zero duplicate reads)
+    const { assignments: rawAssignments, userResults, loading, error: errorMsg, refresh } = useStudentData(user);
+
+    // 🔥 ANALYTICS HOOK (userResults ni uzatamiz — extra read bo'lmaydi)
     const { stats: analyticsStats } = useAnalytics(user?.uid, userResults);
 
     // 🔥 RECOMMENDATIONS
     const recommendedTests = useMemo(() => {
-        // Return top 5 recommended tests from rawAssignments
         const completedIds = rawAssignments.filter(t => t.status === 'completed').map(t => t.id);
         return getRecommendations(analyticsStats, rawAssignments, completedIds);
     }, [analyticsStats, rawAssignments]);
@@ -104,216 +71,50 @@ export default function StudentDashboard() {
         }
     }, [userData, navigate]);
 
-    useEffect(() => {
-        if (!user) return;
-
-        const fetchData = async () => {
-            setLoading(true);
-            setErrorMsg(null);
-
-            try {
-                // 🚀 CACHE LOGIC: 5 daqiqalik kesh yordamida read larni tejash
-                const CACHE_KEY = `student_assignments_${user.uid}`;
-                const CACHE_TIME_KEY = `student_assignments_time_${user.uid}`;
-                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
-
-                if (isCacheValid) {
-                    const cachedData = sessionStorage.getItem(CACHE_KEY);
-                    if (cachedData) {
-                        try {
-                            const parsedData = JSON.parse(cachedData);
-                            console.log("Keshdan olindi (Tezlik 2x):", parsedData.length);
-                            setRawAssignments(parsedData);
-                            setLoading(false);
-                            return; // <- BU YERDA TO'XTAYDI SHU BILAN READ KETMAYDI
-                        } catch(e) { console.warn("Cache parse error", e); }
-                    }
-                }
-
-                console.log("Firebase'dan yuklash boshlandi...");
-                const [userSnap, groupsSnap, resultsSnap] = await Promise.all([
-                    getDoc(doc(db, 'users', user.uid)),
-                    getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))),
-                    getDocs(query(collection(db, 'results'), where('userId', '==', user.uid)))
-                ]);
-
-                const myResults = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                setUserResults(myResults);
-
-                // 🔥 MA'LUMOTLARNI TOZALASH (NORMALIZATION)
-                let allAssignments = [];
-                const currentUserData = userSnap.data();
-
-                // Helper: String yoki Object bo'lishidan qat'i nazar to'g'irlash
-                const normalizeAssignment = (assign) => {
-                    if (!assign) return null;
-                    if (typeof assign === 'string') {
-                        return { id: assign.trim(), type: 'test' };
-                    }
-                    if (typeof assign === 'object' && assign.id) {
-                        return { ...assign, id: String(assign.id).trim() };
-                    }
-                    return null;
-                };
-
-                if (currentUserData?.assignedTests) {
-                    allAssignments = [...allAssignments, ...currentUserData.assignedTests.map(normalizeAssignment)];
-                }
-
-                groupsSnap.docs.forEach(gDoc => {
-                    const gData = gDoc.data();
-                    if (gData.assignedTests) {
-                        allAssignments = [...allAssignments, ...gData.assignedTests.map(normalizeAssignment)];
-                    }
-                });
-
-                // Null qiymatlarni olib tashlash
-                allAssignments = allAssignments.filter(Boolean);
-                console.log("Jami tayinlovlar (tozalangan):", allAssignments);
-
-                const testIdsToFetch = [];
-                const setIdsToFetch = [];
-
-                allAssignments.forEach(assign => {
-                    if (assign.type === 'set') { setIdsToFetch.push(assign.id); }
-                    else if (assign.id && !assign.id.startsWith('MOCK_')) { testIdsToFetch.push(assign.id); }
-                });
-
-                const setsMap = await fetchDocumentsByIds('testSets', setIdsToFetch);
-                Object.values(setsMap).forEach(set => {
-                    if (set.testIds) {
-                        set.testIds.forEach(tid => testIdsToFetch.push(String(tid).trim()));
-                    }
-                });
-
-                const testsMap = await fetchDocumentsByIds('tests', testIdsToFetch);
-                console.log("Bazadan topilgan testlar:", Object.keys(testsMap));
-
-                let processedList = [];
-
-                allAssignments.forEach((assign) => {
-                    if (!assign || !assign.id) return;
-
-                    const findBestResult = (testId) => {
-                        const attempts = myResults.filter(r => String(r.testId).trim() === String(testId).trim());
-                        if (attempts.length === 0) return null;
-                        return attempts.sort((a, b) => parseFloat(b.bandScore || b.score || 0) - parseFloat(a.bandScore || a.score || 0))[0];
-                    };
-
-                    if (assign.type === 'mock_full' || assign.mockKey || String(assign.id).startsWith('MOCK_')) {
-                        const mockAttempts = myResults.filter(r => r.mockKey === assign.mockKey);
-                        const bestMockResult = mockAttempts.length > 0
-                            ? mockAttempts.sort((a, b) => parseFloat(b.bandScore || 0) - parseFloat(a.bandScore || 0))[0]
-                            : null;
-                        processedList.push({
-                            ...assign,
-                            title: assign.title || "Full Mock Exam",
-                            isMock: true,
-                            status: bestMockResult ? 'completed' : 'open',
-                            result: bestMockResult
-                        });
-                    }
-                    else if (assign.type === 'set') {
-                        const set = setsMap[assign.id];
-                        if (set) {
-                            const subTests = (set.testIds || []).map(testId => {
-                                const cleanId = String(testId).trim();
-                                const testDetail = testsMap[cleanId];
-                                if (testDetail) {
-                                    const bestResult = findBestResult(cleanId);
-                                    return { ...testDetail, status: bestResult ? 'completed' : 'open', result: bestResult };
-                                }
-                                return null;
-                            }).filter(Boolean);
-
-                            const completedCount = subTests.filter(t => t.status === 'completed').length;
-                            processedList.push({
-                                ...assign, isSet: true, title: set.name || assign.title || "Test Set", subTests,
-                                totalTests: subTests.length, completedTests: completedCount,
-                                status: completedCount === subTests.length && subTests.length > 0 ? 'completed' : 'open'
-                            });
-                        }
-                    }
-                    else {
-                        const testDataFromDb = testsMap[assign.id];
-                        // 🔥 FIX: Faqat bazada real mavjud testlarni chiqaramiz.
-                        if (testDataFromDb) {
-                            const bestResult = findBestResult(assign.id);
-                            const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim()).length;
-                            const maxAttempts = assign.maxAttempts || 1;
-
-                            const finalTestData = {
-                                ...testDataFromDb,
-                                ...assign,
-                                id: assign.id, // ID aniq bo'lishi kerak
-                                title: testDataFromDb?.title || assign.title || "IELTS Test",
-                                type: testDataFromDb?.type || assign.type || "unknown",
-                                attemptsCount,
-                                maxAttempts
-                            };
-
-                            const now = new Date();
-                            const start = safeDate(assign.startDate);
-                            const end = safeDate(assign.endDate);
-
-                            let status = 'open';
-                            if (bestResult) status = 'completed';
-                            else if (start && now < start) status = 'upcoming';
-                            else if (end && now > end) status = 'expired';
-
-                            processedList.push({ ...finalTestData, status, result: bestResult });
-                        }
-                    }
-                });
-
-                // Dublikatlarni olib tashlash (ID bo'yicha)
-                const uniqueTests = processedList.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-
-                console.log("Yakuniy ro'yxat:", uniqueTests.length);
-                
-                // 🚀 CACHE GA SAQLASH
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify(uniqueTests));
-                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-
-                setRawAssignments(uniqueTests);
-
-            } catch (err) {
-                console.error("Fetch Error:", err);
-                setErrorMsg(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [user]);
-
     const handleManualRefresh = async () => {
         if (!user) return;
-        setLoading(true);
-        // Keshni o'chiramiz
-        sessionStorage.removeItem(`student_assignments_${user.uid}`);
-        sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
+        // gamification cache ni ham tozalaymiz
+        localStorage.removeItem(`gamification_counts_${user.uid}`);
+        localStorage.removeItem(`gamification_counts_time_${user.uid}`);
         sessionStorage.removeItem(`analytics_stats_${user.uid}`);
-        // Sahifani qayta yuklaymiz (bu eng ishonchli usul useEffect ni qayta ishga tushirish uchun)
-        window.location.reload();
+        await refresh(); // hook orqali cache invalidate + qayta fetch
     };
 
-    // Gamification ma'lumotlarini yuklash (Mistakes, Vocab)
+    // Gamification ma'lumotlarini yuklash (Mistakes, Vocab) — 1 soatlik localStorage cache
     useEffect(() => {
         if (!user) return;
         const fetchGamificationData = async () => {
             try {
-                // 1. Mistakes Count
-                const mistakesRef = collection(db, 'users', user.uid, 'mistakes');
-                const mSnap = await getCountFromServer(mistakesRef);
-                setMistakesCount(mSnap.data().count);
+                const CACHE_KEY = `gamification_counts_${user.uid}`;
+                const CACHE_TIME_KEY = `gamification_counts_time_${user.uid}`;
+                const ONE_HOUR = 60 * 60 * 1000;
+                const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < ONE_HOUR);
 
-                // 2. Vocab Count
-                const vocabRef = collection(db, 'users', user.uid, 'vocabulary');
-                const vSnap = await getCountFromServer(vocabRef);
-                setVocabCount(vSnap.data().count);
+                if (isCacheValid) {
+                    const cached = localStorage.getItem(CACHE_KEY);
+                    if (cached) {
+                        const { mistakes, vocab } = JSON.parse(cached);
+                        setMistakesCount(mistakes || 0);
+                        setVocabCount(vocab || 0);
+                        return;
+                    }
+                }
+
+                // Cache yo'q yoki muddati o'tgan — Firestore dan olamiz
+                const [mSnap, vSnap] = await Promise.all([
+                    getCountFromServer(collection(db, 'users', user.uid, 'mistakes')),
+                    getCountFromServer(collection(db, 'users', user.uid, 'vocabulary'))
+                ]);
+                const mistakes = mSnap.data().count;
+                const vocab = vSnap.data().count;
+
+                setMistakesCount(mistakes);
+                setVocabCount(vocab);
+
+                // Cache ga saqlash
+                localStorage.setItem(CACHE_KEY, JSON.stringify({ mistakes, vocab }));
+                localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
             } catch (err) {
                 console.error("Gamification verilarini olishda xatolik:", err);
             }

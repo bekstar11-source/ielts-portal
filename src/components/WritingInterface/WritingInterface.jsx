@@ -60,11 +60,40 @@ export default function WritingInterface({
         return text.trim().split(/\s+/).filter(Boolean).length;
     };
 
-    if (!testData || !testData.writingTasks) {
-        return <div className="p-10 text-center text-gray-500">Writing test data not found</div>;
+    if (!testData) {
+        return <div className="p-8 text-center text-red-500">Writing test data not found.</div>;
     }
 
-    const currentTask = testData.writingTasks.find(t => t.id === activeTask);
+    // Handle legacy data format (teacher-created tests might have task1, task2 instead of writingTasks array)
+    const normalizedTestData = { ...testData };
+    if (!normalizedTestData.writingTasks && (normalizedTestData.task1 || normalizedTestData.task2)) {
+        normalizedTestData.writingTasks = [];
+        if (normalizedTestData.task1) {
+            normalizedTestData.writingTasks.push({
+                id: 1,
+                title: "Writing Task 1",
+                prompt: normalizedTestData.task1,
+                image: normalizedTestData.task1ImageUrl || "",
+                minWords: 150
+            });
+        }
+        if (normalizedTestData.task2) {
+            normalizedTestData.writingTasks.push({
+                id: 2,
+                title: "Writing Task 2",
+                prompt: normalizedTestData.task2,
+                image: normalizedTestData.task2ImageUrl || "",
+                minWords: 250
+            });
+        }
+    }
+
+    if (!normalizedTestData || !normalizedTestData.writingTasks || normalizedTestData.writingTasks.length === 0) {
+        return <div className="p-8 text-center text-red-500">Writing test data not found.</div>;
+    }
+
+    const tasks = normalizedTestData.writingTasks;
+    const currentTask = tasks.find(t => t.id === activeTask);
     const currentAnswer = parentAnswers?.[`task${activeTask}`] || "";
     const wordCount = getWordCount(currentAnswer);
     const minWords = currentTask?.minWords || 150;
@@ -99,7 +128,7 @@ export default function WritingInterface({
 
             {/* Task Tabs */}
             <div className="bg-white border-b px-6 py-3 flex gap-3 shadow-sm">
-                {testData.writingTasks.map(task => (
+                {tasks.map(task => (
                     <button
                         key={task.id}
                         onClick={() => setActiveTask(task.id)}

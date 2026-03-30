@@ -11,7 +11,7 @@ import {
   signInWithPopup
 } from "firebase/auth";
 import { logAction } from "../utils/logger"; // Import logger
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -62,6 +62,17 @@ export function AuthProvider({ children }) {
   // 4. Lokal ma'lumotni yangilash (Settings uchun)
   const updateUserLocalData = (newFields) => {
     setUserData((prev) => ({ ...prev, ...newFields }));
+  };
+
+  // 5. User datasini qayta Firestore dan yuklash (manual refresh uchun)
+  const refreshUserData = async () => {
+    if (!user) return;
+    try {
+      const docSnap = await getDoc(doc(db, "users", user.uid));
+      if (docSnap.exists()) setUserData(docSnap.data());
+    } catch (e) {
+      console.error("refreshUserData xatolik:", e);
+    }
   };
 
 
@@ -132,28 +143,28 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
-  // 2. User Data (Firestore) Yuklash - Real-time updates
+  // 2. User Data (Firestore) Yuklash - bir martalik read (real-time stream emas)
+  // onSnapshot o'rniga getDoc ishlatamiz => doimiy read oqimi to'xtaydi
   useEffect(() => {
-    let unsubscribe;
-    if (user) {
-      // Listen for real-time updates to the user document
-      unsubscribe = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+    if (!user) {
+      setUserData(null);
+      return;
+    }
+    const loadUserData = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, "users", user.uid));
         if (docSnap.exists()) {
           setUserData(docSnap.data());
         } else {
           setUserData(null);
         }
+      } catch (error) {
+        console.error("Firestore user data xatolik:", error);
+      } finally {
         setLoading(false);
-      }, (error) => {
-        console.error("Firestore user snapshot error:", error);
-        setLoading(false);
-      });
-    } else {
-      setUserData(null);
-      // Wait for auth to be determined before setting loading to false
-      // But we handle this in the onAuthStateChanged useEffect too
-    }
-    return () => unsubscribe?.();
+      }
+    };
+    loadUserData();
   }, [user]);
 
   const value = {
@@ -163,6 +174,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     updateUserLocalData,
+    refreshUserData,
     signInWithPhone,
     signInWithGoogle,
     loading

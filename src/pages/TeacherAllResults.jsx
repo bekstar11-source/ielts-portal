@@ -73,8 +73,7 @@ export default function TeacherAllResults() {
           const q = query(
             collection(db, "results"),
             where("userId", "in", chunk),
-            orderBy("date", "desc"),
-            limit(50)
+            limit(100) // Increased limit since we sort client-side
           );
           const querySnapshot = await getDocs(q);
           querySnapshot.forEach(docSnap => {
@@ -134,8 +133,9 @@ export default function TeacherAllResults() {
 
         setResults(data);
         setFilteredResults(data);
+        console.log("TeacherAllResults: Fetched " + allDocsData.length + " results for " + studentIdsArray.length + " students.");
       } catch (error) {
-        console.error("Error fetching results:", error);
+        console.error("Error fetching results in TeacherAllResults:", error);
       } finally {
         setLoading(false);
       }

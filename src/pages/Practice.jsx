@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebase";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, query, where, doc, getDoc, updateDoc, arrayUnion, getDocs } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, BookOpen, Clock, ChevronRight, 
     Trophy, LayoutGrid, List, Star, ExternalLink, Key, RotateCw
 } from 'lucide-react';
+import { useStudentData } from "../hooks/useStudentData";
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -15,46 +16,12 @@ import FiltersBar from "../components/dashboard/FiltersBar";
 import DashboardModals from "../components/dashboard/DashboardModals";
 import Pagination from "../components/common/Pagination"; // Pagination Component import
 
-// --- LOGIC HELPERS ---
-const safeDate = (dateString) => {
-    if (!dateString) return null;
-    const d = new Date(dateString);
-    return isNaN(d.getTime()) ? null : d;
-};
-
-// Yordamchi: ID lar bo'yicha hujjatlarni olib kelish
-const fetchDocumentsByIds = async (collectionName, ids) => {
-    if (!ids || ids.length === 0) return {};
-    const uniqueIds = [...new Set(ids)];
-    const docsMap = {};
-
-    const promises = uniqueIds.map(async (id) => {
-        try {
-            const cleanId = String(id).trim();
-            if (!cleanId) return null;
-            const snap = await getDoc(doc(db, collectionName, cleanId));
-            if (snap.exists()) return { id: snap.id, ...snap.data() };
-        } catch (e) {
-            console.warn(`Hujjat topilmadi: ${id}`, e);
-        }
-        return null;
-    });
-
-    const results = await Promise.all(promises);
-    results.forEach(doc => {
-        if (doc) docsMap[doc.id] = doc;
-    });
-    return docsMap;
-};
 
 export default function Practice() {
     const { user, logout, userData } = useAuth();
     const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState('practice');
-    const [rawAssignments, setRawAssignments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [errorMsg, setErrorMsg] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterType, setFilterType] = useState("all");
 
@@ -70,195 +37,16 @@ export default function Practice() {
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8; // Sahifada nechta test ko'rinishi kerak
+    const itemsPerPage = 8;
 
-    // Data Fetching Logic (Taken from StudentDashboard)
-    useEffect(() => {
+    // 🚀 SHARED HOOK — StudentDashboard bilan bitta cache (zero duplicate reads)
+    const { assignments, loading, error: errorMsg, refresh } = useStudentData(user);
+    // Practice da testlar teskari tartibda ko'rsatiladi
+    const rawAssignments = useMemo(() => [...assignments].reverse(), [assignments]);
+
+    const handleManualRefresh = async () => {
         if (!user) return;
-
-        const fetchData = async () => {
-            setLoading(true);
-            setErrorMsg(null);
-
-            try {
-                // 🚀 CACHE LOGIC (Shared with StudentDashboard)
-                const CACHE_KEY = `student_assignments_${user.uid}`;
-                const CACHE_TIME_KEY = `student_assignments_time_${user.uid}`;
-                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
-
-                if (isCacheValid) {
-                    const cachedData = sessionStorage.getItem(CACHE_KEY);
-                    if (cachedData) {
-                        try {
-                            const parsedData = JSON.parse(cachedData);
-                            setRawAssignments(parsedData.reverse());
-                            setLoading(false);
-                            return;
-                        } catch(e) { console.warn("Cache parse error", e); }
-                    }
-                }
-
-                const [userSnap, groupsSnap, resultsSnap] = await Promise.all([
-                    getDoc(doc(db, 'users', user.uid)),
-                    getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))),
-                    getDocs(query(collection(db, 'results'), where('userId', '==', user.uid)))
-                ]);
-
-                const myResults = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                let allAssignments = [];
-                const currentUserData = userSnap.data();
-
-                const normalizeAssignment = (assign) => {
-                    if (!assign) return null;
-                    if (typeof assign === 'string') return { id: assign.trim(), type: 'test' };
-                    if (typeof assign === 'object' && assign.id) return { ...assign, id: String(assign.id).trim() };
-                    return null;
-                };
-
-                if (currentUserData?.assignedTests) {
-                    allAssignments = [...allAssignments, ...currentUserData.assignedTests.map(normalizeAssignment)];
-                }
-
-                groupsSnap.docs.forEach(gDoc => {
-                    const gData = gDoc.data();
-                    if (gData.assignedTests) {
-                        allAssignments = [...allAssignments, ...gData.assignedTests.map(normalizeAssignment)];
-                    }
-                });
-
-                allAssignments = allAssignments.filter(Boolean);
-
-                const testIdsToFetch = [];
-                const setIdsToFetch = [];
-
-                allAssignments.forEach(assign => {
-                    if (assign.type === 'set') { setIdsToFetch.push(assign.id); }
-                    else if (assign.id && !assign.id.startsWith('MOCK_')) { testIdsToFetch.push(assign.id); }
-                });
-
-                const setsMap = await fetchDocumentsByIds('testSets', setIdsToFetch);
-                Object.values(setsMap).forEach(set => {
-                    if (set.testIds) {
-                        set.testIds.forEach(tid => testIdsToFetch.push(String(tid).trim()));
-                    }
-                });
-
-                const testsMap = await fetchDocumentsByIds('tests', testIdsToFetch);
-
-                let processedList = [];
-
-                allAssignments.forEach((assign) => {
-                    if (!assign || !assign.id) return;
-
-                    const findBestResult = (testId) => {
-                        const attempts = myResults.filter(r => String(r.testId).trim() === String(testId).trim());
-                        if (attempts.length === 0) return null;
-                        return attempts.sort((a, b) => parseFloat(b.bandScore || b.score || 0) - parseFloat(a.bandScore || a.score || 0))[0];
-                    };
-
-                    if (assign.type === 'mock_full' || assign.mockKey || String(assign.id).startsWith('MOCK_')) {
-                        const mockAttempts = myResults.filter(r => r.mockKey === assign.mockKey);
-                        const bestMockResult = mockAttempts.length > 0
-                            ? mockAttempts.sort((a, b) => parseFloat(b.bandScore || 0) - parseFloat(a.bandScore || 0))[0]
-                            : null;
-                        processedList.push({
-                            ...assign,
-                            title: assign.title || "Full Mock Exam",
-                            isMock: true,
-                            status: bestMockResult ? 'completed' : 'open',
-                            result: bestMockResult
-                        });
-                    }
-                    else if (assign.type === 'set') {
-                        const set = setsMap[assign.id];
-                        if (set) {
-                            const subTests = (set.testIds || []).map(testId => {
-                                const cleanId = String(testId).trim();
-                                const testDetail = testsMap[cleanId];
-                                if (testDetail) {
-                                    const bestResult = findBestResult(cleanId);
-                                    const subAttemptsCount = myResults.filter(r => String(r.testId).trim() === cleanId).length;
-                                    // assign (set assignment) dan maxAttempts va deadline olamiz
-                                    const subMaxAttempts = assign.maxAttempts || 1;
-                                    return {
-                                        ...testDetail,
-                                        status: bestResult ? 'completed' : 'open',
-                                        result: bestResult,
-                                        attemptsCount: subAttemptsCount,
-                                        maxAttempts: subMaxAttempts,
-                                        endDate: assign.endDate || null,
-                                        startDate: assign.startDate || null,
-                                    };
-                                }
-                                return null;
-                            }).filter(Boolean);
-
-                            const completedCount = subTests.filter(t => t.status === 'completed').length;
-                            processedList.push({
-                                ...assign, isSet: true, title: set.name || assign.title || "Test Set", subTests,
-                                totalTests: subTests.length, completedTests: completedCount,
-                                status: completedCount === subTests.length && subTests.length > 0 ? 'completed' : 'open'
-                            });
-                        }
-                    }
-                    else {
-                        const testDataFromDb = testsMap[assign.id];
-                        // 🔥 FIX: Faqat bazada real mavjud testlarni chiqaramiz.
-                        // Aks holda bosganda "Test topilmadi" deb dashboardga qaytarib yuboradi.
-                        if (testDataFromDb) {
-                            const bestResult = findBestResult(assign.id);
-                            const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim()).length;
-                            const maxAttempts = assign.maxAttempts || 1;
-
-                            const finalTestData = {
-                                ...testDataFromDb,
-                                ...assign,
-                                id: assign.id,
-                                title: testDataFromDb?.title || assign.title || "IELTS Test",
-                                type: testDataFromDb?.type || assign.type || "unknown",
-                                attemptsCount,
-                                maxAttempts
-                            };
-
-                            const now = new Date();
-                            const start = safeDate(assign.startDate);
-                            const end = safeDate(assign.endDate);
-
-                            let status = 'open';
-                            if (bestResult) status = 'completed';
-                            else if (start && now < start) status = 'upcoming';
-                            else if (end && now > end) status = 'expired';
-
-                            processedList.push({ ...finalTestData, status, result: bestResult });
-                        }
-                    }
-                });
-
-                const uniqueTests = processedList.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-                
-                // 🚀 CACHE GA SAQLASH (Dashboard bilan umumiy cache)
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify(uniqueTests));
-                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-
-                setRawAssignments(uniqueTests.reverse());
-
-            } catch (err) {
-                console.error("Error fetching practice tests:", err);
-                setErrorMsg("Testlarni yuklashda xatolik yuz berdi.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [user]);
-
-    const handleManualRefresh = () => {
-        if (!user) return;
-        sessionStorage.removeItem(`student_assignments_${user.uid}`);
-        sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
-        window.location.reload();
+        await refresh(); // hook orqali cache invalidate + qayta fetch
     };
 
     const filteredTests = useMemo(() => {
@@ -362,12 +150,10 @@ export default function Practice() {
 
             alert("Test qo'shildi! 🚀");
             
-            // Cache Invalidation
-            sessionStorage.removeItem(`student_assignments_${user.uid}`);
-            sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
+            // Cache Invalidation + qayta fetch (reload talab qilmaydi)
+            await refresh();
 
             setShowKeyModal(false); setAccessKeyInput("");
-            window.location.reload(); // Reload to fetch new test
         } catch (error) { setKeyError(error.message); } finally { setCheckingKey(false); }
     };
 

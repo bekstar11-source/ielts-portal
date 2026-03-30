@@ -69,16 +69,29 @@ export default function TeacherCreateWriting() {
             const newTest = {
                 title: title.trim(),
                 type: 'writing',
-                task1: task1.trim(),
+                task1: task1.trim(), // Keep legacy fields for fallback
                 task2: task2.trim(),
+                task1ImageUrl: task1ImageUrl,
+                writingTasks: [
+                    { 
+                        id: 1, 
+                        title: "Writing Task 1", 
+                        prompt: task1.trim(), 
+                        image: task1ImageUrl, 
+                        minWords: 150 
+                    },
+                    { 
+                        id: 2, 
+                        title: "Writing Task 2", 
+                        prompt: task2.trim(), 
+                        image: "", 
+                        minWords: 250 
+                    }
+                ],
                 createdBy: userData.uid,
                 createdAt: new Date().toISOString(),
                 teacherName: userData.fullName || "Ustoz"
             };
-
-            if (task1ImageUrl) {
-                newTest.task1ImageUrl = task1ImageUrl;
-            }
 
             const testRef = await addDoc(collection(db, 'tests'), newTest);
             

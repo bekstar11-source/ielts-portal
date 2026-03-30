@@ -94,6 +94,7 @@ const DraggableOption = ({ label, text, isReviewMode, isUsed }) => {
     );
 };
 
+
 const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: `slot-${id}`,
@@ -115,7 +116,7 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
         >
             {value ? (
                 <div className="flex items-center justify-center w-full animate-in fade-in zoom-in-95 duration-200">
-                    <span className="text-[1.05em] font-bold text-gray-900 text-center leading-tight">
+                    <span className="text-[0.85em] font-semibold text-gray-900 text-center leading-tight">
                         {selectedOption?.text || value}
                     </span>
                     {!isReviewMode && (
@@ -403,7 +404,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
     return (
         <div className="mb-2 space-y-8">
             {group.groups.map((sub, sIdx) => (
-                <div className="bg-white py-2 rounded-xl">
+                <div key={`note-${sub.id ?? ''}-${sIdx}`} className="bg-white py-2 rounded-xl">
                     {sub.header && (
                         <h3 className="text-[1.1em] font-black text-gray-900 mb-4 mt-2 pt-3 uppercase tracking-wider border-t border-gray-100">{typeof sub.header === 'object' ? sub.header.text : sub.header}</h3>
                     )}
@@ -465,8 +466,111 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
     );
 };
 
+// --- FLOWCHART DRAGGABLE OPTION (flow-option- prefix, separate from Matching) ---
+const FlowDraggableOption = ({ label, text, isReviewMode }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: `flow-option-${label}`,
+        disabled: isReviewMode,
+        data: { label, text }
+    });
+
+    const style = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 1000,
+        transition: 'none',
+    } : {
+        transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease'
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...listeners}
+            {...attributes}
+            className={`
+                w-full px-2 py-1.5 border border-gray-300 rounded-none cursor-grab active:cursor-grabbing
+                select-none flex items-start gap-1 transition-all
+                ${isDragging ? 'opacity-40 ring-1 ring-blue-500 shadow-xl scale-105 z-[1000] bg-white border-blue-400' : 'bg-white hover:border-gray-400 hover:shadow-sm'}
+            `}
+        >
+            <span className="w-4 h-4 shrink-0 bg-ielts-blue/5 text-ielts-blue rounded-none flex items-center justify-center font-bold text-[10px] border border-ielts-blue/10 mt-0.5">{label}</span>
+            <span className="leading-tight text-[13px] font-medium text-gray-800">{text}</span>
+        </div>
+    );
+};
+
+const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear }) => {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `flow-slot-${id}`,
+    });
+
+    const selectedOption = options?.find(opt => opt.label === value);
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`
+                relative min-h-[34px] w-full flex items-center justify-center border-2 border-dashed transition-all rounded-none
+                ${isOver ? 'border-ielts-blue bg-ielts-blue/5 scale-[1.01]' : 'border-gray-200 bg-gray-50/50'}
+                ${value ? 'border-none bg-transparent' : ''}
+                ${isReviewMode && value ? (isCorrect ? 'ring-2 ring-emerald-500' : 'ring-2 ring-rose-500') : ''}
+            `}
+        >
+            {value ? (
+                <div className="relative w-full group">
+                    <div className={`
+                        w-full px-2 py-1 border-2 rounded-none bg-white shadow-sm flex items-center gap-2
+                        ${isReviewMode ? (isCorrect ? 'border-emerald-500' : 'border-rose-500') : 'border-ielts-blue'}
+                    `}>
+                        {selectedOption && (
+                            <span className="w-4 h-4 shrink-0 bg-ielts-blue text-white rounded-none flex items-center justify-center font-bold text-[10px]">
+                                {selectedOption.label}
+                            </span>
+                        )}
+                        <span className="text-[13px] font-semibold text-gray-800">{value}</span>
+                    </div>
+                    {!isReviewMode && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onClear(); }}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg hover:bg-rose-600 z-10"
+                        >
+                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    )}
+                </div>
+            ) : (
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Drop {id} here</span>
+            )}
+        </div>
+    );
+};
+
+// --- FLOWCHART POOL DROPPABLE (return zone) ---
+const FlowPoolDroppable = ({ children, isDragging }) => {
+    const { setNodeRef, isOver } = useDroppable({ id: 'flow-pool-zone' });
+    return (
+        <div
+            ref={setNodeRef}
+            className={`flex flex-col gap-1.5 transition-colors duration-200 rounded-none p-2 min-h-[50px]
+                ${isOver && isDragging ? 'bg-blue-50/30 border-blue-200' : 'bg-gray-50/30'}
+                border border-dashed border-gray-200
+            `}
+        >
+            {children}
+        </div>
+    );
+};
+
 export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
     const options = group.options || [];
+    const hasOptions = options.length > 0;
+    const [activeId, setActiveId] = React.useState(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 3 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+    );
 
     // Filter out items that are just arrows to avoid double arrows with automatic ones
     const isArrow = (text) => {
@@ -474,103 +578,197 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
         return ["↓", "▼", "⬇", "arrow", "⇓"].includes(t);
     };
 
-    return (
-        <div className="mb-6 flex flex-col items-center w-full">
-            {options.length > 0 && (
-                <div className="mb-8 p-6 rounded-2xl bg-gray-50/50 w-full border border-gray-100">
-                    <h4 className="font-bold text-[0.75em] text-gray-400 uppercase mb-5 tracking-[0.25em] text-center">Reference Options</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {options.map((opt, idx) => (
-                            <div key={idx} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-start gap-3 hover:border-ielts-blue/30 transition-colors">
-                                <span className="w-7 h-7 shrink-0 bg-ielts-blue/5 text-ielts-blue rounded-lg flex items-center justify-center font-bold text-sm border border-ielts-blue/10">{opt.label}</span>
-                                <span className="font-medium text-gray-700 text-sm leading-tight pt-1">{typeof opt.text === 'object' ? opt.text.text : opt.text}</span>
-                            </div>
-                        ))}
+    // Collect all question items across all sub-groups
+    const allSubGroups = (group.groups || [{ items: group.items || group.questions || [] }]);
+    const allQuestionItems = allSubGroups.flatMap(sub =>
+        (sub.items || sub.questions || []).filter(it => {
+            const itText = (typeof it.text === 'object' ? it.text.text : it.text) || "";
+            return !isArrow(itText);
+        })
+    );
+
+    const handleDragStart = (event) => setActiveId(event.active.id);
+
+    const handleDragEnd = (event) => {
+        setActiveId(null);
+        const { active, over } = event;
+        if (!over) return;
+
+        const optionLabel = active.id.replace('flow-option-', '');
+
+        if (over.id === 'flow-pool-zone') {
+            // Return to pool: clear wherever this option was placed
+            const qToClear = allQuestionItems.find(q => userAnswers[q.id] === optionLabel);
+            if (qToClear) onAnswerChange(qToClear.id, "");
+            return;
+        }
+
+        const slotId = over.id.replace('flow-slot-', '');
+
+        // Swap: if target slot already has a value, put the dragged option's previous owner in target's old slot
+        const prevOwner = allQuestionItems.find(q => userAnswers[q.id] === optionLabel);
+        const targetCurrentValue = userAnswers[slotId];
+
+        if (prevOwner && targetCurrentValue) {
+            onAnswerChange(prevOwner.id, targetCurrentValue);
+        } else if (prevOwner) {
+            onAnswerChange(prevOwner.id, "");
+        }
+
+        onAnswerChange(slotId, optionLabel);
+    };
+
+    // Render a single flow item (used by both dnd and non-dnd modes)
+    const renderFlowItem = (item, index, subItems) => {
+        const itemText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
+        const hasInput = itemText && String(itemText).includes('[INPUT]');
+        const isCorrect = isReviewMode ? checkAnswer(userAnswers[item.id], item.answer) : false;
+        let content = null;
+
+        if (item.isQuestion || hasInput) {
+            const parts = itemText ? String(itemText).split('[INPUT]') : ['', ''];
+            const cleanBefore = stripLeadingId(parts[0], item.id);
+
+            content = (
+                <div className="font-semibold text-gray-800 leading-[1.8] flex flex-wrap items-baseline justify-center text-center">
+                    {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
+
+                    {hasOptions ? (
+                        <DroppableFlowSlot
+                            id={item.id}
+                            value={userAnswers[item.id] || ""}
+                            options={options}
+                            isReviewMode={isReviewMode}
+                            isCorrect={isCorrect}
+                            correctAnswer={item.answer}
+                            onClear={() => onAnswerChange(item.id, "")}
+                        />
+                    ) : (
+                        <ListeningTextInput
+                            id={item.id}
+                            answer={item.answer}
+                            locationId={item.locationId}
+                            userAnswers={userAnswers}
+                            onAnswerChange={onAnswerChange}
+                            isReviewMode={isReviewMode}
+                            handleLocationClick={handleLocationClick}
+                        />
+                    )}
+
+                    {parts[1] && <span className="ml-1" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
+                </div>
+            );
+        } else {
+            content = <span className="text-gray-800 font-bold text-center inline-block w-full text-[14px]">{itemText}</span>;
+        }
+
+        return (
+            <React.Fragment key={item.id || index}>
+                <div className={`w-full border-2 rounded-none p-2.5 transition-all ${!item.isQuestion && !hasInput ? 'bg-gray-50/40 border-gray-100' : 'bg-white border-gray-200 shadow-sm'}`}>
+                    {content}
+                </div>
+                {index !== subItems.length - 1 && (
+                    <div className="flex flex-col items-center py-0.5">
+                        <div className="h-4 w-px bg-gray-300 relative">
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-gray-300 text-[8px]">▼</div>
+                        </div>
+                    </div>
+                )}
+            </React.Fragment>
+        );
+    };
+
+    const FlowChartBody = () => (
+        <div className="flex flex-col gap-2 w-full">
+            {allSubGroups.map((sub, sIdx) => {
+                const subItems = (sub.items || sub.questions || []).filter(it => {
+                    const itText = (typeof it.text === 'object' ? it.text.text : it.text) || "";
+                    return !isArrow(itText);
+                });
+                return (
+                    <div key={`fc-sub-${sub.id ?? ''}-${sIdx}`} className="w-full flex flex-col items-center">
+                        {sub.header && (
+                            <h4 className="text-[0.9em] font-black text-gray-900 mb-2 text-center w-full uppercase tracking-[0.1em] border-b border-gray-100 pb-1.5">
+                                {typeof sub.header === 'object' ? sub.header.text : sub.header}
+                            </h4>
+                        )}
+                        <div className="flex flex-col items-center w-full gap-0">
+                            {subItems.map((item, index) => renderFlowItem(item, index, subItems))}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    // --- DND MODE: Options exist ---
+    if (hasOptions) {
+        const usedLabels = allQuestionItems.map(q => userAnswers[q.id]).filter(Boolean);
+
+        return (
+            <DndContext
+                id={`dnd-flowchart-${group.id || (allQuestionItems[0]?.id) || 'fc'}`}
+                sensors={sensors}
+                onDragStart={handleDragStart}
+                onDragEnd={isReviewMode ? undefined : handleDragEnd}
+            >
+                <div className="mb-6 grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-6 w-full items-start">
+                    {/* LEFT: Flow Chart */}
+                    <div className="flex flex-col items-center w-full">
+                        <FlowChartBody />
+                    </div>
+
+                    {/* RIGHT: Options Pool */}
+                    <div className="flex flex-col gap-3 lg:sticky lg:top-4">
+                        <h4 className="text-[0.7em] font-bold text-gray-400 uppercase tracking-[0.2em] text-center mb-1">Options</h4>
+                        <FlowPoolDroppable isDragging={!!activeId}>
+                            {options.map((opt) => {
+                                const label = opt.label;
+                                const text = typeof opt.text === 'object' ? opt.text.text : opt.text;
+                                const isUsed = usedLabels.includes(label);
+
+                                if (isReviewMode) {
+                                    // In review mode show all options statically
+                                    return (
+                                        <div key={label} className="bg-white rounded-none border border-gray-100 shadow-sm p-1.5 flex items-start gap-2">
+                                            <span className="w-5 h-5 shrink-0 bg-ielts-blue/5 text-ielts-blue rounded-none flex items-center justify-center font-bold text-[10px] border border-ielts-blue/10">{label}</span>
+                                            <span className="text-gray-700 text-[12px] font-medium leading-tight pt-0.5">{text}</span>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div key={label} className={`${isUsed ? 'invisible pointer-events-none h-0 overflow-hidden p-0 m-0' : 'visible'}`}>
+                                        <FlowDraggableOption
+                                            label={label}
+                                            text={text}
+                                            isReviewMode={isReviewMode}
+                                        />
+                                    </div>
+                                );
+                            })}
+                            {!isReviewMode && usedLabels.length === options.length && (
+                                <div className="text-center py-3 text-gray-400 text-[0.65em] border border-dashed border-gray-200 rounded-none italic">
+                                    All options placed
+                                </div>
+                            )}
+                        </FlowPoolDroppable>
+                        {!isReviewMode && (
+                            <p className="text-[0.6em] text-gray-400 font-bold uppercase tracking-widest text-center">
+                                {activeId ? 'Drop here to remove' : 'Drag to flowchart →'}
+                            </p>
+                        )}
                     </div>
                 </div>
-            )}
+            </DndContext>
+        );
+    }
 
+    // --- INPUT MODE: No options (flow chart completion) ---
+    return (
+        <div className="mb-6 flex flex-col items-center w-full">
             <div className="flex flex-col gap-2 w-full max-w-2xl">
-                {(group.groups || [{ items: group.items || group.questions || [] }]).map((sub, sIdx) => {
-                    // Manual arrowlarni (↓) filter qilib tashlaymiz
-                    const subItems = (sub.items || sub.questions || []).filter(it => {
-                        const itText = (typeof it.text === 'object' ? it.text.text : it.text) || "";
-                        return !isArrow(itText);
-                    });
-
-                    return (
-                        <div key={sIdx} className="w-full flex flex-col items-center">
-                            {sub.header && (
-                                <h4 className="text-[1em] font-black text-gray-900 mb-6 text-center w-full uppercase tracking-[0.1em] border-b border-gray-100 pb-2">
-                                    {typeof sub.header === 'object' ? sub.header.text : sub.header}
-                                </h4>
-                            )}
-                            <div className="flex flex-col items-center w-full gap-0">
-                                {subItems.map((item, index) => {
-                                    const itemText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
-                                    const hasInput = itemText && String(itemText).includes('[INPUT]');
-                                    let content = null;
-
-                                    if (item.isQuestion || hasInput) {
-                                        const parts = itemText ? String(itemText).split('[INPUT]') : ['', ''];
-                                        const cleanBefore = stripLeadingId(parts[0], item.id);
-                                        const isCorrect = isReviewMode ? checkAnswer(userAnswers[item.id], item.answer) : false;
-
-                                        content = (
-                                            <div className="font-semibold text-gray-800 leading-[2.2] flex flex-wrap items-baseline justify-center text-center">
-                                                {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
-
-                                                {options.length > 0 ? (
-                                                    <div className="inline-block mx-1">
-                                                        <SelectInput
-                                                            id={item.id}
-                                                            value={userAnswers[item.id] || ""}
-                                                            onChange={(e) => onAnswerChange(item.id, e.target.value)}
-                                                            options={options}
-                                                            isReviewMode={isReviewMode}
-                                                            isCorrect={isCorrect}
-                                                            correctAnswer={item.answer}
-                                                            width="min-w-[120px]"
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <ListeningTextInput
-                                                        id={item.id}
-                                                        answer={item.answer}
-                                                        locationId={item.locationId}
-                                                        userAnswers={userAnswers}
-                                                        onAnswerChange={onAnswerChange}
-                                                        isReviewMode={isReviewMode}
-                                                        handleLocationClick={handleLocationClick}
-                                                    />
-                                                )}
-
-                                                {parts[1] && <span className="ml-1" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
-                                            </div>
-                                        );
-                                    } else {
-                                        content = <span className="text-gray-800 font-bold text-center inline-block w-full">{itemText}</span>;
-                                    }
-
-                                    return (
-                                        <React.Fragment key={item.id || index}>
-                                            <div className={`w-full border-2 rounded-2xl p-4 transition-all ${!item.isQuestion && !hasInput ? 'bg-gray-50/40 border-gray-100' : 'bg-white border-gray-200 hover:border-ielts-blue/20 shadow-sm'}`}>
-                                                {content}
-                                            </div>
-                                            {index !== subItems.length - 1 && (
-                                                <div className="flex flex-col items-center py-1">
-                                                    <div className="h-6 w-px bg-gray-300 relative">
-                                                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-gray-300 text-[10px]">▼</div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    );
-                })}
+                <FlowChartBody />
             </div>
         </div>
     );
@@ -612,7 +810,7 @@ export const StandardMCQ = ({ group, userAnswers, onAnswerChange, isReviewMode, 
         return (
             <div className="flex flex-col gap-6">
                 {group.groups.map((sub, sIdx) => (
-                    <div key={sIdx}>
+                    <div key={`mcq-sub-${sub.id ?? ''}-${sIdx}`}>
                         {sub.text && <div className="font-bold text-gray-900 mb-3 px-1" dangerouslySetInnerHTML={{ __html: sub.text }} />}
                         {(sub.questions || sub.items || []).map(renderQuestion)}
                     </div>

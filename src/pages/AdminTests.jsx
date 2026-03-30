@@ -129,72 +129,109 @@ export default function AdminTests() {
                 const questions = test.questions || [];
                 const keywords = test.keywordTable || [];
 
-                // 1. Matnlarni qo'shish (ID larni yangilash)
+                // 1. Passage ID Mapping
+                const passageIdMap = {};
                 const mappedPassages = passages.map((p, pIdx) => {
                     const newId = passageIdOffset + pIdx + 1;
-                    return { ...p, id: String(newId), originalId: p.id };
+                    passageIdMap[String(p.id)] = String(newId);
+                    return { 
+                        ...p, 
+                        id: String(newId), 
+                        originalId: p.id,
+                        partNumber: passageIdOffset + pIdx + 1 
+                    };
                 });
 
-                // 2. Savollarni qo'shish (passageId va question ID larni yangilash)
-                const mappedQuestions = questions.map(group => {
-                    // Passage ID mapping for the GROUP
-                    let newPassageId = group.passageId;
-                    const pIdx = passages.findIndex(p => String(p.id) === String(group.passageId));
-                    if (pIdx !== -1) {
-                        newPassageId = String(passageIdOffset + pIdx + 1);
-                    }
+                // 2. Questions Processing
+                const STRUCTURAL_KEYS = new Set([
+                    'options', 'rows', 'cells', 'parts',
+                    'headers', 'image', 'answer', 'locationId',
+                    'content', 'introDuration', 'originalId'
+                ]);
 
-                    // Deeply clone and remap questions
+                // Helper to update text strings containing range labels
+                const updateRangeText = (text, min, max) => {
+                    if (!text || typeof text !== 'string') return text;
+                    const rangeRegex = /(Questions?\s+)\d+(?:[\-–]\d+)?/gi;
+                    return text.replace(rangeRegex, (match, prefix) => {
+                        return `${prefix}${min}${max > min ? '–' + max : ''}`;
+                    });
+                };
+
+                const mappedQuestions = questions.map(group => {
+                    let groupMinId = Infinity;
+                    let groupMaxId = -Infinity;
+
                     const processItem = (item) => {
                         if (!item || typeof item !== 'object') return item;
                         if (Array.isArray(item)) return item.map(processItem);
 
                         let updated = { ...item };
                         
-                        // Agar bu savol bo'lsa (id si son bo'lsa), yangi ID beramiz
-                        if (updated.id && !isNaN(parseInt(updated.id))) {
-                            updated.id = String(questionIdCounter++);
+                        // ID update: update if it looks like a question/item ID
+                        if (updated.id && !STRUCTURAL_KEYS.has('id')) {
+                            const newIdNum = questionIdCounter++;
+                            updated.id = String(newIdNum);
+                            if (newIdNum < groupMinId) groupMinId = newIdNum;
+                            if (newIdNum > groupMaxId) groupMaxId = newIdNum;
                         }
 
-                        // PassageID ni yangilaymiz (agar savol darajasida bo'lsa)
-                        if (updated.passageId) {
-                            const subPIdx = passages.findIndex(p => String(p.id) === String(updated.passageId));
-                            if (subPIdx !== -1) {
-                                updated.passageId = String(passageIdOffset + subPIdx + 1);
-                            } else {
-                                updated.passageId = newPassageId; // Default group passageId
-                            }
+                        // passageId update
+                        if (updated.passageId && passageIdMap[String(updated.passageId)]) {
+                            updated.passageId = passageIdMap[String(updated.passageId)];
+                        } else if (passageIdMap[String(group.passageId)]) {
+                            updated.passageId = passageIdMap[String(group.passageId)];
                         }
 
-                        // Barcha propertylarni rekursiv tekshiramiz (masalan parts, cells, items)
+                        // Recursive call for nested objects (except structural ones)
                         for (const key in updated) {
-                            if (updated[key] && typeof updated[key] === 'object' && key !== 'options' && key !== 'text') {
+                            if (updated[key] && typeof updated[key] === 'object' && !STRUCTURAL_KEYS.has(key)) {
                                 updated[key] = processItem(updated[key]);
                             }
                         }
-
                         return updated;
                     };
 
+                    // Process the group and its contents
                     const newGroup = {
                         ...group,
-                        passageId: newPassageId,
-                        items: group.items ? group.items.map(processItem) : [],
-                        groups: group.groups ? processItem(group.groups) : [],
-                        questions: group.questions ? group.questions.map(processItem) : []
+                        passageId: passageIdMap[String(group.passageId)] || group.passageId,
+                        items: group.items ? group.items.map(processItem) : undefined,
+                        questions: group.questions ? group.questions.map(processItem) : undefined,
+                        groups: group.groups ? group.groups.map(sub => ({
+                            ...sub,
+                            items: sub.items ? sub.items.map(processItem) : undefined,
+                            questions: sub.questions ? sub.questions.map(processItem) : undefined
+                        })) : undefined
                     };
 
-                    // If the group itself is a standalone question (StandardMCQ flat)
-                    if (newGroup.id && !isNaN(parseInt(newGroup.id)) && !newGroup.questions && !newGroup.items && !newGroup.groups) {
-                        newGroup.id = String(questionIdCounter++);
+                    // Handle standalone group ID
+                    if (newGroup.id && !newGroup.items?.length && !newGroup.questions?.length && !newGroup.groups?.length) {
+                        const newIdNum = questionIdCounter++;
+                        newGroup.id = String(newIdNum);
+                        if (newIdNum < groupMinId) groupMinId = newIdNum;
+                        if (newIdNum > groupMaxId) groupMaxId = newIdNum;
+                    }
+
+                    // Update instruction and text labels with correct question range
+                    if (groupMinId !== Infinity) {
+                        if (newGroup.instruction) newGroup.instruction = updateRangeText(newGroup.instruction, groupMinId, groupMaxId);
+                        if (newGroup.text) newGroup.text = updateRangeText(newGroup.text, groupMinId, groupMaxId);
+                        if (newGroup.header) newGroup.header = updateRangeText(newGroup.header, groupMinId, groupMaxId);
                     }
 
                     return newGroup;
                 });
 
+                // 3. Keywords Processing
+                const mappedKeywords = keywords.map(kw => ({
+                    ...kw,
+                    passageId: passageIdMap[String(kw.passageId)] || kw.passageId
+                }));
+
                 combinedPassages = [...combinedPassages, ...mappedPassages];
                 combinedQuestions = [...combinedQuestions, ...mappedQuestions];
-                combinedKeywords = [...combinedKeywords, ...keywords];
+                combinedKeywords = [...combinedKeywords, ...mappedKeywords];
                 
                 passageIdOffset += passages.length;
             });

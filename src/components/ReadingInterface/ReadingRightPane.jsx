@@ -87,7 +87,16 @@ const ReadingRightPane = memo(({
     }, []);
 
     const getRangeLabel = (group) => {
-        const qIds = group.items?.map(it => parseInt(it.id)).filter(id => !isNaN(id)).sort((a, b) => a - b);
+        let allItems = group.items ? [...group.items] : [];
+        if (group.questions) allItems = [...allItems, ...group.questions];
+        if (group.groups) {
+            group.groups.forEach(sub => {
+                if (sub.items) allItems = [...allItems, ...sub.items];
+                if (sub.questions) allItems = [...allItems, ...sub.questions];
+            });
+        }
+        
+        const qIds = allItems.map(it => parseInt(it.id)).filter(id => !isNaN(id)).sort((a, b) => a - b);
         return qIds && qIds.length > 0 ? `Questions ${qIds[0]}${qIds.length > 1 ? '-' + qIds[qIds.length - 1] : ''}` : "";
     };
 
@@ -164,7 +173,7 @@ const ReadingRightPane = memo(({
 
                         return (
                             <div key={gIdx} className="mb-6 pb-6 border-b border-gray-200 border-dashed last:border-0 font-montserrat">
-                                {rangeLabel && <h3 className="text-xl font-bold text-black mb-4">{rangeLabel}</h3>}
+                                {rangeLabel && <h3 className="text-[15.5px] font-bold text-black mb-4">{rangeLabel}</h3>}
 
                                 {(!gIdx || (gIdx > 0 && String(filteredQuestions[gIdx - 1].instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase() !== String(group.instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase())) && group.instruction && (
                                     <div className="bg-transparent border-none p-0 mb-6 shadow-none font-normal text-black italic text-[15.5px]" dangerouslySetInnerHTML={{ __html: displayInstruction }} />
@@ -177,6 +186,25 @@ const ReadingRightPane = memo(({
                                         <TableQuestion {...commonProps} />
                                     ) : isDiagram ? (
                                         <DiagramLabelingQuestion {...commonProps} />
+                                    ) : isSummary && !isFlowChart ? (
+                                        <p className="leading-[2.2] text-black">
+                                            {group.items?.map((q, qIdx) => {
+                                                const startsWithBold = q.text && q.text.trimStart().startsWith('<b>');
+                                                return (
+                                                    <React.Fragment key={q.id}>
+                                                        {qIdx > 0 && startsWithBold && <br />}
+                                                        <GapFillQuestion 
+                                                            q={q} 
+                                                            val={userAnswers[q.id] || ""} 
+                                                            isSummary={isSummary} 
+                                                            isFlowChart={false}
+                                                            isLast={qIdx === (group.items.length - 1)}
+                                                            {...commonProps} 
+                                                        />
+                                                    </React.Fragment>
+                                                );
+                                            })}
+                                        </p>
                                     ) : (
                                         group.items?.map((q, qIdx) => {
                                             if (isChoiceType && !isMatching) {

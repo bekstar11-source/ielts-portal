@@ -96,16 +96,23 @@ export default function TeacherDashboard() {
                     const q = query(
                         collection(db, 'results'),
                         where('userId', 'in', chunk),
-                        orderBy('date', 'desc'),
-                        limit(50)
+                        limit(200) // Increase limit as we'll sort client-side if needed
                     );
                     const snap = await getDocs(q);
                     allResults.push(...snap.docs.map(d => ({ id: d.id, ...d.data() })));
                 }
 
+                // Sort by date client-side
+                allResults.sort((a, b) => {
+                    const da = a.date ? (a.date.toDate ? a.date.toDate() : new Date(a.date)) : 0;
+                    const db = b.date ? (b.date.toDate ? b.date.toDate() : new Date(b.date)) : 0;
+                    return db - da;
+                });
+
                 const pending = allResults.filter(r =>
                     r.type === 'writing' && !r.teacherFeedback && !r.writingBand
                 );
+                console.log("TeacherDashboard: Found " + pending.length + " pending writings.");
                 setPendingWritings(pending.length);
                 setRecentResults(allResults.slice(0, 5));
             }

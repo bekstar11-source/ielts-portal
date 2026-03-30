@@ -24,6 +24,9 @@ export default function ReadingFooter({
 
         if (group.items && Array.isArray(group.items)) {
             rawItems = group.items;
+        } else if (group.questions && Array.isArray(group.questions)) {
+            // group.questions ham savol holder bo'lishi mumkin (ba'zi MCQ tiplarida)
+            rawItems = group.questions;
         } else if ((group.type === 'table_completion' || group.type === 'table') && group.rows) {
             group.rows.forEach(row => {
                 let cellsToIterate = [];
@@ -123,7 +126,7 @@ export default function ReadingFooter({
                             {/* Part nomi */}
                             <div className="flex items-center shrink-0 mr-2">
                                 <span className={`font-bold text-xs whitespace-nowrap ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                                    Part {idx + 1}
+                                    Part {passage.partNumber ?? (idx + 1)}
                                 </span>
                             </div>
 

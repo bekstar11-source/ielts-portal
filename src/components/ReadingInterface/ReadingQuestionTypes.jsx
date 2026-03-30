@@ -27,8 +27,8 @@ export const QuestionBadge = ({ id, isReviewMode, onClick, isCorrect }) => {
 export const ReadingTextInput = ({ 
     id, value, answer, onChange, isReviewMode, isCorrect, onLocationClick, passageId 
 }) => {
-    let inputBorderClass = "border-gray-300 focus:border-ielts-blue focus:ring-ielts-blue";
-    let textClass = "text-ielts-blue";
+    let inputBorderClass = "border-black focus:border-black focus:ring-black";
+    let textClass = "text-black";
 
     if (isReviewMode) {
         if (isCorrect) {
@@ -43,7 +43,7 @@ export const ReadingTextInput = ({
     return (
         <span className="inline-flex items-center align-middle whitespace-nowrap relative">
             <input
-                className={`w-[110px] h-[26px] border rounded px-1 text-center font-semibold text-sm focus:outline-none focus:ring-1 transition-all bg-white disabled:bg-opacity-50 ${inputBorderClass} ${textClass}`}
+                className={`w-[145px] h-[26px] border rounded px-1 text-center font-semibold text-sm focus:outline-none focus:ring-1 transition-all bg-white disabled:bg-opacity-50 ${inputBorderClass} ${textClass} placeholder-black`}
                 value={value}
                 placeholder={!isReviewMode ? String(id) : ""}
                 onChange={(e) => onChange(id, e.target.value)}
@@ -133,10 +133,13 @@ export const ChoiceQuestion = ({
     const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
     let itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
     
+    const type = String(group.type || "").toLowerCase();
+    const isTFNG = type.includes('tfng') || type.includes('true_false');
+    const isYNNG = type.includes('yesno') || type.includes('yes_no');
+
     if (itemOptions.length === 0 && group.type) {
-        const t = group.type.toLowerCase();
-        if (t.includes('tfng') || t.includes('true_false')) itemOptions = ["TRUE", "FALSE", "NOT GIVEN"];
-        else if (t.includes('yesno') || t.includes('yes_no')) itemOptions = ["YES", "NO", "NOT GIVEN"];
+        if (isTFNG) itemOptions = ["TRUE", "FALSE", "NOT GIVEN"];
+        else if (isYNNG) itemOptions = ["YES", "NO", "NOT GIVEN"];
     }
 
     const correctAnswersList = String(q.answer || "").split(',').map(s => s.trim().toLowerCase());
@@ -195,9 +198,11 @@ export const ChoiceQuestion = ({
 
                         return (
                             <label key={idx} className={`flex items-center gap-3 cursor-pointer p-1.5 rounded-lg border transition-all ${containerClass}`}>
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 shadow-sm border select-none ${badgeClass}`}>
-                                    {letters[idx] || letters[0]}
-                                </div>
+                                {!(isTFNG || isYNNG) && (
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 shadow-sm border select-none ${badgeClass}`}>
+                                        {letters[idx] || letters[0]}
+                                    </div>
+                                )}
                                 <input
                                     type={isMultiSelect ? "checkbox" : "radio"}
                                     className={`peer appearance-none w-4 h-4 border rounded-full checked:bg-ielts-blue transition-all cursor-pointer ${radioClass}`}
@@ -281,7 +286,7 @@ export const GapFillQuestion = ({
                             {q.id}
                         </span>
                         <select
-                            className={`h-[26px] border rounded px-1 pr-6 font-semibold text-sm focus:outline-none focus:ring-1 transition-all cursor-pointer min-w-[90px] max-w-full py-0 leading-none bg-white ${inputBorderClass}`}
+                            className={`h-[26px] border rounded px-1 pr-5 font-semibold text-sm focus:outline-none focus:ring-1 transition-all cursor-pointer w-[92px] py-0 leading-none bg-white ${inputBorderClass}`}
                             value={val}
                             onChange={(e) => onAnswerChange(q.id, e.target.value)}
                             disabled={isReviewMode}
@@ -325,6 +330,14 @@ export const GapFillQuestion = ({
     if (isSummary) containerClass = "inline leading-[2.2]";
     if (isFlowChart) containerClass = "flex flex-col items-center justify-center w-full border border-gray-200 rounded-xl p-6 mb-10 bg-white relative shadow-sm text-center font-montserrat";
 
+    if (isSummary && !isFlowChart) {
+        return (
+            <span id={`q-${q.id}`} className="group/item relative">
+                {renderParts()}
+            </span>
+        );
+    }
+
     return (
         <div id={`q-${q.id}`} className={`group/item relative ${containerClass}`}>
             {!isSummary && !isFlowChart && (
@@ -332,12 +345,12 @@ export const GapFillQuestion = ({
                     <span className="flex-1 text-black">{renderParts()}</span>
                 </div>
             )}
-            {(isSummary || isFlowChart) && (
-                <div className={`text-black ${isFlowChart ? 'w-full flex flex-col items-center' : ''}`}>
-                    <div className={isFlowChart ? 'text-[1.1em] font-medium leading-relaxed' : ''}>
+            {isFlowChart && (
+                <div className={`text-black w-full flex flex-col items-center`}>
+                    <div className="text-[1.1em] font-medium leading-relaxed">
                         {renderParts()}
                     </div>
-                    {isFlowChart && !isLast && (
+                    {!isLast && (
                         <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-gray-300 text-2xl animate-bounce-subtle">↓</div>
                     )}
                 </div>

@@ -1,11 +1,12 @@
 // src/pages/CreateTest.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { db, storage } from "../firebase/firebase";
 import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate, useParams } from "react-router-dom";
 import TagSelector from "../components/ui/TagSelector";
+import TestPreview from "../components/admin/TestPreview";
 
 // --- ICONS (Ranglar moslashtirildi) ---
 const Icons = {
@@ -31,6 +32,36 @@ export default function CreateTest() {
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
     const [duplicateInfo, setDuplicateInfo] = useState(null);
     const [isBypassingDuplicate, setIsBypassingDuplicate] = useState(false);
+
+    // --- PANEL RESIZE STATE ---
+    const [panelWidth, setPanelWidth] = useState(50); // left panel % width
+    const isResizingPanel = useRef(false);
+    const rootPanelRef = useRef(null);
+
+    const handlePanelMouseMove = useCallback((e) => {
+        if (!isResizingPanel.current || !rootPanelRef.current) return;
+        const rect = rootPanelRef.current.getBoundingClientRect();
+        const pct = ((e.clientX - rect.left) / rect.width) * 100;
+        setPanelWidth(Math.max(20, Math.min(80, pct)));
+    }, []);
+
+    const handlePanelMouseUp = useCallback(() => {
+        isResizingPanel.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', handlePanelMouseMove);
+        document.removeEventListener('mouseup', handlePanelMouseUp);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [handlePanelMouseMove]);
+
+    const handlePanelResizerMouseDown = useCallback((e) => {
+        isResizingPanel.current = true;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        document.addEventListener('mousemove', handlePanelMouseMove);
+        document.addEventListener('mouseup', handlePanelMouseUp);
+        e.preventDefault();
+    }, [handlePanelMouseMove, handlePanelMouseUp]);
 
     const [partAudios, setPartAudios] = useState({ 0: "", 1: "", 2: "", 3: "" });
     const [audioMode, setAudioMode] = useState("multiple"); // 'multiple' | 'single'
@@ -528,7 +559,7 @@ export default function CreateTest() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#F5F5F7] dark:bg-[#0A0A0B] text-gray-900 dark:text-gray-100 selection:bg-[#3772FF]/30">
+        <div ref={rootPanelRef} className="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden font-sans bg-[#F5F5F7] dark:bg-[#0A0A0B] text-gray-900 dark:text-gray-100 selection:bg-[#3772FF]/30">
             {/* UPLOAD OVERLAY REMOVED AS PER REQUEST */}
 
             {/* MOBILE HEADER */}
@@ -538,7 +569,10 @@ export default function CreateTest() {
             </div>
 
             {/* --- LEFT PANEL --- */}
-            <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col h-full overflow-y-auto custom-scrollbar border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121214]">
+            <div
+                className="w-full p-6 md:p-8 flex flex-col h-full overflow-y-auto custom-scrollbar bg-white dark:bg-[#121214]"
+                style={{ width: `${panelWidth}%`, minWidth: '280px' }}
+            >
                 <div className="flex justify-between items-center mb-8">
                     <button onClick={() => navigate('/admin/tests')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition group">
                         <div className="p-2 rounded-full bg-white dark:bg-[#1C1C1E] group-hover:bg-gray-100 dark:group-hover:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm"><Icons.Back className="w-4 h-4" /></div>
@@ -801,48 +835,38 @@ export default function CreateTest() {
                 )}
             </div>
 
-            {/* --- RIGHT PANEL: PREVIEW --- */}
-            <div className="hidden md:flex w-1/2 bg-gray-50 dark:bg-[#0A0A0B] p-8 flex-col border-l border-gray-200 dark:border-gray-800 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#3772FF]/5 to-transparent pointer-events-none" />
-                <div className="flex justify-between items-center mb-6 relative z-10">
-                    <h2 className="text-xl font-medium text-gray-900 dark:text-gray-100">Preview</h2>
-                    <span className="px-3 py-1 bg-white dark:bg-[#1C1C1E] rounded-lg text-xs font-bold text-[#3772FF] uppercase border border-blue-100 dark:border-[#3772FF]/20 shadow-sm">{testData.type}</span>
+            {/* --- RESIZER DIVIDER --- */}
+            <div
+                className="hidden md:flex w-[8px] shrink-0 h-full items-center justify-center relative group cursor-col-resize z-20 bg-transparent hover:bg-[#3772FF]/10 transition-colors duration-200"
+                onMouseDown={handlePanelResizerMouseDown}
+            >
+                {/* Visual track */}
+                <div className="w-[2px] h-full bg-gray-200 dark:bg-gray-700 group-hover:bg-[#3772FF]/60 transition-colors duration-200" />
+                {/* Grab handle pill */}
+                <div className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-[3px] px-[3px] py-2 rounded-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 shadow-md group-hover:border-[#3772FF]/40 group-hover:shadow-[0_0_0_3px_rgba(55,114,255,0.12)] transition-all duration-200">
+                    <div className="w-[3px] h-[3px] rounded-full bg-gray-400 group-hover:bg-[#3772FF]" />
+                    <div className="w-[3px] h-[3px] rounded-full bg-gray-400 group-hover:bg-[#3772FF]" />
+                    <div className="w-[3px] h-[3px] rounded-full bg-gray-400 group-hover:bg-[#3772FF]" />
+                    <div className="w-[3px] h-[3px] rounded-full bg-gray-400 group-hover:bg-[#3772FF]" />
                 </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2 relative z-10">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{testData.title || "Test Nomi..."}</h1>
-                    {testData.passages?.slice(0, testData.type === 'listening' ? listeningPartCount : testData.passages.length).map((p, i) => (
-                        <div key={i} className="bg-white dark:bg-[#1C1C1E] p-6 rounded-[24px] border border-gray-200 dark:border-gray-800 shadow-sm">
-                            <div className="flex justify-between items-center mb-4">
-                                <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100">{p.title || `Part ${i + 1}`}</h4>
-                                {(partAudios[i] || p.audio) && <span className="text-[10px] bg-purple-50 dark:bg-purple-900/20 text-[#9757D7] px-2 py-1 rounded font-bold border border-purple-100 dark:border-purple-900/30">AUDIO</span>}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed" dangerouslySetInnerHTML={{ __html: p.content || "Matn yo'q..." }}></div>
-                        </div>
-                    ))}
-                    <div className="space-y-4">
-                        {testData.questions?.map((g, i) => (
-                            <div key={i} className="bg-white dark:bg-[#1C1C1E] p-5 rounded-[24px] border border-gray-200 dark:border-gray-800 hover:border-[#3772FF]/30 transition shadow-sm">
-                                <p className="text-xs font-bold text-[#3772FF] mb-2 uppercase tracking-wider">{g.type}</p>
-                                <div className="text-sm text-gray-900 dark:text-gray-100 mb-3 font-medium" dangerouslySetInnerHTML={{ __html: g.instruction }}></div>
+            </div>
 
-                                {/* Map Image Preview */}
-                                {g.image && (
-                                    <div className="mb-4 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex justify-center py-2">
-                                        <img src={g.image} alt="Map" className="max-w-full max-h-[400px] w-auto h-auto object-contain" />
-                                    </div>
-                                )}
-
-                                {g.items && Array.isArray(g.items) ? (
-                                    g.items.map((q, idx) => (
-                                        <div key={q.id || idx} className="flex gap-3 text-xs py-2 border-b border-gray-100 dark:border-gray-800 last:border-0 text-gray-600 dark:text-gray-400">
-                                            <span className="font-bold w-fit min-w-[24px] text-gray-900 dark:text-gray-100">{q.id || '?'}.</span>
-                                            <span className="flex-1" dangerouslySetInnerHTML={{ __html: q.text || "Savol matni yo'q" }} />
-                                        </div>
-                                    ))
-                                ) : <div className="text-xs text-orange-500 italic p-2">⚠ Savollar (items) topilmadi.</div>}
-                            </div>
-                        ))}
+            {/* --- RIGHT PANEL: LIVE PREVIEW --- */}
+            <div
+                className="hidden md:flex flex-col border-l border-gray-200 dark:border-gray-800 relative overflow-hidden bg-white dark:bg-white"
+                style={{ width: `${100 - panelWidth}%`, minWidth: '240px' }}
+            >
+                {/* HEADER BAR */}
+                <div className="flex justify-between items-center px-5 py-3 border-b border-gray-200 bg-white shrink-0 z-10">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Live Preview</h2>
+                        <span className="text-[10px] text-gray-400 font-normal normal-case">{Math.round(100 - panelWidth)}%</span>
                     </div>
+                    <span className="px-3 py-1 bg-white rounded-lg text-xs font-bold text-[#3772FF] uppercase border border-blue-100 shadow-sm">{testData.type}</span>
+                </div>
+                {/* PREVIEW BODY */}
+                <div className="flex-1 overflow-hidden">
+                    <TestPreview testData={testData} testType={testData.type} />
                 </div>
             </div>
 

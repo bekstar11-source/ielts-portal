@@ -58,7 +58,7 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
                 <QuestionBadge id={id} isReviewMode={isReviewMode} onClick={() => locationId && handleLocationClick(locationId)} />
             )}
             <input
-                className={`w-[130px] h-[26px] border rounded px-2 text-center font-semibold text-[0.875em] focus:outline-none transition-all shadow-sm ${styles} ${!isReviewMode ? 'placeholder-gray-400' : 'placeholder-transparent'}`}
+                className={`w-[140px] h-[26px] border rounded px-2 text-center font-semibold text-[0.875em] focus:outline-none transition-all shadow-sm ${styles} ${!isReviewMode ? 'placeholder-black' : 'placeholder-transparent'}`}
                 value={val}
                 placeholder={!isReviewMode ? String(id) : ""}
                 onChange={(e) => onAnswerChange(id, e.target.value)}

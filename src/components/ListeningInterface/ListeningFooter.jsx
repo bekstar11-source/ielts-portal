@@ -104,10 +104,9 @@ export default function ListeningFooter({
                         ? Math.min(...partQuestions.map(q => parseInt(q.id)).filter(id => !isNaN(id))) 
                         : Infinity;
                         
-                    let partNum = idx + 1;
-                    if (partMinId !== Infinity) {
-                        partNum = Math.floor((partMinId - 1) / 10) + 1;
-                    }
+                    // partNumber merge vaqtida passage ob'ektiga qo'shilган.
+                    // Eski testlarda bo'lmasa idx + 1 fallback sifatida ishlatiladi.
+                    const partNum = passage.partNumber ?? (idx + 1);
 
                     return (
                         <div

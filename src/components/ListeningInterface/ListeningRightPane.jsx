@@ -200,10 +200,9 @@ const ListeningRightPane = memo(({
                 });
 
                 const rangeStr = partMinId !== Infinity ? `${partMinId}–${partMaxId}` : "";
-                let partNum = activePart + 1;
-                if (partMinId !== Infinity) {
-                    partNum = Math.floor((partMinId - 1) / 10) + 1;
-                }
+                // partNumber merge vaqtida passage ob'ektiga qo'shilgan.
+                // Agar yo'q bo'lsa (eski testlar), activePart + 1 fallback sifatida ishlatiladi.
+                const partNum = currentPassage?.partNumber ?? (activePart + 1);
 
                 return (
                     <div className="bg-[#f4f4f2] border border-[#e8e8e6] rounded-sm px-5 py-4 mb-8">
@@ -254,7 +253,7 @@ const ListeningRightPane = memo(({
                         <div className="mb-1 flex flex-col">
                             {questionRange && (
                                 <div className="mb-0.5">
-                                    <h3 className="text-[1.2em] font-bold text-black leading-tight">
+                                    <h3 className="text-[1.1em] font-bold text-black leading-tight">
                                         {questionRange}
                                     </h3>
                                 </div>

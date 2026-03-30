@@ -40,7 +40,7 @@ export const styles = `
   .q-num-inline { display: inline-flex; align-items: center; justify-content: center; background: #f3f4f6; color: #000000; border: 1px solid #e5e7eb; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 4px; font-weight: 700; font-size: 11px; margin-right: 3px; cursor: pointer; vertical-align: middle; user-select: none; flex-shrink: 0; }
   .q-num-inline:hover { background: #000000; color: #fff; border-color: #000000; }
   .q-content { line-height: 1.6; font-size: var(--dynamic-font); color: #000000; font-weight: 500; width: 100%; user-select: text; }
-  input.ielts-input { border: 1px solid #9ca3af; background: #fff; color: #000000; padding: 4px 8px; font-size: var(--dynamic-font); border-radius: 4px; font-weight: 700; width: 150px; height: 34px; margin: 0 6px; transition: all 0.2s; vertical-align: middle; }
+  input.ielts-input { border: 1px solid #9ca3af; background: #fff; color: #000000; padding: 4px 8px; font-size: var(--dynamic-font); border-radius: 4px; font-weight: 700; width: 140px; height: 34px; margin: 0 6px; transition: all 0.2s; vertical-align: middle; }
   input.ielts-input:focus { border-color: #000000; outline: none; box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
   .correct-input { border-color: #16a34a !important; background: #f0fdf4 !important; color: #15803d !important; }
   .wrong-input { border-color: #dc2626 !important; background: #fef2f2 !important; color: #b91c1c !important; }

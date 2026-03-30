@@ -58,15 +58,21 @@ export default function TeacherWritingReview() {
                 const q = query(
                     collection(db, 'results'),
                     where('userId', 'in', chunk),
-                    where('type', '==', 'writing'),
-                    orderBy('date', 'desc')
+                    where('type', '==', 'writing')
                 );
                 const snap = await getDocs(q);
                 allResults.push(...snap.docs.map(d => ({ id: d.id, ...d.data() })));
             }
-            setWritings(allResults);
+            // Final sort by date
+            const sortedResults = allResults.sort((a, b) => {
+                const da = a.date ? (a.date.toDate ? a.date.toDate() : new Date(a.date)) : 0;
+                const db = b.date ? (b.date.toDate ? b.date.toDate() : new Date(b.date)) : 0;
+                return db - da;
+            });
+            console.log("TeacherWritingReview: Total students: " + studentsData.length + ", total writing results: " + sortedResults.length);
+            setWritings(sortedResults);
         } catch (e) {
-            console.error(e);
+            console.error("Error in TeacherWritingReview:", e);
         } finally {
             setLoading(false);
         }
@@ -228,7 +234,7 @@ export default function TeacherWritingReview() {
                                         {/* Student's writing */}
                                         <div className="mt-4 space-y-3">
                                             {[{ label: 'Task 1', key: 'task1' }, { label: 'Task 2', key: 'task2' }].map(({ label, key }) => {
-                                                const taskAnswer = w.answers?.[key] || w[key] || w.writingAnswer || null;
+                                                const taskAnswer = w.userAnswers?.[key] || w.answers?.[key] || w[key] || (key === 'task1' ? w.writingAnswer : null);
                                                 return taskAnswer ? (
                                                     <div key={key}>
                                                         <p className={`text-xs font-bold uppercase mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{label} — O'quvchi javobi</p>
@@ -239,8 +245,8 @@ export default function TeacherWritingReview() {
                                                 ) : null;
                                             })}
 
-                                            {/* If writing answer is flat string */}
-                                            {!w.answers && !w.task1 && !w.task2 && w.writingAnswer && (
+                                            {/* If writing answer is flat string and none of the above found */}
+                                            {!w.userAnswers && !w.answers && !w.task1 && !w.task2 && w.writingAnswer && (
                                                 <div>
                                                     <p className={`text-xs font-bold uppercase mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>O'quvchi javobi</p>
                                                     <div className={`p-3 rounded-xl text-sm leading-relaxed max-h-48 overflow-y-auto custom-scrollbar ${isDark ? 'bg-[#1E1E1E] text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
