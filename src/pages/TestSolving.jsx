@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
-import ReadingInterface from "../components/ReadingInterface/ReadingInterface";
-import ListeningInterface from "../components/ListeningInterface/ListeningInterface";
-import WritingInterface from "../components/WritingInterface/WritingInterface";
-import SpeakingInterface from "../components/SpeakingInterface/SpeakingInterface";
+import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
+const ReadingInterface = lazy(() => import("../components/ReadingInterface/ReadingInterface"));
+const ListeningInterface = lazy(() => import("../components/ListeningInterface/ListeningInterface"));
+const WritingInterface = lazy(() => import("../components/WritingInterface/WritingInterface"));
+const SpeakingInterface = lazy(() => import("../components/SpeakingInterface/SpeakingInterface"));
+
 import TestHeader from "../components/TestSolving/TestHeader";
 import { ModeSelectionModal, ResultModal } from "../components/TestSolving/TestModals";
 import { useTestLogic } from "../hooks/useTestLogic";
@@ -176,60 +177,62 @@ export default function TestSolving() {
 
                 {/* INTERFACE RENDERING */}
                 {!showModeSelection && (
-                    test.type === 'reading' ? (
-                        <div className="w-full h-full">
-                            <ReadingInterface
-                                testData={test}
-                                userAnswers={userAnswers}
-                                onAnswerChange={handleSelectAnswer}
-                                onFlag={toggleFlag}
-                                flaggedQuestions={flaggedQuestions}
-                                isReviewMode={isReviewing}
-                                textSize={textSize}
-                            />
-                        </div>
-                    ) : isListening ? (
-                        <div className="w-full h-full">
-                            <ListeningInterface
-                                testData={test}
-                                userAnswers={userAnswers}
-                                onAnswerChange={handleSelectAnswer}
-                                onFlag={toggleFlag}
-                                flaggedQuestions={flaggedQuestions}
-                                isReviewMode={isReviewing}
-                                textSize={textSize}
-                                testMode={testMode}
-                                onToggleFullScreen={handleToggleFullScreen}
-                                isFullScreen={isFullScreen}
-                                activePart={activePart}
-                                setActivePart={setActivePart}
-                                audioCurrentTime={audioTime}
-                                onIntroEnd={() => setTriggerPlay(true)}
-                            />
-                        </div>
-                    ) : isWriting ? (
-                        <div className="w-full h-full">
-                            <WritingInterface
-                                testData={test}
-                                userAnswers={userAnswers}
-                                onAnswerChange={handleSelectAnswer}
-                                isReviewMode={isReviewing}
-                                textSize={textSize}
-                            />
-                        </div>
-                    ) : isSpeaking ? (
-                        <div className="w-full h-full">
-                            <SpeakingInterface
-                                testData={test}
-                                userAnswers={userAnswers}
-                                onAnswerChange={handleSelectAnswer}
-                                isReviewMode={isReviewing}
-                                textSize={textSize}
-                            />
-                        </div>
-                    ) : (
-                        <div className="p-10 text-center text-gray-400">Test turi aniqlanmadi</div>
-                    )
+                    <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-400">Loading interface...</div>}>
+                        {test.type === 'reading' ? (
+                            <div className="w-full h-full">
+                                <ReadingInterface
+                                    testData={test}
+                                    userAnswers={userAnswers}
+                                    onAnswerChange={handleSelectAnswer}
+                                    onFlag={toggleFlag}
+                                    flaggedQuestions={flaggedQuestions}
+                                    isReviewMode={isReviewing}
+                                    textSize={textSize}
+                                />
+                            </div>
+                        ) : isListening ? (
+                            <div className="w-full h-full">
+                                <ListeningInterface
+                                    testData={test}
+                                    userAnswers={userAnswers}
+                                    onAnswerChange={handleSelectAnswer}
+                                    onFlag={toggleFlag}
+                                    flaggedQuestions={flaggedQuestions}
+                                    isReviewMode={isReviewing}
+                                    textSize={textSize}
+                                    testMode={testMode}
+                                    onToggleFullScreen={handleToggleFullScreen}
+                                    isFullScreen={isFullScreen}
+                                    activePart={activePart}
+                                    setActivePart={setActivePart}
+                                    audioCurrentTime={audioTime}
+                                    onIntroEnd={() => setTriggerPlay(true)}
+                                />
+                            </div>
+                        ) : isWriting ? (
+                            <div className="w-full h-full">
+                                <WritingInterface
+                                    testData={test}
+                                    userAnswers={userAnswers}
+                                    onAnswerChange={handleSelectAnswer}
+                                    isReviewMode={isReviewing}
+                                    textSize={textSize}
+                                />
+                            </div>
+                        ) : isSpeaking ? (
+                            <div className="w-full h-full">
+                                <SpeakingInterface
+                                    testData={test}
+                                    userAnswers={userAnswers}
+                                    onAnswerChange={handleSelectAnswer}
+                                    isReviewMode={isReviewing}
+                                    textSize={textSize}
+                                />
+                            </div>
+                        ) : (
+                            <div className="p-10 text-center text-gray-400">Test turi aniqlanmadi</div>
+                        )}
+                    </Suspense>
                 )}
             </div>
         </div>

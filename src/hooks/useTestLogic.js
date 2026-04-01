@@ -39,173 +39,208 @@ export function useTestLogic() {
         if (!testId || !user) return;
 
         const fetchTest = async () => {
+            console.time(`fetchTest_${testId}`);
             try {
-                // --- PERMISSION AND DATA FETCHING WITH CACHE ---
+                // --- ADMIN OPTIMIZATION ---
+                if (userData?.role === 'admin') {
+                    const docSnap = await getDoc(doc(db, "tests", testId));
+                    if (docSnap.exists()) {
+                        const data = { id: docSnap.id, ...docSnap.data() };
+                        if (data.type) data.type = data.type.toLowerCase(); // 🔥 NORMALIZE TYPE
+                        setTest(data);
+                        initializeTestSettings(data);
+                    } else {
+                        alert("Test bazadan topilmadi!");
+                        navigate("/dashboard");
+                    }
+                    setLoading(false);
+                    console.timeEnd(`fetchTest_${testId}`);
+                    return;
+                }
+
+                // --- STUDENT OPTIMIZATION: Parallelize everything ---
                 let rawAssignments = [];
                 let setsMap = {};
                 
-                if (userData?.role !== 'admin') {
-                    // 1) CACHE TEKSHIRUVI (User va Groups)
-                    const CACHE_KEY = `student_raw_assignments_${user.uid}`;
-                    const CACHE_TIME_KEY = `student_raw_time_${user.uid}`;
-                    const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
-                    const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
+                // 1) CACHE TEKSHIRUVI (User va Groups)
+                const CACHE_KEY = `student_raw_assignments_${user.uid}`;
+                const CACHE_TIME_KEY = `student_raw_time_${user.uid}`;
+                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
 
-                    if (isCacheValid && sessionStorage.getItem(CACHE_KEY)) {
-                        rawAssignments = JSON.parse(sessionStorage.getItem(CACHE_KEY));
-                    } else {
-                        const [userSnap, groupsSnap] = await Promise.all([
-                            getDoc(doc(db, 'users', user.uid)),
-                            getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid)))
-                        ]);
-                        const currentUserData = userSnap.data();
-                        if (currentUserData?.assignedTests) rawAssignments.push(...currentUserData.assignedTests);
-                        groupsSnap.docs.forEach(doc => { 
-                            const gData = doc.data(); 
-                            if (gData.assignedTests) rawAssignments.push(...gData.assignedTests); 
-                        });
-                        sessionStorage.setItem(CACHE_KEY, JSON.stringify(rawAssignments));
-                        sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-                    }
+                const fetchPromises = [getDoc(doc(db, "tests", testId))];
 
-                    // 2) Kesh testSets (Faqatgina to'plamlar kiritilgan bo'lsa)
-                    const needSets = rawAssignments.some(a => (typeof a === 'object' && a.type === 'set') || (typeof a === 'string' && a.startsWith('SET_')));
-                    if (needSets) {
-                        const SETS_CACHE_KEY = `student_sets_map`;
-                        const SETS_TIME_KEY = `student_sets_time`;
-                        const setsTime = sessionStorage.getItem(SETS_TIME_KEY);
-                        const isSetsCacheValid = setsTime && (Date.now() - parseInt(setsTime) < 15 * 60 * 1000);
-                        
-                        if (isSetsCacheValid && sessionStorage.getItem(SETS_CACHE_KEY)) {
-                            setsMap = JSON.parse(sessionStorage.getItem(SETS_CACHE_KEY));
-                        } else {
-                            const setsSnap = await getDocs(collection(db, 'testSets'));
-                            setsSnap.docs.forEach(d => { setsMap[d.id] = d.data(); });
-                            sessionStorage.setItem(SETS_CACHE_KEY, JSON.stringify(setsMap));
-                            sessionStorage.setItem(SETS_TIME_KEY, Date.now().toString());
-                        }
-                    }
-
-                    // Permission tekshirish qismi
-                    const allowedIds = rawAssignments.map(item => { if (typeof item === 'string') return item.trim(); if (item && item.id) return String(item.id).trim(); return null; }).filter(Boolean);
-                    let hasPermission = allowedIds.includes(String(testId).trim());
-                    if (!hasPermission && needSets) hasPermission = true; 
-                    // Note: If no permission, we could block it here if needed, but the original code just sets hasPermission.
+                if (isCacheValid && sessionStorage.getItem(CACHE_KEY)) {
+                    rawAssignments = JSON.parse(sessionStorage.getItem(CACHE_KEY));
+                } else {
+                    fetchPromises.push(getDoc(doc(db, 'users', user.uid)));
+                    fetchPromises.push(getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))));
                 }
 
-                const docRef = doc(db, "tests", testId);
-                const docSnap = await getDoc(docRef);
+                // 🚀 OPTIMIZATION: Pull results query into the main parallel batch
+                fetchPromises.push(getDocs(
+                    query(
+                        collection(db, 'results'),
+                        where('userId', '==', user.uid),
+                        where('testId', '==', testId)
+                    )
+                ));
 
-                if (docSnap.exists()) {
-                    const data = { id: docSnap.id, ...docSnap.data() };
-                    if (data.type) data.type = data.type.toLowerCase(); // 🔥 NORMALIZE TYPE
-
-                    // ✅ YECHIM 1 & 2: Exam modeda qayta bajarishni bloklash
-                    if (userData?.role !== 'admin') {
-
-                        let maxAttempts = 1;
-                        let isBlockedByStrict = false;
-                        let hasValidAssignment = false;
-                        const now = new Date();
-
-                        rawAssignments.forEach(a => {
-                            const aid = typeof a === 'string' ? a.trim() : String(a.id).trim();
-                            const atype = typeof a === 'string' ? 'test' : (a.type || 'test');
-                            const aMax = a.maxAttempts || 1;
-                            const isStrict = a.isStrict || false;
-                            const end = a.endDate ? new Date(a.endDate) : null;
-                            const isExpired = end && now > end;
-
-                            let appliesToThisTest = false;
-
-                            if (aid === String(testId).trim() && atype === 'test') {
-                                appliesToThisTest = true;
-                            } else if (atype === 'set') {
-                                const setSchema = setsMap[aid];
-                                appliesToThisTest = setSchema?.testIds?.some(tid => String(tid).trim() === String(testId).trim());
-                            }
-
-                            if (appliesToThisTest) {
-                                if (aMax > maxAttempts) maxAttempts = aMax;
-                                if (isStrict && isExpired) {
-                                    isBlockedByStrict = true;
-                                } else {
-                                    hasValidAssignment = true;
-                                }
-                            }
-                        });
-
-                        if (isBlockedByStrict && !hasValidAssignment) {
-                            alert("Ushbu testning muddati tugagan (Strict Mode)!");
-                            navigate("/dashboard");
-                            return;
-                        }
-
-                        // 1) Avval tez LocalStorage tekshiruvi (faqat shu test bo'yicha localStorage da saqlangan sanoqni ko'ramiz)
-                        const completedKey = `completed_${user.uid}_${testId}_exam`;
-                        const localAttempts = parseInt(localStorage.getItem(completedKey) || '0', 10);
-                        if (localAttempts >= maxAttempts) {
-                            alert(`Siz bu testni topshirish limitiga yetgansiz (${maxAttempts} marta)!`);
-                            navigate("/dashboard");
-                            return;
-                        }
-
-                        // 2) Firestore tekshiruvi — FAQAT localStorage'da yetmagan bo'lsa
-                        // (localStorage'da to'la bo'lsa Firestore read tejab skip qilinadi)
-                        const prevSnap = await getDocs(
-                            query(
-                                collection(db, 'results'),
-                                where('userId', '==', user.uid),
-                                where('testId', '==', testId)
-                            )
-                        );
-                        if (prevSnap.size >= maxAttempts) {
-                            // Firestore da limitga yetildi — localStorage ni ham sinxronlash
-                            localStorage.setItem(completedKey, prevSnap.size.toString());
-                            alert(`Siz bu testni topshirish limitiga yetgansiz (${maxAttempts} marta)!`);
-                            navigate("/dashboard");
-                            return;
-                        }
-                    }
-
-                    setTest(data);
-                    const type = data.type;
-
-                    // Timer logic
-                    const savedTime = localStorage.getItem(`timer_${user.uid}_${data.id}`);
-                    if (savedTime) {
-                        setTimeLeft(parseInt(savedTime));
-                    } else {
-                        if (type === 'listening') setTimeLeft(2400);
-                        else if (type === 'writing') setTimeLeft(3600);
-                        else if (type === 'speaking') setTimeLeft(900);
-                        else setTimeLeft(3600);
-                    }
-
-                    // Draft logic
-                    const draftKey = `draft_${user.uid}_${data.id}`;
-                    const savedDraft = localStorage.getItem(draftKey);
-                    if (type === 'writing' && savedDraft) {
-                        try { const parsed = JSON.parse(savedDraft); if (typeof parsed === 'object') setUserAnswers(parsed); else setWritingEssay(savedDraft); } catch { setWritingEssay(savedDraft); }
-                    } else if (savedDraft) { try { setUserAnswers(JSON.parse(savedDraft)); } catch (e) { } }
-
-                    // Mode Logic
-                    const savedMode = localStorage.getItem(`mode_${user.uid}_${data.id}`);
-                    if (savedMode && (type === 'reading' || type === 'listening')) {
-                        setTestMode(savedMode);
-                        setShowModeSelection(false);
-                    } else if (type === 'reading' || type === 'listening') {
-                        setShowModeSelection(true);
-                    } else {
-                        setTestMode('exam');
-                        setShowModeSelection(false);
-                    }
+                const results = await Promise.all(fetchPromises);
+                const testSnap = results[0];
+                
+                // Assign results depending on whether cache was used or not
+                let prevSnap;
+                if (fetchPromises.length === 2) { // testSnap + resultsSnap (cache was valid)
+                    prevSnap = results[1];
+                } else if (fetchPromises.length === 4) { // all docs (cache was invalid)
+                    const userSnap = results[1];
+                    const groupsSnap = results[2];
+                    prevSnap = results[3];
+                    
+                    const currentUserData = userSnap?.data();
+                    if (currentUserData?.assignedTests) rawAssignments.push(...currentUserData.assignedTests);
+                    groupsSnap?.docs?.forEach(doc => { 
+                        const gData = doc.data(); 
+                        if (gData.assignedTests) rawAssignments.push(...gData.assignedTests); 
+                    });
+                    sessionStorage.setItem(CACHE_KEY, JSON.stringify(rawAssignments));
+                    sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
                 } else {
+                     // Fallback for unexpected lengths
+                     prevSnap = results[results.length - 1];
+                }
+
+                if (!testSnap.exists()) {
                     alert("Test bazadan topilmadi!");
                     navigate("/dashboard");
+                    setLoading(false);
+                    return;
                 }
-            } catch (error) { console.error("Xatolik:", error); } finally { setLoading(false); }
+
+                const testData = { id: testSnap.id, ...testSnap.data() };
+                if (testData.type) testData.type = testData.type.toLowerCase();
+
+                // 2) Kesh testSets (Faqatgina to'plamlar kiritilgan bo'lsa)
+                const assignedSetIds = rawAssignments
+                    .filter(a => (typeof a === 'object' && a.type === 'set') || (typeof a === 'string' && a.startsWith('SET_')))
+                    .map(a => typeof a === 'string' ? a.trim() : String(a.id).trim());
+
+                if (assignedSetIds.length > 0) {
+                    const SETS_CACHE_KEY = `student_sets_map`;
+                    const SETS_TIME_KEY = `student_sets_time`;
+                    const setsTime = sessionStorage.getItem(SETS_TIME_KEY);
+                    const isSetsCacheValid = setsTime && (Date.now() - parseInt(setsTime) < 15 * 60 * 1000);
+                    
+                    if (isSetsCacheValid && sessionStorage.getItem(SETS_CACHE_KEY)) {
+                        setsMap = JSON.parse(sessionStorage.getItem(SETS_CACHE_KEY));
+                    } else {
+                        // 🚀 OPTIMIZATION: Fetch specific sets only
+                        const setPromises = assignedSetIds.map(sid => getDoc(doc(db, 'testSets', sid)));
+                        const setSnaps = await Promise.all(setPromises);
+                        setSnaps.forEach(s => { if (s.exists()) setsMap[s.id] = s.data(); });
+                        
+                        sessionStorage.setItem(SETS_CACHE_KEY, JSON.stringify(setsMap));
+                        sessionStorage.setItem(SETS_TIME_KEY, Date.now().toString());
+                    }
+                }
+
+                // --- ATTEMPT LIMIT & PERMISSION CHECK ---
+                let maxAttempts = 1;
+                let isBlockedByStrict = false;
+                let hasValidAssignment = false;
+                const now = new Date();
+
+                rawAssignments.forEach(a => {
+                    const aid = typeof a === 'string' ? a.trim() : String(a.id).trim();
+                    const atype = typeof a === 'string' ? 'test' : (a.type || 'test');
+                    const aMax = a.maxAttempts || 1;
+                    const isStrict = a.isStrict || false;
+                    const end = a.endDate ? new Date(a.endDate) : null;
+                    const isExpired = end && now > end;
+
+                    let appliesToThisTest = false;
+
+                    if (aid === String(testId).trim() && atype === 'test') {
+                        appliesToThisTest = true;
+                    } else if (atype === 'set') {
+                        const setSchema = setsMap[aid];
+                        appliesToThisTest = setSchema?.testIds?.some(tid => String(tid).trim() === String(testId).trim());
+                    }
+
+                    if (appliesToThisTest) {
+                        if (aMax > maxAttempts) maxAttempts = aMax;
+                        if (isStrict && isExpired) {
+                            isBlockedByStrict = true;
+                        } else {
+                            hasValidAssignment = true;
+                        }
+                    }
+                });
+
+                if (isBlockedByStrict && !hasValidAssignment) {
+                    alert("Ushbu testning muddati tugagan (Strict Mode)!");
+                    navigate("/dashboard");
+                    return;
+                }
+
+                // 1) Avval tez LocalStorage tekshiruvi
+                const completedKey = `completed_${user.uid}_${testId}_exam`;
+                const localAttempts = parseInt(localStorage.getItem(completedKey) || '0', 10);
+                if (localAttempts >= maxAttempts) {
+                    alert(`Siz bu testni topshirish limitiga yetgansiz (${maxAttempts} marta)!`);
+                    navigate("/dashboard");
+                    return;
+                }
+
+                // 2) Firestore tekshiruvi (Already fetched above)
+                if (prevSnap && prevSnap.size >= maxAttempts) {
+                    localStorage.setItem(completedKey, prevSnap.size.toString());
+                    alert(`Siz bu testni topshirish limitiga yetgansiz (${maxAttempts} marta)!`);
+                    navigate("/dashboard");
+                    return;
+                }
+
+                setTest(testData);
+                initializeTestSettings(testData);
+
+            } catch (error) { 
+                console.error("Xatolik:", error); 
+                alert("Testni yuklashda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
+            } finally { 
+                setLoading(false); 
+                console.timeEnd(`fetchTest_${testId}`);
+            }
         };
+
+        const initializeTestSettings = (data) => {
+            const type = data.type;
+            const savedTime = localStorage.getItem(`timer_${user.uid}_${data.id}`);
+            if (savedTime) setTimeLeft(parseInt(savedTime));
+            else {
+                if (type === 'listening') setTimeLeft(2400);
+                else if (type === 'writing') setTimeLeft(3600);
+                else if (type === 'speaking') setTimeLeft(900);
+                else setTimeLeft(3600);
+            }
+            const draftKey = `draft_${user.uid}_${data.id}`;
+            const savedDraft = localStorage.getItem(draftKey);
+            if (type === 'writing' && savedDraft) {
+                try { 
+                    const parsed = JSON.parse(savedDraft); 
+                    if (typeof parsed === 'object') setUserAnswers(parsed); 
+                    else setWritingEssay(savedDraft); 
+                } catch { setWritingEssay(savedDraft); }
+            } else if (savedDraft) { try { setUserAnswers(JSON.parse(savedDraft)); } catch (e) { } }
+            const savedMode = localStorage.getItem(`mode_${user.uid}_${data.id}`);
+            if (savedMode && (type === 'reading' || type === 'listening')) {
+                setTestMode(savedMode);
+                setShowModeSelection(false);
+            } else if (type === 'reading' || type === 'listening') {
+                setShowModeSelection(true);
+            } else { setTestMode('exam'); setShowModeSelection(false); }
+        };
+
         fetchTest();
     }, [testId, navigate, user, userData?.role]);
 

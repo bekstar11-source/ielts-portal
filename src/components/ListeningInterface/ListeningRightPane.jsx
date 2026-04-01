@@ -136,7 +136,7 @@ const ListeningRightPane = memo(({
                     id: group.id,
                     text: group.text,
                     options: group.options || [],
-                    answer: group.answer,
+                    answer: group.answer || group.correct_answer,
                     locationId: group.locationId,
                 }],
             };
