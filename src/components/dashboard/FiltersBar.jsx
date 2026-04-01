@@ -15,7 +15,7 @@ export default function FiltersBar({ searchQuery, setSearchQuery, filterType, se
                 />
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
-                {['all', 'reading', 'listening', 'mock', 'set'].map(type => (
+                {['all', 'reading', 'listening', 'writing', 'mock', 'set'].map(type => (
                     <button
                         key={type}
                         onClick={() => setFilterType(type)}

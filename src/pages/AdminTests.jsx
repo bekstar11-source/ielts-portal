@@ -195,18 +195,22 @@ export default function AdminTests() {
                     // Process the group and its contents
                     const newGroup = {
                         ...group,
-                        passageId: passageIdMap[String(group.passageId)] || group.passageId,
-                        items: group.items ? group.items.map(processItem) : undefined,
-                        questions: group.questions ? group.questions.map(processItem) : undefined,
-                        groups: group.groups ? group.groups.map(sub => ({
-                            ...sub,
-                            items: sub.items ? sub.items.map(processItem) : undefined,
-                            questions: sub.questions ? sub.questions.map(processItem) : undefined
-                        })) : undefined
+                        passageId: passageIdMap[String(group.passageId)] || group.passageId
                     };
 
+                    if (group.items) newGroup.items = group.items.map(processItem);
+                    if (group.questions) newGroup.questions = group.questions.map(processItem);
+                    if (group.groups) {
+                        newGroup.groups = group.groups.map(sub => {
+                            const newSub = { ...sub };
+                            if (sub.items) newSub.items = sub.items.map(processItem);
+                            if (sub.questions) newSub.questions = sub.questions.map(processItem);
+                            return newSub;
+                        });
+                    }
+
                     // Handle standalone group ID
-                    if (newGroup.id && !newGroup.items?.length && !newGroup.questions?.length && !newGroup.groups?.length) {
+                    if (newGroup.id && !group.items?.length && !group.questions?.length && !group.groups?.length) {
                         const newIdNum = questionIdCounter++;
                         newGroup.id = String(newIdNum);
                         if (newIdNum < groupMinId) groupMinId = newIdNum;
@@ -248,7 +252,18 @@ export default function AdminTests() {
                 isExclusive: false
             };
 
-            const docRef = await addDoc(collection(db, "tests"), newTestData);
+            // Utility to recursively remove undefined fields for Firestore
+            const cleanObject = (obj) => {
+                if (obj === null || typeof obj !== 'object') return obj;
+                if (Array.isArray(obj)) return obj.map(cleanObject).filter(v => v !== undefined);
+                return Object.fromEntries(
+                    Object.entries(obj)
+                        .filter(([_, v]) => v !== undefined)
+                        .map(([k, v]) => [k, cleanObject(v)])
+                );
+            };
+
+            const docRef = await addDoc(collection(db, "tests"), cleanObject(newTestData));
             logAction(user.uid, 'MERGE_TESTS', { newTestId: docRef.id, mergedFrom: selectedTests });
             
             alert("Testlar muvaffaqiyatli birlashtirildi!");

@@ -41,8 +41,7 @@ export default function Practice() {
 
     // 🚀 SHARED HOOK — StudentDashboard bilan bitta cache (zero duplicate reads)
     const { assignments, loading, error: errorMsg, refresh } = useStudentData(user);
-    // Practice da testlar teskari tartibda ko'rsatiladi
-    const rawAssignments = useMemo(() => [...assignments].reverse(), [assignments]);
+    const rawAssignments = useMemo(() => [...assignments], [assignments]);
 
     const handleManualRefresh = async () => {
         if (!user) return;

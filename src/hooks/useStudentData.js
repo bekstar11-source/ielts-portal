@@ -180,6 +180,7 @@ export function useStudentData(user) {
                             ...assign,
                             isSet: true,
                             title: set.name || assign.title || 'Test Set',
+                            createdAt: set.createdAt || assign.assignedAt || 0,
                             subTests,
                             totalTests: subTests.length,
                             completedTests: completedCount,
@@ -219,7 +220,14 @@ export function useStudentData(user) {
             // 6. Dublikatlarni o'chirish
             const uniqueTests = processedList.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
 
-            // 7. Cache ga saqlash
+            // 7. Chronological Sort: Newest first (createdAt descending)
+            uniqueTests.sort((a, b) => {
+                const dateA = new Date(a.createdAt || a.assignedAt || 0).getTime();
+                const dateB = new Date(b.createdAt || b.assignedAt || 0).getTime();
+                return dateB - dateA;
+            });
+
+            // 8. Cache ga saqlash
             sessionStorage.setItem(CACHE_KEY, JSON.stringify(uniqueTests));
             sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
             sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(myResults));
