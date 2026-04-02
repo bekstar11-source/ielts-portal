@@ -12,7 +12,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
     { id: 'practice', label: 'Practice', path: '/practice' },
     { id: 'results', label: 'Natijalar', path: '/my-results' },
     { id: 'leaderboard', label: 'Reyting' },
-    { id: 'archive', label: 'Arxiv', path: '/archive' }, // Kelajakda alohida sahifa bo'lishi mumkin
+    { id: 'vocabulary', label: 'WordBank', path: '/vocabulary' },
     { id: 'favorites', label: 'Sevimlilar', path: '/favorites' }
   ];
 

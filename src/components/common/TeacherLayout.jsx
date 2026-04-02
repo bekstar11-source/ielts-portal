@@ -23,6 +23,7 @@ const topNavItems = [
     { name: 'Guruhlar', path: '/teacher/group-stats'              },
     { name: 'Testlar',  path: '/teacher/tests'                    },
     { name: 'Natijalar',path: '/teacher/results'                  },
+    { name: 'Lug\'at',  path: '/vocabulary'                       },
 ];
 
 const allNavItems = [
@@ -32,6 +33,7 @@ const allNavItems = [
     { name: 'Writing Tekshirish', path: '/teacher/writing-review',    icon: PenLine          },
     { name: 'Guruh Statistikasi', path: '/teacher/group-stats',       icon: BarChart2        },
     { name: 'Barcha Natijalar',   path: '/teacher/results',           icon: ClipboardText    },
+    { name: 'WordBank',           path: '/vocabulary',                icon: BookOpen         },
 ];
 
 /* ──────────── Mobile Drawer ──────────── */
@@ -127,14 +129,14 @@ function TeacherTopNav({ onMenuClick }) {
 
     return (
         <div
-            className="flex items-center justify-between gap-4 px-5 py-2.5 rounded-full"
+            className="flex items-center justify-between gap-4 px-4 py-2 rounded-full"
             style={{
-                background: isDark ? 'rgba(36,36,36,0.78)' : 'rgba(255,255,255,0.72)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
+                background: isDark ? 'rgba(36,36,36,0.85)' : 'rgba(255,255,255,0.8)',
+                backdropFilter: 'blur(24px)',
+                WebkitBackdropFilter: 'blur(24px)',
                 boxShadow: isDark
-                    ? '0 2px 20px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.05)'
-                    : '0 2px 20px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05)',
+                    ? '0 4px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)'
+                    : '0 4px 30px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.03)',
             }}
         >
             {/* Logo */}
@@ -143,10 +145,13 @@ function TeacherTopNav({ onMenuClick }) {
                 onClick={() => navigate('/teacher')}
             >
                 <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: isDark ? '#1E1E1E' : '#111' }}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
+                    style={{ 
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
+                    }}
                 >
-                    <GraduationCap size={16} color="#fff" weight="bold" />
+                    <GraduationCap size={18} color="#fff" weight="bold" />
                 </div>
                 <span className={`font-bold text-base tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     EduDash
@@ -163,18 +168,18 @@ function TeacherTopNav({ onMenuClick }) {
                         <NavLink
                             key={item.path}
                             to={item.path}
-                            className={`px-4 py-2 text-sm font-medium transition-all rounded-xl relative
+                            className={`px-4 py-2 text-sm font-medium transition-all rounded-xl relative group
                                 ${isActive
                                     ? (isDark ? 'text-white' : 'text-gray-900 font-semibold')
-                                    : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900')
+                                    : (isDark ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-emerald-600 hover:bg-emerald-50/50')
                                 }
                             `}
                         >
                             {item.name}
                             {isActive && (
                                 <span
-                                    className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                                    style={{ background: isDark ? '#10B981' : '#111' }}
+                                    className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full animate-in zoom-in duration-300"
+                                    style={{ background: '#10B981' }}
                                 />
                             )}
                         </NavLink>
@@ -183,7 +188,7 @@ function TeacherTopNav({ onMenuClick }) {
             </nav>
 
             {/* Right actions */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
                 {/* Theme toggle */}
                 <button
                     onClick={toggleTheme}
@@ -194,8 +199,12 @@ function TeacherTopNav({ onMenuClick }) {
 
                 {/* User pill */}
                 <div
-                    className="hidden sm:flex items-center gap-2.5 pl-1 pr-4 py-1 rounded-full cursor-pointer"
-                    style={{ background: isDark ? 'rgba(255,255,255,0.1)' : '#111', color: '#fff' }}
+                    className="hidden sm:flex items-center gap-2.5 pl-1 pr-4 py-1 rounded-full cursor-pointer transition-all hover:opacity-90 active:scale-95"
+                    style={{ 
+                        background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                        border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)',
+                        color: isDark ? '#fff' : '#111'
+                    }}
                 >
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                         {userData?.fullName?.charAt(0)?.toUpperCase() || 'T'}
@@ -208,10 +217,10 @@ function TeacherTopNav({ onMenuClick }) {
                 {/* Logout */}
                 <button
                     onClick={logout}
-                    className={`hidden md:flex p-2 rounded-xl transition-all ${isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}
+                    className={`hidden md:flex p-2 rounded-xl transition-all ${isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-500 hover:text-red-600 hover:bg-red-50'}`}
                     title="Chiqish"
                 >
-                    <LogOut size={18} />
+                    <LogOut size={20} />
                 </button>
 
                 {/* Mobile hamburger */}
@@ -247,8 +256,8 @@ export default function TeacherLayout() {
             {/* Scrollable area fills full height */}
             <div className="h-full overflow-y-auto custom-scrollbar">
                 {/* Floating pill nav — sits inside scroll flow at the top */}
-                <div className="px-4 pt-4 pb-0">
-                    <div className="max-w-3xl mx-auto">
+                <div className="px-4 pt-4 pb-2">
+                    <div className="max-w-5xl mx-auto">
                         <TeacherTopNav onMenuClick={() => setIsMobileOpen(true)} />
                     </div>
                 </div>

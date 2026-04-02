@@ -162,6 +162,37 @@ export default function AdminTests() {
                     let groupMinId = Infinity;
                     let groupMaxId = -Infinity;
 
+                    const updateIdCounter = (obj, field = 'id') => {
+                        const idStr = String(obj[field]);
+                        let count = 1;
+                        if (idStr.includes('-') || idStr.includes('–')) {
+                            const parts = idStr.split(/[\-–]/);
+                            if (parts.length === 2) {
+                                const start = parseInt(parts[0]);
+                                const end = parseInt(parts[1]);
+                                if (!isNaN(start) && !isNaN(end)) count = Math.abs(end - start) + 1;
+                            }
+                        } else if (idStr.includes(',')) {
+                            count = idStr.split(',').filter(Boolean).length;
+                        }
+
+                        if (count > 1) {
+                            const newIds = [];
+                            for (let i = 0; i < count; i++) {
+                                const nextId = questionIdCounter++;
+                                newIds.push(String(nextId));
+                                if (nextId < groupMinId) groupMinId = nextId;
+                                if (nextId > groupMaxId) groupMaxId = nextId;
+                            }
+                            obj[field] = newIds.join(', ');
+                        } else {
+                            const nextId = questionIdCounter++;
+                            obj[field] = String(nextId);
+                            if (nextId < groupMinId) groupMinId = nextId;
+                            if (nextId > groupMaxId) groupMaxId = nextId;
+                        }
+                    };
+
                     const processItem = (item) => {
                         if (!item || typeof item !== 'object') return item;
                         if (Array.isArray(item)) return item.map(processItem);
@@ -170,10 +201,7 @@ export default function AdminTests() {
                         
                         // ID update: update if it looks like a question/item ID
                         if (updated.id && !STRUCTURAL_KEYS.has('id')) {
-                            const newIdNum = questionIdCounter++;
-                            updated.id = String(newIdNum);
-                            if (newIdNum < groupMinId) groupMinId = newIdNum;
-                            if (newIdNum > groupMaxId) groupMaxId = newIdNum;
+                            updateIdCounter(updated);
                         }
 
                         // passageId update
@@ -211,10 +239,7 @@ export default function AdminTests() {
 
                     // Handle standalone group ID
                     if (newGroup.id && !group.items?.length && !group.questions?.length && !group.groups?.length) {
-                        const newIdNum = questionIdCounter++;
-                        newGroup.id = String(newIdNum);
-                        if (newIdNum < groupMinId) groupMinId = newIdNum;
-                        if (newIdNum > groupMaxId) groupMaxId = newIdNum;
+                        updateIdCounter(newGroup);
                     }
 
                     // Update instruction and text labels with correct question range
