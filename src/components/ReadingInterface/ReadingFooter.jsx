@@ -12,7 +12,13 @@ export default function ReadingFooter({
 
     const getDisplayLabel = (item) => item.id;
 
-    const isRealQuestion = (item) => (!isNaN(item.id) && !isNaN(parseFloat(item.id))) || item.answer;
+    const isRealQuestion = (item) => {
+        if (!item || item.id == null) return false;
+        if (item.answer) return true;
+        const idStr = String(item.id).trim();
+        if (idStr.includes('-')) return false; // Don't count ranges as single questions here
+        return !isNaN(idStr) && idStr !== "";
+    };
 
     const extractQuestionsFromGroup = (group) => {
         let questions = [];
@@ -36,7 +42,9 @@ export default function ReadingFooter({
                     cellsToIterate = row.cells;
                 }
                 cellsToIterate.forEach(cell => {
-                    if (cell.id) rawItems.push(cell);
+                    // Faqat oddiy savol bo'lgandagina (multi yoki mixed bo'lmasa) push qilamiz
+                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) rawItems.push(cell);
+                    
                     if (cell.isMultiQuestion && cell.content) {
                         rawItems.push(...cell.content);
                     }
@@ -103,7 +111,10 @@ export default function ReadingFooter({
 
                     const passageQuestions = passageGroups
                         .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
-                        .filter(isRealQuestion);
+                        .filter(isRealQuestion)
+                        .filter((q, index, self) => 
+                            index === self.findIndex((t) => String(t.id) === String(q.id))
+                        );
 
                     const qCount = passageQuestions.length;
                     const answeredCount = passageQuestions.filter(q =>

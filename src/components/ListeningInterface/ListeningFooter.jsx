@@ -10,6 +10,14 @@ export default function ListeningFooter({
     isPlaying
 }) {
     if (!testData || !testData.passages) return null;
+    
+    const isRealQuestion = (item) => {
+        if (!item || item.id == null) return false;
+        if (item.answer) return true;
+        const idStr = String(item.id).trim();
+        if (idStr.includes('-')) return false; // Don't count ranges as single questions here
+        return !isNaN(idStr) && idStr !== "";
+    };
 
     const extractQuestionsFromGroup = (group) => {
         let questions = [];
@@ -67,9 +75,16 @@ export default function ListeningFooter({
             group.rows.forEach(row => {
                 let cellsToIterate = Array.isArray(row) ? row : (row.cells || []);
                 cellsToIterate.forEach(cell => {
-                    if (cell.id) questions.push(cell);
+                    // Faqat oddiy savol bo'lgandagina (multi yoki mixed bo'lmasa) push qilamiz
+                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) questions.push(cell);
+                    
+                    if (cell.isMultiQuestion && cell.content) {
+                        questions.push(...cell.content);
+                    }
                     if (cell.isMixed && cell.parts) {
-                        cell.parts.forEach(part => { if (part.type === 'input') questions.push(part); });
+                        cell.parts.forEach(part => { 
+                            if (part.type === 'input') questions.push(part); 
+                        });
                     }
                 });
             });
@@ -90,7 +105,7 @@ export default function ListeningFooter({
 
                     const partQuestions = partGroups
                         .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
-                        .filter(q => q.id !== undefined && q.id !== null)
+                        .filter(isRealQuestion)
                         .filter((q, index, self) =>
                             index === self.findIndex((t) => String(t.id) === String(q.id))
                         );

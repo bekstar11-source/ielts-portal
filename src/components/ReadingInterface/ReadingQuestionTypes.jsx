@@ -59,6 +59,25 @@ export const ReadingTextInput = ({
     );
 };
 
+// --- HELPER FUNKSIYALAR ---
+
+const expandQuestionIds = (id) => {
+    const idStr = String(id);
+    if (idStr.includes('-')) {
+        const parts = idStr.split('-');
+        if (parts.length === 2) {
+            const start = parseInt(parts[0].trim());
+            const end = parseInt(parts[1].trim());
+            if (!isNaN(start) && !isNaN(end)) {
+                const result = [];
+                for (let i = start; i <= end; i++) result.push(String(i));
+                return result;
+            }
+        }
+    }
+    return idStr.split(',').map(s => s.trim()).filter(Boolean);
+};
+
 // --- ASOSIY SAVOL TURLARI ---
 
 const getOptionValue = (text) => {
@@ -147,12 +166,36 @@ export const ChoiceQuestion = ({
 
     return (
         <div className="flex gap-3 items-start mb-5">
-            <QuestionBadge 
-                id={q.id} 
-                isReviewMode={isReviewMode} 
-                isCorrect={isCorrect}
-                onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)} 
-            />
+            <div className="flex flex-col gap-1">
+                {(() => {
+                    const ids = expandQuestionIds(q.id);
+                    const isMulti = ids.length > 1;
+                    
+                    // Review mode uchun ranglar: nechtasi to'g'ri bo'lsa shuncha yashil badge
+                    let correctCount = 0;
+                    if (isReviewMode && isMulti) {
+                        const userA = String(val).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                        const correctA = String(q.answer).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                        correctCount = userA.filter(a => correctA.includes(a)).length;
+                    }
+
+                    return ids.map((id, idx) => {
+                        let indCorrect = isCorrect;
+                        if (isReviewMode && isMulti) {
+                            indCorrect = idx < correctCount;
+                        }
+                        return (
+                            <QuestionBadge 
+                                key={idx}
+                                id={id} 
+                                isReviewMode={isReviewMode} 
+                                isCorrect={indCorrect}
+                                onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)} 
+                            />
+                        );
+                    });
+                })()}
+            </div>
             <div className="flex-1">
                 <HighlightableText
                     id={`p-${activePassage}-q-${q.id}-text`}

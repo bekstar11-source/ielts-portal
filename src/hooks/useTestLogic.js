@@ -370,17 +370,27 @@ export function useTestLogic() {
             let mistakes = [];
 
             if ((test.type === 'reading' || test.type === 'listening') && test.questions && Array.isArray(test.questions)) {
+                const scoredIds = new Set(); // Har bir savol faqat bir marta hisoblanishi uchun
+
                 test.questions.forEach(q => {
-                    const scoredIds = new Set(); // bir savol ikki marta hisoblanmasin
 
                     const scoreItem = (id, correct, groupType) => {
-                        if (id == null || scoredIds.has(String(id))) return;
-                        scoredIds.add(String(id));
-
+                        if (id == null) return;
+                        
+                        const idStr = String(id).trim();
                         const type = String(groupType || "").toLowerCase();
                         const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
                         const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
-                        const userResp = userAnswers[String(id)] || userAnswers[id] || "";
+
+                        // Savolni haqiqiy ekanligini tekshirish (faqat raqamli ID lar haqiqiy savol)
+                        // Range-based ID lar (25-26) skip qilinadi, chunki ular multi-answer logic ichida split qilinadi yoki handled
+                        const isNumeric = /^\d+$/.test(idStr);
+                        if (!isNumeric && !isMultiTwo && !isMultiThree) return;
+
+                        if (scoredIds.has(idStr)) return;
+                        scoredIds.add(idStr);
+
+                        const userResp = userAnswers[idStr] || userAnswers[id] || "";
 
                         if (isMultiTwo || isMultiThree) {
                             const weight = isMultiThree ? 3 : 2;
@@ -439,17 +449,27 @@ export function useTestLogic() {
                     // 4. q.rows — table_completion fallback (faqat q.items yo'q bo'lganda)
                     if (q.rows && Array.isArray(q.rows) && q.rows.length > 0 && (!q.items || q.items.length === 0)) {
                         q.rows.forEach(row => {
-                            if (row.cells && Array.isArray(row.cells)) {
-                                row.cells.forEach(cell => {
-                                    if (cell.isMixed && cell.parts && Array.isArray(cell.parts)) {
-                                        cell.parts.forEach(part => {
-                                            if (part.type === 'input') {
-                                                scoreItem(part.id, part.answer || part.correct_answer, q.type);
-                                            }
-                                        });
-                                    }
-                                });
-                            }
+                            const cells = Array.isArray(row) ? row : (row.cells || []);
+                            cells.forEach(cell => {
+                                // 1. Direct ID (Simple cell)
+                                if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
+                                    scoreItem(cell.id, cell.answer || cell.correct_answer, q.type);
+                                }
+                                // 2. Multi-question cell
+                                if (cell.isMultiQuestion && cell.content) {
+                                    cell.content.forEach(subQ => {
+                                        scoreItem(subQ.id, subQ.answer || subQ.correct_answer, q.type);
+                                    });
+                                }
+                                // 3. Mixed content parts
+                                if (cell.isMixed && cell.parts) {
+                                    cell.parts.forEach(part => {
+                                        if (part.type === 'input') {
+                                            scoreItem(part.id, part.answer || part.correct_answer, q.type);
+                                        }
+                                    });
+                                }
+                            });
                         });
                     }
 
