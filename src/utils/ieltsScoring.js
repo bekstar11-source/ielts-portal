@@ -61,40 +61,77 @@ export const calculateOverallBand = (...scores) => {
 };
 
 
+// COLLAPSE WHITESPACE & CLEAN
+const normalizeString = (str) => {
+    return String(str || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' '); // Collapse multiple spaces to one
+};
+
 // JAVOBNI TEKSHIRISH FUNKSIYASI
 export const checkAnswer = (correct, user) => {
     if (correct === undefined || correct === null) return false;
 
-    // 1. Tozalash (Trim + Lowercase)
-    let cleanCorrect = String(correct).trim().toLowerCase();
-    let cleanUser = String(user || "").trim().toLowerCase();
+    // 1. Tozalash
+    let cleanCorrect = normalizeString(correct);
+    let cleanUser = normalizeString(user);
 
-    // 2. "v. long text" muammosini hal qilish
+    if (!cleanUser) return false;
+
+    // 2. "v. long text" muammosini hal qilish (Roman numerals with dot)
     if (/^[ivx]+\./.test(cleanUser)) {
         cleanUser = cleanUser.split('.')[0].trim();
     }
 
-    // 3. Slash (/) yoki Pipe (|) tekshiruvi
-    if (cleanCorrect.includes('/')) {
-        const options = cleanCorrect.split('/').map(s => s.trim());
-        return options.includes(cleanUser);
-    }
-    if (cleanCorrect.includes('|')) {
-        const options = cleanCorrect.split('|').map(s => s.trim());
-        return options.includes(cleanUser);
+    // 3. Qavslar ichidagi ixtiyoriy so'zlar (e.g. "in (the) school")
+    // Biz ixtiyoriy so'zlarni olib tashlangan va bor holatini tekshiramiz
+    const checkWithOptional = (correctStr, userStr) => {
+        if (correctStr === userStr) return true;
+        
+        // Qavslarni olib tashlaymiz (e.g. "in (the) school" -> "in the school")
+        const withoutParens = correctStr.replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+        if (withoutParens === userStr) return true;
+
+        // Qavslar ichidagi so'zlar bilan birga olib tashlaymiz (e.g. "in (the) school" -> "in school")
+        const withoutWords = correctStr.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+        if (withoutWords === userStr) return true;
+
+        return false;
+    };
+
+    // 4. Slash (/) yoki Pipe (|) tekshiruvi (Alternative answers)
+    const options = cleanCorrect.split(/[/|]/).map(s => s.trim());
+    
+    // Agar user bir nechta javobni slash bilan yozgan bo'lsa (e.g. user: "a / b")
+    const userOptions = cleanUser.split(/[/|]/).map(s => s.trim());
+
+    // User yozgan har qanday variant to'g'ri javoblardan biriga mos kelsa
+    for (const uOpt of userOptions) {
+        if (options.some(o => checkWithOptional(o, uOpt))) {
+            return true;
+        }
     }
 
-    // 4. Oddiy tekshiruv
-    return cleanCorrect === cleanUser;
+    return false;
 };
 
 // MULTI-CHOICE JAVOBNI TEKSHIRISH (e.g. "Choose TWO letters")
 export const scoreMultiAnswer = (correct, user, weight) => {
     if (!correct) return { matches: 0, weight: weight || 1 };
     
-    // To'g'ri javoblarni ajratib olamiz (vergul, slash yoki pipe orqali)
-    const correctArr = String(correct).split(/[,/|]/).map(s => s.trim().toLowerCase()).filter(Boolean);
-    const userArr = String(user || "").split(/[,/|]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+    // To'g'ri javoblarni ajratib olamiz (vergul, slash, pipe yoki bo'shliq orqali)
+    const normalizeMulti = (str) => {
+        if (!str) return [];
+        // Har bir harfni (A-Z) alohida ajratib olishga harakat qilamiz agar bu harflar bo'lsa
+        if (/^[A-Z, /|\s]+$/i.test(str)) {
+            return str.replace(/[,/|\s]/g, '').toLowerCase().split('');
+        }
+        return String(str).split(/[,/|]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+    };
+
+    const correctArr = normalizeMulti(correct);
+    const userArr = normalizeMulti(user);
 
     // User javobidagi dublikatlarni olib tashlaymiz
     const uniqueUser = Array.from(new Set(userArr));

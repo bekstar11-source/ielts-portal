@@ -281,8 +281,8 @@ export default function MockExam() {
                 const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
                 const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
 
-                const isNumeric = /^\d+$/.test(idStr);
-                if (!isNumeric && !isMultiTwo && !isMultiThree) return;
+                // Allow alphanumeric IDs, but skip empty or null
+                if (!idStr) return;
 
                 if (scoredIds.has(idStr)) return;
                 scoredIds.add(idStr);
@@ -508,75 +508,92 @@ export default function MockExam() {
     }
 
     if (stage === 'result') {
-        const overallBand = finalResults ? ((finalResults.listening.band + finalResults.reading.band) / 2).toFixed(1) : "0.0";
-
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
-                <div className="bg-white p-8 md:p-12 rounded-[32px] shadow-2xl text-center max-w-2xl w-full border border-gray-100 animate-in fade-in zoom-in duration-500">
-                    <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-                         <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans select-text">
+                <div className="bg-white p-8 md:p-12 rounded-[32px] shadow-2xl text-center max-w-3xl w-full border border-gray-100 animate-in fade-in zoom-in duration-500">
+                    <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                         <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                          </svg>
                     </div>
                     
-                    <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 tracking-tight">Imtihon Yakunlandi!</h2>
-                    <p className="text-gray-500 mb-10 font-medium italic text-lg">Your results have been recorded successfully.</p>
+                    <h2 className="text-3xl md:text-5xl font-black text-gray-900 mb-2 tracking-tight">Exam Completed!</h2>
+                    <p className="text-gray-500 mb-10 font-medium text-lg">Your responses have been submitted for evaluation.</p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
                         {/* Listening Card */}
-                        <div className="bg-blue-50/50 border border-blue-100 rounded-[24px] p-6 flex flex-col items-center gap-3 transition-transform hover:scale-[1.02]">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 mb-1">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                                </svg>
-                            </div>
+                        <div className="bg-blue-50/50 border border-blue-100/50 rounded-[28px] p-6 flex flex-col items-center gap-3 transition-all hover:shadow-lg hover:shadow-blue-500/5">
                             <span className="text-blue-600 font-black uppercase tracking-widest text-[10px]">Listening</span>
                             <div className="flex flex-col items-center">
-                                <span className="text-4xl font-black text-blue-900 leading-none mb-1">{finalResults?.listening.band || "0.0"}</span>
-                                <span className="text-xs text-blue-400 font-bold">BAND SCORE</span>
+                                <span className="text-5xl font-black text-blue-900 leading-none mb-1">{finalResults?.listening.band?.toFixed(1) || "0.0"}</span>
+                                <span className="text-xs text-blue-400 font-bold tracking-tight">BAND SCORE</span>
                             </div>
-                            <div className="mt-2 text-blue-700/70 font-bold bg-blue-100/50 py-1.5 px-4 rounded-full text-sm">
+                            <div className="mt-2 text-blue-700/60 font-bold bg-blue-100/40 py-1.5 px-4 rounded-full text-xs">
                                 {finalResults?.listening.correct} / {finalResults?.listening.total} correct
                             </div>
                         </div>
 
                         {/* Reading Card */}
-                        <div className="bg-emerald-50/50 border border-emerald-100 rounded-[24px] p-6 flex flex-col items-center gap-3 transition-transform hover:scale-[1.02]">
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 mb-1">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                </svg>
-                            </div>
+                        <div className="bg-emerald-50/50 border border-emerald-100/50 rounded-[28px] p-6 flex flex-col items-center gap-3 transition-all hover:shadow-lg hover:shadow-emerald-500/5">
                             <span className="text-emerald-600 font-black uppercase tracking-widest text-[10px]">Reading</span>
                             <div className="flex flex-col items-center">
-                                <span className="text-4xl font-black text-emerald-900 leading-none mb-1">{finalResults?.reading.band || "0.0"}</span>
-                                <span className="text-xs text-emerald-400 font-bold">BAND SCORE</span>
+                                <span className="text-5xl font-black text-emerald-900 leading-none mb-1">{finalResults?.reading.band?.toFixed(1) || "0.0"}</span>
+                                <span className="text-xs text-emerald-400 font-bold tracking-tight">BAND SCORE</span>
                             </div>
-                            <div className="mt-2 text-emerald-700/70 font-bold bg-emerald-100/50 py-1.5 px-4 rounded-full text-sm">
+                            <div className="mt-2 text-emerald-700/60 font-bold bg-emerald-100/40 py-1.5 px-4 rounded-full text-xs">
                                 {finalResults?.reading.correct} / {finalResults?.reading.total} correct
                             </div>
                         </div>
-                    </div>
 
-                    <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-10 text-left">
-                        <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center shrink-0">
-                                 <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                 </svg>
+                        {/* Writing Card */}
+                        <div className="bg-purple-50/50 border border-purple-100/50 rounded-[28px] p-6 flex flex-col items-center gap-3">
+                            <span className="text-purple-600 font-black uppercase tracking-widest text-[10px]">Writing</span>
+                            <div className="flex flex-col items-center py-1">
+                                <div className="animate-pulse flex items-center gap-1.5 mb-1">
+                                    <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+                                    <div className="w-2 h-2 rounded-full bg-purple-400 animation-delay-200"></div>
+                                    <div className="w-2 h-2 rounded-full bg-purple-400 animation-delay-400"></div>
+                                </div>
+                                <span className="text-[11px] text-purple-400 font-bold tracking-tight uppercase">Pending Grade</span>
                             </div>
-                            <p className="text-gray-600 text-sm leading-relaxed font-medium">
-                                Writing qismi imtihon koordinatorlari tomonidan tekshirilgandan so'ng umumiy ballingiz dashboardda e'lon qilinadi. Listening va Reading natijalari hozirgi ballingizni aks ettiradi.
-                            </p>
+                            <div className="mt-2 text-purple-700/60 font-bold bg-purple-100/40 py-1.5 px-4 rounded-full text-xs">
+                                Writing submitted
+                            </div>
                         </div>
                     </div>
 
-                    <button 
-                        onClick={() => navigate('/')} 
-                        className="w-full bg-gray-900 text-white px-8 py-5 rounded-[20px] font-black text-lg uppercase tracking-widest hover:bg-black transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95"
-                    >
-                        Back to Dashboard
-                    </button>
+                    <div className="bg-gray-50 border border-gray-200/60 rounded-3xl p-6 mb-10 text-left relative overflow-hidden">
+                        {/* Overall Badge */}
+                        <div className="absolute top-0 right-0 px-4 py-2 bg-gray-200 text-gray-500 text-[10px] font-black uppercase tracking-widest border-l border-b border-gray-200 rounded-bl-xl">
+                            Overall Band
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <div className="w-16 h-16 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-2xl font-black text-gray-400 shadow-sm shrink-0">
+                                ?
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-gray-900 mb-1">Final Result Pending</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed font-medium">
+                                    Full mockup test natijangiz <strong>Writing</strong> qismi adminlarimiz tomonidan tekshirilgandan so'ng hisoblab chiqiladi. Bu odatda 24 soat ichida amalga oshiriladi.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <button 
+                            onClick={() => navigate('/')} 
+                            className="flex-1 bg-gray-900 text-white px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95"
+                        >
+                            Return to Dashboard
+                        </button>
+                        <button 
+                            onClick={() => navigate('/my-results')} 
+                            className="flex-1 bg-white text-gray-900 border border-gray-200 px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:border-gray-400 transition-all hover:scale-105 active:scale-95"
+                        >
+                            View All Results
+                        </button>
+                    </div>
                 </div>
             </div>
         );
