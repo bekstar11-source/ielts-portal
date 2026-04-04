@@ -111,12 +111,14 @@ const TestHeader = ({
     setAudioTime,
     triggerPlay,
     onPartChange,
+    onAudioReady,
     buttonText = 'Finish'
 }) => {
     const isListening = test?.type?.toLowerCase() === 'listening';
     const hasTriggered = useRef(false);
     const [isBuffering, setIsBuffering] = useState(false);
     const [audioReady, setAudioReady] = useState(false);
+    const hasTriggeredPlay = useRef(false);
 
     // Exam mode: when triggerPlay fires, first show buffering screen
     useEffect(() => {
@@ -126,17 +128,29 @@ const TestHeader = ({
         setIsBuffering(true); // Buffering ekranini ko'rsat
     }, [triggerPlay, testMode, isListening]);
 
-    // When buffering done, auto-play part 0
     useEffect(() => {
-        if (!audioReady || !isBuffering) return;
-        setIsBuffering(false);
-        setTimeout(() => {
+        if (triggerPlay && isListening && !hasTriggeredPlay.current) {
             const audio = document.getElementById(`audio-part-0`);
-            if (audio) audio.play().catch(err => console.warn('Auto-play blocked:', err));
-        }, 300);
-    }, [audioReady, isBuffering]);
+            if (audio) {
+                hasTriggeredPlay.current = true;
+                audio.play().catch(err => {
+                    console.warn('Auto-play blocked:', err);
+                    hasTriggeredPlay.current = false; // Allow retry if blocked
+                });
+            }
+        }
+    }, [triggerPlay, isListening]);
 
+    useEffect(() => {
+        if (isListening) onAudioReady?.();
+    }, [isListening, onAudioReady]);
+
+    const finishedParts = useRef(new Set());
+    
     const handleEnded = (index) => {
+        if (finishedParts.current.has(index)) return;
+        finishedParts.current.add(index);
+
         if (test?.passages?.length && index < test.passages.length - 1) {
             const currentPassage = test.passages[index];
             const extraTimeMs = (Number(currentPassage?.extraSilentTime) || 0) * 1000;
@@ -149,8 +163,14 @@ const TestHeader = ({
                 // Keyingi partga o'tgandan sal keyin audio'ni play qilamiz
                 setTimeout(() => {
                     const nextAudio = document.getElementById(`audio-part-${nextIdx}`);
-                    if (nextAudio) nextAudio.play().catch(() => { });
-                }, 200);
+                    if (nextAudio) {
+                        nextAudio.play().catch(err => {
+                            console.warn('Auto-play next blocked:', err);
+                            // If blocked, allow the user to play manually if needed, 
+                            // but in exam mode it should be ready.
+                        });
+                    }
+                }, 400); // Slightly longer delay to ensure DOM is ready
             }, delay);
         }
     };

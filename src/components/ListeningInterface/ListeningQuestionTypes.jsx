@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
     DndContext,
     useDraggable,
@@ -866,7 +866,7 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
     );
 };
 
-export const StandardMCQ = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+export const StandardMCQ = memo(({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
     const renderQuestion = (q) => {
         const options = q.options || group.options || [];
         return (
@@ -912,4 +912,17 @@ export const StandardMCQ = ({ group, userAnswers, onAnswerChange, isReviewMode, 
     }
 
     return <>{(group.questions || group.items || []).map(renderQuestion)}</>;
-};
+}, (prev, next) => {
+    // Only re-render if the relevant answers for this group have changed
+    const prevItems = (prev.group.questions || prev.group.items || []);
+    const nextItems = (next.group.questions || next.group.items || []);
+    
+    if (prevItems.length !== nextItems.length) return false;
+    
+    // Check if any answers within this group changed
+    const anyAnswerChanged = prevItems.some(q => prev.userAnswers[q.id] !== next.userAnswers[q.id]);
+    
+    return !anyAnswerChanged && 
+           prev.group === next.group && 
+           prev.isReviewMode === next.isReviewMode;
+});

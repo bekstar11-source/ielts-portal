@@ -52,18 +52,20 @@ export default function AdminTests() {
 
 
 
+    const fetchTests = async () => {
+        setLoading(true);
+        try {
+            const q = query(collection(db, "tests"), orderBy("createdAt", "desc"));
+            const snapshot = await getDocs(q);
+            setTests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(t => t.id !== "tag_metadata" && t.id !== "_tag_settings"));
+        } catch (err) {
+            console.error("Error fetching tests:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchTests = async () => {
-            try {
-                const q = query(collection(db, "tests"), orderBy("createdAt", "desc"));
-                const snapshot = await getDocs(q);
-                setTests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(t => t.id !== "tag_metadata" && t.id !== "_tag_settings"));
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchTests();
     }, []);
 
@@ -144,15 +146,15 @@ export default function AdminTests() {
 
                 // 2. Questions Processing
                 const STRUCTURAL_KEYS = new Set([
-                    'options', 'rows', 'cells', 'parts',
-                    'headers', 'image', 'answer', 'locationId',
-                    'content', 'introDuration', 'originalId'
+                    'options', 'headers', 'image', 'answer', 'locationId',
+                    'introDuration', 'originalId'
                 ]);
 
                 // Helper to update text strings containing range labels
                 const updateRangeText = (text, min, max) => {
                     if (!text || typeof text !== 'string') return text;
-                    const rangeRegex = /(Questions?\s+)\d+(?:[\-–]\d+)?/gi;
+                    // Supports "Questions 1-5", "Question 1", "Questions 1 to 5", etc.
+                    const rangeRegex = /(Questions?\s+)\d+(?:\s*(?:[\-–]|to)\s*\d+)?/gi;
                     return text.replace(rangeRegex, (match, prefix) => {
                         return `${prefix}${min}${max > min ? '–' + max : ''}`;
                     });
@@ -163,16 +165,23 @@ export default function AdminTests() {
                     let groupMaxId = -Infinity;
 
                     const updateIdCounter = (obj, field = 'id') => {
-                        const idStr = String(obj[field]);
+                        const idStr = String(obj[field] || "");
+                        if (!idStr) return;
+
+                        // Only process IDs that look like question numbers (numeric, range, or list)
+                        const isNumeric = /^\d+$/.test(idStr);
+                        const isRange = /^\d+\s*[\-–]\s*\d+$/.test(idStr);
+                        const isList = /^\d+(?:\s*,\s*\d+)+$/.test(idStr);
+
+                        if (!isNumeric && !isRange && !isList) return;
+
                         let count = 1;
-                        if (idStr.includes('-') || idStr.includes('–')) {
+                        if (isRange) {
                             const parts = idStr.split(/[\-–]/);
-                            if (parts.length === 2) {
-                                const start = parseInt(parts[0]);
-                                const end = parseInt(parts[1]);
-                                if (!isNaN(start) && !isNaN(end)) count = Math.abs(end - start) + 1;
-                            }
-                        } else if (idStr.includes(',')) {
+                            const start = parseInt(parts[0].trim());
+                            const end = parseInt(parts[1].trim());
+                            if (!isNaN(start) && !isNaN(end)) count = Math.abs(end - start) + 1;
+                        } else if (isList) {
                             count = idStr.split(',').filter(Boolean).length;
                         }
 
@@ -184,7 +193,8 @@ export default function AdminTests() {
                                 if (nextId < groupMinId) groupMinId = nextId;
                                 if (nextId > groupMaxId) groupMaxId = nextId;
                             }
-                            obj[field] = newIds.join(', ');
+                            // Maintain formatting: range for ranges, comma-separated for lists
+                            obj[field] = isRange ? `${newIds[0]}–${newIds[newIds.length - 1]}` : newIds.join(', ');
                         } else {
                             const nextId = questionIdCounter++;
                             obj[field] = String(nextId);
@@ -193,52 +203,63 @@ export default function AdminTests() {
                         }
                     };
 
-                    const processItem = (item) => {
-                        if (!item || typeof item !== 'object') return item;
-                        if (Array.isArray(item)) return item.map(processItem);
+                    const walkAndReindex = (obj) => {
+                        if (!obj || typeof obj !== 'object') return obj;
+                        if (Array.isArray(obj)) return obj.map(walkAndReindex);
 
-                        let updated = { ...item };
+                        let updated = { ...obj };
                         
-                        // ID update: update if it looks like a question/item ID
-                        if (updated.id && !STRUCTURAL_KEYS.has('id')) {
-                            updateIdCounter(updated);
-                        }
-
-                        // passageId update
+                        // 1. passageId update
                         if (updated.passageId && passageIdMap[String(updated.passageId)]) {
                             updated.passageId = passageIdMap[String(updated.passageId)];
                         } else if (passageIdMap[String(group.passageId)]) {
                             updated.passageId = passageIdMap[String(group.passageId)];
                         }
 
-                        // Recursive call for nested objects (except structural ones)
+                        // 2. Recurse into potential question containers
+                        // We skip keys in STRUCTURAL_KEYS to avoid corrupted data
+                        const CONTAINER_KEYS = ['items', 'questions', 'groups', 'rows', 'cells', 'parts', 'content'];
+                        let hasChildrenQuestions = false;
+
+                        for (const key of CONTAINER_KEYS) {
+                            if (updated[key] && typeof updated[key] === 'object') {
+                                // If it's a container, we recurse but don't re-index this level yet
+                                hasChildrenQuestions = true;
+                                updated[key] = walkAndReindex(updated[key]);
+                            }
+                        }
+
+                        // 3. ID update: Only if it's a leaf question or a standalone item
+                        // We don't re-index groups that have child questions to avoid double-counting
+                        if (updated.id && !hasChildrenQuestions) {
+                            updateIdCounter(updated);
+                        }
+
+                        // Recursive call for other nested objects not in container list
                         for (const key in updated) {
-                            if (updated[key] && typeof updated[key] === 'object' && !STRUCTURAL_KEYS.has(key)) {
-                                updated[key] = processItem(updated[key]);
+                            if (!CONTAINER_KEYS.includes(key) && !STRUCTURAL_KEYS.has(key) && 
+                                updated[key] && typeof updated[key] === 'object') {
+                                updated[key] = walkAndReindex(updated[key]);
                             }
                         }
                         return updated;
                     };
 
-                    // Process the group and its contents
-                    const newGroup = {
+                    // Process the entire group structure recursively
+                    const newGroup = walkAndReindex({
                         ...group,
                         passageId: passageIdMap[String(group.passageId)] || group.passageId
-                    };
+                    });
 
-                    if (group.items) newGroup.items = group.items.map(processItem);
-                    if (group.questions) newGroup.questions = group.questions.map(processItem);
-                    if (group.groups) {
-                        newGroup.groups = group.groups.map(sub => {
-                            const newSub = { ...sub };
-                            if (sub.items) newSub.items = sub.items.map(processItem);
-                            if (sub.questions) newSub.questions = sub.questions.map(processItem);
-                            return newSub;
-                        });
-                    }
-
-                    // Handle standalone group ID
-                    if (newGroup.id && !group.items?.length && !group.questions?.length && !group.groups?.length) {
+                    // Finalize: Sync the group's own ID with the new range of its questions
+                    if (groupMinId !== Infinity && groupMaxId !== -Infinity) {
+                        const currentId = String(newGroup.id || "");
+                        // Only update if it looks like a numeric question range/ID
+                        if (/^\d+([\-–]\d+)?$/.test(currentId) || (!currentId && (group.items?.length || group.questions?.length))) {
+                            newGroup.id = groupMaxId > groupMinId ? `${groupMinId}–${groupMaxId}` : String(groupMinId);
+                        }
+                    } else if (newGroup.id && !group.items?.length && !group.questions?.length && !group.groups?.length) {
+                        // Case for standalone items/groups that aren't nested
                         updateIdCounter(newGroup);
                     }
 
@@ -266,33 +287,67 @@ export default function AdminTests() {
             });
 
             const newTestData = {
-                title: mergeTitle,
-                type: sortedSelected[0].type,
+                title: mergeTitle || "Merged Test",
+                type: sortedSelected[0]?.type || "reading",
                 difficulty: "medium",
-                passages: combinedPassages,
-                questions: combinedQuestions,
-                keywordTable: combinedKeywords,
+                passages: combinedPassages || [],
+                questions: combinedQuestions || [],
+                keywordTable: combinedKeywords || [],
+                introDuration: (sortedSelected[0]?.type === 'listening') ? (sortedSelected[0]?.introDuration || 10) : undefined,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 isExclusive: false
             };
 
-            // Utility to recursively remove undefined fields for Firestore
+            // Utility to recursively remove undefined and NaN fields for Firestore
+            // AND ensure No Nested Arrays (not supported by Firestore)
             const cleanObject = (obj) => {
-                if (obj === null || typeof obj !== 'object') return obj;
-                if (Array.isArray(obj)) return obj.map(cleanObject).filter(v => v !== undefined);
-                return Object.fromEntries(
-                    Object.entries(obj)
-                        .filter(([_, v]) => v !== undefined)
-                        .map(([k, v]) => [k, cleanObject(v)])
-                );
+                if (obj === null || obj === undefined) return undefined;
+                if (typeof obj !== 'object' || obj instanceof Date) {
+                    if (typeof obj === 'number' && isNaN(obj)) return undefined;
+                    return obj;
+                }
+                
+                // Firestore handle for objects with toDate (Timestamps)
+                if (obj.toDate && typeof obj.toDate === 'function') {
+                    try { return obj.toDate().toISOString(); } catch(e) { return undefined; }
+                }
+
+                if (Array.isArray(obj)) {
+                    return obj.map(item => {
+                        const cleaned = cleanObject(item);
+                        if (Array.isArray(cleaned)) {
+                            // Firestore doesn't support nested arrays. Wrap in an object.
+                            return { cells: cleaned };
+                        }
+                        return cleaned;
+                    }).filter(v => v !== undefined);
+                }
+                
+                const cleaned = {};
+                Object.keys(obj).forEach(key => {
+                    const val = cleanObject(obj[key]);
+                    if (val !== undefined) cleaned[key] = val;
+                });
+                return cleaned;
             };
 
-            const docRef = await addDoc(collection(db, "tests"), cleanObject(newTestData));
+            const finalPayload = cleanObject(newTestData);
+            
+            // final validation: ensure no critical fields were lost
+            if (!finalPayload.title || !finalPayload.type) {
+                throw new Error("Test ma'lumotlari to'liq emas (title yoki type yetishmayapti)");
+            }
+
+            const docRef = await addDoc(collection(db, "tests"), finalPayload);
             logAction(user.uid, 'MERGE_TESTS', { newTestId: docRef.id, mergedFrom: selectedTests });
             
             alert("Testlar muvaffaqiyatli birlashtirildi!");
-            window.location.reload(); // Refresh to show new test
+            // Refresh the list and clear states
+            await fetchTests();
+            setSelectedTests([]);
+            setShowMergeModal(false);
+            setMergeTitle("");
 
         } catch (err) {
             console.error(err);
@@ -435,9 +490,23 @@ export default function AdminTests() {
                             ))}
                         </div>
 
-                        {/* 4. Passage Filter */}
+                        {/* 4. Passage / Part Filter */}
                         <div className={`flex p-1 rounded-xl w-full lg:w-auto overflow-x-auto no-scrollbar border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-100 border-gray-200'}`}>
-                            {[{v:'all', l:'Hammasi'}, {v:'easy', l:'Passage 1'}, {v:'medium', l:'Passage 2'}, {v:'hard', l:'Passage 3'}].map(diff => (
+                            {(filterType === 'listening' ? [
+                                {v:'all', l:'Hammasi'}, 
+                                {v:'full', l:'Full'}, 
+                                {v:'part 1', l:'Part 1'}, 
+                                {v:'part 2', l:'Part 2'}, 
+                                {v:'part 3', l:'Part 3'}, 
+                                {v:'part 4', l:'Part 4'}, 
+                                {v:'part 1/2', l:'Part 1/2'}, 
+                                {v:'part 3/4', l:'Part 3/4'}
+                            ] : [
+                                {v:'all', l:'Hammasi'}, 
+                                {v:'easy', l:'Passage 1'}, 
+                                {v:'medium', l:'Passage 2'}, 
+                                {v:'hard', l:'Passage 3'}
+                            ]).map(diff => (
                                 <button
                                     key={diff.v}
                                     onClick={() => { setFilterDifficulty(diff.v); setCurrentPage(1); }}
@@ -542,10 +611,12 @@ export default function AdminTests() {
                                             ${test.difficulty === 'hard' ? 'text-red-500' :
                                                         test.difficulty === 'easy' ? 'text-green-500' :
                                                             'text-orange-500'}`}>
-                                                    {test.difficulty === 'hard' ? 'Passage 3' : 
-                                                     test.difficulty === 'medium' ? 'Passage 2' : 
-                                                     test.difficulty === 'easy' ? 'Passage 1' : 
-                                                     (test.difficulty || "Passage 2")}
+                                                    {test.type === 'listening' ? 
+                                                        (test.difficulty?.startsWith('part') ? test.difficulty.replace('part', 'Part') : 'Full Test') :
+                                                        (test.difficulty === 'hard' ? 'Passage 3' : 
+                                                         test.difficulty === 'medium' ? 'Passage 2' : 
+                                                         test.difficulty === 'easy' ? 'Passage 1' : 
+                                                         (test.difficulty || "Passage 2"))}
                                                 </span>
                                             </td>
                                             <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>

@@ -95,20 +95,52 @@ const ReadingRightPane = memo(({
                 if (sub.questions) allItems = [...allItems, ...sub.questions];
             });
         }
+        // Also extract IDs from table rows/cells
+        if (group.rows) {
+            group.rows.forEach(row => {
+                const cells = Array.isArray(row) ? row : (row.cells || []);
+                cells.forEach(cell => {
+                    if (cell.id) allItems.push(cell);
+                    if (cell.content) cell.content.forEach(c => { if (c.id) allItems.push(c); });
+                    if (cell.parts) cell.parts.forEach(p => { if (p.id) allItems.push(p); });
+                });
+            });
+        }
         
-        const qIds = allItems.map(it => parseInt(it.id)).filter(id => !isNaN(id)).sort((a, b) => a - b);
-        return qIds && qIds.length > 0 ? `Questions ${qIds[0]}${qIds.length > 1 ? '-' + qIds[qIds.length - 1] : ''}` : "";
+        // Expand range IDs like "1–3" into individual numbers
+        const qIds = [];
+        allItems.forEach(it => {
+            const idStr = String(it.id || "");
+            if (/^\d+\s*[\-–]\s*\d+$/.test(idStr)) {
+                const parts = idStr.split(/[\-–]/);
+                const start = parseInt(parts[0].trim());
+                const end = parseInt(parts[1].trim());
+                if (!isNaN(start) && !isNaN(end)) {
+                    for (let n = Math.min(start, end); n <= Math.max(start, end); n++) qIds.push(n);
+                }
+            } else {
+                const num = parseInt(idStr);
+                if (!isNaN(num)) qIds.push(num);
+            }
+        });
+        qIds.sort((a, b) => a - b);
+        // Deduplicate
+        const uniqueIds = [...new Set(qIds)];
+        return uniqueIds.length > 0 ? `Questions ${uniqueIds[0]}${uniqueIds.length > 1 ? '–' + uniqueIds[uniqueIds.length - 1] : ''}` : "";
     };
 
     const cleanInstructions = (group, isTFNG) => {
         let displayInstruction = group.instruction || "";
-        displayInstruction = displayInstruction.replace(/^(?:<[^>]*>)*Questions \d+(?:-\d+)?\s*/gi, '');
+        // Strip leading "Questions X-Y" (supports hyphens, en-dashes, and "to")
+        displayInstruction = displayInstruction.replace(/^(?:<[^>]*>)*Questions?\s+\d+(?:\s*(?:[\-–]|to)\s*\d+)?\s*/gi, '');
+        // Also strip standalone range fragments like "–33" or "-30" at the start
+        displayInstruction = displayInstruction.replace(/^(?:<[^>]*>)*[\-–]\d+\s*/g, '');
         
         // Bold word limits and important phrases
         displayInstruction = displayInstruction.replace(/(NO MORE THAN [^.]+(?:WORDS?|NUMBERS?|A NUMBER)|ONE WORD ONLY|AND\/OR A NUMBER|TWO WORDS|THREE WORDS)/gi, '<strong>$1</strong>');
 
         if (isTFNG) {
-            displayInstruction = displayInstruction.replace(/In boxes \d+(?:-\d+)? on your answer sheet,? write:?\s*/gi, '');
+            displayInstruction = displayInstruction.replace(/In boxes \d+(?:\s*[\-–]\s*\d+)? on your answer sheet,? write:?\s*/gi, '');
             displayInstruction = displayInstruction.replace(/(TRUE|FALSE|NOT GIVEN|YES|NO)/g, '<br /><strong>$1</strong>');
             displayInstruction = displayInstruction.replace(/(<br\s*\/?>\s*)+<br\s*\/?>/g, '<br />');
         }

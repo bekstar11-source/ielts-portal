@@ -42,6 +42,24 @@ export const calculateBandScore = (score, type, totalQuestions = 40) => {
     return null;
 };
 
+// OVERALL BAND CALCULATOR (Rounds to nearest 0.5)
+export const calculateOverallBand = (...scores) => {
+    const validScores = scores.filter(s => typeof s === 'number' && s > 0);
+    if (validScores.length === 0) return 0;
+
+    const average = validScores.reduce((acc, curr) => acc + curr, 0) / validScores.length;
+    
+    // IELTS Rounding Rules:
+    // .25 rounds to .5
+    // .75 rounds to next whole number
+    const integerPart = Math.floor(average);
+    const fractionalPart = average - integerPart;
+
+    if (fractionalPart < 0.25) return integerPart;
+    if (fractionalPart < 0.75) return integerPart + 0.5;
+    return integerPart + 1;
+};
+
 
 // JAVOBNI TEKSHIRISH FUNKSIYASI
 export const checkAnswer = (correct, user) => {

@@ -53,23 +53,66 @@ function serializeRange(range, container) {
 
 /** Saqlangan ma'lumot bo'yicha DOM ga highlight span qo'shadi */
 function restoreHighlight(serialized, container) {
+    if (!container) return false;
+
+    const findNodeByPath = (path, root) => {
+        let current = root;
+        for (const index of path) {
+            if (current && current.childNodes && current.childNodes[index]) {
+                current = current.childNodes[index];
+            } else {
+                return null;
+            }
+        }
+        return current;
+    };
+
+    // Taqribiy qidiruv (fuzzy search) — agar yo'l orqali topilmasa
+    const findTextNodeByContent = (targetText, root) => {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while (node = walker.nextNode()) {
+            if (node.textContent.includes(targetText)) {
+                return node;
+            }
+        }
+        return null;
+    };
+
     try {
-        const startNode = getNodeByPath(serialized.sPth, container);
-        const endNode = getNodeByPath(serialized.ePth, container);
+        let startNode = findNodeByPath(serialized.sPth, container);
+        let endNode = findNodeByPath(serialized.ePth, container);
+
+        // Agar yo'l noto'g'ri bo'lsa (DOM o'zgargan bo'lsa), matn bo'yicha qidiramiz
+        if (!startNode || startNode.nodeType !== 3 || !startNode.textContent.includes(serialized.txt.substring(0, 3))) {
+            startNode = findTextNodeByContent(serialized.txt, container);
+            endNode = startNode;
+        }
+
         if (!startNode || !endNode) return false;
 
         const range = document.createRange();
-        range.setStart(startNode, serialized.sOff);
-        range.setEnd(endNode, serialized.eOff);
+        // Offsetlarni xavfsiz chegaralash
+        const sOff = Math.max(0, Math.min(serialized.sOff, startNode.length || 0));
+        const eOff = Math.max(0, Math.min(serialized.eOff, endNode.length || 0));
 
-        // Matn mos keladimi tekshiruv
-        if (range.toString().trim() !== serialized.txt.trim()) return false;
+        range.setStart(startNode, sOff);
+        range.setEnd(endNode, eOff);
+
+        // Matn mosligini tekshirish (whitespace ni hisobga olmasdan)
+        const rangeText = range.toString().trim();
+        const originalText = (serialized.txt || "").trim();
+        
+        if (rangeText.length === 0 && originalText.length > 0) return false;
 
         const span = document.createElement("span");
         span.className = "bg-yellow-200 rounded-sm cursor-pointer pointer-events-auto listening-hl";
+        span.dataset.id = serialized.id || Date.now().toString() + Math.random();
+        
         range.surroundContents(span);
         return true;
-    } catch {
+    } catch (err) {
+        console.warn("Highlight restoration failed:", err);
         return false;
     }
 }
@@ -80,9 +123,11 @@ function clearHighlightSpans(container) {
     spans.forEach((span) => {
         const parent = span.parentNode;
         if (!parent) return;
-        parent.replaceChild(document.createTextNode(span.textContent), span);
-        parent.normalize();
+        const text = document.createTextNode(span.textContent);
+        parent.replaceChild(text, span);
     });
+    // Barcha bo'lingan text nodelarni birlashtiramiz (indexlar buzilmasligi uchun)
+    container.normalize();
 }
 
 // ─── HOOK ─────────────────────────────────────────────────────────────────────
@@ -115,28 +160,61 @@ export function useListeningHighlight(testId, activePart, userAnswers, externalI
         const container = containerRef.current;
         if (!container) return;
         const spans = container.querySelectorAll(".listening-hl");
+        
+        // Muhim: Agar DOM da spanlar yo'q bo'lsa, lekin loading paytida bo'lsa - ehtiyot bo'lamiz
+        if (spans.length === 0) {
+            const saved = load();
+            if (saved.length > 0) {
+                // Ehtimol React hali DOM ni yangilamagan yoki vaqtincha highlightlar yo'qolgan
+                // Shuning uchun localStorage ni o'chirib yubormaymiz (agar bu trigger manual removal bo'lmasa)
+                // Lekin handleTextSelection da manual removal bo'lsa resave chaqiriladi, u yerda removal aniq
+                return;
+            }
+        }
+
         const list = [];
         spans.forEach((span) => {
             try {
                 const range = document.createRange();
                 range.selectNodeContents(span);
                 const s = serializeRange(range, container);
-                if (s) list.push(s);
+                if (s) {
+                    s.id = span.dataset.id;
+                    list.push(s);
+                }
             } catch { /* ignore */ }
         });
         save(list);
-    }, [save]);
+    }, [save, load]);
 
     // Highlightlarni DOM ga qayta qo'llash (umumiy util)
     const applyStoredHighlights = useCallback(() => {
         const container = containerRef.current;
         if (!container || isRestoringRef.current) return;
+
         const saved = load();
-        if (saved.length === 0) return;
+        const existingSpans = container.querySelectorAll(".listening-hl");
+
+        // Agar soni bir xil bo'lsa va 0 dan ko'p bo'lsa - hech narsa qilmaymiz (flicking oldini oladi)
+        if (existingSpans.length === saved.length && saved.length > 0) {
+            return;
+        }
+
+        // Agar saqlanganlar yo'q bo'lsa, lekin DOM da bo'lsa - tozalab tashlaymiz
+        if (saved.length === 0) {
+            if (existingSpans.length > 0) {
+                clearHighlightSpans(container);
+            }
+            return;
+        }
+
         isRestoringRef.current = true;
         // Avval mavjud spanlarni tozalash (double-wrap oldini olish)
         clearHighlightSpans(container);
+        
+        // Tiklash
         saved.forEach((s) => restoreHighlight(s, container));
+        
         isRestoringRef.current = false;
     }, [load]);
 
@@ -156,7 +234,7 @@ export function useListeningHighlight(testId, activePart, userAnswers, externalI
         // React DOM ni yangilagandan keyin restore
         const timer = setTimeout(() => {
             applyStoredHighlights();
-        }, 50);
+        }, 0);
         return () => clearTimeout(timer);
     }, [userAnswers, applyStoredHighlights, load]);
 

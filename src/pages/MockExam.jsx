@@ -8,6 +8,7 @@ import ListeningInterface from "../components/ListeningInterface/ListeningInterf
 import WritingInterface from "../components/WritingInterface/WritingInterface";
 import TestHeader from "../components/TestSolving/TestHeader";
 import { Particles } from "../components/ui/particles";
+import { calculateBandScore, checkAnswer, scoreMultiAnswer } from "../utils/ieltsScoring";
 
 export default function MockExam() {
     const navigate = useNavigate();
@@ -25,8 +26,10 @@ export default function MockExam() {
         reading: {},
         writing: {}
     });
+    const [finalResults, setFinalResults] = useState(null);
     const [timeLeft, setTimeLeft] = useState(0);
     const [introWait, setIntroWait] = useState(0);
+    const [isAudioReady, setIsAudioReady] = useState(false);
     const [systemVolume, setSystemVolume] = useState(1);
     const [activePart, setActivePart] = useState(0); // For Listening
     const [audioTime, setAudioTime] = useState(0);
@@ -100,7 +103,8 @@ export default function MockExam() {
 
     // Timer logic for Volume Check Intro
     useEffect(() => {
-        if (stage === 'listening_volume_check' && introWait > 0) {
+        // Countdown only starts if audio is ready
+        if (stage === 'listening_volume_check' && introWait > 0 && isAudioReady) {
             const timer = setInterval(() => {
                 setIntroWait(prev => {
                     if (prev <= 1) {
@@ -113,7 +117,7 @@ export default function MockExam() {
             }, 1000);
             return () => clearInterval(timer);
         }
-    }, [stage, introWait]);
+    }, [stage, introWait, isAudioReady]);
 
     // 3. FULLSCREEN & SECURITY EVENTS
     useEffect(() => {
@@ -212,6 +216,7 @@ export default function MockExam() {
         if (waitTime > 0) {
             setStage('listening_volume_check');
             setIntroWait(waitTime);
+            setIsAudioReady(false); // Reset just in case
         } else {
             setStage('listening');
         }
@@ -261,14 +266,87 @@ export default function MockExam() {
         setStage('saving');
 
         const currentAnswers = answersRef.current;
-        let lScore = 0, rScore = 0;
+        
+        const calculateScoreForSection = (testData, sectionAnswers) => {
+            let correctCount = 0;
+            let totalQ = 0;
+            const scoredIds = new Set();
 
-        tests.listening.questions.forEach(q => {
-            if (String(currentAnswers.listening[q.id] || "").trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) lScore++;
-        });
+            if (!testData?.questions || !Array.isArray(testData.questions)) return { correct: 0, total: 0 };
 
-        tests.reading.questions.forEach(q => {
-            if (String(currentAnswers.reading[q.id] || "").trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) rScore++;
+            const scoreItem = (id, correct, groupType) => {
+                if (id == null) return;
+                const idStr = String(id).trim();
+                const type = String(groupType || "").toLowerCase();
+                const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
+                const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
+
+                const isNumeric = /^\d+$/.test(idStr);
+                if (!isNumeric && !isMultiTwo && !isMultiThree) return;
+
+                if (scoredIds.has(idStr)) return;
+                scoredIds.add(idStr);
+
+                const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
+
+                if (isMultiTwo || isMultiThree) {
+                    const weight = isMultiThree ? 3 : 2;
+                    const result = scoreMultiAnswer(correct, userResp, weight);
+                    totalQ += result.weight;
+                    correctCount += result.matches;
+                } else {
+                    totalQ++;
+                    if (checkAnswer(correct, userResp)) {
+                        correctCount++;
+                    }
+                }
+            };
+
+            testData.questions.forEach(q => {
+                // 1. q.items
+                if (q.items && Array.isArray(q.items)) {
+                    q.items.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
+                }
+                // 2. q.questions
+                if (q.questions && Array.isArray(q.questions)) {
+                    q.questions.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
+                }
+                // 3. q.groups
+                if (q.groups && Array.isArray(q.groups)) {
+                    q.groups.forEach(grp => {
+                        const grpItems = grp.items || grp.questions || [];
+                        grpItems.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
+                    });
+                }
+                // 4. q.rows
+                if (q.rows && Array.isArray(q.rows) && (!q.items || q.items.length === 0)) {
+                    q.rows.forEach(row => {
+                        const cells = Array.isArray(row) ? row : (row.cells || []);
+                        cells.forEach(cell => {
+                            if (cell.id && !cell.isMultiQuestion && !cell.isMixed) scoreItem(cell.id, cell.answer || cell.correct_answer, q.type);
+                            if (cell.isMultiQuestion && cell.content) cell.content.forEach(subQ => scoreItem(subQ.id, subQ.answer || subQ.correct_answer, q.type));
+                            if (cell.isMixed && cell.parts) cell.parts.forEach(part => { if (part.type === 'input') scoreItem(part.id, part.answer || part.correct_answer, q.type); });
+                        });
+                    });
+                }
+                // 5. Flat
+                if (!q.items?.length && !q.questions?.length && !q.groups?.length && !q.rows?.length) {
+                    scoreItem(q.id, q.answer || q.correct_answer, q.type);
+                }
+            });
+
+            return { correct: correctCount, total: totalQ };
+        };
+
+        const lResults = calculateScoreForSection(tests.listening, currentAnswers.listening);
+        const rResults = calculateScoreForSection(tests.reading, currentAnswers.reading);
+
+        const lBand = calculateBandScore(lResults.correct, 'listening', lResults.total);
+        const rBand = calculateBandScore(rResults.correct, 'reading', rResults.total);
+
+        setFinalResults({
+            listening: { ...lResults, band: lBand },
+            reading: { ...rResults, band: rBand }
         });
 
         // Saqlash
@@ -282,9 +360,15 @@ export default function MockExam() {
             date: new Date().toISOString(),
             createdAt: serverTimestamp(),
             scores: {
-                listening: lScore,
-                reading: rScore,
+                listening: lResults.correct,
+                reading: rResults.correct,
+                listeningBand: lBand,
+                readingBand: rBand,
                 writing: null 
+            },
+            totalQuestions: {
+                listening: lResults.total,
+                reading: rResults.total
             },
             details: {
                 listeningAnswers: currentAnswers.listening,
@@ -424,13 +508,75 @@ export default function MockExam() {
     }
 
     if (stage === 'result') {
+        const overallBand = finalResults ? ((finalResults.listening.band + finalResults.reading.band) / 2).toFixed(1) : "0.0";
+
         return (
-            <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
-                <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md w-full">
-                    <div className="text-6xl mb-4">🎉</div>
-                    <h2 className="text-2xl font-bold text-green-700 mb-2">Imtihon Yakunlandi!</h2>
-                    <p className="text-gray-600 mb-6">Natijalaringiz saqlandi. Writing qismi tekshirilgandan so'ng umumiy ball chiqadi.</p>
-                    <button onClick={() => navigate('/')} className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">Bosh sahifa</button>
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
+                <div className="bg-white p-8 md:p-12 rounded-[32px] shadow-2xl text-center max-w-2xl w-full border border-gray-100 animate-in fade-in zoom-in duration-500">
+                    <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+                         <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                         </svg>
+                    </div>
+                    
+                    <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 tracking-tight">Imtihon Yakunlandi!</h2>
+                    <p className="text-gray-500 mb-10 font-medium italic text-lg">Your results have been recorded successfully.</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                        {/* Listening Card */}
+                        <div className="bg-blue-50/50 border border-blue-100 rounded-[24px] p-6 flex flex-col items-center gap-3 transition-transform hover:scale-[1.02]">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 mb-1">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                </svg>
+                            </div>
+                            <span className="text-blue-600 font-black uppercase tracking-widest text-[10px]">Listening</span>
+                            <div className="flex flex-col items-center">
+                                <span className="text-4xl font-black text-blue-900 leading-none mb-1">{finalResults?.listening.band || "0.0"}</span>
+                                <span className="text-xs text-blue-400 font-bold">BAND SCORE</span>
+                            </div>
+                            <div className="mt-2 text-blue-700/70 font-bold bg-blue-100/50 py-1.5 px-4 rounded-full text-sm">
+                                {finalResults?.listening.correct} / {finalResults?.listening.total} correct
+                            </div>
+                        </div>
+
+                        {/* Reading Card */}
+                        <div className="bg-emerald-50/50 border border-emerald-100 rounded-[24px] p-6 flex flex-col items-center gap-3 transition-transform hover:scale-[1.02]">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 mb-1">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+                            <span className="text-emerald-600 font-black uppercase tracking-widest text-[10px]">Reading</span>
+                            <div className="flex flex-col items-center">
+                                <span className="text-4xl font-black text-emerald-900 leading-none mb-1">{finalResults?.reading.band || "0.0"}</span>
+                                <span className="text-xs text-emerald-400 font-bold">BAND SCORE</span>
+                            </div>
+                            <div className="mt-2 text-emerald-700/70 font-bold bg-emerald-100/50 py-1.5 px-4 rounded-full text-sm">
+                                {finalResults?.reading.correct} / {finalResults?.reading.total} correct
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-10 text-left">
+                        <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center shrink-0">
+                                 <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                 </svg>
+                            </div>
+                            <p className="text-gray-600 text-sm leading-relaxed font-medium">
+                                Writing qismi imtihon koordinatorlari tomonidan tekshirilgandan so'ng umumiy ballingiz dashboardda e'lon qilinadi. Listening va Reading natijalari hozirgi ballingizni aks ettiradi.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button 
+                        onClick={() => navigate('/')} 
+                        className="w-full bg-gray-900 text-white px-8 py-5 rounded-[20px] font-black text-lg uppercase tracking-widest hover:bg-black transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95"
+                    >
+                        Back to Dashboard
+                    </button>
                 </div>
             </div>
         );
@@ -463,6 +609,7 @@ export default function MockExam() {
                 setActivePart={setActivePart}
                 setAudioTime={setAudioTime}
                 triggerPlay={stage === 'listening' || stage === 'listening_volume_check'}
+                onAudioReady={() => setIsAudioReady(true)}
                 buttonText={(stage === 'listening' || stage === 'listening_volume_check') ? 'Move to reading' : stage === 'reading' ? 'Move to writing' : 'Finish'}
             />
 

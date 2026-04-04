@@ -91,7 +91,14 @@ export default function ManageTests() {
                         {test.type}
                       </span>
                     </td>
-                    <td className="p-4 capitalize text-gray-600 text-sm">{test.difficulty || "Medium"}</td>
+                    <td className="p-4 capitalize text-gray-600 text-sm">
+                      {test.type === 'listening' ? 
+                        (test.difficulty?.startsWith('part') ? test.difficulty.replace('part', 'Part') : 'Full Test') : 
+                        (test.difficulty === 'hard' ? 'Passage 3' : 
+                         test.difficulty === 'medium' ? 'Passage 2' : 
+                         test.difficulty === 'easy' ? 'Passage 1' : 
+                         (test.difficulty || "Passage 2"))}
+                    </td>
                     <td className="p-4 text-gray-500 text-sm">
                         {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : "-"}
                     </td>

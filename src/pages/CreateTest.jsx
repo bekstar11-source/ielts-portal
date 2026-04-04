@@ -505,13 +505,6 @@ export default function CreateTest() {
                 }
             }
 
-            const processedQuestions = testData.questions?.map(q => {
-                if (q.type === 'table_completion' && Array.isArray(q.rows)) {
-                    return { ...q, rows: q.rows.map(row => Array.isArray(row) ? { cells: row } : row) };
-                }
-                return q;
-            }) || [];
-
             const processTime = (val) => {
                 if (val === undefined || val === null || val === '') return 0;
                 if (typeof val === 'string' && val.includes(':')) {
@@ -528,6 +521,39 @@ export default function CreateTest() {
                 extraSilentTime: p.extraSilentTime ? Number(p.extraSilentTime) : 0
             }));
 
+            // Robust sanitization for Firestore (Recursively handle Nested Arrays, undefined, NaN)
+            const sanitizePayload = (obj) => {
+                if (obj === null || obj === undefined) return null;
+                if (typeof obj === 'number' && isNaN(obj)) return 0;
+                if (typeof obj !== 'object' || obj instanceof Date) return obj;
+
+                if (Array.isArray(obj)) {
+                    return obj.map(item => {
+                        if (Array.isArray(item)) {
+                            // Firestore doesn't support nested arrays. Wrap in an object to break nesting.
+                            return { cells: sanitizePayload(item) };
+                        }
+                        return sanitizePayload(item);
+                    }).filter(v => v !== undefined);
+                }
+
+                const cleaned = {};
+                Object.keys(obj).forEach(key => {
+                    const value = sanitizePayload(obj[key]);
+                    if (value !== undefined) cleaned[key] = value;
+                });
+                return cleaned;
+            };
+
+            const processedQuestions = (testData.questions || []).map(q => {
+                let cleanQ = { ...q };
+                // 1. Table completion specific fix (already present but now part of recursive sanitization)
+                if (cleanQ.type === 'table_completion' && Array.isArray(cleanQ.rows)) {
+                    cleanQ.rows = cleanQ.rows.map(row => Array.isArray(row) ? { cells: row } : row);
+                }
+                return cleanQ;
+            });
+
             let finalQuestions = processedQuestions;
             if (testData.type === 'listening') {
                 processedPassages = processedPassages.slice(0, listeningPartCount);
@@ -535,15 +561,30 @@ export default function CreateTest() {
                 finalQuestions = finalQuestions.filter(q => !q.passageId || validPassageIds.includes(String(q.passageId)));
             }
 
-            const payload = JSON.parse(JSON.stringify({
+            // KeywordTable normalization (ensure it's an array of objects, not array of arrays)
+            let finalKeywordTable = testData.keywordTable || [];
+            if (Array.isArray(finalKeywordTable) && finalKeywordTable.length > 0 && Array.isArray(finalKeywordTable[0])) {
+                // Convert [["pword", "qword"], ...] format to object-based format
+                finalKeywordTable = finalKeywordTable.map((p, i) => ({
+                    id: String(i + 1),
+                    passageWord: p[0] || "",
+                    questionWord: p[1] || "",
+                    passageId: "1" 
+                }));
+            }
+
+            const rawPayload = {
                 ...testData,
                 passages: processedPassages,
                 questions: finalQuestions,
-                keywordTable: testData.keywordTable || [],
-                introDuration: Number(testData.introDuration),
-                isExclusive: isMockMode,
+                keywordTable: finalKeywordTable,
+                introDuration: Number(testData.introDuration) || 0,
+                isExclusive: isMockMode || false,
                 updatedAt: new Date().toISOString()
-            }));
+            };
+
+            // Deep clean the entire object tree to ensure no nested arrays remain
+            const payload = sanitizePayload(JSON.parse(JSON.stringify(rawPayload)));
 
             if (isEditMode) {
                 await updateDoc(doc(db, "tests", id), payload);
@@ -554,7 +595,10 @@ export default function CreateTest() {
                 alert("Test yaratildi!");
             }
             navigate("/admin/tests");
-        } catch (error) { console.error(error); alert("Xato: " + error.message); }
+        } catch (error) { 
+            console.error("Firestore Save Error:", error); 
+            alert("Xato: " + (error.message || "Bilinmagan xato yuz berdi")); 
+        }
         setLoading(false);
     };
 
@@ -596,19 +640,46 @@ export default function CreateTest() {
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-1">Turi</label>
                             <div className="relative">
-                                <select className="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-gray-900 dark:text-gray-100 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.type} onChange={e => setTestData({ ...testData, type: e.target.value })}>
+                                <select className="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-gray-900 dark:text-gray-100 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.type} onChange={e => {
+                                    const newType = e.target.value;
+                                    setTestData(prev => ({ 
+                                        ...prev, 
+                                        type: newType, 
+                                        difficulty: newType === 'listening' ? 'full' : 'medium' 
+                                    }));
+                                }}>
                                     <option value="reading">Reading</option><option value="listening">Listening</option><option value="writing">Writing</option><option value="speaking">Speaking</option>
                                 </select>
                                 <div className="absolute right-4 top-4 text-gray-400 pointer-events-none">▼</div>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-1">Qiyinlik</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-1">
+                                {testData.type === 'listening' ? "Bo'lim / Part" : "Qiyinlik / Matn"}
+                            </label>
                             <div className="relative">
-                                <select className="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-gray-900 dark:text-gray-100 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" value={testData.difficulty} onChange={e => setTestData({ ...testData, difficulty: e.target.value })}>
-                                    <option value="easy">Passage 1</option>
-                                    <option value="medium">Passage 2</option>
-                                    <option value="hard">Passage 3</option>
+                                <select 
+                                    className="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-gray-900 dark:text-gray-100 appearance-none focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition cursor-pointer" 
+                                    value={testData.difficulty} 
+                                    onChange={e => setTestData({ ...testData, difficulty: e.target.value })}
+                                >
+                                    {testData.type === 'listening' ? (
+                                        <>
+                                            <option value="full">Full Test</option>
+                                            <option value="part 1">Part 1</option>
+                                            <option value="part 2">Part 2</option>
+                                            <option value="part 3">Part 3</option>
+                                            <option value="part 4">Part 4</option>
+                                            <option value="part 1/2">Part 1/2</option>
+                                            <option value="part 3/4">Part 3/4</option>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <option value="easy">Passage 1</option>
+                                            <option value="medium">Passage 2</option>
+                                            <option value="hard">Passage 3</option>
+                                        </>
+                                    )}
                                 </select>
                                 <div className="absolute right-4 top-4 text-gray-400 pointer-events-none">▼</div>
                             </div>
@@ -634,6 +705,7 @@ export default function CreateTest() {
                             <div className="bg-white dark:bg-[#1C1C1E] p-4 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-sm">
                                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Listening Parts</span>
                                 <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+                                    <button onClick={() => setListeningPartCount(1)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${listeningPartCount === 1 ? 'bg-white dark:bg-[#2C2C2E] text-[#3772FF] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}>1 Part</button>
                                     <button onClick={() => setListeningPartCount(2)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${listeningPartCount === 2 ? 'bg-white dark:bg-[#2C2C2E] text-[#3772FF] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}>2 Parts</button>
                                     <button onClick={() => setListeningPartCount(4)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${listeningPartCount === 4 ? 'bg-white dark:bg-[#2C2C2E] text-[#3772FF] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}>4 Parts</button>
                                 </div>

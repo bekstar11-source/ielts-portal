@@ -159,13 +159,11 @@ const ListeningRightPane = memo(({
 
     return (
         <div
-            ref={containerRef}
-            className={`p-6 pb-5 bg-white select-text w-full relative`}
+            className={`p-6 pb-5 bg-white select-text w-full relative h-[100%] flex flex-col`}
             style={{
                 fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-xl' ? '20px' : '16px',
                 transition: 'font-size 0.3s ease-in-out'
             }}
-            onMouseUp={handleTextSelection}
         >
             {/* INTRO BLUR */}
             {introTimeLeft > 0 && !isReviewMode && !hideSecondaryIntro && (
@@ -179,45 +177,51 @@ const ListeningRightPane = memo(({
                 </div>
             )}
 
-            {/* HEADER */}
-            {(() => {
-                let partMinId = Infinity;
-                let partMaxId = -Infinity;
-                questionsForPart.forEach(group => {
-                    let items = [];
-                    if (Array.isArray(group.groups)) {
-                        group.groups.forEach(sub => { items = [...items, ...(sub.items || sub.questions || [])]; });
-                    } else {
-                        items = group.questions || group.items || [];
-                    }
-                    items.forEach(it => {
-                        const idNum = parseInt(it.id);
-                        if (!isNaN(idNum)) {
-                            if (idNum < partMinId) partMinId = idNum;
-                            if (idNum > partMaxId) partMaxId = idNum;
+            {/* STABLE HIGHLIGHT CONTENT CONTAINER */}
+            <div 
+                ref={containerRef} 
+                onMouseUp={handleTextSelection}
+                className="overflow-y-auto custom-scrollbar highlight-container-stable h-full flex-1"
+            >
+                {/* HEADER */}
+                {(() => {
+                    let partMinId = Infinity;
+                    let partMaxId = -Infinity;
+                    questionsForPart.forEach(group => {
+                        let items = [];
+                        if (Array.isArray(group.groups)) {
+                            group.groups.forEach(sub => { items = [...items, ...(sub.items || sub.questions || [])]; });
+                        } else {
+                            items = group.questions || group.items || [];
                         }
+                        items.forEach(it => {
+                            const idNum = parseInt(it.id);
+                            if (!isNaN(idNum)) {
+                                if (idNum < partMinId) partMinId = idNum;
+                                if (idNum > partMaxId) partMaxId = idNum;
+                            }
+                        });
                     });
-                });
 
-                const rangeStr = partMinId !== Infinity ? `${partMinId}–${partMaxId}` : "";
-                // partNumber merge vaqtida passage ob'ektiga qo'shilgan.
-                // Agar yo'q bo'lsa (eski testlar), activePart + 1 fallback sifatida ishlatiladi.
-                const partNum = currentPassage?.partNumber ?? (activePart + 1);
+                    const rangeStr = partMinId !== Infinity ? `${partMinId}–${partMaxId}` : "";
+                    // partNumber merge vaqtida passage ob'ektiga qo'shilgan.
+                    // Agar yo'q bo'lsa (eski testlar), activePart + 1 fallback sifatida ishlatiladi.
+                    const partNum = currentPassage?.partNumber ?? (activePart + 1);
 
-                return (
-                    <div className="bg-[#f4f4f2] border border-[#e8e8e6] rounded-sm px-5 py-4 mb-8">
-                        <h2 className="text-[1.125em] font-bold text-black mb-1 leading-none">
-                            Part {partNum}
-                        </h2>
-                        <p className="text-[1.05em] text-black font-normal">
-                            Listen and answer questions {rangeStr}.
-                        </p>
-                    </div>
-                );
-            })()}
+                    return (
+                        <div className="bg-[#f4f4f2] border border-[#e8e8e6] rounded-sm px-5 py-4 mb-8">
+                            <h2 className="text-[1.125em] font-bold text-black mb-1 leading-none">
+                                Part {partNum}
+                            </h2>
+                            <p className="text-[1.05em] text-black font-normal">
+                                Listen and answer questions {rangeStr}.
+                            </p>
+                        </div>
+                    );
+                })()}
 
-            {/* QUESTIONS LOOP */}
-            {questionsForPart.map((group, gIdx) => {
+                {/* QUESTIONS LOOP */}
+                {questionsForPart.map((group, gIdx) => {
                 // Savol raqamlarini aniqlash (Oddiy yoki nested guruhlar uchun)
                 let allSubItems = [];
                 if (Array.isArray(group.groups)) {
@@ -276,6 +280,7 @@ const ListeningRightPane = memo(({
                     </div>
                 );
             })}
+            </div>
         </div>
     );
 }, (prev, next) =>

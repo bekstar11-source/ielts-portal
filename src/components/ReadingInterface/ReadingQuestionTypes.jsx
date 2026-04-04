@@ -63,14 +63,16 @@ export const ReadingTextInput = ({
 
 const expandQuestionIds = (id) => {
     const idStr = String(id);
-    if (idStr.includes('-')) {
-        const parts = idStr.split('-');
+    if (idStr.includes('-') || idStr.includes('–')) {
+        const parts = idStr.split(/[\-–]/);
         if (parts.length === 2) {
             const start = parseInt(parts[0].trim());
             const end = parseInt(parts[1].trim());
             if (!isNaN(start) && !isNaN(end)) {
                 const result = [];
-                for (let i = start; i <= end; i++) result.push(String(i));
+                const min = Math.min(start, end);
+                const max = Math.max(start, end);
+                for (let i = min; i <= max; i++) result.push(String(i));
                 return result;
             }
         }
@@ -88,7 +90,9 @@ const getOptionValue = (text) => {
 
 const checkAnswer = (userVal, correctVal) => {
     if (!userVal || !correctVal) return false;
-    return String(userVal).trim().toLowerCase() === String(correctVal).trim().toLowerCase();
+    const userClean = String(userVal).trim().toLowerCase();
+    const correctOptions = String(correctVal).split('/').map(opt => opt.trim().toLowerCase());
+    return correctOptions.includes(userClean);
 };
 
 export const MatchingOptionsBox = ({ 
@@ -165,7 +169,7 @@ export const ChoiceQuestion = ({
     const isCorrect = checkAnswer(val, q.answer);
 
     return (
-        <div className="flex gap-3 items-start mb-5">
+        <div id={`q-${q.id}`} className="flex gap-3 items-start mb-5">
             <div className="flex flex-col gap-1">
                 {(() => {
                     const ids = expandQuestionIds(q.id);

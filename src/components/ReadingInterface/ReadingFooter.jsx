@@ -16,8 +16,18 @@ export default function ReadingFooter({
         if (!item || item.id == null) return false;
         if (item.answer) return true;
         const idStr = String(item.id).trim();
-        if (idStr.includes('-')) return false; // Don't count ranges as single questions here
+        if (idStr.includes('-') || idStr.includes('–')) return false; // Don't count ranges as single questions here
         return !isNaN(idStr) && idStr !== "";
+    };
+
+    const checkIfAnswered = (q, answers) => {
+        if (q.isMulti && q.parentQuestionId) {
+            const val = answers[q.parentQuestionId];
+            if (!val) return false;
+            const choices = String(val).split(',').filter(Boolean);
+            return choices.length > q.multiIndex;
+        }
+        return answers[q.id] && String(answers[q.id]).trim() !== "";
     };
 
     const extractQuestionsFromGroup = (group) => {
@@ -31,7 +41,6 @@ export default function ReadingFooter({
         if (group.items && Array.isArray(group.items)) {
             rawItems = group.items;
         } else if (group.questions && Array.isArray(group.questions)) {
-            // group.questions ham savol holder bo'lishi mumkin (ba'zi MCQ tiplarida)
             rawItems = group.questions;
         } else if ((group.type === 'table_completion' || group.type === 'table') && group.rows) {
             group.rows.forEach(row => {
@@ -42,7 +51,6 @@ export default function ReadingFooter({
                     cellsToIterate = row.cells;
                 }
                 cellsToIterate.forEach(cell => {
-                    // Faqat oddiy savol bo'lgandagina (multi yoki mixed bo'lmasa) push qilamiz
                     if (cell.id && !cell.isMultiQuestion && !cell.isMixed) rawItems.push(cell);
                     
                     if (cell.isMultiQuestion && cell.content) {
@@ -57,24 +65,21 @@ export default function ReadingFooter({
             });
         }
 
-        // pick_two/pick_three: "25-26" formatdagi id larni individual raqamlarga ajratish
-        // Helper: "25-26" => [25, 26], "25" => [25, 26], "abc" => ["abc"]
         const parseMultiIds = (rawId, count) => {
             const str = String(rawId);
-            // "25-26" format
-            if (str.includes('-')) {
-                const parts = str.split('-').map(Number).filter(n => !isNaN(n));
+            if (str.includes('-') || str.includes('–')) {
+                const parts = str.split(/[\-–]/).map(Number).filter(n => !isNaN(n));
                 if (parts.length >= 2) {
                     const ids = [];
-                    for (let n = parts[0]; n <= parts[parts.length - 1]; n++) ids.push(String(n));
+                    const min = Math.min(parts[0], parts[parts.length - 1]);
+                    const max = Math.max(parts[0], parts[parts.length - 1]);
+                    for (let n = min; n <= max; n++) ids.push(String(n));
                     return ids;
                 }
             }
-            // Oddiy raqam: "25" => [25, 26]
             if (!isNaN(rawId)) {
                 return Array.from({ length: count }, (_, i) => String(Number(rawId) + i));
             }
-            // Boshqa format — qaytaramiz
             return [str];
         };
 
@@ -88,7 +93,8 @@ export default function ReadingFooter({
                         id: splitId,
                         displayId: splitId,
                         multiIndex: i,
-                        isMulti: true
+                        isMulti: true,
+                        parentQuestionId: q.id
                     });
                 });
             });
@@ -117,9 +123,7 @@ export default function ReadingFooter({
                         );
 
                     const qCount = passageQuestions.length;
-                    const answeredCount = passageQuestions.filter(q =>
-                        userAnswers[q.id] && String(userAnswers[q.id]).trim() !== ""
-                    ).length;
+                    const answeredCount = passageQuestions.filter(q => checkIfAnswered(q, userAnswers)).length;
 
                     return (
                         <div 
@@ -134,26 +138,24 @@ export default function ReadingFooter({
                                 }
                             `}
                         >
-                            {/* Part nomi */}
                             <div className="flex items-center shrink-0 mr-2">
                                 <span className={`font-bold text-xs whitespace-nowrap ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                                     Part {passage.partNumber ?? (idx + 1)}
                                 </span>
                             </div>
 
-                            {/* Aktiv: savol tugmachalari | Aktiv emas: "X of Y" label */}
                             {isActive ? (
                                 qCount > 0 && (
                                     <div className="flex gap-1 h-full items-center overflow-x-auto hide-scrollbar w-full">
                                         {passageQuestions.map(q => {
                                             const label = getDisplayLabel(q);
-                                            const isAnswered = userAnswers[q.id] && String(userAnswers[q.id]).trim() !== "";
+                                            const isAnswered = checkIfAnswered(q, userAnswers);
                                             return (
                                                 <button 
                                                     key={q.id} 
                                                     onClick={(e) => { 
                                                         e.stopPropagation(); 
-                                                        scrollToQuestionDiv(q.id); 
+                                                        scrollToQuestionDiv(q.parentQuestionId || q.id); 
                                                     }}
                                                     className={`
                                                         min-w-[22px] w-auto px-1 h-[22px] flex items-center justify-center rounded 
@@ -179,6 +181,7 @@ export default function ReadingFooter({
                     );
                 })}
             </div>
+
 
             {/* O'ng pastki burchakdagi Next/Prev tugmalari */}
             <div className="fixed bottom-[70px] right-6 flex gap-2 z-[2100]">

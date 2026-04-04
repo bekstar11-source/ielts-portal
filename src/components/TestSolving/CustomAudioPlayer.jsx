@@ -195,123 +195,124 @@ export default function CustomAudioPlayer({
         );
     };
 
-    // Hidden audio for non-visible parts
-    if (!isVisible) {
-        return (
-            <audio
-                ref={audioRef}
-                id={`audio-part-${index}`}
-                src={src}
-                preload="auto"
-                style={{ display: 'none' }}
-            />
-        );
-    }
+    // Add cleanup to pause audio on unmount
+    useEffect(() => {
+        const audio = audioRef.current;
+        return () => {
+            if (audio) {
+                audio.pause();
+                audio.src = ""; // Force release resources
+            }
+        };
+    }, []);
+
+    // Memoize the audio element to keep it stable
+    const audioElement = (
+        <audio
+            ref={audioRef}
+            id={`audio-part-${index}`}
+            src={src}
+            preload="auto"
+            style={{ display: 'none' }}
+        />
+    );
 
     return (
-        <>
-            {/* Real audio element (hidden) */}
-            <audio
-                ref={audioRef}
-                id={`audio-part-${index}`}
-                src={src}
-                preload="auto"
-                style={{ display: 'none' }}
-            />
-
-            {/* Player UI */}
-            <div className={containerClass}>
-
-                {/* Play / Pause */}
-                <button
-                    onClick={togglePlay}
-                    disabled={isExam}
-                    className={btnClass}
-                    title={isPlaying ? "Pause" : "Play"}
-                >
-                    {isPlaying ? (
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <rect x="6" y="4" width="4" height="16" rx="1" />
-                            <rect x="14" y="4" width="4" height="16" rx="1" />
-                        </svg>
-                    ) : (
-                        <svg className="w-4 h-4 translate-x-px" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                        </svg>
-                    )}
-                </button>
-
-                {/* Progress Bar & Time */}
-                <div className="flex-1 flex items-center gap-2">
-                    <span className={timeClass}>
-                        {fmtTime(currentTime)}
-                    </span>
-                    <div
-                        ref={progressRef}
-                        className={railClass}
-                        onPointerDown={handlePointerDown}
-                        onPointerMove={handlePointerMove}
-                        onPointerUp={handlePointerUp}
-                        onPointerLeave={handlePointerUp}
-                        onPointerCancel={handlePointerUp}
+        <div className={isVisible ? "" : "hidden"} style={{ display: isVisible ? 'block' : 'none' }}>
+            {audioElement}
+            {isVisible && (
+                <div className={containerClass}>
+                    {/* Play / Pause */}
+                    <button
+                        onClick={togglePlay}
+                        disabled={isExam}
+                        className={btnClass}
+                        title={isPlaying ? "Pause" : "Play"}
                     >
-                        {/* Progress Fill */}
+                        {isPlaying ? (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <rect x="6" y="4" width="4" height="16" rx="1" />
+                                <rect x="14" y="4" width="4" height="16" rx="1" />
+                            </svg>
+                        ) : (
+                            <svg className="w-4 h-4 translate-x-px" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                            </svg>
+                        )}
+                    </button>
+
+                    {/* Progress Bar & Time */}
+                    <div className="flex-1 flex items-center gap-2">
+                        <span className={timeClass}>
+                            {fmtTime(currentTime)}
+                        </span>
                         <div
-                            className={fillClass}
-                            style={{ width: `${progress}%` }}
-                        />
-                        {/* Thumb */}
-                        <div
-                            className={thumbClass}
-                            style={{ left: `calc(${progress}% - 4px)` }}
+                            ref={progressRef}
+                            className={railClass}
+                            onPointerDown={handlePointerDown}
+                            onPointerMove={handlePointerMove}
+                            onPointerUp={handlePointerUp}
+                            onPointerLeave={handlePointerUp}
+                            onPointerCancel={handlePointerUp}
+                        >
+                            {/* Progress Fill */}
+                            <div
+                                className={fillClass}
+                                style={{ width: `${progress}%` }}
+                            />
+                            {/* Thumb */}
+                            <div
+                                className={thumbClass}
+                                style={{ left: `calc(${progress}% - 4px)` }}
+                            />
+                        </div>
+                        <span className={timeClass}>
+                            {fmtTime(duration)}
+                        </span>
+                    </div>
+
+                    {/* Speed Toggle */}
+                    <button
+                        onClick={handleSpeedToggle}
+                        disabled={isExam}
+                        title="Playback Speed"
+                        className={`shrink-0 min-w-[32px] h-6 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all ${
+                            isExam ? 'opacity-20 cursor-not-allowed' : 'hover:scale-105 active:scale-95 cursor-pointer'
+                        } ${
+                            isDark 
+                            ? 'border-white/10 text-gray-400 bg-white/5 hover:bg-white/10 hover:text-white' 
+                            : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-blue-600'
+                        }`}
+                    >
+                        {playbackRate}x
+                    </button>
+
+                    {/* Volume Inline */}
+                    <div className="flex items-center gap-2 shrink-0 group">
+                        <button
+                            className="transition-colors"
+                            title="Mute/Unmute"
+                            onClick={() => {
+                                if (audioRef.current) audioRef.current.muted = !audioRef.current.muted;
+                            }}
+                        >
+                            <VolumeIcon />
+                        </button>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.02"
+                            value={volume}
+                            onChange={handleVolumeChange}
+                            title="Volume"
+                            className={`w-12 sm:w-16 h-1 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all opacity-40 group-hover:opacity-100 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}
+                            style={{ outline: "none" }}
                         />
                     </div>
-                    <span className={timeClass}>
-                        {fmtTime(duration)}
-                    </span>
                 </div>
-
-                {/* Speed Toggle */}
-                <button
-                    onClick={handleSpeedToggle}
-                    disabled={isExam}
-                    title="Playback Speed"
-                    className={`shrink-0 min-w-[32px] h-6 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all ${
-                        isExam ? 'opacity-20 cursor-not-allowed' : 'hover:scale-105 active:scale-95 cursor-pointer'
-                    } ${
-                        isDark 
-                        ? 'border-white/10 text-gray-400 bg-white/5 hover:bg-white/10 hover:text-white' 
-                        : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-blue-600'
-                    }`}
-                >
-                    {playbackRate}x
-                </button>
-
-                {/* Volume Inline */}
-                <div className="flex items-center gap-2 shrink-0 group">
-                    <button
-                        className="transition-colors"
-                        title="Mute/Unmute"
-                        onClick={() => {
-                            if (audioRef.current) audioRef.current.muted = !audioRef.current.muted;
-                        }}
-                    >
-                        <VolumeIcon />
-                    </button>
-                    <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.02"
-                        value={volume}
-                        onChange={handleVolumeChange}
-                        title="Volume"
-                        className={`w-12 sm:w-16 h-1 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all opacity-40 group-hover:opacity-100 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}
-                        style={{ outline: "none" }}
-                    />
-                </div>
-            </div>
-        </>
+            )}
+        </div>
     );
 }
 

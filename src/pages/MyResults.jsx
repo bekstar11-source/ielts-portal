@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { IoChevronBack, IoDocumentTextOutline, IoHeadsetOutline, IoMicOutline, IoCreateOutline, IoTimeOutline, IoArrowForward, IoChevronForward } from "react-icons/io5";
 import { getSynonymPairCounts } from "../utils/wordbankUtils";
-import { calculateBandScore } from "../utils/ieltsScoring";
+import { calculateBandScore, calculateOverallBand } from "../utils/ieltsScoring";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 
 const getTestTheme = (type) => {
@@ -253,6 +253,80 @@ export default function MyResults() {
             <div className="mt-8 w-24 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent mx-auto opacity-30"></div>
         </div>
 
+        {/* LATEST MOCK SUMMARY HEADER */}
+        {results.filter(r => r.type === 'mock_full').length > 0 && (
+          <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[32px] p-8 md:p-10 shadow-2xl overflow-hidden relative group">
+              {/* Decorative Background Elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] -mr-32 -mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -ml-32 -mb-32"></div>
+              
+              <div className="relative z-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+                      Full Mock Result Summary
+                      <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-[10px] uppercase tracking-widest font-black border border-blue-500/30">Latest</span>
+                    </h2>
+                    <p className="text-[#a0b0cb] text-sm font-medium">Sizning oxirgi topshirgan to'liq mock imtihoningiz natijalari.</p>
+                  </div>
+                  {results.find(r => r.type === 'mock_full')?.scores?.writing && (
+                     <div className="flex flex-col items-center md:items-end">
+                        <span className="text-xs text-gray-500 uppercase tracking-[2px] font-bold mb-1">Overall Band</span>
+                        <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 leading-none">
+                          {calculateOverallBand(
+                            results.find(r => r.type === 'mock_full').scores.listeningBand,
+                            results.find(r => r.type === 'mock_full').scores.readingBand,
+                            results.find(r => r.type === 'mock_full').scores.writing
+                          ).toFixed(1)}
+                        </div>
+                     </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Listening */}
+                  <div className="bg-[#0a1930]/60 border border-white/5 rounded-2xl p-5 flex flex-col items-center">
+                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3">Listening</span>
+                    <span className="text-3xl font-black text-white mb-1">
+                      {results.find(r => r.type === 'mock_full').scores.listeningBand?.toFixed(1) || "0.0"}
+                    </span>
+                    <span className="text-[10px] text-gray-500 font-bold italic">
+                      {results.find(r => r.type === 'mock_full').scores.listening} correct
+                    </span>
+                  </div>
+                  
+                  {/* Reading */}
+                  <div className="bg-[#101b2a]/60 border border-white/5 rounded-2xl p-5 flex flex-col items-center">
+                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3">Reading</span>
+                    <span className="text-3xl font-black text-white mb-1">
+                      {results.find(r => r.type === 'mock_full').scores.readingBand?.toFixed(1) || "0.0"}
+                    </span>
+                    <span className="text-[10px] text-gray-500 font-bold italic">
+                      {results.find(r => r.type === 'mock_full').scores.reading} correct
+                    </span>
+                  </div>
+
+                  {/* Writing */}
+                  <div className="bg-[#1a1420]/60 border border-white/5 rounded-2xl p-5 flex flex-col items-center">
+                    <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-3">Writing</span>
+                    {results.find(r => r.type === 'mock_full').scores.writing ? (
+                      <span className="text-3xl font-black text-white">
+                        {results.find(r => r.type === 'mock_full').scores.writing.toFixed(1)}
+                      </span>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <span className="text-xs font-bold text-gray-400 animate-pulse bg-gray-800/50 px-3 py-1 rounded-full uppercase tracking-tighter">Kutilmoqda</span>
+                        <span className="text-[9px] text-gray-500 mt-2 text-center leading-tight">Admin tekshiruvi kutilmoqda</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {results.length === 0 && !loading ? (
           <div className="flex flex-col items-center justify-center py-24 bg-white/5 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-[0_0_50px_rgba(0,100,255,0.05)] text-center px-4">
             <IoDocumentTextOutline className="w-16 h-16 text-blue-400/50 mb-4" />
@@ -268,7 +342,7 @@ export default function MyResults() {
                 const bandScore = (res.type === 'reading' || res.type === 'listening')
                   ? (res.bandScore || calculateBandScore(res.score, res.type, res.totalQuestions))
                   : res.score;
-                const isGraded = res.status === 'graded' || res.score !== null;
+                const isGraded = res.status === 'graded' || (res.score !== null && res.type !== 'mock_full');
 
                 return (
                   <div
@@ -280,10 +354,16 @@ export default function MyResults() {
                         <div className={`w-12 h-12 rounded-2xl bg-[#0a1930] flex items-center justify-center border border-white/5 shadow-inner`}>
                           {theme.icon}
                         </div>
-                        {isGraded ? (
+                        {isGraded || res.type === 'mock_full' ? (
                           <div className="bg-[#0a1930]/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
                             <span className={`block text-xl font-bold leading-none ${theme.text}`}>
-                              {bandScore || "N/A"}
+                              {res.type === 'mock_full' 
+                                ? (res.scores?.writing 
+                                    ? calculateOverallBand(res.scores.listeningBand, res.scores.readingBand, res.scores.writing).toFixed(1)
+                                    : "..."
+                                  )
+                                : (bandScore || "N/A")
+                              }
                             </span>
                           </div>
                         ) : (
@@ -294,45 +374,54 @@ export default function MyResults() {
                       <h3 className="text-lg font-bold text-white mb-1 line-clamp-1 group-hover:text-blue-400 transition-colors">
                         {res.testTitle}
                       </h3>
-                      <div className="flex items-center text-[#a0b0cb] text-xs font-medium gap-3 mb-4">
-                        <div className="flex items-center gap-1.5">
-                          <IoTimeOutline className="w-4 h-4 opacity-70" />
-                          {formatDate(res.date)}
+                      
+                      {res.type === 'mock_full' ? (
+                        <div className="flex flex-col gap-2 mt-4 mb-6">
+                           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-white/5 pb-2">
+                             <span>Listening</span>
+                             <span className="text-blue-400">{res.scores?.listeningBand?.toFixed(1) || "0.0"}</span>
+                           </div>
+                           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-white/5 pb-2">
+                             <span>Reading</span>
+                             <span className="text-emerald-400">{res.scores?.readingBand?.toFixed(1) || "0.0"}</span>
+                           </div>
+                           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-white/5 pb-2">
+                             <span>Writing</span>
+                             <span className={res.scores?.writing ? "text-orange-400" : "text-gray-600 italic"}>
+                               {res.scores?.writing ? res.scores.writing.toFixed(1) : "Kutilmoqda..."}
+                             </span>
+                           </div>
                         </div>
-                        {res.timeSpent !== undefined && res.timeSpent !== null && typeof res.timeSpent === 'number' && (
-                          <>
-                            <div className="w-1 h-1 rounded-full bg-[#a0b0cb]/40"></div>
-                            <div className="flex items-center gap-1" title="Sarflangan vaqt">
-                              {Math.floor(res.timeSpent / 60) > 0 ? `${Math.floor(res.timeSpent / 60)} daq ` : ''}
-                              {Math.floor(res.timeSpent % 60)} son
-                            </div>
-                          </>
-                        )}
-                        {/* Sinonim badge - faqat reading uchun */}
-                        {res.type === 'reading' && res.testId && synonymCounts[res.testId] > 0 && (
-                          <>
-                            <div className="w-1 h-1 rounded-full bg-[#a0b0cb]/40"></div>
-                            <div
-                              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300 font-semibold"
-                              title="Topilgan sinonim / antonim juftlari"
-                            >
-                              <span className="text-[10px]">📖</span>
-                              <span>{synonymCounts[res.testId]} sinonim</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      ) : (
+                        <div className="flex items-center text-[#a0b0cb] text-xs font-medium gap-3 mb-4">
+                          <div className="flex items-center gap-1.5 text-[10px]">
+                            <IoTimeOutline className="w-3.5 h-3.5 opacity-70" />
+                            {res.createdAt?.seconds ? new Date(res.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                          </div>
+                          <div className="w-1 h-1 rounded-full bg-white/20"></div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider ${theme.bg} ${theme.text}`}>
+                              {res.type}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-4 border-t border-white/10 flex items-center justify-between mt-auto">
                       <div>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">To'g'ri javoblar</p>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                          {res.type === 'mock_full' ? "Status" : "To'g'ri javoblar"}
+                        </p>
                         <p className="text-sm font-bold text-white">
-                          {res.score !== null ? res.score : "?"} <span className="text-[#a0b0cb] font-normal">/ {res.totalQuestions || "?"}</span>
+                          {res.type === 'mock_full' 
+                            ? (res.scores?.writing ? "Graded" : "Pending Writing")
+                            : (res.score !== null ? `${res.score} / ${res.totalQuestions || "?"}` : "?")
+                          }
                         </p>
                       </div>
 
-                      {((res.type === 'reading' || res.type === 'listening') || (isGraded)) && (
+                      {res.type !== 'mock_full' && (
                         <button
                           onClick={() => navigate(`/review/${res.id}`)}
                           className="w-10 h-10 rounded-full bg-[#0a1930] hover:bg-blue-500 text-blue-400 hover:text-white flex items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.2)] border border-blue-500/20 group-hover:border-blue-500/50"
