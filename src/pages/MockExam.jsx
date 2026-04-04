@@ -266,83 +266,75 @@ export default function MockExam() {
         setStage('saving');
 
         const currentAnswers = answersRef.current;
-        
         const calculateScoreForSection = (testData, sectionAnswers) => {
+            if (!testData?.questions || !Array.isArray(testData.questions)) return { correct: 0, total: 0 };
+            
             let correctCount = 0;
             let totalQ = 0;
             const scoredIds = new Set();
 
-            if (!testData?.questions || !Array.isArray(testData.questions)) return { correct: 0, total: 0 };
-
-            const scoreItem = (id, correct, groupType) => {
-                if (id == null) return;
+            const scoreItem = (id, answer, type) => {
+                if (!id) return;
                 const idStr = String(id).trim();
-                const type = String(groupType || "").toLowerCase();
-                const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
-                const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
-
-                // Allow alphanumeric IDs, but skip empty or null
-                if (!idStr) return;
-
+                
+                // Skip if already scored or looks like a placeholder/range without items
                 if (scoredIds.has(idStr)) return;
-                scoredIds.add(idStr);
 
-                const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
-
-                if (isMultiTwo || isMultiThree) {
-                    const weight = isMultiThree ? 3 : 2;
-                    const result = scoreMultiAnswer(correct, userResp, weight);
+                // Handle multi-answer questions (Pick TWO etc)
+                if (isMultiAnswer(type)) {
+                    const weight = getWeight(id);
+                    const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
+                    const result = scoreMultiAnswer(answer, userResp, weight);
+                    correctCount += result.correct;
                     totalQ += result.weight;
-                    correctCount += result.matches;
+                    scoredIds.add(idStr);
                 } else {
-                    totalQ++;
-                    if (checkAnswer(correct, userResp)) {
-                        correctCount++;
+                    // Regular question
+                    const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
+                    const userClean = String(userResp).trim().toLowerCase();
+                    const correctClean = String(answer || "").trim().toLowerCase();
+                    
+                    if (correctClean) { // Only count as question if there is a correct answer defined
+                        const isCorrect = userClean === correctClean;
+                        if (isCorrect) correctCount++;
+                        totalQ++;
+                        scoredIds.add(idStr);
                     }
                 }
             };
 
-            testData.questions.forEach(q => {
-                // 1. q.items
-                if (q.items && Array.isArray(q.items)) {
-                    q.items.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
+            const walk = (obj, parentType) => {
+                if (!obj || typeof obj !== 'object') return;
+                
+                const currentType = obj.type || parentType;
+
+                // If it's a leaf question
+                if (obj.id && (obj.answer || obj.correct_answer)) {
+                    scoreItem(obj.id, obj.answer || obj.correct_answer, currentType);
                 }
-                // 2. q.questions
-                if (q.questions && Array.isArray(q.questions)) {
-                    q.questions.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
-                }
-                // 3. q.groups
-                if (q.groups && Array.isArray(q.groups)) {
-                    q.groups.forEach(grp => {
-                        const grpItems = grp.items || grp.questions || [];
-                        grpItems.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
-                    });
-                }
-                // 4. q.rows
-                if (q.rows && Array.isArray(q.rows) && (!q.items || q.items.length === 0)) {
-                    q.rows.forEach(row => {
-                        const cells = Array.isArray(row) ? row : (row.cells || []);
-                        cells.forEach(cell => {
-                            if (cell.id && !cell.isMultiQuestion && !cell.isMixed) scoreItem(cell.id, cell.answer || cell.correct_answer, q.type);
-                            if (cell.isMultiQuestion && cell.content) cell.content.forEach(subQ => scoreItem(subQ.id, subQ.answer || subQ.correct_answer, q.type));
-                            if (cell.isMixed && cell.parts) cell.parts.forEach(part => { if (part.type === 'input') scoreItem(part.id, part.answer || part.correct_answer, q.type); });
-                        });
-                    });
-                }
-                // 5. Flat
-                if (!q.items?.length && !q.questions?.length && !q.groups?.length && !q.rows?.length) {
-                    scoreItem(q.id, q.answer || q.correct_answer, q.type);
-                }
-            });
+
+                // Recurse into all possible containers
+                const containers = ['items', 'questions', 'groups', 'rows', 'cells', 'parts'];
+                containers.forEach(key => {
+                    if (Array.isArray(obj[key])) {
+                        obj[key].forEach(child => walk(child, currentType));
+                    } else if (obj[key] && typeof obj[key] === 'object') {
+                        walk(obj[key], currentType);
+                    }
+                });
+            };
+
+            // Start walking through all root level question groups
+            testData.questions.forEach(q => walk(q, q.type));
 
             return { correct: correctCount, total: totalQ };
         };
 
-        const lResults = calculateScoreForSection(tests.listening, currentAnswers.listening);
-        const rResults = calculateScoreForSection(tests.reading, currentAnswers.reading);
+        const lResults = calculateScoreForSection(tests.listening, currentAnswers.listening || {});
+        const rResults = calculateScoreForSection(tests.reading, currentAnswers.reading || {});
 
-        const lBand = calculateBandScore(lResults.correct, 'listening', lResults.total);
-        const rBand = calculateBandScore(rResults.correct, 'reading', rResults.total);
+        const lBand = calculateBandScore(lResults.correct, 'listening', lResults.total || 40);
+        const rBand = calculateBandScore(rResults.correct, 'reading', rResults.total || 40);
 
         setFinalResults({
             listening: { ...lResults, band: lBand },

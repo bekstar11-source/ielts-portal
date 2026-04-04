@@ -17,6 +17,92 @@ const MOCK_KEYWORD_TABLE = [];
 //   { id: 2, locationId: "loc_3", passageWord: "climate", questionWord: "weather" },
 // ];
 
+/**
+ * PREMIUM IELTS RESULT REPORT PANEL
+ */
+const MockResultSummary = ({ resultData }) => {
+    const { scores } = resultData;
+    if (!scores) return null;
+
+    const sections = [
+        { id: 'listening', name: 'Listening', score: scores.listeningBand, color: 'blue' },
+        { id: 'reading', name: 'Reading', score: scores.readingBand, color: 'emerald' },
+        { id: 'writing', name: 'Writing', score: scores.writing, color: 'purple' },
+        { id: 'speaking', name: 'Speaking', score: scores.speaking || null, color: 'indigo' },
+    ];
+
+    const overallBand = scores.overallBand || "?";
+
+    return (
+        <div className="w-full bg-slate-950 text-white p-6 md:p-10 border-b border-white/5 relative overflow-hidden shrink-0">
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-500/10 rounded-full blur-[100px]"></div>
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px]"></div>
+
+            <div className="max-w-6xl mx-auto relative z-10">
+                <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+                    
+                    {/* OVERALL SCORE BIG DISPLAY */}
+                    <div className="flex flex-col items-center shrink-0">
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-[40px] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+                            <div className="w-32 h-32 md:w-44 md:h-44 bg-slate-900 border border-white/10 rounded-[40px] flex flex-col items-center justify-center relative shadow-2xl">
+                                <span className="text-xs font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Overall</span>
+                                <span className="text-5xl md:text-7xl font-black text-white leading-none tracking-tight">
+                                    {overallBand}
+                                </span>
+                                <span className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Band Score</span>
+                                
+                                {/* Corner Accents */}
+                                <div className="absolute top-4 left-4 w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                <div className="absolute bottom-4 right-4 w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* SECTIONS BREAKDOWN */}
+                    <div className="flex-1 w-full flex flex-col gap-6">
+                        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4 border-b border-white/10 pb-4">
+                            <div>
+                                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Standard IELTS Mock Result</h2>
+                                <p className="text-gray-400 font-medium text-sm md:text-base">Comprehensive performance analysis for Academic modules.</p>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full">
+                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                <span className="text-[10px] font-black uppercase tracking-tighter text-gray-300">Grade Verified</span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            {sections.map((section) => (
+                                <div key={section.id} className="bg-white/5 border border-white/5 p-5 rounded-3xl group hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className={`text-[10px] font-black uppercase tracking-widest text-${section.color}-400`}>{section.name}</span>
+                                        <div className={`w-1.5 h-1.5 rounded-full bg-${section.color}-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]`}></div>
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-3xl md:text-4xl font-black text-white">
+                                            {section.score ? Number(section.score).toFixed(1) : "—"}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-gray-500 tracking-tighter uppercase">Band</span>
+                                    </div>
+                                    {/* Small Progress Line */}
+                                    <div className="mt-4 w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full bg-${section.color}-500 rounded-full transition-all duration-1000 ease-out`}
+                                            style={{ width: section.score ? `${(section.score / 9) * 100}%` : '0%' }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function TestReview() {
     const { id } = useParams(); // Result ID
     const navigate = useNavigate();
@@ -148,9 +234,22 @@ export default function TestReview() {
 
                 setCurrentAnswers(partAnswers);
 
-                // Agar oldin baholangan bo'lsa (Writing/Speaking)
-                if (rData.score !== null && rData.score !== undefined) setAdminScore(rData.score);
-                if (rData.feedback) setAdminFeedback(rData.feedback);
+                // 3. Baholangan ballarni yuklash (Mock vs Normal)
+                let existingScore = rData.score;
+                let existingFeedback = rData.feedback;
+
+                if (rData.type === 'mock_full' && rData.scores) {
+                    if (activeMockPart === 'writing') {
+                        existingScore = rData.scores.writing;
+                        existingFeedback = rData.scores.writingFeedback;
+                    } else if (activeMockPart === 'speaking') {
+                        existingScore = rData.scores.speaking;
+                        existingFeedback = rData.scores.speakingFeedback;
+                    }
+                }
+
+                setAdminScore(existingScore !== null && existingScore !== undefined ? existingScore : "");
+                setAdminFeedback(existingFeedback || "");
 
                 // 3. Testni yuklash
                 if (testIdToLoad) {
@@ -223,23 +322,55 @@ export default function TestReview() {
         setIsSaving(true);
         try {
             const resultRef = doc(db, "results", id);
+            const scoreVal = Number(adminScore);
 
-            await updateDoc(resultRef, {
-                score: Number(adminScore),
-                bandScore: Number(adminScore), // Hozircha score = band deb turamiz
-                feedback: adminFeedback,
-                status: 'graded' // Statusni 'graded' ga o'zgartiramiz
-            });
-
-            alert("Baho saqlandi! ✅");
-
-            // Lokal stateni yangilash (UI darhol o'zgarishi uchun)
-            setResultData(prev => ({
-                ...prev,
-                score: adminScore,
-                bandScore: adminScore,
+            const updatePayload = {
+                score: scoreVal,
+                bandScore: scoreVal,
                 feedback: adminFeedback,
                 status: 'graded'
+            };
+
+            // Agar bu Mock Full bo'lsa, qolgan bandlar bilan overall ni hisoblaymiz
+            if (resultData.type === 'mock_full') {
+                const newScores = { ...resultData.scores };
+                
+                // Qaysi qism baholanyotganini aniqlash
+                if (activeMockPart === 'writing') {
+                    newScores.writing = scoreVal;
+                    newScores.writingFeedback = adminFeedback;
+                }
+                if (activeMockPart === 'speaking') {
+                    newScores.speaking = scoreVal;
+                    newScores.speakingFeedback = adminFeedback;
+                }
+
+                // Overall Band Hisoblash (Average of all available sections)
+                const sections = [];
+                if (newScores.listeningBand) sections.push(Number(newScores.listeningBand));
+                if (newScores.readingBand) sections.push(Number(newScores.readingBand));
+                if (newScores.writing) sections.push(Number(newScores.writing));
+                if (newScores.speaking) sections.push(Number(newScores.speaking));
+
+                if (sections.length > 0) {
+                    const average = sections.reduce((a, b) => a + b, 0) / sections.length;
+                    newScores.overallBand = Math.round(average * 2) / 2;
+                }
+
+                updatePayload.scores = newScores;
+                updatePayload.overallBand = newScores.overallBand;
+                
+                // Mock Full uchun asosiy feedbackni ham yangilab qo'yamiz (oxirgi feedback sifatida)
+                updatePayload.feedback = adminFeedback;
+            }
+
+            await updateDoc(resultRef, updatePayload);
+            alert("Baho saqlandi! ✅");
+
+            // Lokal stateni yangilash
+            setResultData(prev => ({
+                ...prev,
+                ...updatePayload
             }));
 
         } catch (err) {
@@ -325,6 +456,35 @@ export default function TestReview() {
                     )}
                 </div>
 
+                {/* 3. MOCK SCORES DISPLAY (Admin uchun) */}
+                {resultData.type === 'mock_full' && (
+                    <div className="flex items-center gap-4 border-l border-gray-700 ml-4 pl-4 h-10 my-auto hidden md:flex">
+                        <div className="flex flex-col shrink-0 min-w-[70px]">
+                            <span className="text-[9px] text-gray-500 uppercase font-black leading-none mb-1">Listening</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-base font-black text-blue-400 leading-none">
+                                    {Number(resultData.scores?.listeningBand || 0).toFixed(1)}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-bold bg-slate-800/50 px-1.5 py-0.5 rounded leading-none">
+                                    {resultData.scores?.listening || 0}/{resultData.totalQuestions?.listening || 40}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col shrink-0 border-l border-slate-800 pl-4 min-w-[70px]">
+                            <span className="text-[9px] text-gray-500 uppercase font-black leading-none mb-1">Reading</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-base font-black text-emerald-400 leading-none">
+                                    {Number(resultData.scores?.readingBand || 0).toFixed(1)}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-bold bg-slate-800/50 px-1.5 py-0.5 rounded leading-none">
+                                    {resultData.scores?.reading || 0}/{resultData.totalQuestions?.reading || 40}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="pr-4 flex items-center gap-4 shrink-0">
                     {userData?.role === 'admin' && (
                         <div className="text-right hidden sm:block">
@@ -334,15 +494,21 @@ export default function TestReview() {
                     )}
                     <div className={`px-3 py-1 rounded border text-center ${resultData.status === 'graded' ? 'bg-green-900 border-green-500 text-green-400' : 'bg-yellow-900 border-yellow-500 text-yellow-400'}`}>
                         <span className="text-[10px] block uppercase opacity-70">Status</span>
-                        <span className="font-bold">{resultData.status === 'graded' ? `Band ${resultData.score}` : "Kutilmoqda"}</span>
+                        <span className="font-bold">{resultData.status === 'graded' ? (resultData.overallBand ? `Band ${resultData.overallBand}` : `Band ${resultData.score}`) : "Kutilmoqda"}</span>
                     </div>
                 </div>
             </header>
 
             {/* --- ASOSIY CONTENT --- */}
-            <div className="flex flex-1 overflow-hidden relative">
+            <div className="flex flex-1 flex-col overflow-hidden relative">
+                
+                {/* 🔥 MOCK FULL REPORT PANEL (Student/Admin uchun natija tayyor bo'lganda) */}
+                {resultData.type === 'mock_full' && resultData.status === 'graded' && (
+                    <MockResultSummary resultData={resultData} />
+                )}
 
-                {/* 1. READING / LISTENING (Avtomatik Tekshirilgan) */}
+                <div className="flex flex-1 overflow-hidden relative">
+                    {/* 1. READING / LISTENING (Avtomatik Tekshirilgan) */}
                 {testData.type === 'reading' ? (
                     <ReadingInterface
                         testData={testData}
@@ -490,16 +656,20 @@ export default function TestReview() {
                                     </div>
                                 </div>
                             </div>
-                        ) : resultData.status === 'graded' && resultData.feedback ? (
+                        ) : resultData.status === 'graded' && (resultData.feedback || (resultData.type === 'mock_full' && resultData.scores?.writingFeedback)) ? (
                             <div className="bg-white border-t-4 border-t-green-500 p-4 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] z-20">
                                 <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 items-center">
                                     <div className="flex-1 w-full">
                                         <label className="block text-xs font-bold text-green-600 uppercase mb-1">📝 O'qituvchi Izohi</label>
-                                        <p className="text-sm text-gray-700 bg-green-50 p-3 rounded border border-green-200">{resultData.feedback}</p>
+                                        <p className="text-sm text-gray-700 bg-green-50 p-3 rounded border border-green-200">
+                                            {resultData.type === 'mock_full' ? resultData.scores?.writingFeedback : resultData.feedback}
+                                        </p>
                                     </div>
                                     <div className="text-center min-w-[100px]">
                                         <span className="block text-xs font-bold text-green-600 uppercase mb-1">Band Score</span>
-                                        <span className="text-3xl font-bold text-green-700">{resultData.score}</span>
+                                        <span className="text-3xl font-bold text-green-700">
+                                            {resultData.type === 'mock_full' ? resultData.scores?.writing : resultData.score}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -571,16 +741,20 @@ export default function TestReview() {
                                     </button>
                                 </div>
                             </div>
-                        ) : resultData.status === 'graded' && resultData.feedback ? (
+                        ) : resultData.status === 'graded' && (resultData.feedback || (resultData.type === 'mock_full' && resultData.scores?.speakingFeedback)) ? (
                             <div className="bg-white border-t-4 border-t-green-500 p-4 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] z-20">
                                 <div className="max-w-4xl mx-auto flex gap-4 items-center">
                                     <div className="flex-1">
                                         <label className="block text-xs font-bold text-green-600 uppercase mb-1">📝 O'qituvchi Izohi</label>
-                                        <p className="text-sm text-gray-700 bg-green-50 p-3 rounded border border-green-200">{resultData.feedback}</p>
+                                        <p className="text-sm text-gray-700 bg-green-50 p-3 rounded border border-green-200">
+                                            {resultData.type === 'mock_full' ? resultData.scores?.speakingFeedback : resultData.feedback}
+                                        </p>
                                     </div>
                                     <div className="text-center min-w-[80px]">
                                         <span className="block text-xs font-bold text-green-600 uppercase mb-1">Band</span>
-                                        <span className="text-3xl font-bold text-green-700">{resultData.score}</span>
+                                        <span className="text-3xl font-bold text-green-700">
+                                            {resultData.type === 'mock_full' ? resultData.scores?.speaking : resultData.score}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -593,5 +767,6 @@ export default function TestReview() {
                 ) : null}
             </div>
         </div>
-    );
+    </div>
+);
 }

@@ -4,6 +4,7 @@ import ReadingLeftPane from "./ReadingLeftPane";
 import ReadingRightPane from "./ReadingRightPane";
 import ReadingFooter from "./ReadingFooter";
 
+import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { useResizablePane } from "../../hooks/useResizablePane";
 import { useTestSession } from "../../hooks/useTestSession";
 import { generateId, injectKeywordsToHTML } from "../../utils/highlightUtils";
@@ -115,6 +116,7 @@ export default function ReadingInterface({
   const [activePassage, setActivePassage] = useState(0);
   const [highlightedLoc, setHighlightedLoc] = useState(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [activeDragData, setActiveDragData] = useState(null);
   const rootRef = useRef(null);
 
   const toggleFullScreen = () => {
@@ -175,6 +177,54 @@ export default function ReadingInterface({
     return injectKeywordsToHTML(baseContent, keywordTable, false);
   }, [currentPassageRaw?.content, keywordTable, isReviewMode, testData?.id, activePassage]);
 
+  // --- DND: Cross-Pane Matching Headings ---
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
+  );
+
+  const handleHeadingDragEnd = useCallback((event) => {
+    const { active, over } = event;
+    if (!over || !active) return;
+
+    // Only handle reading-heading-* → reading-drop-* events
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    
+    if (!activeId.startsWith('reading-heading-') || !overId.startsWith('reading-drop-')) return;
+
+    const headingLabel = activeId.replace('reading-heading-', '');
+    const questionId = overId.replace('reading-drop-', '');
+
+    // Find current passage's matching headings group to get all questions
+    const currentPassageId = testData.passages?.[activePassage]?.id;
+    const matchingGroup = testData.questions?.find(g => {
+      if (g.passageId !== currentPassageId) return false;
+      const gt = String(g.type || "").toLowerCase();
+      const gi = String(g.instruction || "").toLowerCase();
+      return gt.includes('matching') && (
+        gi.includes('heading') || gt.includes('heading')
+      );
+    });
+
+    if (matchingGroup) {
+      const questions = matchingGroup.items || [];
+      // If this heading was already placed somewhere else, clear that
+      const prevOwner = questions.find(q => 
+        parentAnswers && parentAnswers[q.id] === headingLabel && String(q.id) !== String(questionId)
+      );
+      if (prevOwner) {
+        handleDualAnswerChange(prevOwner.id, "");
+      }
+    }
+
+    handleDualAnswerChange(questionId, headingLabel);
+  }, [testData, activePassage, parentAnswers, handleDualAnswerChange]);
+
   if (!testData) return <div className="p-10">Loading Test Data...</div>;
 
   return (
@@ -202,66 +252,104 @@ export default function ReadingInterface({
         {isFullScreen ? "Exit Full Screen" : "Full Screen Mode"}
       </button>
 
-      <div className="flex w-full h-[calc(100vh-50px)] overflow-hidden relative">
+      {/* DndContext wraps BOTH panes for cross-pane drag-and-drop (matching headings) */}
+      <DndContext
+        sensors={dndSensors}
+        onDragStart={({ active }) => setActiveDragData(active?.data?.current || null)}
+        onDragEnd={(event) => {
+          setActiveDragData(null);
+          if (!isReviewMode) handleHeadingDragEnd(event);
+        }}
+        onDragCancel={() => setActiveDragData(null)}
+      >
+        <div className="flex w-full h-[calc(100vh-50px)] overflow-hidden relative">
 
-        {/* LEFT PANE */}
-        <div
-          className="bg-white flex flex-col border-r border-gray-200 h-full overflow-y-auto select-text"
-          style={{ width: `${leftWidth}%` }}
-        >
-          {(() => {
-            const currentPassageId = testData.passages?.[activePassage]?.id;
-            const passageQuestions = testData.questions?.filter(g => g.passageId === currentPassageId) || [];
-            
-            // partNumber merge vaqtida passage ob'ektiga qo'shilgan.
-            // Eski testlarda bo'lmasa activePassage + 1 fallback sifatida ishlatiladi.
-            const currentPassageObj = testData.passages?.[activePassage];
-            const labelSuffix = currentPassageObj?.partNumber ?? (activePassage + 1);
+          {/* LEFT PANE */}
+          <div
+            className="bg-white flex flex-col border-r border-gray-200 h-full overflow-y-auto select-text"
+            style={{ width: `${leftWidth}%` }}
+          >
+            {(() => {
+              const currentPassageId = testData.passages?.[activePassage]?.id;
+              const passageQuestions = testData.questions?.filter(g => g.passageId === currentPassageId) || [];
+              
+              const currentPassageObj = testData.passages?.[activePassage];
+              const labelSuffix = currentPassageObj?.partNumber ?? (activePassage + 1);
 
-            return (
-              <ReadingLeftPane
-                key={`${testData.id}-passage-${activePassage}`}
-                passageLabel={`READING PASSAGE ${labelSuffix}`}
-                title={currentPassageRaw?.title || ""}
-                content={highlightedPassageContent || ""}
-                textSize={textSize}
-                highlightedId={highlightedLoc}
-                storageKey={currentStorageKey}
-                isReviewMode={isReviewMode}
-                onAddToWordBank={onAddToWordBank}
-              />
-            );
-          })()}
+              // Matching headings guruhini topamiz (agar mavjud bo'lsa)
+              const matchingHeadingsGroup = passageQuestions.find(g => {
+                const gt = String(g.type || "").toLowerCase();
+                const gi = String(g.instruction || "").toLowerCase();
+                return gt.includes('matching') && (
+                  gi.includes('heading') || gt.includes('heading') ||
+                  (g.options && g.options.some(opt => {
+                    const t = String(typeof opt === 'object' ? opt.text : opt).toLowerCase();
+                    return t.length > 15;
+                  }) && gi.includes('paragraph'))
+                );
+              });
+
+              return (
+                <ReadingLeftPane
+                  key={`${testData.id}-passage-${activePassage}`}
+                  passageLabel={`READING PASSAGE ${labelSuffix}`}
+                  title={currentPassageRaw?.title || ""}
+                  content={highlightedPassageContent || ""}
+                  textSize={textSize}
+                  highlightedId={highlightedLoc}
+                  storageKey={currentStorageKey}
+                  isReviewMode={isReviewMode}
+                  onAddToWordBank={onAddToWordBank}
+                  matchingHeadingsGroup={matchingHeadingsGroup || null}
+                  userAnswers={parentAnswers || {}}
+                  onAnswerChange={handleDualAnswerChange}
+                />
+              );
+            })()}
+          </div>
+
+          <div className="w-[6px] bg-gray-100 hover:bg-gray-300 cursor-col-resize flex justify-center items-center border-x border-gray-200 z-10 shrink-0" onMouseDown={startResizing}>
+            <div className="w-[1px] h-[20px] bg-gray-400"></div>
+          </div>
+
+          {/* RIGHT PANE */}
+          <div
+            className="flex-1 bg-slate-50 flex flex-col overflow-y-auto h-full relative select-text"
+            style={{ width: `${100 - leftWidth}%` }}
+          >
+            <ReadingRightPane
+              testData={testData}
+              activePassage={activePassage}
+              userAnswers={parentAnswers || {}}
+              onAnswerChange={handleDualAnswerChange}
+              onFlag={onFlag}
+              flaggedQuestions={flaggedQuestions}
+              isReviewMode={isReviewMode}
+              textSize={textSize}
+              handleLocationClick={handleLocationClick}
+              highlights={allHighlights}
+              onAddHighlight={addHighlight}
+              onRemoveHighlight={removeHighlight}
+              onAddToWordBank={onAddToWordBank}
+              testId={testId}
+              keywordTable={keywordTable}
+            />
+          </div>
         </div>
 
-        <div className="w-[6px] bg-gray-100 hover:bg-gray-300 cursor-col-resize flex justify-center items-center border-x border-gray-200 z-10 shrink-0" onMouseDown={startResizing}>
-          <div className="w-[1px] h-[20px] bg-gray-400"></div>
-        </div>
-
-        {/* RIGHT PANE */}
-        <div
-          className="flex-1 bg-slate-50 flex flex-col overflow-y-auto h-full relative select-text"
-          style={{ width: `${100 - leftWidth}%` }}
-        >
-          <ReadingRightPane
-            testData={testData}
-            activePassage={activePassage}
-            userAnswers={parentAnswers || {}}
-            onAnswerChange={handleDualAnswerChange}
-            onFlag={onFlag}
-            flaggedQuestions={flaggedQuestions}
-            isReviewMode={isReviewMode}
-            textSize={textSize}
-            handleLocationClick={handleLocationClick}
-            highlights={allHighlights}
-            onAddHighlight={addHighlight}
-            onRemoveHighlight={removeHighlight}
-            onAddToWordBank={onAddToWordBank}
-            testId={testId}
-            keywordTable={keywordTable}
-          />
-        </div>
-      </div>
+        {/* DragOverlay — drag jarayonida heading ni barcha scroll/overflow chegaralaridan tashqarida ko'rsatadi */}
+        <DragOverlay dropAnimation={null}>
+          {activeDragData ? (
+            <div className="px-3 py-2.5 border-2 border-blue-600 rounded-none bg-white shadow-[0_15px_30px_rgba(0,0,0,0.15)] flex items-start gap-3 max-w-sm opacity-95 ring-2 ring-blue-100/50">
+              <span className="leading-snug text-[14.5px] font-semibold text-gray-900">
+                {typeof activeDragData.text === 'string' 
+                  ? activeDragData.text.replace(/^([ivx\d]+)[\.\)\s]+/i, '').trim() 
+                  : activeDragData.text}
+              </span>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       <div className="fixed bottom-0 left-0 w-full h-[50px] bg-white border-t border-gray-200 z-[2000] shadow-md">
         <ReadingFooter

@@ -5,7 +5,8 @@ import {
     ChoiceQuestion, 
     GapFillQuestion, 
     TableQuestion, 
-    MatchingOptionsBox 
+    MatchingOptionsBox,
+    ReadingDraggableHeading
 } from './ReadingQuestionTypes';
 
 const ReadingRightPane = memo(({
@@ -203,6 +204,16 @@ const ReadingRightPane = memo(({
                             handleLocationClick
                         };
 
+                        // Detect matching headings specifically
+                        const isMatchingHeading = type.includes('matching') && (
+                            instr.includes('heading') || 
+                            type.includes('heading') ||
+                            (group.options && group.options.some(opt => {
+                                const t = String(typeof opt === 'object' ? opt.text : opt).toLowerCase();
+                                return t.length > 15; // Headings are typically longer text
+                            }) && instr.includes('paragraph'))
+                        );
+
                         return (
                             <div key={gIdx} className="mb-6 pb-6 border-b border-gray-200 border-dashed last:border-0 font-montserrat">
                                 {rangeLabel && <h3 className="text-[15.5px] font-bold text-black mb-4">{rangeLabel}</h3>}
@@ -211,51 +222,93 @@ const ReadingRightPane = memo(({
                                     <div className="bg-transparent border-none p-0 mb-6 shadow-none font-normal text-black italic text-[15.5px]" dangerouslySetInnerHTML={{ __html: displayInstruction }} />
                                 )}
 
-                                {showStaticOptions && <MatchingOptionsBox {...commonProps} />}
+                                {/* MATCHING HEADINGS — DnD mode */}
+                                {isMatchingHeading && group.options && group.options.length > 0 ? (
+                                    <div className="flex flex-col gap-4">
+                                        {/* Draggable headings pool — No background, transparent wrapper */}
+                                        <div className="bg-transparent p-0 border-none shadow-none">
+                                            <p className="text-[14px] font-bold mb-4 uppercase text-slate-800 tracking-wide">
+                                                List of Headings
+                                            </p>
+                                            <div className="flex flex-col gap-2">
+                                                {group.options.map((opt, idx) => {
+                                                    const optText = typeof opt === 'object' ? opt.text : opt;
+                                                    const optLabel = typeof opt === 'object' ? (opt.label || opt.id || String.fromCharCode(65 + idx)) : String.fromCharCode(65 + idx);
+                                                    const questions = group.items || [];
+                                                    const isUsed = questions.some(q => userAnswers[q.id] === optLabel);
 
-                                <div className={isSummary || isDiagram ? "mt-4" : ""}>
-                                    {isTable ? (
-                                        <TableQuestion {...commonProps} />
-                                    ) : isDiagram ? (
-                                        <DiagramLabelingQuestion {...commonProps} />
-                                    ) : isSummary && !isFlowChart ? (
-                                        <p className="leading-[2.2] text-black">
-                                            {group.items?.map((q, qIdx) => {
-                                                const startsWithBold = q.text && q.text.trimStart().startsWith('<b>');
-                                                return (
-                                                    <React.Fragment key={q.id}>
-                                                        {qIdx > 0 && startsWithBold && <br />}
+                                                    // Ishlatilgan headingni pooldan to'liq olib tashlaymiz
+                                                    if (isUsed && !isReviewMode) return null;
+
+                                                    return (
+                                                        <ReadingDraggableHeading
+                                                            key={idx}
+                                                            label={optLabel}
+                                                            text={optText}
+                                                            isUsed={isUsed}
+                                                            isReviewMode={isReviewMode}
+                                                        />
+                                                    );
+                                                })}
+                                                {/* Barcha headinglar joylashganda */}
+                                                {!isReviewMode && (group.items || []).length > 0 && 
+                                                 (group.items || []).every(q => userAnswers[q.id]) && (
+                                                    <div className="text-center py-4 text-gray-400 text-[12px] border-2 border-dashed border-gray-100 rounded-lg italic">
+                                                        ✓ All headings placed
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {showStaticOptions && <MatchingOptionsBox {...commonProps} />}
+
+                                        <div className={isSummary || isDiagram ? "mt-4" : ""}>
+                                            {isTable ? (
+                                                <TableQuestion {...commonProps} />
+                                            ) : isDiagram ? (
+                                                <DiagramLabelingQuestion {...commonProps} />
+                                            ) : isSummary && !isFlowChart ? (
+                                                <p className="leading-[2.2] text-black">
+                                                    {group.items?.map((q, qIdx) => {
+                                                        const startsWithBold = q.text && q.text.trimStart().startsWith('<b>');
+                                                        return (
+                                                            <React.Fragment key={q.id}>
+                                                                {qIdx > 0 && startsWithBold && <br />}
+                                                                <GapFillQuestion 
+                                                                    q={q} 
+                                                                    val={userAnswers[q.id] || ""} 
+                                                                    isSummary={isSummary} 
+                                                                    isFlowChart={false}
+                                                                    isLast={qIdx === (group.items.length - 1)}
+                                                                    {...commonProps} 
+                                                                />
+                                                            </React.Fragment>
+                                                        );
+                                                    })}
+                                                </p>
+                                            ) : (
+                                                group.items?.map((q, qIdx) => {
+                                                    if (isChoiceType && !isMatching) {
+                                                        return <ChoiceQuestion key={q.id} q={q} val={userAnswers[q.id] || ""} isMultiSelect={isMultiSelect} {...commonProps} />;
+                                                    }
+                                                    return (
                                                         <GapFillQuestion 
+                                                            key={q.id} 
                                                             q={q} 
                                                             val={userAnswers[q.id] || ""} 
                                                             isSummary={isSummary} 
-                                                            isFlowChart={false}
+                                                            isFlowChart={isFlowChart}
                                                             isLast={qIdx === (group.items.length - 1)}
                                                             {...commonProps} 
                                                         />
-                                                    </React.Fragment>
-                                                );
-                                            })}
-                                        </p>
-                                    ) : (
-                                        group.items?.map((q, qIdx) => {
-                                            if (isChoiceType && !isMatching) {
-                                                return <ChoiceQuestion key={q.id} q={q} val={userAnswers[q.id] || ""} isMultiSelect={isMultiSelect} {...commonProps} />;
-                                            }
-                                            return (
-                                                <GapFillQuestion 
-                                                    key={q.id} 
-                                                    q={q} 
-                                                    val={userAnswers[q.id] || ""} 
-                                                    isSummary={isSummary} 
-                                                    isFlowChart={isFlowChart}
-                                                    isLast={qIdx === (group.items.length - 1)}
-                                                    {...commonProps} 
-                                                />
-                                            );
-                                        })
-                                    )}
-                                </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         );
                     })}

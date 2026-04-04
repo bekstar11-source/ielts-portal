@@ -1,6 +1,149 @@
 import React from "react";
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import HighlightableText from './HighlightableText';
 import { injectKeywordsToHTML } from '../../utils/highlightUtils';
+
+// --- UTILS ---
+const stripRomanNumerals = (text) => {
+    if (!text || typeof text !== 'string') return text;
+    // Rim raqamlarini (i, ii, iii, iv, v, vi, vii, viii, ix, x) 
+    // yoki oddiy raqamlarni (1, 2, 3) va ulardan keyingi nuqta/joyni olib tashlaydi
+    const regex = /^([ivx\d]+)[\.\)\s]+(.*)$/i;
+    const match = text.trim().match(regex);
+    if (match && match[2]) {
+        return match[2].trim();
+    }
+    return text.trim();
+};
+
+// --- MATCHING HEADINGS DND KOMPONENTLARI ---
+
+export const ReadingDraggableHeading = ({ label, text, isUsed, isReviewMode }) => {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `reading-heading-${label}`,
+        disabled: isUsed || isReviewMode,
+        data: { label, text }
+    });
+
+    const cleanText = stripRomanNumerals(text);
+
+    return (
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={`
+                px-3 py-2 border select-none flex items-start gap-3 w-full rounded-none
+                transition-all duration-150 group/heading
+                ${isDragging 
+                    ? 'opacity-0 pointer-events-none' 
+                    : isUsed 
+                        ? 'opacity-20 cursor-default pointer-events-none line-through bg-gray-50 border-gray-200' 
+                        : 'bg-white border-gray-300 hover:border-blue-400 hover:shadow-sm cursor-grab active:cursor-grabbing hover:bg-blue-50/30 shadow-sm'
+                }
+                ${isReviewMode ? 'cursor-default' : ''}
+            `}
+        >
+            {/* Label hide as requested: abcd kerak emas */}
+            {/* <span className={`shrink-0 font-bold text-sm mt-0.5 ${isUsed ? 'text-gray-300' : 'text-blue-600'}`}>{label}.</span> */}
+            <span className={`leading-snug text-[14.5px] font-medium ${isUsed ? 'text-gray-300' : 'text-gray-800'} group-hover/heading:text-blue-700`}>
+                {cleanText}
+            </span>
+        </div>
+    );
+};
+
+export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewMode, isCorrect, correctAnswer, onClear }) => {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `reading-drop-${questionId}`,
+        disabled: isReviewMode
+    });
+
+    // Clean comparison: ignore trailing dots and case
+    const cleanStr = (s) => String(s || "").trim().toLowerCase().replace(/\.$/, '');
+
+    // Find the option to get its text
+    const selectedOption = options?.find((opt, idx) => {
+        if (typeof opt === 'object') {
+            const optLabel = opt.label || opt.id;
+            return cleanStr(optLabel) === cleanStr(value);
+        }
+        // If it's a string, we match its generated label (A, B, C...)
+        const generatedLabel = String.fromCharCode(65 + idx);
+        return cleanStr(generatedLabel) === cleanStr(value) || cleanStr(opt) === cleanStr(value);
+    });
+
+    const getOptionFullContent = () => {
+        if (!value) return null;
+        let text = selectedOption 
+            ? (typeof selectedOption === 'object' ? selectedOption.text : selectedOption) 
+            : "";
+        
+        if (text) {
+            // Rim raqamlarini yashirish
+            return stripRomanNumerals(text);
+        }
+        return value;
+    };
+
+    const displayFullText = getOptionFullContent();
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`
+                min-h-[42px] w-full border-2 rounded-none flex items-center relative
+                transition-all duration-300 px-3 py-2 group/slot mb-3
+                ${value 
+                    ? (isReviewMode 
+                        ? (isCorrect 
+                            ? 'border-green-500 bg-green-50' 
+                            : 'border-red-500 bg-red-50')
+                        : 'border-blue-500 bg-white shadow-sm ring-1 ring-blue-100'
+                      )
+                    : (isOver 
+                        ? 'border-blue-400 bg-blue-50 border-dashed scale-[1.005]' 
+                        : 'border-gray-200 bg-gray-50/30 border-dashed hover:border-gray-300'
+                      )
+                }
+            `}
+        >
+            <div className="flex items-center gap-2 w-full">
+                <span className="shrink-0 font-bold text-[15px] text-blue-600 w-auto">{questionId}.</span>
+                {value ? (
+                    <div className="flex items-center w-full gap-3 overflow-hidden">
+                        <span className="text-[14px] font-semibold text-gray-900 flex-1 leading-snug">
+                            {displayFullText}
+                        </span>
+                        {!isReviewMode && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onClear(); }}
+                                className="shrink-0 w-6 h-6 bg-white border border-gray-100 shadow-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 text-gray-400 rounded-none flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-all"
+                                title="Remove heading"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <span className={`text-[12px] font-bold uppercase tracking-widest ${isOver ? 'text-blue-500' : 'text-gray-300'}`}>
+                        {isOver ? 'Release to Drop' : 'Insert Heading Here'}
+                    </span>
+                )}
+            </div>
+
+            {isReviewMode && !isCorrect && correctAnswer && (
+                <div className="absolute -bottom-8 left-0 bg-green-600 text-white text-[11px] px-2.5 py-1.5 rounded-none shadow-lg whitespace-normal max-w-full z-20 font-bold border border-green-700 animate-in slide-in-from-top-1">
+                    <span className="opacity-80 mr-1">Correct:</span>
+                    {options?.find(o => {
+                        const l = typeof o === 'object' ? (o.label || o.id) : o;
+                        return cleanStr(l) === cleanStr(correctAnswer);
+                    })?.text || correctAnswer}
+                </div>
+            )}
+        </div>
+    );
+};
 
 // --- KICHIK YORDAMCHI KOMPONENTLAR ---
 
