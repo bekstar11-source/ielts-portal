@@ -38,35 +38,39 @@ const PassageWithDropZones = memo(({
     const paragraphs = useMemo(() => {
         if (!content) return [];
         
-        // HTML ni DOM parser bilan parse qilamiz
+        // 🛠️ Sanitization: DOM parser orqali eski slotlarni xavfsiz tozalaymiz
         const parser = new DOMParser();
         const doc = parser.parseFromString(`<div>${content}</div>`, 'text/html');
         const container = doc.body.firstChild;
-        
+
+        // data-reading-slot bo'lgan barcha elementlarni o'chirib tashlaymiz
+        const oldSlots = container.querySelectorAll('[data-reading-slot="true"]');
+        oldSlots.forEach(s => s.remove());
+
         const result = [];
         let currentBlock = '';
         
         const childNodes = container.childNodes;
         for (let i = 0; i < childNodes.length; i++) {
             const node = childNodes[i];
-            const nodeHtml = node.outerHTML || node.textContent;
             
-            // <p> yoki <h2>/<h3> taglarni paragraf chegarasi deb qabul qilamiz
-            if (node.nodeType === 1 && ['P', 'H2', 'H3', 'H4'].includes(node.tagName)) {
+            // <p>, <h2>/<h3> yoki <div> (wrapper bo'lib qolgan bo'lsa) taglarni paragraf chegarasi deb qabul qilamiz
+            if (node.nodeType === 1 && ['P', 'H2', 'H3', 'H4', 'DIV'].includes(node.tagName)) {
                 if (currentBlock.trim()) {
-                    result.push(currentBlock);
+                    result.push(currentBlock.trim());
                     currentBlock = '';
                 }
-                result.push(nodeHtml);
+                result.push(node.outerHTML);
             } else {
-                currentBlock += nodeHtml;
+                currentBlock += node.outerHTML || node.textContent || '';
             }
         }
         if (currentBlock.trim()) {
-            result.push(currentBlock);
+            result.push(currentBlock.trim());
         }
         
-        return result;
+        // Bo'sh bo'lmagan barcha bloklarni qaytaramiz (filterni yumshatamiz)
+        return result.filter(p => p.trim().length > 0);
     }, [content]);
 
     const questions = matchingHeadingsGroup?.items || [];
@@ -100,10 +104,28 @@ const PassageWithDropZones = memo(({
             const contentParagraphIndices = paragraphs
                 .map((p, i) => ({ html: p, index: i }))
                 .filter(({ html, index }) => {
-                    // Title, heading va juda qisqa paragraflarni o'tkazib yuboramiz
-                    const isHeadingTag = /^<h[1-3]/i.test(html.trim());
+                    if (mapping[index]) return false;
+
                     const textOnly = html.replace(/<[^>]+>/g, '').trim();
-                    return !isHeadingTag && textOnly.length > 50 && !mapping[index];
+                    const isHeadingTag = /^<h[1-4]/i.test(html.trim());
+                    
+                    // 1. Sarlavhalar va o'ta qisqa (<20 ch) bloklarni o'tkazib yuboramiz
+                    if (isHeadingTag || textOnly.length < 20) return false;
+
+                    // 2. Intro/Preamble skip heuristic:
+                    // Faqat birinchi 2 ta blok uchun tekshiramiz. 
+                    // Agar unda label bo'lsa (A, B, Paragraph A...) yoki loc_id bo'lsa (tepada tekshirilgan), skip qilmaymiz.
+                    if (index < 2) {
+                        const hasParaLabel = /^\s*(Paragraph\s+)?[A-Za-z0-9ivx]+\s*[\.\s\)]/i.test(textOnly) || 
+                                           /^(<b>|<strong>)\s*[A-Za-z0-9]\s*(<\/b>|<\/strong>)/i.test(html.trim());
+                        
+                        // Agar u juda uzun bo'lsa (>200 ch), ehtimol u Paragraph A labeli bo'lmagan birinchi paragrafdir.
+                        if (!hasParaLabel && textOnly.length < 200) {
+                            return false; 
+                        }
+                    }
+
+                    return true;
                 })
                 .map(({ index }) => index);
             
@@ -142,7 +164,7 @@ const PassageWithDropZones = memo(({
                     <React.Fragment key={idx}>
                         {/* Agar shu paragraf uchun drop zone bo'lsa */}
                         {question && (
-                            <div className="my-2">
+                            <div className="my-2" data-reading-slot="true">
                                 <ReadingDroppableSlot
                                     id={question.id}
                                     questionId={question.id}
@@ -219,14 +241,44 @@ const ReadingLeftPane = memo(({
 
         const contentDiv = containerRef.current.querySelector('#reading-content-display');
         if (contentDiv) {
-            const html = contentDiv.innerHTML;
-            setDisplayContent(html);
-            localStorage.setItem(storageKey, JSON.stringify({
-                html: html,
-                timestamp: Date.now()
-            }));
+            // 🛠️ Matching Headings bo'lsa, HTMLni tozalab saqlashimiz kerak
+            // Aks holda slotlar va wrapper divlar statega tushib qoladi
+            if (hasMatchingHeadings) {
+                const temp = document.createElement('div');
+                temp.innerHTML = contentDiv.innerHTML;
+
+                // 1. Slotlarni o'chiramiz
+                const slots = temp.querySelectorAll('[data-reading-slot="true"]');
+                slots.forEach(s => s.remove());
+
+                // 2. Har bir blokni unwrap qilamiz (PassageWithDropZones dagi wrapper divlarni)
+                let cleanHtml = "";
+                Array.from(temp.childNodes).forEach(node => {
+                    if (node.nodeType === 1 && node.tagName === 'DIV') {
+                        cleanHtml += node.innerHTML;
+                    } else {
+                        cleanHtml += node.outerHTML || node.textContent || "";
+                    }
+                });
+
+                const finalHtml = cleanHtml.trim() || temp.innerHTML;
+                
+                setDisplayContent(finalHtml);
+                localStorage.setItem(storageKey, JSON.stringify({
+                    html: finalHtml,
+                    timestamp: Date.now()
+                }));
+            } else {
+                // Oddiy rejimda shunchaki innerHTML ni olamiz
+                const html = contentDiv.innerHTML;
+                setDisplayContent(html);
+                localStorage.setItem(storageKey, JSON.stringify({
+                    html: html,
+                    timestamp: Date.now()
+                }));
+            }
         }
-    }, [storageKey]);
+    }, [storageKey, hasMatchingHeadings]);
 
     // --- SCROLL TO QUESTION LOCATION ---
     useEffect(() => {

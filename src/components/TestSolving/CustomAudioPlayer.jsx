@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 
 /**
  * CustomAudioPlayer Component
@@ -77,7 +77,8 @@ export default function CustomAudioPlayer({
         };
 
         const onPauseExam = (e) => {
-            if (isExam && !e.target.ended) e.target.play();
+            // Only force-resume on the ACTIVE (visible) part to avoid all parts fighting each other
+            if (isExam && isVisible && !e.target.ended) e.target.play().catch(() => {});
         };
 
         audio.addEventListener('play', onPlay);
@@ -104,6 +105,52 @@ export default function CustomAudioPlayer({
             audio.removeEventListener('timeupdate', onTimeUpdate);
         };
     }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate]);
+
+    // Exam auto-play logic
+    // Exam auto-play logic - very aggressive to overcome browser blocks
+    useEffect(() => {
+        if (!isExam || !isVisible) return;
+
+        const attemptPlay = () => {
+            const audio = audioRef.current;
+            if (audio && audio.paused && !audio.ended && audio.readyState >= 2) {
+                audio.play()
+                    .then(() => {
+                        console.log(`[CustomAudioPlayer] Part ${index} successfully started auto-play.`);
+                    })
+                    .catch(err => {
+                        // Still blocked by browser, wait for user interaction
+                        console.warn(`[CustomAudioPlayer] Part ${index} play attempt failed:`, err.name);
+                    });
+            }
+        };
+
+        // Attempt on mount/visibility
+        attemptPlay();
+
+        // Also listen for 'canplay' which is a good trigger point
+        const audio = audioRef.current;
+        if (audio) {
+            audio.addEventListener('canplay', attemptPlay);
+        }
+
+        // Periodic check in case it gets paused or was blocked
+        const interval = setInterval(attemptPlay, 1000);
+        
+        // Also listen for any user interaction on the whole document to "unlock" audio
+        const unlock = () => {
+            attemptPlay();
+        };
+        document.addEventListener('click', unlock);
+        document.addEventListener('keydown', unlock);
+
+        return () => {
+            clearInterval(interval);
+            if (audio) audio.removeEventListener('canplay', attemptPlay);
+            document.removeEventListener('click', unlock);
+            document.removeEventListener('keydown', unlock);
+        };
+    }, [isExam, isVisible, index, src]);
 
     const togglePlay = () => {
         if (isExam) return;
@@ -195,19 +242,18 @@ export default function CustomAudioPlayer({
         );
     };
 
-    // Add cleanup to pause audio on unmount
+    // Pause audio on unmount (but do NOT clear src — that causes NotSupportedError on re-render)
     useEffect(() => {
         const audio = audioRef.current;
         return () => {
             if (audio) {
                 audio.pause();
-                audio.src = ""; // Force release resources
             }
         };
     }, []);
 
-    // Memoize the audio element to keep it stable
-    const audioElement = (
+    // Memoize the audio element to keep it stable and prevent re-creation
+    const audioElement = useMemo(() => (
         <audio
             ref={audioRef}
             id={`audio-part-${index}`}
@@ -215,7 +261,7 @@ export default function CustomAudioPlayer({
             preload="auto"
             style={{ display: 'none' }}
         />
-    );
+    ), [src, index]);
 
     return (
         <div className={isVisible ? "" : "hidden"} style={{ display: isVisible ? 'block' : 'none' }}>

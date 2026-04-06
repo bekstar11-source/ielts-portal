@@ -67,20 +67,31 @@ export default function ListeningFooter({
 
         if (group.groups && Array.isArray(group.groups)) {
             group.groups.forEach(subGroup => {
-                if (subGroup.items) questions.push(...subGroup.items);
-                if (subGroup.questions) questions.push(...subGroup.questions);
+                const items = subGroup.items || subGroup.questions || [];
+                items.forEach(it => {
+                    if (it.type === 'table' || it.rows) {
+                        it.rows.forEach(row => {
+                            let cells = Array.isArray(row) ? row : (row.cells || []);
+                            cells.forEach(cell => {
+                                if (cell.id && !cell.isMultiQuestion && !cell.isMixed) questions.push(cell);
+                                if (cell.isMultiQuestion && cell.content) questions.push(...cell.content);
+                                if (cell.isMixed && cell.parts) {
+                                    cell.parts.forEach(p => { if (p.type === 'input') questions.push(p); });
+                                }
+                            });
+                        });
+                    } else {
+                        questions.push(it);
+                    }
+                });
             });
         }
         if ((group.type === 'table_completion' || group.type === 'table') && group.rows) {
             group.rows.forEach(row => {
                 let cellsToIterate = Array.isArray(row) ? row : (row.cells || []);
                 cellsToIterate.forEach(cell => {
-                    // Faqat oddiy savol bo'lgandagina (multi yoki mixed bo'lmasa) push qilamiz
                     if (cell.id && !cell.isMultiQuestion && !cell.isMixed) questions.push(cell);
-                    
-                    if (cell.isMultiQuestion && cell.content) {
-                        questions.push(...cell.content);
-                    }
+                    if (cell.isMultiQuestion && cell.content) questions.push(...cell.content);
                     if (cell.isMixed && cell.parts) {
                         cell.parts.forEach(part => { 
                             if (part.type === 'input') questions.push(part); 

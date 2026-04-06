@@ -8,7 +8,7 @@ import ListeningInterface from "../components/ListeningInterface/ListeningInterf
 import WritingInterface from "../components/WritingInterface/WritingInterface";
 import TestHeader from "../components/TestSolving/TestHeader";
 import { Particles } from "../components/ui/particles";
-import { calculateBandScore, checkAnswer, scoreMultiAnswer } from "../utils/ieltsScoring";
+import { calculateBandScore, checkAnswer, scoreMultiAnswer, calculateSectionScore, calculateOverallBand } from "../utils/ieltsScoring";
 
 export default function MockExam() {
     const navigate = useNavigate();
@@ -198,6 +198,12 @@ export default function MockExam() {
     }, [stage, cheatWarning.isOpen, cheatWarning.count]);
 
     // 4. ACTIONS
+    // Called when TestHeader's AudioPreloader finishes buffering - audio is ready to play
+    const handleBufferingDone = () => {
+        setIsAudioReady(true); // Start countdown (for volume check stage)
+        console.log("[MockExam] Buffering done. Audio ready for playback.");
+    };
+
     const startExam = async () => {
         try {
             const elem = document.documentElement;
@@ -216,8 +222,10 @@ export default function MockExam() {
         if (waitTime > 0) {
             setStage('listening_volume_check');
             setIntroWait(waitTime);
-            setIsAudioReady(false); // Reset just in case
+            setIsAudioReady(false); // Will be set to true by handleBufferingDone
         } else {
+            // No volume check — go directly to listening.
+            // Show buffering via triggerPlay on the 'listening' stage.
             setStage('listening');
         }
         setTimeLeft(30 * 60); // 30 min (Listening)
@@ -264,70 +272,11 @@ export default function MockExam() {
 
     const finishExam = async () => {
         setStage('saving');
-
         const currentAnswers = answersRef.current;
+
         const calculateScoreForSection = (testData, sectionAnswers) => {
-            if (!testData?.questions || !Array.isArray(testData.questions)) return { correct: 0, total: 0 };
-            
-            let correctCount = 0;
-            let totalQ = 0;
-            const scoredIds = new Set();
-
-            const scoreItem = (id, answer, type) => {
-                if (!id) return;
-                const idStr = String(id).trim();
-                
-                // Skip if already scored or looks like a placeholder/range without items
-                if (scoredIds.has(idStr)) return;
-
-                // Handle multi-answer questions (Pick TWO etc)
-                if (isMultiAnswer(type)) {
-                    const weight = getWeight(id);
-                    const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
-                    const result = scoreMultiAnswer(answer, userResp, weight);
-                    correctCount += result.correct;
-                    totalQ += result.weight;
-                    scoredIds.add(idStr);
-                } else {
-                    // Regular question
-                    const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
-                    const userClean = String(userResp).trim().toLowerCase();
-                    const correctClean = String(answer || "").trim().toLowerCase();
-                    
-                    if (correctClean) { // Only count as question if there is a correct answer defined
-                        const isCorrect = userClean === correctClean;
-                        if (isCorrect) correctCount++;
-                        totalQ++;
-                        scoredIds.add(idStr);
-                    }
-                }
-            };
-
-            const walk = (obj, parentType) => {
-                if (!obj || typeof obj !== 'object') return;
-                
-                const currentType = obj.type || parentType;
-
-                // If it's a leaf question
-                if (obj.id && (obj.answer || obj.correct_answer)) {
-                    scoreItem(obj.id, obj.answer || obj.correct_answer, currentType);
-                }
-
-                // Recurse into all possible containers
-                const containers = ['items', 'questions', 'groups', 'rows', 'cells', 'parts'];
-                containers.forEach(key => {
-                    if (Array.isArray(obj[key])) {
-                        obj[key].forEach(child => walk(child, currentType));
-                    } else if (obj[key] && typeof obj[key] === 'object') {
-                        walk(obj[key], currentType);
-                    }
-                });
-            };
-
-            // Start walking through all root level question groups
-            testData.questions.forEach(q => walk(q, q.type));
-
-            return { correct: correctCount, total: totalQ };
+            if (!testData || !sectionAnswers) return { correct: 0, total: 40 };
+            return calculateSectionScore(testData, sectionAnswers);
         };
 
         const lResults = calculateScoreForSection(tests.listening, currentAnswers.listening || {});
@@ -598,7 +547,14 @@ export default function MockExam() {
         const vol = parseFloat(e.target.value);
         setSystemVolume(vol);
         const a = document.getElementById("audio-part-0");
-        if (a) a.volume = vol;
+        if (a) {
+            a.volume = vol;
+            // If audio is ready but paused (autoplay blocked), play on user interaction
+            if (isAudioReady && a.paused && a.readyState >= 3) {
+                a.play().catch(() => {});
+            }
+        }
+
     };
 
     return (
@@ -619,6 +575,7 @@ export default function MockExam() {
                 setAudioTime={setAudioTime}
                 triggerPlay={stage === 'listening' || stage === 'listening_volume_check'}
                 onAudioReady={() => setIsAudioReady(true)}
+                onBufferingDone={handleBufferingDone}
                 buttonText={(stage === 'listening' || stage === 'listening_volume_check') ? 'Move to reading' : stage === 'reading' ? 'Move to writing' : 'Finish'}
             />
 

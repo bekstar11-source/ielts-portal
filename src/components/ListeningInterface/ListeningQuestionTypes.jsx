@@ -365,104 +365,127 @@ export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode,
 };
 
 export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
-    return (
-        <div className="overflow-x-auto mb-8 bg-white">
-            <table className="w-full text-[1em] text-left border-collapse border border-black">
-                <thead className="bg-gray-100 text-gray-700 uppercase font-black text-[0.8em] tracking-wider">
-                    <tr>
-                        {(group.headers || []).map((h, i) => (
-                            <th key={i} className="px-4 py-3 border border-black">
-                                {typeof h === 'object' ? h.text : h}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {(group.rows || []).map((row, rIdx) => (
-                        <tr key={rIdx} className="hover:bg-gray-50/50 transition-colors">
-                            {(row.cells || (Array.isArray(row) ? row : [])).map((cell, cIdx) => (
-                                <td key={cIdx} className="px-4 py-3 border border-black align-top">
-                                    {!cell.isMixed && (cell.text || typeof cell !== 'object') ? (
-                                        <div className="text-gray-800 font-semibold leading-relaxed pt-0.5 w-full">
-                                            {(() => {
-                                                const content = cell.text || cell;
-                                                // Split by newlines or bullet markers
-                                                const parts = String(content).split(/(\n|(?=[•\-\*]|\d+[\.\)]))/);
-                                                return parts.map((p, pIdx) => {
-                                                    if (p === '\n') return <div key={pIdx} className="h-2" />;
-                                                    if (!p.trim()) return null;
-                                                    return (
-                                                        <div key={pIdx} className="leading-tight mb-1">
-                                                            <span dangerouslySetInnerHTML={{ __html: p }} />
-                                                        </div>
-                                                    );
-                                                });
-                                            })()}
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-wrap items-baseline leading-[2] text-gray-900 font-semibold gap-y-1">
-                                            {(cell.parts || []).flatMap((p, pIdx) => {
-                                                if (p.type === 'text') {
-                                                    const nextPart = cell.parts[pIdx + 1];
-                                                    const cleanContent = (nextPart?.type === 'input')
-                                                        ? stripLeadingId(p.content, nextPart.id)
-                                                        : p.content;
-                                                    
-                                                    // Split by newline and also look for bullet markers
-                                                    return String(cleanContent).split('\n').map((line, lIdx) => ({
-                                                        type: 'text',
-                                                        content: line,
-                                                        isBullet: /^[•\-\*]/.test(line.trim()) || /^\d+[\.\)]/.test(line.trim()),
-                                                        originalIdx: pIdx,
-                                                        lineIdx: lIdx
-                                                    }));
-                                                }
-                                                return { ...p, originalIdx: pIdx };
-                                            }).map((refinedPart, index) => {
-                                                if (refinedPart.type === 'text') {
-                                                    const isBullet = refinedPart.isBullet;
-                                                    // Faqat bullet bo'lganda yangi qatorga tushiramiz
-                                                    const shouldBreak = index > 0 && isBullet;
-                                                    
-                                                    const breakEl = shouldBreak ? <div className="w-full h-0" /> : null;
-                                                    if (!refinedPart.content && refinedPart.lineIdx > 0) {
-                                                        return breakEl; // handle empty lines (\n\n)
-                                                    }
-
-                                                    return (
-                                                        <React.Fragment key={`text-${index}`}>
-                                                            {breakEl}
-                                                            <span 
-                                                                className={isBullet ? "w-full md:w-auto pr-1" : "pr-1"} 
-                                                                dangerouslySetInnerHTML={{ __html: refinedPart.content }} 
-                                                            />
-                                                        </React.Fragment>
-                                                    );
-                                                }
-                                                if (refinedPart.type === 'input') {
-                                                    const lookupItems = (group.items || group.questions || []);
-                                                    const item = lookupItems.find(it => String(it.id) === String(refinedPart.id));
-                                                    const answer = refinedPart.answer || refinedPart.correct_answer || item?.answer || item?.correct_answer || cell.answer || cell.correct_answer;
-                                                    const locationId = refinedPart.locationId || item?.locationId || cell.locationId;
-
-                                                    return (
-                                                        <div key={`input-${refinedPart.id}`} className="inline-flex items-baseline mb-1">
-                                                            <ListeningTextInput id={refinedPart.id} answer={answer} locationId={locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            })}
-                                        </div>
-                                    )}
-                                </td>
+    const renderSingleTable = (tableData, key) => {
+        const headers = tableData.headers || [];
+        const rows = tableData.rows || [];
+        
+        return (
+            <div className="overflow-x-auto mb-8 bg-white" key={key}>
+                <table className="w-full text-[1em] text-left border-collapse border border-black">
+                    <thead className="bg-gray-100 text-gray-700 uppercase font-black text-[0.8em] tracking-wider">
+                        <tr>
+                            {headers.map((h, i) => (
+                                <th key={i} className="px-4 py-3 border border-black">
+                                    {typeof h === 'object' ? h.text : h}
+                                </th>
                             ))}
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+                    </thead>
+                    <tbody>
+                        {rows.map((row, rIdx) => (
+                            <tr key={rIdx} className="hover:bg-gray-50/50 transition-colors">
+                                {(row.cells || (Array.isArray(row) ? row : [])).map((cell, cIdx) => (
+                                    <td key={cIdx} className="px-4 py-3 border border-black align-top">
+                                        {!cell.isMixed && (cell.text || typeof cell !== 'object') ? (
+                                            <div className="text-gray-800 font-semibold leading-relaxed pt-0.5 w-full">
+                                                {(() => {
+                                                    const content = cell.text || cell;
+                                                    const parts = String(content).split(/(\n|(?=[•\-\*]|\d+[\.\)]))/);
+                                                    return parts.map((p, pIdx) => {
+                                                        if (p === '\n') return <div key={pIdx} className="h-2" />;
+                                                        if (!p.trim()) return null;
+                                                        return (
+                                                            <div key={pIdx} className="leading-tight mb-1">
+                                                                <span dangerouslySetInnerHTML={{ __html: p }} />
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()}
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-wrap items-baseline leading-[2] text-gray-900 font-semibold gap-y-1">
+                                                {(cell.parts || []).flatMap((p, pIdx) => {
+                                                    if (p.type === 'text') {
+                                                        const nextPart = cell.parts[pIdx + 1];
+                                                        const cleanContent = (nextPart?.type === 'input')
+                                                            ? stripLeadingId(p.content, nextPart.id)
+                                                            : p.content;
+                                                        
+                                                        return String(cleanContent).split('\n').map((line, lIdx) => ({
+                                                            type: 'text',
+                                                            content: line,
+                                                            isBullet: /^[•\-\*]/.test(line.trim()) || /^\d+[\.\)]/.test(line.trim()),
+                                                            originalIdx: pIdx,
+                                                            lineIdx: lIdx
+                                                        }));
+                                                    }
+                                                    return { ...p, originalIdx: pIdx };
+                                                }).map((refinedPart, index) => {
+                                                    if (refinedPart.type === 'text') {
+                                                        const isBullet = refinedPart.isBullet;
+                                                        const shouldBreak = index > 0 && isBullet;
+                                                        const breakEl = shouldBreak ? <div className="w-full h-0" /> : null;
+                                                        if (!refinedPart.content && refinedPart.lineIdx > 0) return breakEl;
+
+                                                        return (
+                                                            <React.Fragment key={`text-${index}`}>
+                                                                {breakEl}
+                                                                <span 
+                                                                    className={isBullet ? "w-full md:w-auto pr-1" : "pr-1"} 
+                                                                    dangerouslySetInnerHTML={{ __html: refinedPart.content }} 
+                                                                />
+                                                            </React.Fragment>
+                                                        );
+                                                    }
+                                                    if (refinedPart.type === 'input') {
+                                                        const lookupItems = (group.items || group.questions || []);
+                                                        const item = lookupItems.find(it => String(it.id) === String(refinedPart.id));
+                                                        const answer = refinedPart.answer || refinedPart.correct_answer || item?.answer || item?.correct_answer || cell.answer || cell.correct_answer;
+                                                        const locationId = refinedPart.locationId || item?.locationId || cell.locationId;
+
+                                                        return (
+                                                            <div key={`input-${refinedPart.id}`} className="inline-flex items-baseline mb-1">
+                                                                <ListeningTextInput id={refinedPart.id} answer={answer} locationId={locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })}
+                                            </div>
+                                        )}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
+
+    if (group.groups && Array.isArray(group.groups)) {
+        return (
+            <div className="space-y-4">
+                {group.groups.map((sub, sIdx) => (
+                    <div key={sIdx}>
+                        {sub.header && (
+                            <h3 className="text-[1.1em] font-black text-gray-900 mb-4 mt-2 pt-3 uppercase tracking-wider border-t border-gray-100">
+                                {typeof sub.header === 'object' ? sub.header.text : sub.header}
+                            </h3>
+                        )}
+                        {(sub.items || sub.questions || []).map((item, iIdx) => {
+                            if (item.type === 'table' || item.headers || item.rows) {
+                                return renderSingleTable(item, `table-${sIdx}-${iIdx}`);
+                            }
+                            return null;
+                        })}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    return renderSingleTable(group, 'table-root');
 };
 
 export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {

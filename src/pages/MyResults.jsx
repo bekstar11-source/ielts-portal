@@ -347,89 +347,79 @@ export default function MyResults() {
                 return (
                   <div
                     key={res.id}
-                    className="relative group flex flex-col justify-between rounded-[24px] p-6 h-full border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 transition-all duration-300 ease-out hover:-translate-y-1 hover:border-blue-500/30"
+                    onClick={() => navigate(`/review/${res.id}`)}
+                    className="relative group flex flex-col justify-between rounded-[24px] p-6 h-full border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 transition-all duration-300 ease-out hover:-translate-y-1 hover:border-blue-500/30 cursor-pointer"
                   >
                     <div>
+                      {/* HEADER: Icon & Score Badge */}
                       <div className="flex justify-between items-start mb-5">
-                        <div className={`w-12 h-12 rounded-2xl bg-[#0a1930] flex items-center justify-center border border-white/5 shadow-inner`}>
+                        <div className={`w-12 h-12 rounded-2xl bg-[#0a1930] flex items-center justify-center border border-white/5 shadow-inner ${theme.text}`}>
                           {theme.icon}
                         </div>
-                        {isGraded || res.type === 'mock_full' ? (
+                        
+                        {(isGraded || res.type === 'mock_full') ? (
                           <div className="bg-[#0a1930]/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-                            <span className={`block text-xl font-bold leading-none ${theme.text}`}>
-                              {res.type === 'mock_full' 
-                                ? (res.scores?.writing 
-                                    ? calculateOverallBand(res.scores.listeningBand, res.scores.readingBand, res.scores.writing).toFixed(1)
-                                    : "..."
-                                  )
-                                : (bandScore || "N/A")
-                              }
-                            </span>
+                             <span className={`block text-xl font-bold leading-none ${theme.text}`}>
+                               {res.type === 'mock_full' 
+                                 ? (res.scores?.overallBand || res.overallBand || "...") 
+                                 : (bandScore || "N/A")}
+                             </span>
+                             <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-1 block">Band</span>
                           </div>
                         ) : (
                           <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-[#0a1930] text-blue-400 border border-blue-500/20 animate-pulse">Tekshirilmoqda</span>
                         )}
                       </div>
 
+                      {/* TITLE & DATE */}
                       <h3 className="text-lg font-bold text-white mb-1 line-clamp-1 group-hover:text-blue-400 transition-colors">
-                        {res.testTitle}
+                        {res.testTitle || (res.type === 'mock_full' ? "IELTS Mock Exam" : "Noma'lum Test")}
                       </h3>
-                      
-                      {res.type === 'mock_full' ? (
-                        <div className="flex flex-col gap-2 mt-4 mb-6">
-                           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-white/5 pb-2">
-                             <span>Listening</span>
-                             <span className="text-blue-400">{res.scores?.listeningBand?.toFixed(1) || "0.0"}</span>
-                           </div>
-                           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-white/5 pb-2">
-                             <span>Reading</span>
-                             <span className="text-emerald-400">{res.scores?.readingBand?.toFixed(1) || "0.0"}</span>
-                           </div>
-                           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-white/5 pb-2">
-                             <span>Writing</span>
-                             <span className={res.scores?.writing ? "text-orange-400" : "text-gray-600 italic"}>
-                               {res.scores?.writing ? res.scores.writing.toFixed(1) : "Kutilmoqda..."}
-                             </span>
-                           </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-[#a0b0cb] text-xs font-medium gap-3 mb-4">
-                          <div className="flex items-center gap-1.5 text-[10px]">
-                            <IoTimeOutline className="w-3.5 h-3.5 opacity-70" />
-                            {res.createdAt?.seconds ? new Date(res.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
-                          </div>
-                          <div className="w-1 h-1 rounded-full bg-white/20"></div>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider ${theme.bg} ${theme.text}`}>
-                              {res.type}
-                            </span>
-                          </div>
+
+                      <div className="flex items-center text-[#a0b0cb] text-[10px] font-bold uppercase tracking-wider gap-2 mb-6 opacity-60">
+                         <IoTimeOutline className="w-3.5 h-3.5" />
+                         {formatDate(res.date)}
+                      </div>
+
+                      {/* MOCK SPECIFIC: PART SCORES */}
+                      {res.type === 'mock_full' && (
+                        <div className="grid grid-cols-4 gap-1 mb-6">
+                           {['listening','reading','writing','speaking'].map(part => {
+                             const score = res.scores?.[part === 'listening' ? 'listeningBand' : part === 'reading' ? 'readingBand' : part];
+                             return (
+                               <div key={part} className="flex flex-col items-center p-1 rounded bg-white/5 border border-white/5">
+                                 <span className="text-[8px] text-gray-500 font-bold uppercase">{part[0]}</span>
+                                 <span className="text-[10px] text-white font-bold">{score != null ? score : '-'}</span>
+                               </div>
+                             )
+                           })}
                         </div>
                       )}
                     </div>
 
+                    {/* FOOTER: STATS & ACTION */}
                     <div className="pt-4 border-t border-white/10 flex items-center justify-between mt-auto">
                       <div>
                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                          {res.type === 'mock_full' ? "Status" : "To'g'ri javoblar"}
+                          {res.type === 'mock_full' ? "Status" : "To'g'ri"}
                         </p>
                         <p className="text-sm font-bold text-white">
                           {res.type === 'mock_full' 
-                            ? (res.scores?.writing ? "Graded" : "Pending Writing")
-                            : (res.score !== null ? `${res.score} / ${res.totalQuestions || "?"}` : "?")
+                            ? (res.scores?.writing ? "Graded" : "Check Writing")
+                            : (res.score !== null ? `${res.score} / ${res.totalQuestions || 40}` : "-")
                           }
                         </p>
                       </div>
 
-                      {res.type !== 'mock_full' && (
-                        <button
-                          onClick={() => navigate(`/review/${res.id}`)}
-                          className="w-10 h-10 rounded-full bg-[#0a1930] hover:bg-blue-500 text-blue-400 hover:text-white flex items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.2)] border border-blue-500/20 group-hover:border-blue-500/50"
-                          title="Tahlilni ko'rish"
-                        >
-                          <IoArrowForward className="w-5 h-5" />
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/review/${res.id}`);
+                        }}
+                        className="w-10 h-10 rounded-full bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white flex items-center justify-center transition-all duration-300 border border-blue-500/20 group-hover:border-blue-500/50"
+                      >
+                        <IoArrowForward className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 );

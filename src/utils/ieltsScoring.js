@@ -43,8 +43,15 @@ export const calculateBandScore = (score, type, totalQuestions = 40) => {
 };
 
 // OVERALL BAND CALCULATOR (Rounds to nearest 0.5)
-export const calculateOverallBand = (...scores) => {
-    const validScores = scores.filter(s => typeof s === 'number' && s > 0);
+export const calculateOverallBand = (...args) => {
+    // Determine if we got an array as the first argument or rest parameters
+    let scores = args;
+    if (args.length === 1 && Array.isArray(args[0])) {
+        scores = args[0];
+    }
+
+    // Include 0 as a valid score, but exclude null/undefined
+    const validScores = scores.filter(s => (typeof s === 'number' && !isNaN(s)) && s >= 0);
     if (validScores.length === 0) return 0;
 
     const average = validScores.reduce((acc, curr) => acc + curr, 0) / validScores.length;
@@ -155,4 +162,85 @@ export const formatTime = (seconds) => {
 
     if (h > 0) return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
+
+// UTILITY TO CALCULATE SCORE FOR A SECTION (READING/LISTENING)
+export const calculateSectionScore = (testData, sectionAnswers) => {
+    let correctCount = 0;
+    let totalQ = 0;
+    const scoredIds = new Set();
+
+    const getWeight = (id) => {
+        if (!id) return 1;
+        const s = String(id);
+        if (s.includes('-')) {
+            const [start, end] = s.split('-').map(Number);
+            return (end - start) + 1;
+        }
+        if (s.includes(',')) {
+            return s.split(',').length;
+        }
+        return 1;
+    };
+
+    const isMultiAnswer = (type) => {
+        const t = type?.toLowerCase();
+        return t === 'two choice' || t === 'three choice' || t === 'multi' || t === 'pick two' || t === 'pick three';
+    };
+
+    const walk = (obj, parentType) => {
+        if (!obj) return;
+        const currentType = obj.type || parentType;
+
+        if (obj.id && (obj.answer || obj.correct_answer)) {
+            const id = obj.id;
+            const idStr = String(id);
+            const answer = obj.answer || obj.correct_answer;
+
+            if (scoredIds.has(idStr)) return;
+
+            if (isMultiAnswer(currentType)) {
+                const weight = getWeight(id);
+                const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
+                const result = scoreMultiAnswer(answer, userResp, weight);
+                correctCount += result.matches;
+                totalQ += result.weight;
+                scoredIds.add(idStr);
+            } else {
+                const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
+                if (answer) {
+                    const isCorrect = checkAnswer(answer, userResp);
+                    if (isCorrect) correctCount++;
+                    totalQ++;
+                    scoredIds.add(idStr);
+                }
+            }
+        }
+
+        const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
+        for (const key of CONTAINER_KEYS) {
+            const val = obj[key];
+            if (val && Array.isArray(val)) {
+                val.forEach(child => walk(child, currentType));
+            } else if (val && typeof val === 'object') {
+                walk(val, currentType);
+            }
+        }
+    };
+
+    // Entry points
+    walk(testData);
+
+    // Fallbacks if testData top-level property check is still needed
+    if (testData.questions && !scoredIds.size) {
+        testData.questions.forEach(q => walk(q, q.type));
+    }
+    if (testData.passages && !scoredIds.size) {
+        testData.passages.forEach(p => walk(p, null));
+    }
+
+    return {
+        correct: correctCount,
+        total: totalQ || 40 // Default to 40 if not found
+    };
 };
