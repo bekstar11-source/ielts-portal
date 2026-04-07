@@ -87,6 +87,18 @@ const ReadingRightPane = memo(({
         window.getSelection().removeAllRanges();
     }, []);
 
+    const toRoman = (num) => {
+        const lookup = { m: 1000, cm: 900, d: 500, cd: 400, c: 100, xc: 90, l: 50, xl: 40, x: 10, ix: 9, v: 5, iv: 4, i: 1 };
+        let roman = '', i;
+        for (i in lookup) {
+            while (num >= lookup[i]) {
+                roman += i;
+                num -= lookup[i];
+            }
+        }
+        return roman;
+    };
+
     const getRangeLabel = (group) => {
         let allItems = group.items ? [...group.items] : [];
         if (group.questions) allItems = [...allItems, ...group.questions];
@@ -233,7 +245,20 @@ const ReadingRightPane = memo(({
                                             <div className="flex flex-col gap-2">
                                                 {group.options.map((opt, idx) => {
                                                     const optText = typeof opt === 'object' ? opt.text : opt;
-                                                    const optLabel = typeof opt === 'object' ? (opt.label || opt.id || String.fromCharCode(65 + idx)) : String.fromCharCode(65 + idx);
+                                                    
+                                                    // Rim raqamini matndan qidiramiz (Label sifatida ishlatish uchun)
+                                                    let optLabel = typeof opt === 'object' ? (opt.label || opt.id) : null;
+                                                    
+                                                    if (!optLabel) {
+                                                        const match = String(optText).trim().match(/^([ivx\d]+)[\.\)\s]+/i);
+                                                        if (match) {
+                                                            optLabel = match[1].toLowerCase();
+                                                        } else {
+                                                            // Agar matnda bo'lmasa, Rim raqami generatsiya qilamiz
+                                                            optLabel = toRoman(idx + 1);
+                                                        }
+                                                    }
+
                                                     const questions = group.items || [];
                                                     const isUsed = questions.some(q => userAnswers[q.id] === optLabel);
 

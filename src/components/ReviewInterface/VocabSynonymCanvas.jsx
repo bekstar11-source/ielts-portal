@@ -237,7 +237,7 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                     </div>
 
                     {/* Body — shows ~4 rows then scrolls */}
-                    <div className="overflow-y-auto p-3 space-y-2 vocab-syn-scroll" style={{ maxHeight: '200px' }}>
+                    <div className="overflow-y-auto p-3 space-y-2 vocab-syn-scroll" style={{ maxHeight: '320px' }}>
                         <AnimatePresence mode="popLayout">
 
                             {/* Step 1 — Passage word locked */}
@@ -260,7 +260,7 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                                         </span>
                                         <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Qulflandi</span>
                                     </div>
-                                    <p className="text-base font-bold text-white truncate">{passageData?.word}</p>
+                                    <p className="text-base font-bold text-white mb-2 underline decoration-blue-500/30 underline-offset-4">{passageData?.word}</p>
                                     <p className="text-xs mt-1" style={{ color: 'rgba(147,197,253,0.75)' }}>Savoldagi sinonim · antonimni belgilang →</p>
                                 </motion.div>
                             )}
@@ -278,10 +278,18 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                                     <button onClick={handleCancelCapture} className="absolute top-2 right-2 text-slate-500 hover:text-white transition-colors">
                                         <X className="w-3.5 h-3.5" />
                                     </button>
-                                    <div className="flex items-center justify-center gap-2 mb-3">
-                                        <span className="text-sm font-bold text-white truncate max-w-[100px]">{passageData?.word}</span>
-                                        <ArrowRightLeft className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                        <span className="text-sm font-bold text-white truncate max-w-[100px]">{questionData?.word}</span>
+                                    <div className="flex flex-col items-center gap-2 mb-4 py-1">
+                                        <div className="text-base font-bold text-white text-center w-full px-2 leading-tight">
+                                            {passageData?.word}
+                                        </div>
+                                        <div className="flex items-center justify-center w-full gap-2">
+                                            <div className="h-px flex-1 bg-slate-700/50"></div>
+                                            <ArrowRightLeft className="w-4 h-4 text-violet-400 shrink-0 opacity-80" />
+                                            <div className="h-px flex-1 bg-slate-700/50"></div>
+                                        </div>
+                                        <div className="text-base font-bold text-white text-center w-full px-2 leading-tight">
+                                            {questionData?.word}
+                                        </div>
                                     </div>
                                     <p className="text-[10px] text-center uppercase tracking-wider mb-2.5 font-semibold" style={{ color: '#64748b' }}>Bog'lanishni tanlang</p>
                                     <div className="grid grid-cols-3 gap-1.5">
@@ -337,13 +345,17 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                                             border: `1px solid ${cfg.rowBorder}`,
                                         }}
                                     >
-                                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                                            <span className="text-[13px] font-bold text-white truncate">{pair.passageWord}</span>
-                                            <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider border ${cfg.badgeClass}`}>
-                                                {cfg.label}
-                                            </span>
-                                            <span className={`text-[13px] truncate ${cfg.wordClass}`}>{pair.questionWord}</span>
-                                            {isUnsaved && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-400" title="Saqlanmagan" />}
+                                        <div className="flex items-center gap-2 min-w-0 flex-1 py-0.5">
+                                            <span className="text-[13px] font-bold text-white leading-snug break-words flex-1 text-right">{pair.passageWord}</span>
+                                            <div className="shrink-0 flex flex-col items-center gap-1 mx-1">
+                                                <div className="h-2 w-[1px] bg-white/10 group-hover:bg-white/20 transition-colors"></div>
+                                                <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider border ${cfg.badgeClass}`}>
+                                                    {cfg.label}
+                                                </span>
+                                                <div className="h-2 w-[1px] bg-white/10 group-hover:bg-white/20 transition-colors"></div>
+                                            </div>
+                                            <span className={`text-[13px] leading-snug break-words flex-1 text-left ${cfg.wordClass}`}>{pair.questionWord}</span>
+                                            {isUnsaved && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" title="Saqlanmagan" />}
                                         </div>
                                         <button
                                             onClick={() => handleRemovePair(pair)}

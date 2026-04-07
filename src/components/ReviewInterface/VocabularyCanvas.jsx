@@ -103,7 +103,7 @@ export default function VocabularyCanvas({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 40, scale: 0.95 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="fixed bottom-6 right-6 z-[2000] w-[380px] sm:w-[420px] max-h-[50vh] flex flex-col bg-slate-900/80 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
+                    className="fixed bottom-6 right-6 z-[2000] w-[380px] sm:w-[420px] max-h-[70vh] flex flex-col bg-slate-900/80 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900/50 shrink-0">
@@ -144,7 +144,7 @@ export default function VocabularyCanvas({
                                         </span>
                                         Target Locked
                                     </div>
-                                    <div className="text-lg font-bold text-white mb-2 truncate">{passageData?.word}</div>
+                                    <div className="text-lg font-bold text-white mb-2 leading-tight">{passageData?.word}</div>
                                     <div className="text-sm text-blue-200">Endi savoldagi sinonim/antonimni belgilang...</div>
                                 </motion.div>
                             )}
@@ -160,10 +160,10 @@ export default function VocabularyCanvas({
                                     <button onClick={handleCancelCapture} className="absolute top-2 right-2 text-slate-400 hover:text-white">
                                         <X className="w-4 h-4" />
                                     </button>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="text-base font-bold text-white text-center flex-1 truncate px-2">{passageData?.word}</div>
-                                        <ArrowRightLeft className="w-4 h-4 text-slate-500 shrink-0" />
-                                        <div className="text-base font-bold text-white text-center flex-1 truncate px-2">{questionData?.word}</div>
+                                    <div className="flex flex-col items-center gap-2 mb-4">
+                                        <div className="text-base font-bold text-white text-center w-full px-2 leading-tight">{passageData?.word}</div>
+                                        <ArrowRightLeft className="w-4 h-4 text-slate-500 shrink-0 opacity-40 rotate-90 sm:rotate-0" />
+                                        <div className="text-base font-bold text-white text-center w-full px-2 leading-tight">{questionData?.word}</div>
                                     </div>
 
                                     <p className="text-xs text-center text-slate-400 mb-3 uppercase tracking-wider font-semibold">Bog'lanishni tanlang</p>
@@ -211,10 +211,10 @@ export default function VocabularyCanvas({
                                             onClick={() => setExpandedCardId(isExpanded ? null : pair.id)}
                                         >
                                             <div className="p-3 flex items-center justify-between">
-                                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <span className="font-bold text-white text-sm truncate">{pair.passageWord}</span>
-                                                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider ${colorClass} border border-current opacity-70`}>{label}</span>
-                                                    <span className={`font-bold text-sm truncate ${colorClass}`}>{pair.questionWord}</span>
+                                                <div className="flex items-center gap-2 flex-1 min-w-0 py-0.5">
+                                                    <span className="font-bold text-white text-sm leading-snug flex-1 text-right">{pair.passageWord}</span>
+                                                    <span className={`shrink-0 text-[8px] px-1 py-0.5 rounded font-black uppercase tracking-wider ${colorClass} border border-current opacity-60`}>{label}</span>
+                                                    <span className={`font-bold text-sm leading-snug flex-1 text-left ${colorClass}`}>{pair.questionWord}</span>
                                                 </div>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleRemovePair(pair.id); }}

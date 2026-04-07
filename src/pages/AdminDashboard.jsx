@@ -17,7 +17,6 @@ import {
     startAfter,
     orderBy
 } from "firebase/firestore";
-import AnalyticsChart from "../components/common/AnalyticsChart";
 import AdvancedAnalyticsChart from "../components/common/AdvancedAnalyticsChart";
 
 // --- MOCK CHART DATA ---
@@ -503,9 +502,20 @@ export default function AdminDashboard() {
                 </div>
 
 
-                {/* CHARTS */}
-                <div className="col-span-12 md:col-span-8">
-                    <div className="flex justify-between items-center mb-4">
+                {/* ACTION CARDS */}
+                <div className="col-span-12 text-gray-400 dark:text-white/40 font-medium text-xs mt-2 uppercase tracking-widest pl-1">Tezkor Menyular</div>
+
+                <ActionCard title="Test Yaratish" desc="Yangi Reading/Listening" icon={<Icons.Plus className="w-6 h-6 text-white" />} bg="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20" onClick={() => navigate('/admin/create-test')} />
+                <ActionCard title="Analitika" desc="Statistika va tahlillar" icon={<Icons.Analytics className="w-6 h-6 text-white" />} bg="bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-600/20" onClick={() => navigate('/admin/analytics')} />
+                <ActionCard title="O'quvchilar" desc="Tahrirlash va ko'rish" icon={<Icons.Users className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none" onClick={() => navigate('/admin/users')} />
+                <ActionCard title="Baholash" desc="Natijalarni tekshirish" icon={<Icons.Stats className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/results')} />
+                <ActionCard title="E'lonlar" desc="Yangiliklar yuborish" icon={<Icons.Megaphone className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/announcements')} />
+
+
+
+                {/* ACTIVITY CHART */}
+                <div className="col-span-12 bg-white dark:bg-[#272727] rounded-[24px] p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors">
+                    <div className="flex justify-between items-center mb-6">
                         <h3 className="text-gray-900 dark:text-white font-medium">Faollik Statistikasi</h3>
                         <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
                             <button
@@ -524,7 +534,7 @@ export default function AdminDashboard() {
                     </div>
                     <AdvancedAnalyticsChart
                         data={chartRange === 'week' ? stats.activityData.slice(-7) : stats.activityData}
-                        height={320}
+                        height={350}
                         seriesConfig={[
                             { key: 'tests', label: 'Bajarilgan Testlar', color: '#3B82F6', type: 'count' },
                             { key: 'score', label: 'O\'rtacha Ball', color: '#F59E0B', type: 'decimal' },
@@ -532,19 +542,6 @@ export default function AdminDashboard() {
                         ]}
                     />
                 </div>
-                <div className="col-span-12 md:col-span-4">
-                    <AnalyticsChart title="Testlar Bo'limi" data={stats.testsData || []} height={320} type="bar" color="#8B5CF6" />
-                </div>
-
-                {/* ACTION CARDS */}
-                <div className="col-span-12 text-gray-400 dark:text-white/40 font-medium text-xs mt-2 uppercase tracking-widest pl-1">Tezkor Menyular</div>
-
-                <ActionCard title="Test Yaratish" desc="Yangi Reading/Listening" icon={<Icons.Plus className="w-6 h-6 text-white" />} bg="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20" onClick={() => navigate('/admin/create-test')} />
-                <ActionCard title="Analitika" desc="Statistika va tahlillar" icon={<Icons.Analytics className="w-6 h-6 text-white" />} bg="bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-600/20" onClick={() => navigate('/admin/analytics')} />
-                <ActionCard title="O'quvchilar" desc="Tahrirlash va ko'rish" icon={<Icons.Users className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none" onClick={() => navigate('/admin/users')} />
-                <ActionCard title="Baholash" desc="Natijalarni tekshirish" icon={<Icons.Stats className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/results')} />
-                <ActionCard title="E'lonlar" desc="Yangiliklar yuborish" icon={<Icons.Megaphone className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/announcements')} />
-
 
                 {/* USER MANAGEMENT LIST */}
                 <div className="col-span-12 bg-white dark:bg-[#272727] rounded-[24px] p-4 md:p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors">
@@ -679,6 +676,8 @@ export default function AdminDashboard() {
                         </div>
                     )}
                 </div>
+
+
             </div>
 
             {/* MODALS */}

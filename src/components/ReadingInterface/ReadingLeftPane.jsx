@@ -34,42 +34,53 @@ const PassageWithDropZones = memo(({
     isReviewMode,
     onClick 
 }) => {
-    // Paragraflarni ajratamiz
+    // Paragraflarni ajratamiz (RECURSIVE UNWRAP logic)
     const paragraphs = useMemo(() => {
         if (!content) return [];
         
-        // 🛠️ Sanitization: DOM parser orqali eski slotlarni xavfsiz tozalaymiz
         const parser = new DOMParser();
         const doc = parser.parseFromString(`<div>${content}</div>`, 'text/html');
         const container = doc.body.firstChild;
 
-        // data-reading-slot bo'lgan barcha elementlarni o'chirib tashlaymiz
-        const oldSlots = container.querySelectorAll('[data-reading-slot="true"]');
-        oldSlots.forEach(s => s.remove());
+        // 1. Slotlarni o'chirib tashlaymiz
+        container.querySelectorAll('[data-reading-slot="true"]').forEach(s => s.remove());
 
+        // 2. Bloklarni ajratamiz (Recursive approach)
         const result = [];
-        let currentBlock = '';
         
-        const childNodes = container.childNodes;
-        for (let i = 0; i < childNodes.length; i++) {
-            const node = childNodes[i];
-            
-            // <p>, <h2>/<h3> yoki <div> (wrapper bo'lib qolgan bo'lsa) taglarni paragraf chegarasi deb qabul qilamiz
-            if (node.nodeType === 1 && ['P', 'H2', 'H3', 'H4', 'DIV'].includes(node.tagName)) {
-                if (currentBlock.trim()) {
-                    result.push(currentBlock.trim());
-                    currentBlock = '';
+        const extractBlocks = (parent) => {
+            const childNodes = Array.from(parent.childNodes);
+            let currentInlineBlock = "";
+
+            childNodes.forEach(node => {
+                if (node.nodeType === 1 && ['P', 'H2', 'H3', 'H4'].includes(node.tagName)) {
+                    // Blok topildi: avval yig'ilgan inlinelarni push qilamiz
+                    if (currentInlineBlock.trim()) {
+                        result.push(currentInlineBlock.trim());
+                        currentInlineBlock = "";
+                    }
+                    result.push(node.outerHTML);
+                } else if (node.nodeType === 1 && node.tagName === 'DIV') {
+                    // DIV ichida yana paragraflar bo'lishi mumkin (nesting)
+                    if (currentInlineBlock.trim()) {
+                        result.push(currentInlineBlock.trim());
+                        currentInlineBlock = "";
+                    }
+                    extractBlocks(node); // Rekursiya
+                } else {
+                    // Text node yoki inline elementlar (span, b, i va h.k.)
+                    currentInlineBlock += node.outerHTML || node.textContent || "";
                 }
-                result.push(node.outerHTML);
-            } else {
-                currentBlock += node.outerHTML || node.textContent || '';
+            });
+
+            if (currentInlineBlock.trim()) {
+                result.push(currentInlineBlock.trim());
             }
-        }
-        if (currentBlock.trim()) {
-            result.push(currentBlock.trim());
-        }
+        };
+
+        extractBlocks(container);
         
-        // Bo'sh bo'lmagan barcha bloklarni qaytaramiz (filterni yumshatamiz)
+        // Bo'sh emasligini tekshiramiz
         return result.filter(p => p.trim().length > 0);
     }, [content]);
 
@@ -226,7 +237,27 @@ const ReadingLeftPane = memo(({
             try {
                 const parsed = JSON.parse(saved);
                 if (Date.now() - parsed.timestamp < 30 * 24 * 60 * 60 * 1000) {
-                    setDisplayContent(parsed.html);
+                    let html = parsed.html;
+
+                    // 🛠️ MUHIM: LocalStorage'dan o'qiyotganda agar ichida slotlar bo'lsa (eski xato versiyadan qolgan), tozalab olamiz
+                    // Bu foydalanuvchida deploydan oldin saqlanib qolgan "dirty" HTML ni tuzatadi
+                    if (hasMatchingHeadings && html.includes('data-reading-slot')) {
+                        const temp = document.createElement('div');
+                        temp.innerHTML = html;
+                        temp.querySelectorAll('[data-reading-slot="true"]').forEach(s => s.remove());
+                        
+                        let clean = "";
+                        Array.from(temp.childNodes).forEach(node => {
+                            if (node.nodeType === 1 && node.tagName === 'DIV') {
+                                clean += node.innerHTML;
+                            } else {
+                                clean += node.outerHTML || node.textContent || "";
+                            }
+                        });
+                        html = clean.trim() || temp.innerHTML;
+                    }
+
+                    setDisplayContent(html);
                 }
             } catch (e) {
                 console.error("Error parsing saved highlights:", e);
@@ -234,7 +265,7 @@ const ReadingLeftPane = memo(({
         } else {
             setDisplayContent(content);
         }
-    }, [storageKey, content, isReviewMode]);
+    }, [storageKey, content, isReviewMode, hasMatchingHeadings]);
 
     const saveCurrentContent = useCallback(() => {
         if (!containerRef.current || !storageKey) return;

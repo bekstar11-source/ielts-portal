@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, forwardRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../firebase/firebase';
 import {
     collection, getDocs, addDoc, doc, updateDoc,
@@ -15,7 +16,8 @@ import GroupDetailPanel from '../components/admin/GroupDetailPanel';
 import {
     Search, Filter, UserCheck, Users, Layers, BookOpen,
     Calendar, ChevronDown, Check, X, Trash2, Plus,
-    MoreVertical, Edit2, Eye, Shield, Lock, Unlock, Clock
+    MoreVertical, Edit2, Eye, Shield, Lock, Unlock, Clock,
+    Headphones, Book, PenTool, Mic, Globe, Zap, AlertCircle
 } from 'lucide-react';
 
 // Date Picker
@@ -529,14 +531,15 @@ function GroupsTab({ groups, students, teachers, onRefresh, theme }) {
 // --- TAB 3: ASSIGN ---
 function AssignTab({ students, groups, allTests, testSets, theme }) {
     const isDark = theme === 'dark';
-    const { user } = useAuth(); // Get current admin
+    const { user } = useAuth();
     const [selectedStudents, setSelectedStudents] = useState([]);
     const [subTab, setSubTab] = useState('groups');
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [searchUser, setSearchUser] = useState('');
     const [assignmentType, setAssignmentType] = useState('test');
+    const [materialTypeFilter, setMaterialTypeFilter] = useState('all');
     const [searchMaterial, setSearchMaterial] = useState('');
-    const [selectedItem, setSelectedItem] = useState('');
+    const [selectedItems, setSelectedItems] = useState([]);
     const [isStrict, setIsStrict] = useState(false);
     const [noDeadline, setNoDeadline] = useState(false);
     const [maxAttempts, setMaxAttempts] = useState(1);
@@ -547,239 +550,293 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
         const source = assignmentType === 'test' ? allTests : testSets;
         return source.filter(item => {
             const name = assignmentType === 'test' ? item.title : item.name;
-            return name?.toLowerCase().includes(searchMaterial.toLowerCase());
+            const matchesSearch = name?.toLowerCase().includes(searchMaterial.toLowerCase());
+            const matchesType = assignmentType === 'set' || materialTypeFilter === 'all' || (item.type || '').toLowerCase() === materialTypeFilter.toLowerCase();
+            return matchesSearch && matchesType;
         });
-    }, [allTests, testSets, assignmentType, searchMaterial]);
+    }, [allTests, testSets, assignmentType, searchMaterial, materialTypeFilter]);
 
     const handleAssign = async () => {
-        if ((!selectedGroup && selectedStudents.length === 0) || !selectedItem || (!noDeadline && (!startDate || !endDate))) {
-            return alert("To'liq to'ldiring");
+        if ((!selectedGroup && selectedStudents.length === 0) || selectedItems.length === 0 || (!noDeadline && (!startDate || !endDate))) {
+            return alert("Iltimos, barcha maydonlarni to'ldiring");
         }
-
         const sourceList = assignmentType === 'test' ? allTests : testSets;
-        const selectedObj = sourceList.find(item => item.id === selectedItem);
-        if (!selectedObj) return;
-
-        const payload = {
-            id: selectedItem,
-            type: assignmentType === 'test' ? (selectedObj.type || 'test') : 'set',
-            title: assignmentType === 'test' ? (selectedObj.title || "Nomsiz") : (selectedObj.name || "Nomsiz"),
-            startDate: noDeadline ? null : startDate.toISOString(),
-            endDate: noDeadline ? null : endDate.toISOString(),
-            status: 'assigned',
-            assignedAt: new Date().toISOString(),
-            isStrict,
-            maxAttempts: parseInt(maxAttempts) || 1
-        };
-
         try {
-            if (selectedGroup) {
-                await updateDoc(doc(db, 'groups', selectedGroup.id), { assignedTests: arrayUnion(payload) });
-                logAction(user.uid, 'ASSIGN_TEST', { target: 'group', targetId: selectedGroup.id, ...payload });
+            const batch = writeBatch(db);
+            const assignments = selectedItems.map(itemId => {
+                const selectedObj = sourceList.find(item => item.id === itemId);
+                if (!selectedObj) return null;
+                return {
+                    id: itemId,
+                    type: assignmentType === 'test' ? (selectedObj.type || 'test') : 'set',
+                    title: assignmentType === 'test' ? (selectedObj.title || "Nomsiz") : (selectedObj.name || "Nomsiz"),
+                    startDate: noDeadline ? null : startDate.toISOString(),
+                    endDate: noDeadline ? null : endDate.toISOString(),
+                    status: 'assigned',
+                    assignedAt: new Date().toISOString(),
+                    isStrict,
+                    maxAttempts: parseInt(maxAttempts) || 1
+                };
+            }).filter(Boolean);
 
-                // Guruhning barcha teacherlariga ham test tayinlash
+            if (assignments.length === 0) return;
+
+            if (selectedGroup) {
+                await updateDoc(doc(db, 'groups', selectedGroup.id), { assignedTests: arrayUnion(...assignments) });
+                logAction(user.uid, 'ASSIGN_TEST', { target: 'group', targetId: selectedGroup.id, assignments });
                 const teacherIds = selectedGroup.teacherIds || [];
                 if (teacherIds.length > 0) {
-                    const teacherPayload = { ...payload, assignedByAdmin: true };
-                    const batch = writeBatch(db);
+                    const teacherAssignments = assignments.map(a => ({ ...a, assignedByAdmin: true }));
                     teacherIds.forEach(tid => {
-                        batch.update(doc(db, 'users', tid), { assignedTests: arrayUnion(teacherPayload) });
+                        batch.update(doc(db, 'users', tid), { assignedTests: arrayUnion(...teacherAssignments) });
                     });
                     await batch.commit();
                 }
             } else {
-                const batch = writeBatch(db);
                 selectedStudents.forEach(id => {
-                    batch.update(doc(db, 'users', id), { assignedTests: arrayUnion(payload) });
+                    batch.update(doc(db, 'users', id), { assignedTests: arrayUnion(...assignments) });
                 });
                 await batch.commit();
-                logAction(user.uid, 'ASSIGN_TEST', { target: 'students', count: selectedStudents.length, ...payload });
+                logAction(user.uid, 'ASSIGN_TEST', { target: 'students', count: selectedStudents.length, assignments });
             }
-            alert("Tayinlandi!");
-            // Reset fields
-            setSelectedItem('');
-        } catch (e) { alert("Xato: " + e.message); }
+            alert("Muvaffaqiyatli tayinlandi!");
+            setSelectedItems([]);
+            setSelectedStudents([]);
+            setSelectedGroup(null);
+        } catch (e) { alert("Xatolik: " + e.message); }
+    };
+
+    const getTypeIcon = (type) => {
+        switch(type?.toLowerCase()) {
+            case 'listening': return <Headphones size={14} />;
+            case 'reading': return <Book size={14} />;
+            case 'writing': return <PenTool size={14} />;
+            case 'speaking': return <Mic size={14} />;
+            default: return <Layers size={14} />;
+        }
     };
 
     return (
-        <div className="relative flex flex-col h-full">
+        <div className="relative flex flex-col h-full gap-4">
             <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-6 pb-24 md:pb-0 overflow-y-auto md:overflow-hidden p-1">
-            {/* LEFT: Target Selection */}
-            <div className={`col-span-12 lg:col-span-4 p-4 md:p-6 border-b lg:border-b-0 lg:border-r transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50'} flex flex-col min-h-[300px] max-h-[400px] md:max-h-full`}>
-
-                <div className={`p-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'} flex justify-between items-center`}>
-                    <span className="text-xs font-bold uppercase tracking-wider opacity-60">1. Kimga?</span>
-                    <div className={`flex p-1 rounded-lg ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-100'}`}>
-                        {['groups', 'individual'].map(t => (
-                            <button key={t} onClick={() => setSubTab(t)} className={`px-3 py-1 text-xs font-bold rounded-md transition ${subTab === t ? (isDark ? 'bg-[#2C2C2C] text-white shadow' : 'bg-white text-blue-600 shadow') : 'opacity-50'}`}>
-                                {t === 'groups' ? 'Guruh' : 'Individual'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar min-h-[250px] md:max-h-full">
-                    {subTab === 'groups' ? (
-                        <>
-                            {/* Group Search - Optional, but consistent */}
-                            <div className={`flex items-center px-3 py-2 mb-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
-                                <Search size={14} className="text-gray-400 mr-2" />
-                                <input
-                                    type="text"
-                                    placeholder="Guruhni qidirish..."
-                                    className="bg-transparent border-none outline-none text-xs w-full"
-                                    value={searchUser} // Reusing searchUser for simplicity or create searchGroup
-                                    onChange={e => setSearchUser(e.target.value)}
-                                />
-                            </div>
-                            {groups.filter(g => g.name.toLowerCase().includes(searchUser.toLowerCase())).map(g => (
-                                <div
-                                    key={g.id}
-                                    onClick={() => setSelectedGroup(g)}
-                                    className={`p-3 rounded-xl border cursor-pointer transition flex justify-between items-center ${selectedGroup?.id === g.id ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-transparent hover:bg-white/5' : 'border-transparent hover:bg-gray-50')}`}
+                
+                {/* 1. TARGET SELECTION */}
+                <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`col-span-12 lg:col-span-4 flex flex-col rounded-[32px] overflow-hidden border transition-all duration-500 ${isDark ? 'bg-[#1E1E1E]/80 border-white/5 shadow-2xl shadow-black/20' : 'bg-white border-gray-100 shadow-xl shadow-blue-900/5'}`}
+                >
+                    <div className={`p-5 border-b backdrop-blur-md ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-50 bg-gray-50/50'} flex justify-between items-center`}>
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-[10px] font-bold">1</div>
+                            <span className="text-xs font-bold uppercase tracking-widest opacity-80">Kimga?</span>
+                        </div>
+                        <div className={`flex p-1 rounded-2xl ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
+                            {['groups', 'individual'].map(t => (
+                                <button 
+                                    key={t} 
+                                    onClick={() => { setSubTab(t); setSelectedGroup(null); setSelectedStudents([]); }} 
+                                    className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all duration-300 ${subTab === t ? (isDark ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white text-blue-600 shadow-md') : 'opacity-40 hover:opacity-100'}`}
                                 >
-                                    <span className="font-bold text-sm">{g.name}</span>
-                                    {selectedGroup?.id === g.id && <Check size={14} className="text-blue-500" />}
-                                </div>
+                                    {t === 'groups' ? 'Guruh' : 'Yakka'}
+                                </button>
                             ))}
-                        </>
-                    ) : (
-                        <>
-                            <div className={`flex items-center px-3 py-2 mb-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
-                                <Search size={14} className="text-gray-400 mr-2" />
-                                <input
-                                    type="text"
-                                    placeholder="O'quvchini qidirish..."
-                                    className="bg-transparent border-none outline-none text-xs w-full"
-                                    value={searchUser}
-                                    onChange={e => setSearchUser(e.target.value)}
-                                />
-                            </div>
-                            {students.filter(s => s.fullName?.toLowerCase().includes(searchUser.toLowerCase())).map(s => (
-                                <div
-                                    key={s.id}
-                                    onClick={() => setSelectedStudents(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
-                                    className={`p-3 rounded-xl border cursor-pointer transition flex justify-between items-center ${selectedStudents.includes(s.id) ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-transparent hover:bg-white/5' : 'border-transparent hover:bg-gray-50')}`}
-                                >
-                                    <span className="font-bold text-sm">{s.fullName}</span>
-                                    {selectedStudents.includes(s.id) && <Check size={14} className="text-blue-500" />}
-                                </div>
-                            ))}
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {/* RIGHT: Settings */}
-            <div className={`col-span-12 md:col-span-8 rounded-[24px] border flex flex-col transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
-
-                <div className={`p-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
-                    <span className="text-xs font-bold uppercase tracking-wider opacity-60">2. Nima?</span>
-                </div>
-                <div className="p-4 md:p-6 space-y-6">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="w-full sm:w-1/3">
-                            <label className="text-xs font-bold opacity-50 uppercase mb-2 block">Turi</label>
-                            <div className={`flex p-1 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
-                                <button onClick={() => { setAssignmentType('test'); setSearchMaterial(''); }} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${assignmentType === 'test' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>Test</button>
-                                <button onClick={() => { setAssignmentType('set'); setSearchMaterial(''); }} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${assignmentType === 'set' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>To'plam</button>
-                            </div>
-                        </div>
-                        <div className="w-full sm:w-2/3">
-                            <label className="text-xs font-bold opacity-50 uppercase mb-2 block">Material</label>
-
-                            {/* Material Search Input */}
-                            <div className={`flex items-center px-3 py-1 mb-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
-                                <Search size={14} className="text-gray-400 mr-2" />
-                                <input
-                                    type="text"
-                                    placeholder="Qidirish..."
-                                    className="bg-transparent border-none outline-none text-xs w-full h-8"
-                                    value={searchMaterial}
-                                    onChange={e => setSearchMaterial(e.target.value)}
-                                />
-                            </div>
-
-                            <select
-                                value={selectedItem}
-                                onChange={e => setSelectedItem(e.target.value)}
-                                className={`w-full h-[42px] px-3 rounded-xl border outline-none text-sm ${isDark ? 'bg-[#1E1E1E] border-white/5 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
-                            >
-                                <option value="">Tanlang...</option>
-                                {filteredMaterials.map(i => (
-                                    <option key={i.id} value={i.id}>{assignmentType === 'test' ? i.title : i.name}</option>
-                                ))}
-                            </select>
-                            {filteredMaterials.length === 0 && <p className="text-[10px] text-red-400 mt-1 ml-1">Hech narsa topilmadi</p>}
                         </div>
                     </div>
 
-                    <div className={`border-t my-4 ${isDark ? 'border-white/5' : 'border-gray-100'}`}></div>
-
-                    <div className="flex justify-between items-center mb-4">
-                        <label className="text-xs font-bold opacity-50 uppercase">Sozlamalar</label>
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={isStrict} onChange={e => setIsStrict(e.target.checked)} className="hidden" />
-                                <div className={`w-4 h-4 rounded border flex items-center justify-center ${isStrict ? 'bg-red-500 border-red-500' : 'border-gray-500'}`}>{isStrict && <Check size={10} className="text-white" />}</div>
-                                <span className={`text-xs font-bold ${isStrict ? 'text-red-500' : 'opacity-50'}`}>Strict Mode</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={noDeadline} onChange={e => setNoDeadline(e.target.checked)} className="hidden" />
-                                <div className={`w-4 h-4 rounded border flex items-center justify-center ${noDeadline ? 'bg-blue-500 border-blue-500' : 'border-gray-500'}`}>{noDeadline && <Check size={10} className="text-white" />}</div>
-                                <span className={`text-xs font-bold ${noDeadline ? 'text-blue-500' : 'opacity-50'}`}>Cheklovsiz</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        <div>
-                            <span className="text-xs opacity-50 mb-1 block w-full truncate">Urinishlar Soni</span>
-                            <div className={`w-full flex items-center h-10 px-3 rounded-xl border transition ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    className="bg-transparent border-none outline-none w-full text-sm"
-                                    value={maxAttempts}
-                                    onChange={e => setMaxAttempts(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <span className="text-xs opacity-50 mb-1 block">Boshlash</span>
-                            <DatePicker
-                                selected={startDate}
-                                onChange={setStartDate}
-                                showTimeSelect
-                                disabled={noDeadline}
-                                customInput={<CustomDateInput placeholder="Sanani tanlang" disabled={noDeadline} theme={theme} />}
-                            />
-                        </div>
-                        <div>
-                            <span className="text-xs opacity-50 mb-1 block text-red-400">Tugash (Deadline)</span>
-                            <DatePicker
-                                selected={endDate}
-                                onChange={setEndDate}
-                                showTimeSelect
-                                disabled={noDeadline}
-                                customInput={<CustomDateInput placeholder="Sanani tanlang" disabled={noDeadline} theme={theme} />}
+                    <div className="p-4 border-b">
+                        <div className={`flex items-center px-4 h-11 rounded-2xl border transition-all duration-300 group ${isDark ? 'bg-[#121212] border-white/5 focus-within:border-blue-500/50' : 'bg-gray-50 border-gray-100 focus-within:border-blue-400'}`}>
+                            <Search size={16} className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder={subTab === 'groups' ? "Guruhni qidirish..." : "Ism bo'yicha qidirish..."}
+                                className="bg-transparent border-none outline-none text-sm w-full ml-3 placeholder:opacity-50"
+                                value={searchUser}
+                                onChange={e => setSearchUser(e.target.value)}
                             />
                         </div>
                     </div>
-                </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                        <AnimatePresence mode="popLayout">
+                            {subTab === 'groups' ? (
+                                groups.filter(g => g.name.toLowerCase().includes(searchUser.toLowerCase())).map(g => (
+                                    <motion.div
+                                        layout
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        key={g.id}
+                                        onClick={() => setSelectedGroup(g)}
+                                        className={`p-4 rounded-2xl border cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedGroup?.id === g.id ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50 hover:border-blue-200')}`}
+                                    >
+                                        <div className="flex justify-between items-center relative z-10">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedGroup?.id === g.id ? 'bg-blue-500 text-white' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                    <Users size={16} />
+                                                </div>
+                                                <span className="font-bold text-sm tracking-tight">{g.name}</span>
+                                            </div>
+                                            {selectedGroup?.id === g.id && <Check size={18} className="text-blue-500 animate-in zoom-in duration-300" />}
+                                        </div>
+                                        {selectedGroup?.id === g.id && <div className="absolute inset-0 bg-blue-600/5 backdrop-blur-[2px]" />}
+                                    </motion.div>
+                                ))
+                            ) : (
+                                students.filter(s => s.fullName?.toLowerCase().includes(searchUser.toLowerCase())).map(s => (
+                                    <motion.div
+                                        layout
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        key={s.id}
+                                        onClick={() => setSelectedStudents(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                                        className={`p-4 rounded-2xl border cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedStudents.includes(s.id) ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50 hover:border-blue-200')}`}
+                                    >
+                                        <div className="flex justify-between items-center relative z-10">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedStudents.includes(s.id) ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                                    <UserCheck size={16} />
+                                                </div>
+                                                <span className="font-bold text-sm tracking-tight">{s.fullName}</span>
+                                            </div>
+                                            {selectedStudents.includes(s.id) && <Check size={18} className="text-blue-500 animate-in zoom-in duration-300" />}
+                                        </div>
+                                    </motion.div>
+                                ))
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </motion.div>
+
+                {/* 2. MATERIAL & SETTINGS */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className={`col-span-12 lg:col-span-8 flex flex-col rounded-[32px] overflow-hidden border transition-all duration-500 ${isDark ? 'bg-[#1E1E1E]/80 border-white/5 shadow-2xl' : 'bg-white border-gray-100 shadow-xl'}`}
+                >
+                    <div className={`p-5 border-b flex flex-wrap justify-between items-center gap-4 ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50/50 border-gray-50'}`}>
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-500 flex items-center justify-center text-[10px] font-bold">2</div>
+                            <span className="text-xs font-bold uppercase tracking-widest opacity-80">Nima?</span>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2">
+                            <div className={`flex p-1 rounded-2xl ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
+                                <button onClick={() => { setAssignmentType('test'); setSearchMaterial(''); }} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all ${assignmentType === 'test' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}>Test</button>
+                                <button onClick={() => { setAssignmentType('set'); setSearchMaterial(''); }} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all ${assignmentType === 'set' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}>To'plam</button>
+                            </div>
+                            
+                            {assignmentType === 'test' && (
+                                <div className={`flex p-1 rounded-2xl hidden sm:flex ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
+                                    {['all', 'listening', 'reading', 'writing', 'speaking'].map(type => (
+                                        <button 
+                                            key={type}
+                                            onClick={() => setMaterialTypeFilter(type)} 
+                                            className={`px-3 py-1.5 text-[9px] uppercase font-bold rounded-lg transition-all ${materialTypeFilter === type ? 'bg-purple-600 text-white' : 'opacity-40 hover:opacity-100'}`}
+                                        >
+                                            {type === 'all' ? 'Hammasi' : type}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="p-6 space-y-6 flex-1 overflow-y-auto no-scrollbar">
+                        {/* Search & List */}
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-end">
+                                <div className={`flex-1 flex items-center px-4 h-11 rounded-2xl border transition-all group ${isDark ? 'bg-[#121212] border-white/5 focus-within:border-blue-500/50' : 'bg-gray-50 border-gray-100 focus-within:border-blue-400'}`}>
+                                    <Search size={16} className="text-gray-400 group-focus-within:text-blue-500" />
+                                    <input
+                                        type="text"
+                                        placeholder="Material qidirish..."
+                                        className="bg-transparent border-none outline-none text-sm w-full ml-3 placeholder:opacity-50"
+                                        value={searchMaterial}
+                                        onChange={e => setSearchMaterial(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={`rounded-3xl border overflow-hidden p-2 ${isDark ? 'bg-[#121212]/50 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
+                                <div className="max-h-[260px] overflow-y-auto p-1 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <AnimatePresence mode="popLayout">
+                                        {filteredMaterials.map(item => (
+                                            <motion.div
+                                                layout
+                                                initial={{ opacity: 0, scale: 0.95 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                key={item.id}
+                                                onClick={() => setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}
+                                                className={`p-3 rounded-2xl border cursor-pointer transition-all duration-300 flex justify-between items-center group ${selectedItems.includes(item.id) ? 'border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/20' : (isDark ? 'border-white/5 bg-white/5 hover:bg-white/10' : 'border-white bg-white hover:border-blue-100 shadow-sm')}`}
+                                            >
+                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                    <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center transition-all ${selectedItems.includes(item.id) ? 'bg-blue-500 text-white' : 'bg-gray-500/10 text-gray-500 group-hover:scale-110'}`}>
+                                                        {getTypeIcon(item.type)}
+                                                    </div>
+                                                    <span className="text-xs font-bold truncate tracking-tight">{assignmentType === 'test' ? (item.title || "Nomsiz") : (item.name || "Nomsiz")}</span>
+                                                </div>
+                                                {selectedItems.includes(item.id) && <Check size={14} className="text-blue-500 ml-2 shrink-0 animate-in zoom-in duration-300" />}
+                                            </motion.div>
+                                        ))}
+                                    </AnimatePresence>
+                                </div >
+                            </div>
+                        </div>
+
+                        {/* Settings */}
+                        <div className="space-y-6 pt-4">
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center text-[10px] font-bold">3</div>
+                                    <span className="text-xs font-bold uppercase tracking-widest opacity-80">Sozlamalar</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <button onClick={() => setIsStrict(!isStrict)} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isStrict ? 'border-red-500 bg-red-500/10 text-red-500' : 'border-gray-500/20 opacity-50 hover:opacity-80'}`}>
+                                        {isStrict ? <Zap size={14} /> : <AlertCircle size={14} />}
+                                        <span className="text-[10px] font-bold uppercase">Strict Mode</span>
+                                    </button>
+                                    <button onClick={() => setNoDeadline(!noDeadline)} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${noDeadline ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-gray-500/20 opacity-50 hover:opacity-80'}`}>
+                                        <Clock size={14} />
+                                        <span className="text-[10px] font-bold uppercase">Muddatsiz</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase opacity-40 ml-1">Urinishlar</label>
+                                    <div className={`h-11 flex items-center px-4 rounded-xl border transition-all ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                                        <input type="number" min="1" className="bg-transparent border-none outline-none w-full text-sm font-bold" value={maxAttempts} onChange={e => setMaxAttempts(e.target.value)} />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase opacity-40 ml-1">Boshlanish</label>
+                                    <DatePicker selected={startDate} onChange={setStartDate} showTimeSelect disabled={noDeadline} customInput={<CustomDateInput placeholder="Sanani tanlang" disabled={noDeadline} theme={theme} />} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase opacity-40 ml-1 text-red-400">Tugash</label>
+                                    <DatePicker selected={endDate} onChange={setEndDate} showTimeSelect disabled={noDeadline} customInput={<CustomDateInput placeholder="Deadline" disabled={noDeadline} theme={theme} />} />
+                                </div>
+                            </div>
+                            
+                            <div className="pt-8 flex justify-end">
+                                <motion.button 
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={handleAssign} 
+                                    className={`w-full md:w-auto px-12 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-[24px] shadow-2xl shadow-blue-600/30 transition-all duration-300 flex items-center justify-center gap-3 group relative overflow-hidden`}
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                    <Check size={20} className="group-hover:scale-125 transition-transform" />
+                                    <span>Tayinlash {selectedItems.length > 0 && `(${selectedItems.length})`}</span>
+                                </motion.button>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
             </div>
         </div>
-
-        {/* FINAL ACTION BUTTON - Sticky for mobile */}
-        <div className={`fixed md:static lg:absolute bottom-0 left-0 right-0 p-4 md:p-6 border-t md:border-none z-30 flex justify-end animate-in slide-in-from-bottom duration-300 ${isDark ? 'bg-[#1E1E1E] md:bg-transparent border-white/10' : 'bg-white md:bg-transparent border-gray-100 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]'}`}>
-            <button 
-                onClick={handleAssign} 
-                className={`w-full md:w-auto px-10 py-4 md:py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl md:rounded-xl shadow-xl shadow-blue-600/20 transition active:scale-95 flex items-center justify-center gap-2`}
-            >
-                <Check size={20} className="md:w-5 md:h-5" />
-                <span>Tayinlash</span>
-            </button>
-        </div>
-    </div>
     );
 }
 

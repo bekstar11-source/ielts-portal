@@ -62,6 +62,23 @@ export default function ReadingInterface({
     }
   };
 
+  // 🔥 YANGI: Restart bosilganda hamma narsani tozalaymiz
+  const handleRestart = () => {
+    if (testData?.id) {
+      // 1. Highlightlarni tozalash
+      localStorage.removeItem(`${HL_STORAGE_PREFIX}${testData.id}`);
+      setAllHighlights({});
+
+      // 2. Passage lardagi highlightlangan HTMLlarni tozalash
+      const passagesCount = testData.passages?.length || 3;
+      for (let i = 0; i < passagesCount; i++) {
+        localStorage.removeItem(`reading_session_${testData.id}_passage_${i}`);
+      }
+    }
+    // Asl restart funksiyasini chaqiramiz (javoblarni o'chiradi)
+    confirmRestart();
+  };
+
   // 🌉 KO'PRIK 2: RESUME QILISH (Sync Effect)
   useEffect(() => {
     if (!showResumeModal && sessionAnswers && Object.keys(sessionAnswers).length > 0) {
@@ -241,7 +258,7 @@ export default function ReadingInterface({
               We found a previous unfinished session. Would you like to continue?
             </p>
             <div className="flex gap-3 mt-6">
-              <button onClick={confirmRestart} className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium">Restart</button>
+              <button onClick={handleRestart} className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium">Restart</button>
               <button onClick={confirmResume} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Continue</button>
             </div>
           </div>
@@ -266,7 +283,7 @@ export default function ReadingInterface({
 
           {/* LEFT PANE */}
           <div
-            className="bg-white flex flex-col border-r border-gray-200 h-full overflow-y-auto select-text"
+            className="bg-white flex flex-col h-full overflow-y-auto select-text shadow-sm"
             style={{ width: `${leftWidth}%` }}
           >
             {(() => {
@@ -308,9 +325,10 @@ export default function ReadingInterface({
             })()}
           </div>
 
-          <div className="w-[6px] bg-gray-100 hover:bg-gray-300 cursor-col-resize flex justify-center items-center border-x border-gray-200 z-10 shrink-0" onMouseDown={startResizing}>
-            <div className="w-[1px] h-[20px] bg-gray-400"></div>
-          </div>
+          <div 
+            className="w-[8px] -mx-[4px] bg-transparent hover:bg-blue-500/10 cursor-col-resize z-20 shrink-0 transition-colors" 
+            onMouseDown={startResizing}
+          ></div>
 
           {/* RIGHT PANE */}
           <div

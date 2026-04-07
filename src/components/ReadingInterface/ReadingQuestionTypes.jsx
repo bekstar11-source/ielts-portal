@@ -63,14 +63,24 @@ export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewM
     const cleanStr = (s) => String(s || "").trim().toLowerCase().replace(/\.$/, '');
 
     // Find the option to get its text
+    // Find the option to get its text
     const selectedOption = options?.find((opt, idx) => {
-        if (typeof opt === 'object') {
-            const optLabel = opt.label || opt.id;
-            return cleanStr(optLabel) === cleanStr(value);
+        const toRomanLocal = (n) => {
+            const lookup = { m: 1000, cm: 900, d: 500, cd: 400, c: 100, xc: 90, l: 50, xl: 40, x: 10, ix: 9, v: 5, iv: 4, i: 1 };
+            let roman = '', i;
+            for (i in lookup) { while (n >= lookup[i]) { roman += i; n -= lookup[i]; } }
+            return roman;
+        };
+
+        const optText = typeof opt === 'object' ? opt.text : opt;
+        let optLabel = typeof opt === 'object' ? (opt.label || opt.id) : null;
+        
+        if (!optLabel) {
+            const match = String(optText).trim().match(/^([ivx\d]+)[\.\)\s]+/i);
+            optLabel = match ? match[1].toLowerCase() : toRomanLocal(idx + 1);
         }
-        // If it's a string, we match its generated label (A, B, C...)
-        const generatedLabel = String.fromCharCode(65 + idx);
-        return cleanStr(generatedLabel) === cleanStr(value) || cleanStr(opt) === cleanStr(value);
+
+        return cleanStr(optLabel) === cleanStr(value) || cleanStr(optText) === cleanStr(value);
     });
 
     const getOptionFullContent = () => {
@@ -92,7 +102,7 @@ export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewM
         <div
             ref={setNodeRef}
             className={`
-                min-h-[42px] w-full border-2 rounded-none flex items-center relative
+                min-h-[42px] w-full border-2 rounded-none flex flex-col justify-center relative
                 transition-all duration-300 px-3 py-2 group/slot mb-3
                 ${value 
                     ? (isReviewMode 
@@ -133,12 +143,27 @@ export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewM
             </div>
 
             {isReviewMode && !isCorrect && correctAnswer && (
-                <div className="absolute -bottom-8 left-0 bg-green-600 text-white text-[11px] px-2.5 py-1.5 rounded-none shadow-lg whitespace-normal max-w-full z-20 font-bold border border-green-700 animate-in slide-in-from-top-1">
+                <div className="mt-2 w-full bg-green-600 text-white text-[11px] px-2.5 py-1.5 rounded-none shadow-sm whitespace-normal font-bold border border-green-700 animate-in slide-in-from-top-1">
                     <span className="opacity-80 mr-1">Correct:</span>
-                    {options?.find(o => {
-                        const l = typeof o === 'object' ? (o.label || o.id) : o;
-                        return cleanStr(l) === cleanStr(correctAnswer);
-                    })?.text || correctAnswer}
+                    {(() => {
+                        const found = options?.find((o, idx) => {
+                            const toRomanLocal = (n) => {
+                                const lookup = { m: 1000, cm: 900, d: 500, cd: 400, c: 100, xc: 90, l: 50, xl: 40, x: 10, ix: 9, v: 5, iv: 4, i: 1 };
+                                let roman = '', i;
+                                for (i in lookup) { while (n >= lookup[i]) { roman += i; n -= lookup[i]; } }
+                                return roman;
+                            };
+                            const optText = typeof o === 'object' ? o.text : o;
+                            let optLabel = typeof o === 'object' ? (o.label || o.id) : null;
+                            if (!optLabel) {
+                                const match = String(optText).trim().match(/^([ivx\d]+)[\.\)\s]+/i);
+                                optLabel = match ? match[1].toLowerCase() : toRomanLocal(idx + 1);
+                            }
+                            return cleanStr(optLabel) === cleanStr(correctAnswer) || cleanStr(optText) === cleanStr(correctAnswer);
+                        });
+                        const finalText = found ? (typeof found === 'object' ? found.text : found) : correctAnswer;
+                        return stripRomanNumerals(finalText);
+                    })()}
                 </div>
             )}
         </div>
