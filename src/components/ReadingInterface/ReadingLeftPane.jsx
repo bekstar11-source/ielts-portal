@@ -208,7 +208,9 @@ const ReadingLeftPane = memo(({
     content,
     textSize = "text-base",
     highlightedId,
+    highlightTrigger,
     storageKey,
+
     isReviewMode,
     onAddToWordBank,
     matchingHeadingsGroup,
@@ -314,16 +316,24 @@ const ReadingLeftPane = memo(({
     // --- SCROLL TO QUESTION LOCATION ---
     useEffect(() => {
         if (highlightedId && containerRef.current) {
+            // 1. Oldingi barcha belgilashlarni tozalaymiz
+            const allLocs = containerRef.current.querySelectorAll("span[id^='loc_']");
+            allLocs.forEach(node => {
+                node.classList.remove('!border-green-500', '!border-solid', '!border-b-2');
+            });
+
+            // 2. Yangi elementni topamiz va belgilaymiz
             const el = containerRef.current.querySelector(`span[id="${highlightedId}"]`);
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('bg-yellow-500/30', 'transition-colors', 'duration-500');
-                setTimeout(() => {
-                    el.classList.remove('bg-yellow-500/30');
-                }, 2000);
+                
+                // Yashil chiziq chizamiz (border-dotted ni override qilish uchun ! ishlatamiz)
+                el.classList.add('!border-green-500', '!border-solid', '!border-b-2', 'transition-all', 'duration-500');
             }
         }
-    }, [highlightedId]);
+    }, [highlightedId, highlightTrigger]);
+
+
 
     // --- HIGHLIGHT CLICK (REMOVE) ---
     const handleHighlightClick = useCallback((e) => {

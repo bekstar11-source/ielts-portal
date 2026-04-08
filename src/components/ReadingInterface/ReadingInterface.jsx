@@ -132,6 +132,8 @@ export default function ReadingInterface({
   // --- STATE ---
   const [activePassage, setActivePassage] = useState(0);
   const [highlightedLoc, setHighlightedLoc] = useState(null);
+  const [highlightTrigger, setHighlightTrigger] = useState(0); 
+
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [activeDragData, setActiveDragData] = useState(null);
   const rootRef = useRef(null);
@@ -148,10 +150,27 @@ export default function ReadingInterface({
     }
   };
 
-  const handleLocationClick = (locId) => {
+  const handleLocationClick = (locId, passageIdOrIndex) => {
     if (!locId) return;
+
+    // Switch passage if needed
+    if (passageIdOrIndex !== undefined && passageIdOrIndex !== null) {
+      let targetIndex = -1;
+      if (typeof passageIdOrIndex === 'number') {
+        targetIndex = passageIdOrIndex;
+      } else {
+        targetIndex = testData.passages?.findIndex(p => p.id === passageIdOrIndex);
+      }
+
+      if (targetIndex >= 0 && targetIndex !== activePassage) {
+        setActivePassage(targetIndex);
+      }
+    }
+
     setHighlightedLoc(locId);
+    setHighlightTrigger(prev => prev + 1);
   };
+
 
   const handleScrollToQuestion = (questionId) => {
     const elementId = `q-${questionId}`;
@@ -314,6 +333,8 @@ export default function ReadingInterface({
                   content={highlightedPassageContent || ""}
                   textSize={textSize}
                   highlightedId={highlightedLoc}
+                  highlightTrigger={highlightTrigger}
+
                   storageKey={currentStorageKey}
                   isReviewMode={isReviewMode}
                   onAddToWordBank={onAddToWordBank}

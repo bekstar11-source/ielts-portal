@@ -144,11 +144,27 @@ const ReadingRightPane = memo(({
 
     const cleanInstructions = (group, isTFNG) => {
         let displayInstruction = group.instruction || "";
-        // Strip leading "Questions X-Y" (supports hyphens, en-dashes, and "to")
-        displayInstruction = displayInstruction.replace(/^(?:<[^>]*>)*Questions?\s+\d+(?:\s*(?:[\-–]|to)\s*\d+)?\s*/gi, '');
-        // Also strip standalone range fragments like "–33" or "-30" at the start
-        displayInstruction = displayInstruction.replace(/^(?:<[^>]*>)*[\-–]\d+\s*/g, '');
+        // Strip common redundant IELTS instructions
+        displayInstruction = displayInstruction
+            .replace(/^(?:<[^>]*>)*Questions?\s+\d+(?:\s*(?:[\-–]|to)\s*\d+)?\s*/gi, '')
+            .replace(/^(?:<[^>]*>)*[\-–]\d+\s*/g, '')
+            .replace(/(?:and\s+)?\d+\s+Choose\s+(?:ONE|TWO|THREE|FOUR|FIVE)\s+letters?,?\s*(?:[A-Z]-[A-Z–])?/gi, '')
+            .replace(/(?:Choose\s+the\s+correct\s+letter,\s*(?:[A-D]|A,\s*B,\s*C\s*or\s*D)\.?)/gi, '')
+            .replace(/Write the correct [^.]+ in boxes? [\d\s\-–,and]+ on your answer sheet\.?/gi, '')
+            .trim();
         
+        // Remove redundancy if the instruction contains the actual question text
+        if (group.items && group.items.length > 0) {
+            group.items.forEach(q => {
+                if (q.text) {
+                    const cleanQText = q.text.trim();
+                    if (cleanQText.length > 10 && displayInstruction.includes(cleanQText)) {
+                        displayInstruction = displayInstruction.replace(cleanQText, '').trim();
+                    }
+                }
+            });
+        }
+
         // Bold word limits and important phrases
         displayInstruction = displayInstruction.replace(/(NO MORE THAN [^.]+(?:WORDS?|NUMBERS?|A NUMBER)|ONE WORD ONLY|AND\/OR A NUMBER|TWO WORDS|THREE WORDS)/gi, '<strong>$1</strong>');
 
@@ -231,7 +247,7 @@ const ReadingRightPane = memo(({
                                 {rangeLabel && <h3 className="text-[15.5px] font-bold text-black mb-4">{rangeLabel}</h3>}
 
                                 {(!gIdx || (gIdx > 0 && String(filteredQuestions[gIdx - 1].instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase() !== String(group.instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase())) && group.instruction && (
-                                    <div className="bg-transparent border-none p-0 mb-6 shadow-none font-normal text-black italic text-[15.5px]" dangerouslySetInnerHTML={{ __html: displayInstruction }} />
+                                    <div className="bg-transparent border-none p-0 mb-6 shadow-none font-normal text-black text-[15.5px]" dangerouslySetInnerHTML={{ __html: displayInstruction }} />
                                 )}
 
                                 {/* MATCHING HEADINGS — DnD mode */}

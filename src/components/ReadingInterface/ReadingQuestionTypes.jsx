@@ -16,6 +16,18 @@ const stripRomanNumerals = (text) => {
     return text.trim();
 };
 
+const cleanStr = (s) => String(s || "").trim().toLowerCase();
+
+const cleanQuestionText = (text) => {
+    if (!text) return "";
+    return String(text)
+        .replace(/(?:and\s+)?\d+\s+Choose\s+(?:ONE|TWO|THREE|FOUR|FIVE)\s+letters?,?\s*([A-Z]-[A-Z–])?/gi, '')
+        .replace(/(?:Choose\s+the\s+correct\s+letter,\s*(?:[A-D]|A,\s*B,\s*C\s*or\s*D)\.?)/gi, '')
+        .replace(/Write the correct [^.]+ in boxes? [\d\s\-–,and]+ on your answer sheet\.?/gi, '')
+        .replace(/^\s*\d+\s+/g, '') // remove pure leading number
+        .trim();
+};
+
 // --- MATCHING HEADINGS DND KOMPONENTLARI ---
 
 export const ReadingDraggableHeading = ({ label, text, isUsed, isReviewMode }) => {
@@ -338,115 +350,145 @@ export const ChoiceQuestion = ({
 
     return (
         <div id={`q-${q.id}`} className="flex gap-3 items-start mb-5">
-            <div className="flex flex-col gap-1">
-                {(() => {
-                    const ids = expandQuestionIds(q.id);
-                    const isMulti = ids.length > 1;
-                    
-                    // Review mode uchun ranglar: nechtasi to'g'ri bo'lsa shuncha yashil badge
-                    let correctCount = 0;
-                    if (isReviewMode && isMulti) {
-                        const userA = String(val).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-                        const correctA = String(q.answer).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-                        correctCount = userA.filter(a => correctA.includes(a)).length;
-                    }
-
-                    return ids.map((id, idx) => {
-                        let indCorrect = isCorrect;
+            {(!isReviewMode && expandQuestionIds(q.id).length > 1) ? null : (
+                <div className="flex flex-col gap-1">
+                    {(() => {
+                        const ids = expandQuestionIds(q.id);
+                        const isMulti = ids.length > 1;
+                        
+                        let correctCount = 0;
                         if (isReviewMode && isMulti) {
-                            indCorrect = idx < correctCount;
+                            const userA = String(val).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                            const correctA = String(q.answer).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                            correctCount = userA.filter(a => correctA.includes(a)).length;
                         }
-                        return (
-                            <QuestionBadge 
-                                key={idx}
-                                id={id} 
-                                isReviewMode={isReviewMode} 
-                                isCorrect={indCorrect}
-                                onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)} 
-                            />
-                        );
-                    });
-                })()}
-            </div>
+
+                        return ids.map((id, idx) => {
+                            let indCorrect = isCorrect;
+                            if (isReviewMode && isMulti) {
+                                indCorrect = idx < correctCount;
+                            }
+                            return (
+                                <QuestionBadge 
+                                    key={idx}
+                                    id={id} 
+                                    isReviewMode={isReviewMode} 
+                                    isCorrect={indCorrect}
+                                    onClick={() => {
+                                        if (!isReviewMode) return;
+                                        let targetLoc = q.locationId;
+                                        if (typeof q.locationId === 'string' && q.locationId.includes(',')) {
+                                            targetLoc = q.locationId.split(',')[idx]?.trim();
+                                        } else if (Array.isArray(q.locationId)) {
+                                            targetLoc = q.locationId[idx];
+                                        }
+                                        handleLocationClick(targetLoc, group.passageId);
+                                    }} 
+                                />
+
+                            );
+                        });
+                    })()}
+                </div>
+            )}
             <div className="flex-1">
-                <HighlightableText
-                    id={`p-${activePassage}-q-${q.id}-text`}
-                    content={isReviewMode && keywordTable?.length ? injectKeywordsToHTML(q.text, keywordTable, true, q.id) : q.text}
-                    highlights={highlights ? highlights[`p-${activePassage}-q-${q.id}-text`] || [] : []}
-                    onTextSelect={handlePartSelect}
-                    onHighlightRemove={onRemoveHighlight}
-                    isReviewMode={isReviewMode}
-                    className="text-black font-medium leading-relaxed"
-                />
+                {(() => {
+                    const cleanedHeader = cleanQuestionText(q.text);
+                    return cleanedHeader ? (
+                        <HighlightableText
+                            id={`p-${activePassage}-q-${q.id}-text`}
+                            content={isReviewMode && keywordTable?.length ? injectKeywordsToHTML(cleanedHeader, keywordTable, true, q.id) : cleanedHeader}
+                            highlights={highlights ? highlights[`p-${activePassage}-q-${q.id}-text`] || [] : []}
+                            onTextSelect={handlePartSelect}
+                            onHighlightRemove={onRemoveHighlight}
+                            isReviewMode={isReviewMode}
+                            className="text-black font-medium leading-relaxed"
+                        />
+                    ) : null;
+                })()}
                 
-                <div className="mt-1.5 flex flex-col gap-1 pl-1">
+                <div className="mt-2 flex flex-col gap-1.5 pl-0">
                     {itemOptions.map((opt, idx) => {
                         const rawText = typeof opt === 'object' ? opt.text : opt;
                         const optId = typeof opt === 'object' ? (opt.id || rawText) : opt;
+                        const currentLetter = letters[idx] || letters[0];
                         const finalValue = getOptionValue(String(optId));
                         const isSelected = isMultiSelect
                             ? (val ? String(val).split(',').includes(String(finalValue)) : false)
                             : (String(val) === String(finalValue));
 
-                        let containerClass = "bg-transparent border-transparent hover:bg-gray-50";
-                        let badgeClass = isSelected ? 'bg-ielts-blue text-white border-ielts-blue' : 'bg-gray-100 text-gray-500';
-                        let radioClass = "border-gray-300";
+                        // Strip leading letter from text if it exists (e.g. "A Evidence" -> "Evidence")
+                        const cleanRawText = stripRomanNumerals(rawText.replace(new RegExp(`^${currentLetter}[\\.\\)\\s]+`, 'i'), '').trim());
+
+                        let containerClass = "bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50/50";
+                        let badgeClass = isSelected ? 'text-ielts-blue font-bold' : 'text-gray-600';
+                        let checkContainerClass = isSelected ? "border-ielts-blue ring-1 ring-blue-100" : "border-gray-300";
+                        let checkIconColor = "text-ielts-blue";
 
                         if (isReviewMode) {
                             const isThisCorrect = correctAnswersList.includes(String(finalValue).toLowerCase());
                             if (isThisCorrect) {
-                                containerClass = "bg-green-50 border-green-200 ring-1 ring-green-400";
-                                badgeClass = "bg-green-600 text-white border-green-600";
-                                radioClass = "border-green-600";
+                                containerClass = "bg-green-50 border-green-300";
+                                badgeClass = "text-green-700 font-bold";
+                                checkContainerClass = "border-green-600 bg-white ring-green-100";
+                                checkIconColor = "text-green-600";
                             } else if (isSelected && !isThisCorrect) {
-                                containerClass = "bg-red-50 border-red-200 ring-1 ring-red-400";
-                                badgeClass = "bg-red-600 text-white border-red-600";
-                                radioClass = "border-red-600";
+                                containerClass = "bg-red-50 border-red-300";
+                                badgeClass = "text-red-700 font-bold";
+                                checkContainerClass = "border-red-600 bg-white ring-red-100";
+                                checkIconColor = "text-red-600";
                             } else {
-                                containerClass = "opacity-50";
+                                containerClass = "opacity-60 border-gray-100";
                             }
                         } else if (isSelected) {
-                            containerClass = "bg-blue-50 border-blue-100";
+                            containerClass = "border-ielts-blue bg-blue-50/20";
                         }
 
                         const partId = `p-${activePassage}-q-${q.id}-opt-${idx}`;
 
                         return (
-                            <label key={idx} className={`flex items-center gap-3 cursor-pointer p-1.5 rounded-lg border transition-all ${containerClass}`}>
-                                {!(isTFNG || isYNNG) && (
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 shadow-sm border select-none ${badgeClass}`}>
-                                        {letters[idx] || letters[0]}
+                            <label key={idx} className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded-lg border transition-all shadow-sm ${containerClass}`}>
+                                <div className="relative flex items-center justify-center shrink-0">
+                                    <input
+                                        type={isMultiSelect ? "checkbox" : "radio"}
+                                        className="sr-only"
+                                        checked={isSelected}
+                                        onChange={() => {
+                                            if (isReviewMode) return;
+                                            const cleanOptionValue = getOptionValue(String(optId));
+                                            if (isMultiSelect) {
+                                                const current = val ? String(val).split(',').filter(Boolean) : [];
+                                                const limit = (group.type && group.type.includes('three')) ? 3 : 2;
+                                                let newA;
+                                                if (isSelected) newA = current.filter(a => a !== cleanOptionValue);
+                                                else { if (current.length >= limit) return; newA = [...current, cleanOptionValue].sort(); }
+                                                onAnswerChange(q.id, newA.join(','));
+                                            } else {
+                                                onAnswerChange(q.id, cleanOptionValue);
+                                            }
+                                        }}
+                                        disabled={isReviewMode}
+                                    />
+                                    <div className={`w-5 h-5 border-2 transition-all flex items-center justify-center bg-white ${isMultiSelect ? 'rounded-[4px]' : 'rounded-full'} ${checkContainerClass}`}>
+                                        {isSelected && (
+                                            <svg className={`w-3.5 h-3.5 ${checkIconColor} animate-in zoom-in-50 duration-200`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        )}
                                     </div>
-                                )}
-                                <input
-                                    type={isMultiSelect ? "checkbox" : "radio"}
-                                    className={`peer appearance-none w-4 h-4 border rounded-full checked:bg-ielts-blue transition-all cursor-pointer ${radioClass}`}
-                                    checked={isSelected}
-                                    onChange={() => {
-                                        if (isReviewMode) return;
-                                        const cleanOptionValue = getOptionValue(String(optId));
-                                        if (isMultiSelect) {
-                                            const current = val ? String(val).split(',').filter(Boolean) : [];
-                                            const limit = (group.type && group.type.includes('three')) ? 3 : 2;
-                                            let newA;
-                                            if (isSelected) newA = current.filter(a => a !== cleanOptionValue);
-                                            else { if (current.length >= limit) return; newA = [...current, cleanOptionValue].sort(); }
-                                            onAnswerChange(q.id, newA.join(','));
-                                        } else {
-                                            onAnswerChange(q.id, cleanOptionValue);
-                                        }
-                                    }}
-                                    disabled={isReviewMode}
-                                />
-                                <HighlightableText
-                                    id={partId}
-                                    content={isReviewMode && keywordTable?.length ? injectKeywordsToHTML(rawText, keywordTable, true, null) : rawText}
-                                    highlights={highlights ? highlights[partId] || [] : []}
-                                    onTextSelect={handlePartSelect}
-                                    onHighlightRemove={onRemoveHighlight}
-                                    isReviewMode={isReviewMode}
-                                    className="text-black font-medium leading-relaxed grow select-text"
-                                />
+                                </div>
+                                
+                                <div className="flex items-start flex-1">
+                                    <HighlightableText
+                                        id={partId}
+                                        content={isReviewMode && keywordTable?.length ? injectKeywordsToHTML(cleanRawText, keywordTable, true, null) : cleanRawText}
+                                        highlights={highlights ? highlights[partId] || [] : []}
+                                        onTextSelect={handlePartSelect}
+                                        onHighlightRemove={onRemoveHighlight}
+                                        isReviewMode={isReviewMode}
+                                        className="text-gray-800 font-medium text-[14.5px] leading-relaxed select-text flex-1"
+                                    />
+                                </div>
                             </label>
                         );
                     })}
