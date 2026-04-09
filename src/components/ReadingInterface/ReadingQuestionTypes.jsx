@@ -22,10 +22,37 @@ const cleanQuestionText = (text) => {
     if (!text) return "";
     return String(text)
         .replace(/(?:and\s+)?\d+\s+Choose\s+(?:ONE|TWO|THREE|FOUR|FIVE)\s+letters?,?\s*([A-Z]-[A-Z–])?/gi, '')
-        .replace(/(?:Choose\s+the\s+correct\s+letter,\s*(?:[A-D]|A,\s*B,\s*C\s*or\s*D)\.?)/gi, '')
-        .replace(/Write the correct [^.]+ in boxes? [\d\s\-–,and]+ on your answer sheet\.?/gi, '')
+        .replace(/(?:Choose\s+the\s+correct\s+letter,?\s*(?:[A-Z](?:,\s*[A-Z])*\s*or\s*[A-Z]|[A-Z]-[A-Z]|[A-Z])\.?)/gi, '')
+        .replace(/Write (?:your |the correct )?[^.]+?[\s]*in boxes? [\d\s\-–,and]+ on (?:your |the )?answer sheet\.?/gi, '')
         .replace(/^\s*\d+\s+/g, '') // remove pure leading number
         .trim();
+};
+
+const cleanExplanation = (text) => {
+    if (!text) return "";
+    return String(text)
+        .replace(/(?:and\s+)?\d+\s+Choose\s+(?:ONE|TWO|THREE|FOUR|FIVE)\s+letters?,?\s*([A-Z]-[A-Z–])?/gi, '')
+        .replace(/(?:Choose\s+the\s+correct\s+letter,?\s*(?:[A-Z](?:,\s*[A-Z])*\s*or\s*[A-Z]|[A-Z]-[A-Z]|[A-Z])\.?)/gi, '')
+        .replace(/Write (?:your |the correct )?[^.]+?[\s]*in boxes? [\d\s\-–,and]+ on (?:your |the )?answer sheet\.?/gi, '')
+        .trim();
+};
+
+const QuestionExplanation = ({ text }) => {
+    if (!text) return null;
+    const cleaned = cleanExplanation(text);
+    if (!cleaned) return null;
+    
+    return (
+        <div className="mt-3 p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-gray-700 leading-relaxed animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-1.5 mb-1.5 text-blue-700 font-bold uppercase tracking-wider text-[10px]">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Explanation
+            </div>
+            <div dangerouslySetInnerHTML={{ __html: cleaned }} />
+        </div>
+    );
 };
 
 // --- MATCHING HEADINGS DND KOMPONENTLARI ---
@@ -493,6 +520,7 @@ export const ChoiceQuestion = ({
                         );
                     })}
                 </div>
+                {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} />}
             </div>
         </div>
     );
@@ -612,6 +640,7 @@ export const GapFillQuestion = ({
                     )}
                 </div>
             )}
+            {isReviewMode && q.explanation && !isSummary && <QuestionExplanation text={q.explanation} />}
         </div>
     );
 };

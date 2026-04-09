@@ -148,10 +148,17 @@ const ReadingRightPane = memo(({
         displayInstruction = displayInstruction
             .replace(/^(?:<[^>]*>)*Questions?\s+\d+(?:\s*(?:[\-–]|to)\s*\d+)?\s*/gi, '')
             .replace(/^(?:<[^>]*>)*[\-–]\d+\s*/g, '')
-            .replace(/(?:and\s+)?\d+\s+Choose\s+(?:ONE|TWO|THREE|FOUR|FIVE)\s+letters?,?\s*(?:[A-Z]-[A-Z–])?/gi, '')
-            .replace(/(?:Choose\s+the\s+correct\s+letter,\s*(?:[A-D]|A,\s*B,\s*C\s*or\s*D)\.?)/gi, '')
-            .replace(/Write the correct [^.]+ in boxes? [\d\s\-–,and]+ on your answer sheet\.?/gi, '')
+            .replace(/^\s*\d+[\s.]*/g, '') // Remove leading question number like "34." or "34 "
+            .replace(/Write (?:your |the correct )?[^.]+?[\s]*in boxes? [\d\s\-–,and]+ on (?:your |the )?answer sheet\.?/gi, '')
             .trim();
+
+        // Standardize Multiple Choice instruction
+        if (displayInstruction.toLowerCase().includes("choose the correct letter")) {
+            displayInstruction = "Choose the correct letter, A, B, C or D.";
+        } else {
+            // Remove leading question numbers if they still exist
+            displayInstruction = displayInstruction.replace(/^\d+[\s.]+/g, '');
+        }
         
         // Remove redundancy if the instruction contains the actual question text
         if (group.items && group.items.length > 0) {
