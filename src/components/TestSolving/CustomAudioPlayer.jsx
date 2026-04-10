@@ -15,14 +15,14 @@ export default function CustomAudioPlayer({
     onEnded, 
     startTime = 0, 
     endTime = 0,
-    variant = 'light' // 'light' (default) or 'dark' (for dark headers)
+    variant = 'light', // 'light' (default) or 'dark' (for dark headers)
+    volume = 1 // Added volume prop
 }) {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
-    const [volume, setVolume] = useState(1);
     const [playbackRate, setPlaybackRate] = useState(1);
     const progressRef = useRef(null);
     const isVisible = index === activePart;
@@ -38,11 +38,11 @@ export default function CustomAudioPlayer({
     
     const timeClass = isDark ? "text-[10px] font-mono text-gray-400 shrink-0 tabular-nums" : "text-[11px] font-mono text-gray-400 shrink-0 tabular-nums";
     const railClass = isDark ? "flex-1 h-1 bg-white/10 cursor-pointer relative rounded-full group touch-none" : "flex-1 h-1.5 bg-gray-100 cursor-pointer relative rounded-full group touch-none";
-    const fillClass = isDark ? "absolute top-0 left-0 h-full bg-blue-500 rounded-full group-hover:bg-blue-400" : "absolute top-0 left-0 h-full bg-blue-500 rounded-full group-hover:bg-blue-600";
-    const thumbClass = isDark ? "absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity" : "absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-blue-600 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity";
+    const fillClass = isDark ? "absolute top-0 left-0 h-full bg-white rounded-full opacity-80" : "absolute top-0 left-0 h-full bg-black rounded-full";
+    const thumbClass = isDark ? "absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity" : "absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-black rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity";
     const btnClass = isDark 
         ? `flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition-colors focus:outline-none ${isExam ? 'text-white/20' : 'bg-white/10 hover:bg-white/20 text-white'}` 
-        : `flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-colors focus:outline-none ${isExam ? 'bg-gray-100 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}`;
+        : `flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-colors focus:outline-none ${isExam ? 'bg-gray-100 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-black'}`;
 
     // Wire up audio events
     useEffect(() => {
@@ -61,6 +61,8 @@ export default function CustomAudioPlayer({
             }
             // Apply current playback rate on load
             audio.playbackRate = playbackRate;
+            // Apply current volume on load
+            audio.volume = volume;
         };
 
         const onTimeUpdate = () => {
@@ -88,8 +90,9 @@ export default function CustomAudioPlayer({
         audio.addEventListener('loadedmetadata', onLoaded);
         audio.addEventListener('timeupdate', onTimeUpdate);
 
-        // Sync playback rate immediately if audio is already loaded
+        // Sync volume and playback rate immediately
         audio.playbackRate = playbackRate;
+        audio.volume = volume;
 
         // Ensure we start at startTime
         if (audio.currentTime < startTime) {
@@ -104,7 +107,7 @@ export default function CustomAudioPlayer({
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('timeupdate', onTimeUpdate);
         };
-    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate]);
+    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate, volume]);
 
     // Exam auto-play logic
     // Exam auto-play logic - very aggressive to overcome browser blocks
@@ -208,38 +211,11 @@ export default function CustomAudioPlayer({
         return `${m}:${sec.toString().padStart(2, '0')}`;
     };
 
-    const handleVolumeChange = (e) => {
-        const v = parseFloat(e.target.value);
-        setVolume(v);
-        if (audioRef.current) audioRef.current.volume = v;
-    };
-
     const handleSpeedToggle = () => {
         if (isExam) return;
         const currentIndex = speeds.indexOf(playbackRate);
         const nextIndex = (currentIndex + 1) % speeds.length;
         setPlaybackRate(speeds[nextIndex]);
-    };
-
-    const VolumeIcon = () => {
-        const baseClass = `w-4 h-4 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-700'}`;
-        
-        if (volume === 0) return (
-            <svg className={baseClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-            </svg>
-        );
-        if (volume < 0.5) return (
-            <svg className={baseClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            </svg>
-        );
-        return (
-            <svg className={baseClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            </svg>
-        );
     };
 
     // Pause audio on unmount (but do NOT clear src — that causes NotSupportedError on re-render)
@@ -327,38 +303,15 @@ export default function CustomAudioPlayer({
                         } ${
                             isDark 
                             ? 'border-white/10 text-gray-400 bg-white/5 hover:bg-white/10 hover:text-white' 
-                            : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-blue-600'
+                            : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-black'
                         }`}
                     >
                         {playbackRate}x
                     </button>
-
-                    {/* Volume Inline */}
-                    <div className="flex items-center gap-2 shrink-0 group">
-                        <button
-                            className="transition-colors"
-                            title="Mute/Unmute"
-                            onClick={() => {
-                                if (audioRef.current) audioRef.current.muted = !audioRef.current.muted;
-                            }}
-                        >
-                            <VolumeIcon />
-                        </button>
-                        <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.02"
-                            value={volume}
-                            onChange={handleVolumeChange}
-                            title="Volume"
-                            className={`w-12 sm:w-16 h-1 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all opacity-40 group-hover:opacity-100 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}
-                            style={{ outline: "none" }}
-                        />
-                    </div>
                 </div>
             )}
         </div>
     );
 }
+
 

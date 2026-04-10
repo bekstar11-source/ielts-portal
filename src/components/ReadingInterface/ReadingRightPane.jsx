@@ -1,5 +1,6 @@
 import React, { memo, useState, useRef, useCallback } from "react";
 import HighlightMenu from './HighlightMenu';
+import useTextSelection from "../../hooks/useTextSelection";
 import { getSelectionOffsets } from '../../utils/highlightUtils';
 import { 
     ChoiceQuestion, 
@@ -28,10 +29,14 @@ const ReadingRightPane = memo(({
     testName,
     onSaveAllWords,
     isSavingWB,
-    keywordTable = []
+    keywordTable = [],
+
+    onAddNote,
+    onOpenNotes
 }) => {
     const internalRef = useRef(null);
     const [tempSelection, setTempSelection] = useState(null);
+    const { addToDictionary } = useTextSelection();
 
     const setRefs = useCallback((node) => {
         internalRef.current = node;
@@ -47,40 +52,60 @@ const ReadingRightPane = memo(({
 
     const handlePartSelect = useCallback((partId, selection, containerNode) => {
         const { start, end, text } = getSelectionOffsets(selection, containerNode);
-        if (!text || text.trim().length < 1) return;
+        if (!text || text.trim().length < 2) return;
 
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
-        const container = internalRef.current;
 
-        if (container) {
-            const containerRect = container.getBoundingClientRect();
-            const relativeTop = rect.top - containerRect.top + container.scrollTop;
-            const relativeLeft = rect.left - containerRect.left + container.scrollLeft + (rect.width / 2);
-
-            setTempSelection({
-                id: partId,
-                start,
-                end,
-                position: {
-                    top: relativeTop - 45,
-                    left: relativeLeft
-                }
-            });
-        }
+        setTempSelection({
+            id: partId,
+            start,
+            end,
+            position: {
+                top: rect.top - 55,
+                left: rect.left + (rect.width / 2)
+            }
+        });
     }, []);
 
-    const applyColor = useCallback((color) => {
+    const applyAction = useCallback((action) => {
         if (tempSelection) {
-            onAddHighlight(tempSelection.id, {
-                start: tempSelection.start,
-                end: tempSelection.end,
-                color: color
-            });
+            if (action === 'note') {
+                const hlId = `hl-${Date.now()}`;
+                const noteColor = 'bg-blue-300'; 
+                
+                onAddHighlight(tempSelection.id, {
+                    id: hlId,
+                    start: tempSelection.start,
+                    end: tempSelection.end,
+                    color: noteColor,
+                    isNote: true
+                });
+                
+                const text = window.getSelection().toString();
+                if (onAddNote) {
+                    onAddNote({
+                        id: `note-${Date.now()}`,
+                        text: text,
+                        hlId: hlId,
+                        timestamp: Date.now(),
+                        source: 'question',
+                        partId: tempSelection.id,
+                        start: tempSelection.start,
+                        end: tempSelection.end
+                    });
+                }
+            } else {
+                onAddHighlight(tempSelection.id, {
+                    start: tempSelection.start,
+                    end: tempSelection.end,
+                    color: action
+                });
+            }
             setTempSelection(null);
             window.getSelection().removeAllRanges();
         }
-    }, [tempSelection, onAddHighlight]);
+    }, [tempSelection, onAddHighlight, onAddNote]);
 
     const clearSelectionMenu = useCallback(() => {
         setTempSelection(null);
@@ -184,24 +209,26 @@ const ReadingRightPane = memo(({
     };
 
     return (
-        <div
-            className={`h-full overflow-y-auto p-6 pb-20 box-border relative select-text bg-white text-black`}
-            style={{
-                fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',
-                transition: 'font-size 0.3s ease-in-out'
-            }}
-            ref={setRefs}
-        >
+        <div className="h-full relative flex flex-col">
             <HighlightMenu
                 position={tempSelection?.position}
-                onHighlight={applyColor}
+                onHighlight={applyAction}
                 onClear={clearSelectionMenu}
+                onAddDictionary={() => addToDictionary({ sectionTitle: `Questions`, testTitle: testName || "Reading Test" })}
                 isReviewMode={isReviewMode}
                 onAddToWordBank={onAddToWordBank}
+                onAddNote={() => applyAction('note')}
                 source="question"
             />
 
-            <>
+            <div
+                className={`flex-1 overflow-y-auto p-6 pb-20 box-border relative select-text bg-white text-black`}
+                style={{
+                    fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',
+                    transition: 'font-size 0.3s ease-in-out'
+                }}
+                ref={setRefs}
+            >
                 {testData.questions
                     .filter(g => g.passageId === testData.passages[activePassage].id)
                     .map((group, gIdx, filteredQuestions) => {
@@ -360,7 +387,7 @@ const ReadingRightPane = memo(({
                             </div>
                         );
                     })}
-            </>
+            </div>
         </div>
     );
 }, (prev, next) =>

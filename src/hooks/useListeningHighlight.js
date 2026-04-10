@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
 
 /**
  * useListeningHighlight
@@ -219,23 +219,28 @@ export function useListeningHighlight(testId, activePart, userAnswers, externalI
     }, [load]);
 
     // Part o'zgarganda saqlangan highlightlarni DOM ga qayta qo'llash
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            applyStoredHighlights();
-        }, 180);          // 180ms — React render + layout uchun yetarli
-        return () => clearTimeout(timer);
+    // Part o'zgarganda saqlangan highlightlarni DOM ga qayta qo'llash
+    useLayoutEffect(() => {
+        applyStoredHighlights();
     }, [activePart, applyStoredHighlights]);
 
     // userAnswers o'zgarganda (input/select trigger) highlight lar qayta restore qilinadi
-    useEffect(() => {
-        // Faqat highlight bor bo'lsa restore qilish kerak
+    // Flicker oldini olish uchun useLayoutEffect ishlatamiz (paint bo'lishidan oldin tiklash uchun)
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
         const saved = load();
         if (saved.length === 0) return;
-        // React DOM ni yangilagandan keyin restore
-        const timer = setTimeout(() => {
-            applyStoredHighlights();
-        }, 0);
-        return () => clearTimeout(timer);
+
+        // Smart Check: Agar DOM da spanlar hali ham turgan bo'lsa - hech narsa qilmaymiz
+        const existingSpans = container.querySelectorAll(".listening-hl");
+        if (existingSpans.length === saved.length) {
+            return;
+        }
+
+        // React DOM ni yangilagandan keyin darhol tiklaymiz
+        applyStoredHighlights();
     }, [userAnswers, applyStoredHighlights, load]);
 
     // Mouse up — highlight qo'shish yoki olib tashlash

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, collection, query, where, getDocs, updateDoc, setDoc, increment, serverTimestamp, writeBatch } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
-import { calculateBandScore, checkAnswer, scoreMultiAnswer } from "../utils/ieltsScoring";
+import { calculateBandScore, checkAnswer, scoreMultiAnswer, isMultiAnswerType } from "../utils/ieltsScoring";
 import { logAction } from "../utils/logger";
 
 export function useTestLogic() {
@@ -39,7 +39,6 @@ export function useTestLogic() {
         if (!testId || !user) return;
 
         const fetchTest = async () => {
-            console.time(`fetchTest_${testId}`);
             try {
                 // --- ADMIN OPTIMIZATION ---
                 if (userData?.role === 'admin') {
@@ -54,7 +53,6 @@ export function useTestLogic() {
                         navigate("/dashboard");
                     }
                     setLoading(false);
-                    console.timeEnd(`fetchTest_${testId}`);
                     return;
                 }
 
@@ -209,7 +207,6 @@ export function useTestLogic() {
                 alert("Testni yuklashda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
             } finally { 
                 setLoading(false); 
-                console.timeEnd(`fetchTest_${testId}`);
             }
         };
 
@@ -373,27 +370,76 @@ export function useTestLogic() {
                 const scoredIds = new Set(); // Har bir savol faqat bir marta hisoblanishi uchun
 
                 test.questions.forEach(q => {
+                    if (!q) return;
+
+                    // MULTI-ANSWER GROUP HANDLING
+                    if (isMultiAnswerType(q.type)) {
+                        const groupItems = [];
+                        const collectItems = (obj) => {
+                            if (!obj) return;
+                            if (obj.id && (obj.answer || obj.correct_answer)) {
+                                groupItems.push(obj);
+                            }
+                            const subKeys = ['questions', 'items', 'rows', 'groups', 'cells', 'content'];
+                            for (const sk of subKeys) {
+                                const val = obj[sk];
+                                if (val && Array.isArray(val)) {
+                                    val.forEach(collectItems);
+                                } else if (val && typeof val === 'object') {
+                                    collectItems(val);
+                                }
+                            }
+                        };
+                        collectItems(q);
+
+                        if (groupItems.length > 0) {
+                            const allCorrect = groupItems.map(i => i.answer || i.correct_answer).join(', ');
+                            const allUser = groupItems.map(i => userAnswers[i.id] || userAnswers[String(i.id)] || "").join(', ');
+                            
+                            const type = String(q.type).toLowerCase();
+                            const weight = type.includes('three') || type.includes('3') ? 3 : 
+                                         (type.includes('two') || type.includes('2') ? 2 : groupItems.length);
+                                         
+                            const result = scoreMultiAnswer(allCorrect, allUser, weight);
+                            totalQ += result.weight;
+                            correctCount += result.matches;
+
+                            if (result.matches < result.weight && allUser.trim()) {
+                                mistakes.push({
+                                    questionId: groupItems.map(i => i.id).join(', '),
+                                    testId: test.id,
+                                    testTitle: test.title || 'Untitled Test',
+                                    attemptDate: resultData.date,
+                                    userResponse: allUser,
+                                    correctAnswer: allCorrect,
+                                    isMulti: true
+                                });
+                            }
+
+                            groupItems.forEach(i => scoredIds.add(String(i.id)));
+                            return;
+                        }
+                    }
 
                     const scoreItem = (id, correct, groupType) => {
                         if (id == null) return;
                         
                         const idStr = String(id).trim();
                         const type = String(groupType || "").toLowerCase();
-                        const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
-                        const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
+                        const isMulti = isMultiAnswerType(type);
 
-                        // Savolni haqiqiy ekanligini tekshirish (faqat raqamli ID lar haqiqiy savol)
-                        // Range-based ID lar (25-26) skip qilinadi, chunki ular multi-answer logic ichida split qilinadi yoki handled
                         const isNumeric = /^\d+$/.test(idStr);
-                        if (!isNumeric && !isMultiTwo && !isMultiThree) return;
+                        if (!isNumeric && !isMulti) return;
 
                         if (scoredIds.has(idStr)) return;
                         scoredIds.add(idStr);
 
                         const userResp = userAnswers[idStr] || userAnswers[id] || "";
 
-                        if (isMultiTwo || isMultiThree) {
-                            const weight = isMultiThree ? 3 : 2;
+                        if (isMulti) {
+                            const weight = type.includes('three') || type.includes('3') ? 3 : 
+                                         (type.includes('two') || type.includes('2') ? 2 : 1);
+                                         
                             const result = scoreMultiAnswer(correct, userResp, weight);
                             
                             totalQ += result.weight;
@@ -410,8 +456,8 @@ export function useTestLogic() {
                                 });
                             }
                         } else {
-                            totalQ++; // id bo'lgan har qanday savol hisoblanadi
-                            if (!correct) return; // javob kaliti yo'q — to'g'ri hisoblanmaydi
+                            totalQ++;
+                            if (!correct) return;
                             
                             if (checkAnswer(correct, userResp)) {
                                 correctCount++;
@@ -428,60 +474,23 @@ export function useTestLogic() {
                         }
                     };
 
-                    // 1. q.items — flow_chart, matching, map_labeling, table_completion items
-                    if (q.items && Array.isArray(q.items) && q.items.length > 0) {
-                        q.items.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
-                    }
+                    const processRecursive = (obj) => {
+                        if (!obj || typeof obj !== 'object') return;
+                        if (obj.id && (obj.answer || obj.correct_answer)) {
+                            scoreItem(obj.id, obj.answer || obj.correct_answer, q.type);
+                        }
+                        const subKeys = ['questions', 'items', 'rows', 'groups', 'cells', 'content'];
+                        for (const sk of subKeys) {
+                            const val = obj[sk];
+                            if (val && Array.isArray(val)) {
+                                val.forEach(processRecursive);
+                            } else if (val && typeof val === 'object') {
+                                processRecursive(val);
+                            }
+                        }
+                    };
 
-                    // 2. q.questions — multiple_choice grouped, map_labeling, matching, selection
-                    if (q.questions && Array.isArray(q.questions) && q.questions.length > 0) {
-                        q.questions.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
-                    }
-
-                    // 3. q.groups — note_completion, gap_fill nested groups
-                    if (q.groups && Array.isArray(q.groups) && q.groups.length > 0) {
-                        q.groups.forEach(grp => {
-                            const grpItems = grp.items || grp.questions || [];
-                            grpItems.forEach(item => scoreItem(item.id, item.answer || item.correct_answer, q.type));
-                        });
-                    }
-
-                    // 4. q.rows — table_completion fallback (faqat q.items yo'q bo'lganda)
-                    if (q.rows && Array.isArray(q.rows) && q.rows.length > 0 && (!q.items || q.items.length === 0)) {
-                        q.rows.forEach(row => {
-                            const cells = Array.isArray(row) ? row : (row.cells || []);
-                            cells.forEach(cell => {
-                                // 1. Direct ID (Simple cell)
-                                if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
-                                    scoreItem(cell.id, cell.answer || cell.correct_answer, q.type);
-                                }
-                                // 2. Multi-question cell
-                                if (cell.isMultiQuestion && cell.content) {
-                                    cell.content.forEach(subQ => {
-                                        scoreItem(subQ.id, subQ.answer || subQ.correct_answer, q.type);
-                                    });
-                                }
-                                // 3. Mixed content parts
-                                if (cell.isMixed && cell.parts) {
-                                    cell.parts.forEach(part => {
-                                        if (part.type === 'input') {
-                                            scoreItem(part.id, part.answer || part.correct_answer, q.type);
-                                        }
-                                    });
-                                }
-                            });
-                        });
-                    }
-
-                    // 5. Flat question — hech qanday sub-array yo'q
-                    if (
-                        (!q.items || q.items.length === 0) &&
-                        (!q.questions || q.questions.length === 0) &&
-                        (!q.groups || q.groups.length === 0) &&
-                        (!q.rows || q.rows.length === 0)
-                    ) {
-                        scoreItem(q.id, q.answer || q.correct_answer, q.type);
-                    }
+                    processRecursive(q);
                 });
 
                 const band = calculateBandScore(correctCount, test.type, totalQ);

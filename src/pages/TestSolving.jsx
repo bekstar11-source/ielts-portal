@@ -23,6 +23,7 @@ export default function TestSolving() {
 
     // Back qilinganda yoki Finish bosilganda warning modal state
     const [showFinishWarning, setShowFinishWarning] = useState(false);
+    const [isNotesVisible, setIsNotesVisible] = useState(false);
     const backBlockedRef = useRef(false);
 
     // Reading testda testni boshlaganida (showModeSelection=false) va tugamagan bo'lsa bloklash
@@ -86,7 +87,7 @@ export default function TestSolving() {
     const isSpeaking = testType === 'speaking';
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 font-sans select-none">
+        <div className={`flex flex-col h-screen bg-gray-50 font-sans select-none ${textSize}`}>
 
             {/* FINISH WARNING MODAL */}
             {showFinishWarning && (
@@ -149,6 +150,9 @@ export default function TestSolving() {
                 isReviewing={isReviewing}
                 setAudioTime={setAudioTime}
                 triggerPlay={triggerPlay}
+                isFullScreen={isFullScreen}
+                onToggleFullScreen={handleToggleFullScreen}
+                onOpenNotes={() => setIsNotesVisible(true)}
             />
 
             {/* CONTENT AREA */}
@@ -188,6 +192,8 @@ export default function TestSolving() {
                                     flaggedQuestions={flaggedQuestions}
                                     isReviewMode={isReviewing}
                                     textSize={textSize}
+                                    isNotesVisible={isNotesVisible}
+                                    setIsNotesVisible={setIsNotesVisible}
                                 />
                             </div>
                         ) : isListening ? (

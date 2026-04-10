@@ -6,8 +6,9 @@
 @layer base {
 
   /* Body uchun umumiy sozlamalar */
-  body {
+  html, body {
     @apply bg-ielts-bg text-text-primary font-sans;
+    overscroll-behavior: none;
   }
 
   /* Butun sayt bo'ylab matn belgilangandagi rang (Apple style) */
@@ -45,6 +46,10 @@
     width: 6px;
     height: 6px;
   }
+  
+  .custom-scrollbar {
+    overscroll-behavior: none;
+  }
 
   .custom-scrollbar::-webkit-scrollbar-track {
     @apply bg-gray-100 rounded-lg;
@@ -73,6 +78,7 @@
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    overscroll-behavior: none;
   }
 
   /* --- HIGHLIGHT STYLES (Sariq marker) --- */
@@ -170,3 +176,182 @@
 .backface-hidden {
   backface-visibility: hidden;
 }
+
+/* CONTRAST MODES */
+.white-on-black body, 
+.white-on-black #root,
+.white-on-black .app-container {
+    background-color: #000 !important;
+    color: #fff !important;
+}
+
+/* Very Aggressive Background Overrides */
+.white-on-black [class*="bg-"]:not(.bg-blue-600):not(.bg-green-600):not(.bg-green-500):not(.bg-red-600):not(.bg-red-500):not(.bg-emerald-600) {
+    background-color: #000 !important;
+    color: #fff !important;
+    border-color: #fff !important;
+}
+
+/* Force almost all text to white */
+.white-on-black *:not(.text-green-600):not(.text-green-700):not(.text-red-600):not(.text-red-700):not(.bg-blue-600):not(.bg-green-600):not(.bg-green-500):not(.bg-red-600):not(.bg-red-500):not(.bg-emerald-600) {
+    color: #fff !important;
+}
+
+.white-on-black [class*="text-"]:not(.text-green-600):not(.text-green-700):not(.text-red-600):not(.text-red-700) {
+    color: #fff !important;
+}
+
+/* Borders to White */
+.white-on-black [class*="border"] {
+    border-color: #fff !important;
+}
+
+/* Force prose (passage) text to white */
+.white-on-black .prose *, 
+.white-on-black .prose p, 
+.white-on-black .prose span, 
+.white-on-black .prose h1, 
+.white-on-black .prose h2, 
+.white-on-black .prose h3 {
+    color: #fff !important;
+}
+
+/* Inputs and textareas */
+.white-on-black input,
+.white-on-black textarea,
+.white-on-black select {
+    background-color: #000 !important;
+    color: #fff !important;
+    border: 1px solid #fff !important;
+}
+
+.white-on-black input::placeholder {
+    color: #fff !important;
+    opacity: 0.7;
+}
+
+.white-on-black .shadow-sm,
+.white-on-black .shadow-md,
+.white-on-black .shadow-lg,
+.white-on-black .shadow-xl {
+    box-shadow: none !important;
+}
+
+/* Ensure question numbers and badges are visible */
+.white-on-black [class*="min-w-"][class*="h-"],
+.white-on-black [class*="badge"],
+.white-on-black .QuestionBadge {
+    background-color: #000 !important;
+    color: #fff !important;
+    border: 1px solid #fff !important;
+}
+
+
+/* --- Yellow on Black --- */
+.yellow-on-black body,
+.yellow-on-black #root,
+.yellow-on-black .app-container {
+    background-color: #000 !important;
+    color: #ffff00 !important;
+}
+
+.yellow-on-black [class*="bg-"]:not(.bg-blue-600):not(.bg-green-600):not(.bg-green-500):not(.bg-red-600):not(.bg-red-500):not(.bg-emerald-600) {
+    background-color: #000 !important;
+    color: #ffff00 !important;
+    border-color: #ffff00 !important;
+}
+
+/* Force almost all text to yellow */
+.yellow-on-black *:not(.text-green-600):not(.text-green-700):not(.text-red-600):not(.text-red-700):not(.bg-blue-600):not(.bg-green-600):not(.bg-green-500):not(.bg-red-600):not(.bg-red-500):not(.bg-emerald-600) {
+    color: #ffff00 !important;
+}
+
+.yellow-on-black [class*="text-"]:not(.text-green-600):not(.text-green-700):not(.text-red-600):not(.text-red-700) {
+    color: #ffff00 !important;
+}
+
+/* Borders to Yellow */
+.yellow-on-black [class*="border"] {
+    border-color: #ffff00 !important;
+}
+
+/* Inputs and textareas */
+.yellow-on-black input,
+.yellow-on-black textarea,
+.yellow-on-black select {
+    background-color: #000 !important;
+    color: #ffff00 !important;
+    border: 1px solid #ffff00 !important;
+}
+
+.yellow-on-black input::placeholder {
+    color: #ffff00 !important;
+    opacity: 0.7;
+}
+
+.yellow-on-black .shadow-sm,
+.yellow-on-black .shadow-md,
+.yellow-on-black .shadow-lg,
+.yellow-on-black .shadow-xl {
+    box-shadow: none !important;
+}
+
+/* Ensure question numbers and badges are visible */
+.yellow-on-black [class*="min-w-"][class*="h-"],
+.yellow-on-black [class*="badge"],
+.yellow-on-black .QuestionBadge {
+    background-color: #000 !important;
+    color: #ffff00 !important;
+    border: 1px solid #ffff00 !important;
+}
+
+/* Ensure reading passage text is also yellow */
+.yellow-on-black .prose *,
+.yellow-on-black .prose p,
+.yellow-on-black .prose span,
+.yellow-on-black .prose h1,
+.yellow-on-black .prose h2,
+.yellow-on-black .prose h3 {
+    color: #ffff00 !important;
+}
+
+/* General improvements for readability in high contrast */
+.white-on-black button:not(.bg-blue-600):not(.bg-green-600),
+.yellow-on-black button:not(.bg-blue-600):not(.bg-green-600) {
+    color: inherit !important;
+}
+
+.white-on-black .shadow-sm,
+.white-on-black .shadow-md,
+.white-on-black .shadow-lg,
+.yellow-on-black .shadow-sm,
+.yellow-on-black .shadow-md,
+.yellow-on-black .shadow-lg {
+    box-shadow: none !important;
+    border: 1px solid #444 !important;
+}
+
+/* Hidden elements in high contrast that might cause confusion */
+.white-on-black .bg-blue-50,
+.yellow-on-black .bg-blue-50,
+.white-on-black .bg-gray-100,
+.yellow-on-black .bg-gray-100,
+.white-on-black .bg-slate-50,
+.yellow-on-black .bg-slate-50 {
+    background-color: #000 !important;
+}
+
+/* Fix for overlapping or hidden text in options/modals */
+.white-on-black .fixed.inset-0,
+.yellow-on-black .fixed.inset-0 {
+    background-color: #000 !important;
+}
+
+.white-on-black .bg-white,
+.yellow-on-black .bg-white {
+    background-color: #000 !important;
+}
+
+/* Placeholder global fix */
+.white-on-black *::placeholder { color: #fff !important; opacity: 1 !important; }
+.yellow-on-black *::placeholder { color: #ffff00 !important; opacity: 1 !important; }

@@ -1,16 +1,30 @@
 export const checkAnswer = (userVal, correctVal) => {
     if (!correctVal || (Array.isArray(correctVal) && correctVal.length === 0)) return false;
     if (!userVal) return false;
+    
     const u = String(userVal).trim().toLowerCase();
-    const correctList = (Array.isArray(correctVal) ? correctVal : String(correctVal).split(/[\/|]/))
-        .map(c => String(c).trim().toLowerCase());
-    return correctList.includes(u);
+    
+    // To'g'ri javoblar ro'yxatini shakllantirish (/, |, yoki , bilan ajratilgan bo'lishi mumkin)
+    const correctList = (Array.isArray(correctVal) ? correctVal : String(correctVal).split(/[\/|,]/))
+        .map(c => String(c).trim().toLowerCase())
+        .filter(Boolean);
+        
+    // Agar foydalanuvchi javobi to'g'ri javoblar ro'yxatida bo'lsa (multi-answer holati uchun)
+    if (correctList.includes(u)) return true;
+    
+    // Agar foydalanuvchi o'zi bir nechta javob yozgan bo'lsa (masalan "A, B")
+    if (u.includes(',') || u.includes('/') || u.includes('|')) {
+        const userList = u.split(/[\/|,]/).map(s => s.trim()).filter(Boolean);
+        return userList.every(val => correctList.includes(val));
+    }
+
+    return false;
 };
 
 export const getStatusStyles = (isReviewMode, isCorrect, isSelected = false, type = 'border') => {
     if (!isReviewMode) {
         if (type === 'badge') return "bg-white border-gray-400 text-gray-700";
-        if (type === 'container') return isSelected ? "bg-blue-50 border-blue-200" : "bg-white border-transparent";
+        if (type === 'container') return "bg-white border-transparent";
         return "border-black focus:border-black focus:ring-1 focus:ring-black bg-white text-black";
     }
     if (isCorrect) {

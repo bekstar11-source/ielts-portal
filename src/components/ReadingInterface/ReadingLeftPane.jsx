@@ -211,17 +211,20 @@ const ReadingLeftPane = memo(({
     highlightTrigger,
     storageKey,
 
-    isReviewMode,
-    onAddToWordBank,
     matchingHeadingsGroup,
     userAnswers,
-    onAnswerChange
+    onAnswerChange,
+
+    isReviewMode,
+    onAddToWordBank,
+    onAddNote,
+    onOpenNotes
 }) => {
     const containerRef = useRef(null);
     const [displayContent, setDisplayContent] = useState(content);
 
     // Hook
-    const { menuPos, handleTextSelection, applyHighlight, clearSelection, addToDictionary } = useTextSelection();
+    const { menuPos, handleTextSelection, applyHighlight, applyNote, clearSelection, addToDictionary } = useTextSelection();
 
     // Matching headings mavjudmi?
     const hasMatchingHeadings = !!(matchingHeadingsGroup && matchingHeadingsGroup.items?.length > 0);
@@ -339,15 +342,29 @@ const ReadingLeftPane = memo(({
     const handleHighlightClick = useCallback((e) => {
         if (e.target.classList.contains('highlight-mark')) {
             const span = e.target;
+            
+            // Agar bu note bo'lsa, uni o'chirishmas, panelni ochish kerak
+            if (span.classList.contains('note-highlight')) {
+                if (onOpenNotes) onOpenNotes();
+                return;
+            }
+
             const text = document.createTextNode(span.textContent);
             span.parentNode.replaceChild(text, span);
             saveCurrentContent();
         }
-    }, [saveCurrentContent]);
+    }, [saveCurrentContent, onOpenNotes]);
 
     // --- MENU ACTION HANDLER ---
     const handleMenuAction = (action) => {
-        applyHighlight(action, saveCurrentContent);
+        if (action === 'note') {
+            const noteInfo = applyNote(saveCurrentContent);
+            if (noteInfo && onAddNote) {
+                onAddNote(noteInfo);
+            }
+        } else {
+            applyHighlight(action, saveCurrentContent);
+        }
     };
 
     return (
@@ -359,6 +376,7 @@ const ReadingLeftPane = memo(({
                 onAddDictionary={() => addToDictionary({ sectionTitle: title, testTitle: passageLabel || "Reading Test" })}
                 isReviewMode={isReviewMode}
                 onAddToWordBank={onAddToWordBank}
+                onAddNote={() => handleMenuAction('note')}
                 source="passage"
             />
 
@@ -369,7 +387,9 @@ const ReadingLeftPane = memo(({
                     fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',
                     transition: 'font-size 0.3s ease-in-out'
                 }}
-                onMouseUp={handleTextSelection}
+                onMouseUp={(e) => {
+                    if (e.button === 0) handleTextSelection();
+                }}
             >
                 <div className="text-xs font-bold text-black uppercase tracking-widest mb-1 select-none">
                     {passageLabel || "READING PASSAGE 1"}

@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from 'framer-motion';
+import { Volume2, Volume1, VolumeX } from 'lucide-react';
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -42,6 +44,8 @@ export default function TestReview() {
     const [currentAnswers, setCurrentAnswers] = useState({}); // Active part answers
     const [listeningActivePart, setListeningActivePart] = useState(0); // Listening part tab
     const [audioTime, setAudioTime] = useState(0); // Audio vaqti
+    const [volume, setVolume] = useState(1);
+    const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
     // Interface uchun dummy funksiyalar (Admin faqat ko'radi, o'zgartirmaydi)
     const [flaggedQuestions] = useState(new Set());
@@ -398,28 +402,119 @@ export default function TestReview() {
                     )}
 
                     {/* Audio Player (Refined & Unified) */}
-                    {(testData.type === 'listening' || activeMockPart === 'listening') && (() => {
-                        // Find the first valid audio source
-                        const firstAudio = testData?.passages?.find(p => p.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file);
-                        const src = firstAudio?.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file;
-                        
-                        if (!src) return null;
-                        
-                        return (
-                            <div className="max-w-[280px] sm:max-w-[340px] flex-1 bg-white/5 backdrop-blur-xl rounded-xl p-1 border border-white/10 shadow-lg group hover:border-white/20 transition-all duration-300">
+                    {(testData.type?.toLowerCase() === 'listening' || activeMockPart === 'listening') && (
+                        <div className="max-w-[280px] sm:max-w-[600px] flex-1 flex flex-col justify-center relative z-[100]">
+                            {testData.passages?.map((passage, index) => {
+                                const src = passage.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file;
+                                if (!src) return null;
+                                return (
+                                    <CustomAudioPlayer
+                                        key={index}
+                                        src={src}
+                                        index={index}
+                                        variant="dark"
+                                        activePart={listeningActivePart}
+                                        testMode="practice"
+                                        setAudioTime={setAudioTime}
+                                        volume={volume}
+                                        startTime={passage.startTime || 0}
+                                        endTime={passage.endTime || 0}
+                                    />
+                                );
+                            })}
+                            {/* Fallback for cases where passages might be empty but audio exists at top level */}
+                            {(!testData.passages || testData.passages.length === 0) && (testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file) && (
                                 <CustomAudioPlayer
-                                    src={src}
+                                    src={testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file}
                                     index={0}
                                     variant="dark"
                                     activePart={listeningActivePart}
                                     testMode="practice"
                                     setAudioTime={setAudioTime}
+                                    volume={volume}
                                     startTime={0}
                                     endTime={0}
                                 />
-                            </div>
-                        );
-                    })()}
+                            )}
+                        </div>
+                    )}
+                    
+                    {/* Integrated Volume Control for Listening Review */}
+                    {(testData.type?.toLowerCase() === 'listening' || activeMockPart === 'listening') && (
+                        <div className="relative ml-2">
+                             <button 
+                                className={`w-9 h-9 flex items-center justify-center rounded-lg border transition-all duration-300 ${showVolumeSlider ? 'bg-black text-white border-black shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-200 shadow-sm'}`}
+                                onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+                                title="Volume"
+                            >
+                                {volume === 0 ? <VolumeX size={18} strokeWidth={2.5} /> : 
+                                 volume < 0.5 ? <Volume1 size={18} strokeWidth={2} /> : 
+                                 <Volume2 size={18} strokeWidth={2} />}
+                            </button>
+
+                            <AnimatePresence>
+                                {showVolumeSlider && (
+                                    <>
+                                        <div 
+                                            className="fixed inset-0 z-[100]" 
+                                            onClick={() => setShowVolumeSlider(false)}
+                                        />
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                                            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white border border-black rounded-lg shadow-xl p-2 z-[101] w-10 flex flex-col items-center gap-2"
+                                        >
+                                            <div className="flex flex-col items-center gap-2 h-32 w-full py-1">
+                                                <span className="text-[9px] font-bold text-black tabular-nums text-center">
+                                                    {Math.round(volume * 100)}%
+                                                </span>
+                                                
+                                                <div className="relative flex-1 w-full flex items-center justify-center group">
+                                                    {/* Track */}
+                                                    <div className="absolute w-1 h-full bg-gray-100 rounded-full overflow-hidden">
+                                                        <div 
+                                                            className="absolute bottom-0 w-full bg-black"
+                                                            style={{ height: `${volume * 100}%` }}
+                                                        />
+                                                    </div>
+                                                    
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="1"
+                                                        step="0.01"
+                                                        value={volume}
+                                                        onChange={(e) => setVolume(parseFloat(e.target.value))}
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                        style={{ 
+                                                            WebkitAppearance: 'slider-vertical',
+                                                            appearance: 'slider-vertical'
+                                                        }}
+                                                    />
+                                                    
+                                                    {/* Visual Knob */}
+                                                    <div 
+                                                        className="absolute w-3 h-3 bg-white border border-black rounded-full shadow-sm pointer-events-none z-0"
+                                                        style={{ bottom: `calc(${volume * 100}% - 6px)` }}
+                                                    />
+                                                </div>
+
+                                                <button 
+                                                    onClick={() => setVolume(volume === 0 ? 0.7 : 0)} 
+                                                    className="p-1 hover:bg-gray-100 rounded transition-all active:scale-90 text-black"
+                                                >
+                                                    {volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                                                </button>
+                                            </div>
+                                            {/* Pointer */}
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[5px] w-2.5 h-2.5 bg-white border-b border-r border-black rotate-45" />
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    )}
                 </div>
 
                 {/* RIGHT: SCORES & STATUS */}
@@ -538,7 +633,7 @@ export default function TestReview() {
 
                 <div className="flex-1 overflow-hidden relative">
                     {/* 1. READING / LISTENING (Avtomatik Tekshirilgan) */}
-                {testData.type === 'reading' ? (
+                {testData.type?.toLowerCase() === 'reading' ? (
                     <ReadingInterface
                         testData={testData}
                         userAnswers={currentAnswers}
@@ -557,7 +652,7 @@ export default function TestReview() {
                         keywordTable={testData.keywordTable || MOCK_KEYWORD_TABLE}
                         userId={user?.uid}
                     />
-                ) : testData.type === 'listening' ? (
+                ) : testData.type?.toLowerCase() === 'listening' ? (
                     <div className="flex flex-col w-full h-full bg-gray-50">
                         <ListeningInterface
                             key={testData.id}  // testData o'zgarganda to'liq remount
@@ -574,7 +669,7 @@ export default function TestReview() {
                             audioCurrentTime={audioTime}
                         />
                     </div>
-                ) : testData.type === 'writing' ? (
+                ) : testData.type?.toLowerCase() === 'writing' ? (
                     <div className="w-full h-full flex flex-col bg-gray-50">
 
                         {/* TABS (Task 1 / Task 2) - Agar yangi format bo'lsa */}
@@ -755,7 +850,7 @@ export default function TestReview() {
 
                     </div>
 
-                ) : testData.type === 'speaking' ? (
+                ) : testData.type?.toLowerCase() === 'speaking' ? (
                     <div className="w-full h-full flex flex-col bg-gray-50/50">
                         <div className="flex-1 flex flex-col items-center justify-center w-full p-4 overflow-y-auto">
 

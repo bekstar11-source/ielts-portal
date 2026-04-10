@@ -151,7 +151,20 @@ export const scoreMultiAnswer = (correct, user, weight) => {
     });
     
     const finalWeight = weight || correctArr.length;
-    return { matches: Math.min(matches, finalWeight), weight: finalWeight };
+    const matchesCount = Math.min(matches, finalWeight);
+    return { matches: matchesCount, weight: finalWeight };
+};
+
+// MULTI-ANSWER TYPE CHECKER
+export const isMultiAnswerType = (type) => {
+    if (!type) return false;
+    const t = String(type).toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ');
+    return t.includes('two choice') || 
+           t.includes('three choice') || 
+           t.includes('multi') || 
+           t.includes('pick two') || 
+           t.includes('pick three') || 
+           t.includes('selection');
 };
 
 // VAQT FORMATLASH (MM:SS)
@@ -183,14 +196,47 @@ export const calculateSectionScore = (testData, sectionAnswers) => {
         return 1;
     };
 
-    const isMultiAnswer = (type) => {
-        const t = type?.toLowerCase();
-        return t === 'two choice' || t === 'three choice' || t === 'multi' || t === 'pick two' || t === 'pick three';
-    };
+    const isMultiAnswer = isMultiAnswerType;
 
     const walk = (obj, parentType) => {
         if (!obj) return;
         const currentType = obj.type || parentType;
+
+        // MULTI-ANSWER GROUP SCORING (to handle shuffling)
+        // If this is a container (group) and is a multi-answer type, process all children at once
+        if (isMultiAnswerType(obj.type) && !obj.id) {
+            const groupItems = [];
+            const collectItems = (o) => {
+                if (o.id && (o.answer || o.correct_answer)) {
+                    groupItems.push(o);
+                }
+                const subKeys = ['questions', 'items', 'rows', 'cells', 'content'];
+                for (const sk of subKeys) {
+                    if (o[sk] && Array.isArray(o[sk])) {
+                        o[sk].forEach(collectItems);
+                    }
+                }
+            };
+            collectItems(obj);
+
+            if (groupItems.length > 0) {
+                const allCorrect = groupItems.map(i => i.answer || i.correct_answer).join(', ');
+                const allUser = groupItems.map(i => sectionAnswers[i.id] || "").join(', ');
+                
+                // Weight ni aniqlash (Default: itemlar soni)
+                let weight = groupItems.length;
+                const t = String(obj.type).toLowerCase();
+                if (t.includes('three')) weight = 3;
+                else if (t.includes('two')) weight = 2;
+
+                const result = scoreMultiAnswer(allCorrect, allUser, weight);
+                correctCount += result.matches;
+                totalQ += result.weight;
+
+                groupItems.forEach(i => scoredIds.add(String(i.id)));
+                return; // Stop recursion for this group
+            }
+        }
 
         if (obj.id && (obj.answer || obj.correct_answer)) {
             const id = obj.id;

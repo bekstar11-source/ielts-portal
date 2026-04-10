@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import ReadingLeftPane from "./ReadingLeftPane";
 import ReadingRightPane from "./ReadingRightPane";
 import ReadingFooter from "./ReadingFooter";
+import ReadingNotesSidePanel from "./ReadingNotesSidePanel";
+
 
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { useResizablePane } from "../../hooks/useResizablePane";
@@ -26,6 +28,21 @@ function saveHighlights(testId, data) {
   } catch { /* storage to'la bo'lsa ignore */ }
 }
 
+const NOTES_STORAGE_PREFIX = "reading_notes_";
+
+function loadNotes(testId) {
+  try {
+    const raw = localStorage.getItem(`${NOTES_STORAGE_PREFIX}${testId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveNotes(testId, data) {
+  try {
+    localStorage.setItem(`${NOTES_STORAGE_PREFIX}${testId}`, JSON.stringify(data));
+  } catch { }
+}
+
 export default function ReadingInterface({
   testData,
   userAnswers: parentAnswers,
@@ -43,6 +60,9 @@ export default function ReadingInterface({
   isSavingWB,
   keywordTable = [],
   userId,
+
+  isNotesVisible,
+  setIsNotesVisible
 }) {
   // --- 1. SESSION HOOK ---
   const {
@@ -129,26 +149,106 @@ export default function ReadingInterface({
     });
   }, [testData?.id]);
 
+  // --- NOTES STATE ---
+  const [allNotes, setAllNotes] = useState(() => loadNotes(testId || testData?.id));
+
+  useEffect(() => {
+    if (testId || testData?.id) {
+      setAllNotes(loadNotes(testId || testData?.id));
+    }
+  }, [testId, testData?.id]);
+
+  const addNote = useCallback((passageIndex, noteData) => {
+    setAllNotes(prev => {
+      const existing = prev[passageIndex] || [];
+      const next = {
+        ...prev,
+        [passageIndex]: [...existing, { ...noteData, content: "" }]
+      };
+      saveNotes(testId || testData?.id, next);
+      return next;
+    });
+    setIsNotesVisible(true);
+  }, [testId, testData?.id]);
+
+  const updateNote = useCallback((passageIndex, noteId, content) => {
+    setAllNotes(prev => {
+      const existing = prev[passageIndex] || [];
+      const next = {
+        ...prev,
+        [passageIndex]: existing.map(n => n.id === noteId ? { ...n, content } : n)
+      };
+      saveNotes(testId || testData?.id, next);
+      return next;
+    });
+  }, [testId, testData?.id]);
+
+  const deleteNote = useCallback((passageIndex, noteId) => {
+    setAllNotes(prev => {
+      const existing = prev[passageIndex] || [];
+      const noteToDelete = existing.find(n => n.id === noteId);
+
+      // If it's a question note, remove its highlight from state
+      if (noteToDelete && noteToDelete.source === 'question' && noteToDelete.hlId) {
+        removeHighlight(noteToDelete.partId, noteToDelete.hlId);
+      }
+
+      const next = {
+        ...prev,
+        [passageIndex]: existing.filter(n => n.id !== noteId)
+      };
+      saveNotes(testId || testData?.id, next);
+      
+      // Left pane logic (DOM based)
+      if (noteToDelete && noteToDelete.hlIds && noteToDelete.hlIds.length > 0) {
+        noteToDelete.hlIds.forEach(hlId => {
+          const span = document.getElementById(hlId);
+          if (span) {
+            const parent = span.parentNode;
+            if (parent) {
+                while(span.firstChild) parent.insertBefore(span.firstChild, span);
+                parent.removeChild(span);
+                parent.normalize();
+            }
+          }
+        });
+
+        // MUHIM: Passage storage'ni ham yangilab qo'yamiz (spanlar o'chganini saqlash uchun)
+        const passageStorageKey = `reading_session_${testId || testData.id}_passage_${passageIndex}`;
+        const contentDiv = document.getElementById('reading-content-display');
+        if (contentDiv) {
+            localStorage.setItem(passageStorageKey, JSON.stringify({
+                html: contentDiv.innerHTML,
+                timestamp: Date.now()
+            }));
+        }
+      }
+      
+      return next;
+    });
+  }, [testId, testData?.id, removeHighlight]);
+
+  const handleScrollToNote = (note) => {
+    if (note.hlIds && note.hlIds.length > 0) {
+      const firstSpan = document.getElementById(note.hlIds[0]);
+      if (firstSpan) {
+        firstSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstSpan.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+        setTimeout(() => firstSpan.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2'), 2000);
+      }
+    }
+  };
+
   // --- STATE ---
   const [activePassage, setActivePassage] = useState(0);
   const [highlightedLoc, setHighlightedLoc] = useState(null);
   const [highlightTrigger, setHighlightTrigger] = useState(0); 
 
-  const [isFullScreen, setIsFullScreen] = useState(false);
+
   const [activeDragData, setActiveDragData] = useState(null);
   const rootRef = useRef(null);
 
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullScreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullScreen(false);
-      }
-    }
-  };
+
 
   const handleLocationClick = (locId, passageIdOrIndex) => {
     if (!locId) return;
@@ -284,9 +384,7 @@ export default function ReadingInterface({
         </div>
       )}
 
-      <button onClick={toggleFullScreen} className="absolute top-4 right-5 z-50 bg-white border border-gray-200 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 shadow-sm hover:bg-gray-50 unselectable">
-        {isFullScreen ? "Exit Full Screen" : "Full Screen Mode"}
-      </button>
+
 
       {/* DndContext wraps BOTH panes for cross-pane drag-and-drop (matching headings) */}
       <DndContext
@@ -341,6 +439,9 @@ export default function ReadingInterface({
                   matchingHeadingsGroup={matchingHeadingsGroup || null}
                   userAnswers={parentAnswers || {}}
                   onAnswerChange={handleDualAnswerChange}
+
+                  onAddNote={(noteData) => addNote(activePassage, noteData)}
+                  onOpenNotes={() => setIsNotesVisible(true)}
                 />
               );
             })()}
@@ -372,6 +473,8 @@ export default function ReadingInterface({
               onAddToWordBank={onAddToWordBank}
               testId={testId}
               keywordTable={keywordTable}
+              onAddNote={(noteData) => addNote(activePassage, noteData)}
+              onOpenNotes={() => setIsNotesVisible(true)}
             />
           </div>
         </div>
@@ -409,6 +512,16 @@ export default function ReadingInterface({
           testTitle={testData?.title || testName || testId}
         />
       )}
+
+      {/* NOTES SIDE PANEL */}
+      <ReadingNotesSidePanel 
+        isVisible={isNotesVisible}
+        onClose={() => setIsNotesVisible(false)}
+        notes={allNotes[activePassage] || []}
+        onUpdateNote={(id, cnt) => updateNote(activePassage, id, cnt)}
+        onDeleteNote={(id) => deleteNote(activePassage, id)}
+        onScrollToNote={handleScrollToNote}
+      />
     </div>
   );
 }

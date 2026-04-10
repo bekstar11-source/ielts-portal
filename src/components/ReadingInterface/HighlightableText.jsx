@@ -14,6 +14,7 @@ const HighlightableText = memo(({
 
     // Matn belgilanganda (Selection)
     const handleMouseUp = (e) => {
+        if (e.button !== 0) return; // Only process left-clicks
         const selection = window.getSelection();
         if (!selection || selection.isCollapsed) return;
 

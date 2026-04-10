@@ -9,8 +9,8 @@ export const HighlighterIcon = ({ active }) => (
 
 export const QuestionBadge = ({ id, isReviewMode, onClick }) => (
     <span
-        className={`min-w-[26px] h-[26px] flex items-center justify-center rounded bg-white border border-gray-400 text-[0.8em] font-bold text-gray-700 shrink-0 shadow-sm select-none mr-1 
-        ${isReviewMode ? 'cursor-pointer hover:border-blue-600 hover:text-blue-600' : ''}`}
+        className={`min-w-[20px] h-[26px] flex items-center justify-center text-[15px] font-bold text-gray-900 shrink-0 select-none mr-1 
+        ${isReviewMode ? 'cursor-pointer' : ''}`}
         onClick={onClick}
     >
         {id}
@@ -31,7 +31,7 @@ export const SelectInput = ({ id, value, onChange, options, isReviewMode, isCorr
                 value={value}
                 disabled={isReviewMode}
                 onChange={onChange}
-                className={`h-[26px] ${width} pl-2 pr-6 border rounded text-[0.875em] font-bold appearance-none cursor-pointer transition-all shadow-sm focus:outline-none ${styles}`}
+                className={`h-[26px] ${width} pl-2 pr-6 border rounded-none text-[0.875em] font-bold appearance-none cursor-pointer transition-all shadow-sm focus:outline-none ${styles}`}
             >
                 <option value="">{!isReviewMode ? (id || "...") : "..."}</option>
                 {options.map((opt, idx) => (
@@ -58,7 +58,7 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
                 <QuestionBadge id={id} isReviewMode={isReviewMode} onClick={() => locationId && handleLocationClick(locationId)} />
             )}
             <input
-                className={`w-[140px] h-[26px] border rounded px-2 text-center font-semibold text-[0.875em] focus:outline-none transition-all shadow-sm ${styles} ${!isReviewMode ? 'placeholder-black' : 'placeholder-transparent'}`}
+                className={`w-[140px] h-[26px] border rounded-none px-2 text-center font-semibold text-[0.875em] focus:outline-none transition-all shadow-sm ${styles} ${!isReviewMode ? 'placeholder-black' : 'placeholder-transparent'}`}
                 value={val}
                 placeholder={!isReviewMode ? String(id) : ""}
                 onChange={(e) => onAnswerChange(id, e.target.value)}

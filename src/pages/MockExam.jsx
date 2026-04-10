@@ -34,6 +34,7 @@ export default function MockExam() {
     const [activePart, setActivePart] = useState(0); // For Listening
     const [audioTime, setAudioTime] = useState(0);
     const [textSize, setTextSize] = useState('text-base');
+    const [isFullScreen, setIsFullScreen] = useState(!!document.fullscreenElement);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, msg: '' });
     const [cheatWarning, setCheatWarning] = useState({ isOpen: false, count: 0, msg: '' });
     const stageRef = useRef(stage);
@@ -179,6 +180,11 @@ export default function MockExam() {
 
         // Popstate mock guard
         window.history.pushState({ mockTestGuard: true }, '');
+        
+        const monitorFullScreen = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', monitorFullScreen);
 
         document.addEventListener('fullscreenchange', handleFullScreenChange);
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -188,6 +194,7 @@ export default function MockExam() {
         window.addEventListener('popstate', handlePopState);
 
         return () => {
+            document.removeEventListener('fullscreenchange', monitorFullScreen);
             document.removeEventListener('fullscreenchange', handleFullScreenChange);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             document.removeEventListener('contextmenu', handleContextMenu);
@@ -229,6 +236,16 @@ export default function MockExam() {
             setStage('listening');
         }
         setTimeLeft(30 * 60); // 30 min (Listening)
+    };
+
+    const handleToggleFullScreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => console.error(err));
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
     };
 
     const handleNextStage = () => {
@@ -576,6 +593,8 @@ export default function MockExam() {
                 triggerPlay={stage === 'listening' || stage === 'listening_volume_check'}
                 onAudioReady={() => setIsAudioReady(true)}
                 onBufferingDone={handleBufferingDone}
+                isFullScreen={isFullScreen}
+                onToggleFullScreen={handleToggleFullScreen}
                 buttonText={(stage === 'listening' || stage === 'listening_volume_check') ? 'Move to reading' : stage === 'reading' ? 'Move to writing' : 'Finish'}
             />
 

@@ -24,7 +24,8 @@ const cleanQuestionText = (text) => {
         .replace(/(?:and\s+)?\d+\s+Choose\s+(?:ONE|TWO|THREE|FOUR|FIVE)\s+letters?,?\s*([A-Z]-[A-Z–])?/gi, '')
         .replace(/(?:Choose\s+the\s+correct\s+letter,?\s*(?:[A-Z](?:,\s*[A-Z])*\s*or\s*[A-Z]|[A-Z]-[A-Z]|[A-Z])\.?)/gi, '')
         .replace(/Write (?:your |the correct )?[^.]+?[\s]*in boxes? [\d\s\-–,and]+ on (?:your |the )?answer sheet\.?/gi, '')
-        .replace(/^\s*\d+\s+/g, '') // remove pure leading number
+        .replace(/<(b|strong)>\s*\d+\s*<\/\1>/gi, '') // remove bolded numbers
+        .replace(/^\s*\d+[\.\s]*/g, '') // remove pure leading number with dots or spaces
         .trim();
 };
 
@@ -212,13 +213,13 @@ export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewM
 // --- KICHIK YORDAMCHI KOMPONENTLAR ---
 
 export const QuestionBadge = ({ id, isReviewMode, onClick, isCorrect }) => {
-    let baseClass = "min-w-[26px] w-fit px-1.5 h-[26px] flex items-center justify-center rounded border text-[14px] font-bold shrink-0 shadow-sm unselectable transition-colors mt-1";
+    let baseClass = "min-w-[20px] w-fit h-[24px] flex items-center justify-center text-[15px] font-bold shrink-0 unselectable transition-colors mt-0.5";
     
-    let stateClass = "bg-gray-100 border-gray-300 text-black";
+    let stateClass = "text-gray-900";
     if (isReviewMode) {
         stateClass = isCorrect 
-            ? "border-green-500 bg-green-50 text-green-700" 
-            : "border-red-500 bg-red-50 text-red-700";
+            ? "text-green-600" 
+            : "text-red-600";
     }
 
     return (
@@ -447,34 +448,34 @@ export const ChoiceQuestion = ({
                         // Strip leading letter from text if it exists (e.g. "A Evidence" -> "Evidence")
                         const cleanRawText = stripRomanNumerals(rawText.replace(new RegExp(`^${currentLetter}[\\.\\)\\s]+`, 'i'), '').trim());
 
-                        let containerClass = "bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50/50";
-                        let badgeClass = isSelected ? 'text-ielts-blue font-bold' : 'text-gray-600';
-                        let checkContainerClass = isSelected ? "border-ielts-blue ring-1 ring-blue-100" : "border-gray-300";
-                        let checkIconColor = "text-ielts-blue";
+                        let containerClass = "bg-transparent border-transparent";
+                        let badgeClass = 'text-gray-600';
+                        let checkContainerClass = isSelected ? "border-gray-400" : "border-gray-300";
+                        let checkIconColor = "bg-orange-500";
 
                         if (isReviewMode) {
                             const isThisCorrect = correctAnswersList.includes(String(finalValue).toLowerCase());
                             if (isThisCorrect) {
-                                containerClass = "bg-green-50 border-green-300";
+                                containerClass = "bg-green-50/50 border-transparent";
                                 badgeClass = "text-green-700 font-bold";
                                 checkContainerClass = "border-green-600 bg-white ring-green-100";
                                 checkIconColor = "text-green-600";
                             } else if (isSelected && !isThisCorrect) {
-                                containerClass = "bg-red-50 border-red-300";
+                                containerClass = "bg-red-50/50 border-transparent";
                                 badgeClass = "text-red-700 font-bold";
                                 checkContainerClass = "border-red-600 bg-white ring-red-100";
                                 checkIconColor = "text-red-600";
                             } else {
-                                containerClass = "opacity-60 border-gray-100";
+                                containerClass = "opacity-60 border-transparent";
                             }
                         } else if (isSelected) {
-                            containerClass = "border-ielts-blue bg-blue-50/20";
+                            containerClass = "border-transparent bg-[#D1E8FF]";
                         }
 
                         const partId = `p-${activePassage}-q-${q.id}-opt-${idx}`;
 
                         return (
-                            <label key={idx} className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded-lg border transition-all shadow-sm ${containerClass}`}>
+                            <label key={idx} className={`flex items-center gap-3 cursor-pointer px-2 py-1.5 rounded-none border-transparent transition-all ${containerClass}`}>
                                 <div className="relative flex items-center justify-center shrink-0">
                                     <input
                                         type={isMultiSelect ? "checkbox" : "radio"}
@@ -496,11 +497,9 @@ export const ChoiceQuestion = ({
                                         }}
                                         disabled={isReviewMode}
                                     />
-                                    <div className={`w-5 h-5 border-2 transition-all flex items-center justify-center bg-white ${isMultiSelect ? 'rounded-[4px]' : 'rounded-full'} ${checkContainerClass}`}>
+                                    <div className={`w-4 h-4 border transition-all flex items-center justify-center bg-white ${isMultiSelect ? 'rounded-[2px]' : 'rounded-full'} ${checkContainerClass}`}>
                                         {isSelected && (
-                                            <svg className={`w-3.5 h-3.5 ${checkIconColor} animate-in zoom-in-50 duration-200`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
+                                            <div className={`w-2 h-2 rounded-full ${checkIconColor} animate-in zoom-in-50 duration-200`}></div>
                                         )}
                                     </div>
                                 </div>
@@ -540,7 +539,7 @@ export const GapFillQuestion = ({
 
             if (part === '[INPUT]' && !isSelectDropdown) {
                 return (
-                    <span key={i} className="inline-flex items-center align-middle mx-0 whitespace-nowrap">
+                    <span key={i} className="inline-flex items-center align-middle mx-1 whitespace-nowrap">
                         {isReviewMode && (
                             <span 
                                 className="inline-flex min-w-[24px] px-1 h-[24px] items-center justify-center rounded bg-white border border-gray-400 text-[13px] font-bold text-gray-700 mr-1 align-middle cursor-pointer hover:border-ielts-blue transition-colors shadow-sm"
@@ -563,7 +562,7 @@ export const GapFillQuestion = ({
             if (isSelectDropdown) {
                 let inputBorderClass = isReviewMode ? (isCorrect ? "border-green-500 bg-green-50 text-green-700" : "border-red-500 bg-red-50 text-red-700") : "border-gray-300 focus:border-ielts-blue";
                 return (
-                    <span key={i} className="inline-flex items-center align-middle mx-0 whitespace-nowrap relative">
+                    <span key={i} className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative">
                         <span 
                             className={`inline-flex min-w-[24px] px-1 h-[24px] items-center justify-center rounded bg-white border border-gray-400 text-[13px] font-bold text-gray-700 mr-1 align-middle shadow-sm transition-all ${isReviewMode ? 'cursor-pointer hover:border-ielts-blue hover:text-ielts-blue' : 'cursor-default'}`}
                             onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}
@@ -590,8 +589,14 @@ export const GapFillQuestion = ({
                 );
             }
 
-            const cleanPart = part.replace(/<\/?p>|<\/?div>/gi, "");
-            if (cleanPart === "") return null;
+            const cleanPart = part
+                .replace(/<\/?p>|<\/?div>/gi, "")
+                .replace(/<(b|strong)>\s*\d+\s*<\/\1>/gi, "") // Remove bolded numbers
+                .replace(/(\s|^)\d+[\.\s]*$/, "$1") // Remove trailing number before gap
+                .replace(/^\s*\d+[\.\s]*/, "") // Remove leading numbers
+                .trim();
+            
+            if (cleanPart === "" || cleanPart === ".") return null;
 
             const partId = `p-${activePassage}-q-${q.id}-part-${i}`;
             const injectedPart = (isReviewMode && keywordTable?.length) ? injectKeywordsToHTML(cleanPart, keywordTable, true, q.id) : cleanPart;

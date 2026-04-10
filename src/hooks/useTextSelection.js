@@ -17,17 +17,27 @@ export default function useTextSelection() {
             return;
         }
 
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-
-        // Agar juda kichik yoki ko'rinmas bo'lsa
-        if (rect.width < 1 || rect.height < 1) {
+        const selectedText = selection.toString().trim();
+        // 🛠️ Yengil select: Judayam qisqa belgilashlarda menyu chiqmasligi uchun
+        if (selectedText.length < 2) {
             setMenuPos(null);
             return;
         }
 
+        const range = selection.getRangeAt(0);
+        const rects = range.getClientRects();
+        
+        // Agar bir nechta qator bo'lsa, oxirgi qatorni yoki markazni aniqlash
+        if (rects.length === 0) {
+            setMenuPos(null);
+            return;
+        }
+
+        const rect = range.getBoundingClientRect();
+
+        // Menyuni matnning tepasida, markazda chiqarish
         setMenuPos({
-            top: rect.top - 50,
+            top: rect.top - 55, // Biroz yuqoriroq
             left: rect.left + (rect.width / 2)
         });
     }, []);
@@ -121,6 +131,39 @@ export default function useTextSelection() {
         return textNodes.map((_, i) => `hl-${timestamp}-${i}`); // Created IDs
     }, []);
 
+    // 3. Note Logic
+    const applyNote = useCallback((onComplete) => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+
+        const selectedText = selection.toString().trim();
+        const timestamp = Date.now();
+        
+        // Note uchun maxsus rang (ko'kroq/ochroq)
+        const noteColor = 'rgba(147, 197, 253, 0.5)'; // blue-300 with opacity
+        
+        // Highlight logicni ishlatamiz lekin maxsus class bilan
+        const ids = applyHighlight(noteColor);
+        
+        if (ids && ids.length > 0) {
+            // Birinchi span'ga note identifier qo'shishimiz mumkin
+            const firstSpan = document.getElementById(ids[0]);
+            if (firstSpan) {
+                firstSpan.classList.add('note-highlight');
+                firstSpan.setAttribute('data-note-id', `note-${timestamp}`);
+            }
+        }
+
+        if (onComplete) onComplete();
+        
+        return {
+            id: `note-${timestamp}`,
+            text: selectedText,
+            timestamp: timestamp,
+            hlIds: ids
+        };
+    }, [applyHighlight]);
+
     const clearSelection = useCallback(() => {
         const selection = window.getSelection();
         if (selection) selection.removeAllRanges();
@@ -212,6 +255,7 @@ export default function useTextSelection() {
         menuPos,
         handleTextSelection,
         applyHighlight,
+        applyNote,
         clearSelection,
         addToDictionary // Export new function
     };

@@ -32,19 +32,36 @@ export const styles = `
   /* =========================================
      2. SELECTION RULES (CRITICAL FOR HIGHLIGHTING)
      ========================================= */
-  .passage-content, .q-area, .q-group, .q-item, .instruction, .static-options-box, label, span, div, p, strong, em, li {
+  .passage-content, .selectable-text, [class*="q-area"], .q-item, .instruction, p, span, li, h1, h2, h3, h4, strong, em {
       -webkit-user-select: text !important;
       -moz-user-select: text !important;
       -ms-user-select: text !important;
       user-select: text !important;
+  }
+  
+  .passage-content, .selectable-text, .passage-content * {
       cursor: text;
   }
   
-  button, input, select, .nav-btn, .fullscreen-btn, .q-num, .inline-q-num {
+  button, input, select, .nav-btn, .fullscreen-btn, .q-num, .inline-q-num, .resizer, svg, .unselectable {
       user-select: none !important;
+      cursor: pointer;
   }
 
-  ::selection { background: #bfdbfe; color: #1e3a8a; }
+  /* Kichik interaktiv elementlar uchun maxsus cursor */
+  .q-num, .inline-q-num, .q-nav-btn {
+      cursor: default;
+  }
+
+  /* Premium selection ranglari */
+  ::selection { 
+      background: rgba(37, 99, 235, 0.18); 
+      color: #000; 
+  }
+  ::-moz-selection { 
+      background: rgba(37, 99, 235, 0.18); 
+      color: #000; 
+  }
 
   /* =========================================
      3. SPLIT PANELS
@@ -104,9 +121,15 @@ export const styles = `
   .passage-content { 
       flex: 1; padding: 65px; overflow-y: auto; color: #000000;
       outline: none; scroll-behavior: smooth; font-size: 16px; 
+      scroll-padding-top: 100px;
   }
-
-  /* 🔥 O'ZGARTIRILDI: SARLAVHA KATTALASHTIRILDI */
+  
+  /* Matnni o'qish va belgilash uchun qulayroq qilish */
+  .passage-content p { 
+      margin-bottom: 1.5em; 
+      line-height: 1.8;
+      letter-spacing: 0.01em;
+  }
   .passage-content h1 { 
       font-size: 32px !important;  /* Oldin 24px edi */
       font-weight: 900 !important; /* Juda qalin (Extra Bold) */
