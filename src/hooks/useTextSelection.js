@@ -139,8 +139,8 @@ export default function useTextSelection() {
         const selectedText = selection.toString().trim();
         const timestamp = Date.now();
         
-        // Note uchun maxsus rang (ko'kroq/ochroq)
-        const noteColor = 'rgba(147, 197, 253, 0.5)'; // blue-300 with opacity
+        // Note uchun maxsus rang (ko'kroq/ochroq) - Blue 200
+        const noteColor = '#bfdbfe'; 
         
         // Highlight logicni ishlatamiz lekin maxsus class bilan
         const ids = applyHighlight(noteColor);

@@ -18,7 +18,7 @@ export const applyHighlightsToText = (htmlContent, highlights = []) => {
     const sortedHighlights = [...highlights].sort((a, b) => a.start - b.start);
 
     // 3. Har bir highlight uchun ishlaymiz
-    sortedHighlights.forEach(({ id, start, end, color }) => {
+    sortedHighlights.forEach(({ id, start, end, color, isNote }) => {
         const range = document.createRange();
 
         // Start va End nuqtalarini DOM Node'lar ichidan topamiz
@@ -32,10 +32,19 @@ export const applyHighlightsToText = (htmlContent, highlights = []) => {
 
                 // Yangi highlight elementi
                 const mark = document.createElement('span');
-                const bgClass = color === 'green' ? 'bg-green-200' : 'bg-yellow-200';
-                // mix-blend-multiply va border-b olib tashlandi
-                mark.className = `${bgClass} rounded py-0.5 cursor-pointer highlight-mark`;
+                
+                if (color && color.startsWith('#')) {
+                    mark.style.backgroundColor = color;
+                } else {
+                    const bgClass = color === 'green' ? 'bg-green-200' : 'bg-yellow-200';
+                    mark.className = bgClass;
+                }
+                
+                mark.className += " rounded py-0.5 cursor-pointer highlight-mark";
                 mark.setAttribute('data-highlight-id', id);
+                if (isNote) {
+                    mark.setAttribute('data-is-note', 'true');
+                }
 
                 // Range ichidagi elementlarni ajratib olib, mark ichiga solamiz
                 // surroundContents ba'zan xato beradi (agar teglar kesishsa), shuning uchun extractContents xavfsizroq

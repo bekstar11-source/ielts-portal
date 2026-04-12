@@ -8,6 +8,7 @@ const HighlightableText = memo(({
     highlights,
     onTextSelect,
     onHighlightRemove,
+    onOpenNotes,
     isReviewMode,
     className = ""
 }) => {
@@ -35,12 +36,15 @@ const HighlightableText = memo(({
 
         // Agar bosilgan element "highlight-mark" klasiga ega bo'lsa
         if (e.target.classList.contains('highlight-mark')) {
+            // NOTE LARNI BOSGANDA O'CHMAYDIGAN QILISH
+            if (e.target.getAttribute('data-is-note') === 'true') {
+                if (onOpenNotes) onOpenNotes();
+                return;
+            }
+
             const highlightId = e.target.getAttribute('data-highlight-id');
             if (highlightId && onHighlightRemove) {
-                // Confirm so'rash (ixtiyoriy)
-                // if (window.confirm("Highlightni o'chirasizmi?")) {
                 onHighlightRemove(id, highlightId);
-                // }
             }
         }
     };

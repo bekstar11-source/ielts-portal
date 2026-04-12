@@ -130,7 +130,7 @@ export default function ReadingInterface({
       const existing = prev[partId] || [];
       const next = {
         ...prev,
-        [partId]: [...existing, { ...newHighlight, id: generateId() }]
+        [partId]: [...existing, { ...newHighlight, id: newHighlight.id || generateId() }]
       };
       saveHighlights(testData?.id, next);
       return next;

@@ -304,7 +304,7 @@ const checkAnswer = (userVal, correctVal) => {
 };
 
 export const MatchingOptionsBox = ({ 
-    group, activePassage, highlights, handlePartSelect, onRemoveHighlight, keywordTable, isReviewMode 
+    group, activePassage, highlights, handlePartSelect, onRemoveHighlight, keywordTable, isReviewMode, onOpenNotes 
 }) => {
     let boxTitle = "List of Options";
     if (group.type === 'summary_box') {
@@ -347,6 +347,7 @@ export const MatchingOptionsBox = ({
                                 highlights={highlights ? highlights[staticOptId] || [] : []}
                                 onTextSelect={handlePartSelect}
                                 onHighlightRemove={onRemoveHighlight}
+                                onOpenNotes={onOpenNotes}
                                 isReviewMode={isReviewMode}
                                 className="text-gray-800 text-[14px] leading-relaxed select-text"
                             />
@@ -359,7 +360,7 @@ export const MatchingOptionsBox = ({
 };
 
 export const ChoiceQuestion = ({ 
-    group, q, val, onAnswerChange, isReviewMode, isMultiSelect, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick 
+    group, q, val, onAnswerChange, isReviewMode, isMultiSelect, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, onOpenNotes 
 }) => {
     const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
     let itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
@@ -429,6 +430,7 @@ export const ChoiceQuestion = ({
                             highlights={highlights ? highlights[`p-${activePassage}-q-${q.id}-text`] || [] : []}
                             onTextSelect={handlePartSelect}
                             onHighlightRemove={onRemoveHighlight}
+                            onOpenNotes={onOpenNotes}
                             isReviewMode={isReviewMode}
                             className="text-black font-medium leading-relaxed"
                         />
@@ -511,6 +513,7 @@ export const ChoiceQuestion = ({
                                         highlights={highlights ? highlights[partId] || [] : []}
                                         onTextSelect={handlePartSelect}
                                         onHighlightRemove={onRemoveHighlight}
+                                        onOpenNotes={onOpenNotes}
                                         isReviewMode={isReviewMode}
                                         className="text-gray-800 font-medium text-[14.5px] leading-relaxed select-text flex-1"
                                     />
@@ -526,7 +529,7 @@ export const ChoiceQuestion = ({
 };
 
 export const GapFillQuestion = ({ 
-    group, q, val, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, isSummary, isFlowChart, isLast
+    group, q, val, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, isSummary, isFlowChart, isLast, onOpenNotes
 }) => {
     const itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
     const parts = q.text.split(/(\[INPUT\]|\[DROP\])/g);
@@ -609,6 +612,7 @@ export const GapFillQuestion = ({
                     highlights={highlights ? highlights[partId] || [] : []}
                     onTextSelect={handlePartSelect}
                     onHighlightRemove={onRemoveHighlight}
+                    onOpenNotes={onOpenNotes}
                     isReviewMode={isReviewMode}
                     className="inline text-black leading-relaxed align-middle"
                 />
@@ -651,7 +655,7 @@ export const GapFillQuestion = ({
 };
 
 export const DiagramLabelingQuestion = ({ 
-    group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage 
+    group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, onOpenNotes 
 }) => {
     return (
         <div className="diagram-labeling-question flex flex-col gap-6 w-full mb-8">
@@ -696,6 +700,7 @@ export const DiagramLabelingQuestion = ({
                                             keywordTable={keywordTable}
                                             activePassage={activePassage}
                                             handleLocationClick={handleLocationClick}
+                                            onOpenNotes={onOpenNotes}
                                         />
                                     ) : (
                                         <div className="flex items-center gap-2">
@@ -723,7 +728,7 @@ export const DiagramLabelingQuestion = ({
 };
 
 export const TableQuestion = ({ 
-    group, activePassage, userAnswers, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, handleLocationClick 
+    group, activePassage, userAnswers, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, handleLocationClick, onOpenNotes 
 }) => {
     const rows = group.rows || group.items || [];
     return (
@@ -743,6 +748,7 @@ export const TableQuestion = ({
                                                 highlights={highlights ? highlights[cellId] || [] : []}
                                                 onTextSelect={handlePartSelect}
                                                 onHighlightRemove={onRemoveHighlight}
+                                                onOpenNotes={onOpenNotes}
                                                 isReviewMode={isReviewMode}
                                                 className="inline text-black select-text"
                                             />
@@ -758,6 +764,7 @@ export const TableQuestion = ({
                                                         highlights={highlights ? highlights[partId] || [] : []}
                                                         onTextSelect={handlePartSelect}
                                                         onHighlightRemove={onRemoveHighlight}
+                                                        onOpenNotes={onOpenNotes}
                                                         isReviewMode={isReviewMode}
                                                         className="inline text-black select-text"
                                                     />

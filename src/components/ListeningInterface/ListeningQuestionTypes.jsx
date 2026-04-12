@@ -33,9 +33,10 @@ const stripLeadingId = (val, id) => {
 const stripLeadingOptionLabel = (val) => {
     if (!val) return "";
     const text = (typeof val === 'object') ? (val.text || val.label || val.content || "") : val;
-    return String(text)
-        .replace(/^\s*[A-Z][\.\)\-]\s+/, '') // "A. ", "A) ", "A- " (faqat bo'sh joy bilan bo'lsa)
+    const stripped = String(text)
+        .replace(/^\s*[A-Z][\.\)\-]\s+/, '') // "A. ", "A) ", "A- "
         .trim();
+    return stripped || String(text).trim();
 };
 
 export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
@@ -90,87 +91,91 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
     };
 
     return (
-        <div className="mb-10">
+        <div className="mb-10 flex flex-col xl:flex-row gap-8 xl:gap-12 items-start">
+            {/* LEFT: MAP IMAGE */}
             {group.image && (
-                <div className="mb-8 border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex justify-center py-4">
-                    <img src={group.image} alt="Map" className="max-w-full max-h-[500px] w-auto h-auto object-contain" />
+                <div className="xl:w-1/2 w-full border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex justify-center py-4 xl:sticky xl:top-4">
+                    <img src={group.image} alt="Map" className="max-w-full max-h-[80vh] w-auto h-auto object-contain" />
                 </div>
             )}
             
-            <DndContext
-                id={`dnd-map-${group.id || (questions[0] && questions[0].id) || 'default'}`}
-                sensors={sensors}
-                onDragStart={handleDragStart}
-                onDragEnd={isReviewMode ? undefined : handleDragEnd}
-            >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-start bg-white p-2 rounded-xl">
-                    {/* LEFT: QUESTIONS */}
-                    <div className="flex flex-col gap-4">
-                        <h4 className="text-[18px] font-bold text-black uppercase tracking-wide mb-1 px-1 text-center border-b border-gray-100 pb-2">{questionTitle}</h4>
-                        <div className="flex flex-col gap-1">
-                            {questions.map((q) => {
-                                const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer) : false;
-                                return (
-                                    <div key={q.id} className="flex items-center justify-between gap-4 py-0.5 px-3 rounded-xl transition-all hover:bg-gray-50/50">
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
-                                            <div className="font-bold text-gray-800 text-[15px] truncate" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />
+            {/* RIGHT: QUESTIONS & OPTIONS */}
+            <div className="xl:w-1/2 w-full">
+                <DndContext
+                    id={`dnd-map-${group.id || (questions[0] && questions[0].id) || 'default'}`}
+                    sensors={sensors}
+                    onDragStart={handleDragStart}
+                    onDragEnd={isReviewMode ? undefined : handleDragEnd}
+                >
+                    <div className="flex flex-col gap-8 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                        {/* QUESTIONS */}
+                        <div className="flex flex-col gap-4">
+                            <h4 className="text-[18px] font-bold text-black uppercase tracking-wide mb-1 px-1 text-center border-b border-gray-100 pb-2">{questionTitle}</h4>
+                            <div className="flex flex-col gap-1">
+                                {questions.map((q) => {
+                                    const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer) : false;
+                                    return (
+                                        <div key={q.id} className={`flex items-center justify-between gap-4 py-0.5 px-3 rounded-xl transition-all hover:bg-gray-50/50 ${isReviewMode ? 'pr-20' : ''}`}>
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
+                                                <div className="font-bold text-gray-800 text-[15px] truncate" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />
+                                            </div>
+                                            <MapDroppableSlot
+                                                id={q.id}
+                                                value={userAnswers[q.id]}
+                                                options={options}
+                                                isReviewMode={isReviewMode}
+                                                isCorrect={isCorrect}
+                                                correctAnswer={q.answer || q.correct_answer || q.correctAnswer}
+                                                onClear={() => onAnswerChange(q.id, "")}
+                                            />
                                         </div>
-                                        <MapDroppableSlot
-                                            id={q.id}
-                                            value={userAnswers[q.id]}
-                                            options={options}
-                                            isReviewMode={isReviewMode}
-                                            isCorrect={isCorrect}
-                                            correctAnswer={q.answer || q.correct_answer}
-                                            onClear={() => onAnswerChange(q.id, "")}
-                                        />
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
+
+                        {/* OPTIONS */}
+                        <MapPoolDroppable isDragging={!!activeId}>
+                            <h4 className="text-[18px] font-bold text-black uppercase tracking-wide mb-4 text-center border-b border-gray-100 pb-2">{optionTitle}</h4>
+                            <div className="flex flex-wrap gap-2 items-start justify-center">
+                                {options.map((opt, idx) => {
+                                    const label = opt.label || String.fromCharCode(65 + idx);
+                                    const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : "");
+                                    const isUsed = !allowReuse && questions.some(q => userAnswers[q.id] === label);
+
+                                    return (
+                                        <div
+                                            key={label}
+                                            className={`${isUsed ? 'invisible pointer-events-none' : 'visible'} w-fit`}
+                                        >
+                                            <MapDraggableOption
+                                                label={label}
+                                                text={text}
+                                                isReviewMode={isReviewMode}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            
+                            {options.length > 0 && questions.filter(q => userAnswers[q.id]).length === options.length && (
+                                <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-xl italic mt-4">
+                                    All options placed
+                                </div>
+                            )}
+                            
+                            {!isReviewMode && (
+                                <div className="mt-auto pt-8">
+                                    <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest text-center animate-pulse">
+                                        {activeId ? 'Drop here to remove' : ''}
+                                    </p>
+                                </div>
+                            )}
+                        </MapPoolDroppable>
                     </div>
-
-                    {/* RIGHT: OPTIONS */}
-                    <MapPoolDroppable isDragging={!!activeId}>
-                        <h4 className="text-[18px] font-bold text-black uppercase tracking-wide mb-4 text-center border-b border-gray-100 pb-2">{optionTitle}</h4>
-                        <div className="flex flex-wrap gap-2 items-start justify-center">
-                            {options.map((opt, idx) => {
-                                const label = opt.label || String.fromCharCode(65 + idx);
-                                const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : "");
-                                const isUsed = !allowReuse && questions.some(q => userAnswers[q.id] === label);
-
-                                return (
-                                    <div
-                                        key={label}
-                                        className={`${isUsed ? 'invisible pointer-events-none' : 'visible'} w-fit`}
-                                    >
-                                        <MapDraggableOption
-                                            label={label}
-                                            text={text}
-                                            isReviewMode={isReviewMode}
-                                        />
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        
-                        {options.length > 0 && questions.filter(q => userAnswers[q.id]).length === options.length && (
-                            <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-xl italic mt-4">
-                                All options placed
-                            </div>
-                        )}
-                        
-                        {!isReviewMode && (
-                            <div className="mt-auto pt-8">
-                                <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest text-center animate-pulse">
-                                    {activeId ? 'Drop here to remove' : ''}
-                                </p>
-                            </div>
-                        )}
-                    </MapPoolDroppable>
-                </div>
-            </DndContext>
+                </DndContext>
+            </div>
         </div>
     );
 };
@@ -257,11 +262,23 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
             )}
 
             {isReviewMode && !isCorrect && (
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-green-600 text-white text-[10px] px-2 py-1 rounded-md shadow-lg whitespace-nowrap z-20 font-bold animate-in slide-in-from-top-1">
-                    Correct: {(() => {
-                        const cOpt = options.find((o, idx) => (o.label || String.fromCharCode(65 + idx)) === correctAnswer);
-                        return cOpt ? stripLeadingOptionLabel(cOpt.text) : correctAnswer;
+                <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 bg-emerald-600 text-white text-[14px] px-3 py-1 rounded shadow-lg whitespace-nowrap z-50 font-bold animate-in fade-in slide-in-from-left-2 duration-300 ring-2 ring-emerald-600/30">
+                    {(() => {
+                        if (!correctAnswer) return "N/A";
+                        const answers = String(correctAnswer).split(/[\/|,]/).map(a => a.trim()).filter(Boolean);
+                        return answers.map(ans => {
+                            const foundIdx = options.findIndex((o, idx) => {
+                                const l = (o.label || String.fromCharCode(65 + idx));
+                                return String(l).trim().toLowerCase() === String(ans).trim().toLowerCase();
+                            });
+                            if (foundIdx !== -1) {
+                                return options[foundIdx].label || String.fromCharCode(65 + foundIdx);
+                            }
+                            return ans;
+                        }).join(' / ');
                     })()}
+                    {/* Tooltip arrow pointing left */}
+                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-emerald-600 rotate-45"></div>
                 </div>
             )}
         </div>
@@ -369,16 +386,25 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
             )}
 
             {isReviewMode && !isCorrect && (
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-green-600 text-white text-[10px] px-2 py-1 rounded-md shadow-lg whitespace-nowrap z-20 font-bold animate-in slide-in-from-top-1">
-                    Correct: {
+                <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 bg-emerald-600 text-white text-[14px] px-3 py-1 rounded shadow-lg whitespace-nowrap z-50 font-bold animate-in fade-in slide-in-from-left-2 duration-300 ring-2 ring-emerald-600/30">
+                    {
                         (() => {
-                            const correctOpt = options.find((opt, idx) => {
-                                const resLabel = opt.label || String.fromCharCode(65 + idx);
-                                return resLabel === correctAnswer;
-                            });
-                            return stripLeadingOptionLabel(correctOpt?.text || correctAnswer);
+                            if (!correctAnswer) return "N/A";
+                            const answers = String(correctAnswer).split(/[\/|,]/).map(a => a.trim()).filter(Boolean);
+                            return answers.map(ans => {
+                                const foundIdx = options.findIndex((o, idx) => {
+                                    const l = (o.label || String.fromCharCode(65 + idx));
+                                    return String(l).trim().toLowerCase() === String(ans).trim().toLowerCase();
+                                });
+                                if (foundIdx !== -1) {
+                                    return options[foundIdx].label || String.fromCharCode(65 + foundIdx);
+                                }
+                                return ans;
+                            }).join(' / ');
                         })()
                     }
+                    {/* Tooltip arrow pointing left */}
+                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-emerald-600 rotate-45"></div>
                 </div>
             )}
         </div>
@@ -476,11 +502,11 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                     <h4 className="text-[20px] font-bold text-black uppercase tracking-wide mb-1 px-1 text-center">{questionTitle}</h4>
                     <div className="flex flex-col gap-0.5">
                         {questions.map((q) => {
-                            const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer) : false;
+                            const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer) : false;
                             const qText = (typeof q.text === 'object' ? q.text.text : q.text) || "";
                             const cleanText = String(qText).replace('[DROP]', '').trim();
                             return (
-                                <div key={q.id} className="flex items-center justify-between gap-6 py-0.5 px-3 rounded-2xl transition-all hover:bg-gray-50/50">
+                                <div key={q.id} className={`flex items-center justify-between gap-6 py-0.5 px-3 rounded-2xl transition-all hover:bg-gray-50/50 ${isReviewMode ? 'pr-20' : ''}`}>
                                     <div className="flex items-center gap-4 flex-1">
                                         <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
                                         <div className="font-bold text-gray-800 text-[1em]" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
@@ -491,7 +517,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                                         options={options}
                                         isReviewMode={isReviewMode}
                                         isCorrect={isCorrect}
-                                        correctAnswer={q.answer || q.correct_answer}
+                                        correctAnswer={q.answer || q.correct_answer || q.correctAnswer}
                                         onClear={() => onAnswerChange(q.id, "")}
                                     />
                                 </div>
@@ -564,18 +590,7 @@ export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode,
 
     return (
         <div className="mb-6 py-2 px-1">
-            <div className="mb-3 border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-1.5">
-                    {questions.map((q) => (
-                        <QuestionBadge
-                            key={q.id}
-                            id={q.id}
-                            isReviewMode={isReviewMode}
-                            onClick={() => isReviewMode && handleLocationClick(q.locationId)}
-                        />
-                    ))}
-                </div>
-            </div>
+            {/* Question badges olib tashlandi user xohishiga ko'ra */}
             <div className="flex flex-col gap-1">
                 {options.map((opt, idx) => {
                     const isSelected = currentSelectedValues.includes(opt.label);

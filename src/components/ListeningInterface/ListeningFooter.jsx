@@ -24,6 +24,8 @@ export default function ListeningFooter({
         const type = String(group.type || "").toLowerCase();
         const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
         const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
+        const isMultiFour = type.includes('pick_four');
+        const isMultiFive = type.includes('pick_five');
 
         let rawItems = [];
         if (group.questions && Array.isArray(group.questions)) rawItems = group.questions;
@@ -47,9 +49,14 @@ export default function ListeningFooter({
             return [str];
         };
 
-        if ((isMultiTwo || isMultiThree)) {
-            rawItems.forEach(q => {
-                const count = isMultiThree ? 3 : 2;
+        if ((isMultiTwo || isMultiThree || isMultiFour || isMultiFive)) {
+            // If rawItems has only 1 item, it might be a container ID like "18-20" or just starting ID 18
+            // which needs to be exploded into multiple question slots.
+            // If rawItems already has multiple items, they are likely already separate question slots (e.g. 18, 19, 20)
+            // so we don't explode each one (which would lead to duplicates like 19->19,20,21 and 20->20,21,22).
+            if (rawItems.length === 1) {
+                const q = rawItems[0];
+                const count = isMultiFive ? 5 : (isMultiFour ? 4 : (isMultiThree ? 3 : 2));
                 const ids = parseMultiIds(q.id, count);
                 ids.forEach((splitId, i) => {
                     questions.push({
@@ -60,7 +67,9 @@ export default function ListeningFooter({
                         isMulti: true
                     });
                 });
-            });
+            } else {
+                questions = [...rawItems];
+            }
         } else {
             questions = [...rawItems];
         }

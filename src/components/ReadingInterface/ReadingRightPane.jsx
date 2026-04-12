@@ -72,7 +72,7 @@ const ReadingRightPane = memo(({
         if (tempSelection) {
             if (action === 'note') {
                 const hlId = `hl-${Date.now()}`;
-                const noteColor = 'bg-blue-300'; 
+                const noteColor = '#bfdbfe'; 
                 
                 onAddHighlight(tempSelection.id, {
                     id: hlId,
@@ -263,7 +263,8 @@ const ReadingRightPane = memo(({
                             handlePartSelect,
                             onRemoveHighlight,
                             keywordTable,
-                            handleLocationClick
+                            handleLocationClick,
+                            onOpenNotes
                         };
 
                         // Detect matching headings specifically

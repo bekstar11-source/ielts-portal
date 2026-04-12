@@ -78,19 +78,19 @@ function NoteCard({ note, onUpdate, onDelete, onScroll }) {
     };
 
     return (
-        <div className="bg-[#E0F2FE] rounded-lg border border-blue-200 shadow-sm overflow-hidden animate-in fade-in duration-300">
+        <div className="bg-[#E0F2FE] rounded-none border border-blue-200 shadow-sm overflow-hidden animate-in fade-in duration-300">
             {/* Context Text */}
             <div 
-                className="p-3 bg-blue-100/50 text-xs text-gray-600 italic border-b border-blue-200/50 cursor-pointer hover:bg-blue-100 transition-colors"
+                className="p-3 bg-blue-100/50 text-[11px] text-gray-600 italic border-b border-blue-200/50 cursor-pointer hover:bg-blue-100 transition-colors"
                 onClick={() => onScroll(note)}
             >
                 "{note.text.length > 80 ? note.text.substring(0, 80) + "..." : note.text}"
             </div>
 
             {/* Input Area */}
-            <div className="p-3">
+            <div className="bg-white border-b border-blue-200/30">
                 <textarea 
-                    className="w-full bg-transparent border-none focus:ring-0 text-sm text-gray-800 placeholder:text-blue-400/70 resize-none min-h-[80px] p-0"
+                    className="w-full bg-white border-none focus:ring-0 text-sm text-gray-800 placeholder:text-gray-400 resize-none min-h-[60px] px-3 py-2.5 rounded-none block"
                     placeholder="Start typing your note..."
                     value={content}
                     onChange={handleChange}
@@ -100,12 +100,12 @@ function NoteCard({ note, onUpdate, onDelete, onScroll }) {
             </div>
 
             {/* Actions */}
-            <div className="px-3 py-2 flex justify-end border-t border-blue-200/30">
+            <div className="px-3 py-1.5 flex justify-end bg-blue-50/30">
                 <button 
                     onClick={() => onDelete(note.id)}
-                    className="text-[11px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 transition-colors uppercase tracking-tight"
+                    className="text-[10px] font-bold text-red-500/80 hover:text-red-600 flex items-center gap-1 transition-colors uppercase tracking-tight"
                 >
-                    Delete
+                    Delete Note
                 </button>
             </div>
         </div>
