@@ -444,7 +444,13 @@ export default function AdminResults() {
                             </button>
 
                             <button
-                                onClick={() => navigate(`/review/${res.id}`)}
+                                onClick={() => {
+                                  if (res.type === 'writing') {
+                                    navigate('/admin/writing-review', { state: { selectedId: res.id } });
+                                  } else {
+                                    navigate(`/review/${res.id}`);
+                                  }
+                                }}
                                 className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-bold uppercase tracking-wide transition-all ${!res.isOrphan && res.status !== 'graded' && res.status !== 'published' && (res.type === 'writing' || res.type === 'speaking')
                                     ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow'
                                     : isDark

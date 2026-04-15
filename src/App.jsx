@@ -269,6 +269,7 @@ function App() {
           <Route path="logs" element={<AdminLogs />} />
           <Route path="gamification" element={<AdminGamification />} />
           <Route path="podcasts" element={<AdminPodcasts />} />
+          <Route path="writing-review" element={<TeacherWritingReview />} />
           <Route path="create-podcast" element={<CreatePodcast />} />
           <Route path="edit-podcast/:id" element={<CreatePodcast />} />
           <Route path="key-manager" element={<KeyManager />} />

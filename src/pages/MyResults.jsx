@@ -341,8 +341,8 @@ export default function MyResults() {
                 const theme = getTestTheme(res.type);
                 const bandScore = (res.type === 'reading' || res.type === 'listening')
                   ? (res.bandScore || calculateBandScore(res.score, res.type, res.totalQuestions))
-                  : res.score;
-                const isGraded = res.status === 'graded' || (res.score !== null && res.type !== 'mock_full');
+                  : (res.type === 'writing' ? (res.writingBand || res.bandScore) : res.score);
+                const isGraded = res.status === 'graded' || res.writingBand != null || res.bandScore != null || (res.score !== null && res.type !== 'mock_full');
 
                 return (
                   <div

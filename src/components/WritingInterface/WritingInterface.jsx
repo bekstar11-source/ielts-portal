@@ -151,8 +151,15 @@ export default function WritingInterface({
                     <div className="max-w-2xl mx-auto">
                         <div className="mb-6">
                             <h2 className="text-2xl font-bold text-gray-800 mb-2">{currentTask?.title}</h2>
-                            <p className="text-sm text-gray-500">
-                                You should spend about {currentTask?.id === 1 ? '20' : '40'} minutes on this task.
+                            <div className="text-sm text-gray-500 space-y-1">
+                                <p>You should spend about {currentTask?.id === 1 ? '20' : '40'} minutes on this task.</p>
+                                <p>Write at least {minWords} words.</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-r-lg mb-6">
+                            <p className="text-gray-900 leading-relaxed whitespace-pre-wrap text-xl font-medium">
+                                {currentTask?.prompt}
                             </p>
                         </div>
 
@@ -165,18 +172,6 @@ export default function WritingInterface({
                                 />
                             </div>
                         )}
-
-                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-r-lg">
-                            <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                                {currentTask?.prompt}
-                            </p>
-                        </div>
-
-                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p className="text-sm text-blue-800">
-                                <strong>Write at least {minWords} words.</strong>
-                            </p>
-                        </div>
                     </div>
                 </div>
 
@@ -194,6 +189,13 @@ export default function WritingInterface({
                         <textarea
                             value={currentAnswer}
                             onChange={(e) => handleDualAnswerChange(activeTask, e.target.value)}
+                            onPaste={(e) => !isReviewMode && e.preventDefault()}
+                            onContextMenu={(e) => !isReviewMode && e.preventDefault()}
+                            onCopy={(e) => !isReviewMode && e.preventDefault()}
+                            onCut={(e) => !isReviewMode && e.preventDefault()}
+                            spellCheck={false}
+                            data-gramm="false"
+                            data-enable-grammarly="false"
                             disabled={isReviewMode}
                             placeholder={`Start writing your ${currentTask?.title.toLowerCase()} here...`}
                             className={`flex-1 w-full p-6 border-2 rounded-lg font-serif text-base leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 ${isReviewMode

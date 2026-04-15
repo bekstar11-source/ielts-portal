@@ -211,7 +211,11 @@ export function useTestLogic() {
         };
 
         const initializeTestSettings = (data) => {
-            const type = data.type;
+            const type = data.type?.toLowerCase()?.trim();
+            const draftKey = `draft_${user.uid}_${data.id}`;
+            const savedDraft = localStorage.getItem(draftKey);
+
+            // 1. Timer initialization
             const savedTime = localStorage.getItem(`timer_${user.uid}_${data.id}`);
             if (savedTime) setTimeLeft(parseInt(savedTime));
             else {
@@ -220,22 +224,36 @@ export function useTestLogic() {
                 else if (type === 'speaking') setTimeLeft(900);
                 else setTimeLeft(3600);
             }
-            const draftKey = `draft_${user.uid}_${data.id}`;
-            const savedDraft = localStorage.getItem(draftKey);
+
+            // 2. Answers initialization
             if (type === 'writing' && savedDraft) {
                 try { 
                     const parsed = JSON.parse(savedDraft); 
                     if (typeof parsed === 'object') setUserAnswers(parsed); 
                     else setWritingEssay(savedDraft); 
                 } catch { setWritingEssay(savedDraft); }
-            } else if (savedDraft) { try { setUserAnswers(JSON.parse(savedDraft)); } catch (e) { } }
+            } else if (savedDraft) { 
+                try { setUserAnswers(JSON.parse(savedDraft)); } catch (e) { } 
+            }
+
+            // 3. Mode Selection initialization
+            const canSelectMode = type === 'reading' || type === 'listening' || type === 'writing';
             const savedMode = localStorage.getItem(`mode_${user.uid}_${data.id}`);
-            if (savedMode && (type === 'reading' || type === 'listening')) {
-                setTestMode(savedMode);
+
+            if (canSelectMode) {
+                // Faqat draft bo'lsa va oldin rejim tanlangan bo'lsa modalni yashiramiz
+                if (savedMode && savedDraft) {
+                    setTestMode(savedMode);
+                    setShowModeSelection(false);
+                } else {
+                    setShowModeSelection(true);
+                    setTestMode(null);
+                }
+            } else {
+                // Speaking va boshqalar uchun har doim Exam mode
+                setTestMode('exam');
                 setShowModeSelection(false);
-            } else if (type === 'reading' || type === 'listening') {
-                setShowModeSelection(true);
-            } else { setTestMode('exam'); setShowModeSelection(false); }
+            }
         };
 
         fetchTest();

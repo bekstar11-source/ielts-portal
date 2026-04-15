@@ -257,6 +257,7 @@ export const ReadingTextInput = ({
                 onChange={(e) => onChange(id, e.target.value)}
                 disabled={isReviewMode}
                 autoComplete="off"
+                spellCheck={false}
             />
             {isReviewMode && !isCorrect && (
                 <span className="ml-1 text-[13px] font-bold text-green-600 bg-green-100 px-1 py-0.5 rounded border border-green-200 whitespace-nowrap">

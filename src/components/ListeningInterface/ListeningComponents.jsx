@@ -64,6 +64,7 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
                 onChange={(e) => onAnswerChange(id, e.target.value)}
                 disabled={isReviewMode}
                 autoComplete="off"
+                spellCheck={false}
             />
             {isReviewMode && !isCorrect && (
                 <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-10 hidden group-hover/input:block animate-in fade-in zoom-in-95 duration-200">

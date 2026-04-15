@@ -37,6 +37,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
             title: "CONTENT",
             items: [
                 { name: "Tests", path: "/admin/tests", icon: FileText },
+                { name: "Writing Review", path: "/admin/writing-review", icon: PenTool },
                 { name: "Mock Keys", path: "/admin/key-manager", icon: Key },
                 { name: "Results", path: "/admin/results", icon: BookOpen },
                 { name: "Podcast Mastery", path: "/admin/podcasts", icon: Headphones }
