@@ -69,11 +69,13 @@ export const calculateOverallBand = (...args) => {
 
 
 // COLLAPSE WHITESPACE & CLEAN
-const normalizeString = (str) => {
+export const normalizeString = (str) => {
     return String(str || "")
         .trim()
         .toLowerCase()
-        .replace(/\s+/g, ' '); // Collapse multiple spaces to one
+        .replace(/[.,'":;?!( )]/g, ' ') // Replace common punctuation with space (except inside words if needed, but safe for IELTS)
+        .replace(/\s+/g, ' ')
+        .trim();
 };
 
 // JAVOBNI TEKSHIRISH FUNKSIYASI
@@ -130,11 +132,16 @@ export const scoreMultiAnswer = (correct, user, weight) => {
     // To'g'ri javoblarni ajratib olamiz (vergul, slash, pipe yoki bo'shliq orqali)
     const normalizeMulti = (str) => {
         if (!str) return [];
-        // Har bir harfni (A-Z) alohida ajratib olishga harakat qilamiz agar bu harflar bo'lsa
-        if (/^[A-Z, /|\s]+$/i.test(str)) {
-            return str.replace(/[,/|\s]/g, '').toLowerCase().split('');
+        const s = String(str).trim();
+        
+        // Single letters split (A, B, C) - Only if items are clearly single letters
+        if (/^[A-Z, /|\s]+$/i.test(s)) {
+            const parts = s.split(/[,/|\s]+/).map(p => p.trim().toLowerCase()).filter(p => p.length === 1);
+            if (parts.length > 0) return parts;
         }
-        return String(str).split(/[,/|]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+
+        // Standard split by common delimiters
+        return s.split(/[,/|]/).map(item => item.trim().toLowerCase()).filter(Boolean);
     };
 
     const correctArr = normalizeMulti(correct);

@@ -622,8 +622,8 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
         const rows = tableData.rows || [];
         
         return (
-            <div className="overflow-x-auto mb-8 bg-white" key={key}>
-                <table className="w-full text-[1em] text-left border-collapse border border-black">
+            <div className="overflow-x-auto mb-8 bg-white px-2 md:px-12 lg:px-16" key={key}>
+                <table className="w-full max-w-4xl mx-auto text-[1em] text-left border-collapse border border-black">
                     <thead className="bg-gray-100 text-gray-700 uppercase font-black text-[0.8em] tracking-wider">
                         <tr>
                             {headers.map((h, i) => (

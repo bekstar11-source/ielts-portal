@@ -407,8 +407,36 @@ export default function ReadingInterface({
               const currentPassageId = testData.passages?.[activePassage]?.id;
               const passageQuestions = testData.questions?.filter(g => g.passageId === currentPassageId) || [];
               
-              const currentPassageObj = testData.passages?.[activePassage];
-              const labelSuffix = currentPassageObj?.partNumber ?? (activePassage + 1);
+              // PASSAGE LABEL DETECTION (AUTOMATIC)
+              const labelSuffix = (() => {
+                // Try to detect from question numbers
+                const currentPassageId = testData.passages?.[activePassage]?.id;
+                const questions = testData.questions?.filter(g => String(g.passageId) === String(currentPassageId)) || [];
+                
+                let minId = Infinity;
+                const checkId = (idStr) => {
+                    if (!idStr) return;
+                    const matches = String(idStr).match(/\d+/g);
+                    if (matches) matches.forEach(m => {
+                        const num = parseInt(m);
+                        if (num < minId) minId = num;
+                    });
+                };
+
+                questions.forEach(group => {
+                    checkId(group.id);
+                    group.items?.forEach(item => checkId(item.id));
+                    group.questions?.forEach(q => checkId(q.id));
+                    group.groups?.forEach(g => (g.items || g.questions)?.forEach(it => checkId(it.id)));
+                });
+
+                if (minId !== Infinity) {
+                    if (minId <= 13) return 1;
+                    if (minId <= 26) return 2;
+                    return 3;
+                }
+                return testData.passages?.[activePassage]?.partNumber ?? (activePassage + 1);
+              })();
 
               // Matching headings guruhini topamiz (agar mavjud bo'lsa)
               const matchingHeadingsGroup = passageQuestions.find(g => {

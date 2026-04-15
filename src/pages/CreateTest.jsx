@@ -190,6 +190,46 @@ export default function CreateTest() {
         setTestData(prev => ({ ...prev, tags }));
     };
 
+    const detectSectionFromQuestions = (testType, questions) => {
+        if (!questions || !Array.isArray(questions) || questions.length === 0) return null;
+        
+        let minId = Infinity;
+        let maxId = -Infinity;
+
+        const extractIds = (q) => {
+            const idStr = String(q.id || "");
+            const matches = idStr.match(/\d+/g);
+            if (matches) {
+                matches.forEach(m => {
+                    const num = parseInt(m);
+                    if (num < minId) minId = num;
+                    if (num > maxId) maxId = num;
+                });
+            }
+            if (q.items) q.items.forEach(extractIds);
+            if (q.questions) q.questions.forEach(extractIds);
+            if (q.groups) q.groups.forEach(extractIds);
+        };
+
+        questions.forEach(extractIds);
+
+        if (minId === Infinity) return null;
+
+        if (testType === 'reading') {
+            if (minId <= 1 && maxId >= 35) return 'medium'; 
+            if (minId <= 13) return 'easy'; // Passage 1
+            if (minId <= 26) return 'medium'; // Passage 2
+            return 'hard'; // Passage 3
+        } else if (testType === 'listening') {
+            if (minId <= 1 && maxId >= 35) return 'full';
+            if (minId <= 10) return 'part 1';
+            if (minId <= 20) return 'part 2';
+            if (minId <= 30) return 'part 3';
+            return 'part 4';
+        }
+        return null;
+    };
+
     const updateTestDataFromJSON = (jsonStr) => {
         try {
             if (!jsonStr.trim()) return;
@@ -197,16 +237,15 @@ export default function CreateTest() {
 
             setTestData(prev => {
                 const passagesFromJSON = parsed.passages || [];
+                const newQuestions = parsed.questions || prev.questions;
+                const testType = parsed.type || prev.type;
+
+                // Auto-detect section/difficulty
+                const autoDifficulty = detectSectionFromQuestions(testType, newQuestions);
                 
                 // Merge JSON passages with existing state to preserve times and audio if not in JSON
                 const updatedPassages = passagesFromJSON.map((p, idx) => {
                     const existing = (prev.passages && prev.passages[idx]) ? prev.passages[idx] : {};
-                    
-                    // Priority for audio: 
-                    // 1. Single audio mode URL (if active)
-                    // 2. Part-specific state (partAudios)
-                    // 3. Current JSON passage audio
-                    // 4. Existing state passage audio
                     const audioUrl = audioMode === 'single' 
                         ? (singleAudioUrl || p.audio || existing.audio || "")
                         : (partAudios[idx] || p.audio || existing.audio || "");
@@ -221,10 +260,12 @@ export default function CreateTest() {
                 return {
                     ...prev,
                     title: parsed.title || prev.title,
+                    type: testType,
+                    difficulty: autoDifficulty || parsed.difficulty || prev.difficulty,
                     audio_url: parsed.audio || prev.audio_url,
                     introDuration: parsed.introDuration || prev.introDuration,
                     passages: parsed.passages ? updatedPassages : prev.passages,
-                    questions: parsed.questions || prev.questions,
+                    questions: newQuestions,
                     keywordTable: parsed.keywordTable || prev.keywordTable || []
                 };
             });

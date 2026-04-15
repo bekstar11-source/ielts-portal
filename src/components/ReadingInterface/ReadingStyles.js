@@ -119,47 +119,47 @@ export const styles = `
   .text-xl { font-size: 20px !important; line-height: 2.2 !important; }
 
   .passage-content { 
-      flex: 1; padding: 65px; overflow-y: auto; color: #000000;
+      flex: 1; padding: 40px; overflow-y: auto; color: #000000;
       outline: none; scroll-behavior: smooth; font-size: 16px; 
-      scroll-padding-top: 100px;
+      scroll-padding-top: 60px;
   }
   
   /* Matnni o'qish va belgilash uchun qulayroq qilish */
   .passage-content p { 
-      margin-bottom: 1.5em; 
-      line-height: 1.8;
+      margin-bottom: 1em; 
+      line-height: 1.7;
       letter-spacing: 0.01em;
   }
   .passage-content h1 { 
-      font-size: 32px !important;  /* Oldin 24px edi */
-      font-weight: 900 !important; /* Juda qalin (Extra Bold) */
-      margin-bottom: 20px; 
-      line-height: 1.3;
+      font-size: 28px !important;  
+      font-weight: 900 !important; 
+      margin-bottom: 16px; 
+      line-height: 1.2;
       color: #111827;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.02em;
   }
 
   /* 🔥 Kichik sarlavhalar ham kattalashtirildi */
   .passage-content h2 { 
-      font-size: 24px !important; 
+      font-size: 20px !important; 
       font-weight: 800 !important; 
-      margin-top: 30px; 
-      margin-bottom: 15px; 
+      margin-top: 24px; 
+      margin-bottom: 12px; 
       color: #374151;
   }
 
   .passage-content p { margin-bottom: 1em; } 
 
   .q-area { 
-      padding: 32px; 
+      padding: 24px; 
       background: #fff; 
       color: #000000; 
       font-size: 16px; 
       min-height: 100%; 
-      padding-bottom: 120px !important;
+      padding-bottom: 60px !important;
   }
-  .q-group { margin-bottom: 32px; border-bottom: 1px solid #f3f4f6; padding-bottom: 80px; }
-  .instruction { background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px 16px; margin-bottom: 20px; border-radius: 8px; font-weight: 600; font-size: 0.9em; }
+  .q-group { margin-bottom: 20px; border-bottom: 1px solid #f3f4f6; padding-bottom: 30px; }
+  .instruction { background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; margin-bottom: 16px; border-radius: 8px; font-weight: 600; font-size: 0.9em; }
   
   /* =========================================
      5. COMPONENTS (YANGILANGAN DIZAYN)
@@ -169,7 +169,7 @@ export const styles = `
   .q-item { 
       display: flex; 
       gap: 6px; /* Raqam va matn orasidagi masofa juda yaqin */
-      margin-bottom: 16px; 
+      margin-bottom: 12px; 
       align-items: flex-start; 
   }
   
@@ -236,8 +236,8 @@ export const styles = `
   .inline-q-num:hover { border-color: #2563eb; color: #2563eb; }
 
   /* Options Box (Matching Heading va boshqalar uchun) */
-  .static-options-box { margin-bottom: 24px; padding: 10px 0; }
-  .static-option-item { font-size: 0.9em; font-weight: 500; color: #000000; line-height: 1.4; margin-bottom: 4px; display: block; }
+  .static-options-box { margin-bottom: 16px; padding: 6px 0; }
+  .static-option-item { font-size: 0.9em; font-weight: 500; color: #000000; line-height: 1.3; margin-bottom: 2px; display: block; }
   
   /* Highlight Tools */
   .highlight-span { background-color: var(--highlight-yellow); cursor: pointer; mix-blend-mode: multiply; border-radius: 2px; }

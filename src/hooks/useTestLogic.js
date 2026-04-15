@@ -359,151 +359,161 @@ export function useTestLogic() {
                 startedAt: typeof startedAt === 'object' ? startedAt.toISOString() : new Date().toISOString(),
                 userAnswers: userAnswers || {}
             };
-            
-            if (vType) {
-                resultData.violation = vType;
-            }
+                    
+                    if (vType) {
+                        resultData.violation = vType;
+                    }
 
-            let mistakes = [];
+                    let mistakes = [];
 
-            if ((test.type === 'reading' || test.type === 'listening') && test.questions && Array.isArray(test.questions)) {
-                const scoredIds = new Set(); // Har bir savol faqat bir marta hisoblanishi uchun
+                    if (test.type === 'reading' || test.type === 'listening') {
+                        const scoredIds = new Set();
+                        let localCorrect = 0;
+                        let localTotal = 0;
+                        let localMistakes = [];
 
-                test.questions.forEach(q => {
-                    if (!q) return;
-
-                    // MULTI-ANSWER GROUP HANDLING
-                    if (isMultiAnswerType(q.type)) {
-                        const groupItems = [];
-                        const collectItems = (obj) => {
-                            if (!obj) return;
-                            if (obj.id && (obj.answer || obj.correct_answer)) {
-                                groupItems.push(obj);
+                        const getWeight = (id) => {
+                            if (!id) return 1;
+                            const s = String(id).trim();
+                            if (s.includes('-')) {
+                                const parts = s.split('-').map(n => parseInt(n));
+                                if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                                   return Math.abs(parts[1] - parts[0]) + 1;
+                                }
                             }
-                            const subKeys = ['questions', 'items', 'rows', 'groups', 'cells', 'content'];
-                            for (const sk of subKeys) {
-                                const val = obj[sk];
+                            if (s.includes(',')) return s.split(',').length;
+                            return 1;
+                        };
+
+                        const walk = (obj, parentType) => {
+                            if (!obj || typeof obj !== 'object') return;
+                            const currentType = String(obj.type || parentType || "").toLowerCase();
+
+                            // Helper to extract correct answer safely
+                            const getAnswer = (o) => o?.answer || o?.correct_answer || o?.correctAnswer || o?.correct_answer_value;
+
+                            // 1. MULTI-ANSWER GROUP HANDLING (Shuffling support)
+                            if (isMultiAnswerType(obj.type) && !obj.id) {
+                                const groupItems = [];
+                                const collectItems = (o) => {
+                                    if (!o || typeof o !== 'object') return;
+                                    const ans = getAnswer(o);
+                                    if (o.id && ans) groupItems.push(o);
+                                    const sub = ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'];
+                                    for (const sk of sub) {
+                                        if (o[sk] && Array.isArray(o[sk])) o[sk].forEach(collectItems);
+                                        else if (o[sk]) collectItems(o[sk]);
+                                    }
+                                };
+                                collectItems(obj);
+
+                                if (groupItems.length > 0) {
+                                    const allCorrect = groupItems.map(i => getAnswer(i)).join(', ');
+                                    const allUser = groupItems.map(i => userAnswers[String(i.id)] || "").join(', ');
+                                    
+                                    let weight = groupItems.length;
+                                    if (currentType.includes('three')) weight = 3;
+                                    else if (currentType.includes('two')) weight = 2;
+
+                                    const result = scoreMultiAnswer(allCorrect, allUser, weight);
+                                    localCorrect += result.matches;
+                                    localTotal += result.weight;
+
+                                    if (result.matches < result.weight && allUser.trim()) {
+                                        localMistakes.push({
+                                            questionId: groupItems.map(i => i.id).join(', '),
+                                            testId: test.id,
+                                            testTitle: test.title || 'Untitled Test',
+                                            attemptDate: resultData.date,
+                                            userResponse: allUser,
+                                            correctAnswer: allCorrect,
+                                            isMulti: true
+                                        });
+                                    }
+
+                                    groupItems.forEach(i => scoredIds.add(String(i.id).trim()));
+                                    return; 
+                                }
+                            }
+
+                            // 2. INDIVIDUAL ITEM HANDLING
+                            const itemAns = getAnswer(obj);
+                            if (obj.id && itemAns) {
+                                const idStr = String(obj.id).trim();
+                                if (!scoredIds.has(idStr)) {
+                                    scoredIds.add(idStr);
+                                    const correct = itemAns;
+                                    const userResp = userAnswers[idStr] || "";
+                                    
+                                    const isMulti = isMultiAnswerType(currentType);
+                                    const weight = getWeight(idStr);
+
+                                    if (isMulti || idStr.includes('-') || idStr.includes(',')) {
+                                        const result = scoreMultiAnswer(correct, userResp, weight);
+                                        localCorrect += result.matches;
+                                        localTotal += result.weight;
+
+                                        if (result.matches < result.weight && userResp.trim()) {
+                                            localMistakes.push({
+                                                questionId: idStr,
+                                                testId: test.id,
+                                                testTitle: test.title || 'Untitled Test',
+                                                attemptDate: resultData.date,
+                                                userResponse: userResp,
+                                                correctAnswer: correct
+                                            });
+                                        }
+                                    } else {
+                                        localTotal++;
+                                        if (checkAnswer(correct, userResp)) {
+                                            localCorrect++;
+                                        } else if (userResp.trim()) {
+                                            localMistakes.push({
+                                                questionId: idStr,
+                                                testId: test.id,
+                                                testTitle: test.title || 'Untitled Test',
+                                                attemptDate: resultData.date,
+                                                userResponse: userResp,
+                                                correctAnswer: correct
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 3. RECURSE TO CONTAINERS
+                            const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
+                            for (const key of CONTAINER_KEYS) {
+                                const val = obj[key];
                                 if (val && Array.isArray(val)) {
-                                    val.forEach(collectItems);
+                                    val.forEach(child => walk(child, currentType));
                                 } else if (val && typeof val === 'object') {
-                                    collectItems(val);
+                                    walk(val, currentType);
                                 }
                             }
                         };
-                        collectItems(q);
 
-                        if (groupItems.length > 0) {
-                            const allCorrect = groupItems.map(i => i.answer || i.correct_answer).join(', ');
-                            const allUser = groupItems.map(i => userAnswers[i.id] || userAnswers[String(i.id)] || "").join(', ');
-                            
-                            const type = String(q.type).toLowerCase();
-                            const weight = type.includes('three') || type.includes('3') ? 3 : 
-                                         (type.includes('two') || type.includes('2') ? 2 : groupItems.length);
-                                         
-                            const result = scoreMultiAnswer(allCorrect, allUser, weight);
-                            totalQ += result.weight;
-                            correctCount += result.matches;
+                        walk(test);
 
-                            if (result.matches < result.weight && allUser.trim()) {
-                                mistakes.push({
-                                    questionId: groupItems.map(i => i.id).join(', '),
-                                    testId: test.id,
-                                    testTitle: test.title || 'Untitled Test',
-                                    attemptDate: resultData.date,
-                                    userResponse: allUser,
-                                    correctAnswer: allCorrect,
-                                    isMulti: true
-                                });
-                            }
+                        // 🔍 Update outer scope variables
+                        correctCount = localCorrect;
+                        totalQ = localTotal;
+                        mistakes = localMistakes;
 
-                            groupItems.forEach(i => scoredIds.add(String(i.id)));
-                            return;
-                        }
-                    }
-
-                    const scoreItem = (id, correct, groupType) => {
-                        if (id == null) return;
+                        const band = calculateBandScore(correctCount, test.type, totalQ);
+                        resultData.bandScore = band || 0;
+                        resultData.score = correctCount;
+                        resultData.totalQuestions = totalQ;
+                        resultData.percentage = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+                        resultData.status = "graded";
                         
-                        const idStr = String(id).trim();
-                        const type = String(groupType || "").toLowerCase();
-                        const isMulti = isMultiAnswerType(type);
-
-                        const isNumeric = /^\d+$/.test(idStr);
-                        if (!isNumeric && !isMulti) return;
-
-                        if (scoredIds.has(idStr)) return;
-                        scoredIds.add(idStr);
-
-                        const userResp = userAnswers[idStr] || userAnswers[id] || "";
-
-                        if (isMulti) {
-                            const weight = type.includes('three') || type.includes('3') ? 3 : 
-                                         (type.includes('two') || type.includes('2') ? 2 : 1);
-                                         
-                            const result = scoreMultiAnswer(correct, userResp, weight);
-                            
-                            totalQ += result.weight;
-                            correctCount += result.matches;
-
-                            if (result.matches < result.weight && userResp) {
-                                mistakes.push({
-                                    questionId: id,
-                                    testId: test.id,
-                                    testTitle: test.title || 'Untitled Test',
-                                    attemptDate: resultData.date,
-                                    userResponse: userResp,
-                                    correctAnswer: correct
-                                });
-                            }
-                        } else {
-                            totalQ++;
-                            if (!correct) return;
-                            
-                            if (checkAnswer(correct, userResp)) {
-                                correctCount++;
-                            } else if (userResp) {
-                                mistakes.push({
-                                    questionId: id,
-                                    testId: test.id,
-                                    testTitle: test.title || 'Untitled Test',
-                                    attemptDate: resultData.date,
-                                    userResponse: userResp,
-                                    correctAnswer: correct
-                                });
-                            }
-                        }
-                    };
-
-                    const processRecursive = (obj) => {
-                        if (!obj || typeof obj !== 'object') return;
-                        if (obj.id && (obj.answer || obj.correct_answer)) {
-                            scoreItem(obj.id, obj.answer || obj.correct_answer, q.type);
-                        }
-                        const subKeys = ['questions', 'items', 'rows', 'groups', 'cells', 'content'];
-                        for (const sk of subKeys) {
-                            const val = obj[sk];
-                            if (val && Array.isArray(val)) {
-                                val.forEach(processRecursive);
-                            } else if (val && typeof val === 'object') {
-                                processRecursive(val);
-                            }
-                        }
-                    };
-
-                    processRecursive(q);
-                });
-
-                const band = calculateBandScore(correctCount, test.type, totalQ);
-                resultData.bandScore = band || 0;
-                resultData.score = correctCount;
-                resultData.totalQuestions = totalQ;
-                resultData.percentage = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
-                resultData.status = "graded";
-            } else {
-                resultData.status = "submitted";
-                resultData.score = 0;
-                resultData.bandScore = 0;
-            }
+                        setScore(correctCount);
+                        setBandScore(resultData.bandScore);
+                    } else {
+                        resultData.status = "submitted";
+                        resultData.score = 0;
+                        resultData.bandScore = 0;
+                    }
 
             // 2. Calculate Time Spent
             let timeSpent = 0;

@@ -76,16 +76,16 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
 
     return (
         <div
-            className="fixed z-[1000] flex items-center gap-1.5 bg-gray-900/90 backdrop-blur-md text-white px-2 py-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2 animate-in fade-in zoom-in slide-in-from-bottom-2 duration-200"
+            className="fixed z-[1000] flex items-center gap-1 bg-gray-900/90 backdrop-blur-md text-white px-1.5 py-1 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2 animate-in fade-in zoom-in slide-in-from-bottom-2 duration-200"
             style={{
                 top: position.top,
                 left: position.left
             }}
             onMouseDown={(e) => e.preventDefault()} // Selection o'chmasligi uchun muhim
         >
-            <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-0">
                 <button
-                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-lg transition-all active:scale-95 group"
+                    className="flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group"
                     onMouseDown={() => onHighlight('yellow')}
                     title="Highlight Yellow"
                 >
@@ -93,7 +93,7 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
                 </button>
 
                 <button
-                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-lg transition-all active:scale-95 group"
+                    className="flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group"
                     onMouseDown={() => onHighlight('green')}
                     title="Highlight Green"
                 >
@@ -101,20 +101,20 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
                 </button>
             </div>
 
-            <div className="w-[1px] h-4 bg-white/20 mx-0.5"></div>
+            <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
 
             <button
-                className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-lg transition-all active:scale-95 group text-yellow-400"
+                className="flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group text-yellow-400"
                 onMouseDown={handleAddNote}
                 title="Note qo'shish"
             >
                 <StickyNote size={16} className="group-hover:scale-110 transition-transform" />
             </button>
 
-            <div className="w-[1px] h-4 bg-white/20 mx-0.5"></div>
+            <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
 
             <button
-                className={`flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-lg transition-all active:scale-95 group ${isAdded ? 'text-green-400' : 'text-blue-400'}`}
+                className={`flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group ${isAdded ? 'text-green-400' : 'text-blue-400'}`}
                 onMouseDown={handleAddDict}
                 title="Lug'atga qo'shish"
                 disabled={isAdded || isProcessing}
@@ -131,9 +131,9 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
             {/* WordBank tugmasi — faqat Review rejimida */}
             {isReviewMode && onAddToWordBank && (
                 <>
-                    <div className="w-[1px] h-4 bg-white/20 mx-0.5"></div>
+                    <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
                     <button
-                        className={`flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-lg transition-all active:scale-95 group ${isWBAdded ? 'text-green-400' : 'text-emerald-400'}`}
+                        className={`flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group ${isWBAdded ? 'text-green-400' : 'text-emerald-400'}`}
                         onMouseDown={handleAddToWB}
                         title="Paraphrase Map'ga qo'shish"
                         disabled={isWBAdded || isProcessing}
@@ -149,10 +149,10 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
                 </>
             )}
 
-            <div className="w-[1px] h-4 bg-white/20 mx-0.5"></div>
+            <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
 
             <button
-                className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors ml-0.5"
+                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors ml-0"
                 onMouseDown={onClear}
                 title="Menyuni yopish"
             >

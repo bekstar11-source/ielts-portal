@@ -97,10 +97,11 @@ export default function AdminTests() {
     const handleMergeTests = async () => {
         if (selectedTests.length < 2) return alert("Kamida 2 ta testni tanlang!");
         
-        const testObjects = tests.filter(t => selectedTests.includes(t.id));
-        const firstType = testObjects[0].type;
+        // Map selection to actual test objects in order of selection
+        const testObjects = selectedTests.map(id => tests.find(t => t.id === id));
+        const firstType = testObjects[0]?.type;
         
-        if (!testObjects.every(t => t.type === firstType)) {
+        if (!testObjects.every(t => t && t.type === firstType)) {
             return alert("Faqat bir xil turdagi testlarni birlashtirish mumkin (masalan, faqat Reading yoki faqat Listening).");
         }
 
@@ -108,8 +109,11 @@ export default function AdminTests() {
             return alert("Hozircha faqat Reading va Listening testlarini birlashtirish mumkin.");
         }
 
+        // Generate automatic title by joining all selected test titles
+        const autoTitle = testObjects.map(t => t.title || "Nomsiz test").join(" / ");
+
         setShowMergeModal(true);
-        setMergeTitle(`${firstType.toUpperCase()} Full Test (${testObjects.length} parts)`);
+        setMergeTitle(autoTitle);
     };
 
     const finalizeMerge = async () => {
@@ -376,6 +380,40 @@ export default function AdminTests() {
         currentPage * itemsPerPage
     );
 
+    const getQuestionTypes = (test) => {
+        if (!test.questions || !Array.isArray(test.questions)) return [];
+        const seen = new Set();
+        test.questions.forEach(group => {
+            let type = group.type || 'Other';
+            
+            const mapping = {
+                'multiple_choice': 'Multiple Choice',
+                'tfng': 'TFNG',
+                'true_false_not_given': 'TFNG',
+                'yes_no_not_given': 'YNNG',
+                'yesno': 'YNNG',
+                'gap_filling': 'Gap Filling',
+                'matching': 'Matching',
+                'matching_headings': 'Matching Headings',
+                'summary_completion': 'Summary',
+                'summary_box': 'Summary (Box)',
+                'table_completion': 'Table',
+                'flow_chart_completion': 'Flow Chart',
+                'diagram_labeling': 'Diagram',
+                'sentence_completion': 'Sentence',
+                'short_answer': 'Short Answer',
+                'map_labeling': 'Map',
+                'map': 'Map',
+                'pick_two': 'Pick 2',
+                'pick_three': 'Pick 3'
+            };
+            
+            const displayType = mapping[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            seen.add(displayType);
+        });
+        return Array.from(seen);
+    };
+
     // 3. STATISTICS
     const stats = useMemo(() => ({
         total: tests.length,
@@ -564,9 +602,20 @@ export default function AdminTests() {
                                                 />
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{test.title}</div>
-                                                <div className="text-xs text-gray-400 mt-0.5">{test.questions?.length || 0} ta savol</div>
-                                            </td>
+                                                 <div className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{test.title}</div>
+                                                 <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{test.questions?.length || 0} ta savol</div>
+                                                     {(test.type === 'reading' || test.type === 'listening') && getQuestionTypes(test).length > 0 && (
+                                                         <div className="flex flex-wrap gap-1">
+                                                             {getQuestionTypes(test).map((t, i) => (
+                                                                 <span key={i} className={`px-1.5 py-0.5 rounded text-[9px] font-normal uppercase tracking-tight border ${isDark ? 'bg-blue-500/5 border-blue-500/10 text-blue-400/80' : 'bg-blue-50 border-blue-100 text-blue-600/80'}`}>
+                                                                     {t}
+                                                                 </span>
+                                                             ))}
+                                                         </div>
+                                                     )}
+                                                 </div>
+                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                                             ${test.type === 'reading' ? (isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-800') :

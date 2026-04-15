@@ -204,9 +204,31 @@ const ListeningRightPane = memo(({
                     });
 
                     const rangeStr = partMinId !== Infinity ? `${partMinId}–${partMaxId}` : "";
-                    // partNumber merge vaqtida passage ob'ektiga qo'shilgan.
-                    // Agar yo'q bo'lsa (eski testlar), activePart + 1 fallback sifatida ishlatiladi.
-                    const partNum = currentPassage?.partNumber ?? (activePart + 1);
+                    // AUTO-DETECT PART NUMBER FROM QUESTIONS
+                    const partNum = (() => {
+                        let minId = Infinity;
+                        questionsForPart.forEach(group => {
+                            const checkId = (idStr) => {
+                                if (!idStr) return;
+                                const matches = String(idStr).match(/\d+/g);
+                                if (matches) matches.forEach(m => {
+                                    const num = parseInt(m);
+                                    if (num < minId) minId = num;
+                                });
+                            };
+                            checkId(group.id);
+                            (group.items || group.questions || [])?.forEach(it => checkId(it.id));
+                            group.groups?.forEach(sub => (sub.items || sub.questions || [])?.forEach(it => checkId(it.id)));
+                        });
+
+                        if (minId !== Infinity) {
+                            if (minId <= 10) return 1;
+                            if (minId <= 20) return 2;
+                            if (minId <= 30) return 3;
+                            return 4;
+                        }
+                        return currentPassage?.partNumber ?? (activePart + 1);
+                    })();
 
                     return (
                         <div className="bg-[#f4f4f2] border border-[#e8e8e6] rounded-sm px-5 py-4 mb-8">
