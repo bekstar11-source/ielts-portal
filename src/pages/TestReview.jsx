@@ -185,41 +185,41 @@ export default function TestReview() {
                         setTestData({ title: "O'chirilgan Test", type: activeMockPart }); // Fallback
                     } else {
                         const rawTestData = { id: testSnap.id, ...testSnap.data() };
-                        
+
                         // Normalizatsiya: Writing testlar (ham alohida, ham Mock tarkibida)
-                        const isWritingTest = rawTestData.type === 'writing' || 
-                                            rawTestData.type === 'Writing' || 
-                                            activeMockPart === 'writing';
+                        const isWritingTest = rawTestData.type === 'writing' ||
+                            rawTestData.type === 'Writing' ||
+                            activeMockPart === 'writing';
 
                         if (isWritingTest && !rawTestData.writingTasks) {
                             console.log("Normalizing Writing data for:", rawTestData.id);
                             rawTestData.writingTasks = [
-                                ...(rawTestData.task1 ? [{ 
-                                    id: 1, 
-                                    title: 'Task 1', 
-                                    prompt: rawTestData.task1, 
-                                    minWords: 150, 
-                                    image: rawTestData.image_url || rawTestData.image || rawTestData.task1_image 
+                                ...(rawTestData.task1 ? [{
+                                    id: 1,
+                                    title: 'Task 1',
+                                    prompt: rawTestData.task1,
+                                    minWords: 150,
+                                    image: rawTestData.image_url || rawTestData.image || rawTestData.task1_image
                                 }] : []),
-                                ...(rawTestData.task2 ? [{ 
-                                    id: 2, 
-                                    title: 'Task 2', 
-                                    prompt: rawTestData.task2, 
+                                ...(rawTestData.task2 ? [{
+                                    id: 2,
+                                    title: 'Task 2',
+                                    prompt: rawTestData.task2,
                                     minWords: 250,
                                     image: rawTestData.task2_image
                                 }] : [])
                             ];
-                            
+
                             // Agar hali ham bo'sh bo'lsa, lekin passage/prompt/instruction bor bo'lsa
                             if (rawTestData.writingTasks.length === 0) {
                                 const mainPrompt = rawTestData.passage || rawTestData.prompt || rawTestData.instruction || rawTestData.content;
                                 if (mainPrompt) {
-                                    rawTestData.writingTasks = [{ 
-                                        id: 1, 
-                                        title: 'Writing Task', 
-                                        prompt: mainPrompt, 
-                                        minWords: 150, 
-                                        image: rawTestData.image_url || rawTestData.image 
+                                    rawTestData.writingTasks = [{
+                                        id: 1,
+                                        title: 'Writing Task',
+                                        prompt: mainPrompt,
+                                        minWords: 150,
+                                        image: rawTestData.image_url || rawTestData.image
                                     }];
                                 }
                             }
@@ -252,7 +252,7 @@ export default function TestReview() {
         setIsSaving(true);
         try {
             const resultRef = doc(db, "results", id);
-            
+
             let scoreVal = Number(adminScore);
             let t1 = Number(task1Band);
             let t2 = Number(task2Band);
@@ -273,12 +273,12 @@ export default function TestReview() {
             // Agar bu Mock Full bo'lsa, qolgan bandlar bilan overall ni hisoblaymiz
             if (resultData.type === 'mock_full') {
                 const newScores = { ...resultData.scores };
-                
+
                 // 1. Reading va Listening uchun Avtomatik Hisoblash (Recalculate Button bilan kelsa)
                 if (activeMockPart === 'reading' || activeMockPart === 'listening') {
                     const sectionResults = calculateSectionScore(testData, currentAnswers);
                     const band = calculateBandScore(sectionResults.correct, activeMockPart, sectionResults.total);
-                    
+
                     if (activeMockPart === 'reading') {
                         newScores.reading = sectionResults.correct;
                         newScores.readingBand = band;
@@ -308,7 +308,7 @@ export default function TestReview() {
                 if (sections.length > 0) {
                     const roundedOverall = calculateOverallBand(...sections);
                     newScores.overallBand = roundedOverall;
-                    
+
                     // Top-level update for dashboard
                     updatePayload.score = roundedOverall;
                     updatePayload.bandScore = roundedOverall;
@@ -316,17 +316,17 @@ export default function TestReview() {
                 }
 
                 updatePayload.scores = newScores;
-                
+
                 if (adminFeedback) {
-                     updatePayload.feedback = adminFeedback;
+                    updatePayload.feedback = adminFeedback;
                 }
             }
 
             await updateDoc(resultRef, updatePayload);
-            
+
             // 🔥 IMPORTANT: Update local state so the UI reflects changes immediately
             setResultData(prev => ({ ...prev, ...updatePayload }));
-            
+
 
             const finalDoc = await getDoc(resultRef);
             if (finalDoc.exists()) {
@@ -352,15 +352,15 @@ export default function TestReview() {
             <header className="bg-slate-900 text-white flex justify-between items-center shadow-md h-14 shrink-0 z-10 px-4">
                 {/* LEFT: BACK & TITLE */}
                 <div className="flex items-center gap-2 sm:gap-3">
-                    <button 
-                        onClick={() => navigate(userData?.role === 'admin' || userData?.role === 'teacher' ? '/admin/results' : '/my-results')} 
+                    <button
+                        onClick={() => navigate(userData?.role === 'admin' || userData?.role === 'teacher' ? '/admin/results' : '/my-results')}
                         className="text-gray-400 hover:text-white transition flex items-center justify-center w-9 h-9 sm:w-auto sm:h-10 sm:px-3 rounded-xl bg-gray-800/40 border border-white/5 hover:bg-gray-700/60 active:scale-95 group shadow-lg"
                         title="Back to results"
                     >
                         <span className="text-lg group-hover:-translate-x-0.5 transition-transform">←</span>
                         <span className="hidden sm:inline ml-2 text-[11px] font-black uppercase tracking-widest">Back</span>
                     </button>
-                    
+
                     <div className="flex flex-col border-l border-white/10 pl-3">
                         <div className="flex items-center gap-1.5 mb-1">
                             <span className="px-1.5 py-0.5 bg-blue-600/20 text-blue-400 text-[8px] font-black uppercase tracking-tighter rounded border border-blue-500/20">
@@ -402,9 +402,8 @@ export default function TestReview() {
                                     <button
                                         key={part}
                                         onClick={() => setActiveMockPart(part)}
-                                        className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg text-[10px] sm:text-[11px] font-black transition-all duration-300 relative group active:scale-95 ${
-                                            isActive ? `${colors[part]} text-white border border-white/20` : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent'
-                                        }`}
+                                        className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg text-[10px] sm:text-[11px] font-black transition-all duration-300 relative group active:scale-95 ${isActive ? `${colors[part]} text-white border border-white/20` : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent'
+                                            }`}
                                         title={part.charAt(0).toUpperCase() + part.slice(1)}
                                     >
                                         <span className="relative z-10">{label}</span>
@@ -454,25 +453,25 @@ export default function TestReview() {
                             )}
                         </div>
                     )}
-                    
+
                     {/* Integrated Volume Control for Listening Review */}
                     {(testData.type?.toLowerCase() === 'listening' || activeMockPart === 'listening') && (
                         <div className="relative ml-2">
-                             <button 
+                            <button
                                 className={`w-9 h-9 flex items-center justify-center rounded-lg border transition-all duration-300 ${showVolumeSlider ? 'bg-black text-white border-black shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-200 shadow-sm'}`}
                                 onClick={() => setShowVolumeSlider(!showVolumeSlider)}
                                 title="Volume"
                             >
-                                {volume === 0 ? <VolumeX size={18} strokeWidth={2.5} /> : 
-                                 volume < 0.5 ? <Volume1 size={18} strokeWidth={2} /> : 
-                                 <Volume2 size={18} strokeWidth={2} />}
+                                {volume === 0 ? <VolumeX size={18} strokeWidth={2.5} /> :
+                                    volume < 0.5 ? <Volume1 size={18} strokeWidth={2} /> :
+                                        <Volume2 size={18} strokeWidth={2} />}
                             </button>
 
                             <AnimatePresence>
                                 {showVolumeSlider && (
                                     <>
-                                        <div 
-                                            className="fixed inset-0 z-[100]" 
+                                        <div
+                                            className="fixed inset-0 z-[100]"
                                             onClick={() => setShowVolumeSlider(false)}
                                         />
                                         <motion.div
@@ -485,16 +484,16 @@ export default function TestReview() {
                                                 <span className="text-[9px] font-bold text-black tabular-nums text-center">
                                                     {Math.round(volume * 100)}%
                                                 </span>
-                                                
+
                                                 <div className="relative flex-1 w-full flex items-center justify-center group">
                                                     {/* Track */}
                                                     <div className="absolute w-1 h-full bg-gray-100 rounded-full overflow-hidden">
-                                                        <div 
+                                                        <div
                                                             className="absolute bottom-0 w-full bg-black"
                                                             style={{ height: `${volume * 100}%` }}
                                                         />
                                                     </div>
-                                                    
+
                                                     <input
                                                         type="range"
                                                         min="0"
@@ -503,21 +502,21 @@ export default function TestReview() {
                                                         value={volume}
                                                         onChange={(e) => setVolume(parseFloat(e.target.value))}
                                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                                        style={{ 
+                                                        style={{
                                                             WebkitAppearance: 'slider-vertical',
                                                             appearance: 'slider-vertical'
                                                         }}
                                                     />
-                                                    
+
                                                     {/* Visual Knob */}
-                                                    <div 
+                                                    <div
                                                         className="absolute w-3 h-3 bg-white border border-black rounded-full shadow-sm pointer-events-none z-0"
                                                         style={{ bottom: `calc(${volume * 100}% - 6px)` }}
                                                     />
                                                 </div>
 
-                                                <button 
-                                                    onClick={() => setVolume(volume === 0 ? 0.7 : 0)} 
+                                                <button
+                                                    onClick={() => setVolume(volume === 0 ? 0.7 : 0)}
                                                     className="p-1 hover:bg-gray-100 rounded transition-all active:scale-90 text-black"
                                                 >
                                                     {volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
@@ -547,7 +546,7 @@ export default function TestReview() {
                                 const band = Number(resultData.scores?.[item.key] || 0).toFixed(1);
                                 const raw = resultData.scores?.[item.rawKey];
                                 const total = 40; // IELTS default
-                                
+
                                 return (
                                     <React.Fragment key={item.key}>
                                         <div className="flex flex-col items-center min-w-[44px] group relative">
@@ -588,15 +587,13 @@ export default function TestReview() {
                     )}
 
                     {/* Overall Badge (Ultra-Premium Glass) */}
-                    <div className={`relative flex flex-col items-center justify-center min-w-[80px] sm:min-w-[100px] h-11 sm:h-12 px-4 rounded-2xl border transition-all duration-700 overflow-hidden group ${
-                        (resultData.status === 'graded' || resultData.writingBand != null || resultData.scores?.writing != null) 
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/20' 
+                    <div className={`relative flex flex-col items-center justify-center min-w-[80px] sm:min-w-[100px] h-11 sm:h-12 px-4 rounded-2xl border transition-all duration-700 overflow-hidden group ${(resultData.status === 'graded' || resultData.writingBand != null || resultData.scores?.writing != null)
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/20'
                             : 'bg-amber-500/10 border-amber-500/20 text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/20'
-                    }`}>
-                        <div className={`absolute inset-x-0 bottom-0 h-1 transition-all duration-700 translate-y-0.5 opacity-60 ${
-                            (resultData.status === 'graded' || resultData.writingBand != null || resultData.scores?.writing != null) ? 'bg-emerald-500 shadow-[0_0_15px_#10b981]' : 'bg-amber-500 shadow-[0_0_15px_#f59e0b]'
-                        }`} />
-                        
+                        }`}>
+                        <div className={`absolute inset-x-0 bottom-0 h-1 transition-all duration-700 translate-y-0.5 opacity-60 ${(resultData.status === 'graded' || resultData.writingBand != null || resultData.scores?.writing != null) ? 'bg-emerald-500 shadow-[0_0_15px_#10b981]' : 'bg-amber-500 shadow-[0_0_15px_#f59e0b]'
+                            }`} />
+
                         {/* Shimmer Effect */}
                         <div className="absolute inset-0 bg-gradient-to-tr from-white/5 via-transparent to-transparent opacity-30 group-hover:opacity-60 transition-opacity" />
 
@@ -605,7 +602,7 @@ export default function TestReview() {
                         </span>
                         <div className="flex items-center gap-1 relative z-10">
                             <span className="font-black text-xl sm:text-2xl leading-none group-hover:scale-110 transition-transform duration-500">
-                                {(resultData.status === 'graded' || resultData.overallBand || resultData.writingBand) 
+                                {(resultData.status === 'graded' || resultData.overallBand || resultData.writingBand)
                                     ? (resultData.overallBand || resultData.writingBand || resultData.score || "-")
                                     : "---"
                                 }
@@ -626,11 +623,10 @@ export default function TestReview() {
                                 {Object.entries(resultData.answers || {}).slice(0, 40).map(([qId, val], idx) => {
                                     const isCorrect = testData.questions?.find(q => q.id === qId)?.answer?.toLowerCase() === val?.toLowerCase();
                                     return (
-                                        <div 
-                                            key={qId} 
-                                            className={`w-4 h-4 sm:w-5 sm:h-5 rounded-[4px] flex items-center justify-center text-[8px] sm:text-[9px] font-black transition-all ${
-                                                isCorrect ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-100'
-                                            }`}
+                                        <div
+                                            key={qId}
+                                            className={`w-4 h-4 sm:w-5 sm:h-5 rounded-[4px] flex items-center justify-center text-[8px] sm:text-[9px] font-black transition-all ${isCorrect ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-100'
+                                                }`}
                                         >
                                             {idx + 1}
                                         </div>
@@ -649,29 +645,8 @@ export default function TestReview() {
 
                 <div className="flex-1 overflow-hidden relative">
                     {/* 1. READING / LISTENING (Avtomatik Tekshirilgan) */}
-                {testData.type?.toLowerCase() === 'reading' ? (
-                    <ReadingInterface
-                        testData={testData}
-                        userAnswers={currentAnswers}
-                        onAnswerChange={handleNoOp}
-                        onFlag={handleNoOp}
-                        flaggedQuestions={flaggedQuestions}
-                        isReviewMode={true}
-                        textSize={textSize}
-                        onAddToWordBank={handleAddToWordBank}
-                        captureData={captureData}
-                        onClearCapture={handleClearCapture}
-                        testId={testData.id}
-                        testName={testData.title}
-                        onSaveAllWords={handleSaveAllWords}
-                        isSavingWB={isSavingWB}
-                        keywordTable={testData.keywordTable || MOCK_KEYWORD_TABLE}
-                        userId={user?.uid}
-                    />
-                ) : testData.type?.toLowerCase() === 'listening' ? (
-                    <div className="flex flex-col w-full h-full bg-gray-50">
-                        <ListeningInterface
-                            key={testData.id}  // testData o'zgarganda to'liq remount
+                    {testData.type?.toLowerCase() === 'reading' ? (
+                        <ReadingInterface
                             testData={testData}
                             userAnswers={currentAnswers}
                             onAnswerChange={handleNoOp}
@@ -679,436 +654,457 @@ export default function TestReview() {
                             flaggedQuestions={flaggedQuestions}
                             isReviewMode={true}
                             textSize={textSize}
-                            testMode="practice"
-                            activePart={listeningActivePart}
-                            setActivePart={setListeningActivePart}
-                            audioCurrentTime={audioTime}
+                            onAddToWordBank={handleAddToWordBank}
+                            captureData={captureData}
+                            onClearCapture={handleClearCapture}
+                            testId={testData.id}
+                            testName={testData.title}
+                            onSaveAllWords={handleSaveAllWords}
+                            isSavingWB={isSavingWB}
+                            keywordTable={testData.keywordTable || MOCK_KEYWORD_TABLE}
+                            userId={user?.uid}
                         />
-                    </div>
-                ) : testData.type?.toLowerCase() === 'writing' ? (
-                    <div className="w-full h-full flex flex-col bg-[#F5F5F7]">
-                        {/* WRITING CONTENT AREA - VERTICAL SCROLL */}
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12">
-                            <div className="max-w-[800px] mx-auto flex flex-col gap-16 pb-20">
-                                {testData.writingTasks ? (
-                                    testData.writingTasks.map(task => {
-                                        const answer = currentAnswers ? currentAnswers[`task${task.id}`] : "";
+                    ) : testData.type?.toLowerCase() === 'listening' ? (
+                        <div className="flex flex-col w-full h-full bg-gray-50">
+                            <ListeningInterface
+                                key={testData.id}  // testData o'zgarganda to'liq remount
+                                testData={testData}
+                                userAnswers={currentAnswers}
+                                onAnswerChange={handleNoOp}
+                                onFlag={handleNoOp}
+                                flaggedQuestions={flaggedQuestions}
+                                isReviewMode={true}
+                                textSize={textSize}
+                                testMode="practice"
+                                activePart={listeningActivePart}
+                                setActivePart={setListeningActivePart}
+                                audioCurrentTime={audioTime}
+                            />
+                        </div>
+                    ) : testData.type?.toLowerCase() === 'writing' ? (
+                        <div className="w-full h-full flex flex-col bg-[#F5F5F7]">
+                            {/* WRITING CONTENT AREA - VERTICAL SCROLL */}
+                            <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12">
+                                <div className="max-w-[800px] mx-auto flex flex-col gap-16 pb-20">
+                                    {testData.writingTasks ? (
+                                        testData.writingTasks.map(task => {
+                                            const answer = currentAnswers ? currentAnswers[`task${task.id}`] : "";
 
-                                        return (
-                                            <div key={task.id} className="flex flex-col gap-8 animate-fadeIn">
-                                                
-                                                {/* TASK HEADER */}
-                                                <div className="flex flex-col items-center text-center space-y-2 mb-2">
-                                                    <span className="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">IELTS Writing</span>
-                                                    <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">{task.title}</h2>
-                                                    <div className="w-12 h-1 bg-blue-500 rounded-full mt-4 opacity-20 hidden"></div>
-                                                </div>
+                                            return (
+                                                <div key={task.id} className="flex flex-col gap-8 animate-fadeIn">
 
-                                                {/* PROMPT CARD */}
-                                                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden group">
-                                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-100 to-gray-200"></div>
-                                                    <div className="flex justify-between items-center">
-                                                        <h3 className="font-semibold text-gray-800 text-[13px] uppercase tracking-widest text-[#1d1d1f]">Question</h3>
-                                                        <span className="text-[11px] font-medium text-gray-500 bg-[#F5F5F7] px-3 py-1 rounded-full uppercase tracking-wider">Min {task.minWords} words</span>
+                                                    {/* TASK HEADER */}
+                                                    <div className="flex flex-col items-center text-center space-y-2 mb-2">
+                                                        <span className="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">IELTS Writing</span>
+                                                        <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">{task.title}</h2>
+                                                        <div className="w-12 h-1 bg-blue-500 rounded-full mt-4 opacity-20 hidden"></div>
                                                     </div>
-                                                    
-                                                    {task.image && (
-                                                        <div className="w-full bg-[#fbfbfd] rounded-2xl p-4 flex justify-center border border-gray-100">
-                                                            <img src={task.image} className="max-w-full max-h-[300px] object-contain mix-blend-multiply" alt="Task" />
-                                                        </div>
-                                                    )}
-                                                    
-                                                    <div className="whitespace-pre-wrap text-[#1d1d1f] text-[15px] leading-relaxed font-medium">
-                                                        {task.prompt}
-                                                    </div>
-                                                </div>
 
-                                                {/* STUDENT ANSWER CARD */}
-                                                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden">
-                                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 opacity-80"></div>
-                                                    <div className="flex justify-between items-center">
-                                                        <h3 className="font-semibold text-gray-800 text-[13px] uppercase tracking-widest text-[#1d1d1f] flex items-center gap-2">
-                                                            Student Answer
-                                                        </h3>
-                                                        <div className="text-[11px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
-                                                            {((answer || (typeof currentAnswers === 'string' ? currentAnswers : "")) + "").trim().split(/\s+/).filter(Boolean).length} WORDS
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="whitespace-pre-wrap font-serif text-[#1d1d1f] text-[16px] leading-[1.8] min-h-[150px]">
-                                                        {answer || (typeof currentAnswers === 'string' ? currentAnswers : null) || <span className="text-gray-400 italic">No answer provided.</span>}
-                                                    </div>
-                                                </div>
-
-                                                {/* AI FEEDBACK CARD (IF GRADED) */}
-                                                {resultData.aiReview && resultData.aiReview[`task${task.id}`] && (
-                                                    <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden">
-                                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-rose-400 opacity-80"></div>
-                                                        <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
-                                                            <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
-                                                                <span className="text-orange-500 text-sm">✨</span>
-                                                            </div>
-                                                            <h3 className="font-semibold text-[#1d1d1f] text-sm uppercase tracking-widest">AI Evaluation</h3>
+                                                    {/* PROMPT CARD */}
+                                                    <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden group">
+                                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-100 to-gray-200"></div>
+                                                        <div className="flex justify-between items-center">
+                                                            <h3 className="font-semibold text-gray-800 text-[13px] uppercase tracking-widest text-[#1d1d1f]">Question</h3>
+                                                            <span className="text-[11px] font-medium text-gray-500 bg-[#F5F5F7] px-3 py-1 rounded-full uppercase tracking-wider">Min {task.minWords} words</span>
                                                         </div>
 
-                                                        {resultData.aiReview[`task${task.id}`].criteria && (
-                                                            <div className="overflow-hidden rounded-2xl border border-gray-100">
-                                                                <table className="w-full text-left text-sm">
-                                                                    <thead className="bg-[#FBFBFD] text-gray-500 border-b border-gray-100">
-                                                                        <tr>
-                                                                            <th className="px-6 py-4 font-semibold text-[11px] uppercase tracking-wider w-1/4">Criterion</th>
-                                                                            <th className="px-6 py-4 font-semibold text-[11px] uppercase tracking-wider w-20">Band</th>
-                                                                            <th className="px-6 py-4 font-semibold text-[11px] uppercase tracking-wider">Feedback</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody className="divide-y divide-gray-100">
-                                                                        <tr className="hover:bg-[#FBFBFD] transition-colors">
-                                                                            <td className="px-6 py-4 font-medium text-[#1d1d1f]">Task Achievement</td>
-                                                                            <td className="px-6 py-4 font-bold text-gray-900">{resultData.aiReview[`task${task.id}`].criteria.taskAchievement?.band || '-'}</td>
-                                                                            <td className="px-6 py-4 text-[#1d1d1f] leading-relaxed opacity-80">{resultData.aiReview[`task${task.id}`].criteria.taskAchievement?.feedback || '-'}</td>
-                                                                        </tr>
-                                                                        <tr className="hover:bg-[#FBFBFD] transition-colors">
-                                                                            <td className="px-6 py-4 font-medium text-[#1d1d1f]">Coherence & Cohesion</td>
-                                                                            <td className="px-6 py-4 font-bold text-gray-900">{resultData.aiReview[`task${task.id}`].criteria.coherence?.band || '-'}</td>
-                                                                            <td className="px-6 py-4 text-[#1d1d1f] leading-relaxed opacity-80">{resultData.aiReview[`task${task.id}`].criteria.coherence?.feedback || '-'}</td>
-                                                                        </tr>
-                                                                        <tr className="hover:bg-[#FBFBFD] transition-colors">
-                                                                            <td className="px-6 py-4 font-medium text-[#1d1d1f]">Lexical Resource</td>
-                                                                            <td className="px-6 py-4 font-bold text-gray-900">{resultData.aiReview[`task${task.id}`].criteria.lexical?.band || '-'}</td>
-                                                                            <td className="px-6 py-4 text-[#1d1d1f] leading-relaxed opacity-80">{resultData.aiReview[`task${task.id}`].criteria.lexical?.feedback || '-'}</td>
-                                                                        </tr>
-                                                                        <tr className="hover:bg-[#FBFBFD] transition-colors">
-                                                                            <td className="px-6 py-4 font-medium text-[#1d1d1f]">Grammar Range</td>
-                                                                            <td className="px-6 py-4 font-bold text-gray-900">{resultData.aiReview[`task${task.id}`].criteria.grammar?.band || '-'}</td>
-                                                                            <td className="px-6 py-4 text-[#1d1d1f] leading-relaxed opacity-80">{resultData.aiReview[`task${task.id}`].criteria.grammar?.feedback || '-'}</td>
-                                                                        </tr>
-                                                                        <tr className="bg-[#f5f5f7]">
-                                                                            <td className="px-6 py-5 font-bold text-[#1d1d1f]">OVERALL</td>
-                                                                            <td className="px-6 py-5 font-black text-rose-500 text-lg">{resultData.aiReview[`task${task.id}`].criteria.overall?.band || '-'}</td>
-                                                                            <td className="px-6 py-5 font-medium text-[#1d1d1f] leading-relaxed">{resultData.aiReview[`task${task.id}`].criteria.overall?.feedback || '-'}</td>
-                                                                        </tr>
-                                                                    </tbody>
-                                                                </table>
+                                                        {task.image && (
+                                                            <div className="w-full bg-[#fbfbfd] rounded-2xl p-4 flex justify-center border border-gray-100">
+                                                                <img src={task.image} className="max-w-full max-h-[300px] object-contain mix-blend-multiply" alt="Task" />
                                                             </div>
                                                         )}
-                                                        
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                                            {/* Grammar */}
-                                                            <div className="bg-[#FBFBFD] rounded-2xl p-5 border border-gray-100">
-                                                                <h4 className="font-semibold text-gray-400 text-[11px] mb-4 uppercase tracking-widest flex items-center gap-2">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>
-                                                                    Grammar Corrections
-                                                                </h4>
-                                                                {resultData.aiReview[`task${task.id}`].grammarErrors?.length > 0 ? (
-                                                                    <ul className="space-y-4">
-                                                                        {resultData.aiReview[`task${task.id}`].grammarErrors.map((err, i) => (
-                                                                            <li key={i} className="flex flex-col gap-1.5 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                                                                                <div className="flex flex-wrap items-center gap-2 text-[14px]">
-                                                                                    <span className="line-through text-gray-400 decoration-red-300">{err.original}</span> 
-                                                                                    <span className="text-gray-300 mx-1">→</span>
-                                                                                    <span className="text-[#1d1d1f] font-semibold bg-green-50 px-2 py-0.5 rounded">{err.correction}</span>
-                                                                                </div>
-                                                                                <div className="text-gray-500 text-[12px] leading-relaxed mt-1">{err.explanation}</div>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                ) : (
-                                                                    <p className="text-[13px] text-gray-500 opacity-70">No significant grammar errors found.</p>
-                                                                )}
-                                                            </div>
-                                                            {/* Lexical */}
-                                                            <div className="bg-[#FBFBFD] rounded-2xl p-5 border border-gray-100">
-                                                                <h4 className="font-semibold text-gray-400 text-[11px] mb-4 uppercase tracking-widest flex items-center gap-2">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>
-                                                                    Vocabulary / Data Corrections
-                                                                </h4>
-                                                                {resultData.aiReview[`task${task.id}`].lexicalErrors?.length > 0 ? (
-                                                                    <ul className="space-y-4">
-                                                                        {resultData.aiReview[`task${task.id}`].lexicalErrors.map((err, i) => (
-                                                                            <li key={i} className="flex flex-col gap-1.5 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                                                                                <div className="flex flex-wrap items-center gap-2 text-[14px]">
-                                                                                    <span className="line-through text-gray-400 decoration-red-300">{err.original}</span> 
-                                                                                    <span className="text-gray-300 mx-1">→</span>
-                                                                                    <span className="text-[#1d1d1f] font-semibold bg-blue-50 px-2 py-0.5 rounded">{err.correction}</span>
-                                                                                </div>
-                                                                                <div className="text-gray-500 text-[12px] leading-relaxed mt-1">{err.explanation}</div>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                ) : (
-                                                                    <p className="text-[13px] text-gray-500 opacity-70">No significant vocabulary issues found.</p>
-                                                                )}
-                                                            </div>
+
+                                                        <div className="whitespace-pre-wrap text-[#1d1d1f] text-[15px] leading-relaxed font-medium">
+                                                            {task.prompt}
                                                         </div>
                                                     </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    // --- FALLBACK (Single Essay / Old Format) ---
-                                    <div className="max-w-[800px] mx-auto flex flex-col gap-8">
-                                        <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-                                            <h3 className="font-semibold text-[13px] uppercase tracking-widest text-[#1d1d1f] mb-6">Task Instructions</h3>
-                                            {(testData.image_url || testData.image || testData.task1_image) && <img src={testData.image_url || testData.image || testData.task1_image} alt="Task" className="w-full mb-6 rounded-2xl" />}
-                                            <p className="text-[#1d1d1f] leading-relaxed text-[15px]">{testData.passage || testData.task1 || testData.prompt || testData.instruction}</p>
-                                        </div>
-                                        
-                                        <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-                                            <h3 className="font-semibold text-[13px] uppercase tracking-widest text-[#1d1d1f] mb-6">Student Answer</h3>
-                                            <div className="whitespace-pre-wrap font-serif text-[#1d1d1f] text-[16px] leading-[1.8]">
-                                                {resultData.essay || 
-                                                 (typeof currentAnswers === 'string' ? currentAnswers : null) ||
-                                                 currentAnswers.task1 || 
-                                                 currentAnswers.writingAnswer || 
-                                                 currentAnswers.task2 || 
-                                                 <span className="text-gray-400 italic">No answer provided.</span>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
 
-                                 {/* ✍️ COMPACT GRADING LAB (WRITING) OR STUDENT FINAL FEEDBACK */}
-                                 {(userData?.role === 'admin' || userData?.role === 'teacher') ? (
-                                     <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden mt-8">
-                                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600 opacity-80"></div>
-                                         <div className="flex flex-col lg:flex-row gap-4 items-end">
-                                    
-                                    {/* Feedback Area */}
-                                    <div className="flex-1 w-full space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-[10px] text-white">✍️</div>
-                                            <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Feedback</h3>
+                                                    {/* STUDENT ANSWER CARD */}
+                                                    <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden">
+                                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 opacity-80"></div>
+                                                        <div className="flex justify-between items-center">
+                                                            <h3 className="font-semibold text-gray-800 text-[13px] uppercase tracking-widest text-[#1d1d1f] flex items-center gap-2">
+                                                                Student Answer
+                                                            </h3>
+                                                            <div className="text-[11px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                                                                {((answer || (typeof currentAnswers === 'string' ? currentAnswers : "")) + "").trim().split(/\s+/).filter(Boolean).length} WORDS
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="whitespace-pre-wrap font-serif text-[#1d1d1f] text-[16px] leading-[1.8] min-h-[150px]">
+                                                            {answer || (typeof currentAnswers === 'string' ? currentAnswers : null) || <span className="text-gray-400 italic">No answer provided.</span>}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* AI FEEDBACK CARD (IF GRADED) */}
+                                                    {resultData.aiReview && resultData.aiReview[`task${task.id}`] && (
+                                                        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden">
+                                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-rose-400 opacity-80"></div>
+                                                            <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
+                                                                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
+                                                                    <span className="text-orange-500 text-sm">✨</span>
+                                                                </div>
+                                                                <h3 className="font-semibold text-[#1d1d1f] text-sm uppercase tracking-widest">AI Evaluation</h3>
+                                                            </div>
+
+                                                            {resultData.aiReview[`task${task.id}`].criteria && (
+                                                                <div className="overflow-hidden rounded-2xl border border-gray-100">
+                                                                    <table className="w-full text-left text-sm">
+                                                                        <thead className="bg-[#FBFBFD] text-gray-500 border-b border-gray-100">
+                                                                            <tr>
+                                                                                <th className="px-6 py-4 font-semibold text-[11px] uppercase tracking-wider w-1/4">Criterion</th>
+                                                                                <th className="px-6 py-4 font-semibold text-[11px] uppercase tracking-wider w-20">Band</th>
+                                                                                <th className="px-6 py-4 font-semibold text-[11px] uppercase tracking-wider">Feedback</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-gray-100">
+                                                                            <tr className="hover:bg-[#FBFBFD] transition-colors">
+                                                                                <td className="px-6 py-4 font-medium text-[#1d1d1f]">Task Achievement</td>
+                                                                                <td className="px-6 py-4 font-bold text-gray-900">{resultData.aiReview[`task${task.id}`].criteria.taskAchievement?.band || '-'}</td>
+                                                                                <td className="px-6 py-4 text-[#1d1d1f] leading-relaxed opacity-80">{resultData.aiReview[`task${task.id}`].criteria.taskAchievement?.feedback || '-'}</td>
+                                                                            </tr>
+                                                                            <tr className="hover:bg-[#FBFBFD] transition-colors">
+                                                                                <td className="px-6 py-4 font-medium text-[#1d1d1f]">Coherence & Cohesion</td>
+                                                                                <td className="px-6 py-4 font-bold text-gray-900">{resultData.aiReview[`task${task.id}`].criteria.coherence?.band || '-'}</td>
+                                                                                <td className="px-6 py-4 text-[#1d1d1f] leading-relaxed opacity-80">{resultData.aiReview[`task${task.id}`].criteria.coherence?.feedback || '-'}</td>
+                                                                            </tr>
+                                                                            <tr className="hover:bg-[#FBFBFD] transition-colors">
+                                                                                <td className="px-6 py-4 font-medium text-[#1d1d1f]">Lexical Resource</td>
+                                                                                <td className="px-6 py-4 font-bold text-gray-900">{resultData.aiReview[`task${task.id}`].criteria.lexical?.band || '-'}</td>
+                                                                                <td className="px-6 py-4 text-[#1d1d1f] leading-relaxed opacity-80">{resultData.aiReview[`task${task.id}`].criteria.lexical?.feedback || '-'}</td>
+                                                                            </tr>
+                                                                            <tr className="hover:bg-[#FBFBFD] transition-colors">
+                                                                                <td className="px-6 py-4 font-medium text-[#1d1d1f]">Grammar Range</td>
+                                                                                <td className="px-6 py-4 font-bold text-gray-900">{resultData.aiReview[`task${task.id}`].criteria.grammar?.band || '-'}</td>
+                                                                                <td className="px-6 py-4 text-[#1d1d1f] leading-relaxed opacity-80">{resultData.aiReview[`task${task.id}`].criteria.grammar?.feedback || '-'}</td>
+                                                                            </tr>
+                                                                            <tr className="bg-[#f5f5f7]">
+                                                                                <td className="px-6 py-5 font-bold text-[#1d1d1f]">OVERALL</td>
+                                                                                <td className="px-6 py-5 font-black text-rose-500 text-lg">{resultData.aiReview[`task${task.id}`].criteria.overall?.band || '-'}</td>
+                                                                                <td className="px-6 py-5 font-medium text-[#1d1d1f] leading-relaxed">{resultData.aiReview[`task${task.id}`].criteria.overall?.feedback || '-'}</td>
+                                                                            </tr>
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                                {/* Grammar */}
+                                                                <div className="bg-[#FBFBFD] rounded-2xl p-5 border border-gray-100">
+                                                                    <h4 className="font-semibold text-gray-400 text-[11px] mb-4 uppercase tracking-widest flex items-center gap-2">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>
+                                                                        Grammar Corrections
+                                                                    </h4>
+                                                                    {resultData.aiReview[`task${task.id}`].grammarErrors?.length > 0 ? (
+                                                                        <ul className="space-y-4">
+                                                                            {resultData.aiReview[`task${task.id}`].grammarErrors.map((err, i) => (
+                                                                                <li key={i} className="flex flex-col gap-1.5 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                                                                                    <div className="flex flex-wrap items-center gap-2 text-[14px]">
+                                                                                        <span className="line-through text-gray-400 decoration-red-300">{err.original}</span>
+                                                                                        <span className="text-gray-300 mx-1">→</span>
+                                                                                        <span className="text-[#1d1d1f] font-semibold bg-green-50 px-2 py-0.5 rounded">{err.correction}</span>
+                                                                                    </div>
+                                                                                    <div className="text-gray-500 text-[12px] leading-relaxed mt-1">{err.explanation}</div>
+                                                                                </li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    ) : (
+                                                                        <p className="text-[13px] text-gray-500 opacity-70">No significant grammar errors found.</p>
+                                                                    )}
+                                                                </div>
+                                                                {/* Lexical */}
+                                                                <div className="bg-[#FBFBFD] rounded-2xl p-5 border border-gray-100">
+                                                                    <h4 className="font-semibold text-gray-400 text-[11px] mb-4 uppercase tracking-widest flex items-center gap-2">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>
+                                                                        Vocabulary / Data Corrections
+                                                                    </h4>
+                                                                    {resultData.aiReview[`task${task.id}`].lexicalErrors?.length > 0 ? (
+                                                                        <ul className="space-y-4">
+                                                                            {resultData.aiReview[`task${task.id}`].lexicalErrors.map((err, i) => (
+                                                                                <li key={i} className="flex flex-col gap-1.5 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                                                                                    <div className="flex flex-wrap items-center gap-2 text-[14px]">
+                                                                                        <span className="line-through text-gray-400 decoration-red-300">{err.original}</span>
+                                                                                        <span className="text-gray-300 mx-1">→</span>
+                                                                                        <span className="text-[#1d1d1f] font-semibold bg-blue-50 px-2 py-0.5 rounded">{err.correction}</span>
+                                                                                    </div>
+                                                                                    <div className="text-gray-500 text-[12px] leading-relaxed mt-1">{err.explanation}</div>
+                                                                                </li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    ) : (
+                                                                        <p className="text-[13px] text-gray-500 opacity-70">No significant vocabulary issues found.</p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        // --- FALLBACK (Single Essay / Old Format) ---
+                                        <div className="max-w-[800px] mx-auto flex flex-col gap-8">
+                                            <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                                <h3 className="font-semibold text-[13px] uppercase tracking-widest text-[#1d1d1f] mb-6">Task Instructions</h3>
+                                                {(testData.image_url || testData.image || testData.task1_image) && <img src={testData.image_url || testData.image || testData.task1_image} alt="Task" className="w-full mb-6 rounded-2xl" />}
+                                                <p className="text-[#1d1d1f] leading-relaxed text-[15px]">{testData.passage || testData.task1 || testData.prompt || testData.instruction}</p>
+                                            </div>
+
+                                            <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                                <h3 className="font-semibold text-[13px] uppercase tracking-widest text-[#1d1d1f] mb-6">Student Answer</h3>
+                                                <div className="whitespace-pre-wrap font-serif text-[#1d1d1f] text-[16px] leading-[1.8]">
+                                                    {resultData.essay ||
+                                                        (typeof currentAnswers === 'string' ? currentAnswers : null) ||
+                                                        currentAnswers.task1 ||
+                                                        currentAnswers.writingAnswer ||
+                                                        currentAnswers.task2 ||
+                                                        <span className="text-gray-400 italic">No answer provided.</span>}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <textarea
-                                            className="w-full border border-gray-200 p-4 rounded-xl text-[15px] min-h-[160px] lg:min-h-[240px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-y bg-gray-50/50 focus:bg-white transition-all font-medium leading-relaxed"
-                                            placeholder="Izoh yozing yoki AI orqali tekshiring..."
-                                            value={adminFeedback}
-                                            onChange={(e) => setAdminFeedback(e.target.value)}
-                                        />
-                                    </div>
-                                    
-                                    {/* Selectors & Button */}
-                                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto pb-1">
-                                        {testData.type === 'writing' || activeMockPart === 'writing' ? (
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex flex-col items-center px-3 py-1 bg-blue-50 rounded-xl border border-blue-100">
-                                                    <span className="text-[8px] font-black text-blue-500 uppercase tracking-tighter">T1</span>
-                                                    <select value={task1Band} onChange={(e) => setTask1Band(e.target.value)} className="bg-transparent text-sm font-black text-blue-700 outline-none">
-                                                        <option value="">--</option>
-                                                        {[3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9].map(v => <option key={v} value={v}>{v}</option>)}
-                                                    </select>
+                                    )}
+
+                                    {/* ✍️ COMPACT GRADING LAB (WRITING) OR STUDENT FINAL FEEDBACK */}
+                                    {(userData?.role === 'admin' || userData?.role === 'teacher') ? (
+                                        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden mt-8">
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600 opacity-80"></div>
+                                            <div className="flex flex-col lg:flex-row gap-4 items-end">
+
+                                                {/* Feedback Area */}
+                                                <div className="flex-1 w-full space-y-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-[10px] text-white">✍️</div>
+                                                        <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Feedback</h3>
+                                                    </div>
+                                                    <textarea
+                                                        className="w-full border border-gray-200 p-3 rounded-xl text-sm min-h-[60px] lg:min-h-[80px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-y bg-gray-50/50 focus:bg-white transition-all font-medium"
+                                                        placeholder="Izoh yozing..."
+                                                        value={adminFeedback}
+                                                        onChange={(e) => setAdminFeedback(e.target.value)}
+                                                    />
                                                 </div>
-                                                <div className="flex flex-col items-center px-3 py-1 bg-blue-50 rounded-xl border border-blue-100">
-                                                    <span className="text-[8px] font-black text-blue-500 uppercase tracking-tighter">T2</span>
-                                                    <select value={task2Band} onChange={(e) => setTask2Band(e.target.value)} className="bg-transparent text-sm font-black text-blue-700 outline-none">
-                                                        <option value="">--</option>
-                                                        {[3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9].map(v => <option key={v} value={v}>{v}</option>)}
-                                                    </select>
+
+                                                {/* Selectors & Button */}
+                                                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto pb-1">
+                                                    {testData.type === 'writing' || activeMockPart === 'writing' ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex flex-col items-center px-3 py-1 bg-blue-50 rounded-xl border border-blue-100">
+                                                                <span className="text-[8px] font-black text-blue-500 uppercase tracking-tighter">T1</span>
+                                                                <select value={task1Band} onChange={(e) => setTask1Band(e.target.value)} className="bg-transparent text-sm font-black text-blue-700 outline-none">
+                                                                    <option value="">--</option>
+                                                                    {[3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map(v => <option key={v} value={v}>{v}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <div className="flex flex-col items-center px-3 py-1 bg-blue-50 rounded-xl border border-blue-100">
+                                                                <span className="text-[8px] font-black text-blue-500 uppercase tracking-tighter">T2</span>
+                                                                <select value={task2Band} onChange={(e) => setTask2Band(e.target.value)} className="bg-transparent text-sm font-black text-blue-700 outline-none">
+                                                                    <option value="">--</option>
+                                                                    {[3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map(v => <option key={v} value={v}>{v}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <div className="flex flex-col items-center px-4 py-1.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/10">
+                                                                <span className="text-[8px] font-black uppercase tracking-tighter opacity-80">Overall</span>
+                                                                <div className="text-sm font-black leading-none mt-0.5">
+                                                                    {calculateOverallBand(Number(task1Band || 0), Number(task2Band || 0), Number(task2Band || 0)).toFixed(1)}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center px-4 py-2 bg-blue-50 rounded-xl border border-blue-100 gap-3">
+                                                            <span className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Band</span>
+                                                            <input
+                                                                type="number" step="0.5" max="9" min="0"
+                                                                className="w-8 bg-transparent text-base font-black text-center text-blue-700 outline-none"
+                                                                placeholder="0.0"
+                                                                value={adminScore}
+                                                                onChange={(e) => setAdminScore(e.target.value)}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    <button
+                                                        onClick={handleSaveGrade}
+                                                        disabled={isSaving}
+                                                        className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_8px_20px_rgb(37,99,235,0.2)] transition-all active:scale-95 disabled:bg-gray-300 w-full lg:w-auto"
+                                                    >
+                                                        {isSaving ? 'Saving...' : 'Submit'}
+                                                    </button>
                                                 </div>
-                                                <div className="flex flex-col items-center px-4 py-1.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/10">
-                                                    <span className="text-[8px] font-black uppercase tracking-tighter opacity-80">Overall</span>
-                                                    <div className="text-sm font-black leading-none mt-0.5">
-                                                        {calculateOverallBand(Number(task1Band || 0), Number(task2Band || 0), Number(task2Band || 0)).toFixed(1)}
+                                            </div>
+                                        </div>
+                                    ) : ((resultData.status === 'graded' || resultData.writingBand != null || resultData.scores?.writing != null) && (resultData.feedback || resultData.teacherFeedback || (resultData.type === 'mock_full' && (resultData.scores?.writingFeedback || resultData.teacherFeedback)))) ? (
+                                        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden mt-8">
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500 opacity-80"></div>
+                                            <div className="w-full flex flex-col gap-6">
+                                                <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                                                    <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 text-lg">📝</div>
+                                                    <div>
+                                                        <h3 className="font-semibold text-[#1d1d1f] text-sm uppercase tracking-widest">Writing Feedback</h3>
+                                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Review your score and instructor comments</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="relative z-10 flex flex-col lg:flex-row gap-8 items-start pt-2">
+                                                    <div className="flex-1">
+                                                        <p className="text-[#1d1d1f] text-[15px] leading-relaxed whitespace-pre-wrap font-medium bg-[#FBFBFD] p-5 rounded-2xl border border-gray-100">
+                                                            "{resultData.type === 'mock_full' ? (resultData.scores?.writingFeedback || resultData.teacherFeedback || resultData.feedback) : (resultData.teacherFeedback || resultData.feedback)}"
+                                                        </p>
+                                                    </div>
+                                                    <div className="w-full lg:w-fit flex flex-col items-center gap-2 p-5 bg-emerald-500 rounded-2xl shadow-[0_8px_20px_rgb(16,185,129,0.2)] min-w-[140px]">
+                                                        <span className="text-[10px] font-black text-emerald-50 uppercase tracking-widest">Final Band</span>
+                                                        <span className="text-5xl font-black text-white">
+                                                            {resultData.type === 'mock_full' ? (Number(resultData.scores?.writing || resultData.writingBand || 0).toFixed(1)) : (Number(resultData.score || resultData.writingBand || 0).toFixed(1))}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div className="flex items-center px-4 py-2 bg-blue-50 rounded-xl border border-blue-100 gap-3">
-                                                <span className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Band</span>
-                                                <input
-                                                    type="number" step="0.5" max="9" min="0"
-                                                    className="w-8 bg-transparent text-base font-black text-center text-blue-700 outline-none"
-                                                    placeholder="0.0"
-                                                    value={adminScore}
-                                                    onChange={(e) => setAdminScore(e.target.value)}
+                                        </div>
+                                    ) : (resultData.status !== 'graded' && !resultData.writingBand && !resultData.scores?.writing) ? (
+                                        <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 mt-8 flex justify-center items-center">
+                                            <p className="text-center text-[11px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                                                <span className="animate-pulse">⏳</span> Awaiting Grading by Instructor
+                                            </p>
+                                        </div>
+                                    ) : null}
+
+                                </div>
+                            </div>
+                        </div>
+
+                    ) : testData.type?.toLowerCase() === 'speaking' ? (
+                        <div className="w-full h-full flex flex-col bg-gray-50/50">
+                            <div className="flex-1 flex flex-col items-center justify-center w-full p-4 overflow-y-auto">
+
+                                <div className="w-full max-w-xl bg-white p-5 rounded-2xl border border-gray-200 shadow-sm mb-5 text-center relative overflow-hidden group transition-all hover:shadow-xl">
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-600" />
+                                    <h2 className="text-sm font-black uppercase tracking-widest mb-4 text-gray-800">🎤 Speaking Performance</h2>
+
+                                    {resultData.audioAnswer ? (
+                                        <div className="bg-purple-50/50 p-5 rounded-xl border border-purple-100 flex flex-col items-center gap-3">
+                                            <div className="bg-white p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-500">
+                                                <span className="text-3xl">🎧</span>
+                                            </div>
+                                            <audio controls src={resultData.audioAnswer} className="w-full max-w-md h-10 shadow-sm rounded-full" />
+                                            <a href={resultData.audioAnswer} download target="_blank" rel="noreferrer" className="text-[10px] text-purple-600 hover:text-purple-700 font-black uppercase tracking-widest transition-colors flex items-center gap-1">
+                                                <span>📥</span> Download Recording
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2 p-6 bg-red-50/50 rounded-xl border border-red-100">
+                                            <span className="text-2xl">⚠️</span>
+                                            <p className="text-red-600 text-xs font-black uppercase tracking-tight">Audio recording not found</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="w-full max-w-xl">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="h-px flex-1 bg-gray-200" />
+                                        <h4 className="font-black text-gray-400 uppercase text-[9px] tracking-[0.2em] whitespace-nowrap">Task Description</h4>
+                                        <div className="h-px flex-1 bg-gray-200" />
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl border border-gray-200 text-gray-600 text-[11px] whitespace-pre-wrap font-medium shadow-sm leading-relaxed max-h-[200px] overflow-y-auto">
+                                        {testData.passage || testData.script || "No description available"}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 🎤 ENHANCED GRADING LAB (SPEAKING) */}
+                            {(userData?.role === 'admin' || userData?.role === 'teacher') ? (
+                                <div className="bg-white border-t border-purple-500/30 p-4 lg:p-6 shadow-[0_-10px_40px_-15px_rgba(139,92,246,0.15)] z-20 backdrop-blur-xl bg-white/95 sticky bottom-0">
+                                    <div className="max-w-4xl mx-auto flex flex-col gap-4">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-white text-sm">💬</div>
+                                                <div>
+                                                    <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest leading-none flex items-center gap-2">
+                                                        Speaking Feedback
+                                                        {resultData.userName && (
+                                                            <span className="text-[10px] text-purple-600/60 font-bold lowercase italic tracking-tight">• evaluation for {resultData.userName}</span>
+                                                        )}
+                                                    </h3>
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Comment on fluency, grammar, and pronunciation</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col lg:flex-row gap-4 items-start">
+                                            <div className="flex-1 w-full group relative">
+                                                <textarea
+                                                    className="w-full border-2 border-gray-100 p-4 rounded-2xl text-sm min-h-[220px] focus:ring-4 focus:ring-purple-500/5 focus:border-purple-500 outline-none resize-y bg-gray-50/30 focus:bg-white transition-all shadow-sm font-medium"
+                                                    placeholder="Example: Pronunciation is clear, but work on using more complex sentence structures..."
+                                                    value={adminFeedback}
+                                                    onChange={(e) => setAdminFeedback(e.target.value)}
                                                 />
                                             </div>
-                                        )}
-                                        
-                                        <button
-                                             onClick={handleSaveGrade}
-                                             disabled={isSaving}
-                                             className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_8px_20px_rgb(37,99,235,0.2)] transition-all active:scale-95 disabled:bg-gray-300 w-full lg:w-auto"
-                                         >
-                                             {isSaving? 'Saving...' : 'Submit'}
-                                         </button>
-                                    </div>
-                                </div>
-                             </div>
-                         ) : ((resultData.status === 'graded' || resultData.writingBand != null || resultData.scores?.writing != null) && (resultData.feedback || resultData.teacherFeedback || (resultData.type === 'mock_full' && (resultData.scores?.writingFeedback || resultData.teacherFeedback)))) ? (
-                             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden mt-8">
-                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500 opacity-80"></div>
-                                 <div className="w-full flex flex-col gap-6">
-                                     <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                                         <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 text-lg">📝</div>
-                                         <div>
-                                             <h3 className="font-semibold text-[#1d1d1f] text-sm uppercase tracking-widest">Writing Feedback</h3>
-                                             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Review your score and instructor comments</p>
-                                         </div>
-                                     </div>
-                                     
-                                     <div className="relative z-10 flex flex-col lg:flex-row gap-8 items-start pt-2">
-                                         <div className="flex-1">
-                                             <p className="text-[#1d1d1f] text-[15px] leading-relaxed whitespace-pre-wrap font-medium bg-[#FBFBFD] p-5 rounded-2xl border border-gray-100">
-                                                 "{resultData.type === 'mock_full' ? (resultData.scores?.writingFeedback || resultData.teacherFeedback || resultData.feedback) : (resultData.teacherFeedback || resultData.feedback)}"
-                                             </p>
-                                         </div>
-                                         <div className="w-full lg:w-fit flex flex-col items-center gap-2 p-5 bg-emerald-500 rounded-2xl shadow-[0_8px_20px_rgb(16,185,129,0.2)] min-w-[140px]">
-                                             <span className="text-[10px] font-black text-emerald-50 uppercase tracking-widest">Final Band</span>
-                                             <span className="text-5xl font-black text-white">
-                                                 {resultData.type === 'mock_full' ? (Number(resultData.scores?.writing || resultData.writingBand || 0).toFixed(1)) : (Number(resultData.score || resultData.writingBand || 0).toFixed(1))}
-                                             </span>
-                                         </div>
-                                     </div>
-                                 </div>
-                             </div>
-                         ) : (resultData.status !== 'graded' && !resultData.writingBand && !resultData.scores?.writing) ? (
-                             <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 mt-8 flex justify-center items-center">
-                                 <p className="text-center text-[11px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-2">
-                                     <span className="animate-pulse">⏳</span> Awaiting Grading by Instructor
-                                 </p>
-                             </div>
-                         ) : null}
 
-                            </div>
-                        </div>
-                    </div>
+                                            <div className="w-full lg:w-fit flex flex-row lg:flex-col gap-2.5 items-stretch">
+                                                <div className="flex-1 lg:w-24 bg-purple-50/50 p-3 rounded-2xl border-2 border-purple-100 flex flex-col items-center justify-center group">
+                                                    <label className="text-[8px] font-black text-purple-600 uppercase tracking-widest mb-1 opacity-60 text-center leading-none">Band</label>
+                                                    <input
+                                                        type="number" step="0.5" max="9" min="0"
+                                                        className="w-12 bg-transparent text-2xl font-black text-center text-purple-700 outline-none focus:scale-110 transition-transform"
+                                                        placeholder="0.0"
+                                                        value={adminScore}
+                                                        onChange={(e) => setAdminScore(e.target.value)}
+                                                    />
+                                                </div>
 
-                ) : testData.type?.toLowerCase() === 'speaking' ? (
-                    <div className="w-full h-full flex flex-col bg-gray-50/50">
-                        <div className="flex-1 flex flex-col items-center justify-center w-full p-4 overflow-y-auto">
-
-                            <div className="w-full max-w-xl bg-white p-5 rounded-2xl border border-gray-200 shadow-sm mb-5 text-center relative overflow-hidden group transition-all hover:shadow-xl">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-600" />
-                                <h2 className="text-sm font-black uppercase tracking-widest mb-4 text-gray-800">🎤 Speaking Performance</h2>
-
-                                {resultData.audioAnswer ? (
-                                    <div className="bg-purple-50/50 p-5 rounded-xl border border-purple-100 flex flex-col items-center gap-3">
-                                        <div className="bg-white p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-500">
-                                            <span className="text-3xl">🎧</span>
-                                        </div>
-                                        <audio controls src={resultData.audioAnswer} className="w-full max-w-md h-10 shadow-sm rounded-full" />
-                                        <a href={resultData.audioAnswer} download target="_blank" rel="noreferrer" className="text-[10px] text-purple-600 hover:text-purple-700 font-black uppercase tracking-widest transition-colors flex items-center gap-1">
-                                            <span>📥</span> Download Recording
-                                        </a>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center gap-2 p-6 bg-red-50/50 rounded-xl border border-red-100">
-                                        <span className="text-2xl">⚠️</span>
-                                        <p className="text-red-600 text-xs font-black uppercase tracking-tight">Audio recording not found</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="w-full max-w-xl">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <div className="h-px flex-1 bg-gray-200" />
-                                    <h4 className="font-black text-gray-400 uppercase text-[9px] tracking-[0.2em] whitespace-nowrap">Task Description</h4>
-                                    <div className="h-px flex-1 bg-gray-200" />
-                                </div>
-                                <div className="bg-white p-4 rounded-xl border border-gray-200 text-gray-600 text-[11px] whitespace-pre-wrap font-medium shadow-sm leading-relaxed max-h-[200px] overflow-y-auto">
-                                    {testData.passage || testData.script || "No description available"}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 🎤 ENHANCED GRADING LAB (SPEAKING) */}
-                        {(userData?.role === 'admin' || userData?.role === 'teacher') ? (
-                            <div className="bg-white border-t border-purple-500/30 p-4 lg:p-6 shadow-[0_-10px_40px_-15px_rgba(139,92,246,0.15)] z-20 backdrop-blur-xl bg-white/95 sticky bottom-0">
-                                <div className="max-w-4xl mx-auto flex flex-col gap-4">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-white text-sm">💬</div>
-                                            <div>
-                                                <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest leading-none flex items-center gap-2">
-                                                    Speaking Feedback
-                                                    {resultData.userName && (
-                                                        <span className="text-[10px] text-purple-600/60 font-bold lowercase italic tracking-tight">• evaluation for {resultData.userName}</span>
+                                                <button
+                                                    onClick={handleSaveGrade}
+                                                    disabled={isSaving}
+                                                    className="flex-1 lg:w-24 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-2xl shadow-xl shadow-purple-500/20 transition-all active:scale-95 disabled:bg-gray-300 flex flex-col items-center justify-center gap-1 group py-3 px-4 overflow-hidden relative"
+                                                >
+                                                    {isSaving ? (
+                                                        <span className="animate-pulse text-[10px]">...</span>
+                                                    ) : (
+                                                        <>
+                                                            <span className="text-base group-hover:scale-125 transition-transform duration-300">💾</span>
+                                                            <span className="text-[8px] uppercase tracking-widest">Save</span>
+                                                        </>
                                                     )}
-                                                </h3>
-                                                <p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Comment on fluency, grammar, and pronunciation</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex flex-col lg:flex-row gap-4 items-start">
-                                        <div className="flex-1 w-full group relative">
-                                            <textarea
-                                                className="w-full border-2 border-gray-100 p-4 rounded-2xl text-sm min-h-[220px] focus:ring-4 focus:ring-purple-500/5 focus:border-purple-500 outline-none resize-y bg-gray-50/30 focus:bg-white transition-all shadow-sm font-medium"
-                                                placeholder="Example: Pronunciation is clear, but work on using more complex sentence structures..."
-                                                value={adminFeedback}
-                                                onChange={(e) => setAdminFeedback(e.target.value)}
-                                            />
-                                        </div>
-                                        
-                                        <div className="w-full lg:w-fit flex flex-row lg:flex-col gap-2.5 items-stretch">
-                                            <div className="flex-1 lg:w-24 bg-purple-50/50 p-3 rounded-2xl border-2 border-purple-100 flex flex-col items-center justify-center group">
-                                                <label className="text-[8px] font-black text-purple-600 uppercase tracking-widest mb-1 opacity-60 text-center leading-none">Band</label>
-                                                <input
-                                                    type="number" step="0.5" max="9" min="0"
-                                                    className="w-12 bg-transparent text-2xl font-black text-center text-purple-700 outline-none focus:scale-110 transition-transform"
-                                                    placeholder="0.0"
-                                                    value={adminScore}
-                                                    onChange={(e) => setAdminScore(e.target.value)}
-                                                />
-                                            </div>
-                                            
-                                            <button
-                                                onClick={handleSaveGrade}
-                                                disabled={isSaving}
-                                                className="flex-1 lg:w-24 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-2xl shadow-xl shadow-purple-500/20 transition-all active:scale-95 disabled:bg-gray-300 flex flex-col items-center justify-center gap-1 group py-3 px-4 overflow-hidden relative"
-                                            >
-                                                {isSaving ? (
-                                                    <span className="animate-pulse text-[10px]">...</span>
-                                                ) : (
-                                                    <>
-                                                        <span className="text-base group-hover:scale-125 transition-transform duration-300">💾</span>
-                                                        <span className="text-[8px] uppercase tracking-widest">Save</span>
-                                                    </>
-                                                )}
-                                                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : resultData.status === 'graded' && (resultData.feedback || (resultData.type === 'mock_full' && resultData.scores?.speakingFeedback)) ? (
-                            <div className="bg-emerald-50/50 border-t border-emerald-500/20 p-6 lg:p-8 shadow-inner z-20 w-full">
-                                <div className="max-w-4xl mx-auto flex flex-col gap-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white text-lg">📝</div>
-                                        <div>
-                                            <h3 className="text-sm font-black text-emerald-900 uppercase tracking-[0.2em]">Speaking Feedback</h3>
-                                            <p className="text-[10px] text-emerald-600/60 font-bold uppercase tracking-widest mt-1">Review your performance feedback</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="bg-white rounded-3xl p-6 lg:p-8 border border-emerald-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-100 transition-colors" />
-                                        <div className="relative z-10 flex flex-col lg:flex-row gap-8 items-start">
-                                            <div className="flex-1">
-                                                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap font-medium italic">
-                                                    "{resultData.type === 'mock_full' ? resultData.scores?.speakingFeedback : resultData.feedback}"
-                                                </p>
-                                            </div>
-                                            <div className="w-full lg:w-fit flex flex-col items-center gap-2 p-5 bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-600/20 min-w-[120px]">
-                                                <span className="text-[10px] font-black text-emerald-100 uppercase tracking-widest">Final Band</span>
-                                                <span className="text-4xl font-black text-white">
-                                                    {resultData.type === 'mock_full' ? (Number(resultData.scores?.speaking || 0).toFixed(1)) : (Number(resultData.score || 0).toFixed(1))}
-                                                </span>
+                                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : resultData.status !== 'graded' ? (
-                            <div className="bg-purple-50/50 border-t border-purple-400/20 p-2 z-20">
-                                <p className="text-center text-[10px] font-black text-purple-700 uppercase tracking-widest">⏳ Instructor evaluation pending</p>
-                            </div>
-                        ) : null}
-                    </div>
-                ) : null}
+                            ) : resultData.status === 'graded' && (resultData.feedback || (resultData.type === 'mock_full' && resultData.scores?.speakingFeedback)) ? (
+                                <div className="bg-emerald-50/50 border-t border-emerald-500/20 p-6 lg:p-8 shadow-inner z-20 w-full">
+                                    <div className="max-w-4xl mx-auto flex flex-col gap-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white text-lg">📝</div>
+                                            <div>
+                                                <h3 className="text-sm font-black text-emerald-900 uppercase tracking-[0.2em]">Speaking Feedback</h3>
+                                                <p className="text-[10px] text-emerald-600/60 font-bold uppercase tracking-widest mt-1">Review your performance feedback</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white rounded-3xl p-6 lg:p-8 border border-emerald-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-100 transition-colors" />
+                                            <div className="relative z-10 flex flex-col lg:flex-row gap-8 items-start">
+                                                <div className="flex-1">
+                                                    <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap font-medium italic">
+                                                        "{resultData.type === 'mock_full' ? resultData.scores?.speakingFeedback : resultData.feedback}"
+                                                    </p>
+                                                </div>
+                                                <div className="w-full lg:w-fit flex flex-col items-center gap-2 p-5 bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-600/20 min-w-[120px]">
+                                                    <span className="text-[10px] font-black text-emerald-100 uppercase tracking-widest">Final Band</span>
+                                                    <span className="text-4xl font-black text-white">
+                                                        {resultData.type === 'mock_full' ? (Number(resultData.scores?.speaking || 0).toFixed(1)) : (Number(resultData.score || 0).toFixed(1))}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : resultData.status !== 'graded' ? (
+                                <div className="bg-purple-50/50 border-t border-purple-400/20 p-2 z-20">
+                                    <p className="text-center text-[10px] font-black text-purple-700 uppercase tracking-widest">⏳ Instructor evaluation pending</p>
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : null}
                 </div>
             </div>
         </div>

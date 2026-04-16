@@ -34,7 +34,7 @@ export default function TeacherAllResults() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 15;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -190,31 +190,33 @@ export default function TeacherAllResults() {
   const totalPages = Math.ceil(filteredResults.length / itemsPerPage);
 
   const renderPaginationButtons = () => {
-    const pages = [];
-    const maxVisiblePages = 5; 
-
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    const delta = 2;
+    const range = [];
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+        range.push(i);
     }
 
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => setCurrentPage(i)}
-          className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${currentPage === i
-              ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-              : isDark ? "bg-[#2C2C2C] border border-white/5 text-gray-400 hover:bg-white/5 hover:border-white/10" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
-            }`}
-        >
-          {i}
-        </button>
-      );
-    }
-    return pages;
+    if (currentPage > delta + 2) range.unshift("...");
+    range.unshift(1);
+    if (currentPage < totalPages - (delta + 1)) range.push("...");
+    if (totalPages > 1) range.push(totalPages);
+
+    return range.map((page, index) => 
+        page === "..." ? (
+            <span key={`dots-${index}`} className={`px-2 text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>...</span>
+        ) : (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${currentPage === page
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                  : isDark ? "bg-[#2C2C2C] border border-white/5 text-gray-400 hover:bg-white/5 hover:border-white/10" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                }`}
+            >
+              {page}
+            </button>
+        )
+    );
   };
 
   if (loading) return (
@@ -238,27 +240,30 @@ export default function TeacherAllResults() {
           </button>
         </div>
 
-        <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
+        <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-6 mb-10">
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-center">
+            
+            {/* 1. Qidiruv */}
             <div className="relative w-full md:w-64 group">
-              <Icons.Search className={`absolute left-3 top-2.5 w-5 h-5 transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
+              <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
               <input
                 type="text"
                 placeholder="Qidirish..."
-                className={`w-full pl-9 pr-4 py-2 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500/20 transition-all shadow-sm ${isDark ? 'bg-[#2C2C2C] border border-white/5 focus:border-blue-500 placeholder:text-gray-500 text-white' : 'bg-white border border-gray-200 focus:border-blue-500 placeholder:text-gray-400 text-gray-900'}`}
+                className={`w-full pl-11 pr-4 py-3 rounded-2xl border-none outline-none text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-white focus:bg-white/[0.08] placeholder:text-gray-600' : 'bg-gray-100 text-gray-900 focus:bg-gray-200/50 placeholder:text-gray-500'}`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
-            <div className="relative w-full sm:w-40">
-              <div className="absolute left-3 top-2.5 pointer-events-none">
-                <Icons.Type className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+            {/* 2. Turlar Filtri */}
+            <div className="relative w-full sm:w-44">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <Icons.Type className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
               </div>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className={`w-full pl-9 pr-8 py-2 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500/20 transition-all shadow-sm appearance-none cursor-pointer font-medium ${isDark ? 'bg-[#2C2C2C] border border-white/5 focus:border-blue-500 text-gray-300' : 'bg-white border border-gray-200 focus:border-blue-500 text-gray-600'}`}
+                className={`w-full pl-11 pr-10 py-3 rounded-2xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 focus:bg-white/[0.08]' : 'bg-gray-100 text-gray-700 focus:bg-gray-200/50'}`}
               >
                 <option value="all">Barcha Turlar</option>
                 <option value="reading">Reading</option>
@@ -266,23 +271,24 @@ export default function TeacherAllResults() {
                 <option value="writing">Writing</option>
                 <option value="speaking">Speaking</option>
               </select>
-              <Icons.ChevronDown className={`absolute right-3 top-3 w-3 h-3 pointer-events-none ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+              <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
             </div>
 
-            <div className="relative w-full sm:w-44">
-              <div className="absolute left-3 top-2.5 pointer-events-none">
-                <Icons.Status className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+            {/* 3. Status Filtri */}
+            <div className="relative w-full sm:w-48">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <Icons.Status className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className={`w-full pl-9 pr-8 py-2 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500/20 transition-all shadow-sm appearance-none cursor-pointer font-medium ${isDark ? 'bg-[#2C2C2C] border border-white/5 focus:border-blue-500 text-gray-300' : 'bg-white border border-gray-200 focus:border-blue-500 text-gray-600'}`}
+                className={`w-full pl-11 pr-10 py-3 rounded-2xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 focus:bg-white/[0.08]' : 'bg-gray-100 text-gray-700 focus:bg-gray-200/50'}`}
               >
                 <option value="all">Barcha Statuslar</option>
                 <option value="pending">Kutilmoqda</option>
                 <option value="graded">Baholangan</option>
               </select>
-              <Icons.ChevronDown className={`absolute right-3 top-3 w-3 h-3 pointer-events-none ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+              <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
             </div>
 
             {(typeFilter !== 'all' || statusFilter !== 'all' || searchTerm) && (
@@ -292,7 +298,7 @@ export default function TeacherAllResults() {
                   setStatusFilter('all');
                   setSearchTerm('');
                 }}
-                className={`text-xs font-medium px-2 underline underline-offset-2 ${isDark ? 'text-red-400 hover:text-red-300 decoration-red-500/30' : 'text-red-500 hover:text-red-700 decoration-red-200'}`}
+                className={`text-xs font-semibold px-2 underline transition-colors underline-offset-4 ${isDark ? 'text-red-400 hover:text-red-300 decoration-red-500/30' : 'text-red-500 hover:text-red-600 decoration-red-500/20'}`}
               >
                 Tozalash
               </button>

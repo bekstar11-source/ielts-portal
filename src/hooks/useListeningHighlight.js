@@ -26,16 +26,6 @@ function getTextNodePath(textNode, container) {
     return path;
 }
 
-/** Yo'l bo'yicha text nodeni topadi */
-function getNodeByPath(path, container) {
-    let node = container;
-    for (const idx of path) {
-        if (!node || !node.childNodes[idx]) return null;
-        node = node.childNodes[idx];
-    }
-    return node;
-}
-
 /** Range ni saqlash uchun kichik obyektga aylantiradi */
 function serializeRange(range, container) {
     try {
@@ -67,13 +57,26 @@ function restoreHighlight(serialized, container) {
         return current;
     };
 
-    // Taqribiy qidiruv (fuzzy search) — agar yo'l orqali topilmasa
+    /** Fuzzy search: Matnni whitespace-insensitve qidirish */
     const findTextNodeByContent = (targetText, root) => {
+        if (!targetText || targetText.trim().length === 0) return null;
+        
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+        const cleanTarget = targetText.replace(/\s+/g, ' ').trim();
+        
         let node;
         while (node = walker.nextNode()) {
-            if (node.textContent.includes(targetText)) {
+            const cleanNodeText = node.textContent.replace(/\s+/g, ' ');
+            if (cleanNodeText.includes(cleanTarget)) {
                 return node;
+            }
+        }
+        // Agar to'liq matn topilmasa, boshidan 5 ta harfni qidirib ko'ramiz (fallback)
+        if (cleanTarget.length > 5) {
+            const startChunk = cleanTarget.substring(0, 5);
+            walker.currentNode = root;
+            while (node = walker.nextNode()) {
+                if (node.textContent.includes(startChunk)) return node;
             }
         }
         return null;
@@ -84,7 +87,10 @@ function restoreHighlight(serialized, container) {
         let endNode = findNodeByPath(serialized.ePth, container);
 
         // Agar yo'l noto'g'ri bo'lsa (DOM o'zgargan bo'lsa), matn bo'yicha qidiramiz
-        if (!startNode || startNode.nodeType !== 3 || !startNode.textContent.includes(serialized.txt.substring(0, 3))) {
+        const nodeIsInvalid = !startNode || startNode.nodeType !== 3 || 
+                             !startNode.textContent.replace(/\s+/g, '').includes(serialized.txt.substring(0, 3).replace(/\s+/g, ''));
+
+        if (nodeIsInvalid) {
             startNode = findTextNodeByContent(serialized.txt, container);
             endNode = startNode;
         }
@@ -94,37 +100,44 @@ function restoreHighlight(serialized, container) {
         const range = document.createRange();
         // Offsetlarni xavfsiz chegaralash
         const sOff = Math.max(0, Math.min(serialized.sOff, startNode.length || 0));
-        const eOff = Math.max(0, Math.min(serialized.eOff, endNode.length || 0));
+        let eOff = Math.max(0, Math.min(serialized.eOff, endNode.length || 0));
 
-        range.setStart(startNode, sOff);
-        range.setEnd(endNode, eOff);
-
-        // Matn mosligini tekshirish (whitespace ni hisobga olmasdan)
-        const rangeText = range.toString().trim();
-        const originalText = (serialized.txt || "").trim();
-        
-        if (rangeText.length === 0 && originalText.length > 0) return false;
+        // Agar fuzzy topilgan bo'lsa, offsetlarni moslashtirishga harakat qilamiz
+        if (nodeIsInvalid) {
+            const idx = startNode.textContent.indexOf(serialized.txt.substring(0, 3));
+            if (idx !== -1) {
+                range.setStart(startNode, idx);
+                range.setEnd(startNode, Math.min(idx + serialized.txt.length, startNode.length));
+            } else {
+                range.setStart(startNode, 0);
+                range.setEnd(startNode, startNode.length);
+            }
+        } else {
+            range.setStart(startNode, sOff);
+            range.setEnd(endNode, eOff);
+        }
 
         const span = document.createElement("span");
         span.className = "bg-yellow-200 rounded-sm cursor-pointer pointer-events-auto listening-hl";
-        span.dataset.id = serialized.id || Date.now().toString() + Math.random();
+        span.dataset.id = serialized.id || (Date.now() + Math.random()).toString();
         
         range.surroundContents(span);
         return true;
     } catch (err) {
-        console.warn("Highlight restoration failed:", err);
+        // console.warn("Highlight restoration failed:", err);
         return false;
     }
 }
 
 /** Containerdan barcha listening-hl spanlarni DOM dan olib tashlaydi (span contentni saqlab) */
 function clearHighlightSpans(container) {
+    if (!container) return;
     const spans = Array.from(container.querySelectorAll(".listening-hl"));
     spans.forEach((span) => {
         const parent = span.parentNode;
         if (!parent) return;
-        const text = document.createTextNode(span.textContent);
-        parent.replaceChild(text, span);
+        const textNode = document.createTextNode(span.textContent);
+        parent.replaceChild(textNode, span);
     });
     // Barcha bo'lingan text nodelarni birlashtiramiz (indexlar buzilmasligi uchun)
     container.normalize();
@@ -134,25 +147,21 @@ function clearHighlightSpans(container) {
 
 export function useListeningHighlight(testId, activePart, userAnswers, externalIsActive) {
     const [_isActive, _setIsActive] = useState(false);
-    // Agar tashqaridan state uzatilsa ishlatamiz, aks holda ichki state
     const isHighlighterActive = externalIsActive !== undefined ? externalIsActive : _isActive;
     const setIsHighlighterActive = _setIsActive;
     const containerRef = useRef(null);
-    // Restore guard: bir restore tugamay turib ikkinchisi boshlanmasin
     const isRestoringRef = useRef(false);
 
     const storageKey = `${STORAGE_PREFIX}${testId ?? "test"}_p${activePart}`;
 
-    // Saqlangan highlightlarni o'qish
     const load = useCallback(() => {
         try { return JSON.parse(localStorage.getItem(storageKey) || "[]"); }
         catch { return []; }
     }, [storageKey]);
 
-    // Saqlash
     const save = useCallback((list) => {
         try { localStorage.setItem(storageKey, JSON.stringify(list)); }
-        catch { /* storage to'liq bo'lsa ignore */ }
+        catch { /* ignore */ }
     }, [storageKey]);
 
     // Joriy container dagi barcha listening-hl spanlarni re-serialize qilib saqlash
@@ -161,17 +170,7 @@ export function useListeningHighlight(testId, activePart, userAnswers, externalI
         if (!container) return;
         const spans = container.querySelectorAll(".listening-hl");
         
-        // Muhim: Agar DOM da spanlar yo'q bo'lsa, lekin loading paytida bo'lsa - ehtiyot bo'lamiz
-        if (spans.length === 0) {
-            const saved = load();
-            if (saved.length > 0) {
-                // Ehtimol React hali DOM ni yangilamagan yoki vaqtincha highlightlar yo'qolgan
-                // Shuning uchun localStorage ni o'chirib yubormaymiz (agar bu trigger manual removal bo'lmasa)
-                // Lekin handleTextSelection da manual removal bo'lsa resave chaqiriladi, u yerda removal aniq
-                return;
-            }
-        }
-
+        // Manual o'chirish paytida spans.length 0 bo'lishi mumkin, bu normal
         const list = [];
         spans.forEach((span) => {
             try {
@@ -185,63 +184,50 @@ export function useListeningHighlight(testId, activePart, userAnswers, externalI
             } catch { /* ignore */ }
         });
         save(list);
-    }, [save, load]);
+    }, [save]);
 
-    // Highlightlarni DOM ga qayta qo'llash (umumiy util)
     const applyStoredHighlights = useCallback(() => {
         const container = containerRef.current;
         if (!container || isRestoringRef.current) return;
 
         const saved = load();
+        if (!saved || saved.length === 0) {
+            const existingSpans = container.querySelectorAll(".listening-hl");
+            if (existingSpans.length > 0) clearHighlightSpans(container);
+            return;
+        }
+
+        // Smart Check: Agar soni bir xil bo'lsa, ortiqcha ish qilmaymiz (flicking oldini oladi)
         const existingSpans = container.querySelectorAll(".listening-hl");
+        if (existingSpans.length === saved.length) return;
 
-        // Agar soni bir xil bo'lsa va 0 dan ko'p bo'lsa - hech narsa qilmaymiz (flicking oldini oladi)
-        if (existingSpans.length === saved.length && saved.length > 0) {
-            return;
+        try {
+            isRestoringRef.current = true;
+            clearHighlightSpans(container);
+            
+            // Tiklash: REVERSE ORDER ishlatamiz! 
+            // Bu DOM indexlari o'zgarishini oldini oladi (orqadan oldinga qarab restore qilish xavfsiz)
+            const toRestore = [...saved].reverse();
+            toRestore.forEach((s) => restoreHighlight(s, container));
+        } catch (err) {
+            console.error("Highlight restore error:", err);
+        } finally {
+            isRestoringRef.current = false;
         }
-
-        // Agar saqlanganlar yo'q bo'lsa, lekin DOM da bo'lsa - tozalab tashlaymiz
-        if (saved.length === 0) {
-            if (existingSpans.length > 0) {
-                clearHighlightSpans(container);
-            }
-            return;
-        }
-
-        isRestoringRef.current = true;
-        // Avval mavjud spanlarni tozalash (double-wrap oldini olish)
-        clearHighlightSpans(container);
-        
-        // Tiklash
-        saved.forEach((s) => restoreHighlight(s, container));
-        
-        isRestoringRef.current = false;
     }, [load]);
 
-    // Part o'zgarganda saqlangan highlightlarni DOM ga qayta qo'llash
-    // Part o'zgarganda saqlangan highlightlarni DOM ga qayta qo'llash
+    // Part o'zgarganda tiklash
     useLayoutEffect(() => {
         applyStoredHighlights();
     }, [activePart, applyStoredHighlights]);
 
-    // userAnswers o'zgarganda (input/select trigger) highlight lar qayta restore qilinadi
-    // Flicker oldini olish uchun useLayoutEffect ishlatamiz (paint bo'lishidan oldin tiklash uchun)
+    // userAnswers o'zgarganda (typing) highlightlar o'chib ketsa qayta tiklash
     useLayoutEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const saved = load();
-        if (saved.length === 0) return;
-
-        // Smart Check: Agar DOM da spanlar hali ham turgan bo'lsa - hech narsa qilmaymiz
-        const existingSpans = container.querySelectorAll(".listening-hl");
-        if (existingSpans.length === saved.length) {
-            return;
-        }
-
-        // React DOM ni yangilagandan keyin darhol tiklaymiz
+        if (!containerRef.current) return;
+        // Typing paytida React DOM ni yangilagandan keyin darhol tiklaymiz
+        // applyStoredHighlights ichida Smart Check bor, shuning uchun juda tez ishlaydi
         applyStoredHighlights();
-    }, [userAnswers, applyStoredHighlights, load]);
+    }, [userAnswers, applyStoredHighlights]);
 
     // Mouse up — highlight qo'shish yoki olib tashlash
     const handleTextSelection = useCallback((e) => {
@@ -250,57 +236,43 @@ export function useListeningHighlight(testId, activePart, userAnswers, externalI
         if (!container) return;
 
         // Highlight spanini bosish → o'chirish
-        if (
-            e.target.tagName === "SPAN" &&
-            e.target.classList.contains("listening-hl")
-        ) {
+        if (e.target.tagName === "SPAN" && e.target.classList.contains("listening-hl")) {
             const parent = e.target.parentNode;
-            const text = document.createTextNode(e.target.textContent);
-            parent.replaceChild(text, e.target);
+            const textNode = document.createTextNode(e.target.textContent);
+            parent.replaceChild(textNode, e.target);
             parent.normalize();
             resave();
             return;
         }
 
         const selection = window.getSelection();
-        if (
-            !selection ||
-            selection.rangeCount === 0 ||
-            selection.toString().trim() === ""
-        ) return;
+        if (!selection || selection.rangeCount === 0 || selection.toString().trim() === "") return;
         if (!container.contains(selection.anchorNode)) return;
 
         try {
             const range = selection.getRangeAt(0);
             const serialized = serializeRange(range, container);
+            if (!serialized) return;
 
             const span = document.createElement("span");
-            span.className =
-                "bg-yellow-200 rounded-sm cursor-pointer pointer-events-auto listening-hl";
+            span.className = "bg-yellow-200 rounded-sm cursor-pointer pointer-events-auto listening-hl";
+            span.dataset.id = (Date.now() + Math.random()).toString();
+            
             range.surroundContents(span);
             selection.removeAllRanges();
 
-            if (serialized) {
-                const list = load();
-                list.push(serialized);
-                save(list);
-            }
+            const list = load();
+            serialized.id = span.dataset.id;
+            list.push(serialized);
+            save(list);
         } catch {
-            // Tag chegaralari kesishsa xato — highlight qo'shilmaydi
             window.getSelection()?.removeAllRanges();
         }
     }, [isHighlighterActive, load, save, resave]);
 
-    // Test tugaganda yoki komponent unmount bo'lganda storage tozalash (ixtiyoriy)
     const clearStoredHighlights = useCallback(() => {
         save([]);
-        const container = containerRef.current;
-        if (!container) return;
-        container.querySelectorAll(".listening-hl").forEach((span) => {
-            const parent = span.parentNode;
-            parent.replaceChild(document.createTextNode(span.textContent), span);
-            parent.normalize();
-        });
+        clearHighlightSpans(containerRef.current);
     }, [save]);
 
     return {

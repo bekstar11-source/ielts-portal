@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
@@ -41,6 +41,8 @@ const Icons = {
     Activity: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>,
     Bell: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>,
     Megaphone: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.43.055-3.46 0-3.46" /></svg>,
+    ChevronLeft: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>,
+    ChevronRight: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>,
 };
 
 // --- 2. SKELETON LOADER COMPONENT ---
@@ -136,6 +138,10 @@ export default function AdminDashboard() {
 
     // ANALYTICS RANGE
     const [chartRange, setChartRange] = useState("week"); // week or month
+
+    // PAGINATION STATE
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 25;
 
     // --- AUTH CHECK ---
     useEffect(() => {
@@ -398,6 +404,7 @@ export default function AdminDashboard() {
             }
         });
         setDisplayedUsers(filtered);
+        setCurrentPage(1); // Sahifa o'zgarganda birinchisiga qaytish
     };
 
     const updateLocalAndCache = (updatedUser, action = 'update') => {
@@ -457,53 +464,58 @@ export default function AdminDashboard() {
             {/* DASHBOARD GRID */}
             <div className="grid grid-cols-12 gap-6">
 
-                {/* STATS */}
-                <div className="col-span-12 md:col-span-4 bg-white dark:bg-[#272727] rounded-[24px] p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
+                {/* STATS (Balanced Compact) */}
+                <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white dark:bg-[#1E1E1E] rounded-[20px] p-4 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
                     <div className="flex justify-between items-start z-10 relative">
                         <div>
-                            <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">O'quvchilar</h3>
-                            <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.users}</div>
-                            <div className="text-xs text-green-500 mt-2 font-medium flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                                +12% bu hafta
+                            <h3 className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-[0.1em] mb-1.5">O'quvchilar</h3>
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.users}</div>
+                            <div className="text-[10px] text-green-500 mt-1.5 font-bold flex items-center gap-1 px-2 py-0.5 bg-green-500/10 rounded-full w-fit">
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                                +12%
                             </div>
                         </div>
-                        <div className="p-3 bg-blue-50 dark:bg-white/5 rounded-2xl text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform"><Icons.Users className="w-5 h-5" /></div>
+                        <div className="p-2 bg-blue-500/5 dark:bg-blue-400/10 rounded-lg text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300">
+                            <Icons.Users className="w-4 h-4" />
+                        </div>
                     </div>
-                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
                 </div>
-                <div className="col-span-12 md:col-span-4 bg-white dark:bg-[#272727] rounded-[24px] p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
+
+                <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white dark:bg-[#1E1E1E] rounded-[20px] p-4 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
                     <div className="flex justify-between items-start z-10 relative">
                         <div>
-                            <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">Testlar</h3>
-                            <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : (stats.totalTests ?? stats.tests)}</div>
-                            <div className="text-xs text-green-500 mt-2 font-medium flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                                +5% yangi
+                            <h3 className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-[0.1em] mb-1.5">Testlar</h3>
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : (stats.totalTests ?? stats.tests)}</div>
+                            <div className="text-[10px] text-green-500 mt-1.5 font-bold flex items-center gap-1 px-2 py-0.5 bg-green-500/10 rounded-full w-fit">
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                                +5%
                             </div>
                         </div>
-                        <div className="p-3 bg-purple-50 dark:bg-white/5 rounded-2xl text-purple-500 dark:text-purple-400 group-hover:scale-110 transition-transform"><Icons.Test className="w-5 h-5" /></div>
+                        <div className="p-2 bg-purple-500/5 dark:bg-purple-400/10 rounded-lg text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
+                            <Icons.Test className="w-4 h-4" />
+                        </div>
                     </div>
-                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-colors"></div>
                 </div>
-                <div className="col-span-12 md:col-span-4 bg-white dark:bg-[#272727] rounded-[24px] p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors relative overflow-hidden group">
+
+                <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white dark:bg-[#1E1E1E] rounded-[20px] p-4 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
                     <div className="flex justify-between items-start z-10 relative">
                         <div>
-                            <h3 className="text-gray-500 dark:text-white/50 text-xs font-medium uppercase tracking-wider mb-2">Natijalar</h3>
-                            <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.results}</div>
-                            <div className="text-xs text-orange-500 mt-2 font-medium flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                            <h3 className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-[0.1em] mb-1.5">Natijalar</h3>
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.results}</div>
+                            <div className="text-[10px] text-orange-500 mt-1.5 font-bold flex items-center gap-1 px-2 py-0.5 bg-orange-500/10 rounded-full w-fit">
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                                 -2%
                             </div>
                         </div>
-                        <div className="p-3 bg-orange-50 dark:bg-white/5 rounded-2xl text-orange-500 dark:text-orange-400 group-hover:scale-110 transition-transform"><Icons.Stats className="w-5 h-5" /></div>
+                        <div className="p-2 bg-orange-500/5 dark:bg-orange-400/10 rounded-lg text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all duration-300">
+                            <Icons.Stats className="w-4 h-4" />
+                        </div>
                     </div>
-                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-colors"></div>
                 </div>
 
 
                 {/* ACTION CARDS */}
-                <div className="col-span-12 text-gray-400 dark:text-white/40 font-medium text-xs mt-2 uppercase tracking-widest pl-1">Tezkor Menyular</div>
+                <div className="col-span-12 text-gray-400 dark:text-gray-500 font-bold text-[10px] mt-6 uppercase tracking-[0.2em] pl-1">Tezkor Menyular</div>
 
                 <ActionCard title="Test Yaratish" desc="Yangi Reading/Listening" icon={<Icons.Plus className="w-6 h-6 text-white" />} bg="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20" onClick={() => navigate('/admin/create-test')} />
                 <ActionCard title="Analitika" desc="Statistika va tahlillar" icon={<Icons.Analytics className="w-6 h-6 text-white" />} bg="bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-600/20" onClick={() => navigate('/admin/analytics')} />
@@ -583,7 +595,7 @@ export default function AdminDashboard() {
                     <div className="space-y-4 md:space-y-2 min-h-[200px]">
                         {displayedUsers.length === 0 && !loadingUsers && <p className="text-gray-400 dark:text-white/30 text-sm italic text-center py-10">O'quvchi topilmadi.</p>}
 
-                        {displayedUsers.map((user) => {
+                        {displayedUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((user) => {
                             const userGroup = groups.find(g => g.studentIds && g.studentIds.includes(user.id));
 
                             // GOD MODE DATA
@@ -659,7 +671,64 @@ export default function AdminDashboard() {
                         })}
                     </div>
 
-                    {hasMore && (
+                    {/* PAGINATION (Balanced Compact) */}
+                    {displayedUsers.length > itemsPerPage && (
+                        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <p className="text-xs text-gray-500 dark:text-white/30 font-medium">
+                                {displayedUsers.length} tadan {(currentPage - 1) * itemsPerPage + 1}-{(Math.min(currentPage * itemsPerPage, displayedUsers.length))} ko'rsatilyapti
+                            </p>
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-white/5 active:scale-90'} ${isDark ? 'border-white/5 bg-white/5 text-white' : 'border-gray-100 bg-white text-gray-600'}`}
+                                >
+                                    <Icons.ChevronLeft size={16} />
+                                </button>
+
+                                {(() => {
+                                    const totalPages = Math.ceil(displayedUsers.length / itemsPerPage);
+                                    let pages = [];
+                                    const delta = 2;
+                                    for (let i = 1; i <= totalPages; i++) {
+                                        if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+                                            pages.push(i);
+                                        } else if (pages[pages.length - 1] !== '...') {
+                                            pages.push('...');
+                                        }
+                                    }
+                                    return pages.map((p, idx) => (
+                                        p === '...' ? (
+                                            <span key={`ell-${idx}`} className="px-1 text-gray-400">...</span>
+                                        ) : (
+                                            <button
+                                                key={p}
+                                                onClick={() => setCurrentPage(p)}
+                                                className={`w-9 h-9 flex items-center justify-center rounded-xl text-xs font-bold transition-all
+                                                    ${currentPage === p
+                                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                                                        : `border ${isDark ? 'border-white/5 bg-white/5 text-gray-400 hover:text-white' : 'border-gray-100 bg-white text-gray-500 hover:bg-gray-50'}`
+                                                    }
+                                                `}
+                                            >
+                                                {p}
+                                            </button>
+                                        )
+                                    ));
+                                })()}
+
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(displayedUsers.length / itemsPerPage), p + 1))}
+                                    disabled={currentPage === Math.ceil(displayedUsers.length / itemsPerPage)}
+                                    className={`p-2 rounded-xl border transition-all ${currentPage === Math.ceil(displayedUsers.length / itemsPerPage) ? 'opacity-30 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-white/5 active:scale-90'} ${isDark ? 'border-white/5 bg-white/5 text-white' : 'border-gray-100 bg-white text-gray-600'}`}
+                                >
+                                    <Icons.ChevronRight size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {hasMore && displayedUsers.length % itemsPerPage === 0 && (
                         <div className="mt-6 flex justify-center">
                             <button
                                 onClick={loadMoreUsers}
@@ -671,7 +740,7 @@ export default function AdminDashboard() {
                                 ) : (
                                     <Icons.Plus className="w-4 h-4" />
                                 )}
-                                <span>Yanada ko'proq yuklash</span>
+                                <span>Ma'lumotlar bazasidan ko'proq yuklash</span>
                             </button>
                         </div>
                     )}
@@ -921,11 +990,19 @@ function ActionCard({ title, desc, icon, bg, onClick }) {
     const isPrimaryAction = bg.includes('bg-blue-600') || bg.includes('bg-purple-600');
 
     return (
-        <button onClick={onClick} className={`col-span-6 md:col-span-3 rounded-[24px] p-5 text-left transition-all duration-200 active:scale-95 flex flex-col justify-between h-36 border ${isDark ? 'border-white/5' : 'border-gray-200'} ${bg}`}>
-            <div className={`p-2 rounded-xl w-fit backdrop-blur-sm ${isPrimaryAction ? 'bg-white/10' : 'bg-gray-100 dark:bg-white/10'}`}>{icon}</div>
-            <div>
-                <h4 className={`font-bold text-lg leading-tight ${isPrimaryAction ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{title}</h4>
-                <p className={`text-xs mt-1 ${isPrimaryAction ? 'text-white/60' : 'text-gray-500 dark:text-white/40'}`}>{desc}</p>
+        <button onClick={onClick} className={`col-span-6 md:col-span-3 lg:col-span-2 rounded-[16px] p-4 text-left transition-all duration-300 active:scale-95 flex flex-col justify-between h-28 border group ring-offset-2 focus:ring-2 focus:ring-blue-500/20 outline-none
+            ${isDark ? 'border-white/5' : 'border-gray-100'} 
+            ${isPrimaryAction ? 'text-white' : 'bg-white dark:bg-[#1E1E1E] hover:bg-gray-50 dark:hover:bg-[#252525] shadow-sm'}
+            ${bg}
+        `}>
+            <div className={`p-1.5 rounded-lg w-fit transition-transform duration-300 group-hover:scale-110 shadow-sm
+                ${isPrimaryAction ? 'bg-white/20' : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300'}
+            `}>
+                {React.cloneElement(icon, { size: 16, className: isPrimaryAction ? 'text-white' : '' })}
+            </div>
+            <div className="mt-2">
+                <h4 className={`font-bold text-[12px] leading-tight ${isPrimaryAction ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{title}</h4>
+                <p className={`text-[10px] mt-1 leading-tight opacity-70 ${isPrimaryAction ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`}>{desc}</p>
             </div>
         </button>
     );

@@ -48,7 +48,7 @@ export default function AdminTests() {
     const [filterTag, setFilterTag] = useState("all");
     const [filterDifficulty, setFilterDifficulty] = useState("all");
     const [tagLabels, setTagLabels] = useState({});
-    const itemsPerPage = 10;
+    const itemsPerPage = 15;
 
 
 
@@ -472,29 +472,28 @@ export default function AdminTests() {
                     ))}
                 </div>
 
-                {/* --- FILTER & SEARCH BAR (REDESIGNED) --- */}
-                <div className="space-y-4 mb-8">
-                    {/* Row 1: Primary Inputs */}
+                {/* --- FILTER & SEARCH BAR (REFINE APPLE DESIGN) --- */}
+                <div className="space-y-6 mb-10">
                     <div className="flex flex-col md:flex-row gap-4">
                         {/* 1. Search */}
                         <div className="relative flex-1 group">
-                            <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${isDark ? 'text-white/20 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-[#1A73E8]'}`} />
+                            <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
                             <input
                                 type="text"
                                 placeholder="Test nomini qidiring..."
-                                className={`w-full pl-11 pr-4 py-3 rounded-2xl border outline-none text-[13px] font-medium transition ${isDark ? 'bg-[#1E1E1E] border-white/5 text-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500' : 'bg-white border-gray-200 focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500'}`}
+                                className={`w-full pl-11 pr-4 py-3 rounded-2xl border-none outline-none text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-white focus:bg-white/[0.08] placeholder:text-gray-600' : 'bg-gray-100 text-gray-900 focus:bg-gray-200/50 placeholder:text-gray-500'}`}
                                 value={searchTerm}
                                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             />
                         </div>
 
                         {/* 2. Hashtag Filter */}
-                        <div className={`relative w-full md:w-72 flex items-center gap-3 px-4 rounded-2xl border transition-all h-[47px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 focus-within:border-blue-500/50'}`}>
-                            <Icons.Tag className={`w-4 h-4 ${filterTag !== 'all' ? 'text-blue-500' : 'text-gray-400'}`} />
+                        <div className={`relative w-full md:w-72 flex items-center gap-3 px-4 rounded-2xl transition-all h-[47px] ${isDark ? 'bg-white/5 focus-within:bg-white/[0.08]' : 'bg-gray-100 focus-within:bg-gray-200/50'}`}>
+                            <Icons.Tag className={`w-4 h-4 ${filterTag !== 'all' ? (isDark ? 'text-blue-400' : 'text-blue-600') : 'text-gray-500'}`} />
                             <input 
                                 type="text"
-                                placeholder="Hashtag bilan..."
-                                className="bg-transparent border-none outline-none text-sm font-bold w-full placeholder:text-gray-500"
+                                placeholder="Hashtag..."
+                                className="bg-transparent border-none outline-none text-sm font-medium w-full placeholder:text-gray-500"
                                 value={filterTag === 'all' ? '' : filterTag}
                                 onChange={(e) => {
                                     const val = e.target.value.trim().replace(/^#/, "");
@@ -510,17 +509,16 @@ export default function AdminTests() {
                         </div>
                     </div>
 
-                    {/* Row 2: Segmented Controls */}
-                    <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-                        {/* 3. Type Filter */}
-                        <div className={`flex p-1 rounded-xl w-full lg:w-auto overflow-x-auto no-scrollbar border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-100 border-gray-200'}`}>
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                        {/* 3. Type Filter (Segmented Control style) */}
+                        <div className={`flex p-1.5 rounded-2xl w-full lg:w-auto overflow-x-auto no-scrollbar ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
                             {['all', 'reading', 'listening', 'writing', 'speaking'].map(type => (
                                 <button
                                     key={type}
                                     onClick={() => { setFilterType(type); setCurrentPage(1); }}
-                                    className={`flex-1 lg:flex-none px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition whitespace-nowrap ${filterType === type
-                                        ? (isDark ? 'bg-[#2C2C2C] text-blue-400 shadow-sm' : 'bg-white text-[#1A73E8] shadow-sm')
-                                        : (isDark ? 'text-gray-500 hover:text-white' : 'text-gray-500 hover:text-gray-700')
+                                    className={`flex-1 lg:flex-none px-6 py-2 rounded-xl text-sm font-medium capitalize transition-all duration-200 whitespace-nowrap ${filterType === type
+                                        ? (isDark ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10' : 'bg-white text-gray-900 shadow-sm')
+                                        : (isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')
                                         }`}
                                 >
                                     {type}
@@ -529,16 +527,14 @@ export default function AdminTests() {
                         </div>
 
                         {/* 4. Passage / Part Filter */}
-                        <div className={`flex p-1 rounded-xl w-full lg:w-auto overflow-x-auto no-scrollbar border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-100 border-gray-200'}`}>
+                        <div className={`flex p-1.5 rounded-2xl w-full lg:w-auto overflow-x-auto no-scrollbar ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
                             {(filterType === 'listening' ? [
                                 {v:'all', l:'Hammasi'}, 
                                 {v:'full', l:'Full'}, 
                                 {v:'part 1', l:'Part 1'}, 
                                 {v:'part 2', l:'Part 2'}, 
                                 {v:'part 3', l:'Part 3'}, 
-                                {v:'part 4', l:'Part 4'}, 
-                                {v:'part 1/2', l:'Part 1/2'}, 
-                                {v:'part 3/4', l:'Part 3/4'}
+                                {v:'part 4', l:'Part 4'}
                             ] : [
                                 {v:'all', l:'Hammasi'}, 
                                 {v:'easy', l:'Passage 1'}, 
@@ -548,9 +544,9 @@ export default function AdminTests() {
                                 <button
                                     key={diff.v}
                                     onClick={() => { setFilterDifficulty(diff.v); setCurrentPage(1); }}
-                                    className={`flex-1 lg:flex-none px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition whitespace-nowrap ${filterDifficulty === diff.v
-                                        ? (isDark ? 'bg-[#2C2C2C] text-blue-400 shadow-sm' : 'bg-white text-[#1A73E8] shadow-sm')
-                                        : (isDark ? 'text-gray-500 hover:text-white' : 'text-gray-500 hover:text-gray-700')
+                                    className={`flex-1 lg:flex-none px-5 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${filterDifficulty === diff.v
+                                        ? (isDark ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10' : 'bg-white text-gray-900 shadow-sm')
+                                        : (isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')
                                         }`}
                                 >
                                     {diff.l}
@@ -577,12 +573,12 @@ export default function AdminTests() {
                                             checked={currentData.length > 0 && currentData.every(t => selectedTests.includes(t.id))}
                                         />
                                     </th>
-                                    <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Test Nomi</th>
-                                    <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Turi</th>
-                                    <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Taglar</th>
-                                    <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Qiyinligi</th>
-                                    <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Sana</th>
-                                    <th className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider text-right ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Amallar</th>
+                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Test Nomi</th>
+                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Turi</th>
+                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Taglar</th>
+                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Qiyinligi</th>
+                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Sana</th>
+                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize text-right ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Amallar</th>
                                 </tr>
                             </thead>
                             <tbody className={`divide-y transition-colors ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
@@ -627,7 +623,7 @@ export default function AdminTests() {
                                              <td className="px-6 py-4">
                                                 <div className="flex flex-wrap gap-1 max-w-[200px]">
                                                     {test.tags?.map((tag, idx) => (
-                                                        <span key={idx} className={`px-2 py-0.5 rounded text-[10px] font-black transition-all ${isDark ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                                                        <span key={idx} className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${isDark ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
                                                             #{tag}
                                                         </span>
                                                     ))}
@@ -644,7 +640,7 @@ export default function AdminTests() {
                                                 {editingTagsFor === test.id && (
                                                     <div className={`absolute mt-2 z-50 p-4 rounded-2xl shadow-2xl border animate-in fade-in zoom-in-95 duration-200 w-72 ${isDark ? 'bg-[#2C2C2C] border-white/10' : 'bg-white border-gray-200'}`}>
                                                         <div className="flex justify-between items-center mb-3">
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-[#3772FF]">Hashtaglar (Admin)</span>
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest text-[#3772FF]">Hashtaglar (Admin)</span>
                                                             <button onClick={() => setEditingTagsFor(null)}><Icons.X className="w-4 h-4 text-gray-500" /></button>
                                                         </div>
                                                         <TagSelector 
@@ -705,18 +701,35 @@ export default function AdminTests() {
                                 >
                                     <Icons.ChevronLeft className="w-5 h-5" />
                                 </button>
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`w-8 h-8 rounded-md text-sm font-medium transition ${currentPage === page
-                                            ? (isDark ? 'bg-blue-600 text-white shadow-sm' : 'bg-[#1A73E8] text-white shadow-sm')
-                                            : (isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100')
-                                            }`}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
+                                {(() => {
+                                    const delta = 2;
+                                    const range = [];
+                                    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+                                        range.push(i);
+                                    }
+
+                                    if (currentPage > delta + 2) range.unshift("...");
+                                    range.unshift(1);
+                                    if (currentPage < totalPages - (delta + 1)) range.push("...");
+                                    if (totalPages > 1) range.push(totalPages);
+
+                                    return range.map((page, index) => (
+                                        page === "..." ? (
+                                            <span key={`dots-${index}`} className={`px-2 text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>...</span>
+                                        ) : (
+                                            <button
+                                                key={page}
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`w-8 h-8 rounded-md text-sm font-medium transition ${currentPage === page
+                                                    ? (isDark ? 'bg-blue-600 text-white shadow-sm' : 'bg-[#1A73E8] text-white shadow-sm')
+                                                    : (isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100')
+                                                    }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        )
+                                    ));
+                                })()}
                                 <button
                                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}

@@ -504,36 +504,88 @@ export default function CreateTest() {
                 let isDuplicate = false;
                 let duplicateTitle = "";
 
+                const normalize = (val) => String(val || "").trim().toLowerCase();
+
                 for (let docSnap of snapshot.docs) {
-                    const existingTest = docSnap.data();
+                    const existing = docSnap.data();
 
-                    if (testData.type === 'reading' || testData.type === 'listening') {
-                        if (testData.passages?.length > 0 && existingTest.passages?.length > 0) {
-                            const newTitle = testData.passages[0].title?.trim().toLowerCase();
-                            const existTitle = existingTest.passages[0].title?.trim().toLowerCase();
+                    // 1. Check Title Similarity
+                    const t1 = normalize(testData.title);
+                    const t2 = normalize(existing.title);
+                    if (t1 && t2 && t1 === t2) {
+                        isDuplicate = true;
+                        duplicateTitle = existing.title;
+                        break;
+                    }
 
-                            const newContent = testData.passages[0].content?.trim().toLowerCase().substring(0, 100);
-                            const existContent = existingTest.passages[0].content?.trim().toLowerCase().substring(0, 100);
+                    // 2. Check Passages/Content Similarity
+                    if ((testData.type === 'reading' || testData.type === 'listening') && 
+                        testData.passages?.length > 0 && existing.passages?.length > 0) {
+                        
+                        let passageDuplicate = false;
+                        for (let i = 0; i < Math.min(testData.passages.length, existing.passages.length); i++) {
+                            const p1 = testData.passages[i];
+                            const p2 = existing.passages[i];
 
-                            if (newTitle && existTitle && newTitle === existTitle && newTitle.length > 5 && !newTitle.includes('part 1') && !newTitle.includes('passage 1')) {
-                                isDuplicate = true;
-                                duplicateTitle = existingTest.title || newTitle;
+                            const tit1 = normalize(p1.title);
+                            const tit2 = normalize(p2.title);
+                            const con1 = normalize(p1.content).substring(0, 150);
+                            const con2 = normalize(p2.content).substring(0, 150);
+
+                            // Skip generic titles like "Part 1" or "Passage 1"
+                            const isGeneric = (s) => s.includes('part') || s.includes('passage') || s.includes('section');
+
+                            if (tit1 && tit2 && tit1 === tit2 && tit1.length > 6 && !isGeneric(tit1)) {
+                                passageDuplicate = true;
                                 break;
-                            } else if (newContent && existContent && newContent === existContent && newContent.length > 20) {
-                                isDuplicate = true;
-                                duplicateTitle = existingTest.title || "noma'lum test";
+                            }
+                            if (con1 && con2 && con1 === con2 && con1.length > 40) {
+                                passageDuplicate = true;
                                 break;
                             }
                         }
-                    } else if (testData.type === 'writing') {
-                        if (testData.writingTasks?.length > 0 && existingTest.writingTasks?.length > 0) {
-                            const newPrompt = testData.writingTasks[0].prompt?.trim().toLowerCase();
-                            const existPrompt = existingTest.writingTasks[0].prompt?.trim().toLowerCase();
-                            if (newPrompt && existPrompt && newPrompt === existPrompt && newPrompt.length > 10) {
+
+                        if (passageDuplicate) {
+                            isDuplicate = true;
+                            duplicateTitle = existing.title || "o'xshash kontent";
+                            break;
+                        }
+                    }
+
+                    // 3. Check Questions Similarity (Structure and IDs)
+                    if (testData.questions?.length > 0 && existing.questions?.length > 0) {
+                        const q1 = testData.questions;
+                        const q2 = existing.questions;
+
+                        // Compare question counts
+                        const countMatch = q1.length === q2.length;
+
+                        // Compare first 5 question IDs
+                        const ids1 = q1.slice(0, 5).map(q => normalize(q.id)).join(',');
+                        const ids2 = q2.slice(0, 5).map(q => normalize(q.id)).join(',');
+                        
+                        // Compare first question text (if available)
+                        const txt1 = normalize(q1[0]?.question || q1[0]?.text || "").substring(0, 50);
+                        const txt2 = normalize(q2[0]?.question || q2[0]?.text || "").substring(0, 50);
+
+                        if (countMatch && ids1 === ids2 && ids1.length > 0) {
+                            // If both IDs and count match, it's highly likely a duplicate
+                            if (txt1 === txt2 || (txt1.length === 0 && txt2.length === 0)) {
                                 isDuplicate = true;
-                                duplicateTitle = existingTest.title || "noma'lum writing test";
+                                duplicateTitle = existing.title || "o'xshash savollar";
                                 break;
                             }
+                        }
+                    }
+
+                    // 4. Writing specific check (already exists, but kept for consistency)
+                    if (testData.type === 'writing' && testData.writingTasks?.length > 0 && existing.writingTasks?.length > 0) {
+                        const prompt1 = normalize(testData.writingTasks[0].prompt).substring(0, 100);
+                        const prompt2 = normalize(existing.writingTasks[0].prompt).substring(0, 100);
+                        if (prompt1 && prompt2 && prompt1 === prompt2 && prompt1.length > 20) {
+                            isDuplicate = true;
+                            duplicateTitle = existing.title || "o'xshash writing test";
+                            break;
                         }
                     }
                 }

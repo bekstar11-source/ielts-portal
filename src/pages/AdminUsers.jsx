@@ -221,31 +221,34 @@ function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, total
 
     return (
         <div className={`rounded-[24px] border h-full flex flex-col overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
-            {/* Toolbar */}
-            <div className={`p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50'}`}>
+            {/* Toolbar (Apple Design Refined) */}
+            <div className={`p-5 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50/50'}`}>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                    <div className={`flex items-center px-3 py-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
-                        <Search size={16} className="text-gray-400 mr-2" />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+                    <div className={`flex items-center px-4 py-2.5 rounded-2xl transition-all group ${isDark ? 'bg-white/5 focus-within:bg-white/[0.08]' : 'bg-white border border-gray-200 focus-within:border-blue-400'}`}>
+                        <Search size={16} className={`mr-2 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
                         <input
                             type="text"
                             placeholder="Qidirish..."
-                            className="bg-transparent border-none outline-none text-sm w-full sm:w-48"
+                            className="bg-transparent border-none outline-none text-sm w-full sm:w-48 font-medium placeholder:text-gray-500"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <select
-                        value={filterBand}
-                        onChange={e => setFilterBand(e.target.value)}
-                        className={`px-3 py-2 rounded-xl border text-sm outline-none ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
-                    >
-                        <option value="all">Barcha Bandlar</option>
-                        {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'].map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
+                    <div className="relative">
+                        <select
+                            value={filterBand}
+                            onChange={e => setFilterBand(e.target.value)}
+                            className={`pl-4 pr-10 py-2.5 rounded-2xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 hover:bg-white/[0.08]' : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                        >
+                            <option value="all">Barcha Bandlar</option>
+                            {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'].map(b => <option key={b} value={b}>{b}</option>)}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
                 </div>
-                <div className="text-xs font-bold uppercase tracking-wider opacity-50 self-end sm:self-auto">
-                    Ko'rsatilmoqda: {students.length} / {totalCount}
+                <div className={`text-[11px] font-bold uppercase tracking-widest opacity-40 self-end sm:self-auto ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    Jami: {students.length} / {totalCount}
                 </div>
             </div>
 

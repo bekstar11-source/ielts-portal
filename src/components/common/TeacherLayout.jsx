@@ -245,6 +245,8 @@ export default function TeacherLayout() {
         ? '#1E1E1E'
         : 'linear-gradient(160deg, #f2f0ed 0%, #f7eeee 30%, #fdf5f5 55%, #ffffff 80%, #ffffff 100%)';
 
+    const isWritingReview = location.pathname.includes('writing-review');
+
     return (
         /* Outer container carries the ONLY background — no duplication */
         <div
@@ -253,18 +255,18 @@ export default function TeacherLayout() {
         >
             <MobileDrawer isOpen={isMobileOpen} onClose={() => setIsMobileOpen(false)} />
 
-            {/* Scrollable area fills full height */}
-            <div className="h-full overflow-y-auto custom-scrollbar">
+            {/* Flex container for full height management */}
+            <div className={`h-full flex flex-col ${isWritingReview ? 'overflow-hidden' : 'overflow-y-auto'} custom-scrollbar`}>
                 {/* Floating pill nav — sits inside scroll flow at the top */}
-                <div className="px-4 pt-4 pb-2">
-                    <div className="max-w-5xl mx-auto">
+                <div className="px-4 pt-4 pb-2 shrink-0">
+                    <div className={isWritingReview ? "w-full" : "max-w-5xl mx-auto"}>
                         <TeacherTopNav onMenuClick={() => setIsMobileOpen(true)} />
                     </div>
                 </div>
 
-                {/* Page content */}
-                <main>
-                    <div className="max-w-[1200px] mx-auto px-4 md:px-8 pb-10">
+                {/* Page content fills remaining space */}
+                <main className="flex-1 min-h-0">
+                    <div className={`${isWritingReview ? 'w-full h-full' : 'max-w-[1200px] mx-auto px-4 md:px-8 pb-10'}`}>
                         <Outlet />
                     </div>
                 </main>

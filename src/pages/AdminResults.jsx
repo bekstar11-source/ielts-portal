@@ -36,7 +36,7 @@ export default function AdminResults() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 15;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -186,34 +186,35 @@ export default function AdminResults() {
 
   // Pagination raqamlarini generatsiya qilish
   const renderPaginationButtons = () => {
-    const pages = [];
-    const maxVisiblePages = 5; // Nechta raqam ko'rinib turishi kerak
-
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    const delta = 2;
+    const range = [];
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+        range.push(i);
     }
 
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => setCurrentPage(i)}
-          className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${currentPage === i
-              ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-              : isDark 
-                ? "bg-[#2C2C2C] border-white/10 text-gray-400 hover:bg-[#3C3C3C] hover:border-white/20"
-                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
-            }`}
-        >
-          {i}
-        </button>
+    if (currentPage > delta + 2) range.unshift("...");
+    range.unshift(1);
+    if (currentPage < totalPages - (delta + 1)) range.push("...");
+    if (totalPages > 1) range.push(totalPages);
 
-      );
-    }
-    return pages;
+    return range.map((page, index) => 
+        page === "..." ? (
+            <span key={`dots-${index}`} className={`px-2 text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>...</span>
+        ) : (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${currentPage === page
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                  : isDark 
+                    ? "bg-[#2C2C2C] border-white/10 text-gray-400 hover:bg-[#3C3C3C] hover:border-white/20"
+                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                }`}
+            >
+              {page}
+            </button>
+        )
+    );
   };
 
   return (
@@ -236,18 +237,18 @@ export default function AdminResults() {
         </div>
 
         {/* HEADER SECTION: Filtrlar chapda, Sarlavha o'ngda */}
-        <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-4 mb-6">
+        <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-6 mb-10">
 
-          {/* CHAP TARAF: FILTRLAR VA QIDIRUV */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
+          {/* CHAP TARAF: FILTRLAR VA QIDIRUV (APPLE DESIGN) */}
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-center">
 
             {/* 1. Qidiruv */}
             <div className="relative w-full md:w-64 group">
-              <Icons.Search className={`absolute left-3 top-2.5 w-5 h-5 transition-colors ${isDark ? 'text-white/20 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
+              <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
               <input
                 type="text"
                 placeholder="Qidirish..."
-                className={`w-full border pl-9 pr-4 py-2 rounded-lg text-sm outline-none transition-all shadow-sm ${isDark ? 'bg-[#1E1E1E] border-white/5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 text-white placeholder:text-gray-600' : 'bg-white border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 placeholder:text-gray-400'}`}
+                className={`w-full pl-11 pr-4 py-3 rounded-2xl border-none outline-none text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-white focus:bg-white/[0.08] placeholder:text-gray-600' : 'bg-gray-100 text-gray-900 focus:bg-gray-200/50 placeholder:text-gray-500'}`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -255,14 +256,14 @@ export default function AdminResults() {
 
 
             {/* 2. Turlar Filtri */}
-            <div className="relative w-full sm:w-40">
-              <div className="absolute left-3 top-2.5 pointer-events-none">
-                <Icons.Type className="w-4 h-4 text-gray-400" />
+            <div className="relative w-full sm:w-44">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <Icons.Type className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
               </div>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className={`w-full border pl-9 pr-8 py-2 rounded-lg text-sm outline-none transition-all shadow-sm appearance-none cursor-pointer font-medium ${isDark ? 'bg-[#1E1E1E] border-white/5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 text-gray-400' : 'bg-white border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-gray-600'}`}
+                className={`w-full pl-11 pr-10 py-3 rounded-2xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 focus:bg-white/[0.08]' : 'bg-gray-100 text-gray-700 focus:bg-gray-200/50'}`}
               >
                 <option value="all">Barcha Turlar</option>
                 <option value="reading">Reading</option>
@@ -270,25 +271,25 @@ export default function AdminResults() {
                 <option value="writing">Writing</option>
                 <option value="speaking">Speaking</option>
               </select>
-              <Icons.ChevronDown className="absolute right-3 top-3 w-3 h-3 text-gray-400 pointer-events-none" />
+              <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
             </div>
 
             {/* 3. Status Filtri */}
-            <div className="relative w-full sm:w-44">
-              <div className="absolute left-3 top-2.5 pointer-events-none">
-                <Icons.Status className="w-4 h-4 text-gray-400" />
+            <div className="relative w-full sm:w-48">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <Icons.Status className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className={`w-full border pl-9 pr-8 py-2 rounded-lg text-sm outline-none transition-all shadow-sm appearance-none cursor-pointer font-medium ${isDark ? 'bg-[#1E1E1E] border-white/5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 text-gray-400' : 'bg-white border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-gray-600'}`}
+                className={`w-full pl-11 pr-10 py-3 rounded-2xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 focus:bg-white/[0.08]' : 'bg-gray-100 text-gray-700 focus:bg-gray-200/50'}`}
               >
                 <option value="all">Barcha Statuslar</option>
                 <option value="pending">Kutilmoqda</option>
                 <option value="graded">Baholangan</option>
                 <option value="orphan">Arxiv (O'chirilgan)</option>
               </select>
-              <Icons.ChevronDown className="absolute right-3 top-3 w-3 h-3 text-gray-400 pointer-events-none" />
+              <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
             </div>
 
 
@@ -300,7 +301,7 @@ export default function AdminResults() {
                   setStatusFilter('all');
                   setSearchTerm('');
                 }}
-                className="text-xs text-red-500 hover:text-red-700 font-medium px-2 underline decoration-red-200 underline-offset-2"
+                className={`text-xs font-semibold px-2 underline transition-colors underline-offset-4 ${isDark ? 'text-red-400 hover:text-red-300 decoration-red-500/30' : 'text-red-500 hover:text-red-600 decoration-red-500/20'}`}
               >
                 Tozalash
               </button>

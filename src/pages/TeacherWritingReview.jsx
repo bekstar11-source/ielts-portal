@@ -213,10 +213,10 @@ export default function TeacherWritingReview() {
     );
 
     return (
-        <div className={`-mt-6 -mx-6 h-[calc(100vh-64px)] flex overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-[#F8F9FA]'}`}>
+        <div className={`w-full h-full flex overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-[#F8F9FA]'}`}>
             
             {/* --- SIDEBAR --- */}
-            <div className={`w-full lg:w-[380px] flex-shrink-0 flex flex-col border-r transition-all ${
+            <div className={`w-full lg:w-[320px] flex-shrink-0 flex flex-col border-r transition-all ${
                 selectedId && 'hidden lg:flex'
             } ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-200 shadow-xl'}`}>
                 
@@ -316,8 +316,8 @@ export default function TeacherWritingReview() {
                 {activeWriting ? (
                     <>
                         {/* Workspace Header */}
-                        <div className={`p-4 lg:px-8 lg:py-5 flex flex-col sm:flex-row gap-4 sm:gap-0 sm:items-center justify-between border-b ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
-                            <div className="flex items-center gap-4">
+                        <div className={`px-4 py-3 lg:px-8 lg:py-3.5 flex flex-col sm:flex-row gap-3 sm:gap-0 sm:items-center justify-between border-b ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+                            <div className="flex items-center gap-3">
                                 <button 
                                     onClick={() => setSelectedId(null)}
                                     className="lg:hidden p-2 rounded-xl bg-gray-100 text-gray-600"
@@ -326,17 +326,17 @@ export default function TeacherWritingReview() {
                                 </button>
                                 
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full border border-gray-200 bg-[#FBFBFD] flex items-center justify-center text-slate-700 text-base lg:text-lg font-medium shadow-sm">
-                                        <User size={20} weight="regular" />
+                                    <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full border border-gray-200 bg-[#FBFBFD] flex items-center justify-center text-slate-700 text-sm lg:text-base font-medium shadow-sm shrink-0">
+                                        <User size={18} weight="regular" />
                                     </div>
                                     <div>
-                                        <h2 className={`text-lg lg:text-xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                        <h2 className={`text-base lg:text-lg font-semibold tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                             {getStudentName(activeWriting.userId)}
                                         </h2>
-                                        <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] lg:text-xs text-gray-500">
-                                            <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(activeWriting.date?.seconds ? activeWriting.date.seconds * 1000 : activeWriting.date).toLocaleDateString()}</span>
+                                        <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-gray-500">
+                                            <span className="flex items-center gap-1"><Calendar size={11} /> {new Date(activeWriting.date?.seconds ? activeWriting.date.seconds * 1000 : activeWriting.date).toLocaleDateString()}</span>
                                             <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                                            <span className="flex items-center gap-1 truncate max-w-[150px] sm:max-w-xs"><TextT size={12} /> {activeWriting.testTitle || 'General Training'}</span>
+                                            <span className="flex items-center gap-1 truncate max-w-[150px] sm:max-w-xs"><TextT size={11} /> {activeWriting.testTitle || 'General Training'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -366,7 +366,7 @@ export default function TeacherWritingReview() {
                         </div>
 
                         {/* Workspace Content */}
-                        <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6 lg:space-y-8 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 lg:p-8 pb-20 space-y-6 lg:space-y-8 custom-scrollbar">
                             <div className="max-w-5xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
                                 
                                 {/* Task 1 Card */}
@@ -591,72 +591,71 @@ export default function TeacherWritingReview() {
                                     )}
                                 </div>
                             </div>
-                            
-                            {/* Empty space for scrolling */}
-                            <div className="h-32" />
+                            <div className="h-16 shrink-0 pointer-events-none" />
                         </div>
 
                         {/* --- GRADING COMPONENT (MODERN TRAY) --- */}
-                        <div className={`absolute bottom-0 left-0 right-0 p-3 lg:p-4 border-t backdrop-blur-xl transition-all duration-500 ${
+                        <div className={`absolute bottom-0 left-0 right-0 px-3 pt-3 pb-1 lg:px-4 lg:pt-3 lg:pb-1.5 border-t backdrop-blur-xl transition-all duration-500 ${
                             isDark ? 'bg-[#1A1A1A]/90 border-white/5' : 'bg-[#FBFBFD]/95 border-gray-200 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]'
                         }`}>
-                            <div className="max-w-5xl mx-auto flex flex-col lg:flex-row items-center gap-4">
+                            <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-end gap-5">
                                 
-                                {/* Band Selectors */}
-                                <div className="grid grid-cols-2 lg:flex items-center gap-3 w-full lg:w-auto">
-                                    <div className="space-y-1 flex-1 lg:w-24">
-                                        <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest ml-1">Task 1</label>
-                                        <select
-                                            value={fd.task1Band || activeWriting.task1Band || ''}
-                                            onChange={e => setFeedbackData(prev => ({ ...prev, [selectedId]: { ...prev[selectedId], task1Band: e.target.value } }))}
-                                            className={`w-full h-10 px-3 rounded-lg font-medium text-sm outline-none transition-all shadow-sm border ${
-                                                isDark ? 'bg-[#333] border-white/10 text-white' : 'bg-white border-gray-200 hover:border-gray-300 text-slate-800'
-                                            }`}
-                                        >
-                                            <option value="">--</option>
-                                            {['3.0','3.5','4.0','4.5','5.0','5.5','6.0','6.5','7.0','7.5','8.0','8.5','9.0'].map(v => <option key={v} value={v}>{v}</option>)}
-                                        </select>
+                                {/* Band Selectors - Stacked Vertically */}
+                                <div className="flex lg:flex-col items-end lg:items-stretch gap-2 w-full lg:w-36 shrink-0">
+                                    <div className="flex gap-2 w-full">
+                                        <div className="flex-1">
+                                            <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 mb-0.5 block">T1</label>
+                                            <select
+                                                value={fd.task1Band || activeWriting.task1Band || ''}
+                                                onChange={e => setFeedbackData(prev => ({ ...prev, [selectedId]: { ...prev[selectedId], task1Band: e.target.value } }))}
+                                                className={`w-full h-8 px-2 rounded-lg font-black text-xs outline-none transition-all shadow-sm border ${
+                                                    isDark ? 'bg-[#333] border-white/10 text-white' : 'bg-white border-gray-200 hover:border-gray-300 text-slate-800'
+                                                }`}
+                                            >
+                                                <option value="">--</option>
+                                                {['3.0','3.5','4.0','4.5','5.0','5.5','6.0','6.5','7.0','7.5','8.0','8.5','9.0'].map(v => <option key={v} value={v}>{v}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 mb-0.5 block">T2</label>
+                                            <select
+                                                value={fd.task2Band || activeWriting.task2Band || ''}
+                                                onChange={e => setFeedbackData(prev => ({ ...prev, [selectedId]: { ...prev[selectedId], task2Band: e.target.value } }))}
+                                                className={`w-full h-8 px-2 rounded-lg font-black text-xs outline-none transition-all shadow-sm border ${
+                                                    isDark ? 'bg-[#333] border-white/10 text-white' : 'bg-white border-gray-200 hover:border-gray-300 text-slate-800'
+                                                }`}
+                                            >
+                                                <option value="">--</option>
+                                                {['3.0','3.5','4.0','4.5','5.0','5.5','6.0','6.5','7.0','7.5','8.0','8.5','9.0'].map(v => <option key={v} value={v}>{v}</option>)}
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1 flex-1 lg:w-24">
-                                        <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest ml-1">Task 2</label>
-                                        <select
-                                            value={fd.task2Band || activeWriting.task2Band || ''}
-                                            onChange={e => setFeedbackData(prev => ({ ...prev, [selectedId]: { ...prev[selectedId], task2Band: e.target.value } }))}
-                                            className={`w-full h-10 px-3 rounded-lg font-medium text-sm outline-none transition-all shadow-sm border ${
-                                                isDark ? 'bg-[#333] border-white/10 text-white' : 'bg-white border-gray-200 hover:border-gray-300 text-slate-800'
-                                            }`}
-                                        >
-                                            <option value="">--</option>
-                                            {['3.0','3.5','4.0','4.5','5.0','5.5','6.0','6.5','7.0','7.5','8.0','8.5','9.0'].map(v => <option key={v} value={v}>{v}</option>)}
-                                        </select>
+                                    
+                                    <div className={`flex items-center justify-between px-3 h-8 rounded-lg border transition-all ${
+                                        (fd.task1Band && fd.task2Band) || activeWriting.writingBand 
+                                            ? 'bg-slate-900 border-slate-800 text-white shadow-lg' 
+                                            : 'bg-transparent border-dashed border-gray-300 text-gray-400'
+                                    }`}>
+                                        <span className="text-[9px] font-black uppercase tracking-tighter opacity-70">Overall Band</span>
+                                        <span className="text-xs font-black tabular-nums">
+                                            {calculateOverall(fd.task1Band || activeWriting.task1Band, fd.task2Band || activeWriting.task2Band)}
+                                        </span>
                                     </div>
                                 </div>
 
-                                {/* Calculated Final Score */}
-                                <div className={`hidden sm:flex flex-col items-center justify-center h-10 w-16 rounded-xl border shrink-0 transition-all ${
-                                    (fd.task1Band && fd.task2Band) || activeWriting.writingBand 
-                                        ? 'bg-slate-900 border-slate-800 text-white shadow-sm' 
-                                        : 'bg-transparent border-dashed border-gray-300 text-gray-400'
-                                }`}>
-                                    <span className="text-[10px] font-medium opacity-70 leading-none">Overall</span>
-                                    <span className="text-lg font-semibold tabular-nums leading-none mt-0.5">
-                                        {calculateOverall(fd.task1Band || activeWriting.task1Band, fd.task2Band || activeWriting.task2Band)}
-                                    </span>
-                                </div>
-
-                                {/* Feedback Input */}
+                                {/* Feedback Input - Much Wider */}
                                 <div className="flex-1 w-full relative">
                                     <textarea
-                                        rows={1}
+                                        rows={3}
                                         value={fd.feedback ?? (activeWriting.teacherFeedback || '')}
                                         onChange={e => setFeedbackData(prev => ({ ...prev, [selectedId]: { ...prev[selectedId], feedback: e.target.value } }))}
-                                        placeholder="Add feedback notes..."
-                                        className={`w-full px-4 py-2.5 rounded-xl outline-none text-[13px] resize-none transition-all border shadow-sm ${
+                                        placeholder="Add feedback notes or paste AI action plan..."
+                                        className={`w-full px-4 py-2.5 rounded-xl outline-none text-[13px] resize-y transition-all border shadow-sm min-h-[80px] max-h-[400px] leading-relaxed ${
                                             isDark ? 'bg-[#333] border-white/10 focus:border-gray-400 text-white placeholder:text-gray-500' : 'bg-white border-gray-200 focus:border-gray-400 text-slate-800'
                                         }`}
                                     />
-                                    <div className="absolute top-2.5 right-3 pointer-events-none text-gray-400">
-                                        <PenLine size={16} weight="regular" />
+                                    <div className="absolute top-3 right-3 pointer-events-none text-gray-400">
+                                        <PenLine size={14} />
                                     </div>
                                 </div>
 
@@ -664,7 +663,7 @@ export default function TeacherWritingReview() {
                                 <button
                                     onClick={() => handleSaveFeedback(selectedId)}
                                     disabled={saving}
-                                    className={`w-full lg:w-auto px-6 h-10 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 shrink-0 ${
+                                    className={`w-full lg:w-auto px-6 h-10 rounded-xl text-[13px] font-black flex items-center justify-center gap-2 shadow-xl transition-all active:scale-[0.95] disabled:opacity-50 shrink-0 ${
                                         isDark 
                                             ? 'bg-white text-black hover:bg-gray-100' 
                                             : 'bg-slate-900 text-white hover:bg-slate-800'
