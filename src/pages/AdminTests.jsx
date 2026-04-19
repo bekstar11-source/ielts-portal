@@ -47,6 +47,7 @@ export default function AdminTests() {
     const [editingTagsFor, setEditingTagsFor] = useState(null); // testId
     const [filterTag, setFilterTag] = useState("all");
     const [filterDifficulty, setFilterDifficulty] = useState("all");
+    const [filterQuestionType, setFilterQuestionType] = useState("all");
     const [tagLabels, setTagLabels] = useState({});
     const itemsPerPage = 15;
 
@@ -362,24 +363,7 @@ export default function AdminTests() {
         }
     };
 
-    // 1. FILTERING LOGIC
-    const filteredTests = useMemo(() => {
-        return tests.filter(test => {
-            const matchesSearch = test.title?.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesType = filterType === 'all' || test.type === filterType;
-            const matchesTag = filterTag === 'all' || (test.tags && test.tags.includes(filterTag));
-            const matchesDifficulty = filterDifficulty === 'all' || test.difficulty === filterDifficulty;
-            return matchesSearch && matchesType && matchesTag && matchesDifficulty;
-        });
-    }, [tests, searchTerm, filterType, filterTag, filterDifficulty]);
-
-    // 2. PAGINATION LOGIC
-    const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
-    const currentData = filteredTests.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
-
+    // Helper: extract display-friendly question types from a test
     const getQuestionTypes = (test) => {
         if (!test.questions || !Array.isArray(test.questions)) return [];
         const seen = new Set();
@@ -413,6 +397,34 @@ export default function AdminTests() {
         });
         return Array.from(seen);
     };
+
+    // 1. FILTERING LOGIC
+    const filteredTests = useMemo(() => {
+        return tests.filter(test => {
+            const matchesSearch = test.title?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesType = filterType === 'all' || test.type === filterType;
+            const matchesTag = filterTag === 'all' || (test.tags && test.tags.includes(filterTag));
+            const matchesDifficulty = filterDifficulty === 'all' || test.difficulty === filterDifficulty;
+            const matchesQuestionType = filterQuestionType === 'all' || getQuestionTypes(test).includes(filterQuestionType);
+            return matchesSearch && matchesType && matchesTag && matchesDifficulty && matchesQuestionType;
+        });
+    }, [tests, searchTerm, filterType, filterTag, filterDifficulty, filterQuestionType]);
+
+    // Gather all unique question types for filtering
+    const allAvailableQuestionTypes = useMemo(() => {
+        const types = new Set();
+        tests.forEach(test => {
+            getQuestionTypes(test).forEach(t => types.add(t));
+        });
+        return Array.from(types).sort();
+    }, [tests]);
+
+    // 2. PAGINATION LOGIC
+    const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
+    const currentData = filteredTests.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     // 3. STATISTICS
     const stats = useMemo(() => ({
@@ -506,6 +518,24 @@ export default function AdminTests() {
                                     <Icons.X className="w-3.5 h-3.5" />
                                 </button>
                             )}
+                        </div>
+
+                        {/* 3. Question Type Filter */}
+                        <div className={`relative w-full md:w-64 flex items-center gap-3 px-4 rounded-2xl transition-all h-[47px] ${isDark ? 'bg-white/5 focus-within:bg-white/[0.08]' : 'bg-gray-100 focus-within:bg-gray-200/50'}`}>
+                            <Icons.Layers className={`w-4 h-4 ${filterQuestionType !== 'all' ? (isDark ? 'text-blue-400' : 'text-blue-600') : 'text-gray-500'}`} />
+                            <select 
+                                className="bg-transparent border-none outline-none text-sm font-medium w-full cursor-pointer appearance-none pr-8"
+                                value={filterQuestionType}
+                                onChange={(e) => { setFilterQuestionType(e.target.value); setCurrentPage(1); }}
+                            >
+                                <option value="all" className={isDark ? "bg-[#1E1E1E]" : ""}>Barcha savol turlari</option>
+                                {allAvailableQuestionTypes.map(t => (
+                                    <option key={t} value={t} className={isDark ? "bg-[#1E1E1E]" : ""}>{t}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 pointer-events-none text-gray-400">
+                                <Icons.ChevronDown className="w-4 h-4" />
+                            </div>
                         </div>
                     </div>
 

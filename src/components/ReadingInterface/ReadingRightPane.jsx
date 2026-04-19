@@ -7,7 +7,9 @@ import {
     GapFillQuestion, 
     TableQuestion, 
     MatchingOptionsBox,
-    ReadingDraggableHeading
+    MatchingGridQuestion,
+    ReadingDraggableHeading,
+    FlowChartQuestion
 } from './ReadingQuestionTypes';
 
 const ReadingRightPane = memo(({
@@ -250,7 +252,7 @@ const ReadingRightPane = memo(({
                             const text = String(typeof opt === 'object' ? opt.text : opt).trim();
                             return text.length <= 3 || /^[A-Z][\.\)]?\s*$/i.test(text);
                         });
-                        const isMatchingParagraph = (type.includes('matching') && (type.includes('paragraph') || (group.instruction && group.instruction.toLowerCase().includes('paragraph contains'))));
+                        const isMatchingParagraph = (type.includes('matching') && (type.includes('paragraph') || instr.includes('paragraph') || instr.includes('contain') || instr.includes('mention')));
                         const showStaticOptions = ((type.includes('matching') && !isMatchingParagraph) || type === 'summary_box') && group.options && group.options.length > 0 && !isJustLetters;
 
                         const commonProps = {
@@ -277,6 +279,9 @@ const ReadingRightPane = memo(({
                             }) && instr.includes('paragraph'))
                         );
 
+                        // NEW: Detect matching grid (classification)
+                        const isMatchingGrid = type.includes('matching') && !isMatchingHeading && !isMatchingParagraph && group.options && group.options.length > 0;
+
                         return (
                             <div key={gIdx} className="mb-6 pb-6 border-b border-gray-200 border-dashed last:border-0 font-montserrat">
                                 {rangeLabel && <h3 className="text-[15.5px] font-bold text-black mb-4">{rangeLabel}</h3>}
@@ -285,8 +290,10 @@ const ReadingRightPane = memo(({
                                     <div className="bg-transparent border-none p-0 mb-6 shadow-none font-normal text-black text-[15.5px]" dangerouslySetInnerHTML={{ __html: displayInstruction }} />
                                 )}
 
-                                {/* MATCHING HEADINGS — DnD mode */}
-                                {isMatchingHeading && group.options && group.options.length > 0 ? (
+                                {/* MATCHING GRID — Table mode */}
+                                {isMatchingGrid ? (
+                                    <MatchingGridQuestion {...commonProps} />
+                                ) : isMatchingHeading && group.options && group.options.length > 0 ? (
                                     <div className="flex flex-col gap-4">
                                         {/* Draggable headings pool — No background, transparent wrapper */}
                                         <div className="bg-transparent p-0 border-none shadow-none">
@@ -364,6 +371,8 @@ const ReadingRightPane = memo(({
                                                         );
                                                     })}
                                                 </p>
+                                            ) : isFlowChart ? (
+                                                <FlowChartQuestion {...commonProps} />
                                             ) : (
                                                 group.items?.map((q, qIdx) => {
                                                     if (isChoiceType && !isMatching) {
@@ -375,7 +384,7 @@ const ReadingRightPane = memo(({
                                                             q={q} 
                                                             val={userAnswers[q.id] || ""} 
                                                             isSummary={isSummary} 
-                                                            isFlowChart={isFlowChart}
+                                                            isFlowChart={false}
                                                             isLast={qIdx === (group.items.length - 1)}
                                                             {...commonProps} 
                                                         />

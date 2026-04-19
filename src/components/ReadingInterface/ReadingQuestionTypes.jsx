@@ -304,6 +304,8 @@ const checkAnswer = (userVal, correctVal) => {
     return correctOptions.includes(userClean);
 };
 
+
+
 export const MatchingOptionsBox = ({ 
     group, activePassage, highlights, handlePartSelect, onRemoveHighlight, keywordTable, isReviewMode, onOpenNotes 
 }) => {
@@ -355,6 +357,128 @@ export const MatchingOptionsBox = ({
                         </div>
                     );
                 })}
+            </div>
+        </div>
+    );
+};
+
+export const MatchingGridQuestion = ({ 
+    group, activePassage, userAnswers, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, handleLocationClick, onOpenNotes 
+}) => {
+    const options = group.options || [];
+    const items = group.items || group.questions || [];
+    
+    // Extract labels for header (e.g., A, B, C)
+    const labels = options.map((opt, idx) => {
+        const text = typeof opt === 'object' ? opt.text : opt;
+        const match = String(text).trim().match(/^([A-Z])[\.\)\s]/i);
+        return match ? match[1].toUpperCase() : String.fromCharCode(65 + idx);
+    });
+
+    const getOptionValue = (text) => {
+        if (!text) return "";
+        const match = String(text).match(/^([A-Z]|[ivxIVX]+)[\.\)\s]/);
+        return match ? match[1].trim() : text;
+    };
+
+    return (
+        <div className="mb-10 select-none">
+            <div className="overflow-hidden border border-gray-400 mb-8 bg-white overflow-x-auto">
+                <table className="w-full text-center border-collapse table-fixed min-w-[500px]">
+                    <thead>
+                        <tr className="bg-[#C6D9F1]">
+                            <th className="p-2 border border-black/20 w-10"></th>
+                            <th className="p-2 border border-black/20 min-w-[200px] w-auto"></th>
+                            {labels.map((label, idx) => (
+                                <th key={idx} className="p-2 font-bold text-gray-900 w-14 border border-black/20">
+                                    {label}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((q, qIdx) => {
+                            const val = String(userAnswers[q.id] || "").toUpperCase();
+                            const isCorrect = checkAnswer(val, q.answer);
+                            
+                            // Clean text (remove [DROP] or [INPUT] markers)
+                            const cleanText = String(q.text || "").replace(/\[DROP\]|\[INPUT\]/gi, "").trim();
+
+                            return (
+                                <tr key={q.id}>
+                                    <td className="p-2 text-center align-middle border border-black/20 bg-white font-bold text-[15px] text-gray-900">
+                                        {q.id}
+                                    </td>
+                                    <td className="p-2 text-left align-middle border border-black/20 bg-white">
+                                        <HighlightableText
+                                            id={`p-${activePassage}-q-${q.id}-text`}
+                                            content={isReviewMode && keywordTable?.length ? injectKeywordsToHTML(cleanText, keywordTable, true, q.id) : cleanText}
+                                            highlights={highlights ? highlights[`p-${activePassage}-q-${q.id}-text`] || [] : []}
+                                            onTextSelect={handlePartSelect}
+                                            onHighlightRemove={onRemoveHighlight}
+                                            onOpenNotes={onOpenNotes}
+                                            isReviewMode={isReviewMode}
+                                            className="text-gray-900 text-[15px] leading-snug"
+                                        />
+                                    </td>
+                                    {labels.map((label, lIdx) => {
+                                        const isSelected = val === label.toUpperCase();
+                                        const isThisCorrect = String(q.answer).toUpperCase() === label.toUpperCase();
+                                        
+                                        let cellClass = "p-2 border border-black/20 transition-all cursor-pointer h-[42px]";
+                                        
+                                        if (isSelected) {
+                                            cellClass += " bg-[#C6D9F1]"; 
+                                        }
+
+                                        if (isReviewMode) {
+                                            if (isThisCorrect) {
+                                                cellClass = "p-2 border border-black/20 bg-green-100 transition-all cursor-pointer h-[42px]";
+                                            } else if (isSelected && !isThisCorrect) {
+                                                cellClass = "p-2 border border-black/20 bg-red-100 transition-all cursor-pointer h-[42px]";
+                                            }
+                                        }
+
+                                        return (
+                                            <td 
+                                                key={lIdx} 
+                                                className={cellClass} 
+                                                onClick={() => !isReviewMode && onAnswerChange(q.id, label)}
+                                            >
+                                                {/* No dot or tick inside, just background color as requested */}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* List of Descriptions / Groups - Styled like the second table in the image */}
+            <div className="max-w-[400px]">
+                <table className="w-full border-collapse border border-black/40 bg-[#E9E9E9]">
+                    <thead>
+                        <tr>
+                            <th colSpan="2" className="border border-black/40 p-2 text-left font-bold text-[16px]">First invented or used by</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {options.map((opt, idx) => {
+                            const optText = typeof opt === 'object' ? opt.text : opt;
+                            const label = labels[idx];
+                            const cleanDescription = optText.replace(new RegExp(`^${label}[\\.\\)\\s]+`, 'i'), '').trim();
+                            
+                            return (
+                                <tr key={idx}>
+                                    <td className="border border-black/40 p-2 font-black text-[15px] w-12 text-center bg-[#E9E9E9]">{label}</td>
+                                    <td className="border border-black/40 p-2 text-gray-900 text-[15px] bg-[#E9E9E9]">{cleanDescription}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
@@ -533,7 +657,7 @@ export const GapFillQuestion = ({
     group, q, val, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, isSummary, isFlowChart, isLast, onOpenNotes
 }) => {
     const itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
-    const parts = q.text.split(/(\[INPUT\]|\[DROP\])/g);
+    const parts = (q.text || "").split(/(\[INPUT\]|\[DROP\])/g);
     const isCorrect = checkAnswer(val, q.answer);
 
     const renderParts = () => {
@@ -623,9 +747,9 @@ export const GapFillQuestion = ({
 
     let containerClass = "block mb-5";
     if (isSummary) containerClass = "inline leading-[2.2]";
-    if (isFlowChart) containerClass = "flex flex-col items-center justify-center w-full border border-gray-200 rounded-xl p-6 mb-10 bg-white relative shadow-sm text-center font-montserrat";
+    if (isFlowChart) containerClass = "block mb-0";
 
-    if (isSummary && !isFlowChart) {
+    if (isSummary) {
         return (
             <span id={`q-${q.id}`} className="group/item relative">
                 {renderParts()}
@@ -635,22 +759,179 @@ export const GapFillQuestion = ({
 
     return (
         <div id={`q-${q.id}`} className={`group/item relative ${containerClass}`}>
-            {!isSummary && !isFlowChart && (
-                <div className="flex gap-3 items-start mb-2 pl-2">
-                    <span className="flex-1 text-black">{renderParts()}</span>
+            <div className={`flex gap-3 items-start pl-2 ${isFlowChart ? 'mb-0' : 'mb-2'}`}>
+                <span className="flex-1 text-black">{renderParts()}</span>
+            </div>
+            {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} />}
+        </div>
+    );
+};
+
+const FlowItem = ({ 
+    item, index, total, group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, onOpenNotes 
+}) => {
+    const itemText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
+    const hasInput = itemText && (String(itemText).includes('[INPUT]') || String(itemText).includes('[DROP]'));
+    
+    // Detect bold-only header items (e.g. "<b>Title</b>")
+    const strippedText = itemText.replace(/<[^>]*>/g, '').trim();
+    const isBoldHeader = /^<b>/.test(itemText.trim()) && !hasInput;
+    const isHeaderItem = (item._isHeader || (index === 0 && !item.isQuestion && !hasInput));
+    
+    let content = null;
+
+    if (item.isQuestion || hasInput) {
+        content = (
+            <div className="font-normal text-gray-800 leading-[1.8] flex flex-wrap items-baseline justify-center text-center">
+                <GapFillQuestion 
+                    group={group}
+                    q={item}
+                    val={userAnswers[item.id] || ""}
+                    onAnswerChange={onAnswerChange}
+                    isReviewMode={isReviewMode}
+                    highlights={highlights}
+                    handlePartSelect={handlePartSelect}
+                    onRemoveHighlight={onRemoveHighlight}
+                    keywordTable={keywordTable}
+                    activePassage={activePassage}
+                    handleLocationClick={handleLocationClick}
+                    onOpenNotes={onOpenNotes}
+                    isFlowChart={true}
+                />
+            </div>
+        );
+    } else {
+        content = (
+            <span 
+                className={`text-gray-800 text-center inline-block w-full ${isHeaderItem || isBoldHeader ? 'font-bold text-[16.5px]' : 'font-medium text-[15px]'}`}
+                dangerouslySetInnerHTML={{ __html: itemText }}
+            />
+        );
+    }
+
+    // Header items render without box styling
+    if (isHeaderItem || isBoldHeader) {
+        return (
+            <React.Fragment>
+                <div className="w-full bg-transparent pt-2 pb-2 text-center">
+                    {content}
                 </div>
-            )}
-            {isFlowChart && (
-                <div className={`text-black w-full flex flex-col items-center`}>
-                    <div className="text-[1.1em] font-medium leading-relaxed">
-                        {renderParts()}
+                {index !== total - 1 && (
+                    <div className="flex flex-col items-center py-1">
+                        <div className="h-4 w-px bg-gray-300 relative">
+                            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-gray-300 text-[10px]">▼</div>
+                        </div>
                     </div>
-                    {!isLast && (
-                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-gray-300 text-2xl animate-bounce-subtle">↓</div>
-                    )}
+                )}
+            </React.Fragment>
+        );
+    }
+
+    return (
+        <React.Fragment>
+            <div className="w-full transition-all border border-black rounded-none p-4 bg-white shadow-[2px_2px_0px_rgba(0,0,0,0.08)]">
+                {content}
+            </div>
+            {index !== total - 1 && (
+                <div className="flex flex-col items-center py-2">
+                    <div className="h-8 w-px bg-gray-400 relative">
+                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-gray-400 text-[12px]">▼</div>
+                    </div>
                 </div>
             )}
-            {isReviewMode && q.explanation && !isSummary && <QuestionExplanation text={q.explanation} />}
+        </React.Fragment>
+    );
+};
+
+export const FlowChartQuestion = ({ 
+    group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, onOpenNotes 
+}) => {
+    const allSubGroups = (group.groups || [{ items: group.items || group.questions || [] }]);
+
+    // Pre-process: split items whose text contains <br/><br/> into separate flow steps
+    const splitItemsIntoFlowSteps = (items) => {
+        const result = [];
+        items.forEach(item => {
+            const rawText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
+            
+            // Split by double <br/> (handles <br/>, <br>, <br />, and combinations)
+            const segments = rawText.split(/<br\s*\/?>\s*<br\s*\/?>/gi).map(s => s.trim()).filter(Boolean);
+            
+            if (segments.length <= 1) {
+                // No splitting needed — keep original
+                result.push(item);
+                return;
+            }
+            
+            // Multiple segments: split into separate virtual items
+            segments.forEach((seg, segIdx) => {
+                const hasInput = seg.includes('[INPUT]') || seg.includes('[DROP]');
+                const isBoldOnly = /^<b>/.test(seg.trim()) && !hasInput;
+                
+                if (hasInput) {
+                    // This segment keeps the original question's id, answer, locationId
+                    result.push({
+                        ...item,
+                        text: seg,
+                        isQuestion: true,
+                    });
+                } else {
+                    // Pure text/label segment
+                    result.push({
+                        id: `${item.id}_text_${segIdx}`,
+                        text: seg,
+                        isQuestion: false,
+                        _isHeader: isBoldOnly,
+                        _isTextOnly: true,
+                    });
+                }
+            });
+        });
+        return result;
+    };
+
+    return (
+        <div className="mb-10 flex flex-col items-center w-full max-w-2xl mx-auto py-4">
+            {allSubGroups.map((sub, sIdx) => {
+                const rawItems = (sub.items || sub.questions || []).filter(it => {
+                    const itText = String(typeof it.text === 'object' ? it.text.text : it.text || "").trim();
+                    return !["↓", "▼", "⬇", "arrow", "⇓"].includes(itText);
+                });
+                
+                // Split multi-step items into individual flow boxes
+                const processedItems = splitItemsIntoFlowSteps(rawItems);
+                
+                return (
+                    <div key={sIdx} className="w-full flex flex-col items-center mb-8 last:mb-0">
+                        {sub.header && (
+                            <h4 className="text-[14px] font-black text-gray-900 mb-4 text-center w-full uppercase tracking-[0.15em] border-b border-gray-200 pb-2">
+                                {typeof sub.header === 'object' ? sub.header.text : sub.header}
+                            </h4>
+                        )}
+                        <div className="flex flex-col items-center w-full gap-0">
+                            {processedItems.map((item, index) => (
+                                <FlowItem 
+                                    key={item.id || index}
+                                    item={item} 
+                                    index={index} 
+                                    total={processedItems.length}
+                                    group={group}
+                                    userAnswers={userAnswers}
+                                    onAnswerChange={onAnswerChange}
+                                    isReviewMode={isReviewMode}
+                                    handleLocationClick={handleLocationClick}
+                                    highlights={highlights}
+                                    handlePartSelect={handlePartSelect}
+                                    onRemoveHighlight={onRemoveHighlight}
+                                    keywordTable={keywordTable}
+                                    activePassage={activePassage}
+                                    onOpenNotes={onOpenNotes}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 };

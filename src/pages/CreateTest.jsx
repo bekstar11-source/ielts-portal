@@ -497,7 +497,7 @@ export default function CreateTest() {
         if (!testData.title) return alert("Test nomini yozing!");
         setLoading(true);
         try {
-            // DUPLICATE CHECK
+            // DUPLICATE CHECK — Only for NEW tests
             if (!isEditMode && !bypass) {
                 const q = query(collection(db, "tests"), where("type", "==", testData.type));
                 const snapshot = await getDocs(q);
@@ -508,38 +508,61 @@ export default function CreateTest() {
 
                 for (let docSnap of snapshot.docs) {
                     const existing = docSnap.data();
+                    const existingId = docSnap.id;
 
-                    // 1. Check Title Similarity
+                    // ════════════════════════════════════════
+                    // CHECK 1: Exact Title Match
+                    // ════════════════════════════════════════
                     const t1 = normalize(testData.title);
                     const t2 = normalize(existing.title);
-                    if (t1 && t2 && t1 === t2) {
+                    // Skip very short or generic titles
+                    if (t1.length >= 5 && t1 === t2) {
+                        console.log("[DupCheck] Title match:", t1, "→ doc:", existingId);
                         isDuplicate = true;
                         duplicateTitle = existing.title;
                         break;
                     }
 
-                    // 2. Check Passages/Content Similarity
-                    if ((testData.type === 'reading' || testData.type === 'listening') && 
+                    // ════════════════════════════════════════
+                    // CHECK 2: Passage Content Match (Reading/Listening)
+                    // ════════════════════════════════════════
+                    if ((testData.type === 'reading' || testData.type === 'listening') &&
                         testData.passages?.length > 0 && existing.passages?.length > 0) {
-                        
+
                         let passageDuplicate = false;
                         for (let i = 0; i < Math.min(testData.passages.length, existing.passages.length); i++) {
                             const p1 = testData.passages[i];
                             const p2 = existing.passages[i];
 
-                            const tit1 = normalize(p1.title);
-                            const tit2 = normalize(p2.title);
-                            const con1 = normalize(p1.content).substring(0, 150);
-                            const con2 = normalize(p2.content).substring(0, 150);
+                            const tit1 = normalize(p1?.title || "");
+                            const tit2 = normalize(p2?.title || "");
+                            const con1 = normalize(p1?.content || "").substring(0, 200);
+                            const con2 = normalize(p2?.content || "").substring(0, 200);
 
-                            // Skip generic titles like "Part 1" or "Passage 1"
-                            const isGeneric = (s) => s.includes('part') || s.includes('passage') || s.includes('section');
+                            // Skip generic titles like "Part 1", "Passage 1", "Section A"
+                            const isGenericTitle = (s) =>
+                                !s || s.length < 5 ||
+                                /^(part|passage|section)\s*\d*$/i.test(s.trim());
 
-                            if (tit1 && tit2 && tit1 === tit2 && tit1.length > 6 && !isGeneric(tit1)) {
+                            // Title match — only for meaningful, non-generic titles
+                            if (!isGenericTitle(tit1) && tit1 === tit2) {
+                                console.log("[DupCheck] Passage title match:", tit1, "→ doc:", existingId);
                                 passageDuplicate = true;
                                 break;
                             }
-                            if (con1 && con2 && con1 === con2 && con1.length > 40) {
+
+                            // Content match — only if content is substantial (>80 chars)
+                            if (con1.length > 80 && con1 === con2) {
+                                console.log("[DupCheck] Passage content match at index", i, "→ doc:", existingId);
+                                passageDuplicate = true;
+                                break;
+                            }
+
+                            // Audio match — ONLY if the audio URL is a real non-empty URL
+                            const au1 = (p1?.audio || "").trim();
+                            const au2 = (p2?.audio || "").trim();
+                            if (au1.length > 10 && au1 === au2) {
+                                console.log("[DupCheck] Passage audio match at index", i, "→ doc:", existingId);
                                 passageDuplicate = true;
                                 break;
                             }
@@ -552,39 +575,101 @@ export default function CreateTest() {
                         }
                     }
 
-                    // 3. Check Questions Similarity (Structure and IDs)
+                    // ════════════════════════════════════════
+                    // CHECK 3: Question Content Match
+                    // ════════════════════════════════════════
                     if (testData.questions?.length > 0 && existing.questions?.length > 0) {
                         const q1 = testData.questions;
                         const q2 = existing.questions;
 
-                        // Compare question counts
-                        const countMatch = q1.length === q2.length;
+                        // Must have same number of question groups AND some overlap in IDs
+                        if (q1.length === q2.length) {
+                            const ids1 = q1.slice(0, 5).map(q => normalize(q.id)).join(',');
+                            const ids2 = q2.slice(0, 5).map(q => normalize(q.id)).join(',');
 
-                        // Compare first 5 question IDs
-                        const ids1 = q1.slice(0, 5).map(q => normalize(q.id)).join(',');
-                        const ids2 = q2.slice(0, 5).map(q => normalize(q.id)).join(',');
-                        
-                        // Compare first question text (if available)
-                        const txt1 = normalize(q1[0]?.question || q1[0]?.text || "").substring(0, 50);
-                        const txt2 = normalize(q2[0]?.question || q2[0]?.text || "").substring(0, 50);
+                            if (ids1 === ids2 && ids1.length > 0) {
+                                // Check question text content across first 5 questions
+                                let matchCount = 0;
+                                let validTexts = 0;
+                                for (let i = 0; i < Math.min(q1.length, q2.length, 5); i++) {
+                                    const txt1 = normalize(
+                                        q1[i]?.instruction || q1[i]?.question || q1[i]?.text || q1[i]?.sentence || ""
+                                    );
+                                    const txt2 = normalize(
+                                        q2[i]?.instruction || q2[i]?.question || q2[i]?.text || q2[i]?.sentence || ""
+                                    );
+                                    if (txt1.length > 15) { // must be a meaningful text
+                                        validTexts++;
+                                        if (txt1.substring(0, 60) === txt2.substring(0, 60)) matchCount++;
+                                    }
+                                }
 
-                        if (countMatch && ids1 === ids2 && ids1.length > 0) {
-                            // If both IDs and count match, it's highly likely a duplicate
-                            if (txt1 === txt2 || (txt1.length === 0 && txt2.length === 0)) {
-                                isDuplicate = true;
-                                duplicateTitle = existing.title || "o'xshash savollar";
-                                break;
+                                // All IDs are plain numbers → require STRONG content match
+                                const isNumericIds = ids1.split(',').every(s => s && !isNaN(Number(s)));
+
+                                if (isNumericIds) {
+                                    // Need at least 2 valid texts and all of them matching strongly
+                                    if (validTexts >= 2 && matchCount >= validTexts) {
+                                        console.log("[DupCheck] Numeric IDs + content match:", matchCount, "/", validTexts, "→ doc:", existingId);
+                                        isDuplicate = true;
+                                        duplicateTitle = existing.title || "o'xshash savollar";
+                                        break;
+                                    }
+                                } else {
+                                    // Custom string IDs + same structure = strong duplicate signal
+                                    // but still require at least some text match
+                                    if (validTexts === 0 || (validTexts > 0 && matchCount >= Math.ceil(validTexts * 0.8))) {
+                                        // No texts available → only flag if IDs are truly unique (not generic)
+                                        if (validTexts > 0) {
+                                            console.log("[DupCheck] Custom IDs + content match:", matchCount, "/", validTexts, "→ doc:", existingId);
+                                            isDuplicate = true;
+                                            duplicateTitle = existing.title || "o'xshash IDlar";
+                                            break;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
 
-                    // 4. Writing specific check (already exists, but kept for consistency)
+                    // ════════════════════════════════════════
+                    // CHECK 4: Listening - Global Audio URL
+                    // ════════════════════════════════════════
+                    if (testData.type === 'listening') {
+                        const au1 = (testData.audio_url || "").trim();
+                        const au2 = (existing.audio_url || "").trim();
+                        if (au1.length > 10 && au1 === au2) {
+                            console.log("[DupCheck] Global audio_url match → doc:", existingId);
+                            isDuplicate = true;
+                            duplicateTitle = existing.title || "bir xil audio fayl";
+                            break;
+                        }
+                    }
+
+                    // ════════════════════════════════════════
+                    // CHECK 5: Writing - Prompt Match
+                    // ════════════════════════════════════════
                     if (testData.type === 'writing' && testData.writingTasks?.length > 0 && existing.writingTasks?.length > 0) {
-                        const prompt1 = normalize(testData.writingTasks[0].prompt).substring(0, 100);
-                        const prompt2 = normalize(existing.writingTasks[0].prompt).substring(0, 100);
-                        if (prompt1 && prompt2 && prompt1 === prompt2 && prompt1.length > 20) {
+                        const p1 = normalize(testData.writingTasks[0]?.prompt || "").substring(0, 100);
+                        const p2 = normalize(existing.writingTasks[0]?.prompt || "").substring(0, 100);
+                        if (p1.length > 40 && p1 === p2) {
+                            console.log("[DupCheck] Writing prompt match → doc:", existingId);
                             isDuplicate = true;
                             duplicateTitle = existing.title || "o'xshash writing test";
+                            break;
+                        }
+                    }
+
+                    // ════════════════════════════════════════
+                    // CHECK 6: Speaking - First Question Match
+                    // ════════════════════════════════════════
+                    if (testData.type === 'speaking' && testData.parts?.length > 0 && existing.parts?.length > 0) {
+                        const sq1 = normalize(testData.parts[0]?.questions?.[0] || "").substring(0, 60);
+                        const sq2 = normalize(existing.parts[0]?.questions?.[0] || "").substring(0, 60);
+                        if (sq1.length > 20 && sq1 === sq2) {
+                            console.log("[DupCheck] Speaking question match → doc:", existingId);
+                            isDuplicate = true;
+                            duplicateTitle = existing.title || "o'xshash speaking test";
                             break;
                         }
                     }
@@ -597,6 +682,7 @@ export default function CreateTest() {
                     return;
                 }
             }
+
 
             const processTime = (val) => {
                 if (val === undefined || val === null || val === '') return 0;

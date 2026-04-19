@@ -595,7 +595,7 @@ export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode,
                 {options.map((opt, idx) => {
                     const isSelected = currentSelectedValues.includes(opt.label);
                     const isCorrectOption = questions.some(q => {
-                        const ans = q.answer || q.correct_answer;
+                        const ans = q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value;
                         return Array.isArray(ans) ? ans.includes(opt.label) : ans === opt.label;
                     });
                     const containerStyle = getStatusStyles(isReviewMode, isCorrectOption, isSelected, 'container');
@@ -692,7 +692,7 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
                                                     if (refinedPart.type === 'input') {
                                                         const lookupItems = (group.items || group.questions || []);
                                                         const item = lookupItems.find(it => String(it.id) === String(refinedPart.id));
-                                                        const answer = refinedPart.answer || refinedPart.correct_answer || item?.answer || item?.correct_answer || cell.answer || cell.correct_answer;
+                                                        const answer = refinedPart.answer || refinedPart.correct_answer || refinedPart.correctAnswer || refinedPart.correct_answer_value || item?.answer || item?.correct_answer || item?.correctAnswer || cell.answer || cell.correct_answer || cell.correctAnswer;
                                                         const locationId = refinedPart.locationId || item?.locationId || cell.locationId;
 
                                                         return (
@@ -782,7 +782,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                                 content = (
                                     <div key={`q-${q.id}`} className={`font-normal text-gray-800 leading-[1.8] flex flex-wrap items-baseline ${shouldStartNewRow ? 'pl-4 inline-flex w-full md:w-auto' : 'pl-2 inline-flex'}`}>
                                         {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
-                                        <ListeningTextInput id={q.id} answer={q.answer || q.correct_answer} locationId={q.locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />
+                                        <ListeningTextInput id={q.id} answer={q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value} locationId={q.locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />
                                         {parts[1] && <span className="ml-1" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
                                     </div>
                                 );
@@ -798,7 +798,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                                                 return <span key={`p-text-${pIdx}`} dangerouslySetInnerHTML={{ __html: cleanContent }} />;
                                             }
                                             if (p.type === 'input') {
-                                                return <ListeningTextInput key={`p-input-${p.id}`} id={p.id} answer={p.answer || p.correct_answer || q.answer || q.correct_answer} locationId={p.locationId || q.locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
+                                                return <ListeningTextInput key={`p-input-${p.id}`} id={p.id} answer={p.answer || p.correct_answer || p.correctAnswer || q.answer || q.correct_answer || q.correctAnswer} locationId={p.locationId || q.locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
                                             }
                                             return null;
                                         })}
@@ -983,7 +983,8 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
     const renderFlowItem = (item, index, subItems) => {
         const itemText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
         const hasInput = itemText && String(itemText).includes('[INPUT]');
-        const isCorrect = isReviewMode ? checkAnswer(userAnswers[item.id], item.answer || item.correct_answer) : false;
+        const correctVal = item.answer || item.correct_answer || item.correctAnswer || item.correct_answer_value;
+        const isCorrect = isReviewMode ? checkAnswer(userAnswers[item.id], correctVal) : false;
         
         // Check if this is the first item and it's not a question/input - treat as title
         const isHeaderItem = index === 0 && !item.isQuestion && !hasInput;
@@ -1004,14 +1005,14 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
                             value={userAnswers[item.id] || ""}
                             options={options}
                             isReviewMode={isReviewMode}
-                            isCorrect={isReviewMode ? checkAnswer(userAnswers[item.id], item.answer || item.correct_answer) : false}
-                            correctAnswer={item.answer || item.correct_answer}
+                            isCorrect={isReviewMode ? checkAnswer(userAnswers[item.id], correctVal) : false}
+                            correctAnswer={correctVal}
                             onClear={() => onAnswerChange(item.id, "")}
                         />
                     ) : (
                         <ListeningTextInput
                             id={item.id}
-                            answer={item.answer || item.correct_answer}
+                            answer={correctVal}
                             locationId={item.locationId}
                             userAnswers={userAnswers}
                             onAnswerChange={onAnswerChange}
@@ -1156,7 +1157,8 @@ export const StandardMCQ = memo(({ group, userAnswers, onAnswerChange, isReviewM
                 <div className="flex flex-col gap-0 pl-2 sm:pl-10">
                     {options.map((opt, idx) => {
                         const isSelected = String(userAnswers[q.id]) === String(opt.label);
-                        const isCorrect = isReviewMode ? checkAnswer(opt.label, q.answer || q.correct_answer) : false;
+                        const correctVal = q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value;
+                        const isCorrect = isReviewMode ? checkAnswer(opt.label, correctVal) : false;
                         const containerStyle = getStatusStyles(isReviewMode, isCorrect, isSelected, 'container');
                         const badgeStyle = getStatusStyles(isReviewMode, isCorrect, isSelected, 'badge');
 

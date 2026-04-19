@@ -162,15 +162,21 @@ export const scoreMultiAnswer = (correct, user, weight) => {
     return { matches: matchesCount, weight: finalWeight };
 };
 
-// MULTI-ANSWER TYPE CHECKER
 export const isMultiAnswerType = (type) => {
     if (!type) return false;
     const t = String(type).toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ');
+    
+    // Explicit exclusions for types that have 'multi' but are single-answer per ID
+    if (t === 'multiple choice' || t === 'mcq') return false;
+
     return t.includes('two choice') || 
            t.includes('three choice') || 
-           t.includes('multi') || 
            t.includes('pick two') || 
            t.includes('pick three') || 
+           t.includes('pick four') || 
+           t.includes('pick five') || 
+           t.includes('multi selection') || 
+           t.includes('multi answer') ||
            t.includes('selection');
 };
 
@@ -214,7 +220,8 @@ export const calculateSectionScore = (testData, sectionAnswers) => {
         if (isMultiAnswerType(obj.type) && !obj.id) {
             const groupItems = [];
             const collectItems = (o) => {
-                if (o.id && (o.answer || o.correct_answer)) {
+                const ans = o.answer || o.correct_answer || o.correctAnswer || o.correct_answer_value;
+                if (o.id && ans) {
                     groupItems.push(o);
                 }
                 const subKeys = ['questions', 'items', 'rows', 'cells', 'content'];
@@ -227,13 +234,15 @@ export const calculateSectionScore = (testData, sectionAnswers) => {
             collectItems(obj);
 
             if (groupItems.length > 0) {
-                const allCorrect = groupItems.map(i => i.answer || i.correct_answer).join(', ');
+                const allCorrect = groupItems.map(i => i.answer || i.correct_answer || i.correctAnswer || i.correct_answer_value).join(', ');
                 const allUser = groupItems.map(i => sectionAnswers[i.id] || "").join(', ');
                 
                 // Weight ni aniqlash (Default: itemlar soni)
                 let weight = groupItems.length;
                 const t = String(obj.type).toLowerCase();
-                if (t.includes('three')) weight = 3;
+                if (t.includes('five')) weight = 5;
+                else if (t.includes('four')) weight = 4;
+                else if (t.includes('three')) weight = 3;
                 else if (t.includes('two')) weight = 2;
 
                 const result = scoreMultiAnswer(allCorrect, allUser, weight);
@@ -245,10 +254,10 @@ export const calculateSectionScore = (testData, sectionAnswers) => {
             }
         }
 
-        if (obj.id && (obj.answer || obj.correct_answer)) {
+        const answer = obj.answer || obj.correct_answer || obj.correctAnswer || obj.correct_answer_value;
+        if (obj.id && answer) {
             const id = obj.id;
             const idStr = String(id);
-            const answer = obj.answer || obj.correct_answer;
 
             if (scoredIds.has(idStr)) return;
 
@@ -261,12 +270,10 @@ export const calculateSectionScore = (testData, sectionAnswers) => {
                 scoredIds.add(idStr);
             } else {
                 const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
-                if (answer) {
-                    const isCorrect = checkAnswer(answer, userResp);
-                    if (isCorrect) correctCount++;
-                    totalQ++;
-                    scoredIds.add(idStr);
-                }
+                const isCorrect = checkAnswer(answer, userResp);
+                if (isCorrect) correctCount++;
+                totalQ++;
+                scoredIds.add(idStr);
             }
         }
 

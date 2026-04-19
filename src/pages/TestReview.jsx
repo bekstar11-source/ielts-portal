@@ -348,267 +348,189 @@ export default function TestReview() {
     return (
         <div className="flex flex-col h-screen bg-gray-100 overflow-hidden font-sans">
 
-            {/* --- HEADER --- */}
-            <header className="bg-slate-900 text-white flex justify-between items-center shadow-md h-14 shrink-0 z-10 px-4">
-                {/* LEFT: BACK & TITLE */}
-                <div className="flex items-center gap-2 sm:gap-3">
+            {/* --- CLEAN & PREMIUM HEADER --- */}
+            <header className="h-16 bg-zinc-950 text-white flex justify-between items-center px-4 sm:px-6 shrink-0 z-20 border-b border-white/5 relative">
+                {/* 1. LEFT: NAVIGATION & TITLES */}
+                <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate(userData?.role === 'admin' || userData?.role === 'teacher' ? '/admin/results' : '/my-results')}
-                        className="text-gray-400 hover:text-white transition flex items-center justify-center w-9 h-9 sm:w-auto sm:h-10 sm:px-3 rounded-xl bg-gray-800/40 border border-white/5 hover:bg-gray-700/60 active:scale-95 group shadow-lg"
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-95 group"
                         title="Back to results"
                     >
-                        <span className="text-lg group-hover:-translate-x-0.5 transition-transform">←</span>
-                        <span className="hidden sm:inline ml-2 text-[11px] font-black uppercase tracking-widest">Back</span>
+                        <svg className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                        </svg>
                     </button>
 
-                    <div className="flex flex-col border-l border-white/10 pl-3">
-                        <div className="flex items-center gap-1.5 mb-1">
-                            <span className="px-1.5 py-0.5 bg-blue-600/20 text-blue-400 text-[8px] font-black uppercase tracking-tighter rounded border border-blue-500/20">
+                    <div className="flex flex-col min-w-0">
+                        <h1 className="text-[14px] font-bold text-white tracking-tight truncate max-w-[150px] sm:max-w-[280px]">
+                            {testData.title}
+                        </h1>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
+                                {resultData.userName || 'Student'}
+                            </span>
+                            <span className="w-1 h-1 bg-zinc-800 rounded-full" />
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                resultData.type === 'mock_full' ? 'text-indigo-400 bg-indigo-400/10' : 'text-blue-400 bg-blue-400/10'
+                            }`}>
                                 {resultData.type === 'mock_full' ? 'FULL MOCK' : 'PARTIAL'}
                             </span>
-                            {resultData.userName && (
-                                <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded shadow-[0_0_10px_rgba(245,158,11,0.05)]">
-                                    <div className="w-1 h-1 bg-amber-500 rounded-full shadow-[0_0_5px_rgba(245,158,11,0.5)] animate-pulse" />
-                                    <span className="text-amber-500 text-[9px] font-black tracking-tight uppercase">
-                                        STUDENT: {resultData.userName}
-                                    </span>
-                                </div>
-                            )}
-                            <span className="text-[9px] text-gray-500 font-black uppercase tracking-[0.2em]">
-                                {userData?.role === 'admin' || userData?.role === 'teacher' ? 'TEACHER VIEW' : 'STUDENT REVIEW'}
-                            </span>
                         </div>
-                        <p className="font-black text-white text-[13px] tracking-tight leading-none truncate max-w-[120px] sm:max-w-[200px] lg:max-w-[300px]">
-                            {testData.title}
-                        </p>
                     </div>
                 </div>
 
-                {/* CENTER: CONTROLS */}
-                <div className="flex-1 flex justify-center items-center gap-4 px-2 min-w-0">
-                    {/* Section Selector (Ultra-Compact L R W S) for FULL MOCK */}
+                {/* 2. CENTER: INTERACTIVE CONTROLS */}
+                <div className="flex-1 flex justify-center items-center gap-6 px-4">
+                    {/* Minimal Section Selector */}
                     {resultData.type === 'mock_full' && (
-                        <div className="flex bg-white/5 backdrop-blur-xl rounded-xl p-1 gap-1 border border-white/5 shadow-2xl relative">
+                        <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/5 shadow-inner">
                             {['listening', 'reading', 'writing', 'speaking'].map(part => {
                                 const isActive = activeMockPart === part;
                                 const label = part.charAt(0).toUpperCase();
-                                const colors = {
-                                    listening: 'bg-purple-600/90 shadow-[0_0_15px_#9333ea66]',
-                                    reading: 'bg-blue-600/90 shadow-[0_0_15px_#2563eb66]',
-                                    writing: 'bg-emerald-600/90 shadow-[0_0_15px_#05966966]',
-                                    speaking: 'bg-indigo-600/90 shadow-[0_0_15px_#4f46e566]'
-                                };
                                 return (
                                     <button
                                         key={part}
                                         onClick={() => setActiveMockPart(part)}
-                                        className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg text-[10px] sm:text-[11px] font-black transition-all duration-300 relative group active:scale-95 ${isActive ? `${colors[part]} text-white border border-white/20` : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent'
-                                            }`}
-                                        title={part.charAt(0).toUpperCase() + part.slice(1)}
+                                        className={`w-9 h-9 flex items-center justify-center rounded-lg text-[11px] font-black transition-all relative ${
+                                            isActive 
+                                                ? 'bg-white text-zinc-950 shadow-lg scale-105' 
+                                                : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'
+                                        }`}
+                                        title={part}
                                     >
-                                        <span className="relative z-10">{label}</span>
-                                        {isActive && (
-                                            <span className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none" />
-                                        )}
+                                        {label}
                                     </button>
                                 );
                             })}
                         </div>
                     )}
 
-                    {/* Audio Player (Refined & Unified) */}
-                    {(testData.type?.toLowerCase() === 'listening' || activeMockPart === 'listening') && (
-                        <div className="max-w-[280px] sm:max-w-[600px] flex-1 flex flex-col justify-center relative z-[100]">
-                            {testData.passages?.map((passage, index) => {
-                                const src = passage.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file;
-                                if (!src) return null;
-                                return (
+                    {/* Audio Player & Volume (Only for Listening results or active Listening part in Full Mock) */}
+                    {(testData.type?.toLowerCase() === 'listening' || (resultData.type === 'mock_full' && activeMockPart === 'listening')) && (
+                        <div className="flex items-center gap-3 flex-1 max-w-[400px]">
+                            <div className="flex-1">
+                                {testData.passages?.map((passage, index) => {
+                                    const src = passage.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file;
+                                    if (!src) return null;
+                                    return (
+                                        <CustomAudioPlayer
+                                            key={index}
+                                            src={src}
+                                            index={index}
+                                            variant="dark"
+                                            activePart={listeningActivePart}
+                                            testMode="practice"
+                                            setAudioTime={setAudioTime}
+                                            volume={volume}
+                                            startTime={passage.startTime || 0}
+                                            endTime={passage.endTime || 0}
+                                        />
+                                    );
+                                })}
+                                {(!testData.passages || testData.passages.length === 0) && (testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file) && (
                                     <CustomAudioPlayer
-                                        key={index}
-                                        src={src}
-                                        index={index}
+                                        src={testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file}
+                                        index={0}
                                         variant="dark"
                                         activePart={listeningActivePart}
                                         testMode="practice"
                                         setAudioTime={setAudioTime}
                                         volume={volume}
-                                        startTime={passage.startTime || 0}
-                                        endTime={passage.endTime || 0}
+                                        startTime={0}
+                                        endTime={0}
                                     />
-                                );
-                            })}
-                            {/* Fallback for cases where passages might be empty but audio exists at top level */}
-                            {(!testData.passages || testData.passages.length === 0) && (testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file) && (
-                                <CustomAudioPlayer
-                                    src={testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file}
-                                    index={0}
-                                    variant="dark"
-                                    activePart={listeningActivePart}
-                                    testMode="practice"
-                                    setAudioTime={setAudioTime}
-                                    volume={volume}
-                                    startTime={0}
-                                    endTime={0}
-                                />
-                            )}
-                        </div>
-                    )}
+                                )}
+                            </div>
 
-                    {/* Integrated Volume Control for Listening Review */}
-                    {(testData.type?.toLowerCase() === 'listening' || activeMockPart === 'listening') && (
-                        <div className="relative ml-2">
-                            <button
-                                className={`w-9 h-9 flex items-center justify-center rounded-lg border transition-all duration-300 ${showVolumeSlider ? 'bg-black text-white border-black shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-200 shadow-sm'}`}
-                                onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-                                title="Volume"
-                            >
-                                {volume === 0 ? <VolumeX size={18} strokeWidth={2.5} /> :
-                                    volume < 0.5 ? <Volume1 size={18} strokeWidth={2} /> :
-                                        <Volume2 size={18} strokeWidth={2} />}
-                            </button>
-
-                            <AnimatePresence>
-                                {showVolumeSlider && (
-                                    <>
-                                        <div
-                                            className="fixed inset-0 z-[100]"
-                                            onClick={() => setShowVolumeSlider(false)}
-                                        />
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                                            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white border border-black rounded-lg shadow-xl p-2 z-[101] w-10 flex flex-col items-center gap-2"
-                                        >
-                                            <div className="flex flex-col items-center gap-2 h-32 w-full py-1">
-                                                <span className="text-[9px] font-bold text-black tabular-nums text-center">
-                                                    {Math.round(volume * 100)}%
-                                                </span>
-
-                                                <div className="relative flex-1 w-full flex items-center justify-center group">
-                                                    {/* Track */}
-                                                    <div className="absolute w-1 h-full bg-gray-100 rounded-full overflow-hidden">
-                                                        <div
-                                                            className="absolute bottom-0 w-full bg-black"
-                                                            style={{ height: `${volume * 100}%` }}
-                                                        />
-                                                    </div>
-
+                            {/* Discrete Volume */}
+                            <div className="relative">
+                                <button
+                                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
+                                        showVolumeSlider ? 'bg-white text-black' : 'bg-white/5 text-gray-400 hover:text-white border border-white/5'
+                                    }`}
+                                    onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+                                >
+                                    {volume === 0 ? <VolumeX size={16} /> : volume < 0.5 ? <Volume1 size={16} /> : <Volume2 size={16} />}
+                                </button>
+                                
+                                <AnimatePresence>
+                                    {showVolumeSlider && (
+                                        <>
+                                            <div className="fixed inset-0 z-[100]" onClick={() => setShowVolumeSlider(false)} />
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 10 }}
+                                                className="absolute top-full right-0 mt-3 p-4 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl z-[101] min-w-[200px]"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-[10px] font-bold text-gray-500 w-8">{Math.round(volume * 100)}%</span>
                                                     <input
-                                                        type="range"
-                                                        min="0"
-                                                        max="1"
-                                                        step="0.01"
-                                                        value={volume}
+                                                        type="range" min="0" max="1" step="0.01" value={volume}
                                                         onChange={(e) => setVolume(parseFloat(e.target.value))}
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                                        style={{
-                                                            WebkitAppearance: 'slider-vertical',
-                                                            appearance: 'slider-vertical'
-                                                        }}
-                                                    />
-
-                                                    {/* Visual Knob */}
-                                                    <div
-                                                        className="absolute w-3 h-3 bg-white border border-black rounded-full shadow-sm pointer-events-none z-0"
-                                                        style={{ bottom: `calc(${volume * 100}% - 6px)` }}
+                                                        className="flex-1 accent-white h-1 bg-zinc-800 rounded-full appearance-none cursor-pointer"
                                                     />
                                                 </div>
-
-                                                <button
-                                                    onClick={() => setVolume(volume === 0 ? 0.7 : 0)}
-                                                    className="p-1 hover:bg-gray-100 rounded transition-all active:scale-90 text-black"
-                                                >
-                                                    {volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                                                </button>
-                                            </div>
-                                            {/* Pointer */}
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[5px] w-2.5 h-2.5 bg-white border-b border-r border-black rotate-45" />
-                                        </motion.div>
-                                    </>
-                                )}
-                            </AnimatePresence>
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* RIGHT: SCORES & STATUS */}
-                <div className="flex items-center gap-2 sm:gap-4 shrink-0 px-2 lg:px-0">
-                    {/* Mock Detailed Scores (Consolidated) */}
+                {/* 3. RIGHT: PERFORMANCE MATRICS */}
+                <div className="flex items-center gap-4">
+                    {/* Consolidates Section Scores */}
                     {resultData.type === 'mock_full' && (
-                        <div className="hidden sm:flex items-center gap-1 bg-white/5 backdrop-blur-xl px-2 py-1 lg:px-4 lg:py-2.5 rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/5">
+                        <div className="hidden lg:flex items-center bg-zinc-900/80 rounded-2xl px-4 py-2 border border-white/5 divide-x divide-white/5">
                             {[
-                                { key: 'listeningBand', rawKey: 'listening', label: 'L', color: 'text-purple-400' },
-                                { key: 'readingBand', rawKey: 'reading', label: 'R', color: 'text-blue-400' },
+                                { key: 'listeningBand', label: 'L', color: 'text-purple-400' },
+                                { key: 'readingBand', label: 'R', color: 'text-blue-400' },
                                 { key: 'writing', label: 'W', color: 'text-emerald-400' },
                                 { key: 'speaking', label: 'S', color: 'text-indigo-400' }
-                            ].map((item, idx) => {
-                                const band = Number(resultData.scores?.[item.key] || 0).toFixed(1);
-                                const raw = resultData.scores?.[item.rawKey];
-                                const total = 40; // IELTS default
-
-                                return (
-                                    <React.Fragment key={item.key}>
-                                        <div className="flex flex-col items-center min-w-[44px] group relative">
-                                            <div className={`absolute -top-1 font-black text-[7px] ${item.color} opacity-0 group-hover:opacity-100 transition-opacity -translate-y-full mb-1 uppercase whitespace-nowrap`}>
-                                                {item.label} {raw !== undefined ? `(${raw}/${total})` : ''}
-                                            </div>
-                                            <div className="flex flex-col items-center leading-none">
-                                                <span className={`text-[15px] font-black ${item.color} tracking-tighter`}>
-                                                    {band}
-                                                </span>
-                                                {raw !== undefined && (
-                                                    <span className="text-[9px] font-bold text-white/30 tracking-tight mt-0.5">
-                                                        {raw}/{total}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {idx < 3 && <div className="w-px h-5 bg-white/10 mx-1" />}
-                                    </React.Fragment>
-                                );
-                            })}
-
-                            {(userData?.role === 'admin' || userData?.role === 'teacher') && (
-                                <div className="flex items-center border-l border-white/10 ml-2 pl-2">
-                                    <button
-                                        onClick={handleSaveGrade}
-                                        disabled={isSaving}
-                                        className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-xl transition-all text-blue-400 hover:text-white group active:scale-90"
-                                        title="Recalculate Scores"
-                                    >
-                                        <span className={`text-sm transform transition-transform duration-700 ${isSaving ? 'animate-spin' : 'group-hover:rotate-180'}`}>
-                                            {isSaving ? "⏳" : "🔄"}
-                                        </span>
-                                    </button>
+                            ].map((item) => (
+                                <div key={item.key} className="px-3 flex flex-col items-center first:pl-0 last:pr-0">
+                                    <span className="text-[9px] font-black text-white/30 tracking-tighter uppercase mb-0.5">{item.label}</span>
+                                    <span className={`text-[14px] font-bold ${item.color}`}>
+                                        {Number(resultData.scores?.[item.key] || 0).toFixed(1)}
+                                    </span>
                                 </div>
+                            ))}
+                            {(userData?.role === 'admin' || userData?.role === 'teacher') && (
+                                <button
+                                    onClick={handleSaveGrade}
+                                    disabled={isSaving}
+                                    className="pl-3 text-zinc-500 hover:text-white transition-colors"
+                                    title="Recalculate"
+                                >
+                                    <div className={isSaving ? 'animate-spin' : ''}>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                    </div>
+                                </button>
                             )}
                         </div>
                     )}
 
-                    {/* Overall Badge (Ultra-Premium Glass) */}
-                    <div className={`relative flex flex-col items-center justify-center min-w-[80px] sm:min-w-[100px] h-11 sm:h-12 px-4 rounded-2xl border transition-all duration-700 overflow-hidden group ${(resultData.status === 'graded' || resultData.writingBand != null || resultData.scores?.writing != null)
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/20'
-                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/20'
-                        }`}>
-                        <div className={`absolute inset-x-0 bottom-0 h-1 transition-all duration-700 translate-y-0.5 opacity-60 ${(resultData.status === 'graded' || resultData.writingBand != null || resultData.scores?.writing != null) ? 'bg-emerald-500 shadow-[0_0_15px_#10b981]' : 'bg-amber-500 shadow-[0_0_15px_#f59e0b]'
-                            }`} />
-
-                        {/* Shimmer Effect */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 via-transparent to-transparent opacity-30 group-hover:opacity-60 transition-opacity" />
-
-                        <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60 leading-none mb-1 relative z-10">
-                            {(resultData.status === 'graded' || resultData.writingBand != null || resultData.scores?.writing != null) ? 'FINAL BAND' : 'PROCESSING'}
-                        </span>
-                        <div className="flex items-center gap-1 relative z-10">
-                            <span className="font-black text-xl sm:text-2xl leading-none group-hover:scale-110 transition-transform duration-500">
-                                {(resultData.status === 'graded' || resultData.overallBand || resultData.writingBand)
-                                    ? (resultData.overallBand || resultData.writingBand || resultData.score || "-")
-                                    : "---"
-                                }
+                    {/* Overall Score Badge */}
+                    <div className={`h-11 px-5 rounded-xl border flex items-center gap-3 transition-all duration-500 ${
+                        (resultData.status === 'graded' || resultData.overallBand)
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                    }`}>
+                        <div className="flex flex-col">
+                            <span className="text-[8px] font-black tracking-widest uppercase opacity-60">Overall</span>
+                            <span className="text-lg font-black leading-tight">
+                                {resultData.overallBand || resultData.writingBand || resultData.score || "---"}
                             </span>
-                            {resultData.status !== 'graded' && !resultData.writingBand && !resultData.scores?.writing && <span className="animate-pulse text-xs">⏳</span>}
                         </div>
+                        {resultData.status !== 'graded' && !resultData.overallBand && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse border border-amber-400/50" />
+                        )}
                     </div>
                 </div>
             </header>
@@ -621,7 +543,9 @@ export default function TestReview() {
                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap hidden sm:inline mr-2">Results:</span>
                             <div className="flex flex-wrap gap-1 max-h-[26px]">
                                 {Object.entries(resultData.answers || {}).slice(0, 40).map(([qId, val], idx) => {
-                                    const isCorrect = testData.questions?.find(q => q.id === qId)?.answer?.toLowerCase() === val?.toLowerCase();
+                                    const q = testData.questions?.find(q => String(q.id) === String(qId));
+                                    const ans = q?.answer || q?.correct_answer || q?.correctAnswer || q?.correct_answer_value;
+                                    const isCorrect = String(ans || "").toLowerCase() === String(val || "").toLowerCase();
                                     return (
                                         <div
                                             key={qId}
