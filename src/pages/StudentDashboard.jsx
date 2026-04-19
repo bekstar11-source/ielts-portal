@@ -15,8 +15,8 @@ import QuickAnalytics from '../components/dashboard/QuickAnalytics';
 import TestShowcase from '../components/dashboard/TestShowcase';
 import AnnouncementsBoard from '../components/dashboard/AnnouncementsBoard';
 import HeroSection from "../components/dashboard/HeroSection";
+import ModuleBanner from "../components/dashboard/ModuleBanner";
 // StatsCards removed as it is integrated into HeroSection now
-import PlanetBackground from "../components/dashboard/PlanetBackground";
 // FiltersBar and TestGrid moved to Practice.jsx
 import DashboardModals from "../components/dashboard/DashboardModals";
 import SettingsTab from "../components/dashboard/SettingsTab";
@@ -131,18 +131,23 @@ export default function StudentDashboard() {
             if (t.result?.bandScore) { totalScore += parseFloat(t.result.bandScore); scoreCount++; }
             if (t.isSet) { (t.subTests || []).forEach(sub => { if (sub.result?.bandScore) { totalScore += parseFloat(sub.result.bandScore); scoreCount++; } }); }
         });
-        const avg = scoreCount > 0 ? (totalScore / scoreCount).toFixed(1) : 0;
+        const rawAvg = scoreCount > 0 ? (totalScore / scoreCount) : 0;
+        const avg = rawAvg > 0 ? (Math.round(rawAvg * 2) / 2).toFixed(1) : 0;
         return { total, completed, avg };
     }, [rawAssignments]);
 
     // 🔥 REAL STATISTIKA (useAnalytics dan olinadi)
     const skillStats = useMemo(() => {
         const averages = analyticsStats.skillAverages || { reading: 0, listening: 0, writing: 0, speaking: 0 };
+        const roundToIELTSBand = (score) => {
+            if (!score) return 0;
+            return (Math.round(score * 2) / 2).toFixed(1);
+        };
         return [
-            { name: "Reading", score: averages.reading || 0, icon: BookOpen, color: "blue" },
-            { name: "Listening", score: averages.listening || 0, icon: Headphones, color: "purple" },
-            { name: "Writing", score: averages.writing || 0, icon: PenTool, color: "orange" },
-            { name: "Speaking", score: averages.speaking || 0, icon: Mic, color: "emerald" }
+            { name: "Reading", score: roundToIELTSBand(averages.reading), icon: BookOpen, color: "blue" },
+            { name: "Listening", score: roundToIELTSBand(averages.listening), icon: Headphones, color: "purple" },
+            { name: "Writing", score: roundToIELTSBand(averages.writing), icon: PenTool, color: "orange" },
+            { name: "Speaking", score: roundToIELTSBand(averages.speaking), icon: Mic, color: "emerald" }
         ];
     }, [analyticsStats]);
 
@@ -225,12 +230,12 @@ export default function StudentDashboard() {
         if (activeTab === 'results') {
             return <MyResults tests={rawAssignments} onReview={handleReview} onStartTest={handleStartTest} loading={loading} />;
         }
-        if (activeTab === 'progress') return <div className="text-center py-20 text-gray-400"><h3 className="text-xl font-bold text-gray-700 mb-2">Statistika Tez Orada...</h3></div>;
+        if (activeTab === 'progress') return <div className="text-center py-20 text-vetra-stone"><h3 className="text-xl font-bold text-vetra-midnight mb-2">Statistika Tez Orada...</h3></div>;
 
         if ((activeTab === 'favorites' || activeTab === 'archive') && filteredTests.length === 0 && !loading) {
             return (
-                <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10 mx-auto max-w-2xl mt-10">
-                    <p className="text-gray-500 font-medium">{activeTab === 'favorites' ? "Sevimlilar ro'yxati bo'sh" : "Arxiv bo'sh"}</p>
+                <div className="text-center py-20 bg-vetra-grey/30 rounded-2xl border border-dashed border-vetra-grey mx-auto max-w-2xl mt-10">
+                    <p className="text-vetra-stone font-medium">{activeTab === 'favorites' ? "Sevimlilar ro'yxati bo'sh" : "Arxiv bo'sh"}</p>
                 </div>
             );
         }
@@ -248,89 +253,77 @@ export default function StudentDashboard() {
                             daysRemaining={userData?.examTimeframe ? null : undefined}
                         />
 
+                        <ModuleBanner
+                            userName={userData?.fullName?.split(' ')[0] || "O'quvchi"}
+                            userXP={userData?.gamification?.points || 0}
+                            completedModules={stats.completed}
+                            onViewProgress={() => setActiveTab('results')}
+                        />
+
                         <QuickAnalytics stats={skillStats} />
 
                         {/* GAMIFICATION FEATURES GRID */}
-                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in-up md:mt-8 mt-6 mb-12" style={{ animationDelay: '0.4s' }}>
-                            <style>{`
-                                .glass-card {
-                                    background: rgba(15, 15, 15, 0.6);
-                                    backdrop-filter: blur(20px);
-                                    -webkit-backdrop-filter: blur(20px);
-                                    border: 1px solid rgba(255, 255, 255, 0.08);
-                                    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
-                                }
-                                .glass-card:hover {
-                                    border-color: rgba(255, 85, 32, 0.5);
-                                    box-shadow: 0 0 30px rgba(255, 85, 32, 0.15);
-                                    transform: translateY(-2px);
-                                    background: rgba(20, 20, 20, 0.8);
-                                }
-                            `}</style>
+                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 animate-fade-in-up md:mt-8 mt-6 mb-12" style={{ animationDelay: '0.4s' }}>
 
                             {/* Streak Card */}
-                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] group-hover:bg-orange-500/20 transition-all"></div>
-                                <div className="flex items-center gap-4 mb-3 relative z-10">
-                                    <div className={`p-2.5 rounded-xl transition-all ${(userData?.streakCount || 0) > 0 ? 'bg-orange-500/20 text-orange-400 group-hover:bg-orange-500' : 'bg-gray-800 text-gray-500'} group-hover:text-white`}>
-                                        <Flame className="w-5 h-5" />
+                            <div className="bg-white p-8 rounded-3xl border border-vetra-grey/60 hover:border-vetra-orange/40 hover:shadow-xl hover:shadow-vetra-orange/5 transition-all duration-500 group flex flex-col justify-between min-h-[160px]">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="p-3 rounded-2xl bg-vetra-orange/5 text-vetra-orange group-hover:bg-vetra-orange group-hover:text-white transition-colors border border-vetra-orange/10">
+                                        <Flame className="w-6 h-6" />
                                     </div>
-                                    <h4 className="font-bold text-white text-lg">Daily Streak</h4>
+                                    <span className="text-[10px] font-bold text-vetra-stone uppercase tracking-widest">Daily Streak</span>
                                 </div>
-                                <div className="flex items-end gap-2 relative z-10">
-                                    <span className="text-3xl font-bold tracking-tighter text-white">{userData?.streakCount || 0}</span>
-                                    <span className="text-sm font-medium text-vetra-textMuted mb-1">kun</span>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-5xl font-display text-vetra-midnight tracking-tighter">{userData?.streakCount || 0}</span>
+                                    <span className="text-sm font-bold text-vetra-stone uppercase tracking-wide">DAYS</span>
                                 </div>
                             </div>
 
-                            {/* Total XP Card */}
-                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-[40px] group-hover:bg-yellow-500/20 transition-all"></div>
-                                <div className="flex items-center gap-4 mb-3 relative z-10">
-                                    <div className="p-2.5 rounded-xl bg-yellow-500/10 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-white transition-all">
-                                        <Trophy className="w-5 h-5" />
+                            {/* XP Card */}
+                            <div className="bg-white p-8 rounded-3xl border border-vetra-grey/60 hover:border-yellow-400/40 hover:shadow-xl hover:shadow-yellow-400/5 transition-all duration-500 group flex flex-col justify-between min-h-[160px]">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="p-3 rounded-2xl bg-yellow-50 text-yellow-600 group-hover:bg-yellow-500 group-hover:text-white transition-colors border border-yellow-100">
+                                        <Trophy className="w-6 h-6" />
                                     </div>
-                                    <h4 className="font-bold text-white text-lg">Total XP</h4>
+                                    <span className="text-[10px] font-bold text-vetra-stone uppercase tracking-widest">Total XP</span>
                                 </div>
-                                <div className="flex items-end gap-2 relative z-10">
-                                    <span className="text-3xl font-bold tracking-tighter text-white">{userData?.gamification?.points || 0}</span>
-                                    <span className="text-sm font-medium text-vetra-textMuted mb-1 flex items-center gap-1 text-green-400"><ArrowUp size={14} /> Top reytingda</span>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-5xl font-display text-vetra-midnight tracking-tighter">{userData?.gamification?.points || 0}</span>
+                                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md border border-green-200">TOP 5%</span>
                                 </div>
                             </div>
 
                             {/* Mistakes Card */}
-                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden" onClick={() => navigate('/practice')}>
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-[40px] group-hover:bg-red-500/20 transition-all"></div>
-                                <div className="flex items-center gap-4 mb-3 relative z-10">
-                                    <div className="p-2.5 rounded-xl bg-red-500/10 text-red-400 group-hover:bg-red-500 group-hover:text-white transition-all">
-                                        <AlertTriangle className="w-5 h-5" />
+                            <div className="bg-white p-8 rounded-3xl border border-vetra-grey/60 hover:border-red-400/40 hover:shadow-xl hover:shadow-red-400/5 transition-all duration-500 group flex flex-col justify-between min-h-[160px] cursor-pointer" onClick={() => navigate('/practice')}>
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="p-3 rounded-2xl bg-red-50 text-red-500 group-hover:bg-red-500 group-hover:text-white transition-colors border border-red-100">
+                                        <AlertTriangle className="w-6 h-6" />
                                     </div>
-                                    <h4 className="font-bold text-white text-lg">My Mistakes</h4>
+                                    <span className="text-[10px] font-bold text-vetra-stone uppercase tracking-widest">My Mistakes</span>
                                 </div>
-                                <div className="flex justify-between items-end relative z-10">
-                                    <div className="flex items-end gap-2">
-                                        <span className="text-3xl font-bold tracking-tighter text-white">{mistakesCount}</span>
-                                        <span className="text-sm font-medium text-vetra-textMuted mb-1">xato</span>
+                                <div className="flex items-baseline justify-between gap-2">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-5xl font-display text-vetra-midnight tracking-tighter">{mistakesCount}</span>
+                                        <span className="text-sm font-bold text-vetra-stone uppercase tracking-wide">ITEMS</span>
                                     </div>
-                                    <ArrowRight size={18} className="text-vetra-textMuted group-hover:text-white group-hover:translate-x-1 transition-all mb-1" />
+                                    <ArrowRight className="text-vetra-stone group-hover:text-vetra-midnight transition-all group-hover:translate-x-1" size={20} />
                                 </div>
                             </div>
 
                             {/* Vocab Card */}
-                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden" onClick={() => navigate('/vocabulary')}>
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] group-hover:bg-blue-500/20 transition-all"></div>
-                                <div className="flex items-center gap-4 mb-3 relative z-10">
-                                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all">
-                                        <BookOpen className="w-5 h-5" />
+                            <div className="bg-white p-8 rounded-3xl border border-vetra-grey/60 hover:border-blue-400/40 hover:shadow-xl hover:shadow-blue-400/5 transition-all duration-500 group flex flex-col justify-between min-h-[160px] cursor-pointer" onClick={() => navigate('/vocabulary')}>
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="p-3 rounded-2xl bg-blue-50 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors border border-blue-100">
+                                        <BookOpen className="w-6 h-6" />
                                     </div>
-                                    <h4 className="font-bold text-white text-lg">WordBank</h4>
+                                    <span className="text-[10px] font-bold text-vetra-stone uppercase tracking-widest">Word Bank</span>
                                 </div>
-                                <div className="flex justify-between items-end relative z-10">
-                                    <div className="flex items-end gap-2">
-                                        <span className="text-3xl font-bold tracking-tighter text-white">{vocabCount}</span>
-                                        <span className="text-sm font-medium text-vetra-textMuted mb-1">so'zlar</span>
+                                <div className="flex items-baseline justify-between gap-2">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-5xl font-display text-vetra-midnight tracking-tighter">{vocabCount}</span>
+                                        <span className="text-sm font-bold text-vetra-stone uppercase tracking-wide">WORDS</span>
                                     </div>
-                                    <ArrowRight size={18} className="text-vetra-textMuted group-hover:text-white group-hover:translate-x-1 transition-all mb-1" />
+                                    <ArrowRight className="text-vetra-stone group-hover:text-vetra-midnight transition-all group-hover:translate-x-1" size={20} />
                                 </div>
                             </div>
                         </section>
@@ -356,39 +349,11 @@ export default function StudentDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-orange-500/20">
+        <div className="min-h-screen bg-transparent font-sans text-vetra-midnight selection:bg-vetra-orange/10">
             <style>{`
                 body { 
                     font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; 
-                    background-color: #050505;
-                }
-                .top-glow {
-                    position: fixed;
-                    top: -200px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 120vw;
-                    height: 500px;
-                    background: radial-gradient(circle at 50% 0%, rgba(255, 85, 32, 0.18) 0%, rgba(255, 85, 32, 0.05) 50%, transparent 80%);
-                    filter: blur(100px);
-                    z-index: 1;
-                    pointer-events: none;
-                    animation: topGlowBreathe 10s ease-in-out infinite alternate;
-                }
-                .top-gradient {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 50vh;
-                    background: linear-gradient(to bottom, rgba(255, 85, 32, 0.06) 0%, transparent 100%);
-                    z-index: 1;
-                    pointer-events: none;
-                }
-                @keyframes topGlowBreathe {
-                    0% { transform: translateX(-50%) translateY(0) scale(1); opacity: 0.6; }
-                    50% { transform: translateX(-50%) translateY(20px) scale(1.05); opacity: 0.8; }
-                    100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 0.6; }
+                    background: fixed linear-gradient(180deg, #FEF8E8 0%, #FFFFFF 100%);
                 }
             `}</style>
             <DashboardHeader
@@ -399,9 +364,6 @@ export default function StudentDashboard() {
                 onRefreshClick={handleManualRefresh}
                 loading={loading}
             />
-            <PlanetBackground />
-            <div className="top-glow" />
-            <div className="top-gradient" />
             <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-8">
                 {renderContent()}
             </main>

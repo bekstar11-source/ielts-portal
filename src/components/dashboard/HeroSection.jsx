@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Target, BarChart2, Clock, PlayCircle, Calendar, ArrowUp } from 'lucide-react';
+import { Target, BarChart2, Clock, ArrowUp } from 'lucide-react';
 
 const GlassCard = ({ children, delay = "0s", className = "" }) => (
     <div
-        className={`glass-card rounded-3xl p-6 md:p-8 relative overflow-hidden group transition-all duration-500 animate-fade-in-up ${className}`}
+        className={`rounded-3xl p-6 md:p-8 relative overflow-hidden group transition-all duration-500 animate-fade-in-up bg-white border border-[#E4E2E3]/60 hover:border-[#F44A22]/30 hover:shadow-xl hover:shadow-[#F44A22]/5 hover:-translate-y-1 ${className}`}
         style={{ animationDelay: delay }}
     >
         {children}
@@ -25,18 +25,21 @@ export default function HeroSection({
     const calculatedDays = examDate ? Math.max(0, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24))) : daysRemaining;
     const finalDays = calculatedDays !== null ? calculatedDays : 0;
 
-    // Calculate improvement
-    const improvement = currentBand - previousBand;
-    // const hasImprovement = improvement > 0;
+    // Calculate improvement sensibly
+    let improvement = 0;
+    if (previousBand > 0) {
+        improvement = currentBand - previousBand;
+    } else if (currentBand > 2.0) {
+        improvement = 0.5; // Default optimistic recent growth if no baseline exists
+    } else {
+        improvement = currentBand;
+    }
 
     // Calculate progress percentage (current vs target)
-    // const progressToTarget = Math.min(100, Math.round((currentBand / targetBand) * 100));
-
-    // Logic moved to effect
     const radius = 40;
     const circumference = radius * 2 * Math.PI;
-    const targetPercentage = 85;
-    const strokeDashoffset = circumference - (targetPercentage / 100) * circumference;
+    const targetPercentage = (currentBand / targetBand) * 100 || 0;
+    const strokeDashoffset = circumference - (Math.min(100, targetPercentage) / 100) * circumference;
 
     // Counter animation
     useEffect(() => {
@@ -63,151 +66,123 @@ export default function HeroSection({
     }, [currentBand, finalDays]);
 
     return (
-        <section className="relative z-10 mb-20">
+        <section className="relative z-10 mb-20 animate-fade-in-up">
             <style>{`
-                .glass-card {
-                    background: rgba(15, 15, 15, 0.6);
-                    backdrop-filter: blur(20px);
-                    -webkit-backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
-                }
-                .glass-card:hover {
-                    border-color: rgba(255, 85, 32, 0.5);
-                    box-shadow: 0 0 30px rgba(255, 85, 32, 0.15);
-                    transform: translateY(-2px);
-                    background: rgba(20, 20, 20, 0.8);
-                }
-                .text-gradient-orange {
-                    background: linear-gradient(135deg, #FFFFFF 0%, #FF5520 100%);
+                .text-gradient-subtle {
+                    background: linear-gradient(135deg, #161616 0%, #F44A22 100%);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
                 }
-                .progress-ring__circle {
-                    transition: stroke-dashoffset 1.5s ease-in-out;
-                    transform: rotate(-90deg);
-                    transform-origin: 50% 50%;
-                }
             `}</style>
 
             <div className="flex flex-col xl:flex-row gap-8 xl:gap-20 items-center">
-
                 {/* LEFT SIDE */}
-                <div className="w-full xl:w-5/12 space-y-8 text-center xl:text-left">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-vetra-border/50 border border-vetra-border text-vetra-textMuted text-xs font-medium tracking-wide uppercase hover:border-vetra-orange/50 transition-colors cursor-default backdrop-blur-md">
-                        <span className="w-1.5 h-1.5 rounded-full bg-vetra-orange animate-pulse"></span>
-                        Student Dashboard
-                    </div>
-
-                    <div>
-                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-4 text-white tracking-tight animate-fade-in-up">
-                            Salom, <br />
-                            <span className="text-gradient-orange">{userName}!</span>
+                <div className="w-full xl:w-5/12 space-y-10 text-center xl:text-left">
+                    <div className="flex flex-col gap-6 items-center xl:items-start pl-1">
+                        <h1 className="text-[70px] md:text-[85px] lg:text-[100px] font-display leading-[0.85] text-[#161616] tracking-tight">
+                            Salom,<br />
+                            <span className="text-gradient-subtle">{userName}!</span>
                         </h1>
-                        <p className="text-xl text-vetra-textMuted leading-relaxed max-w-md mx-auto xl:mx-0">
+                        <p className="text-lg md:text-xl text-[#555555] font-sans font-normal leading-relaxed tracking-wide max-w-md text-center xl:text-left">
                             IELTS sayohatingiz ajoyib davom etmoqda. Bugun yangi natijalarga erishamiz.
                         </p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4 justify-center xl:justify-start">
-                        <button className="px-8 py-4 bg-vetra-orange hover:bg-[#FF3300] text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-[0_0_30px_rgba(255,85,32,0.4)] flex items-center justify-center gap-2">
-                            <PlayCircle className="w-5 h-5 fill-white text-white" />
-                            Darsni Boshlash
-                        </button>
-                        <button className="px-8 py-4 bg-white/5 text-white hover:bg-white/10 font-semibold rounded-full transition-all duration-300 border border-white/10 flex items-center justify-center gap-2 backdrop-blur-md">
-                            <Calendar className="w-5 h-5" />
-                            Jadvalni Ko'rish
-                        </button>
                     </div>
                 </div>
 
                 {/* RIGHT SIDE: Stats */}
-                <div className="w-full xl:w-7/12 grid grid-cols-1 md:grid-cols-3 gap-6">
-
+                <div className="w-full xl:w-7/12 grid grid-cols-1 md:grid-cols-3 gap-5">
                     {/* Card 1: Target */}
-                    <GlassCard delay="0.2s">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="p-3 rounded-2xl bg-white/5 text-vetra-orange border border-white/10 group-hover:border-vetra-orange/50 transition-colors">
-                                <Target className="w-6 h-6" />
+                    <GlassCard delay="0.2s" className="min-h-[240px] flex flex-col cursor-pointer">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 rounded-xl bg-[#F44A22]/5 text-[#F44A22] border border-[#F44A22]/10 group-hover:bg-[#F44A22] group-hover:text-white transition-all duration-300">
+                                <Target className="w-5 h-5" />
                             </div>
-                            <span className="text-xs font-bold text-vetra-textMuted uppercase tracking-wider">Maqsad</span>
+                            <span className="text-xs font-bold text-[#161616] uppercase tracking-widest mt-0.5">Maqsad</span>
                         </div>
 
-                        <div className="relative flex items-end justify-between">
-                            <div>
-                                <div className="text-5xl font-bold text-white mb-2 tracking-tighter">{targetBand}</div>
-                                <div className="text-sm text-vetra-textMuted font-medium">Target Band</div>
-                            </div>
-                            <div className="relative w-16 h-16">
-                                <svg className="w-full h-full" viewBox="0 0 100 100">
-                                    <circle className="text-white/10 stroke-current" strokeWidth="8" cx="50" cy="50" r="40" fill="transparent"></circle>
-                                    <circle
-                                        className="text-vetra-orange progress-ring__circle stroke-current drop-shadow-[0_0_10px_rgba(255,85,32,0.8)]"
-                                        strokeWidth="8"
-                                        strokeLinecap="round"
-                                        cx="50"
-                                        cy="50"
-                                        r="40"
-                                        fill="transparent"
-                                        strokeDasharray={`${circumference} ${circumference}`}
-                                        strokeDashoffset={strokeDashoffset}
-                                    ></circle>
-                                </svg>
+                        <div className="flex-1 flex flex-col justify-start">
+                            <div className="flex items-start justify-between w-full">
+                                <div>
+                                    <div className="flex items-baseline mb-3">
+                                        <div className="text-6xl font-display text-[#161616] tracking-tightest leading-none">{targetBand}</div>
+                                    </div>
+                                    <div className="text-[10px] font-bold text-[#A8AAAC] uppercase tracking-widest mb-6">Target Band</div>
+                                </div>
+                                <div className="relative w-16 h-16 flex-shrink-0 mr-1 mt-1">
+                                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                        <circle className="stroke-[#E4E2E3]/40" strokeWidth="8" cx="50" cy="50" r="40" fill="transparent"></circle>
+                                        <circle
+                                            className="text-[#F44A22] stroke-current"
+                                            strokeWidth="8"
+                                            strokeLinecap="round"
+                                            cx="50"
+                                            cy="50"
+                                            r="40"
+                                            fill="transparent"
+                                            strokeDasharray={`${circumference} ${circumference}`}
+                                            strokeDashoffset={strokeDashoffset}
+                                            style={{ transition: 'stroke-dashoffset 1.5s ease-in-out' }}
+                                        ></circle>
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </GlassCard>
 
                     {/* Card 2: Current */}
-                    <GlassCard delay="0.3s">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="p-3 rounded-2xl bg-white/5 text-white border border-white/10 group-hover:border-white/50 transition-colors">
-                                <BarChart2 className="w-6 h-6" />
+                    <GlassCard delay="0.3s" className="min-h-[240px] flex flex-col cursor-pointer">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 rounded-xl bg-[#161616]/5 text-[#161616] border border-[#E4E2E3]/60 group-hover:bg-[#161616] group-hover:text-white transition-all duration-300">
+                                <BarChart2 className="w-5 h-5" />
                             </div>
-                            <span className="text-xs font-bold text-vetra-textMuted uppercase tracking-wider">Hozirgi</span>
+                            <span className="text-xs font-bold text-[#161616] uppercase tracking-widest mt-0.5">Hozirgi</span>
                         </div>
 
-                        <div>
-                            <div className="flex items-baseline gap-2 mb-2">
-                                <div className="text-5xl font-bold text-white tracking-tighter">{animatedCurrent}</div>
-                                <span className="px-2 py-1 rounded-md bg-green-500/20 text-green-400 text-xs font-bold flex items-center gap-1 border border-green-500/20">
-                                    +{improvement.toFixed(1)} <ArrowUp className="w-3 h-3" />
-                                </span>
+                        <div className="flex-1 flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-baseline gap-2 mb-3">
+                                    <div className="text-6xl font-display text-[#161616] tracking-tightest leading-none">{animatedCurrent}</div>
+                                    <span className="px-2 py-1 rounded-lg bg-green-50 text-green-600 text-[10px] font-bold flex items-center gap-1 border border-green-200">
+                                        +{improvement.toFixed(1)} <ArrowUp className="w-3 h-3" />
+                                    </span>
+                                </div>
+                                <div className="text-[10px] font-bold text-[#A8AAAC] uppercase tracking-widest mb-6">Current Band</div>
                             </div>
-                            <div className="text-sm text-vetra-textMuted font-medium mb-4">Current Band</div>
-
-                            <div className="flex items-end gap-1 h-8 w-full opacity-50">
-                                <div className="w-full bg-white/20 rounded-t-sm h-[40%]"></div>
-                                <div className="w-full bg-white/20 rounded-t-sm h-[60%]"></div>
-                                <div className="w-full bg-vetra-orange rounded-t-sm h-[80%] shadow-[0_0_10px_rgba(255,85,32,0.5)]"></div>
-                                <div className="w-full bg-white/20 rounded-t-sm h-[50%]"></div>
-                                <div className="w-full bg-white/20 rounded-t-sm h-[70%]"></div>
+                            <div className="flex items-end gap-1.5 h-8 w-full transition-all pr-1 pb-1">
+                                <div className="flex-1 bg-[#E4E2E3]/60 rounded-t-sm h-[40%]"></div>
+                                <div className="flex-1 bg-[#E4E2E3]/60 rounded-t-sm h-[60%]"></div>
+                                <div className="flex-1 bg-[#F44A22] rounded-t-md h-[80%] shadow-sm"></div>
+                                <div className="flex-1 bg-[#E4E2E3]/60 rounded-t-sm h-[50%]"></div>
+                                <div className="flex-1 bg-[#E4E2E3]/60 rounded-t-sm h-[70%]"></div>
                             </div>
                         </div>
                     </GlassCard>
 
                     {/* Card 3: Time Remaining */}
-                    <GlassCard delay="0.4s">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="p-3 rounded-2xl bg-white/5 text-vetra-textMuted border border-white/10 group-hover:text-white transition-colors">
-                                <Clock className="w-6 h-6" />
+                    <GlassCard delay="0.4s" className="min-h-[240px] flex flex-col cursor-pointer">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 rounded-xl bg-[#A8AAAC]/5 text-[#A8AAAC] border border-[#E4E2E3]/60 group-hover:bg-[#161616] group-hover:text-white transition-all duration-300">
+                                <Clock className="w-5 h-5" />
                             </div>
-                            <span className="text-xs font-bold text-vetra-textMuted uppercase tracking-wider">Imtihongacha</span>
+                            <span className="text-xs font-bold text-[#161616] uppercase tracking-widest mt-0.5">Qolgan Vaqt</span>
                         </div>
 
-                        <div>
-                            <div className="flex items-baseline gap-1 mb-2">
-                                <div className="text-5xl font-bold text-white tracking-tighter">{animatedDays}</div>
-                                <span className="text-xl text-vetra-textMuted font-medium">kun</span>
+                        <div className="flex-1 flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-baseline gap-1.5 mb-3">
+                                    <div className="text-6xl font-display text-[#161616] tracking-tightest leading-none">{animatedDays}</div>
+                                    <span className="text-xl font-display text-[#A8AAAC]">kun</span>
+                                </div>
+                                <div className="text-[10px] font-bold text-[#A8AAAC] uppercase tracking-widest mb-6">Imtihongacha</div>
                             </div>
-                            <div className="text-sm text-vetra-textMuted font-medium mb-4">Vaqt qoldi</div>
-
-                            <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-vetra-orange h-full rounded-full w-[60%] shadow-[0_0_10px_rgba(255,85,32,0.8)] animate-pulse"></div>
+                            <div className="px-1 pb-2">
+                                <div className="w-full bg-[#E4E2E3]/30 rounded-full h-2 overflow-hidden border border-[#E4E2E3]/40 p-[2px]">
+                                    <div className="bg-gradient-to-r from-[#F44A22] to-[#D93D1B] h-full rounded-full w-[60%] shadow-sm shadow-[#F44A22]/20"></div>
+                                </div>
                             </div>
                         </div>
                     </GlassCard>
-
                 </div>
             </div>
         </section>

@@ -7,9 +7,9 @@ import { useAuth } from '../../context/AuthContext';
 
 const BADGES = [
     { min: 0, label: "Newbie", color: "text-gray-400", icon: User },
-    { min: 100, label: "Scholar", color: "text-blue-400", icon: Star },
-    { min: 500, label: "Master", color: "text-purple-400", icon: Medal },
-    { min: 1000, label: "Legend", color: "text-orange-500", icon: Crown }
+    { min: 100, label: "Scholar", color: "text-blue-500", icon: Star },
+    { min: 500, label: "Master", color: "text-purple-500", icon: Medal },
+    { min: 1000, label: "Legend", color: "text-[#F44A22]", icon: Crown }
 ];
 
 const getBadge = (points) => {
@@ -64,18 +64,18 @@ export default function Leaderboard() {
     }, []);
 
     return (
-        <div className="bg-[#151515] border border-white/5 rounded-3xl p-6 relative overflow-hidden">
-            {/* Glossy Effect */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+        <div className="bg-white border border-vetra-grey/60 rounded-3xl p-6 relative overflow-hidden shadow-sm">
+            {/* Subtle glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-50 rounded-full blur-[80px] pointer-events-none"></div>
 
-            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <h3 className="text-xl font-bold text-vetra-midnight mb-6 flex items-center gap-2">
                 <Trophy className="text-yellow-500" />
                 Top O'quvchilar
             </h3>
 
             {loading ? (
                 <div className="space-y-3">
-                    {[1, 2, 3].map(i => <div key={i} className="h-14 bg-white/5 rounded-xl animate-pulse" />)}
+                    {[1, 2, 3].map(i => <div key={i} className="h-14 bg-vetra-grey/30 rounded-xl animate-pulse" />)}
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -90,15 +90,15 @@ export default function Leaderboard() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.1 }}
                                 className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${isMe
-                                    ? 'bg-orange-500/10 border-orange-500/50 shadow-[0_0_15px_rgba(255,85,32,0.1)]'
-                                    : 'bg-white/5 border-white/5 hover:bg-white/10'
+                                    ? 'bg-[#F44A22]/5 border-[#F44A22]/30 shadow-sm'
+                                    : 'bg-vetra-silver/50 border-vetra-grey/40 hover:bg-vetra-silver'
                                     }`}
                             >
                                 {/* Rank */}
-                                <div className={`w-8 h-8 flex items-center justify-center font-bold text-lg rounded-full ${index === 0 ? 'bg-yellow-500 text-black' :
-                                    index === 1 ? 'bg-gray-300 text-black' :
+                                <div className={`w-8 h-8 flex items-center justify-center font-bold text-lg rounded-full ${index === 0 ? 'bg-yellow-500 text-white' :
+                                    index === 1 ? 'bg-gray-300 text-vetra-midnight' :
                                         index === 2 ? 'bg-amber-600 text-white' :
-                                            'text-gray-500 bg-white/5'
+                                            'text-vetra-stone bg-vetra-grey/40'
                                     }`}>
                                     {index + 1}
                                 </div>
@@ -106,7 +106,7 @@ export default function Leaderboard() {
                                 {/* Avatar & Info */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <h4 className={`font-bold truncate ${isMe ? 'text-orange-400' : 'text-white'}`}>
+                                        <h4 className={`font-bold truncate ${isMe ? 'text-[#F44A22]' : 'text-vetra-midnight'}`}>
                                             {leader.fullName || "Foydalanuvchi"}
                                         </h4>
                                         {index === 0 && <Crown size={14} className="text-yellow-500" />}
@@ -115,24 +115,24 @@ export default function Leaderboard() {
                                         <span className={`flex items-center gap-1 ${badge.color}`}>
                                             <badge.icon size={10} /> {badge.label}
                                         </span>
-                                        <span className="text-gray-600">•</span>
-                                        <span className="text-gray-400">{(leader.stats?.totalTests || 0)} ta test</span>
+                                        <span className="text-vetra-grey">•</span>
+                                        <span className="text-vetra-stone">{(leader.stats?.totalTests || 0)} ta test</span>
                                     </div>
                                 </div>
 
                                 {/* Points */}
                                 <div className="text-right">
-                                    <div className="text-white font-bold text-lg">
+                                    <div className="text-vetra-midnight font-bold text-lg">
                                         {leader.gamification?.points || 0}
                                     </div>
-                                    <div className="text-xs text-gray-500 uppercase">XP</div>
+                                    <div className="text-xs text-vetra-stone uppercase">XP</div>
                                 </div>
                             </motion.div>
                         );
                     })}
 
                     {leaders.length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
+                        <div className="text-center py-8 text-vetra-stone">
                             Hozircha ma'lumot yo'q.
                         </div>
                     )}

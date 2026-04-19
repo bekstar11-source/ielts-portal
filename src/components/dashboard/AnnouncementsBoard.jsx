@@ -56,7 +56,7 @@ export default function AnnouncementsBoard() {
     const getIcon = (type) => {
         switch (type) {
             case 'warning': return <FaExclamationTriangle className="text-orange-500" />;
-            case 'success': return <FaCheck className="text-green-500" />;
+            case 'success': return <FaCheck className="text-green-600" />;
             case 'danger': return <FaExclamationTriangle className="text-red-500" />;
             default: return <FaInfoCircle className="text-blue-500" />;
         }
@@ -64,10 +64,10 @@ export default function AnnouncementsBoard() {
 
     const getBg = (type) => {
         switch (type) {
-            case 'warning': return 'bg-orange-500/10 border-orange-500/20';
-            case 'success': return 'bg-green-500/10 border-green-500/20';
-            case 'danger': return 'bg-red-500/10 border-red-500/20';
-            default: return 'bg-blue-500/10 border-blue-500/20';
+            case 'warning': return 'bg-orange-50 border-orange-200';
+            case 'success': return 'bg-green-50 border-green-200';
+            case 'danger': return 'bg-red-50 border-red-200';
+            default: return 'bg-blue-50 border-blue-200';
         }
     };
 
@@ -75,12 +75,11 @@ export default function AnnouncementsBoard() {
         <div className="mb-10 w-full">
             <div className="flex justify-between items-center mb-4 px-1">
                 <div>
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <FaBullhorn className="text-yellow-500" />
+                    <h2 className="text-xl font-bold text-vetra-midnight flex items-center gap-2">
+                        <FaBullhorn className="text-vetra-orange" />
                         E'lonlar Doskasi
                     </h2>
                 </div>
-                {/* <button onClick={() => setVisible(false)} className="text-white/20 hover:text-white"><FaTimes /></button> */}
             </div>
 
             <div className="grid gap-4">
@@ -90,13 +89,13 @@ export default function AnnouncementsBoard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className={`p-4 rounded-2xl border flex items-start gap-4 backdrop-blur-sm ${getBg(item.type)}`}
+                        className={`p-4 rounded-2xl border flex items-start gap-4 ${getBg(item.type)}`}
                     >
                         <div className="mt-1 text-lg">{getIcon(item.type)}</div>
                         <div className="flex-1">
-                            <h3 className="font-bold text-white text-sm md:text-base mb-1">{item.title}</h3>
-                            <p className="text-white/70 text-sm whitespace-pre-wrap leading-relaxed">{item.message}</p>
-                            <p className="text-white/20 text-[10px] mt-2">
+                            <h3 className="font-bold text-vetra-midnight text-sm md:text-base mb-1">{item.title}</h3>
+                            <p className="text-vetra-stone text-sm whitespace-pre-wrap leading-relaxed">{item.message}</p>
+                            <p className="text-vetra-stone/50 text-[10px] mt-2">
                                 {item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() : ''}
                             </p>
                         </div>

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase/firebase';
 import { collection, query, orderBy, limit, getDocs, getCountFromServer } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { Flame, Trophy, AlertTriangle, BookOpen, ArrowRight, ArrowUp } from 'lucide-react';
+import { Flame, Trophy, AlertTriangle, BookOpen, ArrowRight, ArrowUp, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // IMPORT SHARED COMPONENTS
@@ -82,24 +82,11 @@ export default function PublicDashboard() {
     const targetBand = userData?.targetBand || 7.0;
 
     return (
-        <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-orange-500/20 pb-20">
+        <div className="min-h-screen bg-[#FEF8E8] font-sans text-[#161616] selection:bg-[#F44A22]/10 pb-20">
             <style>{`
                 body { 
                     font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; 
-                    background-color: #050505;
-                }
-                .glass-card {
-                    background: rgba(15, 15, 15, 0.6);
-                    backdrop-filter: blur(20px);
-                    -webkit-backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
-                }
-                .glass-card:hover {
-                    border-color: rgba(255, 85, 32, 0.5);
-                    box-shadow: 0 0 30px rgba(255, 85, 32, 0.15);
-                    transform: translateY(-2px);
-                    background: rgba(20, 20, 20, 0.8);
+                    background-color: #FEF8E8;
                 }
             `}</style>
 
@@ -127,71 +114,71 @@ export default function PublicDashboard() {
                         />
 
                         {/* GAMIFICATION FEATURES GRID */}
-                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in-up mb-12" style={{ animationDelay: '0.4s' }}>
+                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 animate-fade-in-up mb-12" style={{ animationDelay: '0.4s' }}>
 
                             {/* Streak Card */}
-                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] group-hover:bg-orange-500/20 transition-all"></div>
+                            <div className="bg-white rounded-2xl p-6 border border-[#E4E2E3]/60 cursor-pointer group hover:border-[#F44A22]/40 hover:shadow-lg hover:shadow-[#F44A22]/5 transition-all duration-300 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-all"></div>
                                 <div className="flex items-center gap-4 mb-3 relative z-10">
-                                    <div className={`p-2.5 rounded-xl transition-all ${streak > 0 ? 'bg-orange-500/20 text-orange-400 group-hover:bg-orange-500' : 'bg-gray-800 text-gray-500'} group-hover:text-white`}>
+                                    <div className={`p-2.5 rounded-xl transition-all ${streak > 0 ? 'bg-[#F44A22]/10 text-[#F44A22] group-hover:bg-[#F44A22] group-hover:text-white' : 'bg-[#E4E2E3]/50 text-[#A8AAAC] group-hover:bg-[#F44A22] group-hover:text-white'}`}>
                                         <Flame className="w-5 h-5" />
                                     </div>
-                                    <h4 className="font-bold text-white text-lg">Daily Streak</h4>
+                                    <h4 className="font-bold text-[#161616] text-lg">Daily Streak</h4>
                                 </div>
                                 <div className="flex items-end gap-2 relative z-10">
-                                    <span className="text-3xl font-bold tracking-tighter text-white">{streak}</span>
-                                    <span className="text-sm font-medium text-vetra-textMuted mb-1">kun</span>
+                                    <span className="text-3xl font-bold tracking-tighter text-[#161616]">{streak}</span>
+                                    <span className="text-sm font-medium text-[#A8AAAC] mb-1">kun</span>
                                 </div>
                             </div>
 
                             {/* Total XP Card */}
-                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-[40px] group-hover:bg-yellow-500/20 transition-all"></div>
+                            <div className="bg-white rounded-2xl p-6 border border-[#E4E2E3]/60 cursor-pointer group hover:border-yellow-400/40 hover:shadow-lg hover:shadow-yellow-400/5 transition-all duration-300 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-50 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-all"></div>
                                 <div className="flex items-center gap-4 mb-3 relative z-10">
-                                    <div className="p-2.5 rounded-xl bg-yellow-500/10 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-white transition-all">
+                                    <div className="p-2.5 rounded-xl bg-yellow-50 text-yellow-600 group-hover:bg-yellow-500 group-hover:text-white transition-all">
                                         <Trophy className="w-5 h-5" />
                                     </div>
-                                    <h4 className="font-bold text-white text-lg">Total XP</h4>
+                                    <h4 className="font-bold text-[#161616] text-lg">Total XP</h4>
                                 </div>
                                 <div className="flex items-end gap-2 relative z-10">
-                                    <span className="text-3xl font-bold tracking-tighter text-white">{xp}</span>
-                                    <span className="text-sm font-medium text-vetra-textMuted mb-1 flex items-center gap-1 text-green-400"><ArrowUp size={14} /> Top reytingda</span>
+                                    <span className="text-3xl font-bold tracking-tighter text-[#161616]">{xp}</span>
+                                    <span className="text-sm font-medium mb-1 flex items-center gap-1 text-green-600"><ArrowUp size={14} />Top reytingda</span>
                                 </div>
                             </div>
 
                             {/* Mistakes Card */}
-                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden" onClick={() => navigate('/practice')}>
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-[40px] group-hover:bg-red-500/20 transition-all"></div>
+                            <div className="bg-white rounded-2xl p-6 border border-[#E4E2E3]/60 cursor-pointer group hover:border-red-300/40 hover:shadow-lg hover:shadow-red-400/5 transition-all duration-300 relative overflow-hidden" onClick={() => navigate('/practice')}>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-all"></div>
                                 <div className="flex items-center gap-4 mb-3 relative z-10">
-                                    <div className="p-2.5 rounded-xl bg-red-500/10 text-red-400 group-hover:bg-red-500 group-hover:text-white transition-all">
+                                    <div className="p-2.5 rounded-xl bg-red-50 text-red-500 group-hover:bg-red-500 group-hover:text-white transition-all">
                                         <AlertTriangle className="w-5 h-5" />
                                     </div>
-                                    <h4 className="font-bold text-white text-lg">My Mistakes</h4>
+                                    <h4 className="font-bold text-[#161616] text-lg">My Mistakes</h4>
                                 </div>
                                 <div className="flex justify-between items-end relative z-10">
                                     <div className="flex items-end gap-2">
-                                        <span className="text-3xl font-bold tracking-tighter text-white">{mistakesCount}</span>
-                                        <span className="text-sm font-medium text-vetra-textMuted mb-1">xato</span>
+                                        <span className="text-3xl font-bold tracking-tighter text-[#161616]">{mistakesCount}</span>
+                                        <span className="text-sm font-medium text-[#A8AAAC] mb-1">xato</span>
                                     </div>
-                                    <ArrowRight size={18} className="text-vetra-textMuted group-hover:text-white group-hover:translate-x-1 transition-all mb-1" />
+                                    <ArrowRight size={18} className="text-[#A8AAAC] group-hover:text-[#F44A22] group-hover:translate-x-1 transition-all mb-1" />
                                 </div>
                             </div>
 
                             {/* Vocab Card */}
-                            <div className="glass-card p-6 rounded-2xl cursor-pointer group hover:bg-white/5 transition-all duration-300 relative overflow-hidden" onClick={() => navigate('/vocabulary')}>
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] group-hover:bg-blue-500/20 transition-all"></div>
+                            <div className="bg-white rounded-2xl p-6 border border-[#E4E2E3]/60 cursor-pointer group hover:border-blue-300/40 hover:shadow-lg hover:shadow-blue-400/5 transition-all duration-300 relative overflow-hidden" onClick={() => navigate('/vocabulary')}>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-all"></div>
                                 <div className="flex items-center gap-4 mb-3 relative z-10">
-                                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                    <div className="p-2.5 rounded-xl bg-blue-50 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
                                         <BookOpen className="w-5 h-5" />
                                     </div>
-                                    <h4 className="font-bold text-white text-lg">Vocabulary</h4>
+                                    <h4 className="font-bold text-[#161616] text-lg">Vocabulary</h4>
                                 </div>
                                 <div className="flex justify-between items-end relative z-10">
                                     <div className="flex items-end gap-2">
-                                        <span className="text-3xl font-bold tracking-tighter text-white">{vocabCount}</span>
-                                        <span className="text-sm font-medium text-vetra-textMuted mb-1">so'zlar</span>
+                                        <span className="text-3xl font-bold tracking-tighter text-[#161616]">{vocabCount}</span>
+                                        <span className="text-sm font-medium text-[#A8AAAC] mb-1">so'zlar</span>
                                     </div>
-                                    <ArrowRight size={18} className="text-vetra-textMuted group-hover:text-white group-hover:translate-x-1 transition-all mb-1" />
+                                    <ArrowRight size={18} className="text-[#A8AAAC] group-hover:text-[#F44A22] group-hover:translate-x-1 transition-all mb-1" />
                                 </div>
                             </div>
                         </section>
@@ -199,26 +186,27 @@ export default function PublicDashboard() {
                         {/* BOTTOM SPLIT SECTION */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
                             {/* LEADERS */}
-                            <div className="glass-card p-6 lg:col-span-1 border border-white/5 rounded-3xl relative overflow-hidden h-full">
-                                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <div className="bg-white p-6 lg:col-span-1 border border-[#E4E2E3]/60 rounded-3xl relative overflow-hidden h-full shadow-sm">
+                                <h3 className="text-xl font-bold text-[#161616] mb-6 flex items-center gap-2">
                                     <Trophy size={20} className="text-yellow-500" /> Leaderboard (Top 5)
                                 </h3>
 
                                 {loading ? (
-                                    <div className="text-center text-gray-500 py-4 animate-pulse">Yuklanmoqda...</div>
+                                    <div className="text-center text-[#A8AAAC] py-4 animate-pulse">Yuklanmoqda...</div>
                                 ) : (
                                     <div className="space-y-4">
                                         {leaderboard.map((ldUser, idx) => (
-                                            <div key={ldUser.id} className={`flex items-center gap-4 p-3 rounded-2xl transition-all ${ldUser.id === user?.uid ? 'bg-orange-500/20 shadow-[0_0_15px_rgba(255,85,32,0.2)] border border-orange-500/30' : 'hover:bg-white/5 border border-transparent'}`}>
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,0.5)]' : idx === 1 ? 'bg-gray-300 text-black' : idx === 2 ? 'bg-orange-400 text-white' : 'bg-white/10 text-gray-400'}`}>
+                                            <div key={ldUser.id} className={`flex items-center gap-4 p-3 rounded-2xl transition-all ${ldUser.id === user?.uid ? 'bg-[#F44A22]/5 border border-[#F44A22]/20' : 'hover:bg-[#FEF8E8] border border-transparent'}`}>
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-yellow-500 text-white' : idx === 1 ? 'bg-gray-300 text-[#161616]' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-[#E4E2E3]/50 text-[#A8AAAC]'}`}>
                                                     {idx + 1}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className={`font-semibold truncate text-sm ${ldUser.id === user?.uid ? 'text-orange-400' : 'text-white'}`}>
+                                                    <p className={`font-semibold truncate text-sm ${ldUser.id === user?.uid ? 'text-[#F44A22]' : 'text-[#161616]'}`}>
                                                         {ldUser.id === user?.uid ? 'Siz' : (ldUser.fullName || ldUser.email?.split('@')[0])}
                                                     </p>
-                                                    <p className="text-xs text-gray-500">{ldUser.gamification?.points || 0} XP</p>
+                                                    <p className="text-xs text-[#A8AAAC]">{ldUser.gamification?.points || 0} XP</p>
                                                 </div>
+                                                {idx === 0 && <Crown size={16} className="text-yellow-500" />}
                                             </div>
                                         ))}
                                     </div>
@@ -226,20 +214,20 @@ export default function PublicDashboard() {
                             </div>
 
                             {/* CALL TO ACTION */}
-                            <div className="glass-card p-10 lg:col-span-2 border border-orange-500/20 rounded-3xl relative overflow-hidden bg-gradient-to-br from-orange-500/5 to-transparent h-full flex flex-col justify-center">
-                                <div className="absolute right-0 top-0 w-80 h-80 bg-orange-500/10 blur-[80px] rounded-full" />
+                            <div className="bg-white p-10 lg:col-span-2 border border-[#F44A22]/20 rounded-3xl relative overflow-hidden bg-gradient-to-br from-[#F44A22]/5 to-transparent h-full flex flex-col justify-center shadow-sm">
+                                <div className="absolute right-0 top-0 w-80 h-80 bg-[#F44A22]/5 blur-[80px] rounded-full" />
                                 <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center justify-between">
                                     <div>
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-500/20 text-orange-400 text-xs font-bold uppercase tracking-wider rounded-lg mb-4">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F44A22]/10 text-[#F44A22] text-xs font-bold uppercase tracking-wider rounded-lg mb-4">
                                             Tavsiya
                                         </div>
-                                        <h2 className="text-3xl font-bold text-white mb-3">Premium darajaga o'ting!</h2>
-                                        <p className="text-vetra-textMuted max-w-lg leading-relaxed mb-6">
+                                        <h2 className="text-3xl font-bold text-[#161616] mb-3">Premium darajaga o'ting!</h2>
+                                        <p className="text-[#A8AAAC] max-w-lg leading-relaxed mb-6">
                                             Siz hozirda faqat 1-2 ta ochiq testlardan foydalana olasiz. Kunlik topshiriqlar,
                                             Speaking va Writing uchun AI yordamchini ochish uchun tizimga a'zo bo'ling.
                                         </p>
                                     </div>
-                                    <button onClick={() => navigate('/practice')} className="w-full md:w-auto px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold shadow-[0_0_20px_rgba(255,85,32,0.3)] hover:shadow-[0_0_30px_rgba(255,85,32,0.5)] transition-all flex items-center justify-center gap-2 shrink-0 group">
+                                    <button onClick={() => navigate('/practice')} className="w-full md:w-auto px-8 py-4 bg-[#F44A22] hover:bg-[#D93D1B] text-white rounded-xl font-bold shadow-lg shadow-[#F44A22]/20 hover:shadow-xl hover:shadow-[#F44A22]/30 transition-all flex items-center justify-center gap-2 shrink-0 group">
                                         Testlar Bo'limi <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                     </button>
                                 </div>
@@ -248,8 +236,8 @@ export default function PublicDashboard() {
                     </>
                 ) : (
                     <div className="py-20 text-center">
-                        <h2 className="text-2xl font-bold text-gray-400 mb-2">Hozircha bo'sh</h2>
-                        <p className="text-gray-500">Public akkaunt uchun bu bo'lim hali tayyorlanmoqda.</p>
+                        <h2 className="text-2xl font-bold text-[#A8AAAC] mb-2">Hozircha bo'sh</h2>
+                        <p className="text-[#A8AAAC]">Public akkaunt uchun bu bo'lim hali tayyorlanmoqda.</p>
                     </div>
                 )}
             </main>

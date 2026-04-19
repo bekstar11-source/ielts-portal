@@ -17,19 +17,38 @@ export default {
         'highlight-yellow': '#fef08a', // Sariq highlight
         'highlight-green': '#86efac',  // Yashil (Evidence uchun)
         vetra: {
-          bg: '#050505',
-          card: '#0F0F0F',
-          border: '#1F1F1F',
-          orange: '#FF5520',
-          orangeGlow: '#FF7A50',
-          text: '#FFFFFF',
-          textMuted: '#9CA3AF',
-          blue: '#3B82F6',
+          bg: '#FFFFFF',
+          card: '#FFFFFF',
+          border: '#E4E2E3',
+          orange: '#F44A22',
+          orangeGlow: '#FF6B47',
+          text: '#161616',
+          textMuted: '#A8AAAC',
+          blue: '#F44A22',
+          silver: '#FEF8E8',
+          grey: '#E4E2E3',
+          midnight: '#161616',
+          stone: '#A8AAAC',
         }
       },
       // 2. SHRIFT (Default fontni Inter qilamiz)
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+        sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Abel', 'sans-serif'],
+      },
+      letterSpacing: {
+        tightest: '-.075em',
+        tighter: '-.05em',
+        tight: '-.025em',
+        normal: '0',
+        wide: '.025em',
+        wider: '.05em',
+        widest: '.1em',
+        'super-tight': '-0.02em',
+      },
+      lineHeight: {
+        'extra-loose': '2.5',
+        'premium': '1.15',
       },
       // 3. O'LCHAMLAR (Agar kerak bo'lsa)
       height: {

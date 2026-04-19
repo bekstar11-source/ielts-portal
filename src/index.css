@@ -1,6 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Abel&family=Outfit:wght@100..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased text-vetra-midnight;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Abel', sans-serif;
+    @apply tracking-tight font-medium;
+  }
+}
 
 /* 1. GLOBAL QOIDALAR (BASE LAYER) */
 @layer base {
