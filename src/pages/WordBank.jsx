@@ -36,6 +36,7 @@ import { useNavigate } from 'react-router-dom';
 import WordBankFlashcards from '../components/WordBank/WordBankFlashcards';
 import WordBankMatchGame from '../components/WordBank/WordBankMatchGame';
 import { getUserWordBank, deleteWordFromBank } from '../utils/wordbankUtils';
+import DashboardHeader from '../components/dashboard/DashboardHeader';
 
 export default function Wordbank() {
     const { user, userData } = useAuth();
@@ -347,82 +348,22 @@ export default function Wordbank() {
         ];
 
         return (
-            <div style={backgroundStyle} className="p-0 md:p-4 lg:p-8 font-aspekta transition-colors duration-500">
+            <div style={backgroundStyle} className="font-aspekta transition-colors duration-500">
+              {/* Standardized Header */}
+              <DashboardHeader
+                user={user} userData={userData}
+                activeTab="vocabulary"
+                onLogoutClick={() => navigate('/login')} // simple logout for wordbank
+                loading={loading}
+              />
+
               {/* Background Lighting */}
               <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <div className={`absolute top-[-5%] right-[15%] w-[600px] h-[600px] rounded-full blur-[150px] animate-pulse ${isDark ? 'bg-[#FB5102]/10' : 'bg-[#FB5102]/5'}`}></div>
                 <div className={`absolute bottom-0 left-[10%] w-[400px] h-[400px] rounded-full blur-[120px] ${isDark ? 'bg-blue-500/5' : 'bg-blue-500/2'}`}></div>
               </div>
         
-              <div className="max-w-7xl mx-auto relative z-10 w-full pt-4 md:pt-0">
-                
-                {/* Top Nav */}
-                <nav className="flex items-center justify-between mb-12 px-4 md:px-0">
-                  <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate(userData?.role === 'teacher' ? '/teacher' : '/dashboard')}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-gray-100 hover:bg-gray-200 border-gray-200'}`}
-                    >
-                        <ArrowLeft className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} />
-                    </button>
-                    <div className="w-10 h-10 bg-[#FB5102] rounded-xl flex items-center justify-center shadow-lg shadow-[#FB5102]/20">
-                      <BookMarked className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  
-                  <div className={`flex items-center gap-6 border px-6 py-2 rounded-2xl hidden md:flex backdrop-blur-xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-white/50 border-gray-200 shadow-sm'}`}>
-                    {userData?.role === 'teacher' ? (
-                      <>
-                        {[
-                          { name: 'Home', path: '/teacher' },
-                          { name: 'Guruhlar', path: '/teacher/group-stats' },
-                          { name: 'Testlar', path: '/teacher/tests' },
-                          { name: 'Natijalar', path: '/teacher/results' }
-                        ].map((item) => (
-                          <button 
-                            key={item.name} 
-                            onClick={() => navigate(item.path)}
-                            className={`text-[10px] uppercase tracking-[0.2em] font-bold transition-colors ${isDark ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-slate-900'}`}
-                          >
-                            {item.name}
-                          </button>
-                        ))}
-                      </>
-                    ) : (
-                      <>
-                        {[
-                          { name: 'Dashboard', path: '/dashboard' },
-                          { name: 'Practice', path: '/practice' },
-                          { name: 'Natijalar', path: '/my-results' },
-                          { name: 'Reyting', path: '/dashboard' }
-                        ].map((item) => (
-                          <button 
-                            key={item.name} 
-                            onClick={() => navigate(item.path)}
-                            className={`text-[10px] uppercase tracking-[0.2em] font-bold transition-colors ${isDark ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-slate-900'}`}
-                          >
-                            {item.name}
-                          </button>
-                        ))}
-                      </>
-                    )}
-                  </div>
-        
-                  <div className="flex items-center gap-3">
-                     <button 
-                        onClick={toggleTheme}
-                        className={`p-2.5 rounded-xl border transition-all ${isDark ? 'bg-white/5 border-white/10 text-yellow-400 hover:bg-white/10' : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50 shadow-sm'}`}
-                     >
-                       {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                     </button>
-                     <div className={`px-3 py-1.5 rounded-lg border flex items-center gap-2 ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm'}`}>
-                        <Zap className="w-4 h-4 text-emerald-500" />
-                        <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-700'}`}>
-                          {userData?.role === 'teacher' ? 'Instructor' : 'Top Learner'}
-                        </span>
-                     </div>
-                  </div>
-                </nav>
+              <main className="max-w-[1440px] mx-auto px-6 pt-10 pb-20 relative z-10 w-full">
         
                 {/* Hero & Learning Modules */}
                 <div className="grid lg:grid-cols-12 gap-12 mb-20 px-4 md:px-0">
@@ -775,7 +716,7 @@ export default function Wordbank() {
                      )}
                   </div>
                 </div>
-              </div>
+              </main>
         
               <style>
                 {`

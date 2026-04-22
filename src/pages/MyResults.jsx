@@ -210,7 +210,7 @@ export default function MyResults() {
         }}
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 mt-2 pb-20">
+      <main className="relative z-10 max-w-[1440px] mx-auto px-6 pt-10 pb-20">
 
         <div className="mb-12 text-center">
             <style>{`
@@ -446,7 +446,7 @@ export default function MyResults() {
             </div>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

@@ -19,6 +19,7 @@ import ModuleBanner from "../components/dashboard/ModuleBanner";
 // StatsCards removed as it is integrated into HeroSection now
 // FiltersBar and TestGrid moved to Practice.jsx
 import DashboardModals from "../components/dashboard/DashboardModals";
+import PricingModal from "../components/dashboard/PricingModal";
 import SettingsTab from "../components/dashboard/SettingsTab";
 import MyResults from "../pages/MyResults";
 import { useAnalytics } from "../hooks/useAnalytics";
@@ -45,6 +46,7 @@ export default function StudentDashboard() {
     const [accessKeyInput, setAccessKeyInput] = useState("");
     const [checkingKey, setCheckingKey] = useState(false);
     const [keyError, setKeyError] = useState("");
+    const [showPricingModal, setShowPricingModal] = useState(false);
 
     // 🚀 SHARED HOOK — Practice bilan bitta cache ishlatadi (zero duplicate reads)
     const { assignments: rawAssignments, userResults, loading, error: errorMsg, refresh } = useStudentData(user);
@@ -251,6 +253,7 @@ export default function StudentDashboard() {
                             previousBand={userData?.previousIELTSScore || 0}
                             examDate={userData?.examDate}
                             daysRemaining={userData?.examTimeframe ? null : undefined}
+                            onUpgradeClick={() => setShowPricingModal(true)}
                         />
 
                         <ModuleBanner
@@ -260,7 +263,10 @@ export default function StudentDashboard() {
                             onViewProgress={() => setActiveTab('results')}
                         />
 
-                        <QuickAnalytics stats={skillStats} />
+                        <QuickAnalytics 
+                            stats={skillStats} 
+                            onUpgradeAction={() => setShowPricingModal(true)} 
+                        />
 
                         {/* GAMIFICATION FEATURES GRID */}
                         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 animate-fade-in-up md:mt-8 mt-6 mb-12" style={{ animationDelay: '0.4s' }}>
@@ -331,7 +337,11 @@ export default function StudentDashboard() {
                         <div className="mt-8">
                             {/* If no tests, Show WelcomeState as a section, else show Showcase */}
                             {/* Always show TestShowcase to display Banner and Recommendations */}
-                            <TestShowcase tests={recommendedTests.length > 0 ? recommendedTests : rawAssignments} onStartTest={handleStartTest} />
+                            <TestShowcase 
+                                tests={recommendedTests.length > 0 ? recommendedTests : rawAssignments} 
+                                onStartTest={handleStartTest} 
+                                onUpgradeClick={() => setShowPricingModal(true)}
+                            />
 
                             {/* If no tests, Show WelcomeState as a section for quick start actions */}
                             {/* WelcomeState removed as per user request */}
@@ -349,22 +359,17 @@ export default function StudentDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-transparent font-sans text-vetra-midnight selection:bg-vetra-orange/10">
-            <style>{`
-                body { 
-                    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; 
-                    background: fixed linear-gradient(180deg, #FEF8E8 0%, #FFFFFF 100%);
-                }
-            `}</style>
+        <div className="min-h-screen bg-white font-sans text-vetra-midnight selection:bg-vetra-orange/10">
             <DashboardHeader
                 user={user} userData={userData}
                 activeTab={activeTab} setActiveTab={setActiveTab}
                 onKeyClick={() => setShowKeyModal(true)} 
                 onLogoutClick={() => setShowLogoutConfirm(true)}
+                onPremiumClick={() => setShowPricingModal(true)}
                 onRefreshClick={handleManualRefresh}
                 loading={loading}
             />
-            <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-8">
+            <main className="max-w-[1440px] mx-auto px-6 pt-10">
                 {renderContent()}
             </main>
             <DashboardModals
@@ -376,6 +381,11 @@ export default function StudentDashboard() {
                 selectedSet={selectedSet} setSelectedSet={setSelectedSet}
                 handleStartTest={handleStartTest}
                 handleReview={handleReview}
+            />
+            <PricingModal 
+                isOpen={showPricingModal} 
+                onClose={() => setShowPricingModal(false)} 
+                userName={userData?.fullName?.split(' ')[0]} 
             />
         </div>
     );

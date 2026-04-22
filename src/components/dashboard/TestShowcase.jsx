@@ -1,10 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
-import { ArrowRight, Star, Zap, Clock, ChevronRight, ChevronLeft } from 'lucide-react';
-import TestGrid from './TestGrid';
+import { ArrowRight, Star, Zap, Clock, ChevronRight, ChevronLeft, Crown } from 'lucide-react';
 
-const ShowcaseCard = ({ test, onStart }) => {
+const ShowcaseCard = ({ test, onStart, isPremium, onUpgradeClick }) => {
     const { user } = useAuth();
     const [hasDraft, setHasDraft] = useState(false);
 
@@ -33,19 +32,27 @@ const ShowcaseCard = ({ test, onStart }) => {
             className={`min-w-[280px] md:min-w-[320px] p-5 rounded-[24px] border relative group overflow-hidden flex flex-col justify-between
             ${isMock ? 'bg-gradient-to-br from-vetra-silver to-white border-vetra-grey/60' : 'bg-white border-vetra-grey/60'}
             hover:border-vetra-orange/30 hover:shadow-lg hover:shadow-vetra-orange/5 transition-all duration-300
+            ${isPremium ? 'cursor-default' : ''}
             `}
         >
             {/* Glow Effect */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-vetra-orange/5 rounded-full blur-3xl -mr-16 -mt-16 transition opacity-0 group-hover:opacity-100" />
 
-            <div>
+            {isPremium && (
+                <div className="absolute top-4 right-4 z-[20] flex items-center gap-1.5 bg-yellow-500 text-white px-2.5 py-1 rounded-full shadow-lg shadow-yellow-500/20 animate-pulse">
+                    <Crown size={12} className="fill-white/20" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Premium</span>
+                </div>
+            )}
+
+            <div className={isPremium ? 'opacity-60' : ''}>
                 <div className="flex justify-between items-start mb-4">
                     <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border 
                         ${isMock ? 'bg-yellow-50 text-yellow-600 border-yellow-200' : 'bg-blue-50 text-blue-600 border-blue-200'}
                     `}>
                         {isMock ? 'Mock Exam' : test.type || 'Practice'}
                     </span>
-                    {test.isNew && <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600"><Zap size={12} fill="currentColor" />NEW</span>}
+                    {!isPremium && test.isNew && <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600"><Zap size={12} fill="currentColor" />NEW</span>}
                 </div>
 
                 <h3 className="text-lg font-bold text-vetra-midnight leading-snug mb-2 line-clamp-2">{test.title}</h3>
@@ -55,20 +62,29 @@ const ShowcaseCard = ({ test, onStart }) => {
                     <span className="flex items-center gap-1"><Star size={12} className="text-yellow-500" /> {test.difficulty || 'Medium'}</span>
                 </div>
 
-                <div className="mt-4 flex flex-col gap-1">
-                    <div className={`text-[11px] font-bold uppercase tracking-wider ${attemptsCount >= maxAttempts ? 'text-red-500' : 'text-blue-600'}`}>
-                        Urinishlar: {attemptsCount} / {maxAttempts}
-                    </div>
-                    {endDate && (
-                        <div className="text-[11px] font-medium text-red-500 opacity-90 flex items-center gap-1.5">
-                            <Clock size={12} />
-                            Deadline: {new Date(endDate).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {!isPremium && (
+                    <div className="mt-4 flex flex-col gap-1">
+                        <div className={`text-[11px] font-bold uppercase tracking-wider ${attemptsCount >= maxAttempts ? 'text-red-500' : 'text-blue-600'}`}>
+                            Urinishlar: {attemptsCount} / {maxAttempts}
                         </div>
-                    )}
-                </div>
+                        {endDate && (
+                            <div className="text-[11px] font-medium text-red-500 opacity-90 flex items-center gap-1.5">
+                                <Clock size={12} />
+                                Deadline: {new Date(endDate).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {canStart ? (
+            {isPremium ? (
+                <button
+                    onClick={onUpgradeClick}
+                    className="mt-6 w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20"
+                >
+                    Planni Yangilang <Crown size={14} />
+                </button>
+            ) : canStart ? (
                 <button
                     onClick={() => onStart(test)}
                     className="mt-6 w-full py-3 bg-transparent hover:bg-vetra-orange text-vetra-orange hover:text-white border border-vetra-orange rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:shadow-vetra-orange/20"
@@ -86,7 +102,9 @@ const ShowcaseCard = ({ test, onStart }) => {
 
 
 
-export default function TestShowcase({ tests, onStartTest }) {
+export default function TestShowcase({ tests, onStartTest, onUpgradeClick }) {
+    const { userData } = useAuth();
+    const isIndividualUser = !userData?.groupId;
     const scrollRef = useRef(null);
 
     const scroll = (direction) => {
@@ -99,7 +117,6 @@ export default function TestShowcase({ tests, onStartTest }) {
 
     // Filter logic for Showcase
     const recommendedTests = tests.slice(0, 6); // Just take first 6 for now
-    const newArrivals = tests.filter(t => t.isNew).slice(0, 4);
 
     return (
         <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -126,11 +143,19 @@ export default function TestShowcase({ tests, onStartTest }) {
                     className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
-                    {recommendedTests.map((test, i) => (
-                        <div key={i} className="snap-start">
-                            <ShowcaseCard test={test} onStart={onStartTest} />
-                        </div>
-                    ))}
+                    {recommendedTests.map((test, i) => {
+                        const isPremium = isIndividualUser && i >= 2;
+                        return (
+                            <div key={i} className="snap-start">
+                                <ShowcaseCard 
+                                    test={test} 
+                                    onStart={onStartTest} 
+                                    isPremium={isPremium}
+                                    onUpgradeClick={onUpgradeClick}
+                                />
+                            </div>
+                        );
+                    })}
                     {recommendedTests.length === 0 && (
                         <div className="text-vetra-stone text-sm py-10 w-full text-center border border-dashed border-vetra-grey rounded-2xl bg-white">
                             Hozircha tavsiyalar yo'q.

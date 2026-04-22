@@ -51,10 +51,10 @@ export function useStudentData(user) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const CACHE_KEY = user ? `student_assignments_${user.uid}` : null;
-    const CACHE_TIME_KEY = user ? `student_assignments_time_${user.uid}` : null;
-    const RESULTS_CACHE_KEY = user ? `student_results_${user.uid}` : null;
-    const RESULTS_CACHE_TIME_KEY = user ? `student_results_time_${user.uid}` : null;
+    const CACHE_KEY = user ? `student_assignments_v2_${user.uid}` : null;
+    const CACHE_TIME_KEY = user ? `student_assignments_time_v2_${user.uid}` : null;
+    const RESULTS_CACHE_KEY = user ? `student_results_v2_${user.uid}` : null;
+    const RESULTS_CACHE_TIME_KEY = user ? `student_results_time_v2_${user.uid}` : null;
 
     const fetchData = async (forceRefresh = false) => {
         if (!user) return;
@@ -151,7 +151,8 @@ export function useStudentData(user) {
                         title: assign.title || 'Full Mock Exam',
                         isMock: true,
                         status: bestMockResult ? 'completed' : 'open',
-                        result: bestMockResult
+                        result: bestMockResult,
+                        totalQuestions: 120
                     });
                 } else if (assign.type === 'set') {
                     const set = setsMap[assign.id];
@@ -184,7 +185,8 @@ export function useStudentData(user) {
                             subTests,
                             totalTests: subTests.length,
                             completedTests: completedCount,
-                            status: completedCount === subTests.length && subTests.length > 0 ? 'completed' : 'open'
+                            status: completedCount === subTests.length && subTests.length > 0 ? 'completed' : 'open',
+                            totalQuestions: subTests.reduce((sum, t) => sum + (t.questions?.length || 0), 0)
                         });
                     }
                 } else {
@@ -194,6 +196,43 @@ export function useStudentData(user) {
                         const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim()).length;
                         const maxAttempts = assign.maxAttempts || 1;
 
+                        // Extract question types for card display
+                        const typeMap = {
+                            'mcq': 'MCQ',
+                            'multiple_choice': 'MCQ',
+                            'gap_fill': 'GAP FILL',
+                            'notes_completion': 'NOTES',
+                            'summary_completion': 'SUMMARY',
+                            'table_completion': 'TABLE',
+                            'flow_chart_completion': 'FLOW CHART',
+                            'map_labeling': 'MAP',
+                            'matching': 'MATCHING',
+                            'true_false_not_given': 'TRUE/FALSE/NG',
+                            'true_false': 'TRUE/FALSE/NG',
+                            'tfng': 'TRUE/FALSE/NG',
+                            'yes_no_not_given': 'YES/NO/NG',
+                            'yes_no': 'YES/NO/NG',
+                            'ynng': 'YES/NO/NG',
+                            'short_answer': 'SHORT ANSWER',
+                            'sentence_completion': 'SENTENCE',
+                            'diagram_labeling': 'DIAGRAM',
+                            'heading_matching': 'HEADINGS',
+                            'paragraph_matching': 'PARA MATCH',
+                        };
+                        const questionTypes = [];
+                        if (testDataFromDb.questions && Array.isArray(testDataFromDb.questions)) {
+                            const seen = new Set();
+                            testDataFromDb.questions.forEach(q => {
+                                if (q.type && !seen.has(q.type)) {
+                                    seen.add(q.type);
+                                    const label = typeMap[q.type] || q.type.replace(/_/g, ' ').toUpperCase();
+                                    questionTypes.push(label);
+                                }
+                            });
+                        }
+
+                        const totalQuestions = testDataFromDb.questions?.length || 0;
+
                         const finalTestData = {
                             ...testDataFromDb,
                             ...assign,
@@ -201,7 +240,9 @@ export function useStudentData(user) {
                             title: testDataFromDb?.title || assign.title || 'IELTS Test',
                             type: testDataFromDb?.type || assign.type || 'unknown',
                             attemptsCount,
-                            maxAttempts
+                            maxAttempts,
+                            questionTypes,
+                            totalQuestions
                         };
 
                         const now = new Date();

@@ -79,6 +79,7 @@ export default function CreateTest() {
             { id: 2, title: "Task 2", prompt: "", image: "", minWords: 250 }
         ],
         tags: [],
+        thumbnail: "",
     });
 
     const getFileNameFromUrl = (url) => {
@@ -266,7 +267,8 @@ export default function CreateTest() {
                     introDuration: parsed.introDuration || prev.introDuration,
                     passages: parsed.passages ? updatedPassages : prev.passages,
                     questions: newQuestions,
-                    keywordTable: parsed.keywordTable || prev.keywordTable || []
+                    keywordTable: parsed.keywordTable || prev.keywordTable || [],
+                    thumbnail: parsed.thumbnail || prev.thumbnail || ""
                 };
             });
             setJsonError("");
@@ -873,6 +875,52 @@ export default function CreateTest() {
                             isDark={isDark} 
                             allowEdit={true}
                         />
+                    </div>
+
+                    <div className="bg-gray-50/50 dark:bg-white/5 p-6 rounded-[24px] border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <label className="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-4 ml-1 tracking-widest">Cover Image (Rasm URL yoki Yuklash)</label>
+                        <div className="flex flex-col gap-4">
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    placeholder="Rasm URL (https://...)"
+                                    value={testData.thumbnail || ""}
+                                    onChange={(e) => setTestData({ ...testData, thumbnail: e.target.value })}
+                                    className="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[#3772FF] focus:ring-4 focus:ring-[#3772FF]/10 transition font-medium placeholder:text-gray-400"
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    <label className="cursor-pointer bg-white dark:bg-gray-800 p-2 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition shadow-sm">
+                                        <Icons.Cloud className="w-5 h-5 text-[#3772FF]" />
+                                        <input 
+                                            type="file" 
+                                            className="hidden" 
+                                            onChange={async (e) => {
+                                                const file = e.target.files[0];
+                                                if (!file) return;
+                                                setUploading(true);
+                                                try {
+                                                    const url = await uploadToFirebase(file, "test_covers");
+                                                    setTestData({ ...testData, thumbnail: url });
+                                                } catch (err) { alert(err.message); } 
+                                                finally { setUploading(false); }
+                                            }}
+                                            accept="image/*"
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                            {testData.thumbnail && (
+                                <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden border border-dashed border-gray-300 dark:border-gray-700">
+                                    <img src={testData.thumbnail} alt="Cover Preview" className="w-full h-full object-cover" />
+                                    <button 
+                                        onClick={() => setTestData({ ...testData, thumbnail: "" })}
+                                        className="absolute top-2 right-2 bg-red-500/80 hover:bg-red-500 text-white p-1.5 rounded-full backdrop-blur-sm transition-all"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {testData.type === 'listening' && (

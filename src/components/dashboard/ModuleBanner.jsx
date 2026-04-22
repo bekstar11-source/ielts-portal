@@ -8,7 +8,7 @@ export default function ModuleBanner({
     onViewProgress 
 }) {
     return (
-        <section className="relative z-10 mb-20 animate-fade-in-up">
+        <section className="relative z-10 mb-12 animate-fade-in-up">
             <style>{`
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
