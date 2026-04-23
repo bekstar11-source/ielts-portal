@@ -43,7 +43,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
   };
 
   return (
-    <header className="h-14 w-full sticky top-0 z-[60] bg-white border-b border-zinc-100 transition-all duration-300">
+    <header className="h-11 w-full sticky top-0 z-[60] bg-white border-b border-zinc-100 transition-all duration-300">
       <div className="max-w-[1440px] mx-auto px-6 h-full flex items-center justify-between">
         {/* Logo */}
         <div className="cursor-pointer flex items-center pr-4 transition-transform hover:scale-105 active:scale-95" onClick={() => navigate('/dashboard')}>
@@ -126,7 +126,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                   setHoveredTab(null);
                 }, 200);
               }}
-              className="absolute top-14 left-0 w-full bg-white border-b border-zinc-100 z-50 pt-10 pb-16 shadow-2xl"
+              className="absolute top-11 left-0 w-full bg-white border-b border-zinc-100 z-50 pt-10 pb-16 shadow-2xl"
             >
               <motion.div 
                 initial="hidden"
@@ -214,7 +214,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               onMouseEnter={() => setHoveredTab(null)}
-              className="fixed inset-0 top-14 bg-black/5 backdrop-blur-[2px] z-40"
+              className="fixed inset-0 top-11 bg-black/5 backdrop-blur-[2px] z-40"
             />
           )}
         </AnimatePresence>

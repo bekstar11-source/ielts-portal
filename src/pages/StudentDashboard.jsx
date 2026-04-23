@@ -342,7 +342,7 @@ export default function StudentDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-white font-sans text-[#1d1d1f] antialiased selection:bg-black selection:text-white">
+        <div className="min-h-screen bg-white font-sans text-[#1d1d1f] antialiased selection:bg-black selection:text-white overflow-x-hidden">
             <DashboardHeader
                 user={user} userData={userData}
                 activeTab={activeTab} setActiveTab={setActiveTab}
@@ -352,7 +352,7 @@ export default function StudentDashboard() {
                 onRefreshClick={handleManualRefresh}
                 loading={loading}
             />
-            <main className="max-w-[1440px] mx-auto px-6">
+            <main className="w-full">
                 {renderContent()}
             </main>
             <SiteFooter />
