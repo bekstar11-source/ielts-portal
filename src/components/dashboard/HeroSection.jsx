@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Target, BarChart2, Clock, ArrowRight, Sparkles } from 'lucide-react';
+import { Target, BarChart2, Clock, ArrowRight, Sparkles, TrendingUp, Play, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Stat Card 3D ────────────────────────────────────────────────────────────
 const StatCard3D = ({ 
@@ -87,7 +88,7 @@ const StatCard3D = ({
             style={{ 
                 zIndex: isHovered ? 50 : getBaseZ(),
                 transformStyle: 'preserve-3d',
-                height: type === 'center' ? '420px' : '400px',
+                height: type === 'center' ? '360px' : '340px',
             }}
             onMouseMove={handleMouseMove}
             onMouseEnter={handleMouseEnter}
@@ -181,7 +182,6 @@ const StatCard3D = ({
         </div>
     );
 };
-
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function HeroSection({
     userName = "O'quvchi",
@@ -191,21 +191,22 @@ export default function HeroSection({
     daysRemaining = null,
     examDate = null,
     onUpgradeClick,
+    skillStats = [],
+    streakCount = 0,
+    points = 0,
 }) {
     const navigate = useNavigate();
 
     const [animatedCurrent, setAnimatedCurrent] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const [isReadingPaused, setIsReadingPaused] = useState(false);
+    const [isListeningPaused, setIsListeningPaused] = useState(false);
     const [animatedDays, setAnimatedDays] = useState(0);
 
     const calculatedDays = examDate
         ? Math.max(0, Math.ceil((new Date(examDate) - new Date()) / 86400000))
         : daysRemaining;
     const finalDays = calculatedDays ?? 0;
-
-    let improvement = 0;
-    if (previousBand > 0) improvement = currentBand - previousBand;
-    else if (currentBand > 2.0) improvement = 0.5;
-    else improvement = currentBand;
 
     useEffect(() => {
         const steps = 60;
@@ -226,109 +227,44 @@ export default function HeroSection({
     }, [currentBand, finalDays]);
 
     return (
-        <section className="hero-section">
-            <style>{`
-                .hero-section {
-                    position: relative;
-                    z-index: 10;
-                    margin-bottom: 3rem;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    animation: fadeInUp 0.6s ease both;
-                }
+        <section className="flex flex-col items-center w-full">
+            {/* Hero Content */}
+            <main className="flex flex-col items-center justify-center text-center px-4 pt-[10vh] pb-20 max-w-[1100px] mx-auto animate-fade-in w-full">
+                
+                {/* Top Badge */}
+                <div className="flex items-center gap-2 text-sm font-medium text-zinc-400 mb-3 tracking-wide uppercase">
+                    <span className="text-black">IELTS 2026</span>
+                    <span className="text-[10px]">•</span>
+                    <span>Reallik</span>
+                </div>
 
-                .perspective-container {
-                    perspective: 1200px;
-                    transform-style: preserve-3d;
-                }
+                {/* Main Headline */}
+                <h1 className="text-[52px] sm:text-[64px] md:text-[88px] font-bold text-black tracking-[-0.04em] leading-[1.05] mb-8 max-w-[1000px]">
+                    Mo'jiza kutma,<br />
+                    o'zing mo'jiza yarat.
+                </h1>
 
-                .hero-name {
-                    font-family: 'Abel', 'Outfit', -apple-system, sans-serif;
-                    font-size: clamp(52px, 8vw, 100px);
-                    line-height: 0.9;
-                    letter-spacing: -0.03em;
-                    color: #161616;
-                    text-align: center;
-                    margin: 0 0 1.5rem;
-                    animation: fadeInUp 0.55s ease both;
-                }
-                .hero-name span {
-                    background: linear-gradient(135deg, #161616 0%, #F44A22 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                }
+                {/* Subheadline */}
+                <p className="text-[18px] md:text-[21px] text-zinc-400 font-normal leading-[1.6] max-w-[760px] mb-12">
+                    Hech qanday "maxfiy strategiya" yo'q. Bor narsa — shu ekran, matnlar, audiyolar va sening vaqting. Diqqatingni jamla, bugun kechagidan bir oz yaxshroq bo'l.
+                </p>
 
-                .hero-tagline {
-                    font-size: clamp(15px, 2vw, 18px);
-                    color: #6B6B6B;
-                    text-align: center;
-                    max-width: 480px;
-                    line-height: 1.65;
-                    margin: 0 auto 2rem;
-                    animation: fadeInUp 0.6s ease both;
-                    animation-delay: 0.1s;
-                }
-
-                .hero-cta {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    background: #161616;
-                    color: #ffffff;
-                    font-size: 14px;
-                    font-weight: 600;
-                    padding: 13px 28px;
-                    border-radius: 999px;
-                    cursor: pointer;
-                    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
-                    text-decoration: none;
-                    margin-bottom: 3.5rem;
-                    animation: fadeInUp 0.65s ease both;
-                    animation-delay: 0.15s;
-                    box-shadow: 0 4px 20px rgba(22,22,22,0.18);
-                }
-                .hero-cta:hover {
-                    background: #F44A22;
-                    transform: scale(1.04);
-                    box-shadow: 0 8px 30px rgba(244,74,34,0.3);
-                }
-
-                .hero-divider {
-                    width: 100%;
-                    height: 1px;
-                    background: linear-gradient(90deg, transparent, #E4E2E3 20%, #E4E2E3 80%, transparent);
-                    margin-bottom: 4rem;
-                }
-
-                @keyframes fadeInUp {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
-
-            {/* Name */}
-            <h1 className="hero-name">
-                <span>{userName}</span>
-            </h1>
-
-            {/* Tagline */}
-            <p className="hero-tagline">
-                Maqsadlaringiz va joriy statistikangiz. Har bir mashq sizi maqsadingizga yaqinlashtiradi.
-            </p>
-
-            {/* CTA */}
-            <button
-                className="hero-cta"
-                onClick={() => navigate('/practice')}
-            >
-                Amaliyotni boshlash
-                <ArrowRight size={16} />
-            </button>
-
-            {/* Divider */}
-            <div className="hero-divider" />
+                {/* Call to Actions */}
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <button 
+                        onClick={() => navigate('/practice')}
+                        className="w-full sm:w-auto px-10 py-4 bg-black text-white text-[15px] font-semibold rounded-full hover:bg-zinc-800 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/10"
+                    >
+                        Bugungi vazifalar
+                    </button>
+                    <button 
+                        onClick={() => navigate('/my-results')}
+                        className="w-full sm:w-auto px-10 py-4 bg-[#F5F5F7] text-black text-[15px] font-semibold rounded-full border border-zinc-200/60 hover:bg-zinc-100 transition-all hover:scale-105 active:scale-95"
+                    >
+                        Natijalarni ko'rish
+                    </button>
+                </div>
+            </main>
 
             {/* 3D Cards Grid */}
             <div
@@ -336,7 +272,7 @@ export default function HeroSection({
                     perspective: '1200px',
                     transformStyle: 'preserve-3d',
                 }}
-                className="w-full max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 md:gap-10 lg:gap-14 px-6 md:h-[450px]"
+                className="w-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-10 lg:gap-14 px-6 md:h-[380px]"
             >
                 {/* Target Card */}
                 <StatCard3D 
@@ -349,28 +285,30 @@ export default function HeroSection({
                         </svg>
                     )}
                     label="Maqsad ball"
-                    value={targetBand}
+                    value={targetBand.toFixed(1)}
                     subLabel="Siz erishmoqchi bo'lgan IELTS bali"
                     accentColor="red"
                     chartType="donut"
                     chartValue={Math.min(100, Math.round((currentBand / targetBand) * 100)) || 0}
                 />
 
-                {/* Current Card */}
+                {/* Overall Score Card */}
                 <StatCard3D 
                     type="center"
                     icon={() => (
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 20V10"></path>
-                            <path d="M12 20V4"></path>
-                            <path d="M6 20v-6"></path>
+                            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                            <path d="M4 22h16"></path>
+                            <path d="M10 14.66V17c0 .55.47.98.97 1.21C11.47 18.44 12 19 12 19s.53-.56 1.03-.79c.5-.23.97-.66.97-1.21v-2.34"></path>
+                            <path d="M12 2a4 4 0 0 1 4 4v3H8V6a4 4 0 0 1 4-4Z"></path>
+                            <path d="M12 22v-3"></path>
                         </svg>
                     )}
-                    label="Hozirgi ball"
-                    value={animatedCurrent || '—'}
-                    subLabel="Oxirgi testlar bo'yicha o'rtacha"
-                    accentColor="blue"
-                    badgeValue={currentBand > 0 ? `+${improvement.toFixed(1)}` : null}
+                    label="Umumiy Ball"
+                    value={animatedCurrent.toFixed(1)}
+                    subLabel="Sizning joriy IELTS ko'rsatkichingiz"
+                    accentColor="orange"
                     chartType="bar"
                 />
 
@@ -393,183 +331,478 @@ export default function HeroSection({
                 />
             </div>
 
-            {/* ── Skill Showcase Grid ── */}
-            <div className="w-full mt-16 grid grid-cols-1 md:grid-cols-2 gap-2 -mx-6" style={{ width: 'calc(100% + 3rem)' }}>
+            {/* ── New Analytics Section (Full-Width Breakout) ── */}
+            <div className="relative w-full mt-12">
+                {/* Background Breakout */}
+                <div className="absolute inset-0 w-screen left-1/2 -translate-x-1/2 bg-[#F5F5F7] border-y border-black/[0.03]" />
+                
+                {/* Content (Respecting parent max-width and centering) */}
+                <div className="relative max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center justify-between gap-16 lg:gap-8 py-24 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                    
+                    {/* Left Side: Title & Info */}
+                    <div className="flex-1 flex flex-col items-center lg:items-start max-w-[520px] text-center lg:text-left">
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="text-[60px] md:text-[86px] font-semibold tracking-tighter text-[#1D1D1F] leading-none">
+                                IELTS
+                            </span>
+                        </div>
+                        
+                        <h2 className="text-[28px] md:text-[42px] font-bold text-[#1D1D1F] leading-[1.05] tracking-tight mb-10">
+                            Barcha to'rt ko'nikmani bitta joyda jamlang va yuqori ballga erishing.
+                        </h2>
+                        
+                        <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
+                            <button 
+                                onClick={() => navigate('/practice')}
+                                className="bg-[#1D1D1F] hover:bg-black text-white px-8 py-3.5 rounded-full text-[15px] font-medium transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/10"
+                            >
+                                Mashqni boshlash
+                            </button>
+                            <button 
+                                onClick={() => navigate('/my-results')}
+                                className="border border-[#1D1D1F] hover:bg-black/5 text-[#1D1D1F] px-8 py-3.5 rounded-full text-[15px] font-medium transition-all"
+                            >
+                                Batafsil statistika
+                            </button>
+                        </div>
+                    </div>
 
-                {/* Reading */}
-                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #dbeafe 0%, #bfdbfe 60%, #a5f3fc 100%)' }} onClick={() => navigate('/practice?tab=reading')}>
-                    <div className="p-10 flex flex-col items-center text-center z-10 relative">
-                        <h2 className="text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">Reading</h2>
-                        <p className="text-[15px] text-[#3a3a3c] mt-1.5 font-normal">Matnlarni tez va aniq tushunish.</p>
-                        <button className="mt-4 px-5 py-1.5 bg-[#0071e3] hover:bg-[#0077ed] text-white text-[13px] font-semibold rounded-full transition-all duration-200 shadow-sm">
-                            Mashq qilish
+                    {/* Right Side: Skills List (Huge Bold Typography) */}
+                    <div className="flex-1 flex flex-col items-center lg:items-end gap-2 md:gap-4 w-full">
+                        {[
+                            { name: 'Reading', score: skillStats[0]?.score || '0.0', color: 'text-[#fa243c]' },
+                            { name: 'Listening', score: skillStats[1]?.score || '0.0', color: 'text-[#65c400]' },
+                            { name: 'Writing', score: skillStats[2]?.score || '0.0', color: 'text-[#ff8400]' },
+                            { name: 'Speaking', score: skillStats[3]?.score || '0.0', color: 'text-[#2a7ff6]' },
+                        ].map(skill => (
+                            <div key={skill.name} className="grid grid-cols-[1fr_100px] md:grid-cols-[1fr_140px] items-center w-full max-w-[480px] group cursor-default">
+                                {/* Skill Name */}
+                                <div className={`${skill.color} transition-transform duration-300 group-hover:translate-x-[-8px]`}>
+                                    <span className="text-[48px] md:text-[68px] font-bold tracking-tighter leading-none">
+                                        {skill.name}
+                                    </span>
+                                </div>
+                                
+                                {/* Skill Score (Aligned) */}
+                                <div className="text-right">
+                                    <span className="text-[44px] md:text-[56px] font-bold text-[#1D1D1F] leading-none tracking-tighter group-hover:scale-110 transition-transform duration-300 inline-block">
+                                        {parseFloat(skill.score).toFixed(1)}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Recommended Reading Passages Section (Practice Page Style) ── */}
+            <div className="w-full mt-32 mb-16 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                <div className="max-w-7xl mx-auto px-6">
+                    {/* Header */}
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
+                        <div className="max-w-3xl">
+                            <h2 className="text-[28px] md:text-[36px] lg:text-[42px] font-semibold text-[#1D1D1F] leading-[1.1] tracking-tight">
+                                Tavsiya etilgan matnlar. <br className="hidden md:block" />
+                                Sizning darajangizga mos Reading passagelar.
+                            </h2>
+                        </div>
+                        <button className="text-[#1D1D1F] hover:underline text-[16px] font-medium flex items-center gap-1 group whitespace-nowrap">
+                            Barchasini ko'rish
+                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     </div>
-                    {/* Laptop + IELTS Reading Interface */}
-                    <div className="absolute bottom-0 left-1/2 w-[88%] transition-transform duration-500 group-hover:-translate-y-3 group-hover:scale-[1.03]" style={{ transform: 'translateX(-50%)' }}>
-                        <svg viewBox="0 0 560 340" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full drop-shadow-2xl">
-                            <rect x="20" y="8" width="520" height="295" rx="12" fill="#1d1d1f"/>
-                            <rect x="26" y="14" width="508" height="283" rx="9" fill="#e8f4fd"/>
-                            <rect x="26" y="14" width="508" height="22" rx="9" fill="white" fillOpacity="0.9"/>
-                            <circle cx="42" cy="25" r="4" fill="#ff5f57"/>
-                            <circle cx="56" cy="25" r="4" fill="#ffbd2e"/>
-                            <circle cx="70" cy="25" r="4" fill="#28c840"/>
-                            <rect x="36" y="44" width="30" height="8" rx="2" fill="#d71920"/>
-                            <rect x="36" y="58" width="120" height="5" rx="2" fill="#1d1d1f" fillOpacity="0.8"/>
-                            <rect x="36" y="67" width="160" height="7" rx="2" fill="#1d1d1f"/>
-                            <rect x="36" y="78" width="195" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="87" width="185" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="96" width="195" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="105" width="140" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="105" width="120" height="4" rx="2" fill="#fbbf24" fillOpacity="0.55"/>
-                            <rect x="36" y="114" width="195" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="123" width="185" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="132" width="195" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="141" width="140" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="150" width="195" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="159" width="185" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="168" width="195" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="177" width="155" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="186" width="195" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="195" width="140" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="204" width="185" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="213" width="195" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="222" width="155" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <rect x="36" y="231" width="195" height="4" rx="2" fill="#374151" fillOpacity="0.5"/>
-                            <line x1="248" y1="36" x2="248" y2="292" stroke="#e5e7eb" strokeWidth="1"/>
-                            <rect x="258" y="44" width="90" height="6" rx="2" fill="#1d1d1f" fillOpacity="0.7"/>
-                            <rect x="258" y="58" width="240" height="4" rx="2" fill="#6b7280" fillOpacity="0.5"/>
-                            <rect x="258" y="66" width="200" height="4" rx="2" fill="#6b7280" fillOpacity="0.4"/>
-                            <rect x="258" y="80" width="180" height="4" rx="2" fill="#9ca3af" fillOpacity="0.4"/>
-                            <rect x="385" y="78" width="30" height="8" rx="3" fill="white" stroke="#d1d5db" strokeWidth="1"/>
-                            <rect x="387" y="80" width="16" height="4" rx="1.5" fill="#93c5fd"/>
-                            <rect x="258" y="96" width="180" height="4" rx="2" fill="#9ca3af" fillOpacity="0.4"/>
-                            <rect x="388" y="94" width="30" height="8" rx="3" fill="white" stroke="#d1d5db" strokeWidth="1"/>
-                            <rect x="390" y="96" width="16" height="4" rx="1.5" fill="#93c5fd"/>
-                            <rect x="258" y="112" width="180" height="4" rx="2" fill="#9ca3af" fillOpacity="0.4"/>
-                            <rect x="391" y="110" width="30" height="8" rx="3" fill="white" stroke="#d1d5db" strokeWidth="1"/>
-                            <rect x="393" y="112" width="16" height="4" rx="1.5" fill="#93c5fd"/>
-                            <rect x="258" y="130" width="90" height="6" rx="2" fill="#1d1d1f" fillOpacity="0.7"/>
-                            <rect x="258" y="144" width="155" height="4" rx="2" fill="#9ca3af" fillOpacity="0.35"/>
-                            <rect x="323" y="142" width="14" height="8" rx="2" fill="#dbeafe" stroke="#bfdbfe" strokeWidth="0.5"/>
-                            <rect x="340" y="142" width="40" height="8" rx="2" fill="white" stroke="#d1d5db" strokeWidth="0.8"/>
-                            <rect x="342" y="144" width="22" height="4" rx="1.5" fill="#bfdbfe"/>
-                            <rect x="258" y="160" width="155" height="4" rx="2" fill="#9ca3af" fillOpacity="0.35"/>
-                            <rect x="323" y="158" width="14" height="8" rx="2" fill="#dbeafe" stroke="#bfdbfe" strokeWidth="0.5"/>
-                            <rect x="340" y="158" width="40" height="8" rx="2" fill="white" stroke="#d1d5db" strokeWidth="0.8"/>
-                            <rect x="342" y="160" width="22" height="4" rx="1.5" fill="#bfdbfe"/>
-                            <rect x="258" y="176" width="155" height="4" rx="2" fill="#9ca3af" fillOpacity="0.35"/>
-                            <rect x="323" y="174" width="14" height="8" rx="2" fill="#dbeafe" stroke="#bfdbfe" strokeWidth="0.5"/>
-                            <rect x="340" y="174" width="40" height="8" rx="2" fill="white" stroke="#d1d5db" strokeWidth="0.8"/>
-                            <rect x="342" y="176" width="22" height="4" rx="1.5" fill="#bfdbfe"/>
-                            <rect x="258" y="192" width="155" height="4" rx="2" fill="#9ca3af" fillOpacity="0.35"/>
-                            <rect x="323" y="190" width="14" height="8" rx="2" fill="#dbeafe" stroke="#bfdbfe" strokeWidth="0.5"/>
-                            <rect x="340" y="190" width="40" height="8" rx="2" fill="white" stroke="#d1d5db" strokeWidth="0.8"/>
-                            <rect x="342" y="192" width="22" height="4" rx="1.5" fill="#bfdbfe"/>
-                            <rect x="26" y="280" width="508" height="17" rx="0" fill="white" fillOpacity="0.85"/>
-                            <line x1="26" y1="280" x2="534" y2="280" stroke="#e5e7eb" strokeWidth="1"/>
-                            <rect x="36" y="285" width="12" height="7" rx="2" fill="#e5e7eb"/>
-                            <rect x="54" y="285" width="12" height="7" rx="2" fill="#e5e7eb"/>
-                            <rect x="72" y="285" width="12" height="7" rx="2" fill="#e5e7eb"/>
-                            <rect x="90" y="285" width="12" height="7" rx="2" fill="#0071e3"/>
-                            <rect x="108" y="285" width="12" height="7" rx="2" fill="#e5e7eb"/>
-                            <rect x="126" y="285" width="12" height="7" rx="2" fill="#e5e7eb"/>
-                            <rect x="144" y="285" width="12" height="7" rx="2" fill="#e5e7eb"/>
-                            <rect x="162" y="285" width="12" height="7" rx="2" fill="#e5e7eb"/>
-                            <rect x="180" y="285" width="12" height="7" rx="2" fill="#e5e7eb"/>
-                            <rect x="0" y="303" width="560" height="18" rx="3" fill="#2d2d2f"/>
-                            <rect x="210" y="303" width="140" height="5" rx="2" fill="#1a1a1c"/>
-                            <ellipse cx="280" cy="322" rx="80" ry="4" fill="#1d1d1f" fillOpacity="0.15"/>
-                        </svg>
+
+                    {/* Full-width Breakout Scrollable Container for Reading Passages */}
+                    <div className="relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw] w-[100vw] overflow-hidden">
+                        <div className="flex gap-6 overflow-x-auto pb-12 pt-4 hide-scrollbar snap-x">
+                            {/* Left Alignment Spacer */}
+                            <div className="flex-none w-6 xl:w-[calc(50vw-40rem+1.5rem)]" />
+                            {[
+                                { 
+                                    title: "Ancient Civilizations", 
+                                    sub: "O'tmishning sirlarini oching va qadimgi madaniyatlarni o'rganing.", 
+                                    questions: "13 Questions",
+                                    img: "/images/dashboard/reading_passage_ancient_civ_1776973843121.png",
+                                    tag: "History",
+                                    delay: '0.1s'
+                                },
+                                { 
+                                    title: "Space Exploration", 
+                                    sub: "Koinot fathi va insoniyatning yulduzlar sari sayohati.", 
+                                    questions: "14 Questions",
+                                    img: "/images/dashboard/reading_passage_space_exp_1776973865586.png",
+                                    tag: "Science",
+                                    delay: '0.2s'
+                                },
+                                { 
+                                    title: "Modern Architecture", 
+                                    sub: "Zamonaviy shaharsozlik va innovatsion dizayn yutuqlari.", 
+                                    questions: "13 Questions",
+                                    img: "/images/dashboard/reading_passage_architecture_1776974534002.png",
+                                    tag: "Design",
+                                    delay: '0.3s'
+                                },
+                                { 
+                                    title: "Renewable Energy", 
+                                    sub: "Yashil energiya va kelajak texnologiyalari haqida.", 
+                                    questions: "12 Questions",
+                                    img: "/images/dashboard/reading_passage_renewable_energy_1776974514627.png",
+                                    tag: "Energy",
+                                    delay: '0.4s'
+                                },
+                                { 
+                                    title: "Neuroscience", 
+                                    sub: "Inson miyasi qanday ishlaydi? Eng so'nggi ilmiy tadqiqotlar.", 
+                                    questions: "13 Questions",
+                                    img: "/images/dashboard/reading_passage_neuroscience_1776973886667.png",
+                                    tag: "Biology",
+                                    delay: '0.5s'
+                                },
+                                { 
+                                    title: "Climate Change", 
+                                    sub: "Global iqlim o'zgarishi va uning sayyoramizga ta'siri.", 
+                                    questions: "13 Questions",
+                                    img: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&q=80",
+                                    tag: "Nature",
+                                    delay: '0.6s'
+                                },
+                                { 
+                                    title: "Urban Planning", 
+                                    sub: "Kelajak shaharlari va aholi yashash joylarini loyihalash.", 
+                                    questions: "14 Questions",
+                                    img: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&q=80",
+                                    tag: "Society",
+                                    delay: '0.7s'
+                                }
+                            ].map((item, i) => (
+                                <div 
+                                    key={i} 
+                                    className="group/apple-card relative flex-none w-[320px] md:w-[380px] aspect-[3/4.5] bg-[#F6F6FA] rounded-[24px] p-7 transition-all duration-500 cursor-pointer overflow-hidden animate-fade-in-up hover:scale-[1.005] snap-start"
+                                    style={{ animationDelay: item.delay }}
+                                >
+                                    {/* Text Content (Top) */}
+                                    <div className="relative z-10 space-y-3">
+                                        <span className="text-[11px] font-extrabold text-[#86868b] uppercase tracking-[0.12em]">{item.tag}</span>
+                                        <h3 className="text-[28px] font-extrabold text-[#1d1d1f] leading-[1.1] tracking-tight group-hover/apple-card:text-[#0066cc] transition-colors line-clamp-2">
+                                            {item.title}
+                                        </h3>
+                                        <p className="text-[15px] text-zinc-500 font-medium leading-snug line-clamp-3">
+                                            {item.sub}
+                                        </p>
+                                        <div className="pt-2">
+                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold text-[#424245] bg-white/50 border border-black/[0.04] uppercase tracking-wide">
+                                                {item.questions}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Image Content (Bottom) */}
+                                    <div className="absolute bottom-0 left-0 right-0 h-[45%] overflow-hidden transition-all duration-700">
+                                        <img 
+                                            src={item.img} 
+                                            alt={item.title}
+                                            className="w-full h-full object-cover transition-transform duration-700"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                            {/* Right Alignment Spacer */}
+                            <div className="flex-none w-6 xl:w-[calc(50vw-40rem+1.5rem)]" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── New Articles Recommendation Section ── */}
+            <div className="w-full mt-32 mb-40 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                <div className="max-w-7xl mx-auto px-6">
+                    {/* Header with Title and Controls */}
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
+                        <div className="max-w-3xl">
+                            <h2 className="text-[28px] md:text-[36px] lg:text-[42px] font-semibold text-[#1D1D1F] leading-[1.1] tracking-tight">
+                                Eng sara maqolalar va nashrlar. <br className="hidden md:block" />
+                                Hammasi bitta joyda.
+                            </h2>
+                        </div>
+                        
+                        <div className="flex items-center gap-6 pb-2">
+                            <button className="bg-[#1D1D1F] text-white px-8 py-3 rounded-full text-[15px] font-semibold hover:bg-black transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap">
+                                Bepul o'qish
+                            </button>
+                            <div className="flex items-center gap-24">
+                                <button className="text-[#1D1D1F] hover:underline text-[16px] font-medium flex items-center gap-1 group whitespace-nowrap">
+                                    Barchasini ko'rish
+                                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </button>
+                                
+                                {/* Play/Pause Toggle Button */}
+                                <button 
+                                    onClick={() => setIsPaused(!isPaused)}
+                                    className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-400 hover:text-black hover:border-zinc-400 transition-all active:scale-90"
+                                    title={isPaused ? "Play" : "Pause"}
+                                >
+                                    {isPaused ? (
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 3l14 9-14 9V3z"/></svg>
+                                    ) : (
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Listening */}
-                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #ede9fe 0%, #ddd6fe 60%, #c4b5fd 100%)' }} onClick={() => navigate('/practice?tab=listening')}>
-                    <div className="p-10 flex flex-col items-center text-center z-10 relative">
-                        <h2 className="text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">Listening</h2>
-                        <p className="text-[15px] text-[#3a3a3c] mt-1.5 font-normal">Audio materiallarda barcha tafsilotlarni qo'lga kiriting.</p>
-                        <button className="mt-4 px-5 py-1.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-[13px] font-semibold rounded-full transition-all duration-200 shadow-sm">
-                            Mashq qilish
-                        </button>
+                {/* Horizontal Scrolling Carousel (True Seamless Loop) */}
+                {/* Horizontal Scrolling Carousel (CSS Marquee for Smooth Pause/Resume) */}
+                <div 
+                    className="relative overflow-hidden -mx-6 group/marquee"
+                >
+                    <style>
+                        {`
+                            @keyframes marquee {
+                                0% { transform: translateX(0); }
+                                100% { transform: translateX(-50%); }
+                            }
+                            .marquee-content {
+                                display: flex;
+                                gap: 1rem;
+                                width: max-content;
+                                animation: marquee 60s linear infinite;
+                            }
+                            .marquee-paused {
+                                animation-play-state: paused !important;
+                            }
+                            .group-hover-pause:hover .marquee-content {
+                                animation-play-state: paused;
+                            }
+                        `}
+                    </style>
+                    <div className="group-hover-pause">
+                        <div className={`marquee-content ${isPaused ? 'marquee-paused' : ''}`}>
+                            {[...Array(2)].map((_, listIdx) => (
+                                <div key={listIdx} className="flex gap-4">
+                                    {[
+                                        { 
+                                            title: "The Economist", 
+                                            sub: "Building Future Cities", 
+                                            img: "/images/dashboard/economist_cover_future_cities_1776973021230.png",
+                                            date: "Oct 2024"
+                                        },
+                                        { 
+                                            title: "National Geographic", 
+                                            sub: "Patagonia's Wild Heart", 
+                                            img: "/images/dashboard/natgeo_cover_patagonia_1776973046094.png",
+                                            date: "Dec 2023"
+                                        },
+                                        { 
+                                            title: "Kinfolk Journal", 
+                                            sub: "The Art of Work", 
+                                            img: "/images/dashboard/kinfolk_cover_art_of_work_1776973065900.png",
+                                            date: "Spring 2024"
+                                        },
+                                        { 
+                                            title: "The New Yorker", 
+                                            sub: "The Future of AI in Education", 
+                                            img: "/images/dashboard/newyorker_cover_ai_education_1776973104350.png",
+                                            date: "Nov 2023"
+                                        },
+                                        { 
+                                            title: "Wired", 
+                                            sub: "The Great Tech Reset", 
+                                            img: "/images/dashboard/wired_cover_tech_reset_1776973125543.png",
+                                            date: "Oct 2023"
+                                        },
+                                        { 
+                                            title: "Vogue", 
+                                            sub: "Sustainable Fashion 2025", 
+                                            img: "/images/dashboard/vogue_cover_sustainable_fashion_1776973146230.png",
+                                            date: "Jan 2025"
+                                        }
+                                    ].map((article, i) => (
+                                        <div key={`${listIdx}-${i}`} className="flex-none w-[180px] md:w-[200px] group/card cursor-pointer">
+                                            <div className="relative aspect-[3/4] rounded-md overflow-hidden mb-3 shadow-md group-hover:shadow-xl transition-all duration-500 bg-zinc-100">
+                                                <img 
+                                                    src={article.img} 
+                                                    alt={article.title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                                />
+                                                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
+                                                    <div className="bg-white text-black px-4 py-1.5 rounded-full text-[12px] font-bold shadow-lg transform translate-y-2 group-hover/card:translate-y-0 transition-transform duration-300">
+                                                        O'qish
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <h4 className="text-[12px] font-bold text-[#1D1D1F]">{article.title}</h4>
+                                                <p className="text-[12px] text-zinc-500 font-medium leading-tight line-clamp-1">{article.sub}</p>
+                                                <p className="text-[10px] text-zinc-400 font-medium mt-0.5">{article.date}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    {/* Headphone SVG */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-56 opacity-90 group-hover:-translate-y-2 group-hover:scale-105 transition-transform duration-500" style={{ transform: 'translateX(-50%)' }}>
-                        <svg viewBox="0 0 220 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full drop-shadow-xl">
-                            {/* Headphone arc */}
-                            <path d="M40 110 C40 55 180 55 180 110" stroke="#a78bfa" strokeWidth="12" strokeLinecap="round" fill="none"/>
-                            {/* Left ear cup */}
-                            <rect x="20" y="100" width="38" height="58" rx="16" fill="#c4b5fd" />
-                            <rect x="28" y="110" width="22" height="38" rx="10" fill="#7c3aed" fillOpacity="0.4" />
-                            {/* Right ear cup */}
-                            <rect x="162" y="100" width="38" height="58" rx="16" fill="#c4b5fd" />
-                            <rect x="170" y="110" width="22" height="38" rx="10" fill="#7c3aed" fillOpacity="0.4" />
-                            {/* Sound waves */}
-                            <path d="M100 130 Q110 120 110 135 Q110 150 100 140" stroke="#a78bfa" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                            <path d="M88 125 Q75 120 75 137 Q75 154 88 148" stroke="#c4b5fd" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                        </svg>
+                </div>
+            </div>
+            {/* ── Popular Listening Section (Apple Music Style Banner) ── */}
+            <div className="w-full mt-0 mb-40 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+                <div className="relative w-screen h-[400px] mb-0 overflow-hidden shadow-2xl left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+                    {/* Vibrant Background with Mesh Gradient */}
+                    <div className="absolute inset-0 bg-[#d60017] flex items-center justify-center overflow-hidden">
+                        {/* Huge Stylized Text Background */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center pointer-events-none select-none opacity-20 transform scale-125">
+                             <h1 className="text-white text-[150px] md:text-[220px] lg:text-[280px] font-black tracking-tighter leading-none italic blur-[2px]">
+                                LISTENING
+                             </h1>
+                        </div>
+                        
+                        {/* Animated Mesh Gradients */}
+                        <div className="absolute inset-0 opacity-60">
+                            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-pink-500 blur-[100px] animate-pulse" />
+                            <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-600 blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+                        </div>
+                    </div>
+
+                    {/* Content Overlay */}
+                    <div className="relative h-full flex flex-col justify-end pb-16">
+                        <div className="max-w-7xl mx-auto w-full px-6">
+                            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+                                <div className="max-w-3xl">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="p-1 bg-white rounded-md">
+                                            <Play size={14} className="text-[#d60017] fill-[#d60017]" />
+                                        </div>
+                                        <span className="text-white font-bold text-[13px] tracking-wider uppercase">Listening Premium</span>
+                                    </div>
+                                    <h2 className="text-[28px] md:text-[36px] lg:text-[42px] font-semibold text-white leading-[1.1] tracking-tight">
+                                        Barcha listening materiallari. <br className="hidden md:block" />
+                                        Oliy sifat va reklamasiz.
+                                    </h2>
+                                </div>
+                                
+                                <div className="flex items-center gap-6">
+                                    <button 
+                                        onClick={() => navigate('/practice?tab=listening')}
+                                        className="bg-white text-black px-8 py-3 rounded-full text-[15px] font-bold hover:bg-zinc-100 transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap"
+                                    >
+                                        Bepul o'rganing
+                                    </button>
+                                    <button className="border-2 border-white/30 text-white px-8 py-3 rounded-full text-[15px] font-bold hover:bg-white/10 transition-all hover:scale-105 active:scale-95 whitespace-nowrap">
+                                        Ko'proq ma'lumot
+                                    </button>
+                                    
+                                    {/* Play/Pause Toggle Button (for Listening) */}
+                                    <button 
+                                        onClick={() => setIsListeningPaused(!isListeningPaused)}
+                                        className="w-12 h-12 rounded-full border-2 border-white/30 flex items-center justify-center text-white hover:bg-white/10 transition-all active:scale-90 ml-4"
+                                        title={isListeningPaused ? "Play" : "Pause"}
+                                    >
+                                        {isListeningPaused ? (
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 3l14 9-14 9V3z"/></svg>
+                                        ) : (
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Writing */}
-                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #dcfce7 0%, #bbf7d0 60%, #a7f3d0 100%)' }} onClick={() => navigate('/practice?tab=writing')}>
-                    <div className="p-10 flex flex-col items-center text-center z-10 relative">
-                        <h2 className="text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">Writing</h2>
-                        <p className="text-[15px] text-[#3a3a3c] mt-1.5 font-normal">G'oyalaringizni aniq va ishonchli ifodalang.</p>
-                        <button className="mt-4 px-5 py-1.5 bg-[#059669] hover:bg-[#047857] text-white text-[13px] font-semibold rounded-full transition-all duration-200 shadow-sm">
-                            Mashq qilish
-                        </button>
-                    </div>
-                    {/* Pen & paper SVG */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 opacity-90 group-hover:-translate-y-2 group-hover:scale-105 transition-transform duration-500" style={{ transform: 'translateX(-50%)' }}>
-                        <svg viewBox="0 0 260 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full drop-shadow-xl">
-                            {/* Paper */}
-                            <rect x="40" y="20" width="160" height="145" rx="10" fill="white" fillOpacity="0.85" />
-                            <rect x="60" y="50" width="120" height="6" rx="3" fill="#6ee7b7"/>
-                            <rect x="60" y="66" width="100" height="6" rx="3" fill="#a7f3d0"/>
-                            <rect x="60" y="82" width="110" height="6" rx="3" fill="#6ee7b7"/>
-                            <rect x="60" y="98" width="80" height="6" rx="3" fill="#a7f3d0"/>
-                            <rect x="60" y="114" width="115" height="6" rx="3" fill="#6ee7b7"/>
-                            <rect x="60" y="130" width="90" height="6" rx="3" fill="#a7f3d0"/>
-                            {/* Pen */}
-                            <g transform="rotate(-35 200 80)">
-                                <rect x="190" y="30" width="14" height="70" rx="4" fill="#34d399"/>
-                                <polygon points="190,100 204,100 197,118" fill="#059669"/>
-                                <rect x="190" y="30" width="14" height="10" rx="3" fill="#6ee7b7"/>
-                            </g>
-                        </svg>
+                {/* Horizontal Scrolling Carousel (Listening) */}
+                <div className="relative overflow-hidden -mx-6 group/listening-marquee mt-6">
+                    <style>
+                        {`
+                            @keyframes marquee-listening {
+                                0% { transform: translateX(0); }
+                                100% { transform: translateX(-50%); }
+                            }
+                            .listening-marquee-content {
+                                display: flex;
+                                gap: 1rem;
+                                width: max-content;
+                                animation: marquee-listening 50s linear infinite;
+                            }
+                            .listening-paused {
+                                animation-play-state: paused !important;
+                            }
+                            .group-hover-listening-pause:hover .listening-marquee-content {
+                                animation-play-state: paused;
+                            }
+                        `}
+                    </style>
+                    <div className="group-hover-listening-pause">
+                        <div className={`listening-marquee-content ${isListeningPaused ? 'listening-paused' : ''}`}>
+                            {[...Array(2)].map((_, listIdx) => (
+                                <div key={listIdx} className="flex gap-4">
+                                    {[
+                                        { 
+                                            title: "Daily Dictation", 
+                                            sub: "Improve accuracy with native audio", 
+                                            img: "/images/dashboard/listening_cover_1_vibrant_apple_music_style_1776972033954.png",
+                                            tag: "Podcast"
+                                        },
+                                        { 
+                                            title: "Native Speed", 
+                                            sub: "Master fast British accents", 
+                                            img: "/images/dashboard/listening_cover_2_vibrant_apple_music_style_1776972053148.png",
+                                            tag: "Intensive"
+                                        },
+                                        { 
+                                            title: "Master Class", 
+                                            sub: "Advanced strategies for band 8+", 
+                                            img: "/images/dashboard/listening_cover_3_vibrant_apple_music_style_1776972075391.png",
+                                            tag: "Expert"
+                                        },
+                                        { 
+                                            title: "Cambridge 19", 
+                                            sub: "Official practice tests section 1-4", 
+                                            img: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80",
+                                            tag: "Test"
+                                        },
+                                        { 
+                                            title: "Accent Neutralizer", 
+                                            sub: "American vs British listening", 
+                                            img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80",
+                                            tag: "Skill"
+                                        },
+                                        { 
+                                            title: "News Analysis", 
+                                            sub: "Complex topics and context", 
+                                            img: "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=800&q=80",
+                                            tag: "Daily"
+                                        }
+                                    ].map((item, i) => (
+                                        <div key={`${listIdx}-${i}`} className="flex-none w-[220px] md:w-[260px] group/item cursor-pointer">
+                                            <div className="relative aspect-square rounded-[6px] overflow-hidden mb-4 shadow-lg group-hover:shadow-2xl transition-all duration-500 bg-zinc-100">
+                                                <img 
+                                                    src={item.img} 
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                                />
+                                                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
+                                                    <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 transform scale-90 group-hover/item:scale-100 transition-transform duration-300">
+                                                        <Play size={24} className="text-white fill-white ml-1" />
+                                                    </div>
+                                                </div>
+                                                <div className="absolute top-4 left-4">
+                                                    <span className="bg-black/20 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-widest">
+                                                        {item.tag}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h4 className="text-[14px] font-bold text-[#1D1D1F] group-hover:text-[#0066CC] transition-colors">{item.title}</h4>
+                                                <p className="text-[13px] text-zinc-500 font-medium leading-tight line-clamp-1">{item.sub}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-
-                {/* Speaking */}
-                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #fff7ed 0%, #fed7aa 60%, #fca5a5 100%)' }} onClick={() => navigate('/practice?tab=speaking')}>
-                    <div className="p-10 flex flex-col items-center text-center z-10 relative">
-                        <h2 className="text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">Speaking</h2>
-                        <p className="text-[15px] text-[#3a3a3c] mt-1.5 font-normal">Ravon va ishonch bilan inglizcha gapiring.</p>
-                        <button className="mt-4 px-5 py-1.5 bg-[#ea580c] hover:bg-[#dc2626] text-white text-[13px] font-semibold rounded-full transition-all duration-200 shadow-sm">
-                            Mashq qilish
-                        </button>
-                    </div>
-                    {/* Microphone SVG */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-52 opacity-90 group-hover:-translate-y-2 group-hover:scale-105 transition-transform duration-500" style={{ transform: 'translateX(-50%)' }}>
-                        <svg viewBox="0 0 200 190" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full drop-shadow-xl">
-                            {/* Mic body */}
-                            <rect x="75" y="20" width="50" height="90" rx="25" fill="#fdba74"/>
-                            <rect x="82" y="28" width="36" height="74" rx="18" fill="#fed7aa" fillOpacity="0.6"/>
-                            {/* Stand arc */}
-                            <path d="M50 100 Q50 150 100 150 Q150 150 150 100" stroke="#fb923c" strokeWidth="8" strokeLinecap="round" fill="none"/>
-                            {/* Stand pole */}
-                            <line x1="100" y1="150" x2="100" y2="175" stroke="#fb923c" strokeWidth="8" strokeLinecap="round"/>
-                            <line x1="70" y1="175" x2="130" y2="175" stroke="#fb923c" strokeWidth="8" strokeLinecap="round"/>
-                            {/* Sound waves */}
-                            <path d="M30 85 Q20 100 30 115" stroke="#fca5a5" strokeWidth="4" strokeLinecap="round" fill="none"/>
-                            <path d="M170 85 Q180 100 170 115" stroke="#fca5a5" strokeWidth="4" strokeLinecap="round" fill="none"/>
-                            <path d="M18 72 Q4 100 18 128" stroke="#fed7aa" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
-                            <path d="M182 72 Q196 100 182 128" stroke="#fed7aa" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
-                        </svg>
-                    </div>
-                </div>
-
             </div>
         </section>
     );

@@ -15,7 +15,7 @@ import QuickAnalytics from '../components/dashboard/QuickAnalytics';
 import TestShowcase from '../components/dashboard/TestShowcase';
 import AnnouncementsBoard from '../components/dashboard/AnnouncementsBoard';
 import HeroSection from "../components/dashboard/HeroSection";
-import ModuleBanner from "../components/dashboard/ModuleBanner";
+
 // StatsCards removed as it is integrated into HeroSection now
 // FiltersBar and TestGrid moved to Practice.jsx
 import DashboardModals from "../components/dashboard/DashboardModals";
@@ -255,39 +255,21 @@ export default function StudentDashboard() {
                             examDate={userData?.examDate}
                             daysRemaining={userData?.examTimeframe ? null : undefined}
                             onUpgradeClick={() => setShowPricingModal(true)}
+                            skillStats={skillStats}
+                            streakCount={userData?.streakCount || 0}
+                            points={userData?.gamification?.points || 0}
                         />
 
-                        <ModuleBanner
-                            userName={userData?.fullName?.split(' ')[0] || "O'quvchi"}
-                            userXP={userData?.gamification?.points || 0}
-                            completedModules={stats.completed}
-                            onViewProgress={() => setActiveTab('results')}
-                        />
 
-                        <QuickAnalytics 
-                            stats={skillStats} 
-                            onUpgradeAction={() => setShowPricingModal(true)} 
-                        />
+
+
 
                         {/* GAMIFICATION FEATURES GRID */}
-                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 animate-fade-in-up md:mt-8 mt-6 mb-12" style={{ animationDelay: '0.4s' }}>
+                        <section className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-fade-in-up md:mt-8 mt-6 mb-12" style={{ animationDelay: '0.4s' }}>
 
-                            {/* Streak Card */}
-                            <div className="bg-white p-8 rounded-3xl border border-vetra-grey/60 hover:border-vetra-orange/40 hover:shadow-xl hover:shadow-vetra-orange/5 transition-all duration-500 group flex flex-col justify-between min-h-[160px]">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="p-3 rounded-2xl bg-vetra-orange/5 text-vetra-orange group-hover:bg-vetra-orange group-hover:text-white transition-colors border border-vetra-orange/10">
-                                        <Flame className="w-6 h-6" />
-                                    </div>
-                                    <span className="text-[10px] font-bold text-vetra-stone uppercase tracking-widest">Daily Streak</span>
-                                </div>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-5xl font-display text-vetra-midnight tracking-tighter">{userData?.streakCount || 0}</span>
-                                    <span className="text-sm font-bold text-vetra-stone uppercase tracking-wide">DAYS</span>
-                                </div>
-                            </div>
 
                             {/* XP Card */}
-                            <div className="bg-white p-8 rounded-3xl border border-vetra-grey/60 hover:border-yellow-400/40 hover:shadow-xl hover:shadow-yellow-400/5 transition-all duration-500 group flex flex-col justify-between min-h-[160px]">
+                            <div className="bg-white p-6 rounded-3xl border border-vetra-grey/60 hover:border-yellow-400/40 hover:shadow-xl hover:shadow-yellow-400/5 transition-all duration-500 group flex flex-col justify-between min-h-[140px]">
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="p-3 rounded-2xl bg-yellow-50 text-yellow-600 group-hover:bg-yellow-500 group-hover:text-white transition-colors border border-yellow-100">
                                         <Trophy className="w-6 h-6" />
@@ -295,13 +277,13 @@ export default function StudentDashboard() {
                                     <span className="text-[10px] font-bold text-vetra-stone uppercase tracking-widest">Total XP</span>
                                 </div>
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-5xl font-display text-vetra-midnight tracking-tighter">{userData?.gamification?.points || 0}</span>
+                                    <span className="text-4xl font-display text-vetra-midnight tracking-tighter">{userData?.gamification?.points || 0}</span>
                                     <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md border border-green-200">TOP 5%</span>
                                 </div>
                             </div>
 
                             {/* Mistakes Card */}
-                            <div className="bg-white p-8 rounded-3xl border border-vetra-grey/60 hover:border-red-400/40 hover:shadow-xl hover:shadow-red-400/5 transition-all duration-500 group flex flex-col justify-between min-h-[160px] cursor-pointer" onClick={() => navigate('/practice')}>
+                            <div className="bg-white p-6 rounded-3xl border border-vetra-grey/60 hover:border-red-400/40 hover:shadow-xl hover:shadow-red-400/5 transition-all duration-500 group flex flex-col justify-between min-h-[140px] cursor-pointer" onClick={() => navigate('/practice')}>
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="p-3 rounded-2xl bg-red-50 text-red-500 group-hover:bg-red-500 group-hover:text-white transition-colors border border-red-100">
                                         <AlertTriangle className="w-6 h-6" />
@@ -310,7 +292,7 @@ export default function StudentDashboard() {
                                 </div>
                                 <div className="flex items-baseline justify-between gap-2">
                                     <div className="flex items-baseline gap-2">
-                                        <span className="text-5xl font-display text-vetra-midnight tracking-tighter">{mistakesCount}</span>
+                                        <span className="text-4xl font-display text-vetra-midnight tracking-tighter">{mistakesCount}</span>
                                         <span className="text-sm font-bold text-vetra-stone uppercase tracking-wide">ITEMS</span>
                                     </div>
                                     <ArrowRight className="text-vetra-stone group-hover:text-vetra-midnight transition-all group-hover:translate-x-1" size={20} />
@@ -318,7 +300,7 @@ export default function StudentDashboard() {
                             </div>
 
                             {/* Vocab Card */}
-                            <div className="bg-white p-8 rounded-3xl border border-vetra-grey/60 hover:border-blue-400/40 hover:shadow-xl hover:shadow-blue-400/5 transition-all duration-500 group flex flex-col justify-between min-h-[160px] cursor-pointer" onClick={() => navigate('/vocabulary')}>
+                            <div className="bg-white p-6 rounded-3xl border border-vetra-grey/60 hover:border-blue-400/40 hover:shadow-xl hover:shadow-blue-400/5 transition-all duration-500 group flex flex-col justify-between min-h-[140px] cursor-pointer" onClick={() => navigate('/vocabulary')}>
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="p-3 rounded-2xl bg-blue-50 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors border border-blue-100">
                                         <BookOpen className="w-6 h-6" />
@@ -327,7 +309,7 @@ export default function StudentDashboard() {
                                 </div>
                                 <div className="flex items-baseline justify-between gap-2">
                                     <div className="flex items-baseline gap-2">
-                                        <span className="text-5xl font-display text-vetra-midnight tracking-tighter">{vocabCount}</span>
+                                        <span className="text-4xl font-display text-vetra-midnight tracking-tighter">{vocabCount}</span>
                                         <span className="text-sm font-bold text-vetra-stone uppercase tracking-wide">WORDS</span>
                                     </div>
                                     <ArrowRight className="text-vetra-stone group-hover:text-vetra-midnight transition-all group-hover:translate-x-1" size={20} />
@@ -360,7 +342,7 @@ export default function StudentDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-white font-sans text-vetra-midnight selection:bg-vetra-orange/10">
+        <div className="min-h-screen bg-white font-sans text-[#1d1d1f] antialiased selection:bg-black selection:text-white">
             <DashboardHeader
                 user={user} userData={userData}
                 activeTab={activeTab} setActiveTab={setActiveTab}
@@ -370,7 +352,7 @@ export default function StudentDashboard() {
                 onRefreshClick={handleManualRefresh}
                 loading={loading}
             />
-            <main className="max-w-[1440px] mx-auto px-6 pt-10">
+            <main className="max-w-[1440px] mx-auto px-6">
                 {renderContent()}
             </main>
             <SiteFooter />

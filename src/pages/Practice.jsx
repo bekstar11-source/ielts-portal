@@ -560,7 +560,7 @@ export default function Practice() {
       <main className="w-full">
         <div className="max-w-[1440px] mx-auto px-6">
           {/* HERO SECTION */}
-          <div className="pt-24 pb-8 animate-in fade-in duration-1000">
+          <div className="pt-16 pb-8 animate-in fade-in duration-1000">
              <h1 className="text-[64px] md:text-[80px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">
                {activeTab === 'all' ? 'Amaliyot' : categories.find(c => c.id === activeTab)?.label}
              </h1>
@@ -568,8 +568,8 @@ export default function Practice() {
         </div>
 
         {/* FILTER BAR */}
-        <div className="sticky top-12 z-40 w-full bg-white/40 backdrop-blur-xl mb-16">
-          <div className="max-w-[1440px] mx-auto px-6 flex flex-col md:flex-row items-start md:items-center justify-between py-2 gap-4">
+        <div className="sticky top-[56px] z-40 w-full bg-white/40 backdrop-blur-xl mb-16 py-3">
+          <div className="max-w-[1440px] mx-auto px-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
              <div className="bg-[#f5f5f7] p-1.5 rounded-full flex items-center overflow-x-auto no-scrollbar">
                 <LayoutGroup id="practice-filters">
                 {activeTab === 'reading' ? (

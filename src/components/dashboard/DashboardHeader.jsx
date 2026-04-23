@@ -26,10 +26,12 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
     { id: 'reading', label: 'Reading', path: '/practice?tab=reading' },
     { id: 'listening', label: 'Listening', path: '/practice?tab=listening' },
     { id: 'writing', label: 'Writing', path: '/practice?tab=writing' },
+    { id: 'speaking', label: 'Speaking', path: '/practice?tab=speaking' },
+    { id: 'podcasts', label: 'Podcasts', path: '/podcasts' },
+    { id: 'articles', label: 'Articles', path: '/articles' },
     { id: 'results', label: 'Natijalar', path: '/my-results' },
     { id: 'leaderboard', label: 'Reyting', path: '/leaderboard' },
-    { id: 'vocabulary', label: 'WordBank', path: '/vocabulary' },
-    { id: 'favorites', label: 'Sevimlilar', path: '/favorites' }
+    { id: 'vocabulary', label: 'WordBank', path: '/vocabulary' }
   ];
 
   const handleNavigation = (item) => {
@@ -41,11 +43,11 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
   };
 
   return (
-    <header className="h-12 w-full sticky top-0 z-[60] bg-black/90 backdrop-blur-md border-b border-white/5">
+    <header className="h-14 w-full sticky top-0 z-[60] bg-white border-b border-zinc-100 transition-all duration-300">
       <div className="max-w-[1440px] mx-auto px-6 h-full flex items-center justify-between">
         {/* Logo */}
-        <div className="cursor-pointer flex items-center pr-4" onClick={() => navigate('/dashboard')}>
-           <svg viewBox="0 0 24 24" className="w-5 h-5 text-white fill-current" xmlns="http://www.w3.org/2000/svg">
+        <div className="cursor-pointer flex items-center pr-4 transition-transform hover:scale-105 active:scale-95" onClick={() => navigate('/dashboard')}>
+           <svg viewBox="0 0 24 24" className="w-6 h-6 text-black fill-current" xmlns="http://www.w3.org/2000/svg">
              <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
            </svg>
         </div>
@@ -63,7 +65,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                 
                 hoverTimeoutRef.current = setTimeout(() => {
                   setHoveredTab(item.id);
-                }, 500);
+                }, 400);
               }
             };
 
@@ -73,7 +75,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                 
                 closeTimeoutRef.current = setTimeout(() => {
                   setHoveredTab(null);
-                }, 300); // 0.3s grace period for closing
+                }, 200);
               }
             };
 
@@ -88,11 +90,18 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                   onClick={() => handleNavigation(item)}
                   className={`relative flex items-center text-[12px] font-normal tracking-tight transition-all duration-300 whitespace-nowrap
                     ${isTabActive || hoveredTab === item.id
-                      ? 'text-white' 
-                      : 'text-gray-400/80 hover:text-white'}
+                      ? 'text-black' 
+                      : 'text-black/60 hover:text-black'}
                   `}
                 >
                   {item.label}
+                  {(isTabActive || hoveredTab === item.id) && (
+                    <motion.div 
+                      layoutId="activeTab"
+                      className="absolute -bottom-[21px] left-0 right-0 h-[2px] bg-black"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
                 </button>
               </div>
             );
@@ -103,10 +112,10 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         <AnimatePresence>
           {hoveredTab === 'reading' && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               onMouseEnter={() => {
                 if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
                 if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
@@ -115,9 +124,9 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
               onMouseLeave={() => {
                 closeTimeoutRef.current = setTimeout(() => {
                   setHoveredTab(null);
-                }, 300);
+                }, 200);
               }}
-              className="absolute top-12 left-0 w-full bg-[#1d1d1f] border-b border-white/5 z-50 pt-10 pb-16 shadow-2xl backdrop-blur-3xl"
+              className="absolute top-14 left-0 w-full bg-white border-b border-zinc-100 z-50 pt-10 pb-16 shadow-2xl"
             >
               <motion.div 
                 initial="hidden"
@@ -126,20 +135,20 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                   hidden: { opacity: 0 },
                   visible: {
                     opacity: 1,
-                    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+                    transition: { staggerChildren: 0.05, delayChildren: 0.05 }
                   }
                 }}
-                className="max-w-[980px] mx-auto px-6 grid grid-cols-12 gap-8"
+                className="max-w-[1100px] mx-auto px-6 grid grid-cols-12 gap-12"
               >
                 {/* Column 1: Main Categories */}
                 <motion.div 
                   variants={{
-                    hidden: { opacity: 0, y: -15 },
-                    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+                    hidden: { opacity: 0, x: -10 },
+                    visible: { opacity: 1, x: 0, transition: { duration: 0.4 } }
                   }}
-                  className="col-span-5 space-y-2"
+                  className="col-span-5 space-y-4"
                 >
-                  <p className="text-[12px] text-gray-500 font-medium mb-4 tracking-wide">Bo'limlarni tanlang</p>
+                  <p className="text-[11px] text-black/40 font-normal tracking-tight">Reading Bo'limlari</p>
                   <div className="flex flex-col gap-1">
                     {[
                       { label: 'Passages', id: 'passages' },
@@ -152,7 +161,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                           navigate(`/practice?tab=reading&section=${sub.id}`);
                           setHoveredTab(null);
                         }}
-                        className="text-[24px] font-semibold text-gray-200 hover:text-white transition-all text-left tracking-tight py-1"
+                        className="text-[22px] font-medium text-black hover:text-black/70 transition-all text-left tracking-tight py-0.5"
                       >
                         {sub.label}
                       </button>
@@ -163,32 +172,32 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                 {/* Column 2: Quick Links */}
                 <motion.div 
                   variants={{
-                    hidden: { opacity: 0, y: -15 },
-                    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+                    hidden: { opacity: 0, x: -10 },
+                    visible: { opacity: 1, x: 0, transition: { duration: 0.4 } }
                   }}
                   className="col-span-3 space-y-4 pt-1"
                 >
-                  <p className="text-[12px] text-gray-500 font-medium tracking-wide">Tezkor havolalar</p>
+                  <p className="text-[11px] text-black/40 font-normal tracking-tight">Tezkor</p>
                   <div className="flex flex-col gap-2">
-                    <button onClick={() => navigate('/vocabulary')} className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Word Bank</button>
-                    <button onClick={() => navigate('/favorites')} className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Saqlanganlar</button>
-                    <button onClick={() => navigate('/my-results')} className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Oxirgi natijalar</button>
+                    <button onClick={() => navigate('/practice?tab=speaking')} className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Speaking</button>
+                    <button onClick={() => navigate('/podcasts')} className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Podcasts</button>
+                    <button onClick={() => navigate('/articles')} className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Articles</button>
+                    <button onClick={() => navigate('/vocabulary')} className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Word Bank</button>
                   </div>
                 </motion.div>
 
                 {/* Column 3: Resources */}
                 <motion.div 
                   variants={{
-                    hidden: { opacity: 0, y: -15 },
-                    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+                    hidden: { opacity: 0, x: -10 },
+                    visible: { opacity: 1, x: 0, transition: { duration: 0.4 } }
                   }}
                   className="col-span-4 space-y-4 pt-1"
                 >
-                  <p className="text-[12px] text-gray-500 font-medium tracking-wide">O'rganish uchun</p>
+                  <p className="text-[11px] text-black/40 font-normal tracking-tight">Resurslar</p>
                   <div className="flex flex-col gap-2">
-                    <button className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Reading Tips & Tricks</button>
-                    <button className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Vocabulary Guide</button>
-                    <button className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Band Score Calculator</button>
+                    <button className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Reading Tips & Tricks</button>
+                    <button className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Band Calculator</button>
                   </div>
                 </motion.div>
               </motion.div>
@@ -196,16 +205,16 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
           )}
         </AnimatePresence>
         
-        {/* Backdrop overlay for the rest of the page */}
+        {/* Backdrop overlay */}
         <AnimatePresence>
           {hoveredTab && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.3 }}
               onMouseEnter={() => setHoveredTab(null)}
-              className="fixed inset-0 top-12 bg-black/40 backdrop-blur-sm z-40"
+              className="fixed inset-0 top-14 bg-black/5 backdrop-blur-[2px] z-40"
             />
           )}
         </AnimatePresence>
@@ -215,15 +224,16 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center group"
+              className="flex items-center group gap-2"
             >
-              <div className="w-6 h-6 rounded-full bg-gray-800 overflow-hidden border border-white/10 group-hover:border-white/30 transition-all">
+              <div className="w-8 h-8 rounded-full bg-zinc-100 overflow-hidden border border-zinc-200 group-hover:border-zinc-400 transition-all duration-300">
                 <img
                   src={userData?.photoURL || user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
               </div>
+              <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
             </button>
 
             <AnimatePresence>
@@ -232,27 +242,27 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-3 w-64 bg-[#1d1d1f] border border-white/10 rounded-2xl shadow-2xl py-2 z-[100] origin-top-right backdrop-blur-2xl"
+                  className="absolute right-0 mt-3 w-64 bg-white border border-zinc-100 rounded-3xl shadow-2xl py-2 z-[100] origin-top-right backdrop-blur-2xl"
                 >
-                  <div className="px-5 py-4 border-b border-white/5 mb-1">
-                    <p className="text-[14px] text-white font-medium truncate">{userData?.fullName || "User"}</p>
-                    <p className="text-[11px] font-normal text-gray-500 truncate mt-0.5">{user?.email}</p>
+                  <div className="px-5 py-4 border-b border-zinc-50 mb-1">
+                    <p className="text-[14px] text-zinc-900 font-bold truncate">{userData?.fullName || "User"}</p>
+                    <p className="text-[11px] font-medium text-zinc-400 truncate mt-0.5">{user?.email}</p>
                   </div>
 
                   <div className="px-2 space-y-1">
                     <button
                       onClick={() => { navigate('/settings'); setIsProfileOpen(false); }}
-                      className="w-full text-left px-3 py-2 text-[13px] text-gray-300 hover:bg-white/5 rounded-xl transition-all flex items-center gap-3"
+                      className="w-full text-left px-3 py-2.5 text-[13px] font-semibold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-2xl transition-all flex items-center gap-3"
                     >
-                      <Settings size={14} className="text-gray-500" />
+                      <Settings size={16} className="text-zinc-400" />
                       Sozlamalar
                     </button>
 
                     <button
                       onClick={() => { onLogoutClick(); setIsProfileOpen(false); }}
-                      className="w-full text-left px-3 py-2 text-[13px] text-red-500 hover:bg-red-500/10 rounded-xl transition-all flex items-center gap-3"
+                      className="w-full text-left px-3 py-2.5 text-[13px] font-semibold text-red-500 hover:bg-red-50 rounded-2xl transition-all flex items-center gap-3"
                     >
-                      <LogOut size={14} />
+                      <LogOut size={16} />
                       Chiqish
                     </button>
                   </div>
