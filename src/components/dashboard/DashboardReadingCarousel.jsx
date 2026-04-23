@@ -74,7 +74,7 @@ export default function DashboardReadingCarousel() {
                     <div className="max-w-3xl">
                         <h2 className="text-[28px] md:text-[36px] lg:text-[42px] font-semibold text-[#1D1D1F] leading-[1.1] tracking-tight">
                             Tavsiya etilgan matnlar. <br className="hidden md:block" />
-                            Sizning darajangizga mos Reading passagelar.
+                            <span className="text-[18px] md:text-[24px] lg:text-[28px] text-zinc-500 block mt-2 font-medium">Sizning darajangizga mos Reading passagelar.</span>
                         </h2>
                     </div>
                     <button 

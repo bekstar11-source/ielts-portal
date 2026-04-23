@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Key, LogOut, RotateCw, ArrowUpRight, Settings } from 'lucide-react';
+import { ChevronDown, Key, LogOut, RotateCw, ArrowUpRight, Settings, Search } from 'lucide-react';
+import SearchOverlay from './SearchOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 export default function DashboardHeader({ user, userData, onKeyClick, onLogoutClick, activeTab, setActiveTab, onPremiumClick, onRefreshClick, loading }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [hoveredTab, setHoveredTab] = useState(null);
   const dropdownRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
@@ -19,6 +21,17 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const menuItems = [
@@ -65,7 +78,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                 
                 hoverTimeoutRef.current = setTimeout(() => {
                   setHoveredTab(item.id);
-                }, 400);
+                }, 500);
               }
             };
 
@@ -106,6 +119,15 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
               </div>
             );
           })}
+          
+          {/* Search Button */}
+          <button 
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center text-black/40 hover:text-black transition-all duration-300 transform hover:scale-110"
+            title="Search (⌘K)"
+          >
+            <Search size={15} strokeWidth={2} />
+          </button>
         </nav>
 
         {/* Mega Menu Overlay */}
@@ -207,13 +229,20 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         
         {/* Backdrop overlay */}
         <AnimatePresence>
-          {hoveredTab && (
+          {(hoveredTab || isSearchOpen) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              onMouseEnter={() => setHoveredTab(null)}
+              onMouseEnter={() => {
+                setHoveredTab(null);
+                setIsSearchOpen(false);
+              }}
+              onClick={() => {
+                setHoveredTab(null);
+                setIsSearchOpen(false);
+              }}
               className="fixed inset-0 top-11 bg-black/5 backdrop-blur-[2px] z-40"
             />
           )}
@@ -272,6 +301,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
           </div>
         </div>
       </div>
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   );
 }
