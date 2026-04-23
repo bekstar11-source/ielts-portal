@@ -25,6 +25,7 @@ import MyResults from "../pages/MyResults";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { getRecommendations } from "../utils/recommendations";
 import Leaderboard from "../components/dashboard/Leaderboard";
+import SiteFooter from "../components/common/SiteFooter";
 
 
 
@@ -372,6 +373,7 @@ export default function StudentDashboard() {
             <main className="max-w-[1440px] mx-auto px-6 pt-10">
                 {renderContent()}
             </main>
+            <SiteFooter />
             <DashboardModals
                 showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}
                 accessKeyInput={accessKeyInput} setAccessKeyInput={setAccessKeyInput}

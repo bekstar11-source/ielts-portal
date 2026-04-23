@@ -5,7 +5,10 @@ import { useNavigate } from 'react-router-dom';
 
 export default function DashboardHeader({ user, userData, onKeyClick, onLogoutClick, activeTab, setActiveTab, onPremiumClick, onRefreshClick, loading }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [hoveredTab, setHoveredTab] = useState(null);
   const dropdownRef = useRef(null);
+  const hoverTimeoutRef = useRef(null);
+  const closeTimeoutRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,7 +23,9 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
-    { id: 'practice', label: 'Practice', path: '/practice' },
+    { id: 'reading', label: 'Reading', path: '/practice?tab=reading' },
+    { id: 'listening', label: 'Listening', path: '/practice?tab=listening' },
+    { id: 'writing', label: 'Writing', path: '/practice?tab=writing' },
     { id: 'results', label: 'Natijalar', path: '/my-results' },
     { id: 'leaderboard', label: 'Reyting', path: '/leaderboard' },
     { id: 'vocabulary', label: 'WordBank', path: '/vocabulary' },
@@ -49,21 +54,161 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         <nav className="flex items-center justify-center gap-6 md:gap-10 h-full flex-1 overflow-x-auto hide-scrollbar">
           {menuItems.map((item) => {
             const isTabActive = activeTab === item.id;
+            const hasMegaMenu = item.id === 'reading';
+
+            const handleMouseEnter = () => {
+              if (hasMegaMenu) {
+                if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+                if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                
+                hoverTimeoutRef.current = setTimeout(() => {
+                  setHoveredTab(item.id);
+                }, 500);
+              }
+            };
+
+            const handleMouseLeave = () => {
+              if (hasMegaMenu) {
+                if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                
+                closeTimeoutRef.current = setTimeout(() => {
+                  setHoveredTab(null);
+                }, 300); // 0.3s grace period for closing
+              }
+            };
+
             return (
-              <button
-                key={item.id}
-                onClick={() => handleNavigation(item)}
-                className={`relative flex items-center text-[12px] font-normal tracking-tight transition-all duration-300 whitespace-nowrap
-                  ${isTabActive 
-                    ? 'text-white' 
-                    : 'text-gray-400/80 hover:text-white'}
-                `}
+              <div 
+                key={item.id} 
+                className="h-full flex items-center"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
               >
-                {item.label}
-              </button>
+                <button
+                  onClick={() => handleNavigation(item)}
+                  className={`relative flex items-center text-[12px] font-normal tracking-tight transition-all duration-300 whitespace-nowrap
+                    ${isTabActive || hoveredTab === item.id
+                      ? 'text-white' 
+                      : 'text-gray-400/80 hover:text-white'}
+                  `}
+                >
+                  {item.label}
+                </button>
+              </div>
             );
           })}
         </nav>
+
+        {/* Mega Menu Overlay */}
+        <AnimatePresence>
+          {hoveredTab === 'reading' && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              onMouseEnter={() => {
+                if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+                if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                setHoveredTab('reading');
+              }}
+              onMouseLeave={() => {
+                closeTimeoutRef.current = setTimeout(() => {
+                  setHoveredTab(null);
+                }, 300);
+              }}
+              className="absolute top-12 left-0 w-full bg-[#1d1d1f] border-b border-white/5 z-50 pt-10 pb-16 shadow-2xl backdrop-blur-3xl"
+            >
+              <motion.div 
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+                  }
+                }}
+                className="max-w-[980px] mx-auto px-6 grid grid-cols-12 gap-8"
+              >
+                {/* Column 1: Main Categories */}
+                <motion.div 
+                  variants={{
+                    hidden: { opacity: 0, y: -15 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+                  }}
+                  className="col-span-5 space-y-2"
+                >
+                  <p className="text-[12px] text-gray-500 font-medium mb-4 tracking-wide">Bo'limlarni tanlang</p>
+                  <div className="flex flex-col gap-1">
+                    {[
+                      { label: 'Passages', id: 'passages' },
+                      { label: 'Full Tests', id: 'full_test' },
+                      { label: 'Sets', id: 'set' }
+                    ].map((sub) => (
+                      <button
+                        key={sub.id}
+                        onClick={() => {
+                          navigate(`/practice?tab=reading&section=${sub.id}`);
+                          setHoveredTab(null);
+                        }}
+                        className="text-[24px] font-semibold text-gray-200 hover:text-white transition-all text-left tracking-tight py-1"
+                      >
+                        {sub.label}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Column 2: Quick Links */}
+                <motion.div 
+                  variants={{
+                    hidden: { opacity: 0, y: -15 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+                  }}
+                  className="col-span-3 space-y-4 pt-1"
+                >
+                  <p className="text-[12px] text-gray-500 font-medium tracking-wide">Tezkor havolalar</p>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => navigate('/vocabulary')} className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Word Bank</button>
+                    <button onClick={() => navigate('/favorites')} className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Saqlanganlar</button>
+                    <button onClick={() => navigate('/my-results')} className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Oxirgi natijalar</button>
+                  </div>
+                </motion.div>
+
+                {/* Column 3: Resources */}
+                <motion.div 
+                  variants={{
+                    hidden: { opacity: 0, y: -15 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+                  }}
+                  className="col-span-4 space-y-4 pt-1"
+                >
+                  <p className="text-[12px] text-gray-500 font-medium tracking-wide">O'rganish uchun</p>
+                  <div className="flex flex-col gap-2">
+                    <button className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Reading Tips & Tricks</button>
+                    <button className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Vocabulary Guide</button>
+                    <button className="text-[12px] text-gray-300 hover:text-blue-400 hover:underline transition-all text-left font-medium">Band Score Calculator</button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Backdrop overlay for the rest of the page */}
+        <AnimatePresence>
+          {hoveredTab && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              onMouseEnter={() => setHoveredTab(null)}
+              className="fixed inset-0 top-12 bg-black/40 backdrop-blur-sm z-40"
+            />
+          )}
+        </AnimatePresence>
 
         {/* Right Section */}
         <div className="flex items-center gap-4 pl-4">

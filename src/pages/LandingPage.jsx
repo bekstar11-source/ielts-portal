@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom'; // 🔥 ROUTING ULANDI
 import { motion, AnimatePresence } from 'framer-motion';
+import SiteFooter from '../components/common/SiteFooter';
 import {
   CheckCircle2,
   BarChart3,
@@ -585,19 +586,6 @@ const FooterCTA = () => (
   </section>
 )
 
-const Footer = () => (
-  <footer className="px-6 py-12 bg-gray-50 border-t border-gray-200 text-sm font-medium text-gray-500">
-    <div className="flex flex-col items-center justify-between max-w-6xl mx-auto gap-4 md:flex-row">
-      <p>© 2026 ENGLEV. Barcha huquqlar himoyalangan.</p>
-      <div className="flex gap-6">
-        <a href="#" className="hover:text-black transition-colors">Biz haqimizda</a>
-        <a href="#" className="hover:text-black transition-colors">Aloqa</a>
-        <a href="#" className="hover:text-black transition-colors">Maxfiylik siyosati</a>
-      </div>
-    </div>
-  </footer>
-)
-
 // --- Main Layout Component ---
 
 export default function IELTSPortalLanding() {
@@ -609,7 +597,7 @@ export default function IELTSPortalLanding() {
       <BentoGrid />
       <Workflow />
       <FooterCTA />
-      <Footer />
+      <SiteFooter />
     </div>
   );
 }

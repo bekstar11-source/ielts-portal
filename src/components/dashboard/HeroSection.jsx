@@ -397,7 +397,7 @@ export default function HeroSection({
             <div className="w-full mt-16 grid grid-cols-1 md:grid-cols-2 gap-2 -mx-6" style={{ width: 'calc(100% + 3rem)' }}>
 
                 {/* Reading */}
-                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #dbeafe 0%, #bfdbfe 60%, #a5f3fc 100%)' }} onClick={() => navigate('/practice')}>
+                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #dbeafe 0%, #bfdbfe 60%, #a5f3fc 100%)' }} onClick={() => navigate('/practice?tab=reading')}>
                     <div className="p-10 flex flex-col items-center text-center z-10 relative">
                         <h2 className="text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">Reading</h2>
                         <p className="text-[15px] text-[#3a3a3c] mt-1.5 font-normal">Matnlarni tez va aniq tushunish.</p>
@@ -485,7 +485,7 @@ export default function HeroSection({
                 </div>
 
                 {/* Listening */}
-                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #ede9fe 0%, #ddd6fe 60%, #c4b5fd 100%)' }} onClick={() => navigate('/practice')}>
+                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #ede9fe 0%, #ddd6fe 60%, #c4b5fd 100%)' }} onClick={() => navigate('/practice?tab=listening')}>
                     <div className="p-10 flex flex-col items-center text-center z-10 relative">
                         <h2 className="text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">Listening</h2>
                         <p className="text-[15px] text-[#3a3a3c] mt-1.5 font-normal">Audio materiallarda barcha tafsilotlarni qo'lga kiriting.</p>
@@ -512,7 +512,7 @@ export default function HeroSection({
                 </div>
 
                 {/* Writing */}
-                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #dcfce7 0%, #bbf7d0 60%, #a7f3d0 100%)' }} onClick={() => navigate('/practice')}>
+                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #dcfce7 0%, #bbf7d0 60%, #a7f3d0 100%)' }} onClick={() => navigate('/practice?tab=writing')}>
                     <div className="p-10 flex flex-col items-center text-center z-10 relative">
                         <h2 className="text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">Writing</h2>
                         <p className="text-[15px] text-[#3a3a3c] mt-1.5 font-normal">G'oyalaringizni aniq va ishonchli ifodalang.</p>
@@ -542,7 +542,7 @@ export default function HeroSection({
                 </div>
 
                 {/* Speaking */}
-                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #fff7ed 0%, #fed7aa 60%, #fca5a5 100%)' }} onClick={() => navigate('/practice')}>
+                <div className="relative overflow-hidden cursor-pointer group aspect-[4/3]" style={{ background: 'linear-gradient(145deg, #fff7ed 0%, #fed7aa 60%, #fca5a5 100%)' }} onClick={() => navigate('/practice?tab=speaking')}>
                     <div className="p-10 flex flex-col items-center text-center z-10 relative">
                         <h2 className="text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">Speaking</h2>
                         <p className="text-[15px] text-[#3a3a3c] mt-1.5 font-normal">Ravon va ishonch bilan inglizcha gapiring.</p>

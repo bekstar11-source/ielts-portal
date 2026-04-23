@@ -7,6 +7,7 @@ import { IoChevronBack, IoDocumentTextOutline, IoHeadsetOutline, IoMicOutline, I
 import { getSynonymPairCounts } from "../utils/wordbankUtils";
 import { calculateBandScore, calculateOverallBand } from "../utils/ieltsScoring";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
+import SiteFooter from "../components/common/SiteFooter";
 
 const getTestTheme = (type) => {
   switch (type) {
@@ -447,6 +448,7 @@ export default function MyResults() {
           </>
         )}
       </main>
+      <div className="relative z-10"><SiteFooter /></div>
     </div>
   );
 }

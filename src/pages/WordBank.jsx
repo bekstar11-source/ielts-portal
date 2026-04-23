@@ -37,6 +37,7 @@ import WordBankFlashcards from '../components/WordBank/WordBankFlashcards';
 import WordBankMatchGame from '../components/WordBank/WordBankMatchGame';
 import { getUserWordBank, deleteWordFromBank } from '../utils/wordbankUtils';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
+import SiteFooter from '../components/common/SiteFooter';
 
 export default function Wordbank() {
     const { user, userData } = useAuth();
@@ -717,6 +718,7 @@ export default function Wordbank() {
                   </div>
                 </div>
               </main>
+              <div className="relative z-10"><SiteFooter /></div>
         
               <style>
                 {`
