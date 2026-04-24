@@ -140,10 +140,10 @@ export default function DiagnosticResult() {
                 transition={{ duration: 0.8, type: "spring", delay: 0.2 }}
                 className="w-full max-w-2xl relative z-10 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 md:p-12 text-center shadow-[0_0_50px_rgba(0,100,255,0.1)]"
             >
-                <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-[#8ca1c4] mb-3 tracking-tight filter drop-shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
+                <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-[#8ca1c4] mb-2 tracking-tight filter drop-shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
                     Diagnostic Yakunlandi!
                 </h1>
-                <p className="text-[#a0b0cb] mb-10 text-lg">Sizning joriy darajangiz aniqlandi.</p>
+                <p className="text-[#a0b0cb] mb-8 text-sm">Sizning joriy darajangiz aniqlandi.</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10 items-center">
                     {/* Chart Container */}
@@ -164,8 +164,8 @@ export default function DiagnosticResult() {
                             </RadialBarChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center pt-8">
-                            <span className="text-5xl font-bold text-white">{currentBand}</span>
-                            <span className="text-sm text-blue-400 uppercase tracking-widest mt-1">Band</span>
+                            <span className="text-4xl font-bold text-white">{currentBand}</span>
+                            <span className="text-[10px] text-blue-400 uppercase tracking-widest mt-1">Band</span>
                         </div>
                     </div>
 
@@ -177,7 +177,7 @@ export default function DiagnosticResult() {
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Maqsad</p>
-                                <p className="text-xl font-bold text-white">{targetBand} Band</p>
+                                <p className="text-lg font-bold text-white">{targetBand} Band</p>
                             </div>
                         </div>
 
@@ -187,7 +187,7 @@ export default function DiagnosticResult() {
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Farq</p>
-                                <p className="text-xl font-bold text-white">
+                                <p className="text-lg font-bold text-white">
                                     {gap > 0 ? `+${gap} Band kerak` : "Maqsadga yetdingiz!"}
                                 </p>
                             </div>
@@ -196,15 +196,15 @@ export default function DiagnosticResult() {
                 </div>
 
                 <div className="bg-blue-900/20 border border-blue-500/20 rounded-2xl p-6 mb-8 text-left">
-                    <h3 className="text-blue-400 font-bold text-lg mb-2">Sizning shaxsiy rejangiz tayyor! 🚀</h3>
-                    <p className="text-[#a0b0cb] text-sm md:text-base">
+                    <h3 className="text-blue-400 font-bold text-base mb-2">Sizning shaxsiy rejangiz tayyor! 🚀</h3>
+                    <p className="text-[#a0b0cb] text-xs md:text-sm">
                         Biz sizning zaif tomonlaringizni tahlil qildik. Endi maqsadga erishish uchun kunlik vazifalarni bajarish orqali reytingni ko'tarishingiz mumkin.
                     </p>
                 </div>
 
                 <button
                     onClick={() => navigate('/dashboard')}
-                    className="w-full sm:w-auto bg-transparent border border-white/50 text-white px-10 py-4 rounded-full font-bold text-sm uppercase tracking-[1.5px] hover:bg-white hover:text-[#06193b] hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all flex items-center justify-center mx-auto gap-3 backdrop-blur-sm group"
+                    className="w-full sm:w-auto bg-transparent border border-white/50 text-white px-8 py-3 rounded-full font-bold text-xs uppercase tracking-[1px] hover:bg-white hover:text-[#06193b] hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all flex items-center justify-center mx-auto gap-3 backdrop-blur-sm group"
                 >
                     Dashboardga O'tish
                     <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />

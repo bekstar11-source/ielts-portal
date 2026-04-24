@@ -129,23 +129,38 @@ export default function StudentDashboard() {
     const stats = useMemo(() => {
         const total = rawAssignments.length;
         const completed = rawAssignments.filter(t => t.status === 'completed' || (t.isSet && t.completedTests > 0)).length;
+        
+        // Agar analyticsStats da tayyor average bo'lsa, shuni ishlatamiz
+        if (analyticsStats?.averageScore > 0) {
+            return { total, completed, avg: analyticsStats.averageScore };
+        }
+
         let totalScore = 0, scoreCount = 0;
         rawAssignments.forEach(t => {
-            if (t.result?.bandScore) { totalScore += parseFloat(t.result.bandScore); scoreCount++; }
-            if (t.isSet) { (t.subTests || []).forEach(sub => { if (sub.result?.bandScore) { totalScore += parseFloat(sub.result.bandScore); scoreCount++; } }); }
+            const bScore = parseFloat(t.result?.bandScore || t.result?.score || 0);
+            if (bScore > 0) { totalScore += bScore; scoreCount++; }
+            if (t.isSet) { 
+                (t.subTests || []).forEach(sub => { 
+                    const subBScore = parseFloat(sub.result?.bandScore || sub.result?.score || 0);
+                    if (subBScore > 0) { totalScore += subBScore; scoreCount++; } 
+                }); 
+            }
         });
         const rawAvg = scoreCount > 0 ? (totalScore / scoreCount) : 0;
         const avg = rawAvg > 0 ? (Math.round(rawAvg * 2) / 2).toFixed(1) : 0;
         return { total, completed, avg };
-    }, [rawAssignments]);
+    }, [rawAssignments, analyticsStats]);
 
     // 🔥 REAL STATISTIKA (useAnalytics dan olinadi)
     const skillStats = useMemo(() => {
         const averages = analyticsStats.skillAverages || { reading: 0, listening: 0, writing: 0, speaking: 0 };
+        
         const roundToIELTSBand = (score) => {
-            if (!score) return 0;
-            return (Math.round(score * 2) / 2).toFixed(1);
+            const num = parseFloat(score);
+            if (!num || isNaN(num)) return "0.0";
+            return (Math.round(num * 2) / 2).toFixed(1);
         };
+
         return [
             { name: "Reading", score: roundToIELTSBand(averages.reading), icon: BookOpen, color: "blue" },
             { name: "Listening", score: roundToIELTSBand(averages.listening), icon: Headphones, color: "purple" },

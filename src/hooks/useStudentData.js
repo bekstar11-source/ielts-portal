@@ -51,10 +51,10 @@ export function useStudentData(user) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const CACHE_KEY = user ? `student_assignments_v2_${user.uid}` : null;
-    const CACHE_TIME_KEY = user ? `student_assignments_time_v2_${user.uid}` : null;
-    const RESULTS_CACHE_KEY = user ? `student_results_v2_${user.uid}` : null;
-    const RESULTS_CACHE_TIME_KEY = user ? `student_results_time_v2_${user.uid}` : null;
+    const CACHE_KEY = user ? `student_assignments_v4_${user.uid}` : null;
+    const CACHE_TIME_KEY = user ? `student_assignments_time_v4_${user.uid}` : null;
+    const RESULTS_CACHE_KEY = user ? `student_results_v4_${user.uid}` : null;
+    const RESULTS_CACHE_TIME_KEY = user ? `student_results_time_v4_${user.uid}` : null;
 
     const fetchData = async (forceRefresh = false) => {
         if (!user) return;

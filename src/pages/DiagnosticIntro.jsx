@@ -62,9 +62,9 @@ export default function DiagnosticIntro() {
 
                 .diag-title {
                     font-weight: 600;
-                    font-size: clamp(3rem, 5vw + 1rem, 5.5rem);
+                    font-size: clamp(1.5rem, 3vw + 0.5rem, 2.5rem);
                     line-height: 1.1;
-                    letter-spacing: -2px;
+                    letter-spacing: -1px;
                     background: linear-gradient(180deg, #ffffff 20%, #8ca1c4 100%);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
@@ -75,7 +75,7 @@ export default function DiagnosticIntro() {
 
                 .diag-subtitle {
                     font-weight: 400;
-                    font-size: clamp(1rem, 2vw, 1.15rem);
+                    font-size: clamp(0.7rem, 1vw + 0.2rem, 0.85rem);
                     color: rgba(255, 255, 255, 0.65);
                     letter-spacing: 0px;
                     padding: 0 20px;
@@ -87,7 +87,7 @@ export default function DiagnosticIntro() {
                     background: transparent;
                     color: #ffffff;
                     font-weight: 600;
-                    font-size: 0.85rem;
+                    font-size: 0.7rem;
                     text-transform: uppercase;
                     padding: 15px 40px;
                     text-decoration: none;

@@ -8,7 +8,9 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  browserSessionPersistence,
+  setPersistence
 } from "firebase/auth";
 import { logAction } from "../utils/logger"; // Import logger
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -19,6 +21,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // Firebase User (auth)
   const [userData, setUserData] = useState(null); // Firestore User Data (role, name, photo)
   const [loading, setLoading] = useState(true);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState(null);
 
   // 1. Ro'yxatdan o'tish
   const signup = async (email, password, fullName, role = "student") => {
@@ -77,18 +80,30 @@ export function AuthProvider({ children }) {
 
 
   // 1. Recaptcha
-  function setupRecaptcha(phoneNumber) {
-    const recaptchaVerifier = new RecaptchaVerifier(
+  function setupRecaptcha(containerId) {
+    if (window.recaptchaVerifier) {
+      return window.recaptchaVerifier;
+    }
+    
+    window.recaptchaVerifier = new RecaptchaVerifier(
       auth,
-      "recaptcha-container",
-      { size: "invisible" }
+      containerId,
+      { 
+        size: "normal", // Visible checkbox for better reliability on localhost
+        callback: (response) => {
+            // reCAPTCHA solved
+        },
+        'expired-callback': () => {
+            // Response expired.
+        }
+      }
     );
-    return recaptchaVerifier;
+    return window.recaptchaVerifier;
   }
 
   // 2. SMS yuborish
-  function signInWithPhone(phoneNumber) {
-    const appVerifier = setupRecaptcha(phoneNumber);
+  function signInWithPhone(phoneNumber, containerId = "recaptcha-container") {
+    const appVerifier = setupRecaptcha(containerId);
     return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
   }
 

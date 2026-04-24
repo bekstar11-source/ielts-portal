@@ -2,20 +2,168 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase/firebase';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Check, Target, Calendar, Globe, Clock, User, Award, BookOpen } from 'lucide-react';
+import { 
+    ChevronRight, 
+    ChevronLeft, 
+    ChevronUp,
+    ChevronDown,
+    Check, 
+    Target, 
+    Calendar, 
+    Globe, 
+    Clock, 
+    User, 
+    Award, 
+    BookOpen,
+    Sparkles,
+    TrendingUp,
+    Loader2,
+    CalendarDays
+} from 'lucide-react';
 
 const steps = [
     { id: 1, title: "Tanishuv" },
     { id: 2, title: "Daraja" },
     { id: 3, title: "Maqsad" },
-    { id: 4, title: "Reja" },
-    { id: 5, title: "Tayyor!" }
+    { id: 4, title: "Tayyor!" }
 ];
 
+const StepTitle = ({ title, subtitle }) => (
+    <div className="mb-4 text-center">
+        <h2 className="text-2xl font-bold text-[#1a1a1a] tracking-tight mb-2">
+            {title}
+        </h2>
+        <p className="text-[#666] text-sm font-medium">
+            {subtitle}
+        </p>
+    </div>
+);
+
+const NumberStepper = ({ value, onChange, min = 0, max = 9, step = 0.5 }) => {
+    const increment = () => {
+        const current = parseFloat(value) || 4.0;
+        if (current < max) onChange((current + step).toFixed(1));
+    };
+    const decrement = () => {
+        const current = parseFloat(value) || 4.0;
+        if (current > min) onChange((current - step).toFixed(1));
+    };
+
+    return (
+        <div className="flex items-center bg-white border border-[#eee] rounded-lg overflow-hidden max-w-[85px] mx-auto shadow-sm">
+            <div className="flex-1 text-center py-1 px-2 text-[15px] font-bold text-[#1a1a1a]">
+                {value || "5.0"}
+            </div>
+            <div className="flex flex-col border-l border-[#eee]">
+                <button 
+                    onClick={increment}
+                    className="p-1 hover:bg-[#f8f8f9] text-[#aaa] hover:text-[#000000] transition-colors border-b border-[#eee]"
+                >
+                    <ChevronUp size={10} />
+                </button>
+                <button 
+                    onClick={decrement}
+                    className="p-1 hover:bg-[#f8f8f9] text-[#aaa] hover:text-[#000000] transition-colors"
+                >
+                    <ChevronDown size={10} />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const CustomDatePicker = ({ value, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [viewDate, setViewDate] = useState(value ? new Date(value) : new Date());
+
+    const months = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
+    const days = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"];
+
+    const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (year, month) => {
+        const day = new Date(year, month, 1).getDay();
+        return day === 0 ? 6 : day - 1; // Adjust to Monday start
+    };
+
+    const handleDateSelect = (day) => {
+        const selected = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+        onChange(selected.toISOString().split('T')[0]);
+        setIsOpen(false);
+    };
+
+    const changeMonth = (offset) => {
+        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 1));
+    };
+
+    const daysInMonth = getDaysInMonth(viewDate.getFullYear(), viewDate.getMonth());
+    const firstDay = getFirstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth());
+    const today = new Date();
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg py-1.5 px-5 flex items-center justify-between text-[13px] font-medium text-[#1a1a1a] transition-all"
+            >
+                <div className="flex items-center gap-3">
+                    <CalendarDays size={18} className="text-[#000000]" />
+                    <span>{value ? new Date(value).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }) : "Sanani tanlang"}</span>
+                </div>
+                <ChevronDown size={16} className={`text-[#aaa] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <>
+                        <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
+                        <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-lg shadow-2xl border border-[#eee] p-4 z-30"
+                        >
+                            <div className="flex justify-between items-center mb-4 px-2">
+                                <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-[#f8f8f9] rounded-lg text-[#aaa]"><ChevronLeft size={18} /></button>
+                                <span className="font-bold text-sm text-[#1a1a1a]">{months[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
+                                <button onClick={() => changeMonth(1)} className="p-1 hover:bg-[#f8f8f9] rounded-lg text-[#aaa]"><ChevronRight size={18} /></button>
+                            </div>
+                            <div className="grid grid-cols-7 gap-1 mb-2">
+                                {days.map(d => <div key={d} className="text-center text-[10px] font-bold text-[#ccc] uppercase">{d}</div>)}
+                            </div>
+                            <div className="grid grid-cols-7 gap-1">
+                                {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                                {Array.from({ length: daysInMonth }).map((_, i) => {
+                                    const day = i + 1;
+                                    const isSelected = value && new Date(value).getDate() === day && new Date(value).getMonth() === viewDate.getMonth() && new Date(value).getFullYear() === viewDate.getFullYear();
+                                    const isToday = today.getDate() === day && today.getMonth() === viewDate.getMonth() && today.getFullYear() === viewDate.getFullYear();
+                                    
+                                    return (
+                                        <button
+                                            key={day}
+                                            onClick={() => handleDateSelect(day)}
+                                            className={`aspect-square rounded-lg text-[11px] font-bold transition-all flex items-center justify-center ${
+                                                isSelected ? 'bg-[#000000] text-white shadow-lg shadow-black/10' : 
+                                                isToday ? 'bg-[#000000]/10 text-[#000000]' : 
+                                                'hover:bg-[#f8f8f9] text-[#1a1a1a]'
+                                            }`}
+                                        >
+                                            {day}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 export default function Onboarding() {
-    const { user } = useAuth();
+    const { user, refreshUserData } = useAuth();
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -23,38 +171,22 @@ export default function Onboarding() {
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
-        ageRange: "",
         currentLevel: "",
-        hasTakenIELTS: "",
+        hasTakenIELTS: null,
         previousIELTSScore: "",
         targetBand: "7.0",
-        examDate: "",
-        purpose: "",
-        weakSkills: [],
-        dailyStudyTime: ""
+        examDate: ""
     });
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleSkillToggle = (skill) => {
-        setFormData(prev => {
-            const skills = prev.weakSkills.includes(skill)
-                ? prev.weakSkills.filter(s => s !== skill)
-                : [...prev.weakSkills, skill];
-            return { ...prev, weakSkills: skills };
-        });
-    };
-
     const nextStep = () => {
         if (currentStep === 1) {
-            if (!formData.firstName.trim() || !formData.lastName.trim()) {
-                alert("Iltimos, Ism va Familiyangizni kiriting!");
-                return;
-            }
+            if (!formData.firstName.trim() || !formData.lastName.trim()) return;
         }
-        if (currentStep < 5) setCurrentStep(c => c + 1);
+        if (currentStep < 4) setCurrentStep(c => c + 1);
     };
 
     const prevStep = () => {
@@ -73,165 +205,97 @@ export default function Onboarding() {
             const dataToSave = {
                 ...formData,
                 fullName: `${formData.firstName} ${formData.lastName}`.trim(),
-                onboarding: {
-                    completed: true,
-                    completedAt: new Date().toISOString()
-                },
                 onboardingCompleted: true,
-                // Initial values for dashboard
                 currentBand: formData.previousIELTSScore ? safeFloat(formData.previousIELTSScore, 4.0) : 4.0,
                 targetBand: safeFloat(formData.targetBand, 7.0),
             };
 
-            // Sanitize undefined
-            Object.keys(dataToSave).forEach(key => dataToSave[key] === undefined && delete dataToSave[key]);
-
-            // Use setDoc with merge for robustness
             await setDoc(doc(db, 'users', user.uid), dataToSave, { merge: true });
-
-            navigate('/diagnostic-intro');
+            
+            // Local state'ni yangilash (App.jsx dagi redirect loop'ni oldini olish uchun)
+            if (refreshUserData) await refreshUserData();
+            
+            navigate('/dashboard');
         } catch (error) {
             console.error("Onboarding error:", error);
-            alert(`Xatolik yuz berdi: ${error.message}`);
         } finally {
             setLoading(false);
         }
     };
 
-    // --- RENDER STEPS ---
-
     const renderStep1 = () => (
-        <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white mb-2">Keling, tanishib olaylik! 👋</h2>
-            <p className="text-gray-400 mb-8">Sizga mos o'quv rejasini tuzishimiz uchun ma'lumotlaringiz kerak.</p>
-
-            <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Ismingiz <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <User className="absolute left-4 top-3.5 w-5 h-5 text-gray-500" />
-                            <input
-                                type="text"
-                                value={formData.firstName}
-                                onChange={(e) => handleInputChange('firstName', e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-                                placeholder="Aziza"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Familiyangiz <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <User className="absolute left-4 top-3.5 w-5 h-5 text-gray-500" />
-                            <input
-                                type="text"
-                                value={formData.lastName}
-                                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-                                placeholder="Karimova"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Yoshingiz</label>
-                    <div className="grid grid-cols-3 gap-3">
-                        {['16-18', '19-25', '26-35', '36-45', '46+'].map(age => (
-                            <button
-                                key={age}
-                                onClick={() => handleInputChange('ageRange', age)}
-                                className={`py-3 rounded-xl border transition-all ${formData.ageRange === age
-                                    ? 'bg-orange-500 border-orange-500 text-white shadow-[0_0_20px_rgba(255,85,32,0.3)]'
-                                    : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:border-white/20'
-                                    }`}
-                            >
-                                {age}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+        <div className="max-w-xs mx-auto">
+            <StepTitle 
+                title="Keling, tanishaylik" 
+                subtitle="Sizga mos o'quv rejasini tuzish uchun ma'lumotlaringiz kerak." 
+            />
+            <div className="space-y-3 max-w-[260px] mx-auto mt-8">
+                <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    className="w-full bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg py-1.5 px-5 text-[13px] font-medium text-[#1a1a1a] outline-none transition-all"
+                    placeholder="Ism"
+                />
+                <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    className="w-full bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg py-1.5 px-5 text-[13px] font-medium text-[#1a1a1a] outline-none transition-all"
+                    placeholder="Familiya"
+                />
             </div>
         </div>
     );
 
     const renderStep2 = () => (
-        <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white mb-2">Ingliz tili darajangiz 📊</h2>
-            <p className="text-gray-400 mb-8">Hozirgi holatingizni qanday baholaysiz?</p>
-
-            <div className="space-y-3">
+        <div className="max-w-[400px] mx-auto">
+            <StepTitle 
+                title="Hozirgi darajangiz" 
+                subtitle="Ingliz tili bilimingizni qanday baholaysiz?" 
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mt-8">
                 {[
-                    { val: 'Beginner', label: 'Boshlang\'ich (A1-A2)' },
-                    { val: 'Intermediate', label: 'O\'rta (B1-B2)' },
-                    { val: 'Upper-Intermediate', label: 'Yuqori O\'rta (B2+)' },
-                    { val: 'Advanced', label: 'Ilg\'or (C1-C2)' },
-                    { val: 'Unknown', label: 'Bilmayman / Aniqlamoqchiman' }
+                    { val: 'Beginner', label: 'Boshlang\'ich', desc: 'A1-A2 daraja' },
+                    { val: 'Intermediate', label: 'O\'rta', desc: 'B1-B2 daraja' },
+                    { val: 'Upper-Intermediate', label: 'Yuqori O\'rta', desc: 'B2+ daraja' },
+                    { val: 'Advanced', label: 'Ilg\'or', desc: 'C1-C2 daraja' },
                 ].map((level) => (
                     <button
                         key={level.val}
                         onClick={() => handleInputChange('currentLevel', level.val)}
-                        className={`w-full text-left px-6 py-4 rounded-2xl border transition-all flex justify-between items-center group ${formData.currentLevel === level.val
-                            ? 'bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500 text-white'
-                            : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
-                            }`}
+                        className={`text-left px-5 py-1.5 rounded-lg border-2 transition-all group ${formData.currentLevel === level.val
+                            ? 'border-[#000000] bg-white shadow-xl shadow-black/5'
+                            : 'border-transparent bg-[#f8f8f9] hover:bg-[#ececf0]'
+                        }`}
                     >
-                        <span className="font-medium">{level.label}</span>
-                        {formData.currentLevel === level.val && <Check className="w-5 h-5 text-orange-500" />}
+                        <div className="flex justify-between items-center mb-0.5">
+                            <span className="font-bold text-[13px] text-[#1a1a1a]">{level.label}</span>
+                            {formData.currentLevel === level.val && <Check className="text-[#000000]" size={18} />}
+                        </div>
+                        <p className="text-[#888] text-[11px] font-bold tracking-tight">{level.desc}</p>
                     </button>
                 ))}
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-white/10">
-                <label className="block text-sm font-medium text-gray-400 mb-3">Oldin IELTS topshirganmisiz?</label>
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => handleInputChange('hasTakenIELTS', true)}
-                        className={`flex-1 py-3 rounded-xl border transition-all ${formData.hasTakenIELTS === true ? 'bg-white text-black border-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
-                    >
-                        Ha
-                    </button>
-                    <button
-                        onClick={() => { handleInputChange('hasTakenIELTS', false); handleInputChange('previousIELTSScore', ''); }}
-                        className={`flex-1 py-3 rounded-xl border transition-all ${formData.hasTakenIELTS === false ? 'bg-white text-black border-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
-                    >
-                        Yo'q
-                    </button>
-                </div>
-
-                {formData.hasTakenIELTS && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4">
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Oxirgi natijangiz</label>
-                        <input
-                            type="number" step="0.5" max="9"
-                            value={formData.previousIELTSScore}
-                            onChange={(e) => handleInputChange('previousIELTSScore', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-orange-500"
-                            placeholder="Masalan: 6.0"
-                        />
-                    </motion.div>
-                )}
             </div>
         </div>
     );
 
     const renderStep3 = () => (
-        <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white mb-2">Maqsadingiz nima? 🎯</h2>
-            <p className="text-gray-400 mb-8">Qanday natijaga erishmoqchisiz?</p>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-400 mb-4">Target Band Score</label>
-                <div className="grid grid-cols-5 gap-3">
-                    {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0', '8.5', '9.0'].map(score => (
+        <div className="max-w-[400px] mx-auto">
+            <StepTitle 
+                title="Sizning maqsadingiz" 
+                subtitle="Qanday natijaga erishmoqchisiz?" 
+            />
+            <div className="mt-8">
+                <div className="grid grid-cols-7 gap-1.5">
+                    {['6.0', '6.5', '7.0', '7.5', '8.0', '8.5', '9.0'].map(score => (
                         <button
                             key={score}
                             onClick={() => handleInputChange('targetBand', score)}
-                            className={`py-3 rounded-xl border text-lg font-bold transition-all ${formData.targetBand === score
-                                ? 'bg-orange-500 border-orange-500 text-white shadow-[0_0_20px_rgba(255,85,32,0.4)] scale-105'
-                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                                }`}
+                            className={`aspect-square rounded-lg border-2 flex items-center justify-center text-[13px] font-bold transition-all ${formData.targetBand === score
+                                ? 'border-[#000000] bg-white text-[#000000] shadow-xl shadow-black/10 scale-105'
+                                : 'border-transparent bg-[#f8f8f9] text-[#aaa] hover:bg-[#ececf0]'
+                            }`}
                         >
                             {score}
                         </button>
@@ -239,89 +303,59 @@ export default function Onboarding() {
                 </div>
             </div>
 
-            <div className="mt-8">
-                <label className="block text-sm font-medium text-gray-400 mb-2">Imtihon Sanasi (Taxminiy)</label>
-                <div className="relative">
-                    <Calendar className="absolute left-4 top-3.5 w-5 h-5 text-gray-500" />
-                    <input
-                        type="date"
+            <div className="max-w-xs mx-auto mt-7">
+                <div className="space-y-2">
+                    <label className="text-[12px] font-semibold text-[#888] ml-1">Imtihon sanasi (Taxminiy)</label>
+                    <CustomDatePicker 
                         value={formData.examDate}
-                        onChange={(e) => handleInputChange('examDate', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all [color-scheme:dark]"
+                        onChange={(val) => handleInputChange('examDate', val)}
                     />
-                </div>
-            </div>
-
-            <div className="mt-8">
-                <label className="block text-sm font-medium text-gray-400 mb-3">Nima uchun IELTS kerak?</label>
-                <div className="grid grid-cols-2 gap-3">
-                    {[
-                        { id: 'study', icon: <BookOpen size={18} />, label: "O'qish uchun" },
-                        { id: 'work', icon: <Award size={18} />, label: "Ish uchun" },
-                        { id: 'migration', icon: <Globe size={18} />, label: "Migratsiya" },
-                        { id: 'self', icon: <Target size={18} />, label: "Rivojlanish" }
-                    ].map(type => (
-                        <button
-                            key={type.id}
-                            onClick={() => handleInputChange('purpose', type.id)}
-                            className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all flex items-center gap-2 ${formData.purpose === type.id
-                                ? 'bg-white text-black border-white'
-                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                                }`}
-                        >
-                            {type.icon} {type.label}
-                        </button>
-                    ))}
                 </div>
             </div>
         </div>
     );
 
     const renderStep4 = () => (
-        <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white mb-2">O'quv rejasi 📅</h2>
-            <p className="text-gray-400 mb-8">Zaif tomonlaringiz va vaqtingizni aniqlaymiz.</p>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-400 mb-3">Qaysi ko'nikmada ko'proq yordam kerak?</label>
-                <div className="grid grid-cols-2 gap-3">
-                    {['Reading', 'Listening', 'Writing', 'Speaking'].map(skill => (
-                        <button
-                            key={skill}
-                            onClick={() => handleSkillToggle(skill)}
-                            className={`px-4 py-4 rounded-xl border text-left transition-all ${formData.weakSkills.includes(skill)
-                                ? 'bg-orange-500/20 border-orange-500 text-orange-400'
-                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                                }`}
-                        >
-                            <div className="flex justify-between items-center">
-                                <span className="font-medium">{skill}</span>
-                                {formData.weakSkills.includes(skill) && <Check size={18} />}
-                            </div>
-                        </button>
-                    ))}
-                </div>
+        <div className="max-w-lg mx-auto">
+            <StepTitle 
+                title="O'quv rejasi" 
+                subtitle="Zaif tomonlaringiz va bo'sh vaqtingizni belgilang." 
+            />
+            
+            <div className="grid grid-cols-2 gap-2 mb-4">
+                {['Reading', 'Listening', 'Writing', 'Speaking'].map(skill => (
+                    <button
+                        key={skill}
+                        onClick={() => handleSkillToggle(skill)}
+                        className={`px-6 py-4 rounded-lg border-2 text-left transition-all relative ${formData.weakSkills.includes(skill)
+                            ? 'border-[#000000] bg-white shadow-xl shadow-black/5'
+                            : 'border-transparent bg-[#f8f8f9] hover:bg-[#ececf0]'
+                        }`}
+                    >
+                        <span className={`font-bold text-sm ${formData.weakSkills.includes(skill) ? 'text-[#1a1a1a]' : 'text-[#aaa]'}`}>{skill}</span>
+                        {formData.weakSkills.includes(skill) && <Check className="absolute top-4 right-5 text-[#000000]" size={16} />}
+                    </button>
+                ))}
             </div>
 
-            <div className="mt-8">
-                <label className="block text-sm font-medium text-gray-400 mb-3">Kuniga qancha vaqt ajrata olasiz?</label>
-                <div className="space-y-3">
+            <div className="space-y-3">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[#aaa] ml-1 mb-2 block">Kunlik ajratiladigan vaqt</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {[
-                        { val: '30m', label: '30 daqiqa (Minimal)' },
-                        { val: '1h', label: '1 soat (O\'rtacha)' },
-                        { val: '2h', label: '2 soat (Jiddiy)' },
-                        { val: '3h+', label: '3+ soat (Intensiv)' }
+                        { val: '30m', label: '30 daqiqa' },
+                        { val: '1h', label: '1 soat' },
+                        { val: '2h', label: '2 soat' },
+                        { val: '3h+', label: '3+ soat' }
                     ].map((time) => (
                         <button
                             key={time.val}
                             onClick={() => handleInputChange('dailyStudyTime', time.val)}
-                            className={`w-full text-left px-6 py-4 rounded-xl border transition-all flex items-center gap-3 ${formData.dailyStudyTime === time.val
-                                ? 'bg-white text-black border-white'
-                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                                }`}
+                            className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${formData.dailyStudyTime === time.val
+                                ? 'bg-[#1a1a1a] text-white shadow-lg'
+                                : 'bg-[#f8f8f9] text-[#777] hover:bg-[#ececf0]'
+                            }`}
                         >
-                            <Clock size={20} className={formData.dailyStudyTime === time.val ? 'text-black' : 'text-gray-500'} />
-                            <span className="font-medium">{time.label}</span>
+                            {time.label}
                         </button>
                     ))}
                 </div>
@@ -330,97 +364,136 @@ export default function Onboarding() {
     );
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-4">
-            <style>{`
-                body { background-color: #050505; }
-                .glass-panel {
-                    background: rgba(15, 15, 15, 0.6);
-                    backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 20px 40px rgba(0,0,0,0.4);
-                }
-            `}</style>
-
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-orange-600/40 rounded-full blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-red-600/30 rounded-full blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '7s' }} />
-                <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] bg-orange-500/20 rounded-full blur-[80px] animate-bounce" style={{ animationDuration: '10s' }} />
-            </div>
-
-            <div className="w-full max-w-2xl relative z-10">
-                {/* Steps Indicator */}
-                <div className="flex justify-between mb-8 px-2">
-                    {steps.map((step) => (
-                        <div key={step.id} className="flex flex-col items-center gap-2">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 font-bold ${currentStep >= step.id
-                                ? 'bg-orange-500 border-orange-500 text-white shadow-[0_0_15px_rgba(255,85,32,0.4)]'
-                                : 'bg-transparent border-white/10 text-gray-500'
-                                }`}>
-                                {currentStep > step.id ? <Check size={20} /> : step.id}
-                            </div>
-                            <span className={`text-xs font-medium uppercase tracking-wider ${currentStep >= step.id ? 'text-white' : 'text-gray-600'}`}>
-                                {step.title}
-                            </span>
-                        </div>
-                    ))}
+        <div className="h-screen bg-white flex overflow-hidden font-sans selection:bg-black/10 selection:text-black">
+            {/* Left Side: Onboarding Content (60%) */}
+            <div className="w-full lg:w-[60%] flex flex-col relative bg-white">
+                {/* Progress Bar Top */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-[#f0f0f0] z-50">
+                    <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(currentStep / steps.length) * 100}%` }}
+                        className="h-full bg-[#000000]"
+                    />
                 </div>
 
-                {/* Main Card */}
-                <motion.div
-                    className="glass-panel rounded-3xl p-8 md:p-12 relative overflow-hidden"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                >
-                    {/* Background Glow */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={currentStep}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            {currentStep === 1 && renderStep1()}
-                            {currentStep === 2 && renderStep2()}
-                            {currentStep === 3 && renderStep3()}
-                            {currentStep === 4 && renderStep4()}
-                            {currentStep === 5 && (
-                                <div className="text-center py-12">
-                                    <div className="w-24 h-24 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30">
-                                        <Check size={48} />
-                                    </div>
-                                    <h2 className="text-4xl font-bold text-white mb-4">Hammasi Tayyor! 🚀</h2>
-                                    <p className="text-xl text-gray-400 max-w-md mx-auto">
-                                        Ma'lumotlaringiz saqlandi. Endi siz uchun maxsus tayyorlangan dashboard'ga o'tamiz.
-                                    </p>
-                                </div>
-                            )}
-                        </motion.div>
-                    </AnimatePresence>
-
-                    {/* Footer Buttons */}
-                    <div className="flex justify-between mt-12 pt-8 border-t border-white/10">
-                        <button
-                            onClick={prevStep}
-                            disabled={currentStep === 1 || loading}
-                            className={`px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition-all ${currentStep === 1 ? 'opacity-0 cursor-default' : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                }`}
-                        >
-                            <ChevronLeft size={20} /> Orqaga
-                        </button>
-
-                        <button
-                            onClick={currentStep === 5 ? finishOnboarding : nextStep}
-                            disabled={loading}
-                            className="bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? 'Saqlanmoqda...' : currentStep === 5 ? "Boshlash" : "Keyingi"}
-                            {!loading && <ChevronRight size={20} />}
-                        </button>
+                {/* Header - Absolute Positioned */}
+                <div className="absolute top-0 right-0 p-8 z-10">
+                    <div className="text-[11px] font-bold text-[#aaa]">
+                        Qadam {currentStep} / {steps.length}
                     </div>
-                </motion.div>
+                </div>
+
+                {/* Main Step Content */}
+                <div className="flex-1 flex items-center justify-center p-8 md:p-12">
+                    <div className="w-full max-w-md">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentStep}
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -15 }}
+                                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                            >
+                                {currentStep === 1 && renderStep1()}
+                                {currentStep === 2 && renderStep2()}
+                                {currentStep === 3 && renderStep3()}
+                                {currentStep === 4 && (
+                                    <div className="text-center py-8 max-w-sm mx-auto">
+                                        <motion.div 
+                                            initial={{ scale: 0.5, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ type: "spring", damping: 12, stiffness: 200 }}
+                                            className="w-20 h-20 bg-gradient-to-tr from-[#FF5520] to-[#FF8860] text-white rounded-[28px] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-[#000000]/30 rotate-3"
+                                        >
+                                            <Sparkles size={40} />
+                                        </motion.div>
+                                        
+                                        <motion.h2 
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.2 }}
+                                            className="text-3xl font-bold text-[#1a1a1a] mb-4 tracking-tight"
+                                        >
+                                            Hammasi tayyor!
+                                        </motion.h2>
+                                        
+                                        <motion.p 
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.3 }}
+                                            className="text-[#666] text-[15px] font-medium leading-relaxed mb-10"
+                                        >
+                                            Ma'lumotlaringiz tahlil qilindi.<br />
+                                            Endi shaxsiy dashboard'ingizni<br />
+                                            ko'rishingiz mumkin.
+                                        </motion.p>
+                                        
+                                        <motion.button
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.4 }}
+                                            onClick={finishOnboarding}
+                                            disabled={loading}
+                                            className="w-auto px-10 py-2.5 bg-[#1a1a1a] text-white rounded-lg font-bold text-[12px] hover:bg-black transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-3 active:scale-95 group mx-auto"
+                                        >
+                                            {loading ? <Loader2 className="animate-spin" /> : "Platformaga kirish"}
+                                            {!loading && <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />}
+                                        </motion.button>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </AnimatePresence>
+
+                        {currentStep < 4 && (
+                            <div className="absolute bottom-0 left-0 w-full p-10 flex justify-between items-center border-t border-[#f0f0f0]/50 bg-white">
+                                <button
+                                    onClick={prevStep}
+                                    className={`flex items-center gap-2 text-[12px] font-bold transition-all ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'text-[#aaa] hover:text-[#000000]'}`}
+                                >
+                                    <ChevronLeft size={16} /> Orqaga
+                                </button>
+                                
+                                <button
+                                    onClick={nextStep}
+                                    className="px-6 py-2.5 bg-[#1a1a1a] text-white rounded-lg text-[12px] font-bold transition-all flex items-center gap-2 active:scale-95 shadow-xl shadow-black/5"
+                                >
+                                    Keyingi <ChevronRight size={16} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Right Side: Motivational Image (40%) */}
+            <div className="hidden lg:block lg:w-[40%] relative h-full bg-[#f5f5f7] overflow-hidden">
+                <img 
+                    src="/onboarding-bg.png" 
+                    alt="Motivation" 
+                    className="w-full h-full object-cover opacity-10 grayscale hover:scale-105 transition-transform duration-[10s] ease-linear"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/[0.03] via-transparent to-transparent" />
+                
+                {/* Decorative Elements */}
+                <div className="absolute top-20 right-20 w-[400px] h-[400px] bg-black/5 blur-[120px] rounded-full" />
+                <div className="absolute bottom-20 left-20 w-[400px] h-[400px] bg-black/5 blur-[120px] rounded-full" />
+                
+                {/* Motivational Quote */}
+                <div className="absolute bottom-20 left-20 right-20 max-w-2xl">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                        <div className="h-1.5 w-14 bg-black mb-8 rounded-full" />
+                        <h3 className="text-black text-4xl font-bold leading-tight mb-6 tracking-tight">
+                            Muvaffaqiyat — bu har kungi kichik g'alabalar yig'indisidir.
+                        </h3>
+                        <p className="text-black/40 text-lg font-medium max-w-lg">
+                            IELTS natijangizni sun'iy intellektga asoslangan platforma orqali keyingi bosqichga olib chiqing.
+                        </p>
+                    </motion.div>
+                </div>
             </div>
         </div>
     );

@@ -55,7 +55,7 @@ export default function HeroSection({
                 animatedDays={animatedDays}
             />
 
-
+            <DashboardAnalytics skillStats={skillStats} />
 
             <DashboardReadingCarousel />
 

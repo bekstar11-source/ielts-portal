@@ -1,69 +1,92 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { usePracticeScroll } from '../../hooks/usePracticeScroll';
+import { useStudentData } from '../../hooks/useStudentData';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../firebase/firebase';
+import { collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 
 export default function DashboardReadingCarousel() {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const { assignments, loading: assignmentsLoading } = useStudentData(user);
     const { scrollRef, canLeft, canRight, handleScroll, updateScrollState } = usePracticeScroll();
+    
+    const [realItems, setRealItems] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const items = [
-        { 
-            title: "Ancient Civilizations", 
-            sub: "O'tmishning sirlarini oching va qadimgi madaniyatlarni o'rganing.", 
-            questions: "13 Questions",
-            img: "/images/dashboard/reading_passage_ancient_civ_1776973843121.png",
-            tag: "History",
-            delay: '0.1s'
-        },
-        { 
-            title: "Space Exploration", 
-            sub: "Koinot fathi va insoniyatning yulduzlar sari sayohati.", 
-            questions: "14 Questions",
-            img: "/images/dashboard/reading_passage_space_exp_1776973865586.png",
-            tag: "Science",
-            delay: '0.2s'
-        },
-        { 
-            title: "Modern Architecture", 
-            sub: "Zamonaviy shaharsozlik va innovatsion dizayn yutuqlari.", 
-            questions: "13 Questions",
-            img: "/images/dashboard/reading_passage_architecture_1776974534002.png",
-            tag: "Design",
-            delay: '0.3s'
-        },
-        { 
-            title: "Renewable Energy", 
-            sub: "Yashil energiya va kelajak texnologiyalari haqida.", 
-            questions: "12 Questions",
-            img: "/images/dashboard/reading_passage_renewable_energy_1776974514627.png",
-            tag: "Energy",
-            delay: '0.4s'
-        },
-        { 
-            title: "Neuroscience", 
-            sub: "Inson miyasi qanday ishlaydi? Eng so'nggi ilmiy tadqiqotlar.", 
-            questions: "13 Questions",
-            img: "/images/dashboard/reading_passage_neuroscience_1776973886667.png",
-            tag: "Biology",
-            delay: '0.5s'
-        },
-        { 
-            title: "Climate Change", 
-            sub: "Global iqlim o'zgarishi va uning sayyoramizga ta'siri.", 
-            questions: "13 Questions",
-            img: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&q=80",
-            tag: "Nature",
-            delay: '0.6s'
-        },
-        { 
-            title: "Urban Planning", 
-            sub: "Kelajak shaharlari va aholi yashash joylarini loyihalash.", 
-            questions: "14 Questions",
-            img: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&q=80",
-            tag: "Society",
-            delay: '0.7s'
+    useEffect(() => {
+        const fetchRealTests = async () => {
+            setIsLoading(true);
+            try {
+                // 1. First, take reading tests from assignments
+                let readingTests = assignments.filter(t => t.type === 'reading' && t.status !== 'completed');
+                
+                // 2. If not enough (less than 6), fetch latest public reading tests from DB
+                if (readingTests.length < 6) {
+                    const q = query(
+                        collection(db, "tests"),
+                        where("type", "==", "reading"),
+                        orderBy("createdAt", "desc"),
+                        limit(10)
+                    );
+                    const snapshot = await getDocs(q);
+                    const dbTests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    // Merge and unique
+                    const existingIds = new Set(readingTests.map(t => t.id));
+                    dbTests.forEach(t => {
+                        if (!existingIds.has(t.id)) {
+                            readingTests.push(t);
+                        }
+                    });
+                }
+
+                // 3. Map to carousel format
+                const mapped = readingTests.slice(0, 10).map((test, i) => {
+                    // Extract a snippet for sub if content exists
+                    let sub = "";
+                    if (test.passages && test.passages[0] && test.passages[0].content) {
+                        sub = test.passages[0].content.substring(0, 120).replace(/<[^>]*>/g, '') + "...";
+                    } else if (test.tags && test.tags.length > 0) {
+                        sub = `Ushbu test ${test.tags.join(', ')} mavzularini o'z ichiga oladi.`;
+                    } else {
+                        sub = "IELTS Reading ko'nikmalarini oshirish uchun ajoyib matn.";
+                    }
+
+                    return {
+                        id: test.id,
+                        title: test.title || "Reading Passage",
+                        sub: sub,
+                        questions: `${test.totalQuestions || test.questions?.length || 0} Questions`,
+                        img: test.thumbnail || fallbackImages[i % fallbackImages.length],
+                        tag: test.tags?.[0] || "Reading",
+                        delay: `${(i * 0.1) + 0.1}s`,
+                        type: test.type
+                    };
+                });
+
+                setRealItems(mapped);
+            } catch (error) {
+                console.error("Error fetching dashboard tests:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (!assignmentsLoading) {
+            fetchRealTests();
         }
+    }, [assignments, assignmentsLoading]);
+
+    // Fallback images array for better variety
+    const fallbackImages = [
+        "/images/dashboard/reading_passage_ancient_civ_1776973843121.png",
+        "/images/dashboard/reading_passage_space_exp_1776973865586.png",
+        "/images/dashboard/reading_passage_architecture_1776974534002.png",
+        "/images/dashboard/reading_passage_renewable_energy_1776974514627.png",
+        "/images/dashboard/reading_passage_neuroscience_1776973886667.png"
     ];
 
     return (
@@ -95,9 +118,14 @@ export default function DashboardReadingCarousel() {
                         onScroll={(e) => updateScrollState(e.currentTarget)}
                         className="grid grid-flow-col auto-cols-[minmax(320px,1fr)] md:auto-cols-[minmax(380px,1fr)] items-stretch gap-5 overflow-x-auto pt-4 pb-12 hide-scrollbar px-6 xl:pl-[max(1.5rem,calc((100vw-80rem)/2-2rem))] xl:pr-6"
                     >
-                        {items.map((item, i) => (
+                        {isLoading ? (
+                            <div className="col-span-full flex items-center justify-center py-20">
+                                <Loader2 className="w-8 h-8 animate-spin text-[#0066cc]" />
+                            </div>
+                        ) : realItems.map((item, i) => (
                             <div 
-                                key={i} 
+                                key={item.id || i} 
+                                onClick={() => navigate(`/test/${item.id}`)}
                                 className="group/apple-card relative aspect-[3/3.8] bg-[#F6F6FA] rounded-[24px] p-7 transition-all duration-500 cursor-pointer overflow-hidden animate-fade-in-up hover:scale-[1.005]"
                                 style={{ animationDelay: item.delay }}
                             >

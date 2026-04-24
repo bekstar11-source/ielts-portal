@@ -1,61 +1,82 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight, Play, Loader2 } from 'lucide-react';
+import { useStudentData } from '../../hooks/useStudentData';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../firebase/firebase';
+import { collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 
 export default function DashboardListeningCarousel({ isListeningPaused }) {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const { assignments, loading: assignmentsLoading } = useStudentData(user);
     const marqueeRef = useRef(null);
     const [isHovered, setIsHovered] = useState(false);
     
+    const [realItems, setRealItems] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
     // Animation state
     const offsetRef = useRef(0);
     const requestRef = useRef(null);
     const lastTimeRef = useRef(null);
 
-    const items = [
-        { 
-            title: "IELTS Listening Part 1", 
-            sub: "Kundalik vaziyatlardagi suhbatlar. Ismlar, raqamlar va manzillar.", 
-            questions: "10 Questions",
-            img: "/images/dashboard/listening_cover_1_vibrant_apple_music_style_1776972033954.png",
-            tag: "Conversation"
-        },
-        { 
-            title: "IELTS Listening Part 2", 
-            sub: "Ijtimoiy mavzudagi monologlar. Shahar xaritasi va marshrutlar.", 
-            questions: "10 Questions",
-            img: "/images/dashboard/listening_cover_2_vibrant_apple_music_style_1776972053148.png",
-            tag: "Social Context"
-        },
-        { 
-            title: "IELTS Listening Part 3", 
-            sub: "Akademik muhitdagi muhokamalar. Talabalar va ustozlar suhbati.", 
-            questions: "10 Questions",
-            img: "/images/dashboard/listening_cover_3_vibrant_apple_music_style_1776972075391.png",
-            tag: "Education"
-        },
-        { 
-            title: "IELTS Listening Part 4", 
-            sub: "Akademik mavzudagi monolog. Ma'ruza va ilmiy tadqiqotlar.", 
-            questions: "10 Questions",
-            img: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=80",
-            tag: "Academic Lecture"
-        },
-        { 
-            title: "Listening Mock Set 1", 
-            sub: "To'liq listening testi. Barcha 4 ta qismni o'z ichiga oladi.", 
-            questions: "40 Questions",
-            img: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80",
-            tag: "Full Test"
-        },
-        { 
-            title: "Daily Practice", 
-            sub: "Har kungi qisqa audio mashqlar. Ko'nikmalarni rivojlantirish.", 
-            questions: "10 Questions",
-            img: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&q=80",
-            tag: "Daily"
+    useEffect(() => {
+        const fetchRealListening = async () => {
+            setIsLoading(true);
+            try {
+                // 1. Get from assignments
+                let listeningTests = assignments.filter(t => t.type === 'listening' && t.status !== 'completed');
+
+                // 2. Fallback to DB
+                if (listeningTests.length < 6) {
+                    const q = query(
+                        collection(db, "tests"),
+                        where("type", "==", "listening"),
+                        orderBy("createdAt", "desc"),
+                        limit(10)
+                    );
+                    const snapshot = await getDocs(q);
+                    const dbTests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    const existingIds = new Set(listeningTests.map(t => t.id));
+                    dbTests.forEach(t => {
+                        if (!existingIds.has(t.id)) {
+                            listeningTests.push(t);
+                        }
+                    });
+                }
+
+                // 3. Map
+                const mapped = listeningTests.slice(0, 10).map((test, i) => {
+                    return {
+                        id: test.id,
+                        title: test.title || "Listening Practice",
+                        sub: test.tags?.[0] ? `Focus: ${test.tags.join(', ')}` : "IELTS Listening ko'nikmalarini oshirish uchun mashq.",
+                        questions: `${test.totalQuestions || test.questions?.length || 0} Questions`,
+                        img: test.thumbnail || [
+                            "/images/dashboard/listening_cover_1_vibrant_apple_music_style_1776972033954.png",
+                            "/images/dashboard/listening_cover_2_vibrant_apple_music_style_1776972053148.png",
+                            "/images/dashboard/listening_cover_3_vibrant_apple_music_style_1776972075391.png",
+                            "https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=80",
+                            "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80"
+                        ][i % 5],
+                        tag: test.tags?.[0] || "Listening"
+                    };
+                });
+
+                setRealItems(mapped);
+            } catch (error) {
+                console.error("Error fetching listening tests:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (!assignmentsLoading) {
+            fetchRealListening();
         }
-    ];
+    }, [assignments, assignmentsLoading]);
 
     const animate = (time) => {
         if (lastTimeRef.current !== undefined) {
@@ -103,10 +124,19 @@ export default function DashboardListeningCarousel({ isListeningPaused }) {
                     ref={marqueeRef}
                     className="flex gap-0 w-max will-change-transform"
                 >
-                    {[...Array(2)].map((_, listIdx) => (
+                    {isLoading ? (
+                        <div className="flex items-center justify-center px-20 py-10">
+                            <Loader2 className="w-6 h-6 animate-spin text-[#0066cc]" />
+                            <span className="ml-3 text-sm font-medium text-zinc-500">Listening testlari yuklanmoqda...</span>
+                        </div>
+                    ) : [...Array(2)].map((_, listIdx) => (
                         <div key={listIdx} className="flex gap-3 pr-3">
-                            {items.map((item, i) => (
-                                <div key={`${listIdx}-${i}`} className="flex-none w-[200px] md:w-[240px] group/card cursor-pointer">
+                            {realItems.map((item, i) => (
+                                <div 
+                                    key={`${listIdx}-${item.id || i}`} 
+                                    onClick={() => navigate(`/test/${item.id}`)}
+                                    className="flex-none w-[200px] md:w-[240px] group/card cursor-pointer"
+                                >
                                     <div className="relative aspect-[3/2.8] rounded-lg overflow-hidden mb-3 shadow-md group-hover:shadow-2xl transition-all duration-500 bg-zinc-100">
                                         <img 
                                             src={item.img} 

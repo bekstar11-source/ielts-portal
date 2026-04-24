@@ -32,7 +32,7 @@ export default function DashboardAnalytics({ skillStats }) {
                             Mashqni boshlash
                         </button>
                         <button 
-                            onClick={() => navigate('/my-results')}
+                            onClick={() => navigate('/statistics')}
                             className="border border-[#1D1D1F] hover:bg-black/5 text-[#1D1D1F] px-8 py-3.5 rounded-full text-[15px] font-medium transition-all"
                         >
                             Batafsil statistika

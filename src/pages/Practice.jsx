@@ -335,7 +335,7 @@ export default function Practice() {
                                     {/* Standard/Individual Section */}
                                     <div className="space-y-4" ref={passagesSectionRef}>
                                         {isReading && (
-                                            <h2 className="text-[48px] font-semibold text-[#1d1d1f] tracking-tight">Reading Passages</h2>
+                                            <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Reading Passages</h2>
                                         )}
                                         
                                         {!showAllCards ? (
@@ -425,7 +425,7 @@ export default function Practice() {
                                             className="space-y-4"
                                             ref={fullTestSectionRef}
                                         >
-                                            <h2 className="text-[48px] font-semibold text-[#1d1d1f] tracking-tight">Full Reading</h2>
+                                            <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Full Reading</h2>
                                             <div 
                                                 ref={fullReadingScroll.scrollRef}
                                                 onScroll={(e) => fullReadingScroll.updateScrollState(e.currentTarget)}
@@ -482,7 +482,7 @@ export default function Practice() {
                                                 className="space-y-4"
                                                 ref={setSectionRef}
                                             >
-                                                <h2 className="text-[48px] font-semibold text-[#1d1d1f] tracking-tight">Sets</h2>
+                                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Sets</h2>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
                                                     {readingSets.slice(0, 2).map((set, i) => (
                                                       <ReadingSetCard 

@@ -48,6 +48,7 @@ import PodcastPlayer from './pages/PodcastPlayer';
 import AdminPodcasts from './pages/AdminPodcasts';
 import CreatePodcast from './pages/CreatePodcast';
 import KeyManager from './pages/KeyManager';
+import StudentStatistics from './pages/StudentStatistics';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();
@@ -188,6 +189,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <DiagnosticResult />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/statistics"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
+              <StudentStatistics />
             </ProtectedRoute>
           }
         />
