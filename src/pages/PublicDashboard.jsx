@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase/firebase';
 import { collection, query, orderBy, limit, getDocs, getCountFromServer } from 'firebase/firestore';
-import { Flame, Trophy, AlertTriangle, BookOpen, ArrowRight, ArrowUp, Crown, Sparkles } from 'lucide-react';
+import { Flame, Trophy, AlertTriangle, BookOpen, Headphones, PenTool, Mic, ArrowRight, ArrowUp, Crown, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // IMPORT SHARED COMPONENTS
@@ -11,6 +11,7 @@ import HeroSection from "../components/dashboard/HeroSection";
 import DashboardModals from "../components/dashboard/DashboardModals";
 import PricingModal from "../components/dashboard/PricingModal";
 import SiteFooter from "../components/common/SiteFooter";
+import { useAnalytics } from '../hooks/useAnalytics';
 
 export default function PublicDashboard() {
     const { userData, user, logout } = useAuth();
@@ -29,6 +30,28 @@ export default function PublicDashboard() {
     const [accessKeyInput, setAccessKeyInput] = useState("");
     const [checkingKey, setCheckingKey] = useState(false);
     const [keyError, setKeyError] = useState("");
+
+    const { stats: analyticsStats } = useAnalytics(user?.uid);
+
+    const skillStats = useMemo(() => {
+        const averages = analyticsStats.skillAverages || { reading: 0, listening: 0, writing: 0, speaking: 0 };
+        
+        const roundToIELTSBand = (score) => {
+            const num = parseFloat(score);
+            if (!num || isNaN(num)) return "0.0";
+            return (Math.round(num * 2) / 2).toFixed(1);
+        };
+
+        const useFallback = analyticsStats.totalTests === 0;
+        const fallbackValue = userData?.currentBand || 0;
+
+        return [
+            { name: "Reading", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.reading), icon: BookOpen, color: "blue" },
+            { name: "Listening", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.listening), icon: Headphones, color: "purple" },
+            { name: "Writing", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.writing), icon: PenTool, color: "orange" },
+            { name: "Speaking", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.speaking), icon: Mic, color: "emerald" }
+        ];
+    }, [analyticsStats, userData]);
 
     const handlePremiumFeatureClick = (source) => {
         setPricingSource(source);
@@ -85,11 +108,12 @@ export default function PublicDashboard() {
                         <HeroSection
                             userName={userData?.fullName?.split(' ')[0] || "O'quvchi"}
                             targetBand={targetBand}
-                            currentBand={currentBand}
+                            currentBand={analyticsStats.totalTests > 0 ? analyticsStats.averageScore : currentBand}
                             previousBand={0}
                             examDate={userData?.examDate}
                             streakCount={streak}
                             points={xp}
+                            skillStats={skillStats}
                         />
 
                         <div className="max-w-7xl mx-auto px-6 mt-12 mb-24">

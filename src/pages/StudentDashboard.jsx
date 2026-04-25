@@ -161,13 +161,17 @@ export default function StudentDashboard() {
             return (Math.round(num * 2) / 2).toFixed(1);
         };
 
+        // Yangi o'quvchi uchun fallback (onboarding dagi joriy darajasini ko'rsatamiz)
+        const useFallback = analyticsStats.totalTests === 0;
+        const fallbackValue = userData?.currentBand || 0;
+
         return [
-            { name: "Reading", score: roundToIELTSBand(averages.reading), icon: BookOpen, color: "blue" },
-            { name: "Listening", score: roundToIELTSBand(averages.listening), icon: Headphones, color: "purple" },
-            { name: "Writing", score: roundToIELTSBand(averages.writing), icon: PenTool, color: "orange" },
-            { name: "Speaking", score: roundToIELTSBand(averages.speaking), icon: Mic, color: "emerald" }
+            { name: "Reading", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.reading), icon: BookOpen, color: "blue" },
+            { name: "Listening", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.listening), icon: Headphones, color: "purple" },
+            { name: "Writing", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.writing), icon: PenTool, color: "orange" },
+            { name: "Speaking", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.speaking), icon: Mic, color: "emerald" }
         ];
-    }, [analyticsStats]);
+    }, [analyticsStats, userData]);
 
     const filteredTests = useMemo(() => {
         let baseList = rawAssignments;
@@ -265,7 +269,7 @@ export default function StudentDashboard() {
                         <HeroSection
                             userName={userData?.fullName?.split(' ')[0] || "O'quvchi"}
                             targetBand={userData?.targetBand || 7.5}
-                            currentBand={userData?.currentBand || parseFloat(stats.avg) || 0}
+                            currentBand={analyticsStats.totalTests > 0 ? analyticsStats.averageScore : (userData?.currentBand || 0)}
                             previousBand={userData?.previousIELTSScore || 0}
                             examDate={userData?.examDate}
                             daysRemaining={userData?.examTimeframe ? null : undefined}

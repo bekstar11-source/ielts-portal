@@ -42,28 +42,34 @@ export default function DashboardAnalytics({ skillStats }) {
 
                 {/* Right Side: Skills List (Huge Bold Typography) */}
                 <div className="flex-1 flex flex-col items-center lg:items-end gap-2 md:gap-4 w-full">
-                    {[
-                        { name: 'Reading', score: skillStats[0]?.score || '0.0', color: 'text-[#fa243c]' },
-                        { name: 'Listening', score: skillStats[1]?.score || '0.0', color: 'text-[#65c400]' },
-                        { name: 'Writing', score: skillStats[2]?.score || '0.0', color: 'text-[#ff8400]' },
-                        { name: 'Speaking', score: skillStats[3]?.score || '0.0', color: 'text-[#2a7ff6]' },
-                    ].map(skill => (
-                        <div key={skill.name} className="grid grid-cols-[1fr_100px] md:grid-cols-[1fr_140px] items-center w-full max-w-[480px] group cursor-default">
-                            {/* Skill Name */}
-                            <div className={`${skill.color} transition-transform duration-300 group-hover:translate-x-[-8px]`}>
-                                <span className="text-[48px] md:text-[68px] font-bold tracking-tighter leading-none">
-                                    {skill.name}
-                                </span>
+                    {(skillStats && skillStats.length > 0 ? skillStats : [
+                        { name: 'Reading', score: '0.0', color: 'text-[#fa243c]' },
+                        { name: 'Listening', score: '0.0', color: 'text-[#65c400]' },
+                        { name: 'Writing', score: '0.0', color: 'text-[#ff8400]' },
+                        { name: 'Speaking', score: '0.0', color: 'text-[#2a7ff6]' },
+                    ]).map((skill, index) => {
+                        // Parent'dan kelgan ranglarni mapplash yoki default ranglarni ishlatish
+                        const colors = ['text-[#fa243c]', 'text-[#65c400]', 'text-[#ff8400]', 'text-[#2a7ff6]'];
+                        const skillColor = skill.color && skill.color.includes('#') ? skill.color : (colors[index] || 'text-[#1D1D1F]');
+                        
+                        return (
+                            <div key={skill.name} className="grid grid-cols-[1fr_100px] md:grid-cols-[1fr_140px] items-center w-full max-w-[480px] group cursor-default">
+                                {/* Skill Name */}
+                                <div className={`${skillColor} transition-transform duration-300 group-hover:translate-x-[-8px]`}>
+                                    <span className="text-[48px] md:text-[68px] font-bold tracking-tighter leading-none">
+                                        {skill.name}
+                                    </span>
+                                </div>
+                                
+                                {/* Skill Score (Aligned) */}
+                                <div className="text-right">
+                                    <span className="text-[44px] md:text-[56px] font-bold text-[#1D1D1F] leading-none tracking-tighter group-hover:scale-110 transition-transform duration-300 inline-block">
+                                        {parseFloat(skill.score || 0).toFixed(1)}
+                                    </span>
+                                </div>
                             </div>
-                            
-                            {/* Skill Score (Aligned) */}
-                            <div className="text-right">
-                                <span className="text-[44px] md:text-[56px] font-bold text-[#1D1D1F] leading-none tracking-tighter group-hover:scale-110 transition-transform duration-300 inline-block">
-                                    {parseFloat(skill.score).toFixed(1)}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </div>

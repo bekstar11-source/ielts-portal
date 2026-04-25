@@ -98,10 +98,9 @@ export default function AdminUsers() {
                 getDocs(query(collection(db, 'testSets'), orderBy('createdAt', 'desc'))),
             ]);
 
-            // All Users (Paginated, filtered in JS)
+            // All Users (Paginated, filtered in JS for now to prevent missing users without createdAt)
             const userQuery = query(
-                collection(db, 'users'), 
-                limit(100)
+                collection(db, 'users')
             );
             const u = await getDocs(userQuery);
             const allFetchedUsers = u.docs.map(d => ({ id: d.id, ...d.data() }));

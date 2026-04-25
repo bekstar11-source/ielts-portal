@@ -9,11 +9,13 @@ import {
     collection, getDocs, query, where, doc, getDoc, documentId
 } from 'firebase/firestore';
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 daqiqa
+const CACHE_DURATION = 5 * 60 * 1000; // 5 daqiqa (Assignments uchun)
+const RESULTS_CACHE_DURATION = 60 * 1000; // 1 daqiqa (Natijalar uchun)
 
-const safeDate = (dateString) => {
-    if (!dateString) return null;
-    const d = new Date(dateString);
+const safeDate = (dateVal) => {
+    if (!dateVal) return null;
+    if (dateVal.seconds) return new Date(dateVal.seconds * 1000);
+    const d = new Date(dateVal);
     return isNaN(d.getTime()) ? null : d;
 };
 
@@ -51,10 +53,10 @@ export function useStudentData(user) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const CACHE_KEY = user ? `student_assignments_v4_${user.uid}` : null;
-    const CACHE_TIME_KEY = user ? `student_assignments_time_v4_${user.uid}` : null;
-    const RESULTS_CACHE_KEY = user ? `student_results_v4_${user.uid}` : null;
-    const RESULTS_CACHE_TIME_KEY = user ? `student_results_time_v4_${user.uid}` : null;
+    const CACHE_KEY = user ? `student_assignments_v6_${user.uid}` : null;
+    const CACHE_TIME_KEY = user ? `student_assignments_time_v6_${user.uid}` : null;
+    const RESULTS_CACHE_KEY = user ? `student_results_v6_${user.uid}` : null;
+    const RESULTS_CACHE_TIME_KEY = user ? `student_results_time_v6_${user.uid}` : null;
 
     const fetchData = async (forceRefresh = false) => {
         if (!user) return;
@@ -65,30 +67,51 @@ export function useStudentData(user) {
             // 1. Cache tekshirish
             if (!forceRefresh) {
                 const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+                const resultsCachedTime = sessionStorage.getItem(RESULTS_CACHE_TIME_KEY);
+                
                 const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION);
+                const isResultsCacheValid = resultsCachedTime && (Date.now() - parseInt(resultsCachedTime) < RESULTS_CACHE_DURATION);
 
                 if (isCacheValid) {
                     const cachedAssignments = sessionStorage.getItem(CACHE_KEY);
-                    const cachedResults = sessionStorage.getItem(RESULTS_CACHE_KEY);
-                    if (cachedAssignments && cachedResults) {
+                    const cachedResults = isResultsCacheValid ? sessionStorage.getItem(RESULTS_CACHE_KEY) : null;
+                    
+                    if (cachedAssignments) {
                         try {
-                            setAssignments(JSON.parse(cachedAssignments));
-                            setUserResults(JSON.parse(cachedResults));
-                            setLoading(false);
-                            return;
+                            const parsedAssigments = JSON.parse(cachedAssignments);
+                            setAssignments(parsedAssigments);
+                            if (cachedResults) {
+                                setUserResults(JSON.parse(cachedResults));
+                                setLoading(false);
+                                return;
+                            }
+                            // Agar faqat assignments valid bo'lsa, davom etib results ni fetch qilamiz
+                            // Ammo assignments fetchini qayta qilmaslik uchun Firestore dan testMap ni o'qimaymiz?
+                            // Yo'q, soddalik uchun hammasini yangilaymiz, lekin loading ni o'chirmaymiz.
                         } catch (e) { console.warn('Cache parse xatolik', e); }
                     }
                 }
             }
 
             // 2. Firestore dan yuklash
-            const [userSnap, groupsSnap, resultsSnap] = await Promise.all([
-                getDoc(doc(db, 'users', user.uid)),
-                getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))),
-                getDocs(query(collection(db, 'results'), where('userId', '==', user.uid)))
-            ]);
+            let userSnap, groupsSnap, resultsSnap;
+            try {
+                const results = await Promise.all([
+                    getDoc(doc(db, 'users', user.uid)).catch(e => { console.error("User fetch error:", e); return null; }),
+                    getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))).catch(e => { console.error("Groups fetch error:", e); return { docs: [] }; }),
+                    getDocs(query(collection(db, 'results'), where('userId', '==', user.uid))).catch(e => { console.error("Results fetch error:", e); return { docs: [] }; })
+                ]);
+                userSnap = results[0];
+                groupsSnap = results[1];
+                resultsSnap = results[2];
+            } catch (err) {
+                console.error("Firestore parallel fetch failed:", err);
+                setError("Ma'lumotlarni yuklashda xatolik yuz berdi.");
+                setLoading(false);
+                return;
+            }
 
-            const myResults = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const myResults = resultsSnap?.docs?.map(d => ({ id: d.id, ...d.data() })) || [];
             setUserResults(myResults);
 
             // 3. Assignment normalizatsiya
@@ -100,17 +123,19 @@ export function useStudentData(user) {
             };
 
             let allAssignments = [];
-            const currentUserData = userSnap.data();
+            const currentUserData = userSnap?.exists() ? userSnap.data() : null;
 
             if (currentUserData?.assignedTests) {
                 allAssignments = [...allAssignments, ...currentUserData.assignedTests.map(normalizeAssignment)];
             }
-            groupsSnap.docs.forEach(gDoc => {
-                const gData = gDoc.data();
-                if (gData.assignedTests) {
-                    allAssignments = [...allAssignments, ...gData.assignedTests.map(normalizeAssignment)];
-                }
-            });
+            if (groupsSnap?.docs) {
+                groupsSnap.docs.forEach(gDoc => {
+                    const gData = gDoc.data();
+                    if (gData.assignedTests) {
+                        allAssignments = [...allAssignments, ...gData.assignedTests.map(normalizeAssignment)];
+                    }
+                });
+            }
             allAssignments = allAssignments.filter(Boolean);
 
             // 4. Testlar va Set larni BATCH bilan fetch qilish
@@ -263,8 +288,10 @@ export function useStudentData(user) {
 
             // 7. Chronological Sort: Newest first (createdAt descending)
             uniqueTests.sort((a, b) => {
-                const dateA = new Date(a.createdAt || a.assignedAt || 0).getTime();
-                const dateB = new Date(b.createdAt || b.assignedAt || 0).getTime();
+                const dA = safeDate(a.assignedAt) || safeDate(a.createdAt);
+                const dB = safeDate(b.assignedAt) || safeDate(b.createdAt);
+                const dateA = dA ? dA.getTime() : 0;
+                const dateB = dB ? dB.getTime() : 0;
                 return dateB - dateA;
             });
 

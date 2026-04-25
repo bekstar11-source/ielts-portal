@@ -336,6 +336,15 @@ export default function MockExam() {
             status: 'pending_review'
         });
 
+        // 🚀 Force Invalidate Analytics & Data Cache (v6)
+        if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.removeItem(`student_assignments_v6_${user.uid}`);
+            sessionStorage.removeItem(`student_results_v6_${user.uid}`);
+            sessionStorage.removeItem(`student_results_time_v6_${user.uid}`);
+            sessionStorage.removeItem(`analytics_stats_v6_${user.uid}`);
+            sessionStorage.removeItem(`analytics_stats_time_v6_${user.uid}`);
+        }
+
         setStage('result');
     };
 

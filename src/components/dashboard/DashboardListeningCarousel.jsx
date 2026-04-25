@@ -26,7 +26,7 @@ export default function DashboardListeningCarousel({ isListeningPaused }) {
             setIsLoading(true);
             try {
                 // 1. Get from assignments
-                let listeningTests = assignments.filter(t => t.type === 'listening' && t.status !== 'completed');
+                let listeningTests = assignments.filter(t => (t.type || '').toLowerCase() === 'listening' && t.status !== 'completed');
 
                 // 2. Fallback to DB
                 if (listeningTests.length < 6) {

@@ -21,7 +21,7 @@ export default function DashboardReadingCarousel() {
             setIsLoading(true);
             try {
                 // 1. First, take reading tests from assignments
-                let readingTests = assignments.filter(t => t.type === 'reading' && t.status !== 'completed');
+                let readingTests = assignments.filter(t => (t.type || '').toLowerCase() === 'reading' && t.status !== 'completed');
                 
                 // 2. If not enough (less than 6), fetch latest public reading tests from DB
                 if (readingTests.length < 6) {

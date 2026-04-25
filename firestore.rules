@@ -59,7 +59,11 @@ service cloud.firestore {
 
     // RESULTS (Natijalar)
     match /results/{resultId} {
-      allow read: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin() || isTeacher());
+      allow read: if isAuth() && (
+        (resource != null && resource.data.userId == request.auth.uid) || 
+        isAdmin() || 
+        isTeacher()
+      );
       allow create: if isAuth(); 
       allow update: if isAdmin() || isTeacher();
       allow delete: if isAdmin();

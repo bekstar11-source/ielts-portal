@@ -632,10 +632,19 @@ export function useTestLogic() {
                 }
             }
 
-            // 6. Cleanup LocalStorage
+            // 6. Cleanup LocalStorage & SessionStorage Cache
             localStorage.removeItem(`draft_${user.uid}_${test.id}`);
             localStorage.removeItem(`timer_${user.uid}_${test.id}`);
             localStorage.removeItem(`mode_${user.uid}_${test.id}`);
+
+            // 🚀 Force Invalidate Analytics & Data Cache (v6)
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.removeItem(`student_assignments_v6_${user.uid}`);
+                sessionStorage.removeItem(`student_results_v6_${user.uid}`);
+                sessionStorage.removeItem(`student_results_time_v6_${user.uid}`);
+                sessionStorage.removeItem(`analytics_stats_v6_${user.uid}`);
+                sessionStorage.removeItem(`analytics_stats_time_v6_${user.uid}`);
+            }
 
             setShowResult(true);
         } catch (error) {

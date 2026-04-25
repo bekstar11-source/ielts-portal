@@ -70,11 +70,11 @@ export default function DashboardWelcome({
                         </svg>
                     )}
                     label="Maqsad ball"
-                    value={targetBand.toFixed(1)}
+                    value={parseFloat(targetBand || 7.5).toFixed(1)}
                     subLabel="Siz erishmoqchi bo'lgan IELTS bali"
                     accentColor="red"
                     chartType="donut"
-                    chartValue={Math.min(100, Math.round((currentBand / targetBand) * 100)) || 0}
+                    chartValue={Math.min(100, Math.round((parseFloat(currentBand || 0) / parseFloat(targetBand || 7.5)) * 100)) || 0}
                 />
 
                 {/* Overall Score Card */}
@@ -86,7 +86,7 @@ export default function DashboardWelcome({
                         </svg>
                     )}
                     label="Umumiy Ball"
-                    value={animatedCurrent.toFixed(1)}
+                    value={parseFloat(animatedCurrent || 0).toFixed(1)}
                     subLabel="Sizning joriy IELTS ko'rsatkichingiz"
                     accentColor="orange"
                     chartType="bar"

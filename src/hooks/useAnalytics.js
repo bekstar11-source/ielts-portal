@@ -43,45 +43,52 @@ export function useAnalytics(userId, initialResults = null) {
                 
                 // --- FULL MOCK EXAM HANDLING ---
                 if (type === 'mock_full' || type.startsWith('mock')) {
-                    if (r.scores?.readingBand > 0) skillScores.reading.push(parseFloat(r.scores.readingBand));
-                    if (r.scores?.listeningBand > 0) skillScores.listening.push(parseFloat(r.scores.listeningBand));
-                    if (r.scores?.writingBand > 0) skillScores.writing.push(parseFloat(r.scores.writingBand));
-                    if (r.scores?.speakingBand > 0) skillScores.speaking.push(parseFloat(r.scores.speakingBand));
-                    
-                    // Fallback to raw correct answers if bands aren't available but scores are
-                    // Note: Mock results usually have scores object. 
+                    const rBand = parseFloat(r.scores?.readingBand || r.readingBand || r.reading || 0);
+                    const lBand = parseFloat(r.scores?.listeningBand || r.listeningBand || r.listening || 0);
+                    const wBand = parseFloat(r.scores?.writingBand || r.writingBand || r.scores?.writing || r.writing || r.writingScore || 0);
+                    const sBand = parseFloat(r.scores?.speakingBand || r.speakingBand || r.scores?.speaking || r.speaking || r.speakingScore || 0);
+
+                    if (rBand > 0) skillScores.reading.push(rBand);
+                    if (lBand > 0) skillScores.listening.push(lBand);
+                    if (wBand > 0) skillScores.writing.push(wBand);
+                    if (sBand > 0) skillScores.speaking.push(sBand);
                 } 
                 // --- REGULAR TESTS HANDLING ---
                 else {
-                    let bScore = parseFloat(r.bandScore || 0);
+                    // Try every possible field that could contain a score or band
+                    let bScore = parseFloat(r.bandScore || r.writingBand || r.speakingBand || r.readingBand || r.listeningBand || 0);
 
-                    // Enhance type detection using testTitle if type is generic
-                    let exactType = type;
-                    const title = String(r.testTitle || "").toLowerCase();
-                    if (!type.includes('reading') && !type.includes('listening') && !type.includes('writing') && !type.includes('speaking')) {
-                        if (title.includes('reading')) exactType = 'reading';
-                        else if (title.includes('listening')) exactType = 'listening';
-                        else if (title.includes('writing')) exactType = 'writing';
-                        else if (title.includes('speaking')) exactType = 'speaking';
-                    }
+                    // --- ULTRA ROBUST TYPE DETECTION ---
+                    let exactType = String(r.type || "").toLowerCase();
+                    const title = String(r.testTitle || r.title || r.name || "").toLowerCase();
+                    const tags = Array.isArray(r.tags) ? r.tags.join(" ").toLowerCase() : "";
+                    
+                    const isReading = exactType.includes('reading') || title.includes('reading') || title.includes('passage') || title.includes('text') || tags.includes('reading');
+                    const isListening = exactType.includes('listening') || title.includes('listening') || title.includes('audio') || tags.includes('listening');
+                    const isWriting = exactType.includes('writing') || title.includes('writing') || title.includes('essay') || tags.includes('writing');
+                    const isSpeaking = exactType.includes('speaking') || title.includes('speaking') || title.includes('interview') || tags.includes('speaking');
+
+                    if (isReading) exactType = 'reading';
+                    else if (isListening) exactType = 'listening';
+                    else if (isWriting) exactType = 'writing';
+                    else if (isSpeaking) exactType = 'speaking';
 
                     // Fallback to calculating band score if only raw score is available
-                    if (bScore === 0 && r.score !== undefined && r.score !== null) {
-                        const rawScore = parseFloat(r.score);
-                        if (exactType.includes('reading') || exactType.includes('listening')) {
+                    if (bScore === 0 && (r.score !== undefined || r.correctAnswers !== undefined)) {
+                        const rawScore = parseFloat(r.score || r.correctAnswers || 0);
+                        if (exactType === 'reading' || exactType === 'listening') {
                             const totalQ = r.totalQuestions || 40;
-                            bScore = calculateBandScore(rawScore, exactType.includes('reading') ? 'reading' : 'listening', totalQ) || 0;
-                        } else {
-                            // For writing/speaking or other types where raw score might actually be the band
+                            bScore = calculateBandScore(rawScore, exactType, totalQ) || 0;
+                        } else if (rawScore > 0 && rawScore <= 9) {
                             bScore = rawScore;
                         }
                     }
 
                     if (bScore > 0) {
-                        if (exactType.includes('reading')) skillScores.reading.push(bScore);
-                        else if (exactType.includes('listening')) skillScores.listening.push(bScore);
-                        else if (exactType.includes('writing')) skillScores.writing.push(bScore);
-                        else if (exactType.includes('speaking')) skillScores.speaking.push(bScore);
+                        if (exactType === 'reading') skillScores.reading.push(bScore);
+                        else if (exactType === 'listening') skillScores.listening.push(bScore);
+                        else if (exactType === 'writing') skillScores.writing.push(bScore);
+                        else if (exactType === 'speaking') skillScores.speaking.push(bScore);
                     }
                 }
                 
@@ -172,7 +179,7 @@ export function useAnalytics(userId, initialResults = null) {
 
             const totalGraded = [].concat(...Object.values(skillScores));
 
-            return {
+            const processed = {
                 averageScore: totalGraded.length ? (totalGraded.reduce((a,b)=>a+b,0) / totalGraded.length).toFixed(1) : 0,
                 skillAverages,
                 recentProgress,
@@ -182,21 +189,39 @@ export function useAnalytics(userId, initialResults = null) {
                 weakAreas,
                 allResults: results
             };
+
+            if (typeof window !== 'undefined') {
+                window.__DEBUG_ANALYTICS__ = { 
+                    resultsCount: results.length,
+                    results: results.slice(0, 3), // Faqat bir nechtasini ko'ramiz
+                    processed 
+                };
+            }
+
+            return processed;
         };
 
         const fetchResults = async () => {
             try {
-                // Agar tashqaridan natijalar kelsa, ularni ishlatamiz (Read larni tejash uchun)
                 if (initialResults && initialResults.length > 0) {
+                    console.log(`[useAnalytics] Processing ${initialResults.length} initial results...`);
                     const calculatedStats = processResults(initialResults);
                     setStats(calculatedStats);
                     setLoading(false);
+                    
+                    // Natijalarni keshga ham yangilab qo'yamiz
+                    if (calculatedStats.totalTests > 0 && calculatedStats.averageScore > 0) {
+                        const CACHE_KEY = `analytics_stats_v6_${userId}`;
+                        const CACHE_TIME_KEY = `analytics_stats_time_v6_${userId}`;
+                        sessionStorage.setItem(CACHE_KEY, JSON.stringify(calculatedStats));
+                        sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                    }
                     return;
                 }
 
                 // 🚀 CACHE LOGIC
-                const CACHE_KEY = `analytics_stats_v4_${userId}`;
-                const CACHE_TIME_KEY = `analytics_stats_time_v4_${userId}`;
+                const CACHE_KEY = `analytics_stats_v7_${userId}`;
+                const CACHE_TIME_KEY = `analytics_stats_time_v7_${userId}`;
                 const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
                 const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
 
@@ -227,8 +252,12 @@ export function useAnalytics(userId, initialResults = null) {
 
                 const calculatedStats = processResults(results);
 
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify(calculatedStats));
                 sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                
+                // Faqat ma'lumot bo'lsagina keshga saqlaymiz (0 ballarni keshlamaymiz)
+                if (calculatedStats.totalTests > 0 && calculatedStats.averageScore > 0) {
+                    sessionStorage.setItem(CACHE_KEY, JSON.stringify(calculatedStats));
+                }
 
                 setStats(calculatedStats);
             } catch (error) {
