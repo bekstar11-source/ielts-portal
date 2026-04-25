@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, Volume1, VolumeX } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Lock, Zap, ArrowRight } from 'lucide-react';
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -25,6 +25,7 @@ export default function TestReview() {
     const { id } = useParams(); // Result ID
     const navigate = useNavigate();
     const { user, userData } = useAuth();
+    const isPremium = userData?.isPremium || userData?.accountType === 'premium' || userData?.role === 'admin' || userData?.role === 'teacher';
 
     const [loading, setLoading] = useState(true);
     const [testData, setTestData] = useState(null); // Asl test (Savollar)
@@ -587,6 +588,7 @@ export default function TestReview() {
                             isSavingWB={isSavingWB}
                             keywordTable={testData.keywordTable || MOCK_KEYWORD_TABLE}
                             userId={user?.uid}
+                            isPremium={isPremium}
                         />
                     ) : testData.type?.toLowerCase() === 'listening' ? (
                         <div className="flex flex-col w-full h-full bg-gray-50">
@@ -603,6 +605,7 @@ export default function TestReview() {
                                 activePart={listeningActivePart}
                                 setActivePart={setListeningActivePart}
                                 audioCurrentTime={audioTime}
+                                isPremium={isPremium}
                             />
                         </div>
                     ) : testData.type?.toLowerCase() === 'writing' ? (
@@ -668,11 +671,40 @@ export default function TestReview() {
                                                                 <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
                                                                     <span className="text-orange-500 text-sm">✨</span>
                                                                 </div>
-                                                                <h3 className="font-semibold text-[#1d1d1f] text-sm uppercase tracking-widest">AI Evaluation</h3>
+                                                                <h3 className="font-semibold text-[#1d1d1f] text-sm uppercase tracking-widest">
+                                                                    AI Evaluation {!isPremium && '(Locked)'}
+                                                                </h3>
                                                             </div>
 
-                                                            {resultData.aiReview[`task${task.id}`].criteria && (
-                                                                <div className="overflow-hidden rounded-2xl border border-gray-100">
+                                                            {!isPremium ? (
+                                                                <div className="relative">
+                                                                    <div className="filter blur-md opacity-30 select-none pointer-events-none">
+                                                                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+                                                                        <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
+                                                                        <div className="h-4 bg-gray-200 rounded w-5/6 mb-4"></div>
+                                                                    </div>
+                                                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                                                                        <div className="w-12 h-12 bg-[#F5F5F7] rounded-2xl flex items-center justify-center mb-4 text-[#0071E3]">
+                                                                            <Lock size={24} />
+                                                                        </div>
+                                                                        <h4 className="text-lg font-bold text-[#1D1D1F] mb-2">Detailed AI Analysis</h4>
+                                                                        <p className="text-[#86868B] text-sm mb-6 max-w-[300px]">
+                                                                            Xatolaringizni tushunish va bilimingizni oshirish uchun batafsil analizni oching.
+                                                                        </p>
+                                                                        <button 
+                                                                            onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}
+                                                                            className="bg-[#0071E3] text-white px-6 py-3 rounded-full font-bold text-sm shadow-lg shadow-[#0071E3]/20 flex items-center gap-2 group"
+                                                                        >
+                                                                            <Zap size={16} fill="currentColor" />
+                                                                            Premiumga o'tish
+                                                                            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    {resultData.aiReview[`task${task.id}`].criteria && (
+                                                                        <div className="overflow-hidden rounded-2xl border border-gray-100">
                                                                     <table className="w-full text-left text-sm">
                                                                         <thead className="bg-[#FBFBFD] text-gray-500 border-b border-gray-100">
                                                                             <tr>
@@ -759,9 +791,11 @@ export default function TestReview() {
                                                                         <p className="text-[13px] text-gray-500 opacity-70">No significant vocabulary issues found.</p>
                                                                     )}
                                                                 </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
                                                 </div>
                                             );
                                         })

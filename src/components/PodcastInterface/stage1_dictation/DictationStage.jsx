@@ -1,7 +1,8 @@
 // src/components/PodcastInterface/stage1_dictation/DictationStage.jsx
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { collection, getDocsFromServer, orderBy, query } from "firebase/firestore";
+import { collection, getDocsFromServer, orderBy, query, setDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
+import { useAuth } from "../../../context/AuthContext";
 import AudioPlayerBar from "../shared/AudioPlayerBar";
 import { usePodcastPlayer } from "../../../hooks/usePodcastPlayer";
 import "../shared/PodcastStyles.css";
@@ -67,7 +68,7 @@ function calcAccuracy(userText, correctText) {
 }
 
 // ── Component ────────────────────────────────────────────────────────
-export default function DictationStage({ podcastId, audioUrl, hintWords, onComplete }) {
+export default function DictationStage({ podcastId, audioUrl, hintWords, onComplete, onTimeUpdate }) {
     const [segments, setSegments] = useState([]);
     const [currentIdx, setCurrentIdx] = useState(0);
     const [phase, setPhase] = useState("listening"); // 'listening'|'typing'|'result_error'|'result_ok'
@@ -83,8 +84,27 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
     const currentSegEndRef = useRef(null);
     const phaseRef = useRef("listening");
 
-    const { audioRef, isPlaying, setIsPlaying, togglePlay, rewind, replay, setIsLoaded } =
+    const { audioRef, isPlaying, setIsPlaying, togglePlay, rewind, replay, setIsLoaded, playbackRate, setPlaybackRate } =
         usePodcastPlayer(segments);
+
+    const { user } = useAuth();
+    const handleAddBookmark = async () => {
+        if (!audioRef.current || !user) return;
+        const time = audioRef.current.currentTime;
+        try {
+            // Podcast attempt ichida xatcho'plarni saqlaymiz
+            const bookmarkRef = doc(collection(db, "podcasts", podcastId, "attempts", user.uid, "bookmarks"));
+            await setDoc(bookmarkRef, {
+                time,
+                segmentIndex: currentIdx,
+                createdAt: serverTimestamp(),
+                text: segments[currentIdx]?.text?.substring(0, 40) + "..."
+            });
+            alert(`Xatcho'p saqlandi!`);
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
     // ── Load segments ────────────────────────────────────────────────
     useEffect(() => {
@@ -101,6 +121,7 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
     // ── timeupdate: audio stops → auto switch to typing ─────────────
     const handleTimeUpdate = useCallback(() => {
         if (!audioRef.current || currentSegEndRef.current === null) return;
+        onTimeUpdate?.(audioRef.current.currentTime);
         if (audioRef.current.currentTime >= currentSegEndRef.current - 0.1) {
             audioRef.current.pause();
             if (phaseRef.current === "listening") {
@@ -125,14 +146,20 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
         if (!segments.length || !audioRef.current) return;
         const seg = segments[currentIdx];
         if (!seg) return;
-        currentSegEndRef.current = seg.endTime;
+        const startTime = Number(seg.startTime ?? seg.start);
+        const endTime = Number(seg.endTime ?? seg.end);
+
+        currentSegEndRef.current = isFinite(endTime) ? endTime : null;
         phaseRef.current = "listening";
         setPhase("listening");
         setUserInput("");
         setUserWordDiff([]);
         setCorrectWordDiff([]);
         setAttemptCount(0);
-        audioRef.current.currentTime = seg.startTime;
+        
+        if (isFinite(startTime)) {
+            audioRef.current.currentTime = startTime;
+        }
         audioRef.current.play().catch(() => { });
         setTimeout(() => inputRef.current?.focus(), 200);
     }, [currentIdx, segments]);
@@ -320,6 +347,9 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
                     audioRef={audioRef}
                     segStartTime={seg?.startTime ?? 0}
                     segEndTime={seg?.endTime ?? 0}
+                    playbackRate={playbackRate}
+                    setPlaybackRate={setPlaybackRate}
+                    onAddBookmark={handleAddBookmark}
                 />
             </div>
 

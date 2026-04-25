@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase/firebase';
-import { collection, query, orderBy, limit, getDocs, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, getCountFromServer } from 'firebase/firestore';
 import { Flame, Trophy, AlertTriangle, BookOpen, Headphones, PenTool, Mic, ArrowRight, ArrowUp, Crown, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,9 @@ import DashboardModals from "../components/dashboard/DashboardModals";
 import PricingModal from "../components/dashboard/PricingModal";
 import SiteFooter from "../components/common/SiteFooter";
 import { useAnalytics } from '../hooks/useAnalytics';
+import RoadmapTimeline from "../components/dashboard/RoadmapTimeline";
+import LimitReachedSheet from "../components/dashboard/LimitReachedSheet";
+import { useDailyLimit } from "../hooks/useDailyLimit";
 
 export default function PublicDashboard() {
     const { userData, user, logout } = useAuth();
@@ -20,16 +23,39 @@ export default function PublicDashboard() {
     const [leaderboard, setLeaderboard] = useState([]);
     const [mistakesCount, setMistakesCount] = useState(0);
     const [vocabCount, setVocabCount] = useState(0);
+    const [podcastsCount, setPodcastsCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
     const [activeTab, setActiveTab] = useState('dashboard');
     const [showKeyModal, setShowKeyModal] = useState(false);
+    const [showStartConfirm, setShowStartConfirm] = useState(false);
+    const [testToStart, setTestToStart] = useState(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showPricingModal, setShowPricingModal] = useState(false);
     const [pricingSource, setPricingSource] = useState("general");
     const [accessKeyInput, setAccessKeyInput] = useState("");
     const [checkingKey, setCheckingKey] = useState(false);
     const [keyError, setKeyError] = useState("");
+
+    const [showLimitSheet, setShowLimitSheet] = useState(false);
+    const [limitType, setLimitType] = useState('reading');
+    const { checkLimit, incrementUsage } = useDailyLimit(userData);
+    const [publicTestsFallback, setPublicTestsFallback] = useState([]);
+
+    const [activeSkills, setActiveSkills] = useState({
+        Reading: true,
+        Listening: true,
+        Writing: true,
+        Speaking: true
+    });
+
+    const toggleSkill = (skillName) => {
+        setActiveSkills(prev => {
+            const activeCount = Object.values(prev).filter(Boolean).length;
+            if (activeCount === 1 && prev[skillName]) return prev;
+            return { ...prev, [skillName]: !prev[skillName] };
+        });
+    };
 
     const { stats: analyticsStats } = useAnalytics(user?.uid);
 
@@ -46,16 +72,68 @@ export default function PublicDashboard() {
         const fallbackValue = userData?.currentBand || 0;
 
         return [
-            { name: "Reading", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.reading), icon: BookOpen, color: "blue" },
-            { name: "Listening", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.listening), icon: Headphones, color: "purple" },
-            { name: "Writing", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.writing), icon: PenTool, color: "orange" },
-            { name: "Speaking", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.speaking), icon: Mic, color: "emerald" }
+            { name: "Reading", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.reading), icon: BookOpen, color: "blue", isActive: activeSkills.Reading },
+            { name: "Listening", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.listening), icon: Headphones, color: "purple", isActive: activeSkills.Listening },
+            { name: "Writing", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.writing), icon: PenTool, color: "orange", isActive: activeSkills.Writing },
+            { name: "Speaking", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.speaking), icon: Mic, color: "emerald", isActive: activeSkills.Speaking }
         ];
-    }, [analyticsStats, userData]);
+    }, [analyticsStats, userData, activeSkills]);
+
+    const calculatedOverallBand = useMemo(() => {
+        if (analyticsStats.totalTests === 0) return userData?.currentBand || 0;
+        
+        let sum = 0;
+        let count = 0;
+        
+        skillStats.forEach(skill => {
+            if (skill.isActive) {
+                sum += parseFloat(skill.score) || 0;
+                count++;
+            }
+        });
+        
+        if (count === 0) return 0;
+        
+        const avg = sum / count;
+        return Math.round(avg * 2) / 2;
+    }, [skillStats, analyticsStats.totalTests, userData]);
 
     const handlePremiumFeatureClick = (source) => {
         setPricingSource(source);
         setShowPricingModal(true);
+    };
+
+    const handleStartTest = (test) => {
+        const type = test.type?.toLowerCase() || '';
+        const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');
+        const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');
+        const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;
+
+        if (limitTarget && !checkLimit(limitTarget)) {
+            setLimitType(limitTarget);
+            setShowLimitSheet(true);
+            return;
+        }
+        
+        setTestToStart(test);
+        setShowStartConfirm(true);
+    };
+
+    const confirmStartTest = () => {
+        const test = testToStart;
+        if (!test) return;
+        
+        setShowStartConfirm(false);
+        
+        const type = test.type?.toLowerCase() || '';
+        const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');
+        const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');
+        const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;
+
+        if (limitTarget) {
+            incrementUsage(limitTarget).catch(err => console.error("Stats update failed:", err));
+        }
+        navigate(`/test/${test.id || test.testId}`);
     };
 
     useEffect(() => {
@@ -67,12 +145,19 @@ export default function PublicDashboard() {
                 const leaders = userSnaps.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setLeaderboard(leaders);
 
-                const [mSnap, vSnap] = await Promise.all([
+                const [mSnap, vSnap, pSnap] = await Promise.all([
                     getCountFromServer(collection(db, 'users', user.uid, 'mistakes')),
-                    getCountFromServer(collection(db, 'users', user.uid, 'vocabulary'))
+                    getCountFromServer(collection(db, 'users', user.uid, 'vocabulary')),
+                    getCountFromServer(query(collection(db, 'podcasts'), where('status', '==', 'published')))
                 ]);
                 setMistakesCount(mSnap.data().count);
                 setVocabCount(vSnap.data().count);
+                setPodcastsCount(pSnap.data().count);
+
+                // Fetch fallback tests for Roadmap
+                const qF = query(collection(db, "tests"), where("type", "==", "reading"), limit(5));
+                const snapF = await getDocs(qF);
+                setPublicTestsFallback(snapF.docs.map(d => ({ id: d.id, ...d.data() })));
             } catch (err) {
                 console.error("Dashboard datasi olishda xatolik:", err);
             } finally {
@@ -108,12 +193,16 @@ export default function PublicDashboard() {
                         <HeroSection
                             userName={userData?.fullName?.split(' ')[0] || "O'quvchi"}
                             targetBand={targetBand}
-                            currentBand={analyticsStats.totalTests > 0 ? analyticsStats.averageScore : currentBand}
+                            currentBand={calculatedOverallBand}
                             previousBand={0}
                             examDate={userData?.examDate}
                             streakCount={streak}
                             points={xp}
                             skillStats={skillStats}
+                            onToggleSkill={toggleSkill}
+                            usageStats={userData?.usageStats}
+                            onStartTest={handleStartTest}
+                            assignments={publicTestsFallback}
                         />
 
                         <div className="max-w-7xl mx-auto px-6 mt-12 mb-24">
@@ -122,7 +211,7 @@ export default function PublicDashboard() {
                                 {[
                                     { label: "Daily Streak", value: streak, unit: "kun", icon: Flame, color: "text-orange-500", bg: "bg-orange-50" },
                                     { label: "Total XP", value: xp, unit: "ball", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50" },
-                                    { label: "Xatolarim", value: mistakesCount, unit: "xato", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50", link: "/practice" },
+                                    { label: "Podcastlar", value: podcastsCount, unit: "ta", icon: Headphones, color: "text-indigo-500", bg: "bg-indigo-50", link: "/podcasts" },
                                     { label: "So'z boyligi", value: vocabCount, unit: "so'z", icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50", link: "/vocabulary" }
                                 ].map((stat, i) => (
                                     <div 
@@ -162,6 +251,7 @@ export default function PublicDashboard() {
                 showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}
                 accessKeyInput={accessKeyInput} setAccessKeyInput={setAccessKeyInput}
                 handleVerifyKey={handleVerifyKey} checkingKey={checkingKey} keyError={keyError}
+                showStartConfirm={showStartConfirm} setShowStartConfirm={setShowStartConfirm} confirmStartTest={confirmStartTest}
                 showLogoutConfirm={showLogoutConfirm} setShowLogoutConfirm={setShowLogoutConfirm} confirmLogout={logout}
             />
 
@@ -170,6 +260,16 @@ export default function PublicDashboard() {
                 onClose={() => setShowPricingModal(false)}
                 userName={userData?.fullName?.split(' ')[0] || "O'quvchi"}
                 source={pricingSource}
+            />
+
+            <LimitReachedSheet 
+                isOpen={showLimitSheet} 
+                onClose={() => setShowLimitSheet(false)}
+                onUpgrade={() => {
+                    setShowLimitSheet(false);
+                    setShowPricingModal(true);
+                }}
+                type={limitType}
             />
         </div>
     );

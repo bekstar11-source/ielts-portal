@@ -6,7 +6,7 @@ import "../shared/PodcastStyles.css";
 
 const LETTERS = ["A", "B", "C", "D"];
 
-export default function MCQStage({ podcastId, audioUrl, onComplete }) {
+export default function MCQStage({ podcastId, audioUrl, onComplete, onTimeUpdate }) {
     const [questions, setQuestions] = useState([]);
     const [current, setCurrent] = useState(0);
     const [selected, setSelected] = useState(null);
@@ -17,6 +17,15 @@ export default function MCQStage({ podcastId, audioUrl, onComplete }) {
     const [hintProgress, setHintProgress] = useState(0);     // 0–100 %
     const audioRef = useRef(null);
     const hintTimer = useRef(null);
+
+    // Sync time
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const handleTime = () => onTimeUpdate?.(audio.currentTime);
+        audio.addEventListener("timeupdate", handleTime);
+        return () => audio.removeEventListener("timeupdate", handleTime);
+    }, [onTimeUpdate]);
 
     // ── Data fetch ────────────────────────────────────────────
     useEffect(() => {

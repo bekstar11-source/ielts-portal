@@ -46,7 +46,8 @@ const ListeningRightPane = memo(({
     testMode,
     onIntroEnd,
     isHighlighterActive: isHighlighterActiveProp,
-    hideSecondaryIntro
+    hideSecondaryIntro,
+    isPremium
 }) => {
     // --- HIGHLIGHT HOOK ---
     // isHighlighterActiveProp props orqali kelsa hookka uzatiladi (tashqaridan boshqariladi)

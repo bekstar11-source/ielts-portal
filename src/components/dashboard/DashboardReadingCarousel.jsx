@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase/firebase';
 import { collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 
-export default function DashboardReadingCarousel() {
+export default function DashboardReadingCarousel({ onStartTest }) {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { assignments, loading: assignmentsLoading } = useStudentData(user);
@@ -125,7 +125,7 @@ export default function DashboardReadingCarousel() {
                         ) : realItems.map((item, i) => (
                             <div 
                                 key={item.id || i} 
-                                onClick={() => navigate(`/test/${item.id}`)}
+                                onClick={() => onStartTest ? onStartTest(item) : navigate(`/test/${item.id}`)}
                                 className="group/apple-card relative aspect-[3/3.8] bg-[#F6F6FA] rounded-[24px] p-7 transition-all duration-500 cursor-pointer overflow-hidden animate-fade-in-up hover:scale-[1.005]"
                                 style={{ animationDelay: item.delay }}
                             >

@@ -15,7 +15,10 @@ import VocabPracticeStage from "../components/PodcastInterface/stage4_vocab/Voca
 import VocabExamStage from "../components/PodcastInterface/stage4_vocab/VocabExamStage";
 import SpeakingStage from "../components/PodcastInterface/stage5_speaking/SpeakingStage";
 import PodcastReportCard from "../components/PodcastInterface/results/PodcastReportCard";
+import InteractiveTranscript from "../components/PodcastInterface/shared/InteractiveTranscript";
+import PodcastVocabList from "../components/PodcastInterface/shared/PodcastVocabList";
 import "../components/PodcastInterface/shared/PodcastStyles.css";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
 
 const STAGE_TITLES = [
     "✍️ Dictation — Eshitib yazing",
@@ -41,8 +44,21 @@ export default function PodcastPlayer() {
     const [loading, setLoading] = useState(true);
     const [vocabPhase, setVocabPhase] = useState("practice"); // 'practice' | 'exam'
     const [vocabWords, setVocabWords] = useState([]);
+    const [activeToolTab, setActiveToolTab] = useState("transcript"); // 'transcript' | 'vocabulary'
+    const [globalTime, setGlobalTime] = useState(0);
+    const [allSegments, setAllSegments] = useState([]);
 
     const { attempt, currentStage, stageResults, saving, completeStage, loading: attemptLoading } = usePodcastAttempt(podcastId);
+
+    useEffect(() => {
+        if (!podcastId) return;
+        const fetchAllSegs = async () => {
+            const q = query(collection(db, "podcasts", podcastId, "segments"), orderBy("index"));
+            const snap = await getDocs(q);
+            setAllSegments(snap.docs.map(d => d.data()));
+        };
+        fetchAllSegs();
+    }, [podcastId]);
 
     useEffect(() => {
         getDoc(doc(db, "podcasts", podcastId))
@@ -145,6 +161,7 @@ export default function PodcastPlayer() {
                                     audioUrl={podcast.audioUrl}
                                     hintWords={podcast.hintWords}
                                     onComplete={(r) => handleStageComplete(r)}
+                                    onTimeUpdate={setGlobalTime}
                                 />
                             </>
                         )}
@@ -154,6 +171,7 @@ export default function PodcastPlayer() {
                                 podcastId={podcastId}
                                 audioUrl={podcast.audioUrl}
                                 onComplete={(r) => handleStageComplete(r)}
+                                onTimeUpdate={setGlobalTime}
                             />
                         )}
 
@@ -162,6 +180,7 @@ export default function PodcastPlayer() {
                                 podcastId={podcastId}
                                 audioUrl={podcast.audioUrl}
                                 onComplete={(r) => handleStageComplete(r)}
+                                onTimeUpdate={setGlobalTime}
                             />
                         )}
 
@@ -188,6 +207,50 @@ export default function PodcastPlayer() {
                                 onComplete={(r) => handleStageComplete(r)}
                             />
                         )}
+
+                        {/* Learning Tools Section */}
+                        <div style={{ marginTop: 60, borderTop: "1px solid var(--pod-border)", paddingTop: 32 }}>
+                            <div style={{ display: "flex", gap: 24, marginBottom: 24, borderBottom: "1px solid var(--pod-border)" }}>
+                                {["transcript", "vocabulary"].map(tab => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveToolTab(tab)}
+                                        style={{
+                                            padding: "12px 4px",
+                                            background: "none",
+                                            border: "none",
+                                            borderBottom: activeToolTab === tab ? "2px solid var(--pod-accent)" : "2px solid transparent",
+                                            color: activeToolTab === tab ? "var(--pod-accent)" : "var(--pod-text-2)",
+                                            fontWeight: 600,
+                                            fontSize: 14,
+                                            cursor: "pointer",
+                                            transition: "all 0.2s"
+                                        }}
+                                    >
+                                        {tab === "transcript" ? "📜 Sinxron Matn" : "📚 Lug'at Boyligi"}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {activeToolTab === "transcript" && (
+                                <div className="pod-animate-in">
+                                    <p style={{ fontSize: 13, color: "var(--pod-muted)", marginBottom: 16 }}>
+                                        💡 So'zlar ustiga bosib tarjimasini ko'ring. Shadowing uchun matnni kuzatib boring.
+                                    </p>
+                                    <InteractiveTranscript
+                                        podcastId={podcastId}
+                                        segments={allSegments}
+                                        currentTime={globalTime}
+                                    />
+                                </div>
+                            )}
+
+                            {activeToolTab === "vocabulary" && (
+                                <div className="pod-animate-in">
+                                    <PodcastVocabList podcastId={podcastId} />
+                                </div>
+                            )}
+                        </div>
                     </>
                 )}
 

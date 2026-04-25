@@ -15,6 +15,8 @@ import QuickAnalytics from '../components/dashboard/QuickAnalytics';
 import TestShowcase from '../components/dashboard/TestShowcase';
 import AnnouncementsBoard from '../components/dashboard/AnnouncementsBoard';
 import HeroSection from "../components/dashboard/HeroSection";
+import LimitReachedSheet from "../components/dashboard/LimitReachedSheet";
+import { useDailyLimit } from "../hooks/useDailyLimit";
 
 // StatsCards removed as it is integrated into HeroSection now
 // FiltersBar and TestGrid moved to Practice.jsx
@@ -42,12 +44,33 @@ export default function StudentDashboard() {
     const [showKeyModal, setShowKeyModal] = useState(false);
     const [showStartConfirm, setShowStartConfirm] = useState(false);
     const [testToStart, setTestToStart] = useState(null);
+    const [showPricingModal, setShowPricingModal] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [selectedSet, setSelectedSet] = useState(null);
     const [accessKeyInput, setAccessKeyInput] = useState("");
     const [checkingKey, setCheckingKey] = useState(false);
     const [keyError, setKeyError] = useState("");
-    const [showPricingModal, setShowPricingModal] = useState(false);
+    const [showLimitSheet, setShowLimitSheet] = useState(false);
+    const [limitType, setLimitType] = useState('reading');
+    const { checkLimit, incrementUsage } = useDailyLimit(userData);
+    const [publicTestsFallback, setPublicTestsFallback] = useState([]);
+
+    // 🔥 Ko'nikmalarni (skills) yoqish/o'chirish state'i
+    const [activeSkills, setActiveSkills] = useState({
+        Reading: true,
+        Listening: true,
+        Writing: true,
+        Speaking: true
+    });
+
+    const toggleSkill = (skillName) => {
+        setActiveSkills(prev => {
+            // Kamida bitta skill faol qolishi kerak
+            const activeCount = Object.values(prev).filter(Boolean).length;
+            if (activeCount === 1 && prev[skillName]) return prev;
+            return { ...prev, [skillName]: !prev[skillName] };
+        });
+    };
 
     // 🚀 SHARED HOOK — Practice bilan bitta cache ishlatadi (zero duplicate reads)
     const { assignments: rawAssignments, userResults, loading, error: errorMsg, refresh } = useStudentData(user);
@@ -81,6 +104,44 @@ export default function StudentDashboard() {
         localStorage.removeItem(`gamification_counts_time_${user.uid}`);
         sessionStorage.removeItem(`analytics_stats_${user.uid}`);
         await refresh(); // hook orqali cache invalidate + qayta fetch
+    };
+
+    const handleStartTest = (test) => {
+        const type = test.type?.toLowerCase() || '';
+        const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');
+        const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');
+        const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;
+
+        if (limitTarget && !checkLimit(limitTarget)) {
+            setLimitType(limitTarget);
+            setShowLimitSheet(true);
+            return;
+        }
+        
+        setTestToStart(test);
+        setShowStartConfirm(true);
+    };
+
+    const confirmStartTest = () => {
+        const test = testToStart;
+        if (!test) return;
+        
+        setShowStartConfirm(false);
+        
+        const type = test.type?.toLowerCase() || '';
+        const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');
+        const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');
+        const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;
+
+        if (limitTarget) {
+            incrementUsage(limitTarget).catch(err => console.error("Stats update failed:", err));
+        }
+        
+        if (test.type === 'mock_full') { 
+            navigate('/mock-exam', { state: { mockData: test } }); 
+            return; 
+        }
+        navigate(`/test/${test.id || test.testId}`);
     };
 
     // Gamification ma'lumotlarini yuklash (Mistakes, Vocab) — 1 soatlik localStorage cache
@@ -123,7 +184,17 @@ export default function StudentDashboard() {
             }
         };
         fetchGamificationData();
-    }, [user]);
+
+        // 🚀 Fetch fallback tests if needed
+        const fetchFallback = async () => {
+            if (rawAssignments.length === 0) {
+                const q = query(collection(db, "tests"), where("type", "==", "reading"), limit(5));
+                const snap = await getDocs(q);
+                setPublicTestsFallback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            }
+        };
+        fetchFallback();
+    }, [user, rawAssignments.length]);
 
     // --- STATS ---
     const stats = useMemo(() => {
@@ -166,12 +237,34 @@ export default function StudentDashboard() {
         const fallbackValue = userData?.currentBand || 0;
 
         return [
-            { name: "Reading", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.reading), icon: BookOpen, color: "blue" },
-            { name: "Listening", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.listening), icon: Headphones, color: "purple" },
-            { name: "Writing", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.writing), icon: PenTool, color: "orange" },
-            { name: "Speaking", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.speaking), icon: Mic, color: "emerald" }
+            { name: "Reading", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.reading), icon: BookOpen, color: "blue", isActive: activeSkills.Reading },
+            { name: "Listening", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.listening), icon: Headphones, color: "purple", isActive: activeSkills.Listening },
+            { name: "Writing", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.writing), icon: PenTool, color: "orange", isActive: activeSkills.Writing },
+            { name: "Speaking", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.speaking), icon: Mic, color: "emerald", isActive: activeSkills.Speaking }
         ];
-    }, [analyticsStats, userData]);
+    }, [analyticsStats, userData, activeSkills]);
+
+    const calculatedOverallBand = useMemo(() => {
+        if (analyticsStats.totalTests === 0) return userData?.currentBand || 0;
+        
+        let sum = 0;
+        let count = 0;
+        
+        skillStats.forEach(skill => {
+            if (skill.isActive) {
+                sum += parseFloat(skill.score) || 0;
+                count++;
+            }
+        });
+        
+        if (count === 0) return 0;
+        
+        // Faqat hisobga olingan (active) skill'lar yig'indisini ularning soniga bo'lamiz
+        const avg = sum / count;
+        
+        // IELTS yaxlitlash qoidasi: 0.25 -> 0.5, 0.75 -> 1.0 ga qadar
+        return Math.round(avg * 2) / 2;
+    }, [skillStats, analyticsStats.totalTests, userData]);
 
     const filteredTests = useMemo(() => {
         let baseList = rawAssignments;
@@ -192,14 +285,6 @@ export default function StudentDashboard() {
             return matchesSearch && matchesType;
         });
     }, [rawAssignments, searchQuery, filterType, activeTab]);
-
-    const handleStartTest = (test) => { setTestToStart(test); setShowStartConfirm(true); };
-
-    const confirmStartTest = () => {
-        const test = testToStart; setShowStartConfirm(false);
-        if (test.type === 'mock_full') { navigate('/mock-exam', { state: { mockData: test } }); return; }
-        navigate(`/test/${test.id}`);
-    };
 
     const handleReview = (test) => {
         const resultId = test.result?.id;
@@ -269,14 +354,18 @@ export default function StudentDashboard() {
                         <HeroSection
                             userName={userData?.fullName?.split(' ')[0] || "O'quvchi"}
                             targetBand={userData?.targetBand || 7.5}
-                            currentBand={analyticsStats.totalTests > 0 ? analyticsStats.averageScore : (userData?.currentBand || 0)}
+                            currentBand={calculatedOverallBand}
                             previousBand={userData?.previousIELTSScore || 0}
                             examDate={userData?.examDate}
                             daysRemaining={userData?.examTimeframe ? null : undefined}
                             onUpgradeClick={() => setShowPricingModal(true)}
                             skillStats={skillStats}
+                            onToggleSkill={toggleSkill}
                             streakCount={userData?.streakCount || 0}
                             points={userData?.gamification?.points || 0}
+                            usageStats={userData?.usageStats}
+                            onStartTest={handleStartTest}
+                            assignments={rawAssignments.length > 0 ? rawAssignments : publicTestsFallback}
                         />
 
 

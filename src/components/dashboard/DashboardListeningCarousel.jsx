@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase/firebase';
 import { collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 
-export default function DashboardListeningCarousel({ isListeningPaused }) {
+export default function DashboardListeningCarousel({ isListeningPaused, onStartTest }) {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { assignments, loading: assignmentsLoading } = useStudentData(user);
@@ -28,19 +28,20 @@ export default function DashboardListeningCarousel({ isListeningPaused }) {
                 // 1. Get from assignments
                 let listeningTests = assignments.filter(t => (t.type || '').toLowerCase() === 'listening' && t.status !== 'completed');
 
-                // 2. Fallback to DB
-                if (listeningTests.length < 6) {
-                    const q = query(
-                        collection(db, "tests"),
-                        where("type", "==", "listening"),
-                        orderBy("createdAt", "desc"),
-                        limit(10)
-                    );
-                    const snapshot = await getDocs(q);
-                    const dbTests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // 2. Fallback to DB (Include both 'listening' tests and 'podcast' types)
+                if (listeningTests.length < 10) {
+                    const qTests = query(collection(db, "tests"), where("type", "==", "listening"), orderBy("createdAt", "desc"), limit(10));
+                    const qPods = query(collection(db, "podcasts"), where("status", "==", "published"), orderBy("createdAt", "desc"), limit(10));
+                    
+                    const [snapTests, snapPods] = await Promise.all([getDocs(qTests), getDocs(qPods)]);
+                    
+                    const dbItems = [
+                        ...snapTests.docs.map(d => ({ id: d.id, ...d.data(), _isTest: true })),
+                        ...snapPods.docs.map(d => ({ id: d.id, ...d.data(), _isPodcast: true }))
+                    ].sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
 
                     const existingIds = new Set(listeningTests.map(t => t.id));
-                    dbTests.forEach(t => {
+                    dbItems.forEach(t => {
                         if (!existingIds.has(t.id)) {
                             listeningTests.push(t);
                         }
@@ -48,20 +49,20 @@ export default function DashboardListeningCarousel({ isListeningPaused }) {
                 }
 
                 // 3. Map
-                const mapped = listeningTests.slice(0, 10).map((test, i) => {
+                const mapped = listeningTests.slice(0, 10).map((item, i) => {
+                    const isPod = item._isPodcast || item.type === 'podcast';
                     return {
-                        id: test.id,
-                        title: test.title || "Listening Practice",
-                        sub: test.tags?.[0] ? `Focus: ${test.tags.join(', ')}` : "IELTS Listening ko'nikmalarini oshirish uchun mashq.",
-                        questions: `${test.totalQuestions || test.questions?.length || 0} Questions`,
-                        img: test.thumbnail || [
+                        id: item.id,
+                        title: item.title || (isPod ? "New Podcast" : "Listening Practice"),
+                        sub: item.description || item.tags?.[0] || "IELTS Listening ko'nikmalarini oshirish.",
+                        questions: isPod ? "Interactive Podcast" : `${item.totalQuestions || 0} Questions`,
+                        link: isPod ? `/podcast/${item.id}` : `/test/${item.id}`,
+                        img: item.thumbnail || [
                             "/images/dashboard/listening_cover_1_vibrant_apple_music_style_1776972033954.png",
                             "/images/dashboard/listening_cover_2_vibrant_apple_music_style_1776972053148.png",
-                            "/images/dashboard/listening_cover_3_vibrant_apple_music_style_1776972075391.png",
-                            "https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=80",
-                            "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80"
-                        ][i % 5],
-                        tag: test.tags?.[0] || "Listening"
+                            "/images/dashboard/listening_cover_3_vibrant_apple_music_style_1776972075391.png"
+                        ][i % 3],
+                        tag: isPod ? "Podcast" : (item.tags?.[0] || "Listening")
                     };
                 });
 
@@ -134,7 +135,7 @@ export default function DashboardListeningCarousel({ isListeningPaused }) {
                             {realItems.map((item, i) => (
                                 <div 
                                     key={`${listIdx}-${item.id || i}`} 
-                                    onClick={() => navigate(`/test/${item.id}`)}
+                                    onClick={() => item.link ? navigate(item.link) : onStartTest(item)}
                                     className="flex-none w-[200px] md:w-[240px] group/card cursor-pointer"
                                 >
                                     <div className="relative aspect-[3/2.8] rounded-lg overflow-hidden mb-3 shadow-md group-hover:shadow-2xl transition-all duration-500 bg-zinc-100">

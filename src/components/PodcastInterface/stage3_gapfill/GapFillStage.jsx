@@ -5,13 +5,22 @@ import { db } from "../../../firebase/firebase";
 import { parseGapText, checkGapAnswer } from "../../../utils/gapParser";
 import "../shared/PodcastStyles.css";
 
-export default function GapFillStage({ podcastId, audioUrl, onComplete }) {
+export default function GapFillStage({ podcastId, audioUrl, onComplete, onTimeUpdate }) {
     const [segments, setSegments] = useState([]); // [{text, answers, gapTexts}]
     const [loading, setLoading] = useState(true);
     const [userAnswers, setUserAnswers] = useState({}); // key: "segIdx-gapIdx": value
     const [submitted, setSubmitted] = useState({});   // key: "segIdx-gapIdx": bool
     const inputRefs = useRef({});
     const audioRef = useRef(null);
+
+    // Sync time
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const handleTime = () => onTimeUpdate?.(audio.currentTime);
+        audio.addEventListener("timeupdate", handleTime);
+        return () => audio.removeEventListener("timeupdate", handleTime);
+    }, [onTimeUpdate]);
 
     useEffect(() => {
         if (!podcastId) return;

@@ -62,7 +62,8 @@ export default function ReadingInterface({
   userId,
 
   isNotesVisible,
-  setIsNotesVisible
+  setIsNotesVisible,
+  isPremium
 }) {
   // --- 1. SESSION HOOK ---
   const {
@@ -503,6 +504,7 @@ export default function ReadingInterface({
               keywordTable={keywordTable}
               onAddNote={(noteData) => addNote(activePassage, noteData)}
               onOpenNotes={() => setIsNotesVisible(true)}
+              isPremium={isPremium}
             />
           </div>
         </div>

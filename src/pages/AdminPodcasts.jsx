@@ -59,12 +59,27 @@ export default function AdminPodcasts() {
                         {podcasts.length} ta podcast mavjud
                     </p>
                 </div>
-                <button
-                    className="pod-btn pod-btn-primary"
-                    onClick={() => navigate("/admin/create-podcast")}
-                >
-                    + Yangi Podcast
-                </button>
+                <div style={{ display: "flex", gap: 10 }}>
+                    <button
+                        className="pod-btn pod-btn-ghost"
+                        onClick={() => navigate("/admin/create-podcast")}
+                    >
+                        + Classic Creator
+                    </button>
+                    <button
+                        className="pod-btn pod-btn-primary"
+                        onClick={() => navigate("/admin/create-dictation")}
+                    >
+                        + Dictation (JSON)
+                    </button>
+                    <button
+                        className="pod-btn pod-btn-primary"
+                        style={{ background: "#22c55e" }}
+                        onClick={() => navigate("/admin/create-spotify-podcast")}
+                    >
+                        + Spotify-Style
+                    </button>
+                </div>
             </div>
 
             {/* Podcast list */}
@@ -141,7 +156,10 @@ export default function AdminPodcasts() {
                                 <button
                                     className="pod-btn pod-btn-ghost"
                                     style={{ fontSize: 12, padding: "6px 12px", flex: 1 }}
-                                    onClick={() => navigate(`/admin/edit-podcast/${p.id}`)}
+                                    onClick={() => {
+                                        if (p.mode === 'spotify') navigate(`/admin/edit-spotify-podcast/${p.id}`);
+                                        else navigate(`/admin/edit-dictation/${p.id}`);
+                                    }}
                                 >
                                     ✏️ Tahrirlash
                                 </button>

@@ -671,3 +671,80 @@ html.light {
     background: var(--pod-surface-3);
     border-radius: 99px;
 }
+
+/* Interactive Transcript */
+.pod-transcript-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 12px;
+    line-height: 2.2;
+    font-size: 17px;
+}
+
+.pod-transcript-segment {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline;
+}
+
+.pod-transcript-segment:hover {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.pod-transcript-segment.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--pod-accent-2);
+    font-weight: 500;
+}
+
+.pod-transcript-word {
+    cursor: help;
+    transition: color 0.15s;
+    display: inline;
+    padding: 2px 1px;
+}
+
+.pod-transcript-word:hover {
+    color: var(--pod-accent);
+    text-decoration: underline dotted var(--pod-accent);
+}
+
+/* Translation Popup */
+.pod-translation-popup {
+    position: fixed;
+    z-index: 1000;
+    background: var(--pod-surface-3);
+    border: 1px solid var(--pod-accent);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    max-width: 240px;
+    animation: pod-fade-in 0.2s ease;
+}
+
+@keyframes pod-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.pod-translation-word {
+    font-weight: 700;
+    color: var(--pod-accent-2);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.pod-translation-meaning {
+    font-size: 14px;
+    color: var(--pod-text);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.pod-translation-context {
+    font-size: 12px;
+    color: var(--pod-muted);
+    font-style: italic;
+}

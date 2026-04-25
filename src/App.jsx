@@ -22,6 +22,7 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import AdminTests from './pages/AdminTests';
 import Onboarding from './pages/Onboarding';
 import Practice from './pages/Practice';
+import RoadmapPage from './pages/RoadmapPage';
 import Settings from './pages/Settings';
 import PublicDashboard from './pages/PublicDashboard';
 import DiagnosticIntro from './pages/DiagnosticIntro';
@@ -48,7 +49,14 @@ import PodcastPlayer from './pages/PodcastPlayer';
 import AdminPodcasts from './pages/AdminPodcasts';
 import CreatePodcast from './pages/CreatePodcast';
 import KeyManager from './pages/KeyManager';
+import CreateDictation from './pages/CreateDictation';
+import SpotifyPodcast from './pages/SpotifyPodcast';
+import CreateSpotifyPodcast from './pages/CreateSpotifyPodcast';
 import StudentStatistics from './pages/StudentStatistics';
+import SpeakingPractice from './pages/SpeakingPractice';
+import ArticleReading from './pages/ArticleReading';
+import AdminRoadmap from './pages/AdminRoadmap';
+import Podcasts from './pages/Podcasts';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();
@@ -135,6 +143,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['student', 'admin']}>
               <Onboarding />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/roadmap"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <RoadmapPage />
             </ProtectedRoute>
           }
         />
@@ -256,6 +273,42 @@ function App() {
           }
         />
 
+        <Route
+          path="/podcast/spotify/:podcastId"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
+              <SpotifyPodcast />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/podcasts"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
+              <Podcasts />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/speaking-practice"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
+              <SpeakingPractice />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/article-reading"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
+              <ArticleReading />
+            </ProtectedRoute>
+          }
+        />
+
         {/* --- TEACHER YO'NALISHLARI --- */}
         <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
           <Route index element={<TeacherDashboard />} />
@@ -272,6 +325,7 @@ function App() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="tests" element={<AdminTests />} />
+          <Route path="roadmap" element={<AdminRoadmap />} />
           <Route path="announcements" element={<AdminAnnouncements />} />
           <Route path="create-test" element={<CreateTest />} />
           <Route path="edit-test/:id" element={<CreateTest />} />
@@ -282,6 +336,10 @@ function App() {
           <Route path="writing-review" element={<TeacherWritingReview />} />
           <Route path="create-podcast" element={<CreatePodcast />} />
           <Route path="edit-podcast/:id" element={<CreatePodcast />} />
+          <Route path="create-dictation" element={<CreateDictation />} />
+          <Route path="edit-dictation/:id" element={<CreateDictation />} />
+          <Route path="create-spotify-podcast" element={<CreateSpotifyPodcast />} />
+          <Route path="edit-spotify-podcast/:id" element={<CreateSpotifyPodcast />} />
           <Route path="key-manager" element={<KeyManager />} />
           <Route path="settings" element={<Settings />} />
         </Route>

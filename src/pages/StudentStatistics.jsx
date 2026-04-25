@@ -54,6 +54,26 @@ export default function StudentStatistics() {
         ].filter(s => s.value > 0);
     }, [stats.skillAverages]);
 
+    const calculatedOverallBand = useMemo(() => {
+        if (!stats || stats.totalTests === 0) {
+            return parseFloat(userData?.currentBand || 0).toFixed(1);
+        }
+        
+        const roundToIELTSBand = (score) => {
+            const num = parseFloat(score);
+            if (!num || isNaN(num)) return 0;
+            return Math.round(num * 2) / 2;
+        };
+
+        const r = roundToIELTSBand(stats.skillAverages?.reading || 0);
+        const l = roundToIELTSBand(stats.skillAverages?.listening || 0);
+        const w = roundToIELTSBand(stats.skillAverages?.writing || 0);
+        const s = roundToIELTSBand(stats.skillAverages?.speaking || 0);
+        
+        const avg = (r + l + w + s) / 4;
+        return (Math.round(avg * 2) / 2).toFixed(1);
+    }, [stats, userData]);
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
@@ -88,7 +108,7 @@ export default function StudentStatistics() {
                     <div className="flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-black/[0.03]">
                         <div className="px-4 py-2 bg-black text-white rounded-xl">
                             <span className="text-xs font-bold uppercase tracking-widest opacity-70 block">Overall Band</span>
-                            <span className="text-2xl font-bold tracking-tighter">{stats.averageScore}</span>
+                            <span className="text-2xl font-bold tracking-tighter">{calculatedOverallBand}</span>
                         </div>
                     </div>
                 </div>
@@ -103,7 +123,7 @@ export default function StudentStatistics() {
                     />
                     <KPICard 
                         title="O'rtacha ball" 
-                        value={stats.averageScore} 
+                        value={calculatedOverallBand} 
                         icon={Target} 
                         color="purple" 
                     />

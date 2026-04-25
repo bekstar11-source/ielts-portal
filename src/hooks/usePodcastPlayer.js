@@ -94,6 +94,15 @@ export function usePodcastPlayer(segments = []) {
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [togglePlay, rewind, replay]);
 
+    const [playbackRate, setPlaybackRate] = useState(1.0);
+
+    // Audio element playbackRate ni sinxronlash
+    useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.playbackRate = playbackRate;
+        }
+    }, [playbackRate]);
+
     return {
         audioRef,
         currentSegmentIndex,
@@ -110,5 +119,7 @@ export function usePodcastPlayer(segments = []) {
         playFromTime,
         handleTimeUpdate,
         playSegment,
+        playbackRate,
+        setPlaybackRate,
     };
 }

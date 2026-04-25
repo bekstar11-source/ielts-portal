@@ -73,7 +73,10 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
               )}
             </div>
           </div>
-          <button className="bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#0062cc] text-white text-[15px] font-bold px-7 py-2.5 rounded-full transition-all duration-200">
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleClick(); }}
+            className="bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#0062cc] text-white text-[15px] font-bold px-7 py-2.5 rounded-full transition-all duration-200"
+          >
             {isCompleted ? 'Review' : 'Start'}
           </button>
         </div>

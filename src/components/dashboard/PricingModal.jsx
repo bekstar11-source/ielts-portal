@@ -26,49 +26,47 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi", s
 
     const plans = [
         {
-            name: "Vetra Lite",
-            price: "159,000",
-            period: "oyiga",
-            icon: <Zap className="w-6 h-6 text-blue-500" />,
-            color: "blue",
+            name: "Daily Pass",
+            price: "2,900",
+            period: "kuniga",
+            icon: <Zap className="w-6 h-6 text-yellow-500" />,
+            color: "yellow",
             features: [
-                "Barcha Reading & Listening testlari",
-                "Xatolar banki va shaxsiy lug'at",
-                "Cheklangan Writing AI (oyiga 5 ta)",
-                "Cheklangan Speaking AI (oyiga 5 ta)"
+                "Barcha testlar (1 kun)",
+                "AI Evaluation (1 kun)",
+                "Xatolar banki (1 kun)",
+                "Tezkor kirish"
             ],
-            buttonText: "Lite Tarifni Tanlash"
+            buttonText: "Sotib olish"
         },
         {
-            name: "Vetra Pro",
-            price: "249,000",
-            period: "oyiga",
+            name: "10-Day Sprint",
+            price: "19,000",
+            period: "10 kunga",
             icon: <Star className="w-6 h-6 text-[#F44A22]" />,
             color: "orange",
             popular: true,
             features: [
-                "Barcha Full Mock Exam setlar",
-                "Cheksiz Writing AI tekshiruvchisi",
-                "Cheksiz Speaking AI (Real examiner)",
-                "Xatolar tahlili va yechimlar",
-                "Personal o'quv rejasi (Target 7.5+)"
+                "10 kunlik to'liq reja",
+                "Barcha Reading & Listening",
+                "Writing & Speaking (Cheksiz)",
+                "Roadmap progress tracking"
             ],
-            buttonText: "Pro Tarifni Tanlash"
+            buttonText: "Sprintni Boshlash"
         },
         {
-            name: "Vetra Elite",
-            price: "599,000",
-            period: "3 oylik",
-            icon: <Shield className="w-6 h-6 text-purple-500" />,
-            color: "purple",
+            name: "Monthly Pro",
+            price: "29,000",
+            period: "oyiga",
+            icon: <Shield className="w-6 h-6 text-blue-500" />,
+            color: "blue",
             features: [
-                "Pro tarifning barcha imkoniyatlari",
-                "Faqat 3 oylik to'lov bilan tejash",
-                "24/7 Mentor yordami",
-                "Writing uchun maxsus PDF qo'llanmalar",
-                "Speaking mock interview (Live)"
+                "30 kun cheksiz foydalanish",
+                "Barcha Full Mock Examlar",
+                "Xatolar tahlili va yechimlar",
+                "Personal o'quv rejasi"
             ],
-            buttonText: "Elite Tarifni Tanlash"
+            buttonText: "Pro Tarifni Tanlash"
         }
     ];
 
@@ -76,6 +74,7 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi", s
         if (color === 'orange') return 'ring-[#F44A22]/30 shadow-lg shadow-[#F44A22]/10';
         if (color === 'blue') return 'ring-blue-400/30 shadow-lg shadow-blue-400/10';
         if (color === 'purple') return 'ring-purple-400/30 shadow-lg shadow-purple-400/10';
+        if (color === 'yellow') return 'ring-yellow-400/30 shadow-lg shadow-yellow-400/10';
         return 'ring-[#E4E2E3]';
     };
 
@@ -83,6 +82,7 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi", s
         if (color === 'orange') return 'from-[#F44A22]/5 to-transparent border-[#F44A22]/20';
         if (color === 'blue') return 'from-blue-50 to-transparent border-blue-200';
         if (color === 'purple') return 'from-purple-50 to-transparent border-purple-200';
+        if (color === 'yellow') return 'from-yellow-50 to-transparent border-yellow-200';
         return 'from-[#FEF8E8] to-transparent border-[#E4E2E3]';
     };
 
@@ -90,6 +90,7 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi", s
         if (color === 'orange') return 'bg-[#F44A22] hover:bg-[#D93D1B] shadow-lg shadow-[#F44A22]/20';
         if (color === 'blue') return 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20';
         if (color === 'purple') return 'bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-600/20';
+        if (color === 'yellow') return 'bg-yellow-500 hover:bg-yellow-600 shadow-lg shadow-yellow-500/20';
         return 'bg-[#161616] hover:bg-[#2a2a2a]';
     };
 

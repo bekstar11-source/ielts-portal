@@ -95,7 +95,10 @@ export default function FullReadingCard({ test, index, isCompleted, onReview, on
           </div>
 
           {/* Frosted glass Play button */}
-          <div className="w-10 h-10 flex-shrink-0 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+          <div 
+            onClick={(e) => { e.stopPropagation(); handleClick(); }}
+            className="w-10 h-10 flex-shrink-0 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+          >
             <Play size={14} className="text-white fill-white ml-0.5" />
           </div>
         </div>

@@ -34,7 +34,8 @@ const ReadingRightPane = memo(({
     keywordTable = [],
 
     onAddNote,
-    onOpenNotes
+    onOpenNotes,
+    isPremium
 }) => {
     const internalRef = useRef(null);
     const [tempSelection, setTempSelection] = useState(null);
@@ -266,7 +267,8 @@ const ReadingRightPane = memo(({
                             onRemoveHighlight,
                             keywordTable,
                             handleLocationClick,
-                            onOpenNotes
+                            onOpenNotes,
+                            isPremium
                         };
 
                         // Detect matching headings specifically

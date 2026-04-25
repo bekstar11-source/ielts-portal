@@ -1,5 +1,6 @@
 import React from "react";
 import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { Lock, Zap } from 'lucide-react';
 import HighlightableText from './HighlightableText';
 import { injectKeywordsToHTML } from '../../utils/highlightUtils';
 
@@ -38,10 +39,31 @@ const cleanExplanation = (text) => {
         .trim();
 };
 
-const QuestionExplanation = ({ text }) => {
+const QuestionExplanation = ({ text, isPremium }) => {
     if (!text) return null;
     const cleaned = cleanExplanation(text);
     if (!cleaned) return null;
+
+    if (!isPremium) {
+        return (
+            <div className="mt-3 p-4 bg-[#F5F5F7] border border-gray-100 rounded-2xl relative overflow-hidden group">
+                <div className="flex items-center gap-2 mb-2 text-[#86868B] font-bold uppercase tracking-widest text-[10px]">
+                    <Lock size={12} className="shrink-0" />
+                    Explanation (Locked)
+                </div>
+                <div className="filter blur-sm select-none opacity-40 text-xs line-clamp-2" dangerouslySetInnerHTML={{ __html: cleaned }} />
+                <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px]">
+                    <button 
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}
+                        className="bg-white/90 border border-gray-200 px-4 py-2 rounded-full text-[11px] font-bold text-[#0071E3] shadow-sm hover:scale-105 transition-all flex items-center gap-1.5"
+                    >
+                        <Zap size={12} fill="currentColor" />
+                        Unlock Detailed Analysis
+                    </button>
+                </div>
+            </div>
+        );
+    }
     
     return (
         <div className="mt-3 p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-gray-700 leading-relaxed animate-in fade-in slide-in-from-top-1">
@@ -485,7 +507,7 @@ export const MatchingGridQuestion = ({
 };
 
 export const ChoiceQuestion = ({ 
-    group, q, val, onAnswerChange, isReviewMode, isMultiSelect, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, onOpenNotes 
+    group, q, val, onAnswerChange, isReviewMode, isMultiSelect, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, onOpenNotes, isPremium 
 }) => {
     const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
     let itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
@@ -647,14 +669,14 @@ export const ChoiceQuestion = ({
                         );
                     })}
                 </div>
-                {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} />}
+                {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} isPremium={isPremium} />}
             </div>
         </div>
     );
 };
 
 export const GapFillQuestion = ({ 
-    group, q, val, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, isSummary, isFlowChart, isLast, onOpenNotes
+    group, q, val, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, isSummary, isFlowChart, isLast, onOpenNotes, isPremium
 }) => {
     const itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
     const parts = (q.text || "").split(/(\[INPUT\]|\[DROP\])/g);
@@ -762,7 +784,7 @@ export const GapFillQuestion = ({
             <div className={`flex gap-3 items-start pl-2 ${isFlowChart ? 'mb-0' : 'mb-2'}`}>
                 <span className="flex-1 text-black">{renderParts()}</span>
             </div>
-            {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} />}
+            {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} isPremium={isPremium} />}
         </div>
     );
 };

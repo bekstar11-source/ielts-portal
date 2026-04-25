@@ -7,11 +7,20 @@ import { useNavigate } from 'react-router-dom';
 export default function DashboardHeader({ user, userData, onKeyClick, onLogoutClick, activeTab, setActiveTab, onPremiumClick, onRefreshClick, loading }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredTab, setHoveredTab] = useState(null);
   const dropdownRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
   const closeTimeoutRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -56,7 +65,23 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
   };
 
   return (
-    <header className="h-11 w-full sticky top-0 z-[60] bg-white border-b border-zinc-100 transition-all duration-300">
+    <>
+      {/* Top Edge Blur Effect (Frosted Vignette) - Positioned behind header */}
+      <div 
+        className="fixed top-0 left-0 right-0 h-10 z-[50] pointer-events-none"
+        style={{
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          maskImage: 'linear-gradient(to bottom, black, transparent)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black, transparent)'
+        }}
+      />
+      
+      <header className={`h-11 w-full sticky top-0 z-[60] transition-all duration-500 ${
+      isScrolled 
+        ? 'bg-white border-b border-zinc-200/80 shadow-[0_2px_15px_-10px_rgba(0,0,0,0.1)]' 
+        : 'bg-white border-b border-zinc-100'
+    }`}>
       <div className="max-w-[1440px] mx-auto px-6 h-full flex items-center justify-between">
         {/* Logo */}
         <div className="cursor-pointer flex items-center pr-4 transition-transform hover:scale-105 active:scale-95" onClick={() => navigate('/dashboard')}>
@@ -303,5 +328,6 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
       </div>
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
+    </>
   );
 }

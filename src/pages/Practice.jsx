@@ -16,6 +16,8 @@ import DashboardModals from "../components/dashboard/DashboardModals";
 import PricingModal from "../components/dashboard/PricingModal";
 import Pagination from "../components/common/Pagination";
 import SiteFooter from "../components/common/SiteFooter";
+import LimitReachedSheet from "../components/dashboard/LimitReachedSheet";
+import { useDailyLimit } from "../hooks/useDailyLimit";
 
 // REFACTORED COMPONENTS
 import PracticeHero from "../components/practice/PracticeHero";
@@ -31,6 +33,7 @@ const categories = [
   { id: 'listening', label: 'Listening', icon: Headphones },
   { id: 'writing', label: 'Writing', icon: PenTool },
   { id: 'speaking', label: 'Speaking', icon: Mic },
+  { id: 'podcasts', label: 'Podcasts', icon: Headphones },
   { id: 'mock', label: 'Mock', icon: Crown },
 ];
 
@@ -60,6 +63,10 @@ export default function Practice() {
   const [accessKeyInput, setAccessKeyInput] = useState("");
   const [checkingKey, setCheckingKey] = useState(false);
   const [keyError, setKeyError] = useState("");
+  const [showLimitSheet, setShowLimitSheet] = useState(false);
+  const [limitType, setLimitType] = useState('reading');
+
+  const { checkLimit, incrementUsage } = useDailyLimit(userData);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,6 +98,10 @@ export default function Practice() {
   }, [tabFromUrl]);
 
   const handleTabClick = (tabId) => {
+    if (tabId === 'podcasts') {
+      navigate('/podcasts');
+      return;
+    }
     setActiveTab(tabId);
     navigate(`/practice?tab=${tabId}`, { replace: true });
   };
@@ -213,19 +224,52 @@ export default function Practice() {
   };
 
   const handleStartTest = (test) => { 
+    // Check limit for free users
+    const type = test.type?.toLowerCase() || '';
+    const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');
+    const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');
+    
+    const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;
+    
+    if (limitTarget && !checkLimit(limitTarget)) {
+      setLimitType(limitTarget);
+      setShowLimitSheet(true);
+      return;
+    }
+
     setTestToStart(test); 
     setShowStartConfirm(true); 
   };
 
-  const confirmStartTest = () => {
+  const confirmStartTest = async () => {
     const test = testToStart;
+    if (!test) return;
+
     setShowStartConfirm(false);
     setSelectedSet(null);
+
+    // Increment usage stats
+    const type = test.type?.toLowerCase() || '';
+    const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');
+    const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');
+    const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;
+    
+    if (limitTarget) {
+      // Don't block navigation on stats update
+      incrementUsage(limitTarget).catch(err => console.error("Stats update failed:", err));
+    }
+
     if (test.type === 'mock_full') { 
         navigate('/mock-exam', { state: { mockData: test } }); 
         return; 
     }
-    navigate(`/test/${test.id || test.testId}`);
+
+    const targetId = test.id || test.testId || test.targetId;
+    if (targetId) {
+        navigate(`/test/${targetId}`);
+    } else {
+        alert("Test ID topilmadi! Iltimos, sahifani yangilab qayta urinib ko'ring.");
+    }
   };
 
   const handleReview = (test) => {
@@ -522,6 +566,15 @@ export default function Practice() {
         isOpen={showPricingModal} 
         onClose={() => setShowPricingModal(false)}
         userName={userData?.fullName?.split(' ')[0]} 
+      />
+      <LimitReachedSheet 
+        isOpen={showLimitSheet} 
+        onClose={() => setShowLimitSheet(false)}
+        onUpgrade={() => {
+          setShowLimitSheet(false);
+          setShowPricingModal(true);
+        }}
+        type={limitType}
       />
       <SiteFooter />
     </div>

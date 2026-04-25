@@ -2,7 +2,7 @@
 // Segment-based mini player — har segment alohida qisqa audio faylday ko'rsatiladi
 
 import React, { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, RefreshCw } from "lucide-react";
+import { Play, Pause, RotateCcw, RefreshCw, Bookmark, Gauge } from "lucide-react";
 import "./PodcastStyles.css";
 
 function fmt(seconds) {
@@ -23,6 +23,9 @@ function fmt(seconds) {
  *  audioRef        - React ref to <audio> element
  *  segStartTime    - number  (segment.startTime, soniyada)
  *  segEndTime      - number  (segment.endTime, soniyada)
+ *  playbackRate    - number (0.75 - 1.5)
+ *  setPlaybackRate - fn
+ *  onAddBookmark   - fn (ihtiyoriy)
  */
 export default function AudioPlayerBar({
     isPlaying,
@@ -34,6 +37,9 @@ export default function AudioPlayerBar({
     audioRef,
     segStartTime = 0,
     segEndTime = 0,
+    playbackRate = 1.0,
+    setPlaybackRate,
+    onAddBookmark,
 }) {
     const [relTime, setRelTime] = useState(0);    // joriy vaqt (segmentga nisbatan)
     const segDuration = Math.max(0, segEndTime - segStartTime); // segment davomiyligi
@@ -139,6 +145,47 @@ export default function AudioPlayerBar({
             >
                 <RefreshCw size={14} />
             </button>
+
+            {/* ─ Playback Speed ─ */}
+            {setPlaybackRate && (
+                <button
+                    onClick={() => {
+                        const rates = [0.75, 1.0, 1.25, 1.5];
+                        const next = rates[(rates.indexOf(playbackRate) + 1) % rates.length];
+                        setPlaybackRate(next);
+                    }}
+                    title={`Tezlik: ${playbackRate}x`}
+                    style={{
+                        display: "flex", alignItems: "center", gap: 4,
+                        background: "var(--pod-surface-3)", border: "1px solid var(--pod-border)",
+                        borderRadius: 6, color: "var(--pod-accent)", cursor: "pointer",
+                        padding: "4px 8px", fontSize: 11, fontWeight: 700,
+                        transition: "all 0.15s", flexShrink: 0, minWidth: 54
+                    }}
+                >
+                    <Gauge size={13} />
+                    <span>{playbackRate}x</span>
+                </button>
+            )}
+
+            {/* ─ Bookmark ─ */}
+            {onAddBookmark && (
+                <button
+                    onClick={onAddBookmark}
+                    title="Xatcho'p qo'shish"
+                    style={{
+                        display: "flex", alignItems: "center",
+                        background: "none", border: "none",
+                        color: "var(--pod-text-2)", cursor: "pointer",
+                        padding: "6px 4px",
+                        transition: "all 0.15s", flexShrink: 0,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.color = "var(--pod-accent)"}
+                    onMouseLeave={e => e.currentTarget.style.color = "var(--pod-text-2)"}
+                >
+                    <Bookmark size={15} />
+                </button>
+            )}
 
             {/* ─ Progress area ─ */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>

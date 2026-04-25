@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import RoadmapTimeline from './RoadmapTimeline';
 
 // REFACTORED COMPONENTS
 import DashboardWelcome from './DashboardWelcome';
@@ -16,6 +17,10 @@ export default function HeroSection({
     daysRemaining = null,
     examDate = null,
     skillStats = [],
+    onToggleSkill,
+    usageStats = null,
+    onStartTest = null,
+    assignments = [],
 }) {
     const [animatedCurrent, setAnimatedCurrent] = useState(0);
     const [animatedDays, setAnimatedDays] = useState(0);
@@ -33,11 +38,11 @@ export default function HeroSection({
         const t = setInterval(() => {
             step++;
             const p = step / steps;
-            setAnimatedCurrent(parseFloat((currentBand * p).toFixed(1)));
+            setAnimatedCurrent(parseFloat((parseFloat(currentBand || 0) * p).toFixed(1)));
             setAnimatedDays(Math.round(finalDays * p));
             if (step >= steps) {
                 clearInterval(t);
-                setAnimatedCurrent(currentBand);
+                setAnimatedCurrent(parseFloat(currentBand || 0));
                 setAnimatedDays(finalDays);
             }
         }, stepDuration);
@@ -55,9 +60,13 @@ export default function HeroSection({
                 animatedDays={animatedDays}
             />
 
-            <DashboardAnalytics skillStats={skillStats} />
+            <DashboardAnalytics skillStats={skillStats} onToggleSkill={onToggleSkill} />
 
-            <DashboardReadingCarousel />
+            <div className="w-full mt-8 mb-4">
+                <RoadmapTimeline usageStats={usageStats} onStartTest={onStartTest} assignments={assignments} />
+            </div>
+
+            <DashboardReadingCarousel onStartTest={onStartTest} />
 
             <DashboardArticles />
 
@@ -67,6 +76,7 @@ export default function HeroSection({
             />
             <DashboardListeningCarousel 
                 isListeningPaused={isListeningPaused} 
+                onStartTest={onStartTest}
             />
         </section>
     );

@@ -1,76 +1,51 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 
 export function usePracticeScroll() {
   const scrollRef = useRef(null);
-  const targetRef = useRef(0);
-  const rafRef = useRef(null);
-  
+  const isScrollingRef = useRef(false);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(true);
 
-  const updateScrollState = (el) => {
+  const updateScrollState = useCallback((el) => {
     if (!el) return;
-    setCanLeft(el.scrollLeft > 1);
-    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
-  };
-
-  const scrollTo = (el, targetPos) => {
-    if (!el) return;
-    
-    const maxScrollLeft = el.scrollWidth - el.clientWidth;
-    targetRef.current = Math.max(0, Math.min(targetPos, maxScrollLeft));
-
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-
-    el.style.scrollSnapType = 'none';
-
-    const startPos = el.scrollLeft;
-    const change = targetRef.current - startPos;
-
-    if (Math.abs(change) < 1) {
-      el.scrollLeft = targetRef.current;
-      el.style.scrollSnapType = '';
-      return;
-    }
-
-    const duration = 600;
-    const startTime = performance.now();
-
-    const animateScroll = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(1 - progress, 3); // cubic ease-out
-
-      el.scrollLeft = startPos + change * ease;
-
-      if (progress < 1) {
-        rafRef.current = requestAnimationFrame(animateScroll);
-      } else {
-        el.scrollLeft = targetRef.current;
-        el.style.scrollSnapType = '';
-        rafRef.current = null;
-      }
-    };
-
-    rafRef.current = requestAnimationFrame(animateScroll);
-  };
+    setCanLeft(el.scrollLeft > 10);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  }, []);
 
   const handleScroll = (direction) => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || isScrollingRef.current) return;
+
     const firstChild = el.children[0];
     if (!firstChild) return;
 
-    const cardWidth = firstChild.offsetWidth;
-    const gap = 24;
-    
-    const currentTarget = targetRef.current || el.scrollLeft;
-    const newTarget = currentTarget + (direction * (cardWidth + gap));
+    isScrollingRef.current = true;
 
-    scrollTo(el, newTarget);
+    // Karta va gap masofasini aniq hisoblash
+    const cardWidth = firstChild.offsetWidth;
+    const style = window.getComputedStyle(el);
+    const gap = parseInt(style.gap) || 24;
+    const itemTotalWidth = cardWidth + gap;
+
+    // Hozirgi indexni aniqlash
+    const currentScroll = el.scrollLeft;
+    const currentIndex = Math.round(currentScroll / itemTotalWidth);
+    
+    // Yangi target index
+    const nextIndex = direction > 0 ? currentIndex + 1 : currentIndex - 1;
+    const targetPos = nextIndex * itemTotalWidth;
+
+    // Silliq skroll
+    el.scrollTo({
+      left: targetPos,
+      behavior: 'smooth'
+    });
+
+    // Animatsiya tugaguncha kutish (duplicate clicks oldini olish)
+    setTimeout(() => {
+      isScrollingRef.current = false;
+      updateScrollState(el);
+    }, 500);
   };
 
   return {

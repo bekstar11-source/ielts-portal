@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function DashboardAnalytics({ skillStats }) {
+export default function DashboardAnalytics({ skillStats, onToggleSkill }) {
     const navigate = useNavigate();
 
     return (
@@ -43,27 +43,37 @@ export default function DashboardAnalytics({ skillStats }) {
                 {/* Right Side: Skills List (Huge Bold Typography) */}
                 <div className="flex-1 flex flex-col items-center lg:items-end gap-2 md:gap-4 w-full">
                     {(skillStats && skillStats.length > 0 ? skillStats : [
-                        { name: 'Reading', score: '0.0', color: 'text-[#fa243c]' },
-                        { name: 'Listening', score: '0.0', color: 'text-[#65c400]' },
-                        { name: 'Writing', score: '0.0', color: 'text-[#ff8400]' },
-                        { name: 'Speaking', score: '0.0', color: 'text-[#2a7ff6]' },
+                        { name: 'Reading', score: '0.0', color: 'text-[#fa243c]', isActive: true },
+                        { name: 'Listening', score: '0.0', color: 'text-[#65c400]', isActive: true },
+                        { name: 'Writing', score: '0.0', color: 'text-[#ff8400]', isActive: true },
+                        { name: 'Speaking', score: '0.0', color: 'text-[#2a7ff6]', isActive: true },
                     ]).map((skill, index) => {
                         // Parent'dan kelgan ranglarni mapplash yoki default ranglarni ishlatish
                         const colors = ['text-[#fa243c]', 'text-[#65c400]', 'text-[#ff8400]', 'text-[#2a7ff6]'];
-                        const skillColor = skill.color && skill.color.includes('#') ? skill.color : (colors[index] || 'text-[#1D1D1F]');
+                        const defaultColor = skill.color && skill.color.includes('#') ? skill.color : (colors[index] || 'text-[#1D1D1F]');
+                        
+                        // Faol bo'lmagan skill kulrang (gray-300 / opacity-40) bo'ladi
+                        const isActive = skill.isActive !== false;
+                        const skillColor = isActive ? defaultColor : 'text-black/20';
+                        const scoreColor = isActive ? 'text-[#1D1D1F]' : 'text-black/20';
                         
                         return (
-                            <div key={skill.name} className="grid grid-cols-[1fr_100px] md:grid-cols-[1fr_140px] items-center w-full max-w-[480px] group cursor-default">
+                            <div 
+                                key={skill.name} 
+                                onClick={() => onToggleSkill && onToggleSkill(skill.name)}
+                                className={`grid grid-cols-[1fr_100px] md:grid-cols-[1fr_140px] items-center w-full max-w-[480px] group ${onToggleSkill ? 'cursor-pointer' : 'cursor-default'}`}
+                                title={onToggleSkill ? "Ushbu bo'limni umumiy balldan chiqarib tashlash/qo'shish uchun bosing" : ""}
+                            >
                                 {/* Skill Name */}
-                                <div className={`${skillColor} transition-transform duration-300 group-hover:translate-x-[-8px]`}>
-                                    <span className="text-[48px] md:text-[68px] font-bold tracking-tighter leading-none">
+                                <div className={`${skillColor} transition-all duration-300 ${isActive ? 'group-hover:translate-x-[-8px]' : 'group-hover:opacity-70'}`}>
+                                    <span className={`text-[48px] md:text-[68px] font-bold tracking-tighter leading-none ${isActive ? '' : 'line-through decoration-black/20 decoration-2'}`}>
                                         {skill.name}
                                     </span>
                                 </div>
                                 
                                 {/* Skill Score (Aligned) */}
                                 <div className="text-right">
-                                    <span className="text-[44px] md:text-[56px] font-bold text-[#1D1D1F] leading-none tracking-tighter group-hover:scale-110 transition-transform duration-300 inline-block">
+                                    <span className={`text-[44px] md:text-[56px] font-bold ${scoreColor} leading-none tracking-tighter transition-all duration-300 inline-block ${isActive ? 'group-hover:scale-110' : ''}`}>
                                         {parseFloat(skill.score || 0).toFixed(1)}
                                     </span>
                                 </div>
