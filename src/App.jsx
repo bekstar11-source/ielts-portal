@@ -29,6 +29,7 @@ import DiagnosticIntro from './pages/DiagnosticIntro';
 import DiagnosticTestSolving from './pages/DiagnosticTestSolving';
 import DiagnosticResult from './pages/DiagnosticResult';
 import { ThemeProvider } from './context/ThemeContext';
+import { PodcastProvider } from './context/PodcastContext';
 import AdminLayout from './components/common/AdminLayout';
 
 // ADMIN SAHIFALAR
@@ -49,9 +50,9 @@ import PodcastPlayer from './pages/PodcastPlayer';
 import AdminPodcasts from './pages/AdminPodcasts';
 import CreatePodcast from './pages/CreatePodcast';
 import KeyManager from './pages/KeyManager';
-import CreateDictation from './pages/CreateDictation';
 import SpotifyPodcast from './pages/SpotifyPodcast';
 import CreateSpotifyPodcast from './pages/CreateSpotifyPodcast';
+import SpotifyAlbum from './pages/SpotifyAlbum';
 import StudentStatistics from './pages/StudentStatistics';
 import SpeakingPractice from './pages/SpeakingPractice';
 import ArticleReading from './pages/ArticleReading';
@@ -108,7 +109,8 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Routes>
+      <PodcastProvider>
+        <Routes>
         {/* Bosh sahifa (Landing) */}
         <Route
           path="/"
@@ -283,9 +285,19 @@ function App() {
         />
 
         <Route
+          path="/podcast/album/:albumId"
+          element={
+            <ProtectedRoute>
+              <SpotifyAlbum />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
           path="/podcasts"
           element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
+            <ProtectedRoute>
               <Podcasts />
             </ProtectedRoute>
           }
@@ -336,8 +348,6 @@ function App() {
           <Route path="writing-review" element={<TeacherWritingReview />} />
           <Route path="create-podcast" element={<CreatePodcast />} />
           <Route path="edit-podcast/:id" element={<CreatePodcast />} />
-          <Route path="create-dictation" element={<CreateDictation />} />
-          <Route path="edit-dictation/:id" element={<CreateDictation />} />
           <Route path="create-spotify-podcast" element={<CreateSpotifyPodcast />} />
           <Route path="edit-spotify-podcast/:id" element={<CreateSpotifyPodcast />} />
           <Route path="key-manager" element={<KeyManager />} />
@@ -365,6 +375,7 @@ function App() {
         {/* Noma'lum sahifalar uchun redirect */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </PodcastProvider>
     </ThemeProvider>
   );
 }

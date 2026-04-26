@@ -124,5 +124,11 @@ service cloud.firestore {
       allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();
     }
+
+    // PODCAST COLLECTIONS
+    match /podcast_collections/{collectionId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
   }
 }

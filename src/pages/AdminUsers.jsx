@@ -43,14 +43,14 @@ const TabButton = ({ id, active, onClick, icon: Icon, label, theme }) => (
     <button
         onClick={() => onClick(id)}
         className={`
-            flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl transition-all text-sm font-medium whitespace-nowrap
+            flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all text-[12px] font-bold whitespace-nowrap
             ${active === id
-                ? (theme === 'dark' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200')
-                : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100')}
+                ? (theme === 'dark' ? 'bg-blue-600 text-white shadow-md shadow-blue-900/20' : 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200')
+                : (theme === 'dark' ? 'text-gray-500 hover:text-white hover:bg-white/5' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100')}
         `}
     >
-        <Icon size={16} />
-        <span className="md:inline">{label}</span>
+        <Icon size={14} />
+        <span className="hidden sm:inline">{label}</span>
     </button>
 );
 
@@ -59,15 +59,15 @@ const CustomDateInput = forwardRef(({ value, onClick, placeholder, disabled, the
         onClick={!disabled ? onClick : undefined}
         ref={ref}
         className={`
-            flex items-center justify-between w-full h-10 px-3 rounded-xl border transition-all cursor-pointer
+            flex items-center justify-between w-full h-8 px-2 rounded-lg border transition-all cursor-pointer
             ${theme === 'dark'
                 ? 'bg-[#2C2C2C] border-white/5 text-white hover:border-white/10'
                 : 'bg-white border-gray-200 text-gray-900 hover:border-blue-300'}
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
     >
-        <span className={`text-xs ${!value && 'opacity-50'}`}>{value || placeholder}</span>
-        <Calendar size={14} className="opacity-50" />
+        <span className={`text-[11px] font-bold ${!value && 'opacity-50'}`}>{value || placeholder}</span>
+        <Calendar size={12} className="opacity-50" />
     </div>
 ));
 
@@ -162,13 +162,13 @@ export default function AdminUsers() {
             <style>{customDatepickerStyles}</style>
 
             {/* HEADER & TABS */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 md:mb-6">
-                <div>
-                    <h1 className={`text-xl md:text-2xl font-bold font-display ${isDark ? 'text-white' : 'text-gray-900'}`}>Boshqaruv Paneli</h1>
-                    <p className={`text-xs md:text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tizim foydalanuvchilari va guruhlarni boshqarish</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3 md:mb-4">
+                <div className="flex items-center gap-3">
+                    <h1 className={`text-lg md:text-xl font-black font-display tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Boshqaruv</h1>
+                    <div className={`h-4 w-px ${isDark ? 'bg-white/10' : 'bg-gray-200'} hidden sm:block`} />
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'} hidden md:block`}>Users & Groups</p>
                 </div>
-                <div className={`flex p-1 rounded-2xl overflow-x-auto w-full lg:w-auto no-scrollbar transition-colors ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-100'}`}>
-
+                <div className={`flex p-1 rounded-xl w-full sm:w-auto no-scrollbar transition-colors ${isDark ? 'bg-[#1E1E1E]' : 'bg-gray-100/80 border border-gray-200/50'}`}>
                     <TabButton id="students" active={activeTab} onClick={setActiveTab} label="O'quvchilar" icon={Users} theme={theme} />
                     <TabButton id="groups" active={activeTab} onClick={setActiveTab} label="Guruhlar" icon={Layers} theme={theme} />
                     <TabButton id="assign" active={activeTab} onClick={setActiveTab} label="Tayinlash" icon={UserCheck} theme={theme} />
@@ -179,7 +179,7 @@ export default function AdminUsers() {
             {/* CONTENT AREA */}
             <div className="flex-1 overflow-y-auto md:overflow-hidden relative">
                 {loading && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-3xl">
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-xl">
                         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 )}
@@ -219,12 +219,12 @@ function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, total
     }, [students, searchTerm, filterBand]);
 
     return (
-        <div className={`rounded-[24px] border h-full flex flex-col overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+        <div className={`rounded-xl border h-full flex flex-col overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
             {/* Toolbar (Apple Design Refined) */}
-            <div className={`p-5 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50/50'}`}>
+            <div className={`p-3 md:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50/50'}`}>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-                    <div className={`flex items-center px-4 py-2.5 rounded-2xl transition-all group ${isDark ? 'bg-white/5 focus-within:bg-white/[0.08]' : 'bg-white border border-gray-200 focus-within:border-blue-400'}`}>
+                    <div className={`flex items-center px-4 py-2.5 rounded-xl transition-all group ${isDark ? 'bg-white/5 focus-within:bg-white/[0.08]' : 'bg-white border border-gray-200 focus-within:border-blue-400'}`}>
                         <Search size={16} className={`mr-2 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
                         <input
                             type="text"
@@ -238,7 +238,7 @@ function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, total
                         <select
                             value={filterBand}
                             onChange={e => setFilterBand(e.target.value)}
-                            className={`pl-4 pr-10 py-2.5 rounded-2xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 hover:bg-white/[0.08]' : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                            className={`pl-4 pr-10 py-2.5 rounded-xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 hover:bg-white/[0.08]' : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'}`}
                         >
                             <option value="all">Barcha Bandlar</option>
                             {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'].map(b => <option key={b} value={b}>{b}</option>)}
@@ -405,7 +405,7 @@ function GroupsTab({ groups, students, teachers, onRefresh, theme }) {
 
     return (
         <div className="h-full flex flex-col gap-6">
-            <div className={`p-4 rounded-[20px] border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+            <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
                 <span className="font-bold text-sm ml-2">Jami: {groups.length} ta guruh</span>
 
                 <div className="flex gap-2">
@@ -426,7 +426,7 @@ function GroupsTab({ groups, students, teachers, onRefresh, theme }) {
                 {groups.map(g => {
                     const groupTeachers = (g.teacherIds || []).map(tid => teachers.find(t => t.id === tid)).filter(Boolean);
                     return (
-                        <div key={g.id} className={`rounded-[24px] border p-6 transition-all group relative ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-blue-500/50 shadow-lg' : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm'}`}>
+                        <div key={g.id} className={`rounded-xl border p-5 transition-all group relative ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-blue-500/50 shadow-lg' : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm'}`}>
 
                             <div className="flex justify-between items-start mb-4">
                                 <h3 className="font-bold text-lg">{g.name}</h3>
@@ -620,25 +620,21 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
 
     return (
         <div className="relative flex flex-col h-full gap-4">
-            <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-6 pb-24 md:pb-0 overflow-y-auto md:overflow-hidden p-1">
+            <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-4 pb-24 md:pb-0 overflow-y-auto md:overflow-hidden p-1">
                 
                 {/* 1. TARGET SELECTION */}
-                <motion.div 
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`col-span-12 lg:col-span-4 flex flex-col rounded-[32px] overflow-hidden border transition-all duration-500 ${isDark ? 'bg-[#1E1E1E]/80 border-white/5 shadow-2xl shadow-black/20' : 'bg-white border-gray-100 shadow-xl shadow-blue-900/5'}`}
-                >
-                    <div className={`p-5 border-b backdrop-blur-md ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-50 bg-gray-50/50'} flex justify-between items-center`}>
+                <div className={`col-span-12 lg:col-span-3 flex flex-col rounded-xl overflow-hidden border transition-all duration-500 ${isDark ? 'bg-[#1E1E1E]/80 border-white/5 shadow-2xl shadow-black/20' : 'bg-white border-gray-100 shadow-xl shadow-blue-900/5'}`}>
+                    <div className={`p-3 border-b backdrop-blur-md ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-50 bg-gray-50/50'} flex justify-between items-center`}>
                         <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-[10px] font-bold">1</div>
-                            <span className="text-xs font-bold uppercase tracking-widest opacity-80">Kimga?</span>
+                            <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-[10px] font-bold">1</div>
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Kimga?</span>
                         </div>
-                        <div className={`flex p-1 rounded-2xl ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
+                        <div className={`flex p-1 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
                             {['groups', 'individual'].map(t => (
                                 <button 
                                     key={t} 
                                     onClick={() => { setSubTab(t); setSelectedGroup(null); setSelectedStudents([]); }} 
-                                    className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all duration-300 ${subTab === t ? (isDark ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white text-blue-600 shadow-md') : 'opacity-40 hover:opacity-100'}`}
+                                    className={`px-3 py-1 text-[9px] font-bold uppercase rounded-lg transition-all duration-300 ${subTab === t ? (isDark ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white text-blue-600 shadow-md') : 'opacity-40 hover:opacity-100'}`}
                                 >
                                     {t === 'groups' ? 'Guruh' : 'Yakka'}
                                 </button>
@@ -646,197 +642,187 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                         </div>
                     </div>
 
-                    <div className="p-4 border-b">
-                        <div className={`flex items-center px-4 h-11 rounded-2xl border transition-all duration-300 group ${isDark ? 'bg-[#121212] border-white/5 focus-within:border-blue-500/50' : 'bg-gray-50 border-gray-100 focus-within:border-blue-400'}`}>
-                            <Search size={16} className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                    <div className="p-3 border-b">
+                        <div className={`flex items-center px-3 h-10 rounded-xl border transition-all duration-300 group ${isDark ? 'bg-[#121212] border-white/5 focus-within:border-blue-500/50' : 'bg-gray-50 border-gray-100 focus-within:border-blue-400'}`}>
+                            <Search size={14} className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                             <input
                                 type="text"
-                                placeholder={subTab === 'groups' ? "Guruhni qidirish..." : "Ism bo'yicha qidirish..."}
-                                className="bg-transparent border-none outline-none text-sm w-full ml-3 placeholder:opacity-50"
+                                placeholder={subTab === 'groups' ? "Guruh..." : "Qidirish..."}
+                                className="bg-transparent border-none outline-none text-xs w-full ml-2 placeholder:opacity-50"
                                 value={searchUser}
                                 onChange={e => setSearchUser(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                        <AnimatePresence mode="popLayout">
-                            {subTab === 'groups' ? (
-                                groups.filter(g => g.name.toLowerCase().includes(searchUser.toLowerCase())).map(g => (
-                                    <motion.div
-                                        layout
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        key={g.id}
-                                        onClick={() => setSelectedGroup(g)}
-                                        className={`p-4 rounded-2xl border cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedGroup?.id === g.id ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50 hover:border-blue-200')}`}
-                                    >
-                                        <div className="flex justify-between items-center relative z-10">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedGroup?.id === g.id ? 'bg-blue-500 text-white' : 'bg-blue-500/10 text-blue-500'}`}>
-                                                    <Users size={16} />
-                                                </div>
-                                                <span className="font-bold text-sm tracking-tight">{g.name}</span>
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                        {subTab === 'groups' ? (
+                            groups.filter(g => g.name.toLowerCase().includes(searchUser.toLowerCase())).map(g => (
+                                <div
+                                    key={g.id}
+                                    onClick={() => setSelectedGroup(g)}
+                                    className={`p-3 rounded-xl border cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedGroup?.id === g.id ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50 hover:border-blue-200')}`}
+                                >
+                                    <div className="flex justify-between items-center relative z-10">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${selectedGroup?.id === g.id ? 'bg-blue-500 text-white' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                <Users size={14} />
                                             </div>
-                                            {selectedGroup?.id === g.id && <Check size={18} className="text-blue-500 animate-in zoom-in duration-300" />}
+                                            <span className="font-bold text-xs tracking-tight">{g.name}</span>
                                         </div>
-                                        {selectedGroup?.id === g.id && <div className="absolute inset-0 bg-blue-600/5 backdrop-blur-[2px]" />}
-                                    </motion.div>
-                                ))
-                            ) : (
-                                students.filter(s => s.fullName?.toLowerCase().includes(searchUser.toLowerCase())).map(s => (
-                                    <motion.div
-                                        layout
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        key={s.id}
-                                        onClick={() => setSelectedStudents(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
-                                        className={`p-4 rounded-2xl border cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedStudents.includes(s.id) ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50 hover:border-blue-200')}`}
-                                    >
-                                        <div className="flex justify-between items-center relative z-10">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedStudents.includes(s.id) ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                                                    <UserCheck size={16} />
-                                                </div>
-                                                <span className="font-bold text-sm tracking-tight">{s.fullName}</span>
+                                        {selectedGroup?.id === g.id && <Check size={16} className="text-blue-500 animate-in zoom-in duration-300" />}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            students.filter(s => s.fullName?.toLowerCase().includes(searchUser.toLowerCase())).map(s => (
+                                <div
+                                    key={s.id}
+                                    onClick={() => setSelectedStudents(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                                    className={`p-3 rounded-xl border cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedStudents.includes(s.id) ? 'border-blue-500 bg-blue-500/10' : (isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50 hover:border-blue-200')}`}
+                                >
+                                    <div className="flex justify-between items-center relative z-10">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${selectedStudents.includes(s.id) ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                                <UserCheck size={14} />
                                             </div>
-                                            {selectedStudents.includes(s.id) && <Check size={18} className="text-blue-500 animate-in zoom-in duration-300" />}
+                                            <span className="font-bold text-xs tracking-tight">{s.fullName}</span>
                                         </div>
-                                    </motion.div>
-                                ))
-                            )}
-                        </AnimatePresence>
+                                        {selectedStudents.includes(s.id) && <Check size={16} className="text-blue-500 animate-in zoom-in duration-300" />}
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
-                </motion.div>
+                </div>
 
                 {/* 2. MATERIAL & SETTINGS */}
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className={`col-span-12 lg:col-span-8 flex flex-col rounded-[32px] overflow-hidden border transition-all duration-500 ${isDark ? 'bg-[#1E1E1E]/80 border-white/5 shadow-2xl' : 'bg-white border-gray-100 shadow-xl'}`}
-                >
-                    <div className={`p-5 border-b flex flex-wrap justify-between items-center gap-4 ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50/50 border-gray-50'}`}>
+                <div className={`col-span-12 lg:col-span-9 flex flex-col rounded-xl overflow-hidden border transition-all duration-500 ${isDark ? 'bg-[#1E1E1E]/80 border-white/5 shadow-2xl' : 'bg-white border-gray-100 shadow-xl'}`}>
+                    <div className={`p-3 border-b flex flex-wrap justify-between items-center gap-3 ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50/50 border-gray-50'}`}>
                         <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-500 flex items-center justify-center text-[10px] font-bold">2</div>
-                            <span className="text-xs font-bold uppercase tracking-widest opacity-80">Nima?</span>
+                            <div className="w-5 h-5 rounded-full bg-purple-500/20 text-purple-500 flex items-center justify-center text-[10px] font-bold">2</div>
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Nima?</span>
                         </div>
                         
                         <div className="flex flex-wrap gap-2">
-                            <div className={`flex p-1 rounded-2xl ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
-                                <button onClick={() => { setAssignmentType('test'); setSearchMaterial(''); }} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all ${assignmentType === 'test' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}>Test</button>
-                                <button onClick={() => { setAssignmentType('set'); setSearchMaterial(''); }} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all ${assignmentType === 'set' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}>To'plam</button>
+                            <div className={`flex p-1 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
+                                <button onClick={() => { setAssignmentType('test'); setSearchMaterial(''); }} className={`px-3 py-1 text-[9px] font-bold uppercase rounded-lg transition-all ${assignmentType === 'test' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}>Test</button>
+                                <button onClick={() => { setAssignmentType('set'); setSearchMaterial(''); }} className={`px-3 py-1 text-[9px] font-bold uppercase rounded-lg transition-all ${assignmentType === 'set' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}>To'plam</button>
                             </div>
                             
                             {assignmentType === 'test' && (
-                                <div className={`flex p-1 rounded-2xl hidden sm:flex ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
-                                    {['all', 'listening', 'reading', 'writing', 'speaking'].map(type => (
-                                        <button 
-                                            key={type}
-                                            onClick={() => setMaterialTypeFilter(type)} 
-                                            className={`px-3 py-1.5 text-[9px] uppercase font-bold rounded-lg transition-all ${materialTypeFilter === type ? 'bg-purple-600 text-white' : 'opacity-40 hover:opacity-100'}`}
-                                        >
-                                            {type === 'all' ? 'Hammasi' : type}
-                                        </button>
-                                    ))}
+                                <div className="relative">
+                                    <select
+                                        value={materialTypeFilter}
+                                        onChange={(e) => setMaterialTypeFilter(e.target.value)}
+                                        className={`pl-3 pr-8 py-1.5 rounded-lg text-[9px] uppercase font-bold appearance-none cursor-pointer outline-none transition-all ${isDark ? 'bg-[#121212] text-white border border-white/5' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}
+                                    >
+                                        {['all', 'listening', 'reading', 'writing', 'speaking'].map(type => (
+                                            <option key={type} value={type}>
+                                                {type === 'all' ? 'Hammasi' : type}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="p-6 space-y-6 flex-1 overflow-y-auto no-scrollbar">
-                        {/* Search & List */}
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-end">
-                                <div className={`flex-1 flex items-center px-4 h-11 rounded-2xl border transition-all group ${isDark ? 'bg-[#121212] border-white/5 focus-within:border-blue-500/50' : 'bg-gray-50 border-gray-100 focus-within:border-blue-400'}`}>
-                                    <Search size={16} className="text-gray-400 group-focus-within:text-blue-500" />
-                                    <input
-                                        type="text"
-                                        placeholder="Material qidirish..."
-                                        className="bg-transparent border-none outline-none text-sm w-full ml-3 placeholder:opacity-50"
-                                        value={searchMaterial}
-                                        onChange={e => setSearchMaterial(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className={`rounded-3xl border overflow-hidden p-2 ${isDark ? 'bg-[#121212]/50 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
-                                <div className="max-h-[260px] overflow-y-auto p-1 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <AnimatePresence mode="popLayout">
-                                        {filteredMaterials.map(item => (
-                                            <motion.div
-                                                layout
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                key={item.id}
-                                                onClick={() => setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}
-                                                className={`p-3 rounded-2xl border cursor-pointer transition-all duration-300 flex justify-between items-center group ${selectedItems.includes(item.id) ? 'border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/20' : (isDark ? 'border-white/5 bg-white/5 hover:bg-white/10' : 'border-white bg-white hover:border-blue-100 shadow-sm')}`}
-                                            >
-                                                <div className="flex items-center gap-3 overflow-hidden">
-                                                    <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center transition-all ${selectedItems.includes(item.id) ? 'bg-blue-500 text-white' : 'bg-gray-500/10 text-gray-500 group-hover:scale-110'}`}>
-                                                        {getTypeIcon(item.type)}
-                                                    </div>
-                                                    <span className="text-xs font-bold truncate tracking-tight">{assignmentType === 'test' ? (item.title || "Nomsiz") : (item.name || "Nomsiz")}</span>
-                                                </div>
-                                                {selectedItems.includes(item.id) && <Check size={14} className="text-blue-500 ml-2 shrink-0 animate-in zoom-in duration-300" />}
-                                            </motion.div>
-                                        ))}
-                                    </AnimatePresence>
-                                </div >
-                            </div>
-                        </div>
-
-                        {/* Settings */}
-                        <div className="space-y-6 pt-4">
+                    <div className="p-4 space-y-4 flex-1 overflow-y-auto no-scrollbar">
+                        {/* Settings - Moved up and compacted */}
+                        <div className={`p-3 rounded-xl border space-y-3 ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
                             <div className="flex flex-wrap items-center justify-between gap-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center text-[10px] font-bold">3</div>
-                                    <span className="text-xs font-bold uppercase tracking-widest opacity-80">Sozlamalar</span>
+                                    <div className="w-5 h-5 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center text-[10px] font-bold">3</div>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Sozlamalar</span>
                                 </div>
-                                <div className="flex gap-4">
-                                    <button onClick={() => setIsStrict(!isStrict)} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isStrict ? 'border-red-500 bg-red-500/10 text-red-500' : 'border-gray-500/20 opacity-50 hover:opacity-80'}`}>
-                                        {isStrict ? <Zap size={14} /> : <AlertCircle size={14} />}
-                                        <span className="text-[10px] font-bold uppercase">Strict Mode</span>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setIsStrict(!isStrict)} className={`flex items-center gap-2 px-3 py-1 rounded-lg border transition-all ${isStrict ? 'border-red-500 bg-red-500/10 text-red-500' : 'border-gray-500/20 opacity-50 hover:opacity-80'}`}>
+                                        {isStrict ? <Zap size={12} /> : <AlertCircle size={12} />}
+                                        <span className="text-[9px] font-bold uppercase">Strict</span>
                                     </button>
-                                    <button onClick={() => setNoDeadline(!noDeadline)} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${noDeadline ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-gray-500/20 opacity-50 hover:opacity-80'}`}>
-                                        <Clock size={14} />
-                                        <span className="text-[10px] font-bold uppercase">Muddatsiz</span>
+                                    <button onClick={() => setNoDeadline(!noDeadline)} className={`flex items-center gap-2 px-3 py-1 rounded-lg border transition-all ${noDeadline ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-gray-500/20 opacity-50 hover:opacity-80'}`}>
+                                        <Clock size={12} />
+                                        <span className="text-[9px] font-bold uppercase">Muddatsiz</span>
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase opacity-40 ml-1">Urinishlar</label>
-                                    <div className={`h-11 flex items-center px-4 rounded-xl border transition-all ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                                        <input type="number" min="1" className="bg-transparent border-none outline-none w-full text-sm font-bold" value={maxAttempts} onChange={e => setMaxAttempts(e.target.value)} />
+                            <div className="flex flex-wrap items-center gap-3">
+                                {/* Attempts */}
+                                <div className="w-24">
+                                    <label className="text-[9px] font-bold uppercase opacity-40 ml-1">Urinishlar</label>
+                                    <div className={`h-8 flex items-center px-2 rounded-lg border transition-all ${isDark ? 'bg-[#121212] border-white/5' : 'bg-white border-gray-200'}`}>
+                                        <input type="number" min="1" className="bg-transparent border-none outline-none w-full text-xs font-bold" value={maxAttempts} onChange={e => setMaxAttempts(e.target.value)} />
                                     </div>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase opacity-40 ml-1">Boshlanish</label>
-                                    <DatePicker selected={startDate} onChange={setStartDate} showTimeSelect disabled={noDeadline} customInput={<CustomDateInput placeholder="Sanani tanlang" disabled={noDeadline} theme={theme} />} />
+
+                                {/* Date Start */}
+                                <div className="w-36">
+                                    <label className="text-[9px] font-bold uppercase opacity-40 ml-1">Boshlanish</label>
+                                    <DatePicker selected={startDate} onChange={setStartDate} showTimeSelect disabled={noDeadline} customInput={<CustomDateInput placeholder="Boshlanish" disabled={noDeadline} theme={theme} />} />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase opacity-40 ml-1 text-red-400">Tugash</label>
+
+                                {/* Date End */}
+                                <div className="w-36">
+                                    <label className="text-[9px] font-bold uppercase opacity-40 ml-1 text-red-400">Tugash</label>
                                     <DatePicker selected={endDate} onChange={setEndDate} showTimeSelect disabled={noDeadline} customInput={<CustomDateInput placeholder="Deadline" disabled={noDeadline} theme={theme} />} />
                                 </div>
-                            </div>
-                            
-                            <div className="pt-8 flex justify-end">
-                                <motion.button 
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={handleAssign} 
-                                    className={`w-full md:w-auto px-12 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-[24px] shadow-2xl shadow-blue-600/30 transition-all duration-300 flex items-center justify-center gap-3 group relative overflow-hidden`}
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                                    <Check size={20} className="group-hover:scale-125 transition-transform" />
-                                    <span>Tayinlash {selectedItems.length > 0 && `(${selectedItems.length})`}</span>
-                                </motion.button>
+
+                                {/* Search Material - Moved Here */}
+                                <div className="flex-1 min-w-[200px]">
+                                    <label className="text-[9px] font-bold uppercase opacity-40 ml-1">Material Qidirish</label>
+                                    <div className={`flex items-center px-3 h-8 rounded-lg border transition-all group ${isDark ? 'bg-[#121212] border-white/5 focus-within:border-blue-500/50' : 'bg-white border-gray-100 focus-within:border-blue-400'}`}>
+                                        <Search size={12} className="text-gray-400 group-focus-within:text-blue-500" />
+                                        <input
+                                            type="text"
+                                            placeholder="Qidirish..."
+                                            className="bg-transparent border-none outline-none text-xs w-full ml-2 placeholder:opacity-50 font-medium"
+                                            value={searchMaterial}
+                                            onChange={e => setSearchMaterial(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        {/* List */}
+                        <div className="space-y-3">
+                            <div className={`rounded-lg border overflow-hidden p-1 ${isDark ? 'bg-[#121212]/50 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
+                                <div className="max-h-[300px] overflow-y-auto p-0.5 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                    {filteredMaterials.map(item => (
+                                        <div
+                                            key={item.id}
+                                            onClick={() => setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}
+                                            className={`p-2 rounded-lg border cursor-pointer transition-all duration-300 flex justify-between items-center group ${selectedItems.includes(item.id) ? 'border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/20' : (isDark ? 'border-white/5 bg-white/5 hover:bg-white/10' : 'border-white bg-white hover:border-blue-100 shadow-sm')}`}
+                                        >
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <div className={`w-6 h-6 rounded-md shrink-0 flex items-center justify-center transition-all ${selectedItems.includes(item.id) ? 'bg-blue-500 text-white' : 'bg-gray-500/10 text-gray-500'}`}>
+                                                    {getTypeIcon(item.type)}
+                                                </div>
+                                                <span className="text-[11px] font-bold truncate tracking-tight">{assignmentType === 'test' ? (item.title || "Nomsiz") : (item.name || "Nomsiz")}</span>
+                                            </div>
+                                            {selectedItems.includes(item.id) && <Check size={12} className="text-blue-500 ml-1 shrink-0 animate-in zoom-in duration-300" />}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-6 flex justify-end">
+                            <motion.button 
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handleAssign} 
+                                className={`px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-lg shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2`}
+                            >
+                                <Check size={12} />
+                                <span className="text-[10px] font-bold">Tayinlash {selectedItems.length > 0 && `(${selectedItems.length})`}</span>
+                            </motion.button>
+                        </div>
                     </div>
-                </motion.div>
+                </div>
             </div>
         </div>
     );
@@ -908,7 +894,7 @@ function SetsTab({ allTests, testSets, onRefresh, theme }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
             {/* LEFT: Create Set */}
-            <div className={`rounded-[24px] border flex flex-col overflow-hidden ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+            <div className={`rounded-xl border flex flex-col overflow-hidden ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
                 <div className={`p-4 border-b space-y-3 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                     <input
                         type="text"
@@ -970,7 +956,7 @@ function SetsTab({ allTests, testSets, onRefresh, theme }) {
             </div>
 
             {/* RIGHT: Existing Sets */}
-            <div className={`rounded-[24px] border flex flex-col overflow-hidden ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
+            <div className={`rounded-xl border flex flex-col overflow-hidden ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-white border-gray-200'}`}>
                 <div className={`p-4 border-b font-bold text-sm uppercase opacity-50 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                     Mavjud To'plamlar
                 </div>
