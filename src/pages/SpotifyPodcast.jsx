@@ -9,6 +9,7 @@ import {
     Mic2, List as ListIcon, Heart, Expand, X, CheckCircle2 
 } from "lucide-react";
 import { usePodcast } from "../context/PodcastContext";
+import LazyImage from "../components/common/LazyImage";
 
 export default function SpotifyPodcast() {
     const { podcastId } = useParams();
@@ -81,7 +82,6 @@ export default function SpotifyPodcast() {
                 currentTime >= q.time && currentTime < q.time + 0.5 && !answeredQuestions.has(q.id || q.time)
             );
             if (question) {
-                setIsPlaying(false);
                 setCurrentQuestion(question);
             }
         }
@@ -101,7 +101,6 @@ export default function SpotifyPodcast() {
             setCurrentQuestion(null);
             setUserAnswer("");
             setIsCorrect(null);
-            setIsPlaying(true);
         }, 1200);
     };
 
@@ -156,7 +155,7 @@ export default function SpotifyPodcast() {
                 <div className="lg:w-[40%] flex flex-col items-center justify-center p-8 lg:p-12">
                     <motion.div animate={{ rotate: isPlaying ? 360 : 0 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} className="relative w-full max-w-[380px] aspect-square">
                         <div className="absolute inset-0 rounded-full border-[10px] border-white/5 shadow-2xl overflow-hidden bg-[#121212]">
-                            <img src={podcast.thumbnail} alt="" className="w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-500" />
+                            <LazyImage src={podcast.thumbnail} alt="" className="w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-500" />
                         </div>
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-black rounded-full border-4 border-white/5 flex items-center justify-center shadow-inner">
                             <div className="w-3 h-3 bg-white/10 rounded-full" />
@@ -190,7 +189,7 @@ export default function SpotifyPodcast() {
             <div className="h-[95px] bg-black border-t border-white/5 px-6 flex items-center justify-between z-50 shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-4 w-[30%] min-w-[200px]">
                     <div className="w-14 h-14 bg-zinc-800 rounded-lg flex-shrink-0 overflow-hidden relative group cursor-pointer shadow-2xl">
-                        <img src={podcast.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+                        <LazyImage src={podcast.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
                     </div>
                     <div className="hidden sm:block truncate pr-4">
                         <p className="text-[14px] font-black truncate text-white leading-tight">{podcast.title}</p>

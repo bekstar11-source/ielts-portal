@@ -130,5 +130,16 @@ service cloud.firestore {
       allow read: if isAuth();
       allow write: if isAdmin();
     }
+
+    // PODCAST RESULTS (Natijalar)
+    match /podcastResults/{resultId} {
+      allow read: if isAuth() && (
+        (resource != null && resource.data.userId == request.auth.uid) || 
+        isAdmin() || 
+        isTeacher()
+      );
+      allow create: if isAuth();
+      allow update, delete: if isAdmin();
+    }
   }
 }

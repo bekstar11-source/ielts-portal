@@ -5,6 +5,10 @@ import { db, auth } from "../firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../firebase/firebase";
+import { signInWithCustomToken } from "firebase/auth";
+import { Send } from 'lucide-react';
 
 const Testimonials = [
     { name: "Dilshodbek T.", score: "7.0", text: "Readingda vaqtni to'g'ri taqsimlashni o'rgandim, natijam kutilganidek chiqdi." },
@@ -75,7 +79,10 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [step, setStep] = useState(1); // 1: Email, 2: Password
+  const [step, setStep] = useState(1); // 1: Email, 2: Password, 3: Telegram Phone, 4: Telegram OTP
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [telegramLoading, setTelegramLoading] = useState(false);
 
   const { login, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -137,6 +144,33 @@ export default function Login() {
     }
   };
 
+  const handleTelegramLogin = () => {
+    // Open telegram bot with deep link to trigger /start immediately
+    window.open("https://t.me/ielts_portal_auth_bot?start=login", "_blank");
+    setStep(4); // Go straight to OTP input
+  };
+
+  const handleVerifyOtp = async (e) => {
+    if (e) e.preventDefault();
+    
+    setTelegramLoading(true);
+    setError("");
+
+    try {
+      const verifyOTP = httpsCallable(functions, "verifyTelegramOTP");
+      const result = await verifyOTP({ code: otp });
+      const { token, isNewUser } = result.data;
+      
+      await signInWithCustomToken(auth, token);
+      navigate(isNewUser ? '/onboarding' : '/dashboard');
+    } catch (err) {
+      setError(err.message || "Kod noto'g'ri yoki muddati o'tgan");
+      console.error(err);
+    } finally {
+      setTelegramLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-white font-sans selection:bg-black/10 selection:text-black">
       {/* Left Side - Login Form */}
@@ -174,7 +208,7 @@ export default function Login() {
                     <button
                         onClick={handleGoogleLogin}
                         disabled={loading}
-                        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-[#1a1a1a] hover:bg-black text-white rounded-lg transition-all duration-200 text-[13px] font-bold active:scale-[0.98] disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white border border-[#eee] hover:bg-[#f9f9f9] text-black rounded-lg transition-all duration-200 text-[13px] font-bold active:scale-[0.98] disabled:opacity-50"
                     >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -182,7 +216,16 @@ export default function Login() {
                             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
-                        Google orqali davom etish
+                        Google bilan kirish
+                    </button>
+
+                    <button
+                        onClick={handleTelegramLogin}
+                        disabled={loading}
+                        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-[#24A1DE] hover:bg-[#208fba] text-white rounded-lg transition-all duration-200 text-[13px] font-bold active:scale-[0.98] disabled:opacity-50"
+                    >
+                        <Send size={16} />
+                        Telegram bilan kirish
                     </button>
 
                     <div className="flex items-center gap-4 py-2">
@@ -193,7 +236,7 @@ export default function Login() {
                 </>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={step < 3 ? handleSubmit : handleVerifyOtp} className="space-y-3.5">
               <AnimatePresence mode="wait">
                 {step === 1 ? (
                     <motion.div
@@ -219,7 +262,7 @@ export default function Login() {
                             <ArrowRight size={14} />
                         </button>
                     </motion.div>
-                ) : (
+                ) : step === 2 ? (
                     <motion.div
                         key="password"
                         initial={{ opacity: 0, x: 10 }}
@@ -248,10 +291,70 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full !mt-8 py-2.5 bg-[#1a1a1a] hover:bg-black text-white rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+                            className="w-full !mt-8 py-2.5 bg-[#1a1a1a] hover:bg-black text-white rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
                         >
                             {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Kirish"}
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setStep(1)}
+                            className="w-full text-[12px] font-bold text-[#aaa] hover:text-[#1a1a1a]"
+                        >
+                            Orqaga qaytish
+                        </button>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="telegram"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="space-y-3.5"
+                    >
+                        {step === 3 ? (
+                            <div className="space-y-3.5">
+                                <p className="text-[12px] text-[#666] font-medium mb-2">
+                                    Telegram botdan kod olish uchun raqamingizni kiriting:
+                                </p>
+                                <input
+                                    type="tel"
+                                    placeholder="+998901234567"
+                                    className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb]"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    autoFocus
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    className="w-full !mt-4 py-2.5 bg-black text-white rounded-lg text-[13px] font-bold flex items-center justify-center gap-2"
+                                >
+                                    Kodni kiritish <ArrowRight size={14} />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-3.5">
+                                <p className="text-[12px] text-[#666] font-medium mb-2">
+                                    Telegram bot yuborgan 6 xonali kodni kiriting:
+                                </p>
+                                <input
+                                    type="text"
+                                    maxLength={6}
+                                    placeholder="000000"
+                                    className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb] text-center tracking-[0.5em] font-mono text-lg"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                                    autoFocus
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={telegramLoading || otp.length < 6}
+                                    className="w-full !mt-4 py-2.5 bg-black text-white rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {telegramLoading ? <Loader2 className="animate-spin w-4 h-4" /> : "Tasdiqlash"}
+                                </button>
+                            </div>
+                        )}
                         <button
                             type="button"
                             onClick={() => setStep(1)}

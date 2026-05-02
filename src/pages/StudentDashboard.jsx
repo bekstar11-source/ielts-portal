@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebase";
-import { collection, query, where, doc, updateDoc, arrayUnion, getCountFromServer } from "firebase/firestore";
+import { collection, query, where, doc, updateDoc, arrayUnion, getCountFromServer, limit } from "firebase/firestore";
 import { getDocs } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";

@@ -9,7 +9,7 @@ import {
     Save, Upload, ArrowLeft, Headphones, Music, FileText, 
     Plus, Trash2, Play, Pause, Clock, ChevronRight, 
     Layout, Code, Settings, Image as ImageIcon, 
-    Type, HelpCircle, CheckCircle2, AlertCircle
+    Type, HelpCircle, CheckCircle2, AlertCircle, Target
 } from "lucide-react";
 
 const DEFAULT_SEGMENTS = [
@@ -43,7 +43,9 @@ export default function CreateSpotifyPodcast() {
         level: "B2",
         audioUrl: "",
         thumbnail: "",
-        collectionId: "None"
+        collectionId: "None",
+        mediaType: "audio", // "audio" or "youtube"
+        youtubeId: ""
     });
 
     // Timeline State
@@ -67,7 +69,9 @@ export default function CreateSpotifyPodcast() {
                         level: data.level || "B2",
                         audioUrl: data.audioUrl || "",
                         thumbnail: data.thumbnail || "",
-                        collectionId: data.collectionId || "None"
+                        collectionId: data.collectionId || "None",
+                        mediaType: data.mediaType || "audio",
+                        youtubeId: data.youtubeId || ""
                     });
                     
                     // Convert stored format to our working format
@@ -106,7 +110,8 @@ export default function CreateSpotifyPodcast() {
     const handleFileUpload = (file, type) => {
         const isAudio = type === 'audio';
         const storageRef = ref(storage, `podcasts/${editId || "new"}/${isAudio ? "audio" : "thumb"}_${Date.now()}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
+        const metadata = { cacheControl: 'public, max-age=31536000' };
+        const uploadTask = uploadBytesResumable(storageRef, file, metadata);
 
         uploadTask.on("state_changed", 
             snap => {
@@ -129,7 +134,8 @@ export default function CreateSpotifyPodcast() {
             type: type,
             text: type === 'text' ? "New transcript text..." : undefined,
             data: type === 'mcq' ? { question: "New Question?", options: ["Option 1", "Option 2"], correctIndex: 0 } : 
-                  type === 'gapfill' ? { text: "The {{gap}} is here.", answer: "answer" } : undefined
+                  type === 'gapfill' ? { text: "The {{gap}} is here.", answer: "answer" } : 
+                  type === 'completion' ? { text: "The team decided to {{implement}} a new strategy.", answer: "implement", definition: "To put a decision or plan into effect.", collocation: "implement a strategy/plan" } : undefined
         };
         setSegments(prev => [...prev, newSeg].sort((a, b) => a.time - b.time));
     };
@@ -143,7 +149,9 @@ export default function CreateSpotifyPodcast() {
     };
 
     const handleSave = async () => {
-        if (!form.title || !form.audioUrl) return alert("Sarlavha va audio majburiy!");
+        if (!form.title) return alert("Sarlavha majburiy!");
+        if (form.mediaType === 'audio' && !form.audioUrl) return alert("Audio manbasi majburiy!");
+        if (form.mediaType === 'youtube' && !form.youtubeId) return alert("YouTube Video ID majburiy!");
         setSaving(true);
 
         try {
@@ -163,15 +171,20 @@ export default function CreateSpotifyPodcast() {
             }
 
             const podId = editId || doc(collection(db, "podcasts")).id;
-            await setDoc(doc(db, "podcasts", podId), {
+            const saveData = {
                 ...form,
                 transcript: finalTranscript,
                 questions: finalQuestions,
                 mode: "spotify",
                 status: "published",
-                updatedAt: serverTimestamp(),
-                createdAt: editId ? undefined : serverTimestamp()
-            }, { merge: true });
+                updatedAt: serverTimestamp()
+            };
+
+            if (!editId) {
+                saveData.createdAt = serverTimestamp();
+            }
+
+            await setDoc(doc(db, "podcasts", podId), saveData, { merge: true });
 
             alert("Spotify Podcast muvaffaqiyatli saqlandi!");
             navigate("/admin/podcasts");
@@ -307,6 +320,31 @@ export default function CreateSpotifyPodcast() {
                         </div>
 
                         <div className="space-y-6">
+                            {/* Media Type Toggle */}
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 block">Media Type</label>
+                                <div className="flex gap-2 p-1 bg-zinc-100 rounded-xl">
+                                    <button 
+                                        onClick={() => setForm(f => ({ ...f, mediaType: 'audio' }))}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${form.mediaType === 'audio' ? 'bg-white text-emerald-600 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                                    >
+                                        <Music size={14} /> Audio
+                                    </button>
+                                    <button 
+                                        onClick={() => setForm(f => ({ ...f, mediaType: 'video' }))}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${form.mediaType === 'video' ? 'bg-white text-emerald-600 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                                    >
+                                        <Play size={14} /> Video
+                                    </button>
+                                    <button 
+                                        onClick={() => setForm(f => ({ ...f, mediaType: 'youtube' }))}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${form.mediaType === 'youtube' ? 'bg-white text-rose-600 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                                    >
+                                        <Music size={14} className="rotate-90" /> YouTube
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Thumbnail */}
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Cover Artwork</label>
@@ -327,26 +365,60 @@ export default function CreateSpotifyPodcast() {
                                 </div>
                             </div>
 
-                            {/* Audio */}
-                            <div>
-                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Audio Source (URL)</label>
-                                <div className="flex gap-2">
-                                    <input 
-                                        className="flex-1 bg-zinc-50 border border-zinc-200 p-3 rounded-lg outline-none focus:border-emerald-500 transition-colors text-[10px] font-mono"
-                                        placeholder="https://..."
-                                        value={form.audioUrl}
-                                        onChange={e => setForm(f => ({ ...f, audioUrl: e.target.value }))}
-                                    />
-                                    <button 
-                                        onClick={() => fileRef.current.click()}
-                                        className="p-3 bg-zinc-100 text-zinc-600 rounded-lg hover:bg-zinc-200 transition-colors"
-                                    >
-                                        <Upload size={16} />
-                                    </button>
-                                    <input ref={fileRef} type="file" accept="audio/*" hidden onChange={e => handleFileUpload(e.target.files[0], 'audio')} />
+                            {/* Audio/Video Source (Conditionally shown) */}
+                            {form.mediaType !== 'youtube' ? (
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">
+                                        {form.mediaType === 'audio' ? 'Audio Source (URL)' : 'Video Source (URL)'}
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            className="flex-1 bg-zinc-50 border border-zinc-200 p-3 rounded-lg outline-none focus:border-emerald-500 transition-colors text-[10px] font-mono"
+                                            placeholder="https://..."
+                                            value={form.audioUrl}
+                                            onChange={e => setForm(f => ({ ...f, audioUrl: e.target.value }))}
+                                        />
+                                        <button 
+                                            onClick={() => fileRef.current.click()}
+                                            className="p-3 bg-zinc-100 text-zinc-600 rounded-lg hover:bg-zinc-200 transition-colors"
+                                        >
+                                            <Upload size={16} />
+                                        </button>
+                                        <input 
+                                            ref={fileRef} 
+                                            type="file" 
+                                            accept={form.mediaType === 'audio' ? "audio/*" : "video/*"} 
+                                            hidden 
+                                            onChange={e => handleFileUpload(e.target.files[0], 'audio')} 
+                                        />
+                                    </div>
+                                    {uploadProgress > 0 && <div className="w-full h-1 bg-zinc-100 rounded-full mt-2 overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${uploadProgress}%` }} /></div>}
                                 </div>
-                                {uploadProgress > 0 && <div className="w-full h-1 bg-zinc-100 rounded-full mt-2 overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${uploadProgress}%` }} /></div>}
-                            </div>
+                            ) : (
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">YouTube Video ID / URL</label>
+                                    <input 
+                                        className="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg outline-none focus:border-rose-500 transition-all text-xs font-medium"
+                                        placeholder="Paste YouTube link or Embed code here..."
+                                        value={form.youtubeId}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            // Robust YouTube ID extraction
+                                            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                                            const match = val.match(regExp);
+                                            
+                                            if (match && match[2].length === 11) {
+                                                setForm(f => ({ ...f, youtubeId: match[2] }));
+                                            } else if (val.length === 11) {
+                                                setForm(f => ({ ...f, youtubeId: val }));
+                                            } else {
+                                                setForm(f => ({ ...f, youtubeId: val }));
+                                            }
+                                        }}
+                                    />
+                                    <p className="text-[10px] text-zinc-400 mt-2 font-bold uppercase tracking-tight">Video ID: <span className="text-rose-500">{form.youtubeId?.length === 11 ? form.youtubeId : 'Not detected'}</span></p>
+                                </div>
+                            )}
                         </div>
                     </section>
 
@@ -434,6 +506,9 @@ export default function CreateSpotifyPodcast() {
                                     <button onClick={() => addSegment('gapfill')} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-colors">
                                         <Plus size={12} /> Add Gap-fill
                                     </button>
+                                    <button onClick={() => addSegment('completion')} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-colors">
+                                        <Plus size={12} /> Add Completion
+                                    </button>
                                 </div>
                             </div>
 
@@ -456,7 +531,7 @@ export default function CreateSpotifyPodcast() {
                                                         {formatTime(seg.time)}
                                                     </div>
                                                     <div className={`p-2 rounded-lg ${seg.type === 'text' ? 'bg-zinc-100 text-zinc-400' : 'bg-emerald-100 text-emerald-600'}`}>
-                                                        {seg.type === 'text' ? <Type size={14} /> : seg.type === 'mcq' ? <HelpCircle size={14} /> : <FileText size={14} />}
+                                                        {seg.type === 'text' ? <Type size={14} /> : seg.type === 'mcq' ? <HelpCircle size={14} /> : seg.type === 'gapfill' ? <FileText size={14} /> : <Target size={14} />}
                                                     </div>
                                                 </div>
 
@@ -464,7 +539,7 @@ export default function CreateSpotifyPodcast() {
                                                 <div className="flex-1 space-y-3">
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300 group-hover:text-zinc-400 transition-colors">
-                                                            {seg.type === 'text' ? 'Transcript Segment' : seg.type === 'mcq' ? 'Multiple Choice Question' : 'Gap-fill Challenge'}
+                                                            {seg.type === 'text' ? 'Transcript Segment' : seg.type === 'mcq' ? 'Multiple Choice Question' : seg.type === 'gapfill' ? 'Gap-fill Challenge' : 'Sentence Completion Challenge'}
                                                         </span>
                                                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button 
@@ -521,7 +596,7 @@ export default function CreateSpotifyPodcast() {
                                                                 ))}
                                                             </div>
                                                         </div>
-                                                    ) : (
+                                                    ) : seg.type === 'gapfill' ? (
                                                         <div className="space-y-3 pt-1">
                                                             <div className="flex flex-col gap-2">
                                                                 <label className="text-[9px] font-bold text-zinc-400">Sentence with {"{{gap}}"}</label>
@@ -539,6 +614,45 @@ export default function CreateSpotifyPodcast() {
                                                                     value={seg.data.answer}
                                                                     onChange={e => updateSegment(seg.id, { data: { ...seg.data, answer: e.target.value } })}
                                                                     placeholder="e.g. blue"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-3 pt-1">
+                                                            <div className="flex flex-col gap-2">
+                                                                <label className="text-[9px] font-bold text-zinc-400">Sentence with {"{{gap}}"}</label>
+                                                                <input 
+                                                                    className="w-full bg-zinc-50 border border-zinc-100 p-2 rounded-lg text-sm font-medium outline-none"
+                                                                    value={seg.data.text}
+                                                                    onChange={e => updateSegment(seg.id, { data: { ...seg.data, text: e.target.value } })}
+                                                                    placeholder="e.g. They decided to {{implement}} it."
+                                                                />
+                                                            </div>
+                                                            <div className="flex flex-col gap-2">
+                                                                <label className="text-[9px] font-bold text-zinc-400">Correct Word (Answer)</label>
+                                                                <input 
+                                                                    className="w-full bg-emerald-50/30 border border-emerald-100 p-2 rounded-lg text-sm font-bold text-emerald-700 outline-none"
+                                                                    value={seg.data.answer}
+                                                                    onChange={e => updateSegment(seg.id, { data: { ...seg.data, answer: e.target.value } })}
+                                                                    placeholder="e.g. implement"
+                                                                />
+                                                            </div>
+                                                            <div className="flex flex-col gap-2">
+                                                                <label className="text-[9px] font-bold text-zinc-400">Definition</label>
+                                                                <input 
+                                                                    className="w-full bg-zinc-50 border border-zinc-100 p-2 rounded-lg text-xs font-medium outline-none"
+                                                                    value={seg.data.definition}
+                                                                    onChange={e => updateSegment(seg.id, { data: { ...seg.data, definition: e.target.value } })}
+                                                                    placeholder="Short definition..."
+                                                                />
+                                                            </div>
+                                                            <div className="flex flex-col gap-2">
+                                                                <label className="text-[9px] font-bold text-zinc-400">Collocation</label>
+                                                                <input 
+                                                                    className="w-full bg-zinc-50 border border-zinc-100 p-2 rounded-lg text-xs font-medium outline-none"
+                                                                    value={seg.data.collocation}
+                                                                    onChange={e => updateSegment(seg.id, { data: { ...seg.data, collocation: e.target.value } })}
+                                                                    placeholder="e.g. implement a policy"
                                                                 />
                                                             </div>
                                                         </div>

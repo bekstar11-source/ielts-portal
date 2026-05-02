@@ -35,10 +35,19 @@ export default function DashboardListeningCarousel({ isListeningPaused, onStartT
                     
                     const [snapTests, snapPods] = await Promise.all([getDocs(qTests), getDocs(qPods)]);
                     
+                    const getMs = (date) => {
+                        if (!date) return 0;
+                        if (typeof date.toMillis === 'function') return date.toMillis();
+                        if (date instanceof Date) return date.getTime();
+                        if (typeof date === 'number') return date;
+                        const d = new Date(date);
+                        return isNaN(d.getTime()) ? 0 : d.getTime();
+                    };
+
                     const dbItems = [
                         ...snapTests.docs.map(d => ({ id: d.id, ...d.data(), _isTest: true })),
                         ...snapPods.docs.map(d => ({ id: d.id, ...d.data(), _isPodcast: true }))
-                    ].sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+                    ].sort((a, b) => getMs(b.createdAt) - getMs(a.createdAt));
 
                     const existingIds = new Set(listeningTests.map(t => t.id));
                     dbItems.forEach(t => {

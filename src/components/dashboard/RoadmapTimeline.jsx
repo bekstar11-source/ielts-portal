@@ -59,7 +59,7 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
           setRoadmapData(fallbackRoadmap);
         }
       } catch (err) {
-        console.error("Roadmap fetch error:", err);
+        // Silently use fallback on permission or connection errors
         setRoadmapData(fallbackRoadmap);
       } finally {
         setLoading(false);
@@ -101,20 +101,44 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
     // Vazifa turiga qarab yo'naltirish
     if (task.type === 'speaking') {
       navigate('/speaking-practice');
-    } else if (task.type === 'article') {
+      return;
+    } 
+    
+    if (task.type === 'article') {
       navigate('/article-reading');
-    } else if (task.type === 'podcast') {
-      navigate('/podcast/default-podcast-id');
-    } else if (task.type === 'mock') {
-      navigate('/mock-exam');
-    } else if (task.testId) {
-      // Agar haqiqiy test biriktirilgan bo'lsa
-      navigate(`/test/${task.testId}`);
+      return;
+    } 
+    
+    if (task.type === 'podcast') {
+      navigate('/podcasts');
+      return;
+    } 
+    
+    if (task.type === 'mock') {
+      navigate('/practice?filter=full_mock');
+      return;
+    }
+
+    // Haqiqiy testni aniqlash
+    let targetTestId = task.testId;
+
+    // Agar testId yo'q bo'lsa (yangi userlar uchun), assignments ichidan mosini qidiramiz
+    if (!targetTestId && assignments && assignments.length > 0) {
+      const suitableTest = assignments.find(t => 
+        t.type === task.type && t.status !== 'completed'
+      ) || assignments.find(t => t.type === task.type);
+      
+      if (suitableTest) {
+        targetTestId = suitableTest.id || suitableTest.testId;
+      }
+    }
+
+    if (targetTestId) {
+      navigate(`/test/${targetTestId}`);
     } else if (onStartTest) {
       onStartTest(task);
     } else {
-      // Default reading/listening practice sahifasiga
-      navigate('/practice');
+      navigate(`/practice?filter=${task.type || 'all'}`);
     }
   };
 
@@ -126,7 +150,7 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
         <div className="w-[150%] h-[150%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center items-center gap-12 sm:gap-40 opacity-[0.06] blur-[100px] -rotate-45">
           <div className="w-48 sm:w-80 h-[200%] bg-blue-500 rounded-[100%]"></div>
           <div className="w-64 sm:w-96 h-[200%] bg-purple-500 rounded-[100%]"></div>
-          <div className="w-48 sm:w-80 h-[200%] bg-orange-400 rounded-[100%]"></div>
+          <div className="w-48 sm:w-80 h-[200%] bg-zinc-400 rounded-[100%]"></div>
         </div>
       </div>
 
@@ -202,8 +226,14 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
                   {task.desc}
                 </p>
               </div>
-              <div className="flex items-center text-xs font-bold text-[#0066CC] mt-auto">
-                Boshlash <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-500 group-hover:translate-x-1" />
+              <div className="mt-auto pt-4 border-t border-black/[0.03] flex items-center justify-between">
+                <span className="text-[10px] font-black text-[#A8AAAC] uppercase tracking-widest">
+                  {task.type}
+                </span>
+                <div className="px-3.5 py-1.5 rounded-lg bg-[#161616] text-white text-[10px] font-bold shadow-md shadow-black/10 group-hover:shadow-black/20 transition-all duration-300 flex items-center gap-1.5 group-hover:scale-105 active:scale-95">
+                  Boshlash 
+                  <ArrowRight className="w-3 h-3 transition-transform duration-500 group-hover:translate-x-0.5" />
+                </div>
               </div>
             </div>
           ))}

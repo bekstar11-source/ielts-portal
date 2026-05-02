@@ -17,6 +17,38 @@ export const PodcastProvider = ({ children }) => {
     const [repeat, setRepeat] = useState(false);
     const [shuffle, setShuffle] = useState(false);
 
+    // Persist state to localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('last_played_podcast');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                const now = Date.now();
+                const diff = now - (data.timestamp || 0);
+                const twentyMinutes = 20 * 60 * 1000;
+
+                if (diff < twentyMinutes) {
+                    setCurrentTrack(data.track);
+                    setCurrentTime(data.time);
+                } else {
+                    // Too old, just set track but start from 0
+                    setCurrentTrack(data.track);
+                    setCurrentTime(0);
+                }
+            } catch (e) { console.error("Error loading saved podcast", e); }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (currentTrack) {
+            localStorage.setItem('last_played_podcast', JSON.stringify({
+                track: currentTrack,
+                time: currentTime,
+                timestamp: Date.now()
+            }));
+        }
+    }, [currentTrack, currentTime]);
+
     // Audio Playback Sync
     useEffect(() => {
         if (!audioRef.current || !currentTrack) return;
@@ -39,13 +71,20 @@ export const PodcastProvider = ({ children }) => {
     };
 
     const handleTimeUpdate = () => {
-        if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+        if (audioRef.current && currentTrack?.mediaType !== 'youtube') {
+            setCurrentTime(audioRef.current.currentTime);
+        }
     };
 
     const handleLoadedMetadata = () => {
         if (audioRef.current) {
             setDuration(audioRef.current.duration);
             audioRef.current.playbackRate = playbackRate;
+            
+            // If we have a saved time, apply it once metadata is ready
+            if (currentTime > 0 && Math.abs(audioRef.current.currentTime - currentTime) > 1) {
+                audioRef.current.currentTime = currentTime;
+            }
         }
     };
 
@@ -95,15 +134,26 @@ export const PodcastProvider = ({ children }) => {
             audioRef
         }}>
             {children}
-            {currentTrack && (
-                <audio 
-                    ref={audioRef}
-                    src={currentTrack.audioUrl}
-                    onTimeUpdate={handleTimeUpdate}
-                    onLoadedMetadata={handleLoadedMetadata}
-                    onEnded={() => setIsPlaying(false)}
-                    style={{ display: 'none' }}
-                />
+            {currentTrack && currentTrack.mediaType !== 'youtube' && (
+                currentTrack.mediaType === 'video' ? (
+                    <video 
+                        ref={audioRef}
+                        src={currentTrack.audioUrl}
+                        onTimeUpdate={handleTimeUpdate}
+                        onLoadedMetadata={handleLoadedMetadata}
+                        onEnded={() => setIsPlaying(false)}
+                        style={{ display: 'none' }}
+                    />
+                ) : (
+                    <audio 
+                        ref={audioRef}
+                        src={currentTrack.audioUrl}
+                        onTimeUpdate={handleTimeUpdate}
+                        onLoadedMetadata={handleLoadedMetadata}
+                        onEnded={() => setIsPlaying(false)}
+                        style={{ display: 'none' }}
+                    />
+                )
             )}
         </PodcastContext.Provider>
     );

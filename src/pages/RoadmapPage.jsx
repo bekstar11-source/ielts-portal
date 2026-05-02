@@ -64,23 +64,32 @@ export default function RoadmapPage() {
     const roadmapData = useMemo(() => {
         if (!rawRoadmap) return [];
         
+        const completedTestIds = userResults ? userResults.map(r => r.testId) : [];
+
         return Object.keys(rawRoadmap).map(dayKey => {
             const dayNum = parseInt(dayKey);
             const dayData = rawRoadmap[dayKey];
             
+            const tasks = dayData.map(task => {
+                const isDone = task.testId ? completedTestIds.includes(task.testId) : false;
+                return {
+                    ...task,
+                    points: 100,
+                    completed: isDone || dayNum < currentDay // Fallback to days active if no results
+                };
+            });
+
+            const allDone = tasks.every(t => t.completed);
+
             return {
                 day: dayNum,
                 title: dayData[0]?.title || `Day ${dayNum}`,
                 description: dayData[0]?.desc || "Vazifalar yuklanmoqda...",
-                status: dayNum < currentDay ? 'completed' : dayNum === currentDay ? 'active' : 'locked',
-                tasks: dayData.map(task => ({
-                    ...task,
-                    points: 100, // Default points
-                    completed: dayNum < currentDay
-                }))
+                status: allDone || dayNum < currentDay ? 'completed' : dayNum === currentDay ? 'active' : 'locked',
+                tasks: tasks
             };
         }).sort((a, b) => a.day - b.day);
-    }, [rawRoadmap, currentDay]);
+    }, [rawRoadmap, currentDay, userResults]);
 
     const activeDayData = useMemo(() => 
         roadmapData.find(d => d.day === selectedDay) || roadmapData[0]
@@ -222,12 +231,20 @@ export default function RoadmapPage() {
                                             key={i}
                                             className="bg-white p-6 rounded-2xl shadow-sm border border-black/[0.03] flex flex-col justify-between group hover:shadow-lg transition-all cursor-pointer"
                                             onClick={() => {
-                                                if (task.type === 'speaking') navigate('/speaking-practice');
-                                                else if (task.type === 'article') navigate('/article-reading');
-                                                else if (task.type === 'podcast') navigate('/podcast/default-podcast-id');
-                                                else if (task.type === 'mock') navigate('/mock-exam');
-                                                else if (task.testId) navigate(`/test/${task.testId}`);
-                                                else navigate('/practice');
+                                                if (task.type === 'speaking') { navigate('/speaking-practice'); return; }
+                                                if (task.type === 'article') { navigate('/article-reading'); return; }
+                                                if (task.type === 'podcast') { navigate('/podcasts'); return; }
+                                                if (task.type === 'mock') { navigate('/practice?filter=full_mock'); return; }
+                                                
+                                                let targetId = task.testId;
+                                                if (!targetId && assignments && assignments.length > 0) {
+                                                    const match = assignments.find(a => a.type === task.type && a.status !== 'completed') 
+                                                               || assignments.find(a => a.type === task.type);
+                                                    if (match) targetId = match.id || match.testId;
+                                                }
+
+                                                if (targetId) navigate(`/test/${targetId}`);
+                                                else navigate(`/practice?filter=${task.type || 'all'}`);
                                             }}
                                         >
                                             <div className="flex justify-between items-start mb-8">
@@ -248,12 +265,12 @@ export default function RoadmapPage() {
                                             <div>
                                                 <p className="text-[11px] font-bold text-[#86868B] uppercase tracking-widest mb-1">{task.type}</p>
                                                 <h4 className="text-xl font-bold mb-3">{task.title}</h4>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm font-bold text-[#0066CC] flex items-center gap-1">
-                                                        +{task.points} XP <Star size={12} fill="currentColor" />
+                                                <div className="flex items-center justify-between border-t border-black/[0.03] pt-4 mt-auto">
+                                                    <span className="text-[12px] font-bold text-[#161616] flex items-center gap-1 bg-[#F5F5F7] px-2 py-0.5 rounded-lg border border-black/5">
+                                                        +{task.points} XP <Star size={10} fill="currentColor" />
                                                     </span>
-                                                    <div className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center group-hover:bg-[#0071E3] group-hover:text-white transition-all">
-                                                        <ArrowRight size={16} />
+                                                    <div className="flex items-center gap-1.5 text-[12px] font-bold text-white bg-[#161616] px-3.5 py-1.5 rounded-lg shadow-md shadow-black/10 group-hover:scale-105 transition-all">
+                                                        Boshlash <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                                                     </div>
                                                 </div>
                                             </div>

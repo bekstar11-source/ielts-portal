@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Key, LogOut, RotateCw, ArrowUpRight, Settings, Search } from 'lucide-react';
+import { ChevronDown, Key, LogOut, RotateCw, ArrowUpRight, Settings, Search, Zap, Crown } from 'lucide-react';
 import SearchOverlay from './SearchOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -50,11 +50,12 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
     { id: 'writing', label: 'Writing', path: '/practice?tab=writing' },
     { id: 'speaking', label: 'Speaking', path: '/practice?tab=speaking' },
     { id: 'podcasts', label: 'Podcasts', path: '/podcasts' },
-    { id: 'articles', label: 'Articles', path: '/articles' },
+    { id: 'pricing', label: 'Pricing', path: '/pricing' },
     { id: 'results', label: 'Natijalar', path: '/my-results' },
     { id: 'leaderboard', label: 'Reyting', path: '/leaderboard' },
-    { id: 'vocabulary', label: 'WordBank', path: '/vocabulary' }
   ];
+
+  const isPro = userData?.isPro || userData?.isPremium || userData?.accountType === 'premium' || userData?.accountType === 'pro';
 
   const handleNavigation = (item) => {
     if (item.path) {
@@ -77,17 +78,17 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         }}
       />
       
-      <header className={`h-11 w-full sticky top-0 z-[60] transition-all duration-500 ${
+    <header className={`h-12 w-full sticky top-0 z-[60] transition-all duration-500 ${
       isScrolled 
-        ? 'bg-white border-b border-zinc-200/80 shadow-[0_2px_15px_-10px_rgba(0,0,0,0.1)]' 
+        ? 'bg-white/80 backdrop-blur-md border-b border-zinc-200/50 shadow-sm' 
         : 'bg-white border-b border-zinc-100'
     }`}>
       <div className="max-w-[1440px] mx-auto px-6 h-full flex items-center justify-between">
         {/* Logo */}
-        <div className="cursor-pointer flex items-center pr-4 transition-transform hover:scale-105 active:scale-95" onClick={() => navigate('/dashboard')}>
-           <svg viewBox="0 0 24 24" className="w-6 h-6 text-black fill-current" xmlns="http://www.w3.org/2000/svg">
-             <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-           </svg>
+        <div className="cursor-pointer flex items-center pr-6 transition-transform hover:scale-105 active:scale-95" onClick={() => navigate('/dashboard')}>
+           <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center shadow-lg transform -rotate-6 group hover:rotate-0 transition-all duration-500">
+             <Zap size={18} className="text-white fill-current" />
+           </div>
         </div>
 
         {/* Navigation */}
@@ -205,7 +206,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                       <button
                         key={sub.id}
                         onClick={() => {
-                          navigate(`/practice?tab=reading&section=${sub.id}`);
+                          navigate(`/reading?section=${sub.id}`);
                           setHoveredTab(null);
                         }}
                         className="text-[22px] font-medium text-black hover:text-black/70 transition-all text-left tracking-tight py-0.5"
@@ -274,7 +275,26 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         </AnimatePresence>
 
         {/* Right Section */}
-        <div className="flex items-center gap-4 pl-4">
+        <div className="flex items-center gap-3 pl-4">
+          {!isPro && (
+            <button 
+              onClick={() => navigate('/pricing')}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white text-[11px] font-bold shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+            >
+              <Zap size={12} fill="currentColor" className="animate-pulse" />
+              Go Pro
+            </button>
+          )}
+
+          {isPro && (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-600 text-[10px] font-black uppercase tracking-wider">
+              <Crown size={10} fill="currentColor" />
+              PRO
+            </div>
+          )}
+
+          <div className="h-4 w-px bg-zinc-200 hidden md:block mx-1"></div>
+
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}

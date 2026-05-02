@@ -10,6 +10,8 @@ import { useAuth } from "../context/AuthContext";
 import { batchAddWordsToBank } from "../utils/wordbankUtils";
 import { calculateSectionScore, calculateBandScore, calculateOverallBand } from "../utils/ieltsScoring";
 import CustomAudioPlayer from "../components/TestSolving/CustomAudioPlayer";
+import TestCommentSection from "../components/TestReview/TestCommentSection";
+import { MessageSquare, X } from "lucide-react";
 
 // --- MOCK KEYWORD TABLE (real JSON tayyor bo'lgach testData.keywordTable ga almashtiriladi) ---
 // Format: { id: number, locationId: string, passageWord: string, questionWord: string }
@@ -49,6 +51,7 @@ export default function TestReview() {
     const [audioTime, setAudioTime] = useState(0); // Audio vaqti
     const [volume, setVolume] = useState(1);
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+    const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
     // Interface uchun dummy funksiyalar (Admin faqat ko'radi, o'zgartirmaydi)
     const [flaggedQuestions] = useState(new Set());
@@ -518,21 +521,24 @@ export default function TestReview() {
                     )}
 
                     {/* Overall Score Badge */}
-                    <div className={`h-11 px-5 rounded-xl border flex items-center gap-3 transition-all duration-500 ${
-                        (resultData.status === 'graded' || resultData.overallBand)
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                    }`}>
-                        <div className="flex flex-col">
-                            <span className="text-[8px] font-black tracking-widest uppercase opacity-60">Overall</span>
-                            <span className="text-lg font-black leading-tight">
-                                {resultData.overallBand || resultData.writingBand || resultData.score || "---"}
-                            </span>
-                        </div>
-                        {resultData.status !== 'graded' && !resultData.overallBand && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse border border-amber-400/50" />
-                        )}
                     </div>
+                </div>
+
+                {/* --- DISCUSSION TOGGLE --- */}
+                <button
+                    onClick={() => setIsCommentsOpen(!isCommentsOpen)}
+                    className={`h-11 px-4 rounded-xl border flex items-center gap-2 transition-all relative ${
+                        isCommentsOpen 
+                        ? 'bg-blue-600 border-blue-500 text-white shadow-lg' 
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                    }`}
+                >
+                    <MessageSquare size={18} />
+                    <span className="text-[11px] font-black uppercase tracking-widest hidden sm:inline">Muhokama</span>
+                    {/* Optional: Add badge for unread comments or total comments if available */}
+                </button>
+
+                {/* Overall Score Badge */}
                 </div>
             </header>
 

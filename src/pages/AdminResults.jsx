@@ -50,6 +50,28 @@ export default function AdminResults() {
         const testsSnapshot = await getDocs(query(collection(db, "tests"), limit(500)));
         const validTestIds = new Set(testsSnapshot.docs.map(doc => doc.id));
 
+        // 3. Podcast natijalarini olish
+        const podcastResultsSnapshot = await getDocs(query(collection(db, "podcastResults"), orderBy("createdAt", "desc"), limit(200)));
+        const podcastData = podcastResultsSnapshot.docs.map((docSnap) => {
+          const d = docSnap.data();
+          return {
+            id: docSnap.id,
+            ...d,
+            userName: d.userName || "Noma'lum",
+            testTitle: d.podcastTitle || "Nomsiz Podcast",
+            type: "podcast",
+            score: d.score !== undefined ? `${d.score}/${d.total}` : "-",
+            percentage: d.percentage || 0,
+            status: "graded",
+            date: d.createdAt ? (d.createdAt.toDate ? d.createdAt.toDate() : new Date(d.createdAt)) : null,
+            isOrphan: false,
+            durationDisplay: "-",
+            hasViolation: false,
+            violationText: null,
+            isPodcast: true
+          };
+        });
+
         const data = querySnapshot.docs.map((doc) => {
           const d = doc.data();
 
@@ -102,8 +124,14 @@ export default function AdminResults() {
           };
         });
 
-        setResults(data);
-        setFilteredResults(data);
+        const allResults = [...data, ...podcastData].sort((a, b) => {
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return b.date - a.date;
+        });
+
+        setResults(allResults);
+        setFilteredResults(allResults);
       } catch (error) {
         console.error("Error fetching results:", error);
       } finally {
@@ -270,6 +298,7 @@ export default function AdminResults() {
                 <option value="listening">Listening</option>
                 <option value="writing">Writing</option>
                 <option value="speaking">Speaking</option>
+                <option value="podcast">Podcast</option>
               </select>
               <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
             </div>
@@ -377,6 +406,8 @@ export default function AdminResults() {
                                 ? (isDark ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-sky-50 text-sky-700 border-sky-100') :
                                 res.type === 'writing' 
                                 ? (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100') :
+                                res.type === 'podcast'
+                                ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100') :
                                 (isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-100')
                               }`}>
                               {res.type}

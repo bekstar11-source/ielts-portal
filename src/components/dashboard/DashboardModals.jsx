@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Icons } from './Icons';
-import { Clock, HelpCircle } from 'lucide-react';
+import { Clock, HelpCircle, Zap, Diamond } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 
 // --- STYLES FOR SET ITEMS ---
 const getCardStyle = (type, isDark) => {
@@ -41,9 +42,10 @@ export default function DashboardModals({
     showKeyModal, setShowKeyModal, accessKeyInput, setAccessKeyInput, handleVerifyKey, checkingKey, keyError,
     showStartConfirm, setShowStartConfirm, confirmStartTest,
     showLogoutConfirm, setShowLogoutConfirm, confirmLogout,
-    selectedSet, setSelectedSet, handleStartTest, handleReview
+    selectedSet, setSelectedSet, handleStartTest, handleReview, isPro
 }) {
     const { theme } = useTheme();
+    const navigate = useNavigate();
     const isDark = theme === 'dark';
     const [setSearch, setSetSearch] = useState('');
 
@@ -51,16 +53,35 @@ export default function DashboardModals({
         <>
             {/* KEY MODAL */}
             {showKeyModal && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center border border-[#E4E2E3]/60">
-                        <div className="mx-auto w-14 h-14 bg-[#FEF8E8] rounded-full flex items-center justify-center mb-5 shadow-sm border border-[#E4E2E3]/60"><Icons.Key className="w-6 h-6 text-[#161616]" /></div>
-                        <h3 className="text-xl font-bold mb-2 text-[#161616] tracking-tight">Yangi Vazifa</h3>
-                        <p className="text-sm text-[#A8AAAC] mb-6 px-4">O'qituvchi bergan maxsus kodni kiriting</p>
-                        <input type="text" placeholder="XXXXXX" className="w-full border border-[#E4E2E3] p-3 rounded-xl text-center text-lg font-mono font-bold uppercase tracking-widest mb-4 outline-none focus:ring-2 focus:ring-[#F44A22]/30 transition bg-[#FEF8E8] text-[#161616] focus:border-[#F44A22]/50" value={accessKeyInput} onChange={e => setAccessKeyInput(e.target.value)} />
-                        {keyError && <p className="text-red-500 text-xs mb-3">{keyError}</p>}
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <div className="bg-white p-7 rounded-2xl shadow-2xl w-full max-w-[340px] text-center border border-[#E4E2E3]/30 animate-in zoom-in-95 duration-300">
+                        <div className="mx-auto w-14 h-14 bg-[#F5F5F7] rounded-xl flex items-center justify-center mb-5 shadow-sm border border-[#E4E2E3]/60">
+                            <Icons.Key className="w-6 h-6 text-[#161616]" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-1 text-[#161616] tracking-tight">Yangi Vazifa</h3>
+                        <p className="text-xs font-medium text-[#A8AAAC] mb-6 px-4">O'qituvchi bergan maxsus kodni kiriting</p>
+                        <input 
+                            type="text" 
+                            placeholder="XXXXXX" 
+                            className="w-full border border-[#E4E2E3] p-3 rounded-xl text-center text-lg font-mono font-bold uppercase tracking-widest mb-5 outline-none focus:ring-4 focus:ring-[#161616]/5 transition-all bg-[#F5F5F7] text-[#161616] focus:border-[#161616]/30 shadow-inner" 
+                            value={accessKeyInput} 
+                            onChange={e => setAccessKeyInput(e.target.value)} 
+                        />
+                        {keyError && <p className="text-red-500 text-xs mb-3 font-bold">{keyError}</p>}
                         <div className="flex gap-3">
-                            <button onClick={() => setShowKeyModal(false)} className="flex-1 py-3 rounded-xl font-bold text-[#A8AAAC] hover:bg-[#FEF8E8] transition text-sm">Bekor qilish</button>
-                            <button onClick={handleVerifyKey} disabled={checkingKey} className="flex-1 py-3 rounded-xl font-bold text-white bg-[#F44A22] hover:bg-[#D93D1B] transition text-sm shadow-lg shadow-[#F44A22]/20">{checkingKey ? "..." : "Faollashtirish"}</button>
+                            <button 
+                                onClick={() => setShowKeyModal(false)} 
+                                className="flex-1 py-3 rounded-xl font-bold text-[#A8AAAC] hover:bg-[#F5F5F7] transition-all text-xs"
+                            >
+                                Bekor qilish
+                            </button>
+                            <button 
+                                onClick={handleVerifyKey} 
+                                disabled={checkingKey} 
+                                className="flex-1 py-3 rounded-xl font-bold text-white bg-[#161616] hover:bg-black transition-all text-xs shadow-lg shadow-black/10 disabled:opacity-50"
+                            >
+                                {checkingKey ? "..." : "Faollashtirish"}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -68,13 +89,25 @@ export default function DashboardModals({
 
             {/* START CONFIRM MODAL */}
             {showStartConfirm && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[110] backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center border border-[#E4E2E3]/60">
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[110] backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <div className="bg-white p-7 rounded-2xl shadow-2xl w-full max-w-[340px] text-center border border-[#E4E2E3]/30 animate-in zoom-in-95 duration-300">
                         <h3 className="text-xl font-bold mb-2 text-[#161616] tracking-tight">Testni Boshlash</h3>
-                        <p className="text-sm text-[#A8AAAC] mb-6 px-4">Siz testni boshlashni xoxlaysizmi?</p>
+                        <p className="text-sm font-medium text-[#A8AAAC] mb-7 px-4 leading-relaxed">
+                            Siz testni boshlashni xoxlaysizmi?
+                        </p>
                         <div className="flex gap-3">
-                            <button onClick={() => setShowStartConfirm(false)} className="flex-1 py-3 rounded-xl font-bold text-[#A8AAAC] hover:bg-[#FEF8E8] transition text-sm">Yo'q</button>
-                            <button onClick={confirmStartTest} className="flex-1 py-3 rounded-xl font-bold text-white bg-[#F44A22] hover:bg-[#D93D1B] transition text-sm shadow-lg shadow-[#F44A22]/20">Ha</button>
+                            <button 
+                                onClick={() => setShowStartConfirm(false)} 
+                                className="flex-1 py-3.5 rounded-xl font-bold text-[#A8AAAC] hover:bg-[#F5F5F7] transition-all duration-300 text-sm"
+                            >
+                                Yo'q
+                            </button>
+                            <button 
+                                onClick={confirmStartTest} 
+                                className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#161616] hover:bg-black transition-all duration-300 text-sm shadow-lg shadow-black/10 active:scale-[0.98]"
+                            >
+                                Ha
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -82,13 +115,23 @@ export default function DashboardModals({
 
             {/* LOGOUT CONFIRM MODAL */}
             {showLogoutConfirm && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center border border-[#E4E2E3]/60">
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <div className="bg-white p-7 rounded-2xl shadow-2xl w-full max-w-[340px] text-center border border-[#E4E2E3]/30 animate-in zoom-in-95 duration-300">
                         <h3 className="text-xl font-bold mb-2 text-[#161616] tracking-tight">Chiqish</h3>
-                        <p className="text-sm text-[#A8AAAC] mb-6 px-4">Tizimdan chiqishni xohlaysizmi?</p>
+                        <p className="text-sm font-medium text-[#A8AAAC] mb-7 px-4 leading-relaxed">Tizimdan chiqishni xohlaysizmi?</p>
                         <div className="flex gap-3">
-                            <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 rounded-xl font-bold text-[#A8AAAC] hover:bg-[#FEF8E8] transition text-sm">Yo'q</button>
-                            <button onClick={confirmLogout} className="flex-1 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition text-sm shadow-lg shadow-red-500/20">Ha</button>
+                            <button 
+                                onClick={() => setShowLogoutConfirm(false)} 
+                                className="flex-1 py-3.5 rounded-xl font-bold text-[#A8AAAC] hover:bg-[#F5F5F7] transition-all text-sm"
+                            >
+                                Yo'q
+                            </button>
+                            <button 
+                                onClick={confirmLogout} 
+                                className="flex-1 py-3.5 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-all text-sm shadow-lg shadow-red-500/10 active:scale-[0.98]"
+                            >
+                                Ha
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -125,6 +168,9 @@ export default function DashboardModals({
                                     const attemptsCount = sub.attemptsCount ?? 0;
                                     const maxAttempts = sub.maxAttempts ?? 1;
                                     const canRetake = attemptsCount < maxAttempts;
+                                    const isPremiumType = sub.type === 'reading' || sub.type === 'listening';
+                                    const showGetAccess = !isPro && isPremiumType && !isSubDone;
+
                                     return (
                                         <div key={sub.id} className={getCardStyle(sub.type, false)}>
                                             {/* Top right faded number */}
@@ -190,7 +236,14 @@ export default function DashboardModals({
                                                         </div>
                                                     </>
                                                 ) : (
-                                                    canRetake ? (
+                                                    showGetAccess ? (
+                                                        <button 
+                                                            onClick={() => navigate('/pricing')} 
+                                                            className="w-full py-3 rounded-xl text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white flex items-center justify-center gap-2 hover:brightness-110"
+                                                        >
+                                                            <Diamond size={16} fill="currentColor" /> Go Pro
+                                                        </button>
+                                                    ) : canRetake ? (
                                                         <button onClick={() => handleStartTest(sub)} className="w-full py-3 rounded-xl text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 bg-[#F44A22] text-white hover:bg-[#D93D1B] shadow-[#F44A22]/20">
                                                             Start Test
                                                         </button>

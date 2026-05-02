@@ -9,6 +9,7 @@ const { analyzeSpeaking } = require("./analyzeSpeaking");
 const { generateVocab } = require("./generateVocab");
 const { translateWord } = require("./translateWord");
 const { checkWriting } = require("./checkWriting");
+const { telegramWebhook, verifyTelegramOTP } = require("./telegramBot");
 
 exports.transcribePodcast = functions
     .runWith({ timeoutSeconds: 300, memory: "512MB" })
@@ -29,3 +30,6 @@ exports.translateWord = functions
 exports.checkWriting = functions
     .runWith({ timeoutSeconds: 120, memory: "256MB" })
     .https.onCall(checkWriting);
+
+exports.telegramWebhook = telegramWebhook;
+exports.verifyTelegramOTP = verifyTelegramOTP;

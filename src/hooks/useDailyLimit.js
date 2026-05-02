@@ -17,16 +17,10 @@ export const useDailyLimit = (userData) => {
    */
   const checkLimit = useCallback((type) => {
     if (!userData) return true;
-    if (userData.isPremium || userData.accountType === 'premium') return true;
-
-    const today = new Date().toISOString().split('T')[0];
-    const stats = userData.usageStats || {};
-
-    // Reset logic: If last activity was not today, we allow it (the count will be reset on increment)
-    if (stats.lastActivityDate !== today) return true;
-
-    if (type === 'reading' && (stats.dailyReadingCount || 0) >= 1) return false;
-    if (type === 'listening' && (stats.dailyListeningCount || 0) >= 1) return false;
+    if (type === 'reading' || type === 'listening') {
+      if (userData.isPro || userData.isPremium || userData.accountType === 'premium') return true;
+      return false; // No free tests for Reading and Listening
+    }
 
     return true;
   }, [userData]);

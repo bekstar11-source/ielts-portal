@@ -6,12 +6,18 @@ import { useNavigate, useParams } from "react-router-dom";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { motion } from "framer-motion";
+import { useTheme } from "../context/ThemeContext";
 import { usePodcast } from "../context/PodcastContext";
 import InteractivePlayer from "../components/InteractivePlayer";
+import LazyImage from "../components/common/LazyImage";
+import { Sun, Moon } from "lucide-react";
 
 export default function SpotifyAlbum() {
     const { albumId } = useParams();
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
+    const isDark = theme === 'dark';
+
     const { 
         currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
         playTrack, duration, currentTime, toggleMute, isMuted, volume, updateVolume, repeat, setRepeat, shuffle, setShuffle, audioRef
@@ -58,8 +64,7 @@ export default function SpotifyAlbum() {
         if (!time || isNaN(time)) return "0:00";
         const m = Math.floor(time / 60);
         const s = Math.floor(time % 60);
-        if (m > 0) return `${m} min ${s} sec`;
-        return `${s} sec`;
+        return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
     const getPodcastDuration = (p) => {
@@ -122,68 +127,83 @@ export default function SpotifyAlbum() {
     }, [albumId]);
 
     return (
-        <div className="h-screen w-full bg-black text-white flex flex-col font-sans select-none overflow-hidden relative">
+        <div className={`h-screen w-full flex flex-col font-sans select-none overflow-hidden relative transition-colors duration-300 ${isDark ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
             <InteractivePlayer isOpen={isExpanded} onClose={() => setIsExpanded(false)} />
             
-            <div className="flex-1 bg-gradient-to-b from-[#222222] to-[#121212] overflow-y-auto flex flex-col relative custom-scrollbar">
-                <div className="sticky top-0 z-30 bg-[#121212]/40 backdrop-blur-xl px-8 py-4 flex items-center gap-4">
-                    <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-zinc-400 hover:text-white transition">
-                        <ChevronLeft size={22} />
+            <div className={`flex-1 overflow-y-auto flex flex-col relative custom-scrollbar ${isDark ? 'bg-gradient-to-b from-[#222222] to-[#121212]' : 'bg-white'}`}>
+                <div className={`sticky top-0 z-30 px-8 py-4 flex items-center justify-between backdrop-blur-xl border-b ${isDark ? 'bg-[#121212]/40 border-transparent' : 'bg-white/80 border-zinc-100'}`}>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => navigate(-1)} className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isDark ? 'bg-black/60 text-zinc-400 hover:text-white' : 'bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}>
+                            <ChevronLeft size={22} />
+                        </button>
+                        <h2 className={`text-xl font-black ${isDark ? 'text-white' : 'text-zinc-900'}`}>Album</h2>
+                    </div>
+                    <button 
+                        onClick={toggleTheme}
+                        className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-zinc-400 hover:text-white' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
+                    >
+                        {isDark ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
-                    <h2 className="text-xl font-black">Album</h2>
                 </div>
 
                 <div 
-                    className="px-6 md:px-8 pt-8 pb-6 flex flex-col md:flex-row items-end gap-6 shrink-0 transition-colors duration-300"
-                    style={{ background: `linear-gradient(to bottom, ${dominantColor}, #121212)` }}
+                    className="px-6 md:px-8 pt-6 md:pt-10 pb-8 flex flex-col md:flex-row items-center justify-center gap-6 shrink-0 transition-colors duration-300"
+                    style={{ background: isDark ? `linear-gradient(to bottom, ${dominantColor}, #121212)` : `linear-gradient(to bottom, ${dominantColor}, #ffffff)` }}
                 >
-                    <div className="w-48 h-48 sm:w-60 sm:h-60 shadow-[0_8px_40px_rgba(0,0,0,0.6)] rounded-md overflow-hidden shrink-0 bg-zinc-900 flex items-center justify-center">
+                    <div className={`w-40 h-40 sm:w-52 sm:h-52 shadow-[0_8px_40px_rgba(0,0,0,0.4)] rounded-md overflow-hidden shrink-0 flex items-center justify-center ${isDark ? 'bg-zinc-900' : 'bg-zinc-100 border border-white/20'}`}>
                         {album?.thumbnail ? (
-                            <img src={album.thumbnail} alt="Playlist Cover" className="w-full h-full object-cover" />
+                            <LazyImage src={album.thumbnail} alt="Playlist Cover" className="w-full h-full object-cover" />
                         ) : podcasts[0]?.thumbnail ? (
-                            <img src={podcasts[0].thumbnail} alt="Playlist Cover" className="w-full h-full object-cover" />
+                            <LazyImage src={podcasts[0].thumbnail} alt="Playlist Cover" className="w-full h-full object-cover" />
                         ) : (
-                            <ListIcon size={64} className="text-zinc-700" />
+                            <ListIcon size={64} className={isDark ? 'text-zinc-700' : 'text-zinc-300'} />
                         )}
                     </div>
-                    <div className="flex flex-col gap-2 w-full">
-                        <span className="text-[13px] font-bold text-white uppercase tracking-wider">Public Playlist</span>
-                        <h1 className="text-5xl sm:text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-2 md:mb-4 pb-2 truncate">
+                    <div className="flex flex-col items-center md:items-start w-full pb-1">
+                        <span className={`text-[12px] font-bold mb-1 ${isDark ? 'text-white' : 'text-zinc-900'}`}>Public Playlist</span>
+                        <h1 className={`text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter leading-tight mb-2 pb-3 truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                             {album?.name || "Official Album"}
                         </h1>
-                        <div className="flex items-center gap-2 mt-1">
-                            <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                                <span className="text-white text-[10px] font-bold">iP</span>
+                        {album?.description && (
+                            <p className={`text-[13px] font-medium mb-3 line-clamp-2 max-w-2xl ${isDark ? 'text-white/60' : 'text-zinc-700'}`}>
+                                {album.description}
+                            </p>
+                        )}
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                                <span className="text-black text-[9px] font-black italic">iP</span>
                             </div>
-                            <span className="text-[14px] font-bold text-white hover:underline cursor-pointer">IELTS Portal</span>
-                            <span className="text-[14px] text-white/70">• {podcasts.length} podcasts</span>
+                            <div className={`flex items-center gap-1.5 text-[13px] font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                <span className="hover:underline cursor-pointer">IELTS Portal</span>
+                                <span className={`font-normal ${isDark ? 'text-white/70' : 'text-zinc-500'}`}>• {podcasts.length} podcasts</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="px-6 md:px-8 pb-32 bg-black/30 flex-1">
-                    <div className="flex items-center gap-6 py-6">
+                <div className={`px-6 md:px-8 pb-32 flex-1 transition-colors duration-300 ${isDark ? 'bg-black/30' : 'bg-white'}`}>
+                    <div className="flex items-center gap-5 py-4">
                         <button 
                             onClick={() => podcasts.length > 0 && playTrack(podcasts[0])}
-                            className="w-14 h-14 bg-[#1ed760] rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 text-black shadow-xl"
+                            className="w-12 h-12 bg-[#1ed760] rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 text-black shadow-xl shrink-0"
                         >
-                            <Play fill="black" size={28} className="ml-1" />
+                            <Play fill="black" size={24} className="ml-0.5" />
                         </button>
-                        <PlusCircle size={32} strokeWidth={1} className="text-[#a7a7a7] hover:text-white cursor-pointer transition-colors" />
-                        <ArrowDownCircle size={32} strokeWidth={1} className="text-[#a7a7a7] hover:text-white cursor-pointer transition-colors" />
-                        <MoreHorizontal size={32} className="text-[#a7a7a7] hover:text-white cursor-pointer transition-colors" />
+                        <PlusCircle size={28} strokeWidth={1.5} className={`cursor-pointer transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
+                        <ArrowDownCircle size={28} strokeWidth={1.5} className={`cursor-pointer transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
+                        <MoreHorizontal size={28} className={`cursor-pointer transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
                     </div>
 
                     <div className="flex flex-col lg:flex-row gap-10 mt-6">
                         {/* Left Column: Episodes */}
                         <div className="flex-1">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-[20px] font-bold text-white flex items-center gap-2 cursor-pointer hover:underline">All Episodes <ChevronDown size={18} /></h3>
-                                <span className="text-[#a7a7a7] font-bold text-[14px] flex items-center gap-2 cursor-pointer hover:text-white transition-colors">Newest to Oldest <ChevronDown size={18} /></span>
+                                <h3 className={`text-[20px] font-bold flex items-center gap-2 cursor-pointer hover:underline ${isDark ? 'text-white' : 'text-zinc-900'}`}>All Episodes <ChevronDown size={18} /></h3>
+                                <span className={`font-bold text-[14px] flex items-center gap-2 cursor-pointer transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`}>Newest to Oldest <ChevronDown size={18} /></span>
                             </div>
 
                             {loading ? (
-                                <div className="flex flex-col gap-6 border-t border-white/10 pt-6">
+                                <div className={`flex flex-col gap-6 border-t pt-6 ${isDark ? 'border-white/10' : 'border-zinc-100'}`}>
                                     {Array(5).fill(0).map((_, i) => (
                                         <div key={i} className="flex gap-4 animate-pulse">
                                             <div className="w-[112px] h-[112px] rounded-lg bg-white/5 shrink-0" />
@@ -201,22 +221,26 @@ export default function SpotifyAlbum() {
                                     ))}
                                 </div>
                             ) : podcasts.length === 0 ? (
-                                <div className="py-20 text-center text-zinc-500 font-bold border-t border-white/10 pt-6">
+                                <div className={`py-20 text-center font-bold border-t pt-6 ${isDark ? 'text-zinc-500 border-white/10' : 'text-zinc-400 border-zinc-100'}`}>
                                     No podcasts in this album yet.
                                 </div>
                             ) : (
-                                <div className="flex flex-col border-t border-white/10 pt-2">
+                                <div className={`flex flex-col border-t pt-2 ${isDark ? 'border-white/10' : 'border-zinc-100'}`}>
                                     {podcasts.map((p, i) => {
                                         const isPlayingThis = currentTrack?.id === p.id && isPlaying;
                                         const isActiveThis = currentTrack?.id === p.id;
                                         return (
                                             <div 
                                                 key={p.id}
-                                                onClick={() => playTrack(p)}
-                                                className={`group flex gap-4 p-4 -mx-4 rounded-md cursor-pointer transition-colors hover:bg-white/5 border-b border-white/10 last:border-0 ${isActiveThis ? 'bg-white/5' : ''}`}
+                                                onClick={() => navigate(`/podcast/episode/${p.id}`)}
+                                                className={`group flex gap-4 p-4 -mx-4 rounded-md cursor-pointer transition-colors border-b last:border-0 ${
+                                                    isDark 
+                                                        ? `hover:bg-white/5 border-white/10 ${isActiveThis ? 'bg-white/5' : ''}` 
+                                                        : `hover:bg-zinc-50 border-zinc-100 ${isActiveThis ? 'bg-zinc-50' : ''}`
+                                                }`}
                                             >
                                                 <div className="relative shrink-0">
-                                                    <img src={p.thumbnail || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80"} className="w-[112px] h-[112px] rounded-lg object-cover" />
+                                                    <LazyImage src={p.thumbnail || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80"} className="w-[112px] h-[112px] rounded-lg object-cover shadow-sm" />
                                                     {isPlayingThis && (
                                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg">
                                                             <div className="w-3 h-3 flex items-end gap-[2px]">
@@ -231,23 +255,33 @@ export default function SpotifyAlbum() {
                                                 <div className="flex flex-col flex-1 min-w-0">
                                                     <div className="flex items-start gap-2 mb-1">
                                                         {!isActiveThis && <div className="w-2 h-2 mt-1.5 rounded-full bg-[#3e82d5] shrink-0" />}
-                                                        <h4 className={`font-bold text-[16px] leading-tight group-hover:underline ${isActiveThis ? 'text-[#1ed760]' : 'text-white'}`}>{p.title}</h4>
+                                                        <h4 className={`font-bold text-[16px] leading-tight group-hover:underline ${isActiveThis ? 'text-[#1ed760]' : (isDark ? 'text-white' : 'text-zinc-900')}`}>{p.title}</h4>
                                                     </div>
-                                                    <span className="text-[14px] font-bold text-white mb-3">{album?.name || "Official Podcast"}</span>
-                                                    <p className="text-[14px] text-[#a7a7a7] line-clamp-2 leading-snug mb-3 pr-4 group-hover:text-white transition-colors">
+                                                    <span className={`text-[14px] font-bold mb-3 ${isDark ? 'text-white' : 'text-zinc-700'}`}>{album?.name || "Official Podcast"}</span>
+                                                    <p className={`text-[14px] line-clamp-2 leading-snug mb-3 pr-4 transition-colors ${isDark ? 'text-[#a7a7a7] group-hover:text-white' : 'text-zinc-500 group-hover:text-zinc-900'}`}>
                                                         {p.description || `Episode from ${album?.name || 'this collection'}.`}
                                                     </p>
                                                     <div className="mt-auto flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
-                                                            <PlusCircle size={22} strokeWidth={1.5} className="text-[#a7a7a7] hover:text-white transition-colors" onClick={(e) => e.stopPropagation()} />
-                                                            <span className="text-[13px] font-medium text-[#a7a7a7] group-hover:text-white transition-colors">
+                                                            <PlusCircle size={22} strokeWidth={1.5} className={`transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={(e) => e.stopPropagation()} />
+                                                            <span className={`text-[13px] font-medium transition-colors ${isDark ? 'text-[#a7a7a7] group-hover:text-white' : 'text-zinc-400 group-hover:text-zinc-900'}`}>
                                                                 {getPodcastDate(p)} • {formatTime(getPodcastDuration(p))}
                                                             </span>
                                                         </div>
                                                         <button 
-                                                            className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 text-black shrink-0 shadow-md"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (currentTrack?.id === p.id) {
+                                                                    setIsPlaying(!isPlaying);
+                                                                    setIsExpanded(true);
+                                                                } else {
+                                                                    playTrack(p);
+                                                                    setIsExpanded(true);
+                                                                }
+                                                            }}
+                                                            className={`w-8 h-8 rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 shrink-0 shadow-md ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`}
                                                         >
-                                                            {isPlayingThis ? <Pause fill="black" size={14} /> : <Play fill="black" size={14} className="ml-0.5" />}
+                                                            {isPlayingThis ? <Pause fill="currentColor" size={14} /> : <Play fill="currentColor" size={14} className="ml-0.5" />}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -260,17 +294,17 @@ export default function SpotifyAlbum() {
 
                         {/* Right Column: About */}
                         <div className="w-full lg:w-[350px] shrink-0 pt-2 lg:pl-4">
-                            <h3 className="text-[20px] font-bold text-white mb-4">About</h3>
-                            <div className="text-[15px] text-[#a7a7a7] leading-relaxed mb-6 space-y-4">
+                            <h3 className={`text-[20px] font-bold mb-4 ${isDark ? 'text-white' : 'text-zinc-900'}`}>About</h3>
+                            <div className={`text-[15px] leading-relaxed mb-6 space-y-4 ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>
                                 <p className="whitespace-pre-wrap">
                                     {album?.description || "No description provided for this album."}
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="border border-white/20 px-3 py-1 rounded-full flex items-center gap-1 text-[13px] font-bold text-white">
-                                    4.9 <span className="text-[11px] mb-[1px]">★</span> <span className="text-[#a7a7a7] font-normal">(8.5K)</span>
+                                <div className={`border px-3 py-1 rounded-full flex items-center gap-1 text-[13px] font-bold ${isDark ? 'border-white/20 text-white' : 'border-zinc-200 text-zinc-900'}`}>
+                                    4.9 <span className="text-[11px] mb-[1px]">★</span> <span className={`font-normal ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>(8.5K)</span>
                                 </div>
-                                <div className="border border-white/20 px-3 py-1 rounded-full text-[13px] font-bold text-white">
+                                <div className={`border px-3 py-1 rounded-full text-[13px] font-bold ${isDark ? 'border-white/20 text-white' : 'border-zinc-200 text-zinc-900'}`}>
                                     Education
                                 </div>
                             </div>
@@ -280,51 +314,53 @@ export default function SpotifyAlbum() {
             </div>
 
             {/* Global Footer Player */}
-            <div className="h-[85px] bg-black border-t border-white/5 px-6 flex items-center justify-between z-50 shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+            <div className={`h-[75px] border-t px-4 md:px-6 flex items-center justify-between z-50 shrink-0 shadow-2xl transition-colors duration-300 ${isDark ? 'bg-black border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]' : 'bg-white border-zinc-200'}`}>
                 <div className="flex items-center gap-4 w-[30%] min-w-[200px]">
                     {currentTrack ? (
                         <>
-                            <div className="w-12 h-12 bg-zinc-800 rounded-lg flex-shrink-0 overflow-hidden relative group cursor-pointer shadow-2xl" onClick={() => setIsExpanded(true)}>
-                                <img src={currentTrack.thumbnail || null} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+                            <div className={`w-11 h-11 rounded-md flex-shrink-0 overflow-hidden relative group cursor-pointer shadow-2xl ${isDark ? 'bg-zinc-800' : 'bg-zinc-100 border border-zinc-200'}`} onClick={() => setIsExpanded(true)}>
+                                <LazyImage src={currentTrack.thumbnail || null} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><ChevronLeft size={20} className="text-white rotate-90" /></div>
                             </div>
                             <div className="hidden sm:block truncate pr-4 cursor-pointer" onClick={() => setIsExpanded(true)}>
-                                <p className="text-[13px] font-black hover:underline truncate text-white leading-tight">{currentTrack.title}</p>
-                                <p className="text-[10px] text-[#a7a7a7] hover:underline truncate mt-0.5 font-bold uppercase tracking-wider">{currentTrack.level || "B2"} Podcast</p>
+                                <p className={`text-[13px] font-black hover:underline truncate leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{currentTrack.title}</p>
+                                <p className={`text-[10px] hover:underline truncate mt-0.5 font-bold uppercase tracking-wider ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{currentTrack.level || "B2"} Podcast</p>
                             </div>
-                            <Heart size={18} className="text-[#a7a7a7] hover:text-white transition-colors cursor-pointer" />
+                            <Heart size={18} className={`transition-colors cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
                         </>
-                    ) : <div className="animate-pulse w-full h-12 bg-white/5 rounded-lg" />}
+                    ) : <div className={`animate-pulse w-full h-12 rounded-lg ${isDark ? 'bg-white/5' : 'bg-zinc-100'}`} />}
                 </div>
 
-                <div className="flex flex-col items-center max-w-[650px] w-full px-4">
-                    <div className="flex items-center gap-7 mb-3">
-                        <Shuffle size={18} className={`cursor-pointer transition-colors ${shuffle ? 'text-emerald-500' : 'text-[#a7a7a7] hover:text-white'}`} onClick={() => setShuffle(!shuffle)} />
-                        <SkipBack size={24} fill="currentColor" className="text-[#a7a7a7] hover:text-white transition-transform active:scale-90 cursor-pointer" onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)} />
-                        <button className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95" onClick={() => setIsPlaying(!isPlaying)}>
-                            {isPlaying ? <Pause size={20} fill="black" /> : <Play size={20} fill="black" className="ml-1" />}
+                <div className="flex flex-col items-center max-w-[650px] w-full px-4 -mt-1">
+                    <div className="flex items-center gap-6 mb-1.5">
+                        <Shuffle size={16} className={`cursor-pointer transition-colors ${shuffle ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setShuffle(!shuffle)} />
+                        <SkipBack size={20} fill="currentColor" className={`transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)} />
+                        <button className={`w-9 h-9 rounded-full flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`} onClick={() => setIsPlaying(!isPlaying)}>
+                            {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
                         </button>
-                        <SkipForward size={24} fill="currentColor" className="text-[#a7a7a7] hover:text-white transition-transform active:scale-90 cursor-pointer" onClick={() => audioRef.current && (audioRef.current.currentTime += 10)} />
-                        <Repeat size={18} className={`cursor-pointer transition-colors ${repeat ? 'text-emerald-500' : 'text-[#a7a7a7] hover:text-white'}`} onClick={() => setRepeat(!repeat)} />
+                        <SkipForward size={20} fill="currentColor" className={`transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime += 10)} />
+                        <button className={`cursor-pointer transition-colors ${repeat ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setRepeat(!repeat)}>
+                            <Repeat size={16} />
+                        </button>
                     </div>
-                    <div className="flex items-center gap-3 w-full">
-                        <span className="text-[11px] text-[#a7a7a7] font-black w-8 text-right tabular-nums">{formatTime(currentTime)}</span>
-                        <div className="flex-1 h-[4px] bg-[#4d4d4d] rounded-full group cursor-pointer flex items-center">
-                            <div className="h-full bg-white group-hover:bg-[#1ed760] rounded-full relative transition-colors" style={{ width: `${(currentTime / duration) * 100 || 0}%` }}>
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
+                    <div className="flex items-center gap-2 w-full">
+                        <span className={`text-[11px] font-medium min-w-[32px] text-right tabular-nums ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{formatTime(currentTime)}</span>
+                        <div className={`flex-1 h-[4px] rounded-full group cursor-pointer flex items-center ${isDark ? 'bg-[#4d4d4d]' : 'bg-zinc-200'}`}>
+                            <div className={`h-full rounded-full relative transition-colors ${isDark ? 'bg-white group-hover:bg-[#1ed760]' : 'bg-zinc-900 group-hover:bg-emerald-600'}`} style={{ width: `${(currentTime / duration) * 100 || 0}%` }}>
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border border-zinc-200 rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
                             </div>
                         </div>
-                        <span className="text-[11px] text-[#a7a7a7] font-black w-8 tabular-nums">{formatTime(duration)}</span>
+                        <span className={`text-[11px] font-medium min-w-[32px] tabular-nums ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{formatTime(duration)}</span>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-5 w-[30%] min-w-[200px] text-[#a7a7a7]">
+                <div className={`flex items-center justify-end gap-5 w-[30%] min-w-[200px] ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-400'}`}>
                     <div className="flex items-center gap-4">
                         <div className="group flex items-center gap-2">
-                            {isMuted || volume === 0 ? <VolumeX size={18} className="text-zinc-500 cursor-pointer hover:text-white shrink-0" /> : <Volume2 size={18} className="text-zinc-500 cursor-pointer hover:text-white shrink-0" />}
-                            <div className="w-20 h-1 bg-white/10 rounded-full relative group cursor-pointer hidden sm:flex items-center">
-                                <div className="h-full bg-emerald-500 rounded-full relative" style={{ width: `${volume * 100}%` }}>
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
+                            <button className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-zinc-900'}`} onClick={toggleMute}>{isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>
+                            <div className={`w-20 h-1 rounded-full relative group cursor-pointer hidden sm:flex items-center ${isDark ? 'bg-white/10' : 'bg-zinc-200'}`}>
+                                <div className={`h-full rounded-full relative ${isDark ? 'bg-emerald-500' : 'bg-zinc-900'}`} style={{ width: `${volume * 100}%` }}>
+                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white border border-zinc-200 rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
                                 </div>
                                 <input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => updateVolume(parseFloat(e.target.value))} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                             </div>
@@ -336,7 +372,7 @@ export default function SpotifyAlbum() {
             <style dangerouslySetInnerHTML={{__html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.1); border-radius: 9999px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background-color: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}; border-radius: 9999px; }
             `}} />
         </div>
     );

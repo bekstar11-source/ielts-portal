@@ -49,6 +49,11 @@ export default function Practice() {
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'reading');
   const [searchQuery, setSearchQuery] = useState("");
   
+  const isPro = userData?.isPro || userData?.isPremium || userData?.accountType === 'premium' || userData?.accountType === 'pro';
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
+  const [selectedStatus, setSelectedStatus] = useState("all"); // 'all', 'completed', 'not_completed'
+  const [selectedPassages, setSelectedPassages] = useState([]); // [1, 2, 3]
+  const [showQuestionFilters, setShowQuestionFilters] = useState(false);
   // Real Data Hook
   const { assignments, loading, error: errorMsg, refresh } = useStudentData(user);
   const rawAssignments = useMemo(() => [...assignments], [assignments]);
@@ -70,11 +75,9 @@ export default function Practice() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [showAllCards, setShowAllCards] = useState(false);
-  const itemsPerPage = 9;
+  const itemsPerPage = 12;
 
   // Custom Hooks for scrolling
-  const stdScroll = usePracticeScroll();
   const fullReadingScroll = usePracticeScroll();
 
   // Section Refs for internal scrolling
@@ -175,10 +178,33 @@ export default function Practice() {
     }
   }, [activeTab, location.search]);
 
-  // Reset showAllCards when tab changes
+  // Reset currentPage when tab changes
   useEffect(() => {
-    setShowAllCards(false);
+    setCurrentPage(1);
+    setSelectedQuestionTypes([]);
+    setSelectedStatus("all");
+    setSelectedPassages([]);
   }, [activeTab]);
+
+  // Get all unique question types for the current category
+  const allQuestionTypes = useMemo(() => {
+    const types = new Set();
+    rawAssignments.forEach(item => {
+      // Normal testlar uchun
+      if (item.type === activeTab && item.questionTypes) {
+        item.questionTypes.forEach(t => types.add(t));
+      }
+      // To'plam (Set) ichidagi testlar uchun
+      if (item.isSet && item.subTests) {
+          item.subTests.forEach(sub => {
+              if (sub.type === activeTab && sub.questionTypes) {
+                  sub.questionTypes.forEach(t => types.add(t));
+              }
+          });
+      }
+    });
+    return ["all", ...Array.from(types).sort()];
+  }, [rawAssignments, activeTab]);
 
   // Filter & Search Logic
   const filteredTests = useMemo(() => {
@@ -194,24 +220,64 @@ export default function Practice() {
       }
       if (!matchesTab) return;
 
+      const matchesSearch = !q || item.title?.toLowerCase().includes(q);
+      const isDone = !!item.result;
+      const matchesStatus = selectedStatus === 'all' || 
+                           (selectedStatus === 'completed' && isDone) || 
+                           (selectedStatus === 'not_completed' && !isDone);
+      
+      const getPassageNum = (test, indexInSet) => {
+        if (test.passageNumber) return Number(test.passageNumber);
+        if (test.passage_number) return Number(test.passage_number);
+        const title = test.title?.toLowerCase() || '';
+        const match = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
+        if (match) return Number(match[1]);
+        if (indexInSet !== undefined) return indexInSet + 1;
+        return null;
+      };
+
+      const pNum = getPassageNum(item);
+      const matchesPassage = selectedPassages.length === 0 || 
+                            (pNum && selectedPassages.includes(pNum));
+
       if (item.isSet) {
         const titleMatch = item.title?.toLowerCase().includes(q);
-        const matchingSubTests = item.subTests?.filter(s => s.title?.toLowerCase().includes(q)) || [];
-        if (!q) {
+        
+        const matchingSubTests = item.subTests?.filter((s, idx) => {
+            const mSearch = s.title?.toLowerCase().includes(q);
+            const mType = selectedQuestionTypes.length === 0 || 
+                         (s.questionTypes && s.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+            
+            const subIsDone = !!s.result;
+            const mStatus = selectedStatus === 'all' || 
+                           (selectedStatus === 'completed' && subIsDone) || 
+                           (selectedStatus === 'not_completed' && !subIsDone);
+            
+            const spNum = getPassageNum(s, idx);
+            const mPassage = selectedPassages.length === 0 || (spNum && selectedPassages.includes(spNum));
+
+            return mSearch && mType && mStatus && mPassage;
+        }) || [];
+
+        if (!q && selectedQuestionTypes.length === 0 && selectedStatus === 'all' && selectedPassages.length === 0) {
             result.push(item);
-        } else if (titleMatch) {
-            item.subTests?.forEach(sub => result.push({ ...sub, _fromSet: item.title }));
+        } else if (titleMatch && selectedQuestionTypes.length === 0 && selectedStatus === 'all' && selectedPassages.length === 0) {
+            result.push({ ...item, _forceExpand: true });
         } else if (matchingSubTests.length > 0) {
             matchingSubTests.forEach(sub => result.push({ ...sub, _fromSet: item.title }));
         }
         return;
       }
 
-      const matchesSearch = !q || item.title?.toLowerCase().includes(q);
-      if (matchesSearch) result.push(item);
+      const matchesType = selectedQuestionTypes.length === 0 || 
+                         (item.questionTypes && item.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+      
+      if (matchesSearch && matchesType && matchesStatus && matchesPassage) {
+        result.push(item);
+      }
     });
     return result;
-  }, [rawAssignments, searchQuery, activeTab]);
+  }, [rawAssignments, searchQuery, activeTab, selectedQuestionTypes, selectedStatus, selectedPassages]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -233,7 +299,7 @@ export default function Practice() {
     
     if (limitTarget && !checkLimit(limitTarget)) {
       setLimitType(limitTarget);
-      setShowLimitSheet(true);
+      setShowPricingModal(true);
       return;
     }
 
@@ -325,7 +391,12 @@ export default function Practice() {
       />
 
       <main className="w-full">
-        <PracticeHero activeTab={activeTab} categories={categories} />
+        <PracticeHero 
+          activeTab={activeTab} 
+          categories={categories} 
+          totalCount={rawAssignments.length}
+          filteredCount={filteredTests.length}
+        />
 
         <PracticeFilters 
           activeTab={activeTab} 
@@ -337,6 +408,15 @@ export default function Practice() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           handleTabClick={handleTabClick}
+          allQuestionTypes={allQuestionTypes}
+          selectedQuestionTypes={selectedQuestionTypes}
+          setSelectedQuestionTypes={setSelectedQuestionTypes}
+          selectedStatus={selectedStatus}
+          setSelectedStatus={setSelectedStatus}
+          selectedPassages={selectedPassages}
+          setSelectedPassages={setSelectedPassages}
+          showQuestionFilters={showQuestionFilters}
+          setShowQuestionFilters={setShowQuestionFilters}
         />
 
         <div className="max-w-[1440px] mx-auto px-6">
@@ -358,7 +438,7 @@ export default function Practice() {
                 </div>
               ) : (
                   <motion.div 
-                    key={`${activeTab}-${showAllCards}`}
+                    key={`${activeTab}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -376,86 +456,80 @@ export default function Practice() {
 
                             return (
                                 <>
-                                    {/* Standard/Individual Section */}
                                     <div className="space-y-4" ref={passagesSectionRef}>
                                         {isReading && (
-                                            <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Reading Passages</h2>
+                                            <div className="space-y-1">
+                                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Reading Passages</h2>
+                                                <p className="text-[#86868b] text-[14px]">Displaying {filteredTests.length} out of a total {rawAssignments.length} tests</p>
+                                            </div>
                                         )}
                                         
-                                        {!showAllCards ? (
-                                            <div className="group/scroll relative">
-                                                <div 
-                                                    ref={stdScroll.scrollRef}
-                                                    onScroll={(e) => stdScroll.updateScrollState(e.currentTarget)}
-                                                    className="grid grid-flow-col auto-cols-[minmax(320px,1fr)] md:auto-cols-[minmax(380px,1fr)] items-stretch gap-5 overflow-x-auto pt-4 pb-12 hide-scrollbar -mx-6 px-6"
-                                                >
-                                                    {standardTests.slice(0, 15).map((test) => (
-                                                      <div key={test.id} className="flex flex-col h-full">
-                                                        <PracticeCard 
-                                                          test={test} 
-                                                          isCompleted={!!test.result}
-                                                          onReview={handleReview}
-                                                          onStart={handleStartTest}
-                                                          onSelectSet={setSelectedSet}
-                                                        />
-                                                      </div>
-                                                    ))}
-                                                    {standardTests.length > 15 && (
-                                                      <div className="snap-start min-w-[120px] md:min-w-[180px] flex flex-col h-full">
-                                                          <button 
-                                                              onClick={() => setShowAllCards(true)}
-                                                              className="w-full h-full flex flex-col items-center justify-center bg-[#F6F6FA] rounded-[24px] hover:bg-gray-200/50 transition-all duration-300 group px-8"
-                                                          >
-                                                              <div className="w-12 h-12 bg-[#f5f5f7] rounded-full flex items-center justify-center mb-3 group-hover:bg-[#0071e3] transition-colors">
-                                                                  <RotateCw size={20} className="text-[#86868b] group-hover:text-white" />
-                                                              </div>
-                                                              <span className="text-[15px] font-bold text-[#1d1d1f]">See All</span>
-                                                              <span className="text-[12px] text-[#86868b] mt-0.5">{standardTests.length} Tests</span>
-                                                          </button>
-                                                      </div>
-                                                    )}
-                                                </div>
-                                                
-                                                <div className="flex items-center justify-end gap-2 -mt-6 mb-8 mr-8 relative z-20">
-                                                    <button 
-                                                        onClick={() => stdScroll.handleScroll(-1)}
-                                                        disabled={!stdScroll.canLeft}
-                                                        className={`w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#1d1d1f] active:scale-95 transition-all shadow-lg border border-black/5 ${stdScroll.canLeft ? 'hover:bg-white cursor-pointer' : 'opacity-30 cursor-default'}`}
-                                                    >
-                                                        <ChevronLeft size={18} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => stdScroll.handleScroll(1)}
-                                                        disabled={!stdScroll.canRight}
-                                                        className={`w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#1d1d1f] active:scale-95 transition-all shadow-lg border border-black/5 ${stdScroll.canRight ? 'hover:bg-white cursor-pointer' : 'opacity-30 cursor-default'}`}
-                                                    >
-                                                        <ChevronRight size={18} />
-                                                    </button>
-                                                </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
+                                            {standardTests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
+                                                <PracticeCard 
+                                                    key={test.id} 
+                                                    test={test} 
+                                                    isCompleted={!!test.result}
+                                                    onReview={handleReview}
+                                                    onStart={handleStartTest}
+                                                    onSelectSet={setSelectedSet}
+                                                    isPro={isPro}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        {/* Pagination */}
+                                        {standardTests.length > itemsPerPage && (
+                                            <div className="flex justify-center items-center gap-1.5 pt-10 pb-8">
+                                                {(() => {
+                                                    const totalPages = Math.ceil(standardTests.length / itemsPerPage);
+                                                    const pages = [];
+                                                    const delta = 1; // Number of pages to show around current page
+                                                    
+                                                    for (let i = 1; i <= totalPages; i++) {
+                                                        if (
+                                                            i === 1 || 
+                                                            i === totalPages || 
+                                                            (i >= currentPage - delta && i <= currentPage + delta)
+                                                        ) {
+                                                            pages.push(i);
+                                                        } else if (
+                                                            i === currentPage - delta - 1 || 
+                                                            i === currentPage + delta + 1
+                                                        ) {
+                                                            pages.push('...');
+                                                        }
+                                                    }
+                                                    
+                                                    // Filter out consecutive ellipses
+                                                    const uniquePages = pages.filter((p, i) => p !== '...' || pages[i-1] !== '...');
+
+                                                    return uniquePages.map((p, i) => (
+                                                        p === '...' ? (
+                                                            <span key={`dots-${i}`} className="text-[#86868b] px-1 text-[13px]">...</span>
+                                                        ) : (
+                                                            <button
+                                                                key={p}
+                                                                onClick={() => {
+                                                                    setCurrentPage(p);
+                                                                    if (passagesSectionRef.current) {
+                                                                        const yOffset = -140; 
+                                                                        const y = passagesSectionRef.current.getBoundingClientRect().top + window.scrollY + yOffset;
+                                                                        window.scrollTo({ top: y, behavior: 'smooth' });
+                                                                    }
+                                                                }}
+                                                                className={`w-8 h-8 rounded-full text-[13px] font-semibold transition-all ${
+                                                                    currentPage === p 
+                                                                    ? 'bg-[#1d1d1f] text-white' 
+                                                                    : 'bg-[#f5f5f7] text-[#1d1d1f] hover:bg-gray-200'
+                                                                }`}
+                                                            >
+                                                                {p}
+                                                            </button>
+                                                        )
+                                                    ));
+                                                })()}
                                             </div>
-                                        ) : (
-                                            <>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                                    {standardTests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
-                                                       <PracticeCard 
-                                                          key={test.id}
-                                                          test={test} 
-                                                          isCompleted={!!test.result}
-                                                          onReview={handleReview}
-                                                          onStart={handleStartTest}
-                                                          onSelectSet={setSelectedSet}
-                                                        />
-                                                    ))}
-                                                </div>
-                                                
-                                                <div className="mt-12 flex justify-center">
-                                                    <Pagination
-                                                        currentPage={currentPage}
-                                                        totalPages={Math.ceil(standardTests.length / itemsPerPage)}
-                                                        onPageChange={setCurrentPage}
-                                                    />
-                                                </div>
-                                            </>
                                         )}
                                     </div>
 
@@ -484,6 +558,7 @@ export default function Practice() {
                                                     onReview={handleReview}
                                                     onStart={handleStartTest}
                                                     onSelectSet={setSelectedSet}
+                                                    isPro={isPro}
                                                   />
                                                 ))}
                                             </div>
@@ -536,6 +611,7 @@ export default function Practice() {
                                                         isCompleted={!!set.result}
                                                         onReview={handleReview}
                                                         onSelectSet={setSelectedSet}
+                                                        isPro={isPro}
                                                       />
                                                     ))}
                                                 </div>
@@ -561,20 +637,12 @@ export default function Practice() {
         selectedSet={selectedSet} setSelectedSet={setSelectedSet}
         handleStartTest={handleStartTest}
         handleReview={handleReview}
+        isPro={isPro}
       />
       <PricingModal 
         isOpen={showPricingModal} 
         onClose={() => setShowPricingModal(false)}
         userName={userData?.fullName?.split(' ')[0]} 
-      />
-      <LimitReachedSheet 
-        isOpen={showLimitSheet} 
-        onClose={() => setShowLimitSheet(false)}
-        onUpgrade={() => {
-          setShowLimitSheet(false);
-          setShowPricingModal(true);
-        }}
-        type={limitType}
       />
       <SiteFooter />
     </div>

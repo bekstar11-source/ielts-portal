@@ -82,6 +82,7 @@ export default function DashboardReadingCarousel({ onStartTest }) {
 
     // Fallback images array for better variety
     const fallbackImages = [
+        "/images/dashboard/reading_passage_yellow_card.png",
         "/images/dashboard/reading_passage_ancient_civ_1776973843121.png",
         "/images/dashboard/reading_passage_space_exp_1776973865586.png",
         "/images/dashboard/reading_passage_architecture_1776974534002.png",
@@ -125,22 +126,28 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                         ) : realItems.map((item, i) => (
                             <div 
                                 key={item.id || i} 
-                                onClick={() => onStartTest ? onStartTest(item) : navigate(`/test/${item.id}`)}
-                                className="group/apple-card relative aspect-[3/3.8] bg-[#F6F6FA] rounded-[24px] p-7 transition-all duration-500 cursor-pointer overflow-hidden animate-fade-in-up hover:scale-[1.005]"
+                                className="group/apple-card relative aspect-[3/3.8] bg-[#F6F6FA] rounded-xl p-5 transition-all duration-500 cursor-default overflow-hidden animate-fade-in-up hover:shadow-lg hover:border-black/10 shadow-sm border border-black/5"
                                 style={{ animationDelay: item.delay }}
                             >
-                                <div className="relative z-10 space-y-3">
-                                    <span className="text-[11px] font-extrabold text-[#86868b] uppercase tracking-[0.12em]">{item.tag}</span>
-                                    <h3 className="text-[28px] font-extrabold text-[#1d1d1f] leading-[1.1] tracking-tight group-hover/apple-card:text-[#0066cc] transition-colors line-clamp-2">
+                                <div className="relative z-10 space-y-2">
+                                    <h3 className="text-[27px] font-extrabold text-[#1d1d1f] leading-[1.2] tracking-tight group-hover/apple-card:text-[#0066cc] transition-colors line-clamp-2">
                                         {item.title}
                                     </h3>
-                                    <p className="text-[15px] text-zinc-500 font-medium leading-snug line-clamp-3">
+                                    <p className="text-[14px] text-zinc-500 font-medium leading-snug line-clamp-2">
                                         {item.sub}
                                     </p>
-                                    <div className="pt-2">
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold text-[#424245] bg-white/50 border border-black/[0.04] uppercase tracking-wide">
+                                    <div className="pt-1">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10.5px] font-bold text-[#424245] bg-white/50 border border-black/[0.04] tracking-wide capitalize">
                                             {item.questions}
                                         </span>
+                                    </div>
+                                    <div className="pt-4">
+                                        <button 
+                                            onClick={() => onStartTest ? onStartTest(item) : navigate(`/test/${item.id}`)}
+                                            className="bg-[#0071e3] text-white text-[13px] font-bold px-5 py-2 rounded-lg hover:bg-[#0077ed] transition-all relative z-20 cursor-pointer"
+                                        >
+                                            Start Test
+                                        </button>
                                     </div>
                                 </div>
 

@@ -1,14 +1,17 @@
 // src/pages/Podcasts.jsx
 import React, { useState, useEffect } from "react";
 import { 
-    Home, Search, ChevronLeft, Library, Play, Pause, Zap, Mic2, Shuffle, SkipBack, SkipForward, Repeat, List as ListIcon, Volume2, VolumeX, Heart, Expand, Bell, Plus, Clock, MoreHorizontal, PlusCircle, ArrowDownCircle
+    Home, Search, ChevronLeft, ChevronRight, Library, Play, Pause, Zap, Mic2, Shuffle, SkipBack, SkipForward, Repeat, List as ListIcon, Volume2, VolumeX, Heart, Expand, Bell, Plus, Clock, MoreHorizontal, PlusCircle, ArrowDownCircle, ChevronDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { motion } from "framer-motion";
+import { useTheme } from "../context/ThemeContext";
 import { usePodcast } from "../context/PodcastContext";
 import InteractivePlayer from "../components/InteractivePlayer";
+import LazyImage from "../components/common/LazyImage";
+import { Sun, Moon } from "lucide-react";
 
 const DIFF_COLORS = {
     easy: "bg-emerald-500",
@@ -19,6 +22,9 @@ const DIFF_COLORS = {
 
 export default function Podcasts() {
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
+    const isDark = theme === 'dark';
+    
     const { 
         currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
         currentTime, duration, volume, isMuted, repeat, setRepeat, 
@@ -31,6 +37,7 @@ export default function Podcasts() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -87,28 +94,37 @@ export default function Podcasts() {
     );
 
     return (
-        <div className="h-screen w-full bg-black text-white flex flex-col font-sans overflow-hidden select-none">
+        <div className={`h-screen w-full flex flex-col font-sans overflow-hidden select-none transition-colors duration-300 ${isDark ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
             <div className="flex-1 flex overflow-hidden p-2 gap-2">
                 {/* Left Sidebar */}
-                <div className="w-[72px] md:w-[300px] flex flex-col gap-2 shrink-0">
-                    <div className="bg-[#121212] rounded-lg p-3 md:p-5 flex flex-col gap-5">
-                        <div onClick={() => navigate('/dashboard')} className="flex items-center gap-5 text-zinc-400 hover:text-white cursor-pointer transition px-1 group">
-                            <Home size={26} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
-                            <span className="hidden md:block font-bold text-[16px]">Home</span>
+                <div className={`flex flex-col gap-2 shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'w-[72px]' : 'w-[72px] md:w-[300px]'}`}>
+                    <div className={`${isDark ? 'bg-[#121212]' : 'bg-white'} rounded-lg p-3 md:p-5 flex flex-col gap-5 border ${isDark ? 'border-transparent' : 'border-zinc-200 shadow-sm'}`}>
+                        <div className="flex items-center justify-between">
+                            <div onClick={() => navigate('/dashboard')} className={`flex items-center gap-5 cursor-pointer transition px-1 group ${isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}>
+                                <Home size={26} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
+                                {!isSidebarCollapsed && <span className="hidden md:block font-bold text-[16px]">Home</span>}
+                            </div>
+                            {!isSidebarCollapsed && (
+                                <button 
+                                    onClick={() => setIsSidebarCollapsed(true)}
+                                    className={`hidden md:flex p-1 rounded-full transition ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
+                                >
+                                    <ChevronLeft size={24} />
+                                </button>
+                            )}
                         </div>
-                        <div className="flex items-center gap-5 text-white cursor-pointer transition px-1 group">
+                        <div className={`flex items-center gap-5 cursor-pointer transition px-1 group ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                             <Search size={26} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
-                            <span className="hidden md:block font-bold text-[16px]">Search</span>
+                            {!isSidebarCollapsed && <span className="hidden md:block font-bold text-[16px]">Search</span>}
                         </div>
                     </div>
 
-                    <div className="bg-[#121212] rounded-lg flex-1 flex flex-col overflow-hidden">
-                        <div className="p-4 px-5 flex items-center justify-between text-zinc-400">
-                            <div className="flex items-center gap-4">
-                                <Library size={26} strokeWidth={2.5} />
-                                <span className="hidden md:block font-bold text-[16px]">Your Library</span>
+                    <div className={`${isDark ? 'bg-[#121212]' : 'bg-white'} rounded-lg flex-1 flex flex-col overflow-hidden border ${isDark ? 'border-transparent' : 'border-zinc-200 shadow-sm'}`}>
+                        <div className={`p-4 px-5 flex items-center justify-between ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                            <div className="flex items-center gap-4 group">
+                                <Library size={26} strokeWidth={2.5} className={`transition-colors ${isDark ? 'group-hover:text-white' : 'group-hover:text-zinc-900'}`} />
+                                {!isSidebarCollapsed && <span className="hidden md:block font-bold text-[16px] truncate">Your Library</span>}
                             </div>
-                            <Plus size={20} className="hover:bg-zinc-800 p-1.5 rounded-full w-8 h-8 flex items-center justify-center transition" />
                         </div>
                         <div className="flex-1 overflow-y-auto px-2 md:px-3 pb-4 space-y-1 custom-scrollbar">
                             {loading ? (
@@ -124,25 +140,29 @@ export default function Podcasts() {
                             ) : (
                                 <>
                                     {collections.map(c => (
-                                        <div key={c.id} onClick={() => navigate(`/podcast/album/${c.id}`)} className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer transition group">
-                                            <div className="w-12 h-12 rounded bg-zinc-800 flex-shrink-0 flex items-center justify-center border border-white/5">
-                                                <ListIcon size={18} className="text-zinc-500 group-hover:text-white transition-colors" />
+                                        <div key={c.id} onClick={() => navigate(`/podcast/album/${c.id}`)} className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition group ${isDark ? 'hover:bg-zinc-800/50' : 'hover:bg-zinc-100'}`}>
+                                            <div className={`w-12 h-12 rounded bg-zinc-800 flex-shrink-0 flex items-center justify-center border ${isDark ? 'border-white/5' : 'border-zinc-200'}`}>
+                                                <ListIcon size={18} className={`transition-colors ${isDark ? 'text-zinc-500 group-hover:text-white' : 'text-zinc-400 group-hover:text-zinc-900'}`} />
                                             </div>
-                                            <div className="hidden md:block overflow-hidden">
-                                                <p className="font-bold truncate text-[14px] text-white leading-tight">{c.name}</p>
-                                                <p className="text-[12px] text-zinc-400 truncate mt-0.5 uppercase tracking-tighter font-bold">Album</p>
-                                            </div>
+                                            {!isSidebarCollapsed && (
+                                                <div className="hidden md:block overflow-hidden">
+                                                    <p className={`font-bold truncate text-[14px] leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{c.name}</p>
+                                                    <p className={`text-[12px] truncate mt-0.5 uppercase tracking-tighter font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Album</p>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                     {podcasts.slice(0, 8).map(p => (
-                                        <div key={p.id} onClick={() => { setCurrentTrack(p); setIsExpanded(true); }} className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer transition group">
+                                        <div key={p.id} onClick={() => { setCurrentTrack(p); setIsExpanded(true); }} className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition group ${isDark ? 'hover:bg-zinc-800/50' : 'hover:bg-zinc-100'}`}>
                                             <div className="w-12 h-12 rounded-lg bg-zinc-800 flex-shrink-0 overflow-hidden shadow-lg">
-                                                <img src={p.thumbnail || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&q=80"} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                <LazyImage src={p.thumbnail || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&q=80"} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                             </div>
-                                            <div className="hidden md:block overflow-hidden">
-                                                <p className="font-bold truncate text-[14px] text-white leading-tight">{p.title}</p>
-                                                <p className="text-[12px] text-zinc-400 truncate mt-0.5 uppercase tracking-tighter font-bold">{p.level || "B2"} • Podcast</p>
-                                            </div>
+                                            {!isSidebarCollapsed && (
+                                                <div className="hidden md:block overflow-hidden">
+                                                    <p className={`font-bold truncate text-[14px] leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{p.title}</p>
+                                                    <p className={`text-[12px] truncate mt-0.5 uppercase tracking-tighter font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{p.level || "B2"} • Podcast</p>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </>
@@ -152,27 +172,49 @@ export default function Podcasts() {
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 bg-gradient-to-b from-[#222222] to-[#121212] rounded-lg overflow-y-auto flex flex-col relative custom-scrollbar">
-                    <div className="sticky top-0 z-30 bg-[#121212]/40 backdrop-blur-xl px-8 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-zinc-400 hover:text-white transition">
-                                <ChevronLeft size={22} />
-                            </button>
-                            <h2 className="text-xl font-black hidden sm:block">Explore Podcasts</h2>
+                <div className={`flex-1 rounded-lg overflow-y-auto flex flex-col relative custom-scrollbar border transition-all duration-300 ${isDark ? 'bg-gradient-to-b from-[#222222] to-[#121212] border-transparent' : 'bg-white border-zinc-200'}`}>
+                    <div className={`sticky top-0 z-30 px-6 py-4 flex items-center relative h-16 border-b backdrop-blur-xl ${isDark ? 'bg-[#121212]/40 border-transparent' : 'bg-white/80 border-zinc-100'}`}>
+                        {/* Left: Toggle Button */}
+                        <div className="flex items-center gap-4 z-10">
+                            {isSidebarCollapsed && (
+                                <button 
+                                    onClick={() => setIsSidebarCollapsed(false)}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isDark ? 'bg-black/60 text-zinc-400 hover:text-white' : 'bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
+                                >
+                                    <ChevronRight size={22} />
+                                </button>
+                            )}
                         </div>
-                        <div className="flex-1 max-w-[450px] mx-8 relative hidden md:block">
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
-                                <Search size={18} />
+
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <h2 className={`flex items-center gap-2 ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                <span className="text-[20px] font-black uppercase tracking-tight">ENGLEV</span>
+                                <span className="text-[20px] font-light">Podcasts</span>
+                            </h2>
+                        </div>
+                        
+                        {/* Right: Search & Theme Toggle */}
+                        <div className="flex-1 flex justify-end items-center gap-4 z-10">
+                            <div className="w-full max-w-[200px] relative hidden md:block">
+                                <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                    <Search size={14} />
+                                </div>
+                                <input 
+                                    type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search..." 
+                                    className={`w-full rounded-full py-2 pl-9 pr-4 outline-none border transition text-[12px] ${
+                                        isDark 
+                                            ? 'bg-[#242424] hover:bg-[#2a2a2a] text-white border-transparent focus:border-white/20 placeholder:text-zinc-500' 
+                                            : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border-zinc-200 focus:border-zinc-300 placeholder:text-zinc-400'
+                                    }`}
+                                />
                             </div>
-                            <input 
-                                type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="What do you want to listen to?" 
-                                className="w-full bg-[#242424] hover:bg-[#2a2a2a] text-white rounded-full py-3 pl-12 pr-4 outline-none border border-transparent focus:border-white/20 transition text-[14px] placeholder:text-zinc-500"
-                            />
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <Bell size={20} className="text-zinc-400 hover:text-white transition cursor-pointer" />
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-[14px] font-black border-2 border-black/20 cursor-pointer hover:scale-105 transition">A</div>
+                            <button 
+                                onClick={toggleTheme}
+                                className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-zinc-400 hover:text-white' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
+                            >
+                                {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                            </button>
                         </div>
                     </div>
 
@@ -202,13 +244,13 @@ export default function Podcasts() {
                                         <div 
                                             key={col.id} 
                                             onClick={() => navigate(`/podcast/album/${col.id}`)}
-                                            className="bg-[#181818] p-4 rounded-xl hover:bg-[#282828] transition duration-300 cursor-pointer group flex flex-col"
+                                            className={`p-4 rounded-xl transition duration-300 cursor-pointer group flex flex-col ${isDark ? 'bg-[#181818] hover:bg-[#282828]' : 'bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-lg'}`}
                                         >
-                                            <div className="relative aspect-square w-full rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.5)] mb-4 overflow-hidden bg-zinc-800 flex items-center justify-center">
+                                            <div className="relative aspect-square w-full rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.15)] mb-4 overflow-hidden bg-zinc-800 flex items-center justify-center">
                                                 {col.thumbnail ? (
-                                                    <img src={col.thumbnail} className="w-full h-full object-cover" />
+                                                    <LazyImage src={col.thumbnail} className="w-full h-full object-cover" />
                                                 ) : podcasts.find(p => p.collectionId === col.id)?.thumbnail ? (
-                                                    <img src={podcasts.find(p => p.collectionId === col.id).thumbnail} className="w-full h-full object-cover" />
+                                                    <LazyImage src={podcasts.find(p => p.collectionId === col.id).thumbnail} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <Mic2 size={48} className="text-zinc-700 group-hover:text-zinc-500 transition-colors" />
                                                 )}
@@ -218,8 +260,8 @@ export default function Podcasts() {
                                                     </svg>
                                                 </div>
                                             </div>
-                                            <h3 className="font-bold text-[16px] text-white truncate mb-1">{col.name}</h3>
-                                            <p className="text-[#a7a7a7] text-[14px] line-clamp-2 leading-snug">
+                                            <h3 className={`font-bold text-[16px] truncate mb-1 ${isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name}</h3>
+                                            <p className={`text-[14px] line-clamp-2 leading-snug ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>
                                                 {col.description || `Collection • ${podcasts.filter(p => p.collectionId === col.id).length} episodes`}
                                             </p>
                                         </div>
@@ -257,7 +299,7 @@ export default function Podcasts() {
                                         return (
                                             <div 
                                                 key={p.id}
-                                                onClick={() => { playTrack(p); setIsExpanded(true); }}
+                                                onClick={() => navigate(`/podcast/spotify/${p.id}`)}
                                                 className={`group rounded-xl p-6 cursor-pointer relative overflow-hidden flex flex-col justify-between transition-transform hover:scale-[1.02] shadow-lg min-h-[280px] ${DIFF_COLORS[p.difficulty] || 'bg-blue-800'}`}
                                             >
                                                 <div className="relative z-10 flex flex-col h-full">
@@ -268,10 +310,23 @@ export default function Podcasts() {
                                                     
                                                     <div className="mt-auto pt-6 flex items-end justify-between">
                                                         <div className="w-32 h-32 rounded-lg shadow-2xl overflow-hidden rotate-[-5deg] translate-y-4 translate-x-[-10px] group-hover:rotate-0 group-hover:translate-y-0 group-hover:translate-x-0 transition-all duration-500 border-4 border-white/10 shrink-0">
-                                                            <img src={p.thumbnail || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&q=80"} alt="" className="w-full h-full object-cover" />
+                                                            <LazyImage src={p.thumbnail || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&q=80"} alt="" className="w-full h-full object-cover" />
                                                         </div>
                                                         
-                                                        <div className={`w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 shrink-0 ${isPlayingThis ? 'scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'}`}>
+                                                        <div 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (p.mediaType === 'youtube') {
+                                                                    setCurrentTrack(p);
+                                                                    setIsExpanded(true);
+                                                                    setIsPlaying(false);
+                                                                } else {
+                                                                    playTrack(p);
+                                                                    setIsExpanded(true);
+                                                                }
+                                                            }}
+                                                            className={`w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 shrink-0 ${isPlayingThis ? 'scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'}`}
+                                                        >
                                                             {isPlayingThis ? <Pause size={24} fill="black" stroke="black" /> : <Play size={24} fill="black" stroke="black" className="ml-1" />}
                                                         </div>
                                                     </div>
@@ -288,52 +343,70 @@ export default function Podcasts() {
             </div>
 
             {/* Global Footer Player */}
-            <div className="h-[85px] bg-black border-t border-white/5 px-6 flex items-center justify-between z-50 shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-                <div className="flex items-center gap-4 w-[30%] min-w-[200px]">
+            <div className={`h-[85px] border-t px-6 flex items-center justify-between z-50 shrink-0 shadow-2xl transition-colors duration-300 ${isDark ? 'bg-black border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]' : 'bg-white border-zinc-200'}`}>
+                <div className="flex items-center gap-4 w-[30%] min-w-[280px]">
                     {currentTrack ? (
                         <>
-                            <div className="w-12 h-12 bg-zinc-800 rounded-lg flex-shrink-0 overflow-hidden relative group cursor-pointer shadow-2xl" onClick={() => setIsExpanded(true)}>
-                                <img src={currentTrack.thumbnail || null} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><ChevronLeft size={20} className="text-white rotate-90" /></div>
-                            </div>
+                            {/* Mini Video Preview for YouTube Podcasts */}
+                            {currentTrack.mediaType === 'youtube' ? (
+                                <div className="w-16 h-10 rounded bg-black overflow-hidden shadow-lg border border-white/10 shrink-0 relative group/mini cursor-pointer" onClick={() => setIsExpanded(true)}>
+                                    <iframe 
+                                        className="w-[140%] h-[140%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none scale-110"
+                                        src={`https://www.youtube.com/embed/${currentTrack.youtubeId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&origin=${window.location.origin}`}
+                                        title="Mini Video"
+                                        frameBorder="0"
+                                    />
+                                    <div className="absolute inset-0 bg-black/20 group-hover/mini:bg-transparent transition-colors flex items-center justify-center">
+                                        <ChevronLeft size={16} className="text-white rotate-90 opacity-0 group-hover/mini:opacity-100 transition-opacity" />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className={`w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden relative group cursor-pointer shadow-2xl ${isDark ? 'bg-zinc-800' : 'bg-zinc-100 border border-zinc-200'}`} onClick={() => setIsExpanded(true)}>
+                                    <LazyImage src={currentTrack.thumbnail || null} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><ChevronLeft size={20} className="text-white rotate-90" /></div>
+                                </div>
+                            )}
+                            
                             <div className="hidden sm:block truncate pr-4 cursor-pointer" onClick={() => setIsExpanded(true)}>
-                                <p className="text-[13px] font-black hover:underline truncate text-white leading-tight">{currentTrack.title}</p>
-                                <p className="text-[10px] text-[#a7a7a7] hover:underline truncate mt-0.5 font-bold uppercase tracking-wider">{currentTrack.level || "B2"} Podcast</p>
+                                <p className={`text-[13px] font-black hover:underline truncate leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{currentTrack.title}</p>
+                                <p className={`text-[10px] hover:underline truncate mt-0.5 font-bold uppercase tracking-wider ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{currentTrack.level || "B2"} Podcast</p>
                             </div>
-                            <Heart size={18} className="text-[#a7a7a7] hover:text-white transition-colors cursor-pointer" />
+                            <Heart size={18} className={`transition-colors cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
                         </>
-                    ) : <div className="animate-pulse w-full h-12 bg-white/5 rounded-lg" />}
+                    ) : <div className={`animate-pulse w-full h-12 rounded-lg ${isDark ? 'bg-white/5' : 'bg-zinc-100'}`} />}
                 </div>
 
                 <div className="flex flex-col items-center max-w-[650px] w-full px-4">
                     <div className="flex items-center gap-7 mb-3">
-                        <Shuffle size={18} className={`cursor-pointer transition-colors ${shuffle ? 'text-emerald-500' : 'text-[#a7a7a7] hover:text-white'}`} onClick={() => setShuffle(!shuffle)} />
-                        <SkipBack size={24} fill="currentColor" className="text-[#a7a7a7] hover:text-white transition-transform active:scale-90 cursor-pointer" onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)} />
-                        <button className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95" onClick={() => setIsPlaying(!isPlaying)}>
-                            {isPlaying ? <Pause size={20} fill="black" /> : <Play size={20} fill="black" className="ml-1" />}
+                        <Shuffle size={18} className={`cursor-pointer transition-colors ${shuffle ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setShuffle(!shuffle)} />
+                        <SkipBack size={24} fill="currentColor" className={`transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)} />
+                        <button className={`w-10 h-10 rounded-full flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`} onClick={() => setIsPlaying(!isPlaying)}>
+                            {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
                         </button>
-                        <SkipForward size={24} fill="currentColor" className="text-[#a7a7a7] hover:text-white transition-transform active:scale-90 cursor-pointer" onClick={() => audioRef.current && (audioRef.current.currentTime += 10)} />
-                        <Repeat size={18} className={`cursor-pointer transition-colors ${repeat ? 'text-emerald-500' : 'text-[#a7a7a7] hover:text-white'}`} onClick={() => setRepeat(!repeat)} />
+                        <SkipForward size={24} fill="currentColor" className={`transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime += 10)} />
+                        <button className={`cursor-pointer transition-colors ${repeat ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setRepeat(!repeat)}>
+                            <Repeat size={18} />
+                        </button>
                     </div>
                     <div className="flex items-center gap-3 w-full">
-                        <span className="text-[11px] text-[#a7a7a7] font-black w-8 text-right tabular-nums">{formatTime(currentTime)}</span>
-                        <div className="flex-1 h-[4px] bg-[#4d4d4d] rounded-full group cursor-pointer flex items-center" onClick={onSeek}>
-                            <div className="h-full bg-white group-hover:bg-[#1ed760] rounded-full relative transition-colors" style={{ width: `${(currentTime / duration) * 100 || 0}%` }}>
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
+                        <span className={`text-[11px] font-black w-8 text-right tabular-nums ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{formatTime(currentTime)}</span>
+                        <div className={`flex-1 h-[4px] rounded-full group cursor-pointer flex items-center ${isDark ? 'bg-[#4d4d4d]' : 'bg-zinc-200'}`} onClick={onSeek}>
+                            <div className={`h-full rounded-full relative transition-colors ${isDark ? 'bg-white group-hover:bg-[#1ed760]' : 'bg-zinc-900 group-hover:bg-emerald-600'}`} style={{ width: `${(currentTime / duration) * 100 || 0}%` }}>
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border border-zinc-200 rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
                             </div>
                         </div>
-                        <span className="text-[11px] text-[#a7a7a7] font-black w-8 tabular-nums">{formatTime(duration)}</span>
+                        <span className={`text-[11px] font-black w-8 tabular-nums ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{formatTime(duration)}</span>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-5 w-[30%] min-w-[200px] text-[#a7a7a7]">
-                    <Mic2 size={18} className="hover:text-white transition cursor-pointer hidden lg:block" />
-                    <ListIcon size={18} className="hover:text-white transition cursor-pointer hidden lg:block" />
+                <div className={`flex items-center justify-end gap-5 w-[30%] min-w-[200px] ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-400'}`}>
+                    <Mic2 size={18} className={`transition cursor-pointer hidden lg:block ${isDark ? 'hover:text-white' : 'hover:text-zinc-900'}`} />
+                    <ListIcon size={18} className={`transition cursor-pointer hidden lg:block ${isDark ? 'hover:text-white' : 'hover:text-zinc-900'}`} />
                     <div className="flex items-center gap-2 w-[110px] group">
-                        <button className="hover:text-white transition-colors" onClick={toggleMute}>{isMuted || volume === 0 ? <VolumeX size={18} className="text-rose-500" /> : <Volume2 size={18} />}</button>
-                        <div className="flex-1 h-[4px] bg-[#4d4d4d] rounded-full cursor-pointer flex items-center" onClick={onVolumeChange}>
-                            <div className="h-full bg-white group-hover:bg-[#1ed760] rounded-full relative transition-colors" style={{ width: `${isMuted ? 0 : volume * 100}%` }}>
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
+                        <button className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-zinc-900'}`} onClick={toggleMute}>{isMuted || volume === 0 ? <VolumeX size={18} className="text-rose-500" /> : <Volume2 size={18} />}</button>
+                        <div className={`flex-1 h-[4px] rounded-full cursor-pointer flex items-center ${isDark ? 'bg-[#4d4d4d]' : 'bg-zinc-200'}`} onClick={onVolumeChange}>
+                            <div className={`h-full rounded-full relative transition-colors ${isDark ? 'bg-white group-hover:bg-[#1ed760]' : 'bg-zinc-900 group-hover:bg-emerald-600'}`} style={{ width: `${isMuted ? 0 : volume * 100}%` }}>
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border border-zinc-200 rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
                             </div>
                         </div>
                     </div>
@@ -343,7 +416,7 @@ export default function Podcasts() {
             <style dangerouslySetInnerHTML={{__html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.1); border-radius: 9999px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background-color: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}; border-radius: 9999px; }
             `}} />
 
             <InteractivePlayer isOpen={isExpanded} onClose={() => setIsExpanded(false)} />

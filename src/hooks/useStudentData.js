@@ -19,6 +19,16 @@ const safeDate = (dateVal) => {
     return isNaN(d.getTime()) ? null : d;
 };
 
+// Yangi savol sanash funksiyasi
+const getActualQuestionCount = (questions) => {
+    if (!questions || !Array.isArray(questions)) return 0;
+    return questions.reduce((sum, q) => {
+        if (q.questions && Array.isArray(q.questions)) return sum + q.questions.length;
+        if (q.items && Array.isArray(q.items)) return sum + q.items.length;
+        return sum + 1;
+    }, 0);
+};
+
 // Batch query: N ta alohida getDoc o'rniga bitta getDocs 'in' query
 const fetchDocumentsByIds = async (collectionName, ids) => {
     if (!ids || ids.length === 0) return {};
@@ -94,16 +104,18 @@ export function useStudentData(user) {
             }
 
             // 2. Firestore dan yuklash
-            let userSnap, groupsSnap, resultsSnap;
+            let userSnap, groupsSnap, resultsSnap, allReadingTestsSnap;
             try {
                 const results = await Promise.all([
                     getDoc(doc(db, 'users', user.uid)).catch(e => { console.error("User fetch error:", e); return null; }),
                     getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))).catch(e => { console.error("Groups fetch error:", e); return { docs: [] }; }),
-                    getDocs(query(collection(db, 'results'), where('userId', '==', user.uid))).catch(e => { console.error("Results fetch error:", e); return { docs: [] }; })
+                    getDocs(query(collection(db, 'results'), where('userId', '==', user.uid))).catch(e => { console.error("Results fetch error:", e); return { docs: [] }; }),
+                    getDocs(query(collection(db, 'tests'), where('type', '==', 'reading'))).catch(e => { console.error("All Reading tests fetch error:", e); return { docs: [] }; })
                 ]);
                 userSnap = results[0];
                 groupsSnap = results[1];
                 resultsSnap = results[2];
+                allReadingTestsSnap = results[3];
             } catch (err) {
                 console.error("Firestore parallel fetch failed:", err);
                 setError("Ma'lumotlarni yuklashda xatolik yuz berdi.");
@@ -133,6 +145,15 @@ export function useStudentData(user) {
                     const gData = gDoc.data();
                     if (gData.assignedTests) {
                         allAssignments = [...allAssignments, ...gData.assignedTests.map(normalizeAssignment)];
+                    }
+                });
+            }
+            if (allReadingTestsSnap?.docs) {
+                allReadingTestsSnap.docs.forEach(tDoc => {
+                    const testId = tDoc.id;
+                    const alreadyExists = allAssignments.some(a => a.id === testId);
+                    if (!alreadyExists) {
+                        allAssignments.push({ id: testId, type: 'test' });
                     }
                 });
             }
@@ -211,7 +232,7 @@ export function useStudentData(user) {
                             totalTests: subTests.length,
                             completedTests: completedCount,
                             status: completedCount === subTests.length && subTests.length > 0 ? 'completed' : 'open',
-                            totalQuestions: subTests.reduce((sum, t) => sum + (t.questions?.length || 0), 0)
+                            totalQuestions: subTests.reduce((sum, t) => sum + (getActualQuestionCount(t.questions) || t.totalQuestions || 0), 0)
                         });
                     }
                 } else {
@@ -256,7 +277,20 @@ export function useStudentData(user) {
                             });
                         }
 
-                        const totalQuestions = testDataFromDb.questions?.length || 0;
+                        let totalQuestions = testDataFromDb.totalQuestions || 0;
+                        if (!totalQuestions && testDataFromDb.questions) {
+                            totalQuestions = getActualQuestionCount(testDataFromDb.questions);
+                        }
+                        
+                        // Fallback for Reading tests where questions might be inside passages
+                        if (!totalQuestions && testDataFromDb.passages) {
+                            totalQuestions = testDataFromDb.passages.reduce((sum, p) => sum + getActualQuestionCount(p.questions), 0);
+                        }
+
+                        // Hard fallback
+                        if (!totalQuestions) {
+                            totalQuestions = testDataFromDb.type === 'reading' || testDataFromDb.type === 'listening' ? 13 : 40;
+                        }
 
                         const finalTestData = {
                             ...testDataFromDb,
@@ -296,10 +330,22 @@ export function useStudentData(user) {
             });
 
             // 8. Cache ga saqlash
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify(uniqueTests));
-            sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-            sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(myResults));
-            sessionStorage.setItem(RESULTS_CACHE_TIME_KEY, Date.now().toString());
+            try {
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(uniqueTests));
+                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(myResults));
+                sessionStorage.setItem(RESULTS_CACHE_TIME_KEY, Date.now().toString());
+            } catch (quotaError) {
+                // If storage is full, we clear old cache to prevent partial/stale data
+                // and continue without caching (graceful fallback)
+                console.warn("SessionStorage quota exceeded. The app will continue to work, but data won't be cached locally.");
+                try {
+                    sessionStorage.removeItem(CACHE_KEY);
+                    sessionStorage.removeItem(CACHE_TIME_KEY);
+                    sessionStorage.removeItem(RESULTS_CACHE_KEY);
+                    sessionStorage.removeItem(RESULTS_CACHE_TIME_KEY);
+                } catch (e) { /* ignore */ }
+            }
 
             setAssignments(uniqueTests);
 

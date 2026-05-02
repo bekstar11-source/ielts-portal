@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom'; // 🔥 ROUTING ULANDI
 import { motion, AnimatePresence } from 'framer-motion';
 import SiteFooter from '../components/common/SiteFooter';
+import Navbar from '../components/common/Navbar';
 import {
   CheckCircle2,
   BarChart3,
@@ -40,75 +41,6 @@ const staggerContainer = {
   }
 };
 
-// --- Navbar Component with Mobile Menu ---
-const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <>
-      <motion.nav
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: "circOut" }}
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12 backdrop-blur-xl bg-white/80 border-b border-white/20 supports-[backdrop-filter]:bg-white/60"
-      >
-        <div className="flex items-center gap-2 cursor-pointer z-50">
-          <img src="/englev-logo.png" alt="ENGLEV" className="h-8 w-auto object-contain" />
-          <span
-            style={{ fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.12em' }}
-            className="font-black text-lg text-gray-900"
-          >
-            ENGLEV
-          </span>
-        </div>
-
-        {/* Desktop Menu */}
-        <div className="hidden md:flex items-center gap-6">
-          {/* 🔥 Login Link */}
-          <Link to="/login" className="text-sm font-medium text-gray-600 transition-colors hover:text-black">
-            Kirish
-          </Link>
-          {/* 🔥 Register Link (Loginga yo'naltirildi) */}
-          <Link to="/login" className="px-5 py-2 text-sm font-medium text-white transition-transform bg-black rounded-full hover:scale-105 active:scale-95 shadow-lg shadow-black/10">
-            Ro'yxatdan o'tish
-          </Link>
-        </div>
-
-        {/* Mobile Menu Toggle */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="md:hidden p-2 text-gray-600 z-50"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </motion.nav>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-white/95 backdrop-blur-md md:hidden space-y-8"
-          >
-            <a href="#" className="text-2xl font-medium text-gray-900" onClick={() => setIsOpen(false)}>Asosiy</a>
-            <a href="#features" className="text-2xl font-medium text-gray-900" onClick={() => setIsOpen(false)}>Xususiyatlar</a>
-            <hr className="w-12 border-gray-300" />
-
-            {/* 🔥 Mobile Links */}
-            <Link to="/login" className="text-xl font-medium text-gray-600" onClick={() => setIsOpen(false)}>
-              Kirish
-            </Link>
-            <Link to="/login" className="px-8 py-3 text-lg font-medium text-white bg-black rounded-full shadow-xl" onClick={() => setIsOpen(false)}>
-              Ro'yxatdan o'tish
-            </Link>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
-};
 
 // --- Social Proof Component ---
 const Stats = () => (

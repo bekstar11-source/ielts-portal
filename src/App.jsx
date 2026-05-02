@@ -53,11 +53,14 @@ import KeyManager from './pages/KeyManager';
 import SpotifyPodcast from './pages/SpotifyPodcast';
 import CreateSpotifyPodcast from './pages/CreateSpotifyPodcast';
 import SpotifyAlbum from './pages/SpotifyAlbum';
+import SpotifyEpisodeDetails from './pages/SpotifyEpisodeDetails';
 import StudentStatistics from './pages/StudentStatistics';
 import SpeakingPractice from './pages/SpeakingPractice';
 import ArticleReading from './pages/ArticleReading';
 import AdminRoadmap from './pages/AdminRoadmap';
 import Podcasts from './pages/Podcasts';
+import Reading from './pages/Reading';
+import Pricing from './pages/Pricing';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();
@@ -163,6 +166,24 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['student', 'admin']}>
               <Practice />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reading"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <Reading />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/pricing"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <Pricing />
             </ProtectedRoute>
           }
         />
@@ -289,6 +310,15 @@ function App() {
           element={
             <ProtectedRoute>
               <SpotifyAlbum />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/podcast/episode/:podcastId"
+          element={
+            <ProtectedRoute>
+              <SpotifyEpisodeDetails />
             </ProtectedRoute>
           }
         />
