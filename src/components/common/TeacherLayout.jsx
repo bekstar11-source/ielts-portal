@@ -15,6 +15,7 @@ import {
     FilePlus,
     X,
     SquaresFour as LayoutDashboard,
+    Newspaper,
 } from '@phosphor-icons/react';
 
 /* ──────────── Nav config ──────────── */
@@ -33,6 +34,7 @@ const allNavItems = [
     { name: 'Writing Tekshirish', path: '/teacher/writing-review',    icon: PenLine          },
     { name: 'Guruh Statistikasi', path: '/teacher/group-stats',       icon: BarChart2        },
     { name: 'Barcha Natijalar',   path: '/teacher/results',           icon: ClipboardText    },
+    { name: 'Maqolalar',          path: '/teacher/articles',          icon: Newspaper        },
     { name: 'WordBank',           path: '/vocabulary',                icon: BookOpen         },
 ];
 

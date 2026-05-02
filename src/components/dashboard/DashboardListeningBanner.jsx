@@ -41,7 +41,7 @@ export default function DashboardListeningBanner({ isListeningPaused, setIsListe
                             
                             <div className="flex items-center gap-6">
                                 <button 
-                                    onClick={() => navigate('/practice?tab=listening')}
+                                    onClick={() => navigate('/listening')}
                                     className="bg-white text-black px-8 py-3 rounded-full text-[15px] font-bold hover:bg-zinc-100 transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap"
                                 >
                                     Bepul o'rganing

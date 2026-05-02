@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Check, X, Zap, Shield, ChevronDown, BookOpen, Headphones, PenTool, Mic, BarChart3, Trophy, MessageCircle, Crown, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Navbar from '../components/common/Navbar';
+import { useAuth } from '../context/AuthContext';
+import DashboardHeader from '../components/dashboard/DashboardHeader';
+import DashboardModals from '../components/dashboard/DashboardModals';
 import SiteFooter from '../components/common/SiteFooter';
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
@@ -97,8 +99,10 @@ const FeatureValue = ({ value }) => {
 // ─── PAGE ──────────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
+  const { user, logout, userData } = useAuth();
   const [billing, setBilling] = useState('monthly');
   const [openFaq, setOpenFaq] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const faqs = [
     {
@@ -121,7 +125,12 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
-      <Navbar />
+      <DashboardHeader
+        user={user}
+        userData={userData}
+        activeTab="pricing"
+        onLogoutClick={() => setShowLogoutConfirm(true)}
+      />
 
       {/* ── HERO ── */}
       <section className="relative pt-24 pb-14 bg-[#fafafa] overflow-hidden">
@@ -345,6 +354,11 @@ export default function PricingPage() {
         </div>
       </section>
 
+      <DashboardModals
+        showLogoutConfirm={showLogoutConfirm}
+        setShowLogoutConfirm={setShowLogoutConfirm}
+        confirmLogout={logout}
+      />
       <SiteFooter />
     </div>
   );

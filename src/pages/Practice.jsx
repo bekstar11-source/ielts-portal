@@ -95,12 +95,28 @@ export default function Practice() {
   const [activeSubTab, setActiveSubTab] = useState('passages');
 
   useEffect(() => {
+    if (activeTab === 'reading') {
+      navigate('/reading', { replace: true });
+    } else if (activeTab === 'listening') {
+      navigate('/listening', { replace: true });
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
   }, [tabFromUrl]);
 
   const handleTabClick = (tabId) => {
+    if (tabId === 'reading') {
+      navigate('/reading');
+      return;
+    }
+    if (tabId === 'listening') {
+      navigate('/listening');
+      return;
+    }
     if (tabId === 'podcasts') {
       navigate('/podcasts');
       return;
@@ -171,7 +187,7 @@ export default function Practice() {
         const filter = readingFilters.find(f => f.id === sectionFromUrl);
         if (filter) {
           handleSubTabClick(filter);
-          navigate('/practice?tab=reading', { replace: true });
+          navigate('/reading', { replace: true });
         }
       }, 300);
       return () => clearTimeout(timer);

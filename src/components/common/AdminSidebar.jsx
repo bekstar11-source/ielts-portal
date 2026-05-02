@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Users, BookOpen, CreditCard, Settings,
     LogOut, ChevronLeft, ChevronRight, FileText, Megaphone,
-    BarChart2, Shield, Radio, PenTool, Trophy, ScrollText, Headphones, Key, Flame
+    BarChart2, Shield, Radio, PenTool, Trophy, ScrollText, Headphones, Key, Flame, Newspaper
 } from 'lucide-react';
 
 export default function AdminSidebar({ isOpen, setIsOpen }) {
@@ -41,6 +41,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                 { name: "Writing Review", path: "/admin/writing-review", icon: PenTool },
                 { name: "Mock Keys", path: "/admin/key-manager", icon: Key },
                 { name: "Results", path: "/admin/results", icon: BookOpen },
+                { name: "Articles", path: "/admin/articles", icon: Newspaper },
                 { name: "Podcast Mastery", path: "/admin/podcasts", icon: Headphones }
             ]
         },

@@ -25,6 +25,7 @@ const getActualQuestionCount = (questions) => {
     return questions.reduce((sum, q) => {
         if (q.questions && Array.isArray(q.questions)) return sum + q.questions.length;
         if (q.items && Array.isArray(q.items)) return sum + q.items.length;
+        if (q.groups && Array.isArray(q.groups)) return sum + q.groups.length;
         return sum + 1;
     }, 0);
 };
@@ -63,10 +64,10 @@ export function useStudentData(user) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const CACHE_KEY = user ? `student_assignments_v6_${user.uid}` : null;
-    const CACHE_TIME_KEY = user ? `student_assignments_time_v6_${user.uid}` : null;
-    const RESULTS_CACHE_KEY = user ? `student_results_v6_${user.uid}` : null;
-    const RESULTS_CACHE_TIME_KEY = user ? `student_results_time_v6_${user.uid}` : null;
+    const CACHE_KEY = user ? `student_assignments_v8_${user.uid}` : null;
+    const CACHE_TIME_KEY = user ? `student_assignments_time_v8_${user.uid}` : null;
+    const RESULTS_CACHE_KEY = user ? `student_results_v8_${user.uid}` : null;
+    const RESULTS_CACHE_TIME_KEY = user ? `student_results_time_v8_${user.uid}` : null;
 
     const fetchData = async (forceRefresh = false) => {
         if (!user) return;
@@ -95,33 +96,25 @@ export function useStudentData(user) {
                                 setLoading(false);
                                 return;
                             }
-                            // Agar faqat assignments valid bo'lsa, davom etib results ni fetch qilamiz
-                            // Ammo assignments fetchini qayta qilmaslik uchun Firestore dan testMap ni o'qimaymiz?
-                            // Yo'q, soddalik uchun hammasini yangilaymiz, lekin loading ni o'chirmaymiz.
                         } catch (e) { console.warn('Cache parse xatolik', e); }
                     }
                 }
             }
 
             // 2. Firestore dan yuklash
-            let userSnap, groupsSnap, resultsSnap, allReadingTestsSnap;
-            try {
-                const results = await Promise.all([
-                    getDoc(doc(db, 'users', user.uid)).catch(e => { console.error("User fetch error:", e); return null; }),
-                    getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))).catch(e => { console.error("Groups fetch error:", e); return { docs: [] }; }),
-                    getDocs(query(collection(db, 'results'), where('userId', '==', user.uid))).catch(e => { console.error("Results fetch error:", e); return { docs: [] }; }),
-                    getDocs(query(collection(db, 'tests'), where('type', '==', 'reading'))).catch(e => { console.error("All Reading tests fetch error:", e); return { docs: [] }; })
-                ]);
-                userSnap = results[0];
-                groupsSnap = results[1];
-                resultsSnap = results[2];
-                allReadingTestsSnap = results[3];
-            } catch (err) {
-                console.error("Firestore parallel fetch failed:", err);
-                setError("Ma'lumotlarni yuklashda xatolik yuz berdi.");
-                setLoading(false);
-                return;
-            }
+            const results = await Promise.all([
+                getDoc(doc(db, 'users', user.uid)).catch(e => { console.error("User fetch error:", e); return null; }),
+                getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))).catch(e => { console.error("Groups fetch error:", e); return { docs: [] }; }),
+                getDocs(query(collection(db, 'results'), where('userId', '==', user.uid))).catch(e => { console.error("Results fetch error:", e); return { docs: [] }; }),
+                getDocs(query(collection(db, 'tests'), where('type', '==', 'reading'))).catch(e => { console.error("All Reading tests fetch error:", e); return { docs: [] }; }),
+                getDocs(query(collection(db, 'tests'), where('type', '==', 'listening'))).catch(e => { console.error("All Listening tests fetch error:", e); return { docs: [] }; })
+            ]);
+
+            const userSnap = results[0];
+            const groupsSnap = results[1];
+            const resultsSnap = results[2];
+            const allReadingTestsSnap = results[3];
+            const allListeningTestsSnap = results[4];
 
             const myResults = resultsSnap?.docs?.map(d => ({ id: d.id, ...d.data() })) || [];
             setUserResults(myResults);
@@ -148,15 +141,27 @@ export function useStudentData(user) {
                     }
                 });
             }
+            
+            // Add all Reading tests
             if (allReadingTestsSnap?.docs) {
                 allReadingTestsSnap.docs.forEach(tDoc => {
                     const testId = tDoc.id;
-                    const alreadyExists = allAssignments.some(a => a.id === testId);
-                    if (!alreadyExists) {
+                    if (!allAssignments.some(a => a.id === testId)) {
                         allAssignments.push({ id: testId, type: 'test' });
                     }
                 });
             }
+
+            // Add all Listening tests
+            if (allListeningTestsSnap?.docs) {
+                allListeningTestsSnap.docs.forEach(tDoc => {
+                    const testId = tDoc.id;
+                    if (!allAssignments.some(a => a.id === testId)) {
+                        allAssignments.push({ id: testId, type: 'test' });
+                    }
+                });
+            }
+            
             allAssignments = allAssignments.filter(Boolean);
 
             // 4. Testlar va Set larni BATCH bilan fetch qilish
@@ -282,14 +287,34 @@ export function useStudentData(user) {
                             totalQuestions = getActualQuestionCount(testDataFromDb.questions);
                         }
                         
-                        // Fallback for Reading tests where questions might be inside passages
-                        if (!totalQuestions && testDataFromDb.passages) {
-                            totalQuestions = testDataFromDb.passages.reduce((sum, p) => sum + getActualQuestionCount(p.questions), 0);
+                        // Fallback for Reading/Listening where questions might be inside passages/parts
+                        if (!totalQuestions && (testDataFromDb.passages || testDataFromDb.parts)) {
+                            const sections = testDataFromDb.passages || testDataFromDb.parts || [];
+                            totalQuestions = sections.reduce((sum, p) => sum + getActualQuestionCount(p.questions || p.items || p.groups), 0);
                         }
 
-                        // Hard fallback
+                        // Override for Full Tests to be exactly 40 if they are close or named Full
+                        const isFull = testDataFromDb.difficulty?.toLowerCase().includes('full') || 
+                                       testDataFromDb.title?.toLowerCase().includes('full') ||
+                                       (totalQuestions > 30 && totalQuestions < 45); // If it's around 40, it's likely a full test
+
+                        if (isFull && (testDataFromDb.type === 'reading' || testDataFromDb.type === 'listening')) {
+                            totalQuestions = 40;
+                        }
+
+                        // Hard fallback logic based on type and title/difficulty
                         if (!totalQuestions) {
-                            totalQuestions = testDataFromDb.type === 'reading' || testDataFromDb.type === 'listening' ? 13 : 40;
+                            if (testDataFromDb.type === 'listening') {
+                                const isFull = testDataFromDb.difficulty?.toLowerCase().includes('full') || 
+                                              testDataFromDb.title?.toLowerCase().includes('full');
+                                totalQuestions = isFull ? 40 : 10;
+                            } else if (testDataFromDb.type === 'reading') {
+                                const isFull = testDataFromDb.difficulty?.toLowerCase().includes('full') || 
+                                              testDataFromDb.title?.toLowerCase().includes('full');
+                                totalQuestions = isFull ? 40 : 13;
+                            } else {
+                                totalQuestions = 40;
+                            }
                         }
 
                         const finalTestData = {
@@ -336,9 +361,7 @@ export function useStudentData(user) {
                 sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(myResults));
                 sessionStorage.setItem(RESULTS_CACHE_TIME_KEY, Date.now().toString());
             } catch (quotaError) {
-                // If storage is full, we clear old cache to prevent partial/stale data
-                // and continue without caching (graceful fallback)
-                console.warn("SessionStorage quota exceeded. The app will continue to work, but data won't be cached locally.");
+                console.warn("SessionStorage quota exceeded.");
                 try {
                     sessionStorage.removeItem(CACHE_KEY);
                     sessionStorage.removeItem(CACHE_TIME_KEY);
@@ -357,7 +380,6 @@ export function useStudentData(user) {
         }
     };
 
-    // Cache ni o'chirib qayta yuklash
     const invalidateCache = () => {
         if (!user) return;
         sessionStorage.removeItem(CACHE_KEY);
@@ -373,7 +395,6 @@ export function useStudentData(user) {
 
     useEffect(() => {
         if (user) fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.uid]);
 
     return { assignments, userResults, loading, error, refresh, invalidateCache };

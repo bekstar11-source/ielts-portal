@@ -43,6 +43,7 @@ const Icons = {
     Megaphone: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.43.055-3.46 0-3.46" /></svg>,
     ChevronLeft: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>,
     ChevronRight: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>,
+    Newspaper: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h.008v.008H12V7.5zM12 10.5h.008v.008H12v-.008zM12 13.5h.008v.008H12v-.008z" /></svg>,
 };
 
 // --- 2. SKELETON LOADER COMPONENT ---
@@ -522,6 +523,7 @@ export default function AdminDashboard() {
                 <ActionCard title="O'quvchilar" desc="Tahrirlash va ko'rish" icon={<Icons.Users className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none" onClick={() => navigate('/admin/users')} />
                 <ActionCard title="Baholash" desc="Natijalarni tekshirish" icon={<Icons.Stats className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/results')} />
                 <ActionCard title="E'lonlar" desc="Yangiliklar yuborish" icon={<Icons.Megaphone className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/announcements')} />
+                <ActionCard title="Maqolalar" desc="Maqolalar yaratish" icon={<Icons.Newspaper className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/articles')} />
 
 
 

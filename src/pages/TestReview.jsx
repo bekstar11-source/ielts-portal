@@ -53,6 +53,14 @@ export default function TestReview() {
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
+    // Auto-open comments if requested via URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('openComments') === 'true') {
+            setIsCommentsOpen(true);
+        }
+    }, []);
+
     // Interface uchun dummy funksiyalar (Admin faqat ko'radi, o'zgartirmaydi)
     const [flaggedQuestions] = useState(new Set());
     const handleNoOp = () => { };
@@ -485,7 +493,7 @@ export default function TestReview() {
                     )}
                 </div>
 
-                {/* 3. RIGHT: PERFORMANCE MATRICS */}
+                {/* 3. RIGHT: PERFORMANCE METRICS & DISCUSSION */}
                 <div className="flex items-center gap-4">
                     {/* Consolidates Section Scores */}
                     {resultData.type === 'mock_full' && (
@@ -520,25 +528,35 @@ export default function TestReview() {
                         </div>
                     )}
 
+                    {/* --- DISCUSSION TOGGLE --- */}
+                    <button
+                        onClick={() => setIsCommentsOpen(!isCommentsOpen)}
+                        className={`h-11 px-4 rounded-xl border flex items-center gap-2 transition-all relative ${
+                            isCommentsOpen 
+                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg' 
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                        }`}
+                    >
+                        <MessageSquare size={18} />
+                        <span className="text-[11px] font-black tracking-widest hidden sm:inline">Comments</span>
+                    </button>
+
                     {/* Overall Score Badge */}
+                    <div className={`h-11 px-5 rounded-xl border flex items-center gap-3 transition-all duration-500 ${
+                        (resultData.status === 'graded' || resultData.overallBand)
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                    }`}>
+                        <div className="flex flex-col">
+                            <span className="text-[8px] font-black tracking-widest uppercase opacity-60">Overall</span>
+                            <span className="text-lg font-black leading-tight">
+                                {resultData.overallBand || resultData.writingBand || resultData.score || "---"}
+                            </span>
+                        </div>
+                        {resultData.status !== 'graded' && !resultData.overallBand && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse border border-amber-400/50" />
+                        )}
                     </div>
-                </div>
-
-                {/* --- DISCUSSION TOGGLE --- */}
-                <button
-                    onClick={() => setIsCommentsOpen(!isCommentsOpen)}
-                    className={`h-11 px-4 rounded-xl border flex items-center gap-2 transition-all relative ${
-                        isCommentsOpen 
-                        ? 'bg-blue-600 border-blue-500 text-white shadow-lg' 
-                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                    }`}
-                >
-                    <MessageSquare size={18} />
-                    <span className="text-[11px] font-black uppercase tracking-widest hidden sm:inline">Muhokama</span>
-                    {/* Optional: Add badge for unread comments or total comments if available */}
-                </button>
-
-                {/* Overall Score Badge */}
                 </div>
             </header>
 
@@ -570,11 +588,19 @@ export default function TestReview() {
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]" />
                                 <span className="text-[9px] font-black text-gray-500 uppercase">{resultData.score || 0} Correct</span>
                             </div>
+
+                            <button 
+                                onClick={() => setIsCommentsOpen(true)}
+                                className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-lg border border-amber-200 transition-all active:scale-95 shadow-sm"
+                            >
+                                <MessageSquare size={13} />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Comments</span>
+                            </button>
                         </div>
                     </div>
                 )}
 
-                <div className="flex-1 overflow-hidden relative">
+                <div className="flex-1 overflow-y-auto no-scrollbar relative bg-gray-50/30">
                     {/* 1. READING / LISTENING (Avtomatik Tekshirilgan) */}
                     {testData.type?.toLowerCase() === 'reading' ? (
                         <ReadingInterface
@@ -1033,44 +1059,57 @@ export default function TestReview() {
                                         </div>
                                     </div>
                                 </div>
-                            ) : resultData.status === 'graded' && (resultData.feedback || (resultData.type === 'mock_full' && resultData.scores?.speakingFeedback)) ? (
-                                <div className="bg-emerald-50/50 border-t border-emerald-500/20 p-6 lg:p-8 shadow-inner z-20 w-full">
-                                    <div className="max-w-4xl mx-auto flex flex-col gap-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white text-lg">📝</div>
-                                            <div>
-                                                <h3 className="text-sm font-black text-emerald-900 uppercase tracking-[0.2em]">Speaking Feedback</h3>
-                                                <p className="text-[10px] text-emerald-600/60 font-bold uppercase tracking-widest mt-1">Review your performance feedback</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-white rounded-3xl p-6 lg:p-8 border border-emerald-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-100 transition-colors" />
-                                            <div className="relative z-10 flex flex-col lg:flex-row gap-8 items-start">
-                                                <div className="flex-1">
-                                                    <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap font-medium italic">
-                                                        "{resultData.type === 'mock_full' ? resultData.scores?.speakingFeedback : resultData.feedback}"
-                                                    </p>
-                                                </div>
-                                                <div className="w-full lg:w-fit flex flex-col items-center gap-2 p-5 bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-600/20 min-w-[120px]">
-                                                    <span className="text-[10px] font-black text-emerald-100 uppercase tracking-widest">Final Band</span>
-                                                    <span className="text-4xl font-black text-white">
-                                                        {resultData.type === 'mock_full' ? (Number(resultData.scores?.speaking || 0).toFixed(1)) : (Number(resultData.score || 0).toFixed(1))}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : resultData.status !== 'graded' ? (
-                                <div className="bg-purple-50/50 border-t border-purple-400/20 p-2 z-20">
-                                    <p className="text-center text-[10px] font-black text-purple-700 uppercase tracking-widest">⏳ Instructor evaluation pending</p>
-                                </div>
                             ) : null}
                         </div>
                     ) : null}
                 </div>
             </div>
+
+            {/* --- MOBILE SIDE PANEL: COMMENTS (Drawer style for smaller screens) --- */}
+            <AnimatePresence>
+                {isCommentsOpen && (
+                    <>
+                        {/* Overlay */}
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsCommentsOpen(false)}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+                        />
+                        {/* Panel */}
+                        <motion.div
+                            initial={{ x: "100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="fixed right-0 top-0 h-screen w-full max-w-[380px] bg-[#f8f9fb] z-[101] shadow-2xl flex flex-col border-l border-white/10"
+                        >
+                            <div className="h-16 bg-zinc-950 text-white flex items-center justify-between px-6 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <MessageSquare size={18} className="text-blue-500" />
+                                    <h2 className="text-sm font-black tracking-[0.1em]">Comments</h2>
+                                </div>
+                                <button 
+                                    onClick={() => setIsCommentsOpen(false)}
+                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto px-4 py-6 no-scrollbar">
+                                <TestCommentSection 
+                                    testId={testData.id} 
+                                    user={user} 
+                                    userData={userData} 
+                                />
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 }

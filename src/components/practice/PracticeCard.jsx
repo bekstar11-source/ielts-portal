@@ -6,6 +6,24 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
   const navigate = useNavigate();
   const isPremium = test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening';
   
+  const isListeningPart = test.type === 'listening' && (test.title?.toLowerCase().includes('part') || test.partNumber || !test.title?.toLowerCase().includes('full'));
+  const isListeningFull = test.type === 'listening' && test.title?.toLowerCase().includes('full');
+  const isReadingPassage = test.type === 'reading' && (test.title?.toLowerCase().includes('passage') || !test.title?.toLowerCase().includes('full'));
+  const isReadingFull = test.type === 'reading' && test.title?.toLowerCase().includes('full');
+
+  // Prioritize totalQuestions from test object (calculated in useStudentData hook)
+  const questionCount = test.totalQuestions || 
+    (test.questions?.length) || 
+    (test.sections?.reduce((acc, s) => acc + (s.questions?.length || 0), 0)) ||
+    (isListeningFull || isReadingFull ? 40 : 
+     isListeningPart ? 10 : 
+     isReadingPassage ? 13 : 13);
+
+  const duration = test.duration || 
+    (test.type === 'reading' ? (isReadingFull ? 60 : 20) : 
+     test.type === 'listening' ? (isListeningFull ? 40 : 10) : 
+     test.type === 'writing' ? 60 : 60);
+
   const cardImage = test.thumbnail || (
     test.type === 'reading' ? '/images/dashboard/reading_passage_yellow_card.png' :
     test.type === 'listening' ? 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?q=80&w=800' :
@@ -58,11 +76,11 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
           </div>
           <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#1d1d1f] uppercase tracking-wider">
             <FileText size={11} strokeWidth={2.5} />
-            {test.totalQuestions || 13} savol
+            {questionCount} savol
           </div>
           <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#1d1d1f] uppercase tracking-wider">
             <Clock size={11} strokeWidth={2.5} />
-            {test.type === 'reading' ? '20' : test.type === 'listening' ? '10' : '60'} min
+            {duration} min
           </div>
         </div>
 

@@ -57,8 +57,11 @@ import SpotifyEpisodeDetails from './pages/SpotifyEpisodeDetails';
 import StudentStatistics from './pages/StudentStatistics';
 import SpeakingPractice from './pages/SpeakingPractice';
 import ArticleReading from './pages/ArticleReading';
+import Articles from './pages/Articles';
+import AdminArticles from './pages/AdminArticles';
 import AdminRoadmap from './pages/AdminRoadmap';
 import Podcasts from './pages/Podcasts';
+import Listening from './pages/Listening';
 import Reading from './pages/Reading';
 import Pricing from './pages/Pricing';
 
@@ -103,6 +106,8 @@ const DashboardRouter = () => {
   return <StudentDashboard />;
 };
 
+import ScrollToTop from './components/common/ScrollToTop';
+
 function App() {
   const { user, userData, loading } = useAuth();
   const location = useLocation();
@@ -113,6 +118,7 @@ function App() {
   return (
     <ThemeProvider>
       <PodcastProvider>
+        <ScrollToTop />
         <Routes>
         {/* Bosh sahifa (Landing) */}
         <Route
@@ -175,6 +181,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['student', 'admin']}>
               <Reading />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/listening"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <Listening />
             </ProtectedRoute>
           }
         />
@@ -343,7 +358,16 @@ function App() {
         />
 
         <Route
-          path="/article-reading"
+          path="/articles"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
+              <Articles />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/article/:id"
           element={
             <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <ArticleReading />
@@ -359,6 +383,7 @@ function App() {
           <Route path="create-writing" element={<TeacherCreateWriting />} />
           <Route path="group-stats" element={<TeacherGroupStats />} />
           <Route path="results" element={<TeacherAllResults />} />
+          <Route path="articles" element={<AdminArticles />} />
         </Route>
 
         {/* --- ADMIN YO'NALISHLARI (LAYOUT BILAN) --- */}
@@ -369,6 +394,7 @@ function App() {
           <Route path="tests" element={<AdminTests />} />
           <Route path="roadmap" element={<AdminRoadmap />} />
           <Route path="announcements" element={<AdminAnnouncements />} />
+          <Route path="articles" element={<AdminArticles />} />
           <Route path="create-test" element={<CreateTest />} />
           <Route path="edit-test/:id" element={<CreateTest />} />
           <Route path="results" element={<AdminResults />} />

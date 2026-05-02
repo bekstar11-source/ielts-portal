@@ -19,8 +19,8 @@ const SiteFooter = () => {
           <div className="w-[18%]">
             <h3 className="text-[#1d1d1f] font-semibold mb-2">O'rganish va Mashq</h3>
             <ul className="space-y-2 mb-6">
-              <li><Link to="/practice?tab=reading" className="hover:text-[#1d1d1f] hover:underline">Reading</Link></li>
-              <li><Link to="/practice?tab=listening" className="hover:text-[#1d1d1f] hover:underline">Listening</Link></li>
+              <li><Link to="/reading" className="hover:text-[#1d1d1f] hover:underline">Reading</Link></li>
+              <li><Link to="/listening" className="hover:text-[#1d1d1f] hover:underline">Listening</Link></li>
               <li><Link to="/practice?tab=writing" className="hover:text-[#1d1d1f] hover:underline">Writing</Link></li>
               <li><Link to="/practice?tab=speaking" className="hover:text-[#1d1d1f] hover:underline">Speaking</Link></li>
               <li><Link to="/vocabulary" className="hover:text-[#1d1d1f] hover:underline">WordBank</Link></li>

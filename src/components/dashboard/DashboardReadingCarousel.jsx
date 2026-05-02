@@ -102,7 +102,7 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                         </h2>
                     </div>
                     <button 
-                        onClick={() => navigate('/practice?tab=reading')}
+                        onClick={() => navigate('/reading')}
                         className="text-[#1D1D1F] hover:underline text-[16px] font-medium flex items-center gap-1 group whitespace-nowrap"
                     >
                         Barchasini ko'rish

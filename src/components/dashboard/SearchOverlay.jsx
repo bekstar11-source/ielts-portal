@@ -28,7 +28,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
   }, [isOpen]);
 
   const quickLinks = [
-    { label: 'Find a Test', path: '/practice?tab=reading' },
+    { label: 'Find a Test', path: '/reading' },
     { label: 'Articles', path: '/articles' },
     { label: 'Podcasts', path: '/podcasts' },
     { label: 'Word Bank', path: '/vocabulary' },

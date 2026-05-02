@@ -81,6 +81,12 @@ service cloud.firestore {
         allow write: if isAdmin();
     }
 
+    // ARTICLES (Maqolalar)
+    match /articles/{articleId} {
+      allow read: if isAuth();
+      allow write: if isAdmin() || isTeacher();
+    }
+
     // LOGS
     match /logs/{logId} {
       allow read: if isAdmin();
@@ -140,6 +146,19 @@ service cloud.firestore {
       );
       allow create: if isAuth();
       allow update, delete: if isAdmin();
+    }
+    // TEST COMMENTS
+    match /testComments/{commentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.token.email == 'bekstar11@gmail.com'
+      );
+      allow delete: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        resource.data.userId == request.auth.uid
+      );
     }
   }
 }

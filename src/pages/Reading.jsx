@@ -286,7 +286,11 @@ export default function Reading() {
           categories={categories}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          handleTabClick={() => {}}
+          handleTabClick={(tabId) => {
+            if (tabId === 'listening') navigate('/listening');
+            else if (tabId === 'podcasts') navigate('/podcasts');
+            else if (tabId !== 'reading') navigate(`/practice?tab=${tabId}`);
+          }}
           allQuestionTypes={allQuestionTypes}
           selectedQuestionTypes={selectedQuestionTypes}
           setSelectedQuestionTypes={setSelectedQuestionTypes}

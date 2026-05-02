@@ -45,11 +45,12 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
-    { id: 'reading', label: 'Reading', path: '/practice?tab=reading' },
-    { id: 'listening', label: 'Listening', path: '/practice?tab=listening' },
+    { id: 'reading', label: 'Reading', path: '/reading' },
+    { id: 'listening', label: 'Listening', path: '/listening' },
     { id: 'writing', label: 'Writing', path: '/practice?tab=writing' },
     { id: 'speaking', label: 'Speaking', path: '/practice?tab=speaking' },
     { id: 'podcasts', label: 'Podcasts', path: '/podcasts' },
+    { id: 'articles', label: 'Articles', path: '/articles' },
     { id: 'pricing', label: 'Pricing', path: '/pricing' },
     { id: 'results', label: 'Natijalar', path: '/my-results' },
     { id: 'leaderboard', label: 'Reyting', path: '/leaderboard' },
@@ -95,7 +96,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         <nav className="flex items-center justify-center gap-6 md:gap-10 h-full flex-1 overflow-x-auto hide-scrollbar">
           {menuItems.map((item) => {
             const isTabActive = activeTab === item.id;
-            const hasMegaMenu = item.id === 'reading';
+            const hasMegaMenu = ['reading', 'listening', 'podcasts'].includes(item.id);
 
             const handleMouseEnter = () => {
               if (hasMegaMenu) {
@@ -158,7 +159,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
 
         {/* Mega Menu Overlay */}
         <AnimatePresence>
-          {hoveredTab === 'reading' && (
+          {(hoveredTab === 'reading' || hoveredTab === 'listening' || hoveredTab === 'podcasts') && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -167,7 +168,6 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
               onMouseEnter={() => {
                 if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
                 if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-                setHoveredTab('reading');
               }}
               onMouseLeave={() => {
                 closeTimeoutRef.current = setTimeout(() => {
@@ -196,24 +196,61 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                   }}
                   className="col-span-5 space-y-4"
                 >
-                  <p className="text-[11px] text-black/40 font-normal tracking-tight">Reading Bo'limlari</p>
+                  <p className="text-[11px] text-black/40 font-normal tracking-tight">
+                    {hoveredTab === 'reading' ? 'Reading' : 'Listening'} Bo'limlari
+                  </p>
                   <div className="flex flex-col gap-1">
-                    {[
-                      { label: 'Passages', id: 'passages' },
-                      { label: 'Full Tests', id: 'full_test' },
-                      { label: 'Sets', id: 'set' }
-                    ].map((sub) => (
-                      <button
-                        key={sub.id}
-                        onClick={() => {
-                          navigate(`/reading?section=${sub.id}`);
-                          setHoveredTab(null);
-                        }}
-                        className="text-[22px] font-medium text-black hover:text-black/70 transition-all text-left tracking-tight py-0.5"
-                      >
-                        {sub.label}
-                      </button>
-                    ))}
+                    {hoveredTab === 'reading' ? (
+                      [
+                        { label: 'Passages', id: 'passages' },
+                        { label: 'Full Tests', id: 'full_test' },
+                        { label: 'Sets', id: 'set' }
+                      ].map((sub) => (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            navigate(`/reading?section=${sub.id}`);
+                            setHoveredTab(null);
+                          }}
+                          className="text-[22px] font-medium text-black hover:text-black/70 transition-all text-left tracking-tight py-0.5"
+                        >
+                          {sub.label}
+                        </button>
+                      ))
+                    ) : hoveredTab === 'listening' ? (
+                      [
+                        { label: 'Listening Parts', id: 'parts' },
+                        { label: 'Full Tests', id: 'full_test' }
+                      ].map((sub) => (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            navigate(`/listening?section=${sub.id}`);
+                            setHoveredTab(null);
+                          }}
+                          className="text-[22px] font-medium text-black hover:text-black/70 transition-all text-left tracking-tight py-0.5"
+                        >
+                          {sub.label}
+                        </button>
+                      ))
+                    ) : (
+                      [
+                        { label: 'Official Albums', id: 'albums' },
+                        { label: 'New Episodes', id: 'episodes' },
+                        { label: 'All Podcasts', id: 'all' }
+                      ].map((sub) => (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            navigate('/podcasts');
+                            setHoveredTab(null);
+                          }}
+                          className="text-[22px] font-medium text-black hover:text-black/70 transition-all text-left tracking-tight py-0.5"
+                        >
+                          {sub.label}
+                        </button>
+                      ))
+                    )}
                   </div>
                 </motion.div>
 
@@ -244,7 +281,9 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                 >
                   <p className="text-[11px] text-black/40 font-normal tracking-tight">Resurslar</p>
                   <div className="flex flex-col gap-2">
-                    <button className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Reading Tips & Tricks</button>
+                    <button className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">
+                      {hoveredTab === 'reading' ? 'Reading Tips' : hoveredTab === 'listening' ? 'Listening Tips' : 'Podcast Guide'}
+                    </button>
                     <button className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Band Calculator</button>
                   </div>
                 </motion.div>
@@ -269,7 +308,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                 setHoveredTab(null);
                 setIsSearchOpen(false);
               }}
-              className="fixed inset-0 top-11 bg-black/5 backdrop-blur-[2px] z-40"
+              className="fixed inset-0 top-12 bg-black/[0.02] backdrop-blur-md z-40"
             />
           )}
         </AnimatePresence>
