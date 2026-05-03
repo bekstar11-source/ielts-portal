@@ -50,7 +50,7 @@ export default function Articles() {
             <DashboardHeader user={user} userData={userData} activeTab="articles" />
 
             {/* HERO SECTION */}
-            <div className="bg-[#050505] pt-24 pb-20 px-6 relative overflow-hidden">
+            <div className="bg-[#050505] pt-20 pb-12 px-6 relative overflow-hidden">
                 <div className="absolute inset-0 opacity-30">
                     <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-blue-600/20 blur-[120px] rounded-full" />
                     <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[60%] bg-purple-600/20 blur-[120px] rounded-full" />
@@ -84,116 +84,127 @@ export default function Articles() {
                 </div>
             </div>
 
-            <main className="max-w-[1440px] mx-auto px-6 -mt-10 relative z-20">
-                {/* SEARCH & FILTERS BAR */}
-                <div className="bg-white/80 backdrop-blur-2xl p-4 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white flex flex-col md:flex-row gap-4 mb-12">
-                    <div className="relative flex-1 group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                        <input 
-                            type="text" 
-                            placeholder="Search articles, topics or keywords..."
-                            className="w-full bg-[#f5f5f7] border-none rounded-2xl pl-12 pr-6 py-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 md:pb-0">
+            <main className="max-w-4xl mx-auto px-6 pt-10 pb-24">
+                {/* SEARCH & FILTERS BAR (MEDIUM STYLE TABS) */}
+                <div className="border-b border-black/[0.05] mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-8 overflow-x-auto no-scrollbar">
                         {categories.map(cat => (
                             <button
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
-                                className={`px-6 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${
+                                className={`pb-4 text-sm font-medium transition-all relative whitespace-nowrap ${
                                     activeCategory === cat 
-                                    ? 'bg-[#1d1d1f] text-white shadow-xl shadow-black/10' 
-                                    : 'bg-[#f5f5f7] text-[#86868b] hover:bg-gray-200'
+                                    ? 'text-black' 
+                                    : 'text-gray-500 hover:text-black'
                                 }`}
                             >
                                 {cat}
+                                {activeCategory === cat && (
+                                    <motion.div 
+                                        layoutId="activeTab"
+                                        className="absolute bottom-0 left-0 right-0 h-[1px] bg-black"
+                                    />
+                                )}
                             </button>
                         ))}
                     </div>
+                    <div className="relative group min-w-[240px]">
+                        <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors" size={16} />
+                        <input 
+                            type="text" 
+                            placeholder="Search..."
+                            className="w-full bg-transparent border-none pl-6 pr-4 py-2 text-sm focus:ring-0 transition-all font-medium"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
 
-                {/* ARTICLES GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-24">
+                {/* ARTICLES FEED (MEDIUM STYLE) */}
+                <div className="space-y-12">
                     <AnimatePresence mode="popLayout">
                         {loading ? (
-                            [1,2,3,4,5,6].map(i => (
-                                <div key={i} className="h-[450px] bg-white rounded-[40px] border border-white shadow-sm animate-pulse" />
+                            [1,2,3].map(i => (
+                                <div key={i} className="flex flex-col md:flex-row gap-8 items-start animate-pulse">
+                                    <div className="flex-1 space-y-4">
+                                        <div className="w-48 h-4 bg-gray-200 rounded" />
+                                        <div className="w-full h-8 bg-gray-200 rounded" />
+                                        <div className="w-3/4 h-16 bg-gray-200 rounded" />
+                                    </div>
+                                    <div className="w-full md:w-40 aspect-square bg-gray-200 rounded-lg" />
+                                </div>
                             ))
                         ) : filteredArticles.length > 0 ? (
                             filteredArticles.map((article, idx) => (
                                 <motion.div
                                     key={article.id}
-                                    layout
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: idx * 0.05 }}
                                     onClick={() => navigate(`/article/${article.id}`)}
-                                    className="group bg-white rounded-[40px] p-8 border border-white shadow-sm hover:shadow-[0_40px_80px_rgba(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-500 cursor-pointer flex flex-col relative overflow-hidden"
+                                    className="group cursor-pointer flex flex-col-reverse md:flex-row gap-8 items-start pb-12 border-b border-black/[0.05] last:border-0"
                                 >
-                                    {/* Accent background on hover */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                    
-                                    <div className="relative z-10 flex flex-col h-full">
-                                            <div className="flex items-center gap-2">
-                                                {article.isFeatured && <Star size={16} className="text-yellow-500 fill-yellow-500" />}
-                                                <span className="px-4 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-blue-100">
-                                                    {article.category}
-                                                </span>
-                                            </div>
-
-                                        {article.imageUrl && (
-                                            <div className="w-full h-48 mb-6 rounded-3xl overflow-hidden relative">
-                                                <img 
-                                                    src={article.imageUrl} 
-                                                    alt={article.title}
-                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                                />
-                                                <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                                            </div>
-                                        )}
-
-                                        <h3 className="text-2xl md:text-3xl font-bold leading-tight mb-4 group-hover:text-[#0066cc] transition-colors line-clamp-2">
-                                            {article.title}
-                                        </h3>
-
-                                        <p className="text-[#86868b] text-sm font-medium mb-8 flex-1 line-clamp-3 leading-relaxed">
-                                            {article.content?.find(b => b.type === 'paragraph')?.text || "Read this interesting article to enhance your English skills and general knowledge..."}
-                                        </p>
-
-                                        <div className="pt-6 border-t border-gray-50 flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#86868b]">
-                                                    <Clock size={14} className="text-blue-500" />
-                                                    <span>{article.readTime || '5 min'}</span>
+                                    {/* Content Part */}
+                                    <div className="flex-1 space-y-3">
+                                        {/* Author Row */}
+                                        <div className="flex items-center gap-2 mb-2">
+                                            {article.authorAvatar ? (
+                                                <img src={article.authorAvatar} className="w-5 h-5 rounded-full object-cover" alt={article.author} />
+                                            ) : (
+                                                <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[8px] font-bold">
+                                                    {article.author?.charAt(0)}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#86868b]">
-                                                    <MessageSquare size={14} className="text-purple-500" />
-                                                    <span>{article.quiz?.length || 0} Quiz</span>
+                                            )}
+                                            <span className="text-[13px] font-medium text-[#242424]">{article.author}</span>
+                                            {article.isFeatured && <Star size={12} className="text-yellow-500 fill-yellow-500 ml-1" />}
+                                        </div>
+
+                                        {/* Title & Excerpt */}
+                                        <div className="space-y-2">
+                                            <h3 className="text-xl md:text-2xl font-bold text-[#242424] leading-tight group-hover:text-gray-600 transition-colors line-clamp-2">
+                                                {article.title}
+                                            </h3>
+                                            <p className="text-[15px] md:text-[16px] text-gray-500 leading-snug line-clamp-2">
+                                                {article.subtitle || article.content?.find(b => b.type === 'paragraph')?.text}
+                                            </p>
+                                        </div>
+
+                                        {/* Meta Row */}
+                                        <div className="flex items-center justify-between pt-4">
+                                            <div className="flex items-center gap-4 text-[#6B6B6B] text-[13px]">
+                                                {article.isFeatured && <Star size={14} className="text-yellow-500 fill-yellow-500" />}
+                                                <span>{article.createdAt ? new Date(article.createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Mar 9'}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <span>👏</span>
+                                                    <span>{article.claps || '4.8K'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <MessageSquare size={14} />
+                                                    <span>{article.quiz?.length || 0}</span>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-[#1d1d1f]">
-                                                {article.authorAvatar ? (
-                                                    <img src={article.authorAvatar} className="w-8 h-8 rounded-full object-cover border border-black/5" alt={article.author} />
-                                                ) : (
-                                                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-black">
-                                                        {article.author?.charAt(0) || 'I'}
-                                                    </div>
-                                                )}
-                                                <span className="text-[12px] font-bold">{article.author || 'IELTS Portal'}</span>
+                                            <div className="flex items-center gap-4 text-gray-400">
+                                                <BookOpen size={18} className="hover:text-black transition-colors" />
+                                                <Edit2 size={18} className="hover:text-black transition-colors" />
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Image Part */}
+                                    {article.imageUrl && (
+                                        <div className="w-full md:w-48 lg:w-52 aspect-[4/3] md:aspect-square rounded-lg overflow-hidden shrink-0">
+                                            <img 
+                                                src={article.imageUrl} 
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                                alt={article.title} 
+                                            />
+                                        </div>
+                                    )}
                                 </motion.div>
                             ))
                         ) : (
-                            <div className="col-span-full py-40 text-center">
-                                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-gray-100">
-                                    <BookOpen size={40} className="text-gray-300" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-[#1d1d1f]">No articles found</h3>
-                                <p className="text-[#86868b] mt-2">Try adjusting your search or category filters.</p>
+                            <div className="py-20 text-center">
+                                <h3 className="text-xl font-bold text-gray-400">No articles found</h3>
                             </div>
                         )}
                     </AnimatePresence>

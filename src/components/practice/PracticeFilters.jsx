@@ -1,3 +1,4 @@
+import React from 'react';
 import { Search, SlidersHorizontal, ChevronDown, Check, X } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 
@@ -24,9 +25,21 @@ export default function PracticeFilters({
   showQuestionFilters,
   setShowQuestionFilters
 }) {
+  const [isScrolled, setIsScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 380);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div 
-      className="sticky top-[44px] z-40 w-full bg-white/40 backdrop-blur-xl mb-6 py-3"
+      className={`sticky top-[44px] z-40 w-full bg-white/40 backdrop-blur-xl mb-6 py-3 transition-all duration-300 ${
+        isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      }`}
       onMouseLeave={() => setShowQuestionFilters(false)}
     >
       <div className="max-w-[1440px] mx-auto px-6 relative">

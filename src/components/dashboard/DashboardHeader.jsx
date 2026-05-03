@@ -45,10 +45,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
-    { id: 'reading', label: 'Reading', path: '/reading' },
-    { id: 'listening', label: 'Listening', path: '/listening' },
-    { id: 'writing', label: 'Writing', path: '/practice?tab=writing' },
-    { id: 'speaking', label: 'Speaking', path: '/practice?tab=speaking' },
+    { id: 'library', label: 'IELTS', path: '/library' },
     { id: 'podcasts', label: 'Podcasts', path: '/podcasts' },
     { id: 'articles', label: 'Articles', path: '/articles' },
     { id: 'pricing', label: 'Pricing', path: '/pricing' },
@@ -84,7 +81,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         ? 'bg-white/80 backdrop-blur-md border-b border-zinc-200/50 shadow-sm' 
         : 'bg-white border-b border-zinc-100'
     }`}>
-      <div className="max-w-[1440px] mx-auto px-6 h-full flex items-center justify-between">
+      <div className="w-full px-8 h-full flex items-center justify-between">
         {/* Logo */}
         <div className="cursor-pointer flex items-center pr-6 transition-transform hover:scale-105 active:scale-95" onClick={() => navigate('/dashboard')}>
            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center shadow-lg transform -rotate-6 group hover:rotate-0 transition-all duration-500">
@@ -96,7 +93,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         <nav className="flex items-center justify-center gap-6 md:gap-10 h-full flex-1 overflow-x-auto hide-scrollbar">
           {menuItems.map((item) => {
             const isTabActive = activeTab === item.id;
-            const hasMegaMenu = ['reading', 'listening', 'podcasts'].includes(item.id);
+            const hasMegaMenu = ['library', 'reading', 'listening', 'podcasts'].includes(item.id);
 
             const handleMouseEnter = () => {
               if (hasMegaMenu) {
@@ -128,7 +125,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
               >
                 <button
                   onClick={() => handleNavigation(item)}
-                  className={`relative flex items-center text-[12px] font-normal tracking-tight transition-all duration-300 whitespace-nowrap
+                  className={`relative flex items-center text-[14px] font-normal tracking-tight transition-all duration-300 whitespace-nowrap
                     ${isTabActive || hoveredTab === item.id
                       ? 'text-black' 
                       : 'text-black/60 hover:text-black'}
@@ -147,19 +144,11 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
             );
           })}
           
-          {/* Search Button */}
-          <button 
-            onClick={() => setIsSearchOpen(true)}
-            className="flex items-center text-black/40 hover:text-black transition-all duration-300 transform hover:scale-110"
-            title="Search (⌘K)"
-          >
-            <Search size={15} strokeWidth={2} />
-          </button>
         </nav>
 
         {/* Mega Menu Overlay */}
         <AnimatePresence>
-          {(hoveredTab === 'reading' || hoveredTab === 'listening' || hoveredTab === 'podcasts') && (
+          {(hoveredTab === 'library' || hoveredTab === 'reading' || hoveredTab === 'listening' || hoveredTab === 'podcasts') && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -196,11 +185,29 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                   }}
                   className="col-span-5 space-y-4"
                 >
-                  <p className="text-[11px] text-black/40 font-normal tracking-tight">
-                    {hoveredTab === 'reading' ? 'Reading' : 'Listening'} Bo'limlari
+                  <p className="text-[11px] text-black/40 font-normal tracking-tight uppercase tracking-[0.05em]">
+                    {hoveredTab === 'library' ? 'IELTS MODULLARI' : hoveredTab === 'reading' ? 'Reading' : 'Listening'}
                   </p>
                   <div className="flex flex-col gap-1">
-                    {hoveredTab === 'reading' ? (
+                    {hoveredTab === 'library' ? (
+                      [
+                        { label: 'Reading', path: '/reading' },
+                        { label: 'Listening', path: '/listening' },
+                        { label: 'Writing', path: '/practice?tab=writing' },
+                        { label: 'Speaking', path: '/practice?tab=speaking' }
+                      ].map((sub) => (
+                        <button
+                          key={sub.path}
+                          onClick={() => {
+                            navigate(sub.path);
+                            setHoveredTab(null);
+                          }}
+                          className="text-[22px] font-medium text-black hover:text-[#0066cc] transition-all text-left tracking-tight py-0.5"
+                        >
+                          {sub.label}
+                        </button>
+                      ))
+                    ) : hoveredTab === 'reading' ? (
                       [
                         { label: 'Passages', id: 'passages' },
                         { label: 'Full Tests', id: 'full_test' },
@@ -262,12 +269,12 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                   }}
                   className="col-span-3 space-y-4 pt-1"
                 >
-                  <p className="text-[11px] text-black/40 font-normal tracking-tight">Tezkor</p>
+                  <p className="text-[11px] text-black/40 font-normal tracking-tight uppercase tracking-[0.05em]">Tezkor</p>
                   <div className="flex flex-col gap-2">
-                    <button onClick={() => navigate('/practice?tab=speaking')} className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Speaking</button>
-                    <button onClick={() => navigate('/podcasts')} className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Podcasts</button>
-                    <button onClick={() => navigate('/articles')} className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Articles</button>
-                    <button onClick={() => navigate('/vocabulary')} className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Word Bank</button>
+                    <button onClick={() => { navigate('/practice?tab=speaking'); setHoveredTab(null); }} className="text-[13px] text-black font-medium hover:text-[#0066cc] transition-all text-left">Speaking Mock</button>
+                    <button onClick={() => { navigate('/podcasts'); setHoveredTab(null); }} className="text-[13px] text-black font-medium hover:text-[#0066cc] transition-all text-left">Podcasts</button>
+                    <button onClick={() => { navigate('/articles'); setHoveredTab(null); }} className="text-[13px] text-black font-medium hover:text-[#0066cc] transition-all text-left">Articles</button>
+                    <button onClick={() => { navigate('/pricing'); setHoveredTab(null); }} className="text-[13px] text-black font-medium hover:text-[#0066cc] transition-all text-left">Go Pro</button>
                   </div>
                 </motion.div>
 
@@ -279,12 +286,11 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                   }}
                   className="col-span-4 space-y-4 pt-1"
                 >
-                  <p className="text-[11px] text-black/40 font-normal tracking-tight">Resurslar</p>
+                  <p className="text-[11px] text-black/40 font-normal tracking-tight uppercase tracking-[0.05em]">Resurslar</p>
                   <div className="flex flex-col gap-2">
-                    <button className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">
-                      {hoveredTab === 'reading' ? 'Reading Tips' : hoveredTab === 'listening' ? 'Listening Tips' : 'Podcast Guide'}
-                    </button>
-                    <button className="text-[13px] text-black font-medium hover:text-black/60 transition-all text-left">Band Calculator</button>
+                    <button className="text-[13px] text-black font-medium hover:text-[#0066cc] transition-all text-left">Word Bank</button>
+                    <button className="text-[13px] text-black font-medium hover:text-[#0066cc] transition-all text-left">Grammar Guide</button>
+                    <button className="text-[13px] text-black font-medium hover:text-[#0066cc] transition-all text-left">Band Calculator</button>
                   </div>
                 </motion.div>
               </motion.div>
@@ -308,13 +314,22 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                 setHoveredTab(null);
                 setIsSearchOpen(false);
               }}
-              className="fixed inset-0 top-12 bg-black/[0.02] backdrop-blur-md z-40"
+              className="fixed inset-0 top-12 bg-black/[0.01] backdrop-blur-sm z-40"
             />
           )}
         </AnimatePresence>
 
         {/* Right Section */}
-        <div className="flex items-center gap-3 pl-4">
+        <div className="flex items-center gap-4 pl-4">
+          {/* Search Button */}
+          <button 
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center text-black/40 hover:text-black transition-all duration-300 transform hover:scale-110 mr-2"
+            title="Search (⌘K)"
+          >
+            <Search size={16} strokeWidth={2} />
+          </button>
+
           {!isPro && (
             <button 
               onClick={() => navigate('/pricing')}

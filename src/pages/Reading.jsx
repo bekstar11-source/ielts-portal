@@ -13,6 +13,7 @@ import {
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import DashboardModals from "../components/dashboard/DashboardModals";
+import LibrarySubHeader from "../components/dashboard/LibrarySubHeader";
 import PricingModal from "../components/dashboard/PricingModal";
 import SiteFooter from "../components/common/SiteFooter";
 import LimitReachedSheet from "../components/dashboard/LimitReachedSheet";
@@ -267,6 +268,27 @@ export default function Reading() {
         activeTab="reading"
         onLogoutClick={() => setShowLogoutConfirm(true)}
         loading={loading}
+      />
+
+      <LibrarySubHeader 
+        activeTab="reading" 
+        scrolledContent={
+          <div className="flex items-center gap-1 bg-[#f5f5f7] p-1 rounded-full border border-black/5 h-9">
+            {readingFilters.map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => handleSubTabClick(filter)}
+                className={`px-4 py-1.5 h-full rounded-full text-[12px] font-semibold transition-all flex items-center justify-center
+                  ${activeSubTab === filter.id 
+                    ? 'bg-[#1d1d1f] text-white shadow-[0_2px_4px_rgba(0,0,0,0.1)]' 
+                    : 'text-black/50 hover:text-black hover:bg-black/5'}
+                `}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        }
       />
 
       <main className="w-full">

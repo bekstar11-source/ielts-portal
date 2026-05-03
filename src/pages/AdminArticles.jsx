@@ -17,10 +17,13 @@ import {
     Plus, Search, Edit2, Trash2, BookOpen, 
     ChevronRight, X, Save, Layout, List, 
     Type, MessageSquare, CheckCircle2, Trash,
-    Upload, ImageIcon, Loader2
+    Upload, ImageIcon, Loader2, Settings2, Sliders,
+    AlignLeft, AlignCenter, AlignRight, Bold
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactQuill from 'react-quill-new';
+import 'quill/dist/quill.snow.css';
 
 export default function AdminArticles() {
     const { theme } = useTheme();
@@ -45,7 +48,18 @@ export default function AdminArticles() {
         readTime: "5 min read",
         isFeatured: false,
         isMemberOnly: false,
-        content: [{ type: 'paragraph', text: "" }],
+        content: [{ 
+            type: 'paragraph', 
+            text: "",
+            style: {
+                fontSize: 18,
+                lineHeight: 1.8,
+                marginTop: 0,
+                marginBottom: 32,
+                fontWeight: '400',
+                letterSpacing: '0'
+            }
+        }],
         quiz: [{ question: "", options: ["", "", "", ""], correct: 0 }]
     });
 
@@ -94,7 +108,18 @@ export default function AdminArticles() {
                 readTime: "5 min read",
                 isFeatured: false,
                 isMemberOnly: false,
-                content: [{ type: 'paragraph', text: "" }],
+                content: [{ 
+                    type: 'paragraph', 
+                    text: "",
+                    style: {
+                        fontSize: 18,
+                        lineHeight: 1.8,
+                        marginTop: 0,
+                        marginBottom: 32,
+                        fontWeight: '400',
+                        letterSpacing: '0'
+                    }
+                }],
                 quiz: [{ question: "", options: ["", "", "", ""], correct: 0 }]
             });
         }
@@ -138,10 +163,20 @@ export default function AdminArticles() {
 
     // Form helpers
     const addContentBlock = (type) => {
+        const defaultStyle = type === 'heading' 
+            ? { fontSize: 32, lineHeight: 1.2, marginTop: 40, marginBottom: 20, fontWeight: '700', letterSpacing: '-0.02em' }
+            : { fontSize: 18, lineHeight: 1.8, marginTop: 0, marginBottom: 32, fontWeight: '400', letterSpacing: '0' };
+            
         setFormData(prev => ({
             ...prev,
-            content: [...prev.content, { type, text: "" }]
+            content: [...prev.content, { type, text: "", style: defaultStyle }]
         }));
+    };
+
+    const updateContentStyle = (index, styleUpdates) => {
+        const newContent = [...formData.content];
+        newContent[index].style = { ...newContent[index].style, ...styleUpdates };
+        setFormData(prev => ({ ...prev, content: newContent }));
     };
 
     const updateContentBlock = (index, text) => {
@@ -497,35 +532,127 @@ export default function AdminArticles() {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="space-y-4">
+                                        <div className="space-y-6">
                                             {formData.content.map((block, idx) => (
-                                                <div key={idx} className="relative group">
-                                                    {block.type === 'heading' ? (
-                                                        <div className="flex gap-4">
-                                                            <div className="w-1 bg-blue-500 rounded-full" />
-                                                            <input 
-                                                                type="text"
-                                                                placeholder="Blok sarlavhasi..."
-                                                                className="flex-1 bg-gray-50 dark:bg-[#252525] border-none rounded-xl px-4 py-3 text-lg font-bold focus:ring-2 focus:ring-blue-500/50 transition-all"
-                                                                value={block.text}
-                                                                onChange={(e) => updateContentBlock(idx, e.target.value)}
-                                                            />
+                                                <div key={idx} className="relative group bg-gray-50/30 dark:bg-white/[0.02] p-4 rounded-3xl border border-black/[0.03] dark:border-white/[0.03]">
+                                                    <div className="flex gap-4 items-start">
+                                                        <div className="flex-1 space-y-4">
+                                                            {block.type === 'heading' ? (
+                                                                <input 
+                                                                    type="text"
+                                                                    placeholder="Blok sarlavhasi..."
+                                                                    className="w-full bg-white dark:bg-[#252525] border border-black/[0.05] dark:border-white/[0.05] rounded-xl px-4 py-3 text-lg font-bold focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                                                    style={{
+                                                                        fontSize: `${block.style?.fontSize}px`,
+                                                                        lineHeight: block.style?.lineHeight,
+                                                                        marginTop: `${block.style?.marginTop}px`,
+                                                                        marginBottom: `${block.style?.marginBottom}px`,
+                                                                        fontWeight: block.style?.fontWeight
+                                                                    }}
+                                                                    value={block.text}
+                                                                    onChange={(e) => updateContentBlock(idx, e.target.value)}
+                                                                />
+                                                            ) : (
+                                                                <div className="quill-editor-wrapper">
+                                                                    <ReactQuill 
+                                                                        theme="snow"
+                                                                        placeholder="Paragraf matni (Word kabi tahrirlang)..."
+                                                                        className="bg-white dark:bg-[#252525] rounded-xl overflow-hidden border border-black/[0.05] dark:border-white/[0.05]"
+                                                                        value={block.text}
+                                                                        onChange={(content) => updateContentBlock(idx, content)}
+                                                                        modules={{
+                                                                            toolbar: [
+                                                                                ['bold', 'italic', 'underline', 'strike'],
+                                                                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                                                ['link', 'clean']
+                                                                            ]
+                                                                        }}
+                                                                    />
+                                                                    <style>{`
+                                                                        .quill-editor-wrapper .ql-container {
+                                                                            font-size: ${block.style?.fontSize}px;
+                                                                            line-height: ${block.style?.lineHeight};
+                                                                            margin-top: ${block.style?.marginTop}px;
+                                                                            margin-bottom: ${block.style?.marginBottom}px;
+                                                                            min-height: 120px;
+                                                                            border: none !important;
+                                                                        }
+                                                                        .quill-editor-wrapper .ql-toolbar {
+                                                                            border: none !important;
+                                                                            border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+                                                                            background: rgba(0,0,0,0.02);
+                                                                        }
+                                                                        .dark .quill-editor-wrapper .ql-toolbar {
+                                                                            background: rgba(255,255,255,0.02);
+                                                                            border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+                                                                        }
+                                                                        .dark .ql-snow .ql-stroke { stroke: #fff; }
+                                                                        .dark .ql-snow .ql-fill { fill: #fff; }
+                                                                        .dark .ql-snow .ql-picker { color: #fff; }
+                                                                    `}</style>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Vibe Controls */}
+                                                            <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-black/[0.03] dark:border-white/[0.03]">
+                                                                <div className="flex items-center gap-2 bg-white dark:bg-black/20 p-1 rounded-lg border border-black/[0.05]">
+                                                                    <span className="text-[10px] font-bold text-gray-400 px-2 uppercase">Size</span>
+                                                                    <input 
+                                                                        type="range" min="12" max="64" 
+                                                                        value={block.style?.fontSize || 18}
+                                                                        onChange={(e) => updateContentStyle(idx, { fontSize: parseInt(e.target.value) })}
+                                                                        className="w-20 h-1.5 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                                    />
+                                                                    <span className="text-[10px] font-bold w-6">{block.style?.fontSize}</span>
+                                                                </div>
+                                                                
+                                                                <div className="flex items-center gap-2 bg-white dark:bg-black/20 p-1 rounded-lg border border-black/[0.05]">
+                                                                    <span className="text-[10px] font-bold text-gray-400 px-2 uppercase">Spacing</span>
+                                                                    <input 
+                                                                        type="range" min="1" max="2.5" step="0.1"
+                                                                        value={block.style?.lineHeight || 1.6}
+                                                                        onChange={(e) => updateContentStyle(idx, { lineHeight: parseFloat(e.target.value) })}
+                                                                        className="w-20 h-1.5 bg-purple-100 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                                                    />
+                                                                    <span className="text-[10px] font-bold w-6">{block.style?.lineHeight}</span>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2 bg-white dark:bg-black/20 p-1 rounded-lg border border-black/[0.05]">
+                                                                    <span className="text-[10px] font-bold text-gray-400 px-2 uppercase">Margin Bottom</span>
+                                                                    <input 
+                                                                        type="range" min="0" max="100" step="4"
+                                                                        value={block.style?.marginBottom || 32}
+                                                                        onChange={(e) => updateContentStyle(idx, { marginBottom: parseInt(e.target.value) })}
+                                                                        className="w-20 h-1.5 bg-green-100 rounded-lg appearance-none cursor-pointer accent-green-600"
+                                                                    />
+                                                                    <span className="text-[10px] font-bold w-6">{block.style?.marginBottom}</span>
+                                                                </div>
+
+                                                                {block.type === 'heading' && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => updateContentStyle(idx, { fontWeight: block.style?.fontWeight === '700' ? '400' : '700' })}
+                                                                            className={`p-1.5 rounded-md transition-all ${block.style?.fontWeight === '700' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white dark:bg-white/5 text-gray-400'}`}
+                                                                        >
+                                                                            <Bold size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    ) : (
-                                                        <textarea 
-                                                            placeholder="Paragraf matni..."
-                                                            className="w-full bg-gray-50 dark:bg-[#252525] border-none rounded-xl px-4 py-3 text-sm min-h-[100px] focus:ring-2 focus:ring-blue-500/50 transition-all leading-relaxed"
-                                                            value={block.text}
-                                                            onChange={(e) => updateContentBlock(idx, e.target.value)}
-                                                        />
-                                                    )}
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => removeContentBlock(idx)}
-                                                        className="absolute -right-2 -top-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg"
-                                                    >
-                                                        <X size={12} />
-                                                    </button>
+
+                                                        <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => removeContentBlock(idx)}
+                                                                className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
+                                                                title="O'chirish"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>

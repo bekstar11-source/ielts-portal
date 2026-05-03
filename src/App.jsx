@@ -64,6 +64,7 @@ import Podcasts from './pages/Podcasts';
 import Listening from './pages/Listening';
 import Reading from './pages/Reading';
 import Pricing from './pages/Pricing';
+import Library from './pages/Library';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();
@@ -181,6 +182,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['student', 'admin']}>
               <Reading />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/library"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <Library />
             </ProtectedRoute>
           }
         />

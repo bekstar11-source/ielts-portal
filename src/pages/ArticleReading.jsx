@@ -188,16 +188,54 @@ export default function ArticleReading() {
           </div>
         )}
 
-        {/* Article Body */}
-        <article className={`${textSize} leading-[1.8] text-[#242424] space-y-8 font-serif`}>
+        <article className={`${textSize} text-[#242424] font-serif w-full max-w-full overflow-hidden`}>
           {article.content?.map((block, i) => (
             block.type === 'heading' ? (
-              <h2 key={i} className="text-2xl md:text-3xl font-bold text-[#242424] pt-6">{block.text}</h2>
+              <h2 
+                key={i} 
+                className="font-bold text-[#242424]"
+                style={{
+                  fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
+                  lineHeight: block.style?.lineHeight || undefined,
+                  marginTop: block.style?.marginTop ? `${block.style.marginTop}px` : undefined,
+                  marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '1.5rem',
+                  fontWeight: block.style?.fontWeight || '700',
+                  letterSpacing: block.style?.letterSpacing || undefined
+                }}
+              >
+                {block.text}
+              </h2>
             ) : (
-              <p key={i} className="opacity-100">{block.text}</p>
+              <div 
+                key={i} 
+                className="opacity-100 quill-content"
+                style={{
+                  fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
+                  lineHeight: block.style?.lineHeight || '1.8',
+                  marginTop: block.style?.marginTop ? `${block.style.marginTop}px` : undefined,
+                  marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '2rem',
+                  fontWeight: block.style?.fontWeight || '400',
+                  letterSpacing: block.style?.letterSpacing || undefined,
+                  textAlign: 'left'
+                }}
+                dangerouslySetInnerHTML={{ __html: block.text }}
+              />
             )
           ))}
         </article>
+        <style>{`
+          .quill-content { 
+            overflow-wrap: break-word; 
+            word-break: normal; 
+            hyphens: none;
+          }
+          .quill-content p { margin: 0; padding: 0; }
+          .quill-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+          .quill-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
+          .quill-content a { color: #0066CC; text-decoration: underline; }
+          .quill-content strong { font-weight: bold; }
+          .quill-content em { font-style: italic; }
+        `}</style>
 
         {/* Quiz Section */}
         {article.quiz && article.quiz.length > 0 && (

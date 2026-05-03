@@ -64,7 +64,7 @@ export default function Leaderboard() {
     }, []);
 
     return (
-        <div className="bg-white border border-vetra-grey/60 rounded-3xl p-6 relative overflow-hidden shadow-sm">
+        <div className="max-w-2xl mx-auto mt-8 bg-white border border-vetra-grey/60 rounded-3xl p-6 relative overflow-hidden shadow-sm">
             {/* Subtle glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-50 rounded-full blur-[80px] pointer-events-none"></div>
 

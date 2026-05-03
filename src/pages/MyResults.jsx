@@ -181,12 +181,12 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
   const itemsPerPage = isComponent ? 6 : 10;
 
   const filters = [
-    { id: 'all', label: 'Barchasi', icon: <LayoutGrid size={16} /> },
-    { id: 'reading', label: 'Reading', icon: <BookOpen size={16} /> },
-    { id: 'listening', label: 'Listening', icon: <Headphones size={16} /> },
-    { id: 'writing', label: 'Writing', icon: <PenTool size={16} /> },
-    { id: 'speaking', label: 'Speaking', icon: <Mic size={16} /> },
-    { id: 'mock_full', label: 'Mock Tests', icon: <Award size={16} /> },
+    { id: 'all', label: 'All', icon: 'apps' },
+    { id: 'reading', label: 'Reading', icon: 'menu_book' },
+    { id: 'listening', label: 'Listening', icon: 'headphones' },
+    { id: 'writing', label: 'Writing', icon: 'edit' },
+    { id: 'speaking', label: 'Speaking', icon: 'mic' },
+    { id: 'mock_full', label: 'Mock Tests', icon: 'grade' },
   ];
 
   useEffect(() => {
@@ -301,282 +301,201 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
   }
 
   return (
-    <div className={`min-h-screen font-sans text-[#1d1d1f] antialiased ${isComponent ? 'min-h-0 bg-transparent' : 'bg-[#f8f9fb]'}`}>
+    <div className={`min-h-screen bg-parchment text-ink selection:bg-action-blue selection:text-white ${isComponent ? 'min-h-0 bg-transparent' : ''}`}>
       {!isComponent && (
-        <DashboardHeader
-            user={user}
-            userData={userData}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            onLogoutClick={() => {
-                if (window.confirm("Haqiqatan ham hisobdan chiqmoqchimisiz?")) {
-                    logout();
-                }
-            }}
-        />
+        <div className="sticky top-0 z-[100] w-full">
+          <DashboardHeader
+              user={user}
+              userData={userData}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onLogoutClick={() => {
+                  if (window.confirm("Haqiqatan ham hisobdan chiqmoqchimisiz?")) {
+                      logout();
+                  }
+              }}
+          />
+          <nav className="w-full h-[52px] bg-stone-50/80 backdrop-blur-xl flex items-center border-b border-divider-soft">
+              <div className="w-full px-8 h-full flex items-center justify-between">
+                <div className="flex items-center gap-x-8">
+                  <span className="text-lg font-semibold text-neutral-900">Results</span>
+                  <div className="hidden md:flex items-center gap-x-6 h-[52px]">
+                    {filters.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setFilterType(f.id)}
+                        className={`font-inter text-[15px] font-medium transition-colors h-full flex items-center border-b-2 ${
+                          filterType === f.id 
+                          ? 'text-blue-600 border-blue-600' 
+                          : 'text-neutral-500 hover:text-neutral-900 border-transparent'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+          </nav>
+        </div>
       )}
 
-      <main className={`mx-auto ${isComponent ? 'px-0 pt-0 pb-0' : 'max-w-[1200px] px-6 pt-10 pb-24'}`}>
-        
+      <main className={`max-w-6xl mx-auto ${isComponent ? 'px-0 pt-0 pb-0' : 'pt-12 pb-section px-8'}`}>
         {!isComponent && (
-            <>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-                    <div>
-                        <h1 className="text-[32px] font-bold text-[#1d1d1f] mb-1">Natijalarim</h1>
-                        <p className="text-[#86868b] text-sm font-medium">Barcha topshirilgan testlar tarixi</p>
-                    </div>
-
-                    <div className="flex flex-1 max-w-md items-center bg-white border border-gray-200 rounded-full px-4 py-2 mx-0 md:mx-8 shadow-sm">
-                        <Search size={18} className="text-gray-400 mr-2" />
-                        <input 
-                            type="text" 
-                            placeholder="Test nomini qidiring..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-transparent border-none outline-none text-sm w-full"
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
-                            <Download size={16} />
-                            Export
-                        </button>
-                    </div>
-                </div>
-
-                {/* APPLE STYLE SEGMENTED CONTROL FILTER */}
-                <div className="flex items-center justify-start overflow-x-auto hide-scrollbar mb-10 bg-zinc-100 p-1 rounded-xl w-fit max-w-full">
-                    {filters.map((f) => {
-                        const isActive = filterType === f.id;
-                        return (
-                            <button
-                                key={f.id}
-                                onClick={() => setFilterType(f.id)}
-                                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-[12px] font-bold transition-colors duration-200 whitespace-nowrap z-10 ${
-                                    isActive ? 'text-blue-600' : 'text-zinc-500 hover:text-zinc-800'
-                                }`}
-                            >
-                                {isActive && (
-                                    <motion.div
-                                        layoutId="activeFilter"
-                                        className="absolute inset-0 bg-white rounded-lg shadow-sm z-[-1]"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                    />
-                                )}
-                                <span className={isActive ? 'text-blue-600' : 'text-zinc-400'}>
-                                    {f.icon}
-                                </span>
-                                {f.label}
-                            </button>
-                        );
-                    })}
-                </div>
-            </>
+          <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <h1 className="font-display-md text-display-md text-ink">Natijalarim</h1>
+              <p className="font-body text-body text-ink-muted-48 mt-2">Barcha topshirilgan imtihonlaringizning batafsil statistikasi.</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="relative w-full md:w-64">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted-48 text-[20px]">search</span>
+                <input 
+                  type="text" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-white border border-hairline rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-action-blue transition-all" 
+                  placeholder="Qidirish..." 
+                />
+              </div>
+              <button className="flex items-center gap-2 bg-white border border-hairline px-4 py-2.5 rounded-full text-sm font-medium hover:bg-pearl transition-colors active:scale-95">
+                <span className="material-symbols-outlined text-[18px]">ios_share</span>
+                Eksport
+              </button>
+            </div>
+          </header>
         )}
 
-        {filteredResults.length === 0 && !loading ? (
-          <div className="flex flex-col items-center justify-center py-32 bg-white rounded-xl border border-gray-100 text-center px-6 shadow-sm">
-            <div className="w-16 h-16 bg-[#f8f9fb] rounded-full flex items-center justify-center mb-6">
-              <FileText size={32} className="text-[#86868b]" />
-            </div>
-            <h3 className="text-xl font-bold mb-2">Natijalar topilmadi</h3>
-            <p className="text-[#86868b] mb-8 text-sm">Tanlangan filtr bo'yicha hech qanday natija mavjud emas.</p>
-            <button 
+        <div className="flex flex-col gap-4 max-w-[1200px]">
+          {filteredResults.length === 0 && !loading ? (
+            <div className="flex flex-col items-center justify-center py-32 bg-white rounded-xl border border-hairline text-center px-6">
+              <span className="material-symbols-outlined text-[48px] text-ink-muted-48 mb-4">search_off</span>
+              <h3 className="text-xl font-bold mb-2">Natijalar topilmadi</h3>
+              <p className="text-ink-muted-48 mb-8 text-sm">Tanlangan filtr bo'yicha hech qanday natija mavjud emas.</p>
+              <button 
                 onClick={() => {setFilterType('all'); setSearchTerm('');}} 
-                className="text-blue-600 font-bold text-sm hover:underline"
-            >
+                className="text-action-blue font-bold text-sm hover:underline"
+              >
                 Filtrlarni tozalash
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredResults.map((res) => {
+              </button>
+            </div>
+          ) : (
+            filteredResults.map((res) => {
               const theme = getTestTheme(res.type);
               const bandScore = (res.type === 'reading' || res.type === 'listening')
                 ? (res.bandScore || calculateBandScore(res.score, res.type, res.totalQuestions))
                 : (res.type === 'writing' ? (res.writingBand || res.bandScore) : res.score);
               const isGraded = res.status === 'graded' || res.writingBand != null || res.bandScore != null || (res.score !== null && res.type !== 'mock_full');
-
-              const totalQ = res.totalQuestions || (res.answers ? Object.keys(res.answers).length : 40);
-              const correct = res.score || 0;
-              const incorrect = totalQ - correct;
+              
+              const dateObj = new Date(res.date);
+              const day = dateObj.getDate();
+              const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+              const time = dateObj.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
 
               return (
-                <div
+                <div 
                   key={res.id}
                   onClick={() => navigate(`/review/${res.id}`)}
-                  className="group relative flex flex-col md:flex-row items-stretch bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  className="group bg-white rounded-xl border border-hairline p-5 flex items-center gap-6 hover:bg-white transition-all active:scale-[0.99] cursor-pointer"
                 >
-                  {/* Date Badge Section - IDP Style */}
-                  <div className="w-[80px] shrink-0 bg-[#3a3a44] flex flex-col items-center justify-center py-4 text-white">
-                    <span className="text-[14px] font-bold tracking-tight opacity-90 uppercase">
-                      {new Date(res.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                    </span>
-                    <div className="w-6 h-px bg-white/20 my-1" />
-                    <span className="text-[28px] font-black leading-none my-1">
-                      {new Date(res.date).getDate()}
-                    </span>
-                    <span className="text-[14px] font-bold tracking-tight opacity-90 uppercase">
-                      {new Date(res.date).toLocaleDateString('en-US', { month: 'short' })}
-                    </span>
+                  <div className="flex-shrink-0 w-16 h-16 bg-tile-dark-1 rounded-lg flex flex-col items-center justify-center text-white">
+                    <span className="text-xs font-medium opacity-80">{month}</span>
+                    <span className="text-xl font-bold">{day}</span>
                   </div>
-
-                  <div className="flex flex-1 flex-col md:flex-row md:items-center p-6 gap-6">
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col mb-4">
-                        <h3 className="text-[15px] font-bold text-[#1d1d1f] tracking-tight line-clamp-1 leading-snug">
-                          {res.title || res.testTitle || (res.type === 'mock_full' ? "IELTS Mock Exam" : "Practice Test")}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className={`text-[9px] font-black uppercase tracking-[0.15em] ${theme.text}`}>{theme.label}</span>
-                          <div className="w-1 h-1 rounded-full bg-zinc-200" />
-                          <div className="flex items-center gap-3 text-[10px] font-medium text-zinc-400">
-                            <div className="flex items-center gap-1">
-                              <Calendar size={11} strokeWidth={2} />
-                              {formatDate(res.date)}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock size={11} strokeWidth={2} />
-                              {res.timeTaken ? `${Math.floor(res.timeTaken / 60)}m ${res.timeTaken % 60}s` : "20m"}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {/* Rating Component - Subtle */}
-                        <div className="flex items-center gap-0.5 bg-zinc-50 px-1.5 py-1 rounded-lg border border-zinc-100">
-                          {[1, 2, 3, 4, 5].map((s) => {
-                            const testId = res.testId || res.id;
-                            const currentRating = userRatings[testId] || 0;
-                            const isLit = (hoveredRating.id === res.id && hoveredRating.value >= s) || (currentRating >= s);
-                            return (
-                              <button
-                                key={s}
-                                onMouseEnter={() => setHoveredRating({ id: res.id, value: s })}
-                                onMouseLeave={() => setHoveredRating({ id: null, value: 0 })}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleQuickRate(res, s);
-                                }}
-                                className="p-0.5 transition-transform active:scale-90"
-                              >
-                                <Star 
-                                  size={11} 
-                                  className={`transition-colors ${
-                                    isLit 
-                                    ? 'fill-amber-400 text-amber-400' 
-                                    : 'text-zinc-200'
-                                  }`} 
-                                />
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedResult(res);
-                            setIsCommentsOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg bg-zinc-50 text-zinc-400 hover:text-zinc-900 transition-colors border border-zinc-100"
-                        >
-                          <MessageSquare size={12} strokeWidth={2.5} />
-                        </button>
+                  <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="font-body-strong text-body-strong text-ink line-clamp-1">
+                        {res.title || res.testTitle || (res.type === 'mock_full' ? "IELTS Mock Exam" : "Practice Test")}
+                      </h3>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[12px] font-bold tracking-widest text-action-blue uppercase">{theme.label}</span>
+                        <span className="text-[12px] text-ink-muted-48 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">schedule</span>
+                          {time}
+                        </span>
                       </div>
                     </div>
-
-                    {/* Stats & Band Section */}
-                    <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center px-6 md:px-10 md:border-l border-zinc-100 min-w-[150px] gap-3 bg-zinc-50/50 md:bg-transparent py-4 md:py-0">
-                      {isGraded ? (
-                        <>
-                          <div className="flex flex-col items-center md:items-end">
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-[28px] font-black text-zinc-900 tracking-tighter leading-none">
-                                {res.type === 'mock_full' 
-                                  ? Number(res.scores?.overallBand || res.overallBand || 0).toFixed(1)
-                                  : Number(bandScore || 0).toFixed(1)}
-                              </span>
-                              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Band</span>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col items-center md:items-end">
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-baseline gap-0.5">
-                                <span className="text-[13px] font-bold text-zinc-900">{correct}</span>
-                                <span className="text-[10px] font-medium text-zinc-400">/{totalQ}</span>
-                              </div>
-                              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 bg-opacity-40" />
-                            </div>
-                            <div className="text-[8px] font-black text-zinc-300 uppercase tracking-[0.2em] mt-0.5">SCORE</div>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex flex-col items-center md:items-end gap-1.5">
-                          <div className="w-6 h-6 rounded-full border-2 border-zinc-200 border-t-zinc-900 animate-spin" />
-                          <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Grading</span>
+                    <div className="flex items-center md:justify-end gap-12">
+                      <div className="text-right">
+                        <div className="font-display-md text-display-md text-ink leading-none">
+                          {isGraded ? (
+                            <>
+                              {res.type === 'mock_full' 
+                                ? Number(res.scores?.overallBand || res.overallBand || 0).toFixed(1)
+                                : Number(bandScore || 0).toFixed(1)}
+                              <span className="text-sm font-medium text-ink-muted-48 uppercase ml-1">Band</span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-medium text-ink-muted-48">Grading...</span>
+                          )}
                         </div>
-                      )}
-                    </div>
-
-                    <div className="hidden lg:flex items-center justify-center pl-2">
-                      <div className="w-8 h-8 rounded-full bg-zinc-50 text-zinc-300 group-hover:text-zinc-900 transition-colors flex items-center justify-center">
-                        <ArrowRight size={16} strokeWidth={2.5} />
+                        {isGraded && (
+                          <div className="text-sm text-ink-muted-48 mt-1 uppercase">
+                            {res.score !== undefined ? `${res.score}/${res.totalQuestions || 40} SCORE` : "EVALUATED"}
+                          </div>
+                        )}
                       </div>
+                      <span className="material-symbols-outlined text-ink-muted-48 group-hover:text-action-blue transition-colors">chevron_right</span>
                     </div>
                   </div>
                 </div>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
 
         {!isComponent && (
-            <div className="flex justify-center items-center mt-12 gap-4">
-              <button
-                onClick={fetchPrev}
-                disabled={pageHistory.length === 0 || loading}
-                className="w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
-              >
-                <ChevronLeft size={20} />
-              </button>
-
-              <div className="text-[14px] font-bold text-gray-600 bg-white border border-gray-200 px-5 py-2 rounded-full shadow-sm">
-                {pageHistory.length + 1}
-              </div>
-
-              <button
-                onClick={fetchNext}
-                disabled={!isNextAvailable || loading}
-                className="w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
-              >
-                <ChevronRight size={20} />
-              </button>
+          <div className="mt-16 flex justify-center items-center gap-2">
+            <button 
+              onClick={fetchPrev}
+              disabled={pageHistory.length === 0 || loading}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border border-hairline hover:bg-divider-soft transition-colors disabled:opacity-30"
+            >
+              <span className="material-symbols-outlined">chevron_left</span>
+            </button>
+            <div className="flex items-center gap-2">
+               {/* Simplified pagination for demo/template feel */}
+               <button className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-action-blue text-white">
+                 {pageHistory.length + 1}
+               </button>
             </div>
-        )}
-
-        {isComponent && filteredResults.length > itemsPerPage && (
-            <div className="mt-8 text-center">
-                <button 
-                    onClick={() => navigate('/my-results')}
-                    className="text-[14px] font-bold text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-full transition-all flex items-center justify-center gap-2 mx-auto border border-blue-100"
-                >
-                    Barcha natijalarni ko'rish <ArrowRight size={16} />
-                </button>
-            </div>
+            <button 
+              onClick={fetchNext}
+              disabled={!isNextAvailable || loading}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border border-hairline hover:bg-divider-soft transition-colors disabled:opacity-30"
+            >
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
         )}
       </main>
-      
-      {!isComponent && <SiteFooter />}
+
+      {!isComponent && (
+        <>
+          <section className="w-full bg-white py-section border-t border-hairline">
+            <div className="max-w-6xl mx-auto px-8">
+              <div className="flex flex-col items-center text-center mb-16">
+                <span className="text-action-blue font-semibold tracking-widest uppercase text-xs mb-4">Motivation</span>
+                <h2 className="font-display-md text-3xl max-w-2xl">Muvaffaqiyat kaliti tinimsiz mehnatdadir.</h2>
+              </div>
+              <div className="relative rounded-2xl overflow-hidden aspect-[21/9]">
+                <img 
+                  className="w-full h-full object-cover" 
+                  alt="A focused student sitting in a bright, modern library"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHrx_83zpVcIennaqB7KnJsIF6uwiwBRG_pMKVRI5uCWzvb413B1IkIeIvbfEpCKJ1sroDSWKULg_3EakhMM0dsInf1YsCeZov9KQcLZSWYsPY0F1Jzijf6KZBNWiq95_O_4I2TBT84SjF2YQwpH4TpGeH9ZIjsxQ1aGqkpkHImFlL0Jln6KWTqiXHWZV_nZfEfTFQZ_yzTf8m3Sxt7paawURp6mimaSShtUphLh765_Y1E8e9b-sGsyT13kOXopYgJszaI_EdPnUb"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+              </div>
+            </div>
+          </section>
+          <SiteFooter />
+        </>
+      )}
+
       {/* --- SIDE PANEL: COMMENTS --- */}
       <AnimatePresence>
         {isCommentsOpen && selectedResult && (
           <>
-            {/* Overlay */}
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -584,7 +503,6 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
               onClick={() => setIsCommentsOpen(false)}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000]"
             />
-            {/* Panel */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -601,7 +519,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                   onClick={() => setIsCommentsOpen(false)}
                   className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
                 >
-                  <X size={20} />
+                  <span className="material-symbols-outlined">close</span>
                 </button>
               </div>
               
@@ -616,7 +534,6 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
           </>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
