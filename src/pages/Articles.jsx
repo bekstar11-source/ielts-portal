@@ -156,7 +156,7 @@ export default function Articles() {
                                                 </div>
                                             )}
                                             <span className="text-[13px] font-medium text-[#242424]">{article.author}</span>
-                                            {article.isFeatured && <Star size={12} className="text-yellow-500 fill-yellow-500 ml-1" />}
+                                            {(article.isFeatured || article.isMemberOnly) && <Star size={12} className="text-yellow-500 fill-yellow-500 ml-1" />}
                                         </div>
 
                                         {/* Title & Excerpt */}

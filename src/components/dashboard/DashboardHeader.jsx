@@ -48,9 +48,10 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
     { id: 'library', label: 'IELTS', path: '/library' },
     { id: 'podcasts', label: 'Podcasts', path: '/podcasts' },
     { id: 'articles', label: 'Articles', path: '/articles' },
-    { id: 'pricing', label: 'Pricing', path: '/pricing' },
     { id: 'results', label: 'Natijalar', path: '/my-results' },
     { id: 'leaderboard', label: 'Reyting', path: '/leaderboard' },
+    { id: 'vocabulary', label: 'Wordbank', path: '/vocabulary' },
+    { id: 'pricing', label: 'Pricing', path: '/pricing' },
   ];
 
   const isPro = userData?.isPro || userData?.isPremium || userData?.accountType === 'premium' || userData?.accountType === 'pro';

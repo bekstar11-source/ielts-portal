@@ -4,11 +4,13 @@ import {
   ChevronLeft, BookMarked, Share2, 
   Type, MessageSquare, CheckCircle2,
   ArrowRight, ExternalLink, Clock, User,
-  Star, PlayCircle, MoreHorizontal
+  Star, PlayCircle, MoreHorizontal, Send, 
+  X, MessageSquare as MessageSquareIcon, Sparkles, Volume2,
+  Pause, Play
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from "../firebase/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import { useAuth } from '../context/AuthContext';
 import SiteFooter from '../components/common/SiteFooter';
@@ -21,8 +23,19 @@ export default function ArticleReading() {
   const [loading, setLoading] = useState(true);
   const [textSize, setTextSize] = useState('text-lg'); // text-base, text-lg, text-xl
   const [completed, setCompleted] = useState(false);
-  const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  
+  // Interaction states
+  const [claps, setClaps] = useState(0);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [isClapping, setIsClapping] = useState(false);
+  
+  // Speech states
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [currentBlockIndex, setCurrentBlockIndex] = useState(-1);
+  const [synth, setSynth] = useState(window.speechSynthesis);
 
   useEffect(() => {
     fetchArticle();
@@ -34,7 +47,10 @@ export default function ArticleReading() {
         const docRef = doc(db, "articles", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            setArticle({ id: docSnap.id, ...docSnap.data() });
+            const data = docSnap.data();
+            setArticle({ id: docSnap.id, ...data });
+            setClaps(data.claps || 0);
+            setComments(data.comments || []);
         } else {
             console.error("Article not found");
             navigate('/articles');
@@ -46,10 +62,123 @@ export default function ArticleReading() {
     }
   };
 
-  const handleQuizSubmit = () => {
-    setQuizSubmitted(true);
-    setCompleted(true);
+  const handleClap = async () => {
+    if (!article) return;
+    setIsClapping(true);
+    const newClapCount = claps + 1;
+    setClaps(newClapCount);
+    
+    try {
+      const docRef = doc(db, "articles", id);
+      await updateDoc(docRef, { claps: newClapCount });
+    } catch (err) {
+      console.error("Error updating claps:", err);
+    }
+    
+    setTimeout(() => setIsClapping(false), 300);
   };
+
+  const handlePostComment = async () => {
+    if (!newComment.trim() || !user) return;
+    
+    const commentData = {
+      id: Date.now(),
+      text: newComment,
+      userId: user.uid,
+      userName: userData?.fullName || user.email?.split('@')[0] || "User",
+      userAvatar: userData?.avatar || null,
+      createdAt: new Date().toISOString()
+    };
+    
+    // Optimistic update
+    setComments(prev => [commentData, ...prev]);
+    const tempComment = newComment;
+    setNewComment("");
+    
+    try {
+      const docRef = doc(db, "articles", id);
+      await updateDoc(docRef, { 
+        comments: arrayUnion(commentData) 
+      });
+    } catch (err) {
+      console.error("Error posting comment:", err);
+      setNewComment(tempComment); // Restore text on error
+      setComments(prev => prev.filter(c => c.id !== commentData.id)); // Rollback
+      alert("Izohni saqlashda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
+    }
+  };
+
+  const handleListen = () => {
+    if (isSpeaking && !isPaused) {
+      synth.pause();
+      setIsPaused(true);
+      return;
+    }
+
+    if (isPaused) {
+      synth.resume();
+      setIsPaused(false);
+      return;
+    }
+
+    if (!article) return;
+
+    // Get content to read
+    const isPro = userData?.isPro === true;
+    const isLocked = article.isMemberOnly && !isPro;
+    const blocksToRead = isLocked 
+      ? article.content?.slice(0, Math.ceil(article.content.length / 3)) 
+      : article.content;
+
+    if (!blocksToRead || blocksToRead.length === 0) return;
+
+    const readBlock = (index) => {
+      if (index >= blocksToRead.length) {
+        setIsSpeaking(false);
+        setCurrentBlockIndex(-1);
+        return;
+      }
+
+      setCurrentBlockIndex(index);
+      
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = blocksToRead[index].text;
+      const text = tempDiv.textContent || tempDiv.innerText || "";
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = synth.getVoices();
+      const naturalVoice = voices.find(v => v.name.includes('Natural') || v.name.includes('Google US English'));
+      if (naturalVoice) utterance.voice = naturalVoice;
+      utterance.rate = 0.95;
+
+      utterance.onend = () => {
+        if (!synth.paused) {
+          readBlock(index + 1);
+        }
+      };
+
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setCurrentBlockIndex(-1);
+      };
+
+      synth.speak(utterance);
+    };
+
+    setIsSpeaking(true);
+    setIsPaused(false);
+    synth.cancel(); // Reset any existing speech
+    readBlock(0);
+  };
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      synth.cancel();
+    };
+  }, [synth]);
+
+
 
   if (loading) {
     return (
@@ -154,18 +283,41 @@ export default function ArticleReading() {
           {/* Interaction Bar */}
           <div className="flex items-center justify-between py-4 border-y border-black/[0.05]">
             <div className="flex items-center gap-6">
-              <button className="flex items-center gap-2 text-[#6B6B6B] hover:text-[#242424] transition-all group">
-                <div className="p-1 group-hover:scale-110 transition-transform">👏</div>
-                <span className="text-[13px]">5.8K</span>
+              <button 
+                onClick={handleClap}
+                className={`flex items-center gap-2 text-[#6B6B6B] hover:text-[#242424] transition-all group ${isClapping ? 'scale-110' : ''}`}
+              >
+                <motion.div 
+                  animate={isClapping ? { scale: [1, 1.4, 1], rotate: [0, -10, 10, 0] } : {}}
+                  className="p-1 group-hover:scale-110 transition-transform text-xl"
+                >
+                  👏
+                </motion.div>
+                <span className="text-[13px] font-medium">{claps >= 1000 ? (claps/1000).toFixed(1) + 'K' : claps}</span>
               </button>
-              <button className="flex items-center gap-2 text-[#6B6B6B] hover:text-[#242424] transition-all group">
-                <MessageSquare size={20} className="group-hover:scale-110 transition-transform" />
-                <span className="text-[13px]">223</span>
+              <button 
+                onClick={() => setShowComments(true)}
+                className="flex items-center gap-2 text-[#6B6B6B] hover:text-[#242424] transition-all group"
+              >
+                <MessageSquareIcon size={20} className="group-hover:scale-110 transition-transform" />
+                <span className="text-[13px] font-medium">{comments.length}</span>
               </button>
             </div>
             <div className="flex items-center gap-4 text-[#6B6B6B]">
+              <button 
+                onClick={handleListen}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${isSpeaking ? 'bg-black text-white' : 'hover:text-[#242424] hover:bg-black/[0.03]'}`}
+              >
+                {isSpeaking ? (
+                  <Pause size={18} />
+                ) : (
+                  <Volume2 size={18} />
+                )}
+                <span className="text-[13px] font-medium">
+                  {isPaused ? 'Paused' : isSpeaking ? 'Listening...' : 'Listen'}
+                </span>
+              </button>
               <button className="p-1 hover:text-[#242424] transition-all"><BookMarked size={20} /></button>
-              <button className="p-1 hover:text-[#242424] transition-all"><PlayCircle size={20} /></button>
               <button className="p-1 hover:text-[#242424] transition-all"><Share2 size={20} /></button>
               <button className="p-1 hover:text-[#242424] transition-all"><MoreHorizontal size={20} /></button>
             </div>
@@ -188,146 +340,331 @@ export default function ArticleReading() {
           </div>
         )}
 
-        <article className={`${textSize} text-[#242424] font-serif w-full max-w-full overflow-hidden`}>
-          {article.content?.map((block, i) => (
-            block.type === 'heading' ? (
-              <h2 
-                key={i} 
-                className="font-bold text-[#242424]"
-                style={{
-                  fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
-                  lineHeight: block.style?.lineHeight || undefined,
-                  marginTop: block.style?.marginTop ? `${block.style.marginTop}px` : undefined,
-                  marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '1.5rem',
-                  fontWeight: block.style?.fontWeight || '700',
-                  letterSpacing: block.style?.letterSpacing || undefined
-                }}
-              >
-                {block.text}
-              </h2>
-            ) : (
-              <div 
-                key={i} 
-                className="opacity-100 quill-content"
-                style={{
-                  fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
-                  lineHeight: block.style?.lineHeight || '1.8',
-                  marginTop: block.style?.marginTop ? `${block.style.marginTop}px` : undefined,
-                  marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '2rem',
-                  fontWeight: block.style?.fontWeight || '400',
-                  letterSpacing: block.style?.letterSpacing || undefined,
-                  textAlign: 'left'
-                }}
-                dangerouslySetInnerHTML={{ __html: block.text }}
-              />
-            )
-          ))}
+        <article className={`${textSize} text-[#242424] font-serif article-container relative`}>
+          {(() => {
+            const isPro = userData?.isPro === true;
+            const isLocked = article.isMemberOnly && !isPro;
+            const contentToShow = isLocked 
+              ? article.content?.slice(0, Math.ceil(article.content.length / 3)) 
+              : article.content;
+
+            return (
+              <>
+                {contentToShow?.map((block, i) => {
+                  const cleanText = (block.text || '')
+                    .replace(/&nbsp;/g, ' ')
+                    .replace(/\u00A0/g, ' ');
+
+                  return block.type === 'heading' ? (
+                    <h2 
+                      key={i} 
+                      className={`font-bold text-[#242424] font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1' : ''}`}
+                      style={{
+                        fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
+                        lineHeight: block.style?.lineHeight || 1.2,
+                        marginTop: block.style?.marginTop ? `${block.style.marginTop}px` : '2.5rem',
+                        marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '1rem',
+                        fontWeight: block.style?.fontWeight || '700',
+                        letterSpacing: block.style?.letterSpacing || undefined,
+                        fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
+                      }}
+                    >
+                      {cleanText.replace(/<[^>]*>/g, '')}
+                    </h2>
+                  ) : (
+                    <div 
+                      key={i} 
+                      className={`article-body-block font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1 bg-blue-50/10' : ''}`}
+                      style={{
+                        fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
+                        lineHeight: block.style?.lineHeight || 1.8,
+                        marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '1.5rem',
+                        fontWeight: block.style?.fontWeight || '400',
+                        letterSpacing: block.style?.letterSpacing || undefined,
+                        fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
+                      }}
+                      dangerouslySetInnerHTML={{ __html: cleanText }}
+                    />
+                  );
+                })}
+
+                {isLocked && (
+                  <div className="relative mt-0">
+                    {/* The "Fade to Blur" Transition Section */}
+                    <div className="relative h-64 overflow-hidden pointer-events-none select-none">
+                      <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent via-white/80 to-white" />
+                      <div className="blur-[1.5px] opacity-40">
+                        {article.content?.slice(Math.ceil(article.content.length / 3), Math.ceil(article.content.length / 3) + 2).map((block, i) => (
+                           <div 
+                              key={i} 
+                              className="article-body-block font-serif"
+                              style={{
+                                fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
+                                lineHeight: block.style?.lineHeight || 1.8,
+                                marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '1.5rem',
+                                fontWeight: block.style?.fontWeight || '400',
+                                fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
+                              }}
+                              dangerouslySetInnerHTML={{ __html: block.text }}
+                            />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Premium Paywall Section */}
+                    <div className="relative z-20 text-center max-w-2xl mx-auto space-y-12 pt-10 pb-32 bg-white">
+                      <div className="space-y-6">
+                        <h2 className="text-3xl md:text-[42px] font-bold text-[#242424] leading-tight">
+                          Become a member to read this story, and all of IELTS Portal.
+                        </h2>
+                        <p className="text-[#6B6B6B] text-lg max-w-xl mx-auto">
+                          {article.author} put this story behind our paywall, so it’s only available to read with a paid IELTS Portal membership, which comes with a host of benefits:
+                        </p>
+                      </div>
+
+                      <div className="space-y-4 text-left max-w-lg mx-auto">
+                        {[
+                          "Access all member-only stories on IELTS Portal",
+                          "Read everything on the platform, including premium sets",
+                          "Support the expert writers and teachers you learn from",
+                          "Help build an ad-free, independent learning platform"
+                        ].map((benefit, idx) => (
+                          <div key={idx} className="flex items-start gap-4">
+                            <Star size={18} className="text-yellow-500 fill-yellow-500 mt-1 shrink-0" />
+                            <p className="text-[#242424] font-medium">{benefit}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Premium Content Preview (Circles) */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-8">
+                        {[
+                          { title: "Advanced Grammar", img: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=200&h=200&fit=crop" },
+                          { title: "Writing Task 2", img: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=200&h=200&fit=crop" },
+                          { title: "Speaking Mastery", img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=200&h=200&fit=crop" },
+                          { title: "Reading Hacks", img: "https://images.unsplash.com/photo-1506784365847-bbad939e9335?w=200&h=200&fit=crop" }
+                        ].map((item, idx) => (
+                          <div key={idx} className="flex flex-col items-center gap-3">
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-gray-100 shadow-lg">
+                              <img src={item.img} className="w-full h-full object-cover" alt={item.title} />
+                            </div>
+                            <span className="text-[13px] font-bold text-[#242424] text-center line-clamp-1">{item.title}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="pt-8">
+                        <button 
+                          onClick={() => navigate('/pricing')}
+                          className="px-12 py-3.5 bg-[#1A8917] hover:bg-[#156d12] text-white rounded-full font-bold text-lg transition-all shadow-xl shadow-[#1A8917]/20 active:scale-95"
+                        >
+                          Upgrade
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </article>
         <style>{`
-          .quill-content { 
-            overflow-wrap: break-word; 
-            word-break: normal; 
-            hyphens: none;
+          .article-container, 
+          .article-container h2, 
+          .article-container div, 
+          .article-container p, 
+          .article-container span {
+            font-family: Charter, Georgia, Cambria, "Times New Roman", Times, serif !important;
           }
-          .quill-content p { margin: 0; padding: 0; }
-          .quill-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
-          .quill-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
-          .quill-content a { color: #0066CC; text-decoration: underline; }
-          .quill-content strong { font-weight: bold; }
-          .quill-content em { font-style: italic; }
+          .article-body-block {
+            word-break: normal;
+            overflow-wrap: normal;
+            hyphens: none;
+            -webkit-hyphens: none;
+          }
+          .article-body-block p { margin-bottom: 0.75em; }
+          .article-body-block ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+          .article-body-block ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
+          .article-body-block li { margin-bottom: 0.25rem; }
+          .article-body-block a { color: #0066CC; text-decoration: underline; }
+          .article-body-block strong { font-weight: 700; }
+          .article-body-block em { font-style: italic; }
+          .article-body-block s { text-decoration: line-through; }
+          .article-body-block u { text-decoration: underline; }
         `}</style>
 
-        {/* Quiz Section */}
-        {article.quiz && article.quiz.length > 0 && (
-            <div className="mt-32">
-                {!quizSubmitted ? (
-                    <div className="p-8 md:p-12 rounded-[40px] bg-[#F5F5F7] border border-black/[0.03] shadow-inner">
-                        <div className="mb-10">
-                            <h3 className="text-2xl font-bold mb-2">Comprehension Check</h3>
-                            <p className="text-[#86868B] text-sm font-medium">Test your understanding of the article above.</p>
-                        </div>
-                        
-                        <div className="space-y-12">
-                            {article.quiz.map((q, qIdx) => (
-                                <div key={qIdx} className="space-y-6">
-                                    <p className="font-bold text-xl leading-snug">
-                                        <span className="text-blue-600 mr-2">Q{qIdx + 1}.</span> 
-                                        {q.question}
-                                    </p>
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {q.options.map((opt, optIdx) => (
-                                            <button 
-                                                key={optIdx}
-                                                onClick={() => setSelectedAnswers({...selectedAnswers, [qIdx]: optIdx})}
-                                                className={`w-full text-left p-5 rounded-2xl border transition-all flex items-center justify-between group ${
-                                                    selectedAnswers[qIdx] === optIdx 
-                                                    ? 'bg-white border-blue-500 shadow-xl shadow-blue-500/5' 
-                                                    : 'bg-white border-black/[0.03] hover:border-blue-300'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[10px] font-bold transition-all ${
-                                                        selectedAnswers[qIdx] === optIdx ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 text-gray-400'
-                                                    }`}>
-                                                        {String.fromCharCode(65 + optIdx)}
-                                                    </div>
-                                                    <span className="font-bold">{opt}</span>
-                                                </div>
-                                                <ArrowRight size={18} className={`text-blue-600 transition-all ${selectedAnswers[qIdx] === optIdx ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0'}`} />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
 
-                        <button 
-                            disabled={Object.keys(selectedAnswers).length < article.quiz.length}
-                            onClick={handleQuizSubmit}
-                            className="w-full mt-12 py-5 bg-[#1d1d1f] text-white rounded-[24px] font-black text-lg shadow-2xl shadow-black/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100"
-                        >
-                            Submit Answers
-                        </button>
-                    </div>
-                ) : (
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="p-12 rounded-[48px] bg-blue-50 border border-blue-100 text-center relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 p-8 opacity-10">
-                            <CheckCircle2 size={120} />
-                        </div>
-                        <div className="relative z-10">
-                            <div className="w-20 h-20 rounded-full bg-blue-600 text-white flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-600/30">
-                                <CheckCircle2 size={40} />
-                            </div>
-                            <h3 className="text-3xl font-bold text-blue-900 mb-4">Reading Complete!</h3>
-                            <p className="text-blue-700/80 mb-10 font-bold text-lg max-w-md mx-auto">
-                                Great job! You've successfully read the article and completed the comprehension check.
-                            </p>
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                <button 
-                                    onClick={() => navigate('/articles')}
-                                    className="px-10 py-5 bg-blue-600 text-white rounded-3xl font-black shadow-xl shadow-blue-600/20 hover:bg-blue-500 transition-all w-full sm:w-auto"
-                                >
-                                    Browse More Articles
-                                </button>
-                                <button 
-                                    onClick={() => navigate('/dashboard')}
-                                    className="px-10 py-5 bg-white text-blue-600 border border-blue-100 rounded-3xl font-black hover:bg-white/50 transition-all w-full sm:w-auto"
-                                >
-                                    Go to Dashboard
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
+        {/* Bottom Comment Section - Moved Higher */}
+        <section className="mt-20 border-t border-black/[0.05] pt-12 pb-32">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-2xl font-bold text-[#242424]">Responses ({comments.length})</h3>
+          </div>
+
+          {/* Inline Input Area */}
+          <div className="bg-white p-6 rounded-3xl border border-black/[0.05] shadow-sm mb-12 group focus-within:border-blue-500 transition-all">
+            <div className="flex gap-4 mb-4">
+              {userData?.avatar ? (
+                <img src={userData.avatar} className="w-10 h-10 rounded-full border border-black/[0.05]" alt="me" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
+                  {userData?.fullName?.charAt(0) || user?.email?.charAt(0)}
+                </div>
+              )}
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-[#242424]">{userData?.fullName || "Your Response"}</span>
+                <span className="text-xs text-gray-500">Share your thoughts</span>
+              </div>
             </div>
-        )}
+            <textarea 
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="What are your thoughts?"
+              className="w-full bg-transparent border-none focus:ring-0 text-[16px] min-h-[100px] resize-none placeholder-gray-400"
+            />
+            <div className="flex justify-end pt-4 border-t border-black/[0.02]">
+              <button 
+                disabled={!newComment.trim()}
+                onClick={handlePostComment}
+                className="px-6 py-2.5 bg-[#1A8917] hover:bg-[#156d12] text-white rounded-full text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2 active:scale-95"
+              >
+                Publish <Send size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Comments Feed */}
+          <div className="space-y-10">
+            {comments.length > 0 ? comments.map((comment) => (
+              <div key={comment.id} className="space-y-4">
+                <div className="flex items-center gap-3">
+                  {comment.userAvatar ? (
+                    <img src={comment.userAvatar} className="w-9 h-9 rounded-full border border-black/[0.05]" alt={comment.userName} />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-400">
+                      {comment.userName?.charAt(0)}
+                    </div>
+                  )}
+                  <div className="flex flex-col">
+                    <span className="text-[14px] font-bold text-[#242424]">{comment.userName}</span>
+                    <span className="text-[12px] text-[#6B6B6B]">{new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                </div>
+                <p className="text-[16px] leading-relaxed text-[#242424] pl-12 font-serif">
+                  {comment.text}
+                </p>
+                <div className="pl-12 flex items-center gap-4 text-gray-400">
+                  <button className="flex items-center gap-1.5 hover:text-[#242424] transition-colors">
+                    👏 <span className="text-xs font-medium">Helpful</span>
+                  </button>
+                  <button className="text-xs font-medium hover:text-[#242424] transition-colors">Reply</button>
+                </div>
+              </div>
+            )) : (
+              <div className="py-16 text-center space-y-4 bg-gray-50/50 rounded-[40px] border border-dashed border-gray-200">
+                <p className="text-gray-500 text-sm">No responses yet. Be the first to share your thoughts.</p>
+              </div>
+            )}
+          </div>
+        </section>
       </main>
 
+
+
       <SiteFooter />
+
+      {/* Comments Drawer */}
+      <AnimatePresence>
+        {showComments && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowComments(false)}
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100]"
+            />
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-[101] flex flex-col"
+            >
+              <div className="p-6 border-b border-black/[0.05] flex items-center justify-between">
+                <h3 className="text-xl font-bold">Responses ({comments.length})</h3>
+                <button 
+                  onClick={() => setShowComments(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                {/* Input Area */}
+                <div className="bg-white p-4 rounded-2xl border border-black/[0.05] shadow-sm mb-4">
+                  <div className="flex gap-3 mb-3">
+                    {userData?.avatar ? (
+                      <img src={userData.avatar} className="w-8 h-8 rounded-full" alt="me" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">
+                        {userData?.fullName?.charAt(0) || user?.email?.charAt(0)}
+                      </div>
+                    )}
+                    <span className="text-sm font-medium">{userData?.fullName || "Writing response..."}</span>
+                  </div>
+                  <textarea 
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="What are your thoughts?"
+                    className="w-full bg-transparent border-none focus:ring-0 text-sm min-h-[100px] resize-none"
+                  />
+                  <div className="flex justify-end pt-2">
+                    <button 
+                      disabled={!newComment.trim()}
+                      onClick={handlePostComment}
+                      className="px-4 py-2 bg-[#1A8917] hover:bg-[#156d12] text-white rounded-full text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-2"
+                    >
+                      Respond <Send size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Comments List */}
+                <div className="space-y-6">
+                  {comments.length > 0 ? comments.map((comment) => (
+                    <div key={comment.id} className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        {comment.userAvatar ? (
+                          <img src={comment.userAvatar} className="w-8 h-8 rounded-full border border-black/[0.05]" alt={comment.userName} />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400">
+                            {comment.userName?.charAt(0)}
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{comment.userName}</span>
+                          <span className="text-[12px] text-[#6B6B6B]">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <p className="text-[14px] leading-relaxed text-[#242424] pl-11">
+                        {comment.text}
+                      </p>
+                    </div>
+                  )) : (
+                    <div className="py-12 text-center space-y-3">
+                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-300">
+                        <MessageSquareIcon size={32} />
+                      </div>
+                      <p className="text-gray-400 text-sm">No responses yet. Be the first to respond.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -84,7 +84,11 @@ service cloud.firestore {
     // ARTICLES (Maqolalar)
     match /articles/{articleId} {
       allow read: if isAuth();
-      allow write: if isAdmin() || isTeacher();
+      allow update: if isAuth() && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claps', 'comments']) ||
+        isAdmin() || isTeacher()
+      );
+      allow create, delete: if isAdmin() || isTeacher();
     }
 
     // LOGS

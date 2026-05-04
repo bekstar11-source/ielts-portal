@@ -18,7 +18,8 @@ import {
     ChevronRight, X, Save, Layout, List, 
     Type, MessageSquare, CheckCircle2, Trash,
     Upload, ImageIcon, Loader2, Settings2, Sliders,
-    AlignLeft, AlignCenter, AlignRight, Bold
+    AlignLeft, AlignCenter, AlignRight, Bold, Sparkles, Wand2,
+    User, Star
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -36,6 +37,8 @@ export default function AdminArticles() {
     const [showModal, setShowModal] = useState(false);
     const [editingArticle, setEditingArticle] = useState(null);
     const [processing, setProcessing] = useState(false);
+    const [showAIModal, setShowAIModal] = useState(false);
+    const [aiInput, setAiInput] = useState("");
 
     // Form state
     const [formData, setFormData] = useState({
@@ -209,6 +212,49 @@ export default function AdminArticles() {
         setFormData(prev => ({ ...prev, quiz: newQuiz }));
     };
 
+    const handleAIFormat = () => {
+        if (!aiInput.trim()) return;
+        
+        setProcessing(true);
+        
+        // Simulate AI processing delay
+        setTimeout(() => {
+            const lines = aiInput.split('\n').filter(line => line.trim() !== '');
+            const newContent = [];
+            
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                // Simple heuristic for headings: short, no ending punctuation, or starts with number
+                const isHeading = trimmed.length < 100 && 
+                                (!trimmed.endsWith('.') || /^\d+\./.test(trimmed) || trimmed === trimmed.toUpperCase());
+                
+                if (isHeading) {
+                    newContent.push({
+                        type: 'heading',
+                        text: trimmed,
+                        style: { fontSize: 32, lineHeight: 1.2, marginTop: 40, marginBottom: 20, fontWeight: '700', letterSpacing: '-0.02em' }
+                    });
+                } else {
+                    newContent.push({
+                        type: 'paragraph',
+                        text: trimmed,
+                        style: { fontSize: 18, lineHeight: 1.8, marginTop: 0, marginBottom: 32, fontWeight: '400', letterSpacing: '0' }
+                    });
+                }
+            });
+
+            if (newContent.length > 0) {
+                setFormData(prev => ({
+                    ...prev,
+                    content: [...prev.content.filter(c => c.text !== ""), ...newContent]
+                }));
+                setShowAIModal(false);
+                setAiInput("");
+            }
+            setProcessing(false);
+        }, 1000);
+    };
+
     const filteredArticles = articles.filter(a => 
         a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.category.toLowerCase().includes(searchTerm.toLowerCase())
@@ -291,68 +337,95 @@ export default function AdminArticles() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <AnimatePresence>
                     {loading ? (
-                        [1,2,3].map(i => (
-                            <div key={i} className="h-64 bg-white dark:bg-[#1E1E1E] rounded-[32px] border border-gray-100 dark:border-white/5 animate-pulse" />
+                        [1,2,3,4,5,6].map(i => (
+                            <div key={i} className="h-[320px] bg-white dark:bg-[#1E1E1E] rounded-[32px] border border-black/[0.03] dark:border-white/5 animate-pulse" />
                         ))
                     ) : filteredArticles.length > 0 ? (
                         filteredArticles.map((article) => (
                             <motion.div 
                                 key={article.id}
                                 layout
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="group bg-white dark:bg-[#1E1E1E] rounded-[32px] border border-gray-100 dark:border-white/5 overflow-hidden hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 flex flex-col"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="group bg-white dark:bg-[#1E1E1E] rounded-[40px] border border-black/[0.03] dark:border-white/5 overflow-hidden hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 flex flex-col relative"
                             >
-                                <div className="p-6 flex-1">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                {/* Cover Preview */}
+                                <div className="h-40 w-full relative overflow-hidden bg-gray-100 dark:bg-white/5">
+                                    {article.imageUrl ? (
+                                        <img src={article.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                            <ImageIcon size={40} />
+                                        </div>
+                                    )}
+                                    <div className="absolute top-4 left-4 flex gap-2">
+                                        <span className="px-3 py-1 bg-white/90 backdrop-blur-md text-[10px] font-bold rounded-full uppercase tracking-wider text-black shadow-sm">
                                             {article.category}
                                         </span>
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {article.isMemberOnly && (
+                                            <span className="px-3 py-1 bg-yellow-400 text-black text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
+                                                <Star size={10} className="fill-black" /> Pro
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="p-6 flex-1 flex flex-col">
+                                    <h3 className="text-xl font-bold leading-tight mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                        {article.title}
+                                    </h3>
+                                    
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-[10px] font-bold text-gray-400 overflow-hidden">
+                                            {article.authorAvatar ? (
+                                                <img src={article.authorAvatar} className="w-full h-full object-cover" />
+                                            ) : article.author?.charAt(0)}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-[#242424] dark:text-white/80">{article.author}</span>
+                                            <span className="text-[10px] text-gray-400">{article.readTime}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-auto pt-4 border-t border-black/[0.03] dark:border-white/5 flex items-center justify-between">
+                                        <div className="flex items-center gap-3 text-gray-400">
+                                            <div className="flex items-center gap-1">
+                                                <MessageSquare size={14} />
+                                                <span className="text-[11px] font-bold">{article.quiz?.length || 0}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <span>👏</span>
+                                                <span className="text-[11px] font-bold">{article.claps || 0}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
                                             <button 
                                                 onClick={() => handleOpenModal(article)}
-                                                className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-400 hover:text-blue-500 transition-colors"
+                                                className="p-2.5 bg-gray-50 dark:bg-white/5 hover:bg-blue-500 hover:text-white rounded-xl transition-all"
+                                                title="Edit"
                                             >
                                                 <Edit2 size={16} />
                                             </button>
                                             <button 
                                                 onClick={() => handleDelete(article.id)}
-                                                className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+                                                className="p-2.5 bg-gray-50 dark:bg-white/5 hover:bg-red-500 hover:text-white rounded-xl transition-all text-red-500 group-hover:text-red-500"
+                                                title="Delete"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </div>
-                                    <h3 className="text-xl font-bold leading-tight mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
-                                        {article.title}
-                                    </h3>
-                                    <p className="text-gray-500 dark:text-gray-400 text-xs flex items-center gap-2 mb-4">
-                                        <span>{article.author}</span>
-                                        <span>•</span>
-                                        <span>{article.readTime}</span>
-                                    </p>
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
-                                        <MessageSquare size={12} />
-                                        <span>{article.quiz?.length || 0} questions</span>
-                                    </div>
-                                </div>
-                                <div className="p-4 border-t border-gray-50 dark:border-white/5 bg-gray-50/50 dark:bg-white/2">
-                                    <button 
-                                        onClick={() => handleOpenModal(article)}
-                                        className="w-full py-2 flex items-center justify-center gap-2 text-sm font-bold text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all"
-                                    >
-                                        Tahrirlash <ChevronRight size={16} />
-                                    </button>
                                 </div>
                             </motion.div>
                         ))
                     ) : (
                         <div className="col-span-full py-20 text-center space-y-4">
-                            <div className="w-20 h-20 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-gray-400">
-                                <BookOpen size={40} />
+                            <div className="w-24 h-24 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-gray-400">
+                                <BookOpen size={48} />
                             </div>
-                            <p className="text-gray-500 font-medium">Hozircha maqolalar yo'q.</p>
+                            <h3 className="text-xl font-bold">No articles yet</h3>
+                            <p className="text-gray-500 max-w-xs mx-auto">Click "Yangi maqola" to create your first premium content.</p>
                         </div>
                     )}
                 </AnimatePresence>
@@ -489,25 +562,40 @@ export default function AdminArticles() {
                                                 onChange={(e) => setFormData({...formData, readTime: e.target.value})}
                                             />
                                         </div>
-                                        <div className="flex items-center gap-6 mt-4">
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input 
-                                                    type="checkbox"
-                                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    checked={formData.isFeatured}
-                                                    onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
-                                                />
-                                                <span className="text-sm font-bold">Featured (Yulduzcha)</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input 
-                                                    type="checkbox"
-                                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    checked={formData.isMemberOnly}
-                                                    onChange={(e) => setFormData({...formData, isMemberOnly: e.target.checked})}
-                                                />
-                                                <span className="text-sm font-bold">Member-only story</span>
-                                            </label>
+                                        <div className="space-y-3 col-span-full pt-4">
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Kirish huquqi (Access Control)</label>
+                                            <div className="flex gap-4">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setFormData({...formData, isMemberOnly: false})}
+                                                    className={`flex-1 py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${!formData.isMemberOnly ? 'border-blue-600 bg-blue-50 dark:bg-blue-500/10 text-blue-600' : 'border-gray-100 dark:border-white/5 text-gray-400'}`}
+                                                >
+                                                    <User size={24} />
+                                                    <span className="font-bold text-sm">For All Members (Bepul)</span>
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setFormData({...formData, isMemberOnly: true})}
+                                                    className={`flex-1 py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.isMemberOnly ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600' : 'border-gray-100 dark:border-white/5 text-gray-400'}`}
+                                                >
+                                                    <Star size={24} className={formData.isMemberOnly ? 'fill-yellow-500' : ''} />
+                                                    <span className="font-bold text-sm">Premium (Member-only)</span>
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-4 px-1">
+                                                <label className="flex items-center gap-2 cursor-pointer group">
+                                                    <div className={`w-10 h-6 rounded-full transition-all relative ${formData.isFeatured ? 'bg-blue-600' : 'bg-gray-200 dark:bg-white/10'}`}>
+                                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.isFeatured ? 'left-5' : 'left-1'}`} />
+                                                        <input 
+                                                            type="checkbox"
+                                                            className="hidden"
+                                                            checked={formData.isFeatured}
+                                                            onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
+                                                        />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-500 group-hover:text-black transition-colors">Maqolani tanlanganlar (Featured) qatoriga qo'shish</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -516,6 +604,13 @@ export default function AdminArticles() {
                                         <div className="flex justify-between items-center">
                                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Maqola matni</label>
                                             <div className="flex gap-2">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setShowAIModal(true)}
+                                                    className="px-3 py-1.5 bg-purple-600 text-white hover:bg-purple-500 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 shadow-lg shadow-purple-600/20"
+                                                >
+                                                    <Sparkles size={14} /> AI Smart Format
+                                                </button>
                                                 <button 
                                                     type="button" 
                                                     onClick={() => addContentBlock('heading')}
@@ -742,6 +837,63 @@ export default function AdminArticles() {
                                     )}
                                     <span>Saqlash</span>
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* AI Assistant Modal */}
+            <AnimatePresence>
+                {showAIModal && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                            onClick={() => setShowAIModal(false)}
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="relative w-full max-w-2xl bg-white dark:bg-[#1E1E1E] rounded-[32px] shadow-2xl overflow-hidden p-8"
+                        >
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-3 bg-purple-100 dark:bg-purple-500/20 rounded-2xl text-purple-600">
+                                        <Sparkles size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold">AI Smart Format Assistant</h3>
+                                        <p className="text-sm text-gray-500">Xom matnni kiriting, AI uni sarlavha va paragraflarga ajratib beradi.</p>
+                                    </div>
+                                </div>
+
+                                <textarea 
+                                    className="w-full h-64 bg-gray-50 dark:bg-[#252525] border-none rounded-2xl p-5 text-sm focus:ring-2 focus:ring-purple-500/50 transition-all custom-scrollbar"
+                                    placeholder="Matnni bu yerga tashlang (Paste)..."
+                                    value={aiInput}
+                                    onChange={(e) => setAiInput(e.target.value)}
+                                />
+
+                                <div className="flex justify-end gap-3">
+                                    <button 
+                                        onClick={() => setShowAIModal(false)}
+                                        className="px-6 py-2.5 rounded-2xl text-sm font-bold hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
+                                    >
+                                        Bekor qilish
+                                    </button>
+                                    <button 
+                                        onClick={handleAIFormat}
+                                        disabled={processing || !aiInput.trim()}
+                                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-8 py-2.5 rounded-2xl font-bold shadow-lg shadow-purple-600/20 transition-all disabled:opacity-50"
+                                    >
+                                        {processing ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+                                        <span>AI bilan tartiblash</span>
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
