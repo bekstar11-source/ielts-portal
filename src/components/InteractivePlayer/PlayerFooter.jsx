@@ -14,9 +14,9 @@ export default function PlayerFooter({
     currentStep 
 }) {
     return (
-        <footer className={`h-20 shrink-0 border-t px-8 flex items-center justify-between relative z-20 transition-colors duration-300 ${isDark ? 'border-neutral-800 bg-[#0a0a0c]/80 backdrop-blur-xl' : 'border-zinc-100 bg-white/90 backdrop-blur-xl'}`}>
-            {/* Left: Info & Mini Video */}
-            <div className="flex items-center gap-4 w-1/4 min-w-[280px]">
+        <footer className={`h-20 shrink-0 border-t px-4 md:px-8 flex items-center justify-between relative z-20 transition-colors duration-300 ${isDark ? 'border-neutral-800 bg-[#0a0a0c]/80 backdrop-blur-xl' : 'border-zinc-100 bg-white/90 backdrop-blur-xl'}`}>
+            {/* Left: Info & Mini Video - Hidden on mobile */}
+            <div className="hidden lg:flex items-center gap-4 w-1/4 min-w-[280px]">
                 {/* Mini Video Preview for YouTube Podcasts */}
                 {podcast.mediaType === 'youtube' ? (
                     <div className="w-16 h-10 rounded bg-black overflow-hidden shadow-lg border border-white/10 shrink-0 relative group/mini">
@@ -50,9 +50,9 @@ export default function PlayerFooter({
                     
                     <button 
                         onClick={() => setIsPlaying(!isPlaying)}
-                        className={`w-8 h-8 flex items-center justify-center rounded-full hover:scale-105 transition-transform shadow-lg ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`}
+                        className={`w-9 h-9 flex items-center justify-center rounded-full hover:scale-105 transition-transform shadow-lg ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`}
                     >
-                        {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
+                        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="ml-0.5" />}
                     </button>
                     
                     <button onClick={() => handleMediaSkip(5)} className={`flex items-center gap-1 transition-colors group ${isDark ? 'text-neutral-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`}>
@@ -64,7 +64,7 @@ export default function PlayerFooter({
                 <div className="w-full flex items-center gap-3">
                     <span className="text-[10px] font-mono text-neutral-500">{formatTime(currentTime)}</span>
                     <div 
-                        className={`flex-1 h-1 rounded-full cursor-pointer relative group ${isDark ? 'bg-neutral-800' : 'bg-zinc-200'}`}
+                        className={`flex-1 h-1.5 rounded-full cursor-pointer relative group ${isDark ? 'bg-neutral-800' : 'bg-zinc-200'}`}
                         onClick={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect();
                             const percent = (e.clientX - rect.left) / rect.width;
@@ -82,8 +82,8 @@ export default function PlayerFooter({
                 </div>
             </div>
 
-            {/* Right: Info/Shortcuts */}
-            <div className="flex items-center justify-end gap-1 w-1/4 min-w-[200px]">
+            {/* Right: Info/Shortcuts - Hidden on mobile */}
+            <div className="hidden lg:flex items-center justify-end gap-1 w-1/4 min-w-[200px]">
                 <div className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-full border ${isDark ? 'border-neutral-800 text-neutral-600' : 'border-zinc-200 text-zinc-400'}`}>
                     {currentStep === 1 ? 'Filling Gaps' : currentStep === 2 ? 'MCQ Active' : 'Sentence Completion'}
                 </div>

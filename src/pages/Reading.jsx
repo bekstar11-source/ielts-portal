@@ -46,6 +46,10 @@ export default function Reading() {
   const [selectedPassages, setSelectedPassages] = useState([]); 
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
   
+  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isStandard = userData?.accountType === 'standard';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+  
   const { assignments, loading, error: errorMsg, refresh } = useStudentData(user);
   const rawAssignments = useMemo(() => [...assignments], [assignments]);
 
@@ -360,6 +364,8 @@ export default function Reading() {
                                         onReview={handleReview}
                                         onStart={handleStartTest}
                                         onSelectSet={setSelectedSet}
+                                        isPro={isPro}
+                                        isStandard={isStandard}
                                     />
                                 ))}
                             </div>
@@ -431,6 +437,8 @@ export default function Reading() {
                                         onReview={handleReview}
                                         onStart={handleStartTest}
                                         onSelectSet={setSelectedSet}
+                                        isPro={isPro}
+                                        isStandard={isStandard}
                                       />
                                     ))}
                                 </div>
@@ -452,6 +460,8 @@ export default function Reading() {
                                         isCompleted={!!set.result}
                                         onReview={handleReview}
                                         onSelectSet={setSelectedSet}
+                                        isPro={isPro}
+                                        isStandard={isStandard}
                                       />
                                     ))}
                                 </div>
@@ -473,6 +483,8 @@ export default function Reading() {
         selectedSet={selectedSet} setSelectedSet={setSelectedSet}
         handleStartTest={handleStartTest}
         handleReview={handleReview}
+        isPro={isPro}
+        isStandard={isStandard}
       />
       <PricingModal 
         isOpen={showPricingModal} 

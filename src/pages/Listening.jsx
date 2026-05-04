@@ -57,7 +57,9 @@ export default function Listening() {
   const [keyError, setKeyError] = useState("");
 
   const { checkLimit, incrementUsage } = useDailyLimit(userData);
-  const isPro = userData?.isPro || userData?.isPremium || userData?.accountType === 'premium' || userData?.accountType === 'pro';
+  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isStandard = userData?.accountType === 'standard';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -359,6 +361,7 @@ export default function Listening() {
                                                     onStart={handleStartTest}
                                                     onSelectSet={setSelectedSet}
                                                     isPro={isPro}
+                                                    isStandard={isStandard}
                                                 />
                                             ))}
                                         </div>
@@ -427,6 +430,7 @@ export default function Listening() {
                                                         onStart={handleStartTest}
                                                         onSelectSet={setSelectedSet}
                                                         isPro={isPro}
+                                                        isStandard={isStandard}
                                                     />
                                                 ))}
                                             </div>
@@ -452,6 +456,7 @@ export default function Listening() {
         handleStartTest={handleStartTest}
         handleReview={handleReview}
         isPro={isPro}
+        isStandard={isStandard}
       />
       <PricingModal 
         isOpen={showPricingModal} 

@@ -208,18 +208,43 @@ export default function PricingPage() {
                 {plan.desc}
               </p>
 
-              <button
-                onClick={() => {
-                  if (plan.id !== 'free') window.open('https://t.me/your_bot_username', '_blank');
-                }}
-                className={`w-full py-3 rounded-xl font-bold text-[14px] transition-all hover:scale-[1.02] active:scale-[0.98] mt-auto ${
-                  plan.highlight
-                    ? 'bg-white text-[#0071e3] hover:bg-blue-50'
-                    : plan.ctaStyle
-                }`}
-              >
-                {plan.cta}
-              </button>
+              {(() => {
+                const isCurrent = userData?.accountType === plan.id || (plan.id === 'pro' && userData?.isPro);
+                const isDownGrade = plan.id === 'standard' && (userData?.accountType === 'pro' || userData?.isPro);
+                const isFree = plan.id === 'free' && (!userData?.accountType || userData?.accountType === 'public');
+                
+                let ctaText = plan.cta;
+                let isDisabled = false;
+                
+                if (isCurrent || (isFree && !userData?.accountType)) {
+                  ctaText = "Faol tarif";
+                  isDisabled = true;
+                } else if (isDownGrade) {
+                  ctaText = "Sizda Pro bor";
+                  isDisabled = true;
+                }
+
+                return (
+                  <button
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (plan.id !== 'free') {
+                        const params = `${user?.uid || 'guest'}_${plan.id}_${billing}`;
+                        window.open(`https://t.me/englev_pay_bot?start=${params}`, '_blank');
+                      }
+                    }}
+                    className={`w-full py-3 rounded-xl font-bold text-[14px] transition-all mt-auto ${
+                      isDisabled ? 'opacity-50 cursor-default' : 'hover:scale-[1.02] active:scale-[0.98]'
+                    } ${
+                      plan.highlight
+                        ? 'bg-white text-[#0071e3] hover:bg-blue-50'
+                        : plan.ctaStyle
+                    }`}
+                  >
+                    {ctaText}
+                  </button>
+                );
+              })()}
             </motion.div>
           ))}
         </div>
@@ -341,7 +366,10 @@ export default function PricingPage() {
           </div>
           <div className="relative z-10 flex flex-col items-center gap-3">
             <button
-              onClick={() => window.open('https://t.me/your_bot_username', '_blank')}
+              onClick={() => {
+                const params = `${user?.uid || 'guest'}_pro_${billing}`;
+                window.open(`https://t.me/englev_pay_bot?start=${params}`, '_blank');
+              }}
               className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white font-bold text-[15px] shadow-xl shadow-blue-500/30 hover:scale-[1.03] active:scale-[0.97] transition-all whitespace-nowrap"
             >
               <Zap size={16} fill="currentColor" className="animate-pulse" />

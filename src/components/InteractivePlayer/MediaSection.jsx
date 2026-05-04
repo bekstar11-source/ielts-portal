@@ -88,7 +88,7 @@ export default function MediaSection({
             ${isDark ? 'border-neutral-800 bg-[#0a0a0c]' : 'border-zinc-100 bg-zinc-50'}
         `}>
             {(!isFullscreen || (podcast.mediaType !== 'youtube' && podcast.mediaType !== 'video')) && (
-                <div className={`h-12 shrink-0 px-8 flex items-center border-b ${isDark ? 'border-neutral-800' : 'border-zinc-100'}`}>
+                <div className={`h-12 md:h-16 shrink-0 px-4 md:px-8 flex items-center border-b ${isDark ? 'border-neutral-800' : 'border-zinc-100'}`}>
                     <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>
                         {podcast.mediaType === 'youtube' || podcast.mediaType === 'video' ? 'Video Lesson' : 'Audio Transcript'}
                     </h3>
@@ -166,7 +166,7 @@ export default function MediaSection({
                     )}
 
                     {!isFullscreen && (
-                        <div className="mt-8 text-center px-4">
+                        <div className="mt-4 md:mt-8 text-center px-4">
                             <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-zinc-900'}`}>{podcast.title}</h2>
                             <p className={`${isDark ? 'text-neutral-500' : 'text-zinc-500'} text-sm max-w-md mx-auto`}>Watch the video and complete the tasks on the right side.</p>
                         </div>

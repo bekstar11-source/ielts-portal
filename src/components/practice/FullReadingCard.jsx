@@ -2,21 +2,23 @@ import React from 'react';
 import { Play, ArrowRight, Crown, Zap, BookOpen, FileText, Clock, Diamond } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function FullReadingCard({ test, isCompleted, onReview, onStart, isPro }) {
+export default function FullReadingCard({ test, isCompleted, onReview, onStart, isPro, isStandard }) {
   const navigate = useNavigate();
   const passages = test.title?.split('/').map(s => s.trim()) || [test.title];
+
+  const canAccess = isPro || isStandard;
 
   const handleClick = () => {
     if (isCompleted) {
       onReview(test);
-    } else if (!isPro) {
+    } else if (!canAccess) {
       navigate('/pricing');
     } else {
       onStart(test);
     }
   };
 
-  const showGetAccess = !isPro && !isCompleted;
+  const showGetAccess = !canAccess && !isCompleted;
 
   return (
     <div className="flex-shrink-0 w-[320px] md:w-[480px]">

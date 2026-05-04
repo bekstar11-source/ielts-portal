@@ -124,8 +124,11 @@ export default function ArticleReading() {
     if (!article) return;
 
     // Get content to read
-    const isPro = userData?.isPro === true;
-    const isLocked = article.isMemberOnly && !isPro;
+    const isPro = userData?.accountType === 'pro' || userData?.isPro;
+    const isStandard = userData?.accountType === 'standard';
+    const canAccess = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+    
+    const isLocked = article.isMemberOnly && !canAccess;
     const blocksToRead = isLocked 
       ? article.content?.slice(0, Math.ceil(article.content.length / 3)) 
       : article.content;
@@ -342,8 +345,11 @@ export default function ArticleReading() {
 
         <article className={`${textSize} text-[#242424] font-serif article-container relative`}>
           {(() => {
-            const isPro = userData?.isPro === true;
-            const isLocked = article.isMemberOnly && !isPro;
+            const isPro = userData?.accountType === 'pro' || userData?.isPro;
+            const isStandard = userData?.accountType === 'standard';
+            const canAccess = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+            
+            const isLocked = article.isMemberOnly && !canAccess;
             const contentToShow = isLocked 
               ? article.content?.slice(0, Math.ceil(article.content.length / 3)) 
               : article.content;

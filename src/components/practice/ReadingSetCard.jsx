@@ -1,13 +1,14 @@
 import { ChevronRight, Crown, Zap, BookOpen, FileText, Diamond } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function ReadingSetCard({ set, index, isCompleted, onReview, onSelectSet, isPro }) {
+export default function ReadingSetCard({ set, index, isCompleted, onReview, onSelectSet, isPro, isStandard }) {
   const navigate = useNavigate();
   const accentColors = ['bg-[#0a84ff]', 'bg-[#bf5af2]', 'bg-[#30d158]', 'bg-[#ff9f0a]'];
   const subCount = set.subTests?.length || 3;
   const glowColor = accentColors[index % accentColors.length];
 
-  const showGetAccess = !isPro && !isCompleted;
+  const canAccess = isPro || isStandard;
+  const showGetAccess = !canAccess && !isCompleted;
 
   const handleClick = () => {
     if (isCompleted) {

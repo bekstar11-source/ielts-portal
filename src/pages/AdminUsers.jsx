@@ -212,7 +212,11 @@ function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, total
 
     const filteredStudents = useMemo(() => {
         return students.filter(s => {
-            const matchesSearch = (s.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || s.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+            const matchesSearch = (
+                s.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                s.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                s.id?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
             const matchesBand = filterBand === 'all' || s.targetBand === filterBand;
             return matchesSearch && matchesBand;
         });
@@ -284,9 +288,21 @@ function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, total
                                     </div>
                                 </td>
                                 <td className="py-4 px-4 md:px-6 text-center">
-                                    <span className={`inline-flex px-2 py-1 rounded-lg text-[10px] md:text-xs font-bold ${isDark ? 'bg-white/5 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-                                        {student.targetBand || "-"}
-                                    </span>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className={`inline-flex px-2 py-1 rounded-lg text-[10px] md:text-xs font-bold ${isDark ? 'bg-white/5 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                                            {student.targetBand || "-"}
+                                        </span>
+                                        {student.accountType === 'pro' && (
+                                            <span className="flex items-center gap-1 text-[9px] font-black text-amber-500 uppercase tracking-tighter">
+                                                <Crown size={8} fill="currentColor" /> Pro
+                                            </span>
+                                        )}
+                                        {student.accountType === 'standard' && (
+                                            <span className="flex items-center gap-1 text-[9px] font-black text-blue-500 uppercase tracking-tighter">
+                                                <Zap size={8} fill="currentColor" /> Standard
+                                            </span>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="hidden sm:table-cell py-4 px-6">
                                     {student.examDate ? (

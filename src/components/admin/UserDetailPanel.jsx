@@ -18,7 +18,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
         targetBand: '7.0',
         examDate: '',
         maxTestAttempts: 1,
-        role: 'student'
+        role: 'student',
+        accountType: 'public'
     });
 
     const [recentResults, setRecentResults] = useState([]);
@@ -33,7 +34,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                 targetBand: user.targetBand || '7.0',
                 examDate: user.examDate || '',
                 maxTestAttempts: user.maxTestAttempts || 1,
-                role: user.role || 'student'
+                role: user.role || 'student',
+                accountType: user.accountType || 'public'
             });
             fetchRecentResults(user.id);
         }
@@ -160,6 +162,21 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                                         >
                                             <option value="student">Student</option>
                                             <option value="teacher">Teacher (Ustoz)</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className={labelClass}>Account Turi</label>
+                                        <select
+                                            value={formData.accountType}
+                                            onChange={e => setFormData({ ...formData, accountType: e.target.value })}
+                                            className={`${inputClass} font-bold ${
+                                                formData.accountType === 'pro' ? 'text-blue-500 border-blue-500/30 bg-blue-500/5' : 
+                                                formData.accountType === 'standard' ? 'text-zinc-700 border-zinc-500/30 bg-zinc-500/5' : ''
+                                            }`}
+                                        >
+                                            <option value="public">Free (Ochiq)</option>
+                                            <option value="standard">Standard</option>
+                                            <option value="pro">Premium (PRO)</option>
                                         </select>
                                     </div>
                                     <div className="space-y-1">

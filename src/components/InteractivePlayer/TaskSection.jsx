@@ -114,7 +114,7 @@ export default function TaskSection({
                             : (isDark ? 'bg-[#121214] border-neutral-800' : 'bg-white border-zinc-100')}
                     `}
                 >
-                    <div className={`h-14 shrink-0 px-8 flex items-center justify-between border-b ${isFullscreen ? (isDark ? 'border-white/5' : 'border-black/5') : (isDark ? 'border-white/5' : 'border-zinc-100')}`}>
+                    <div className={`h-14 md:h-16 shrink-0 px-4 md:px-8 flex items-center justify-between border-b ${isFullscreen ? (isDark ? 'border-white/5' : 'border-black/5') : (isDark ? 'border-white/5' : 'border-zinc-100')}`}>
                         {!isFullscreen ? (
                             <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>
                                 {currentStep === 1 ? 'Gap Filling' : currentStep === 2 ? 'Multiple Choice' : 'Sentence Completion'}
@@ -156,7 +156,7 @@ export default function TaskSection({
 
                     {/* Score Cards Row */}
                     {((initialScore && isGrouped) || showResults[currentStep]) && (
-                        <div className="mx-6 mt-3 flex gap-2 shrink-0">
+                        <div className="mx-4 md:mx-6 mt-3 flex flex-col sm:flex-row gap-2 shrink-0">
                             {/* Saved Result - only for grouped */}
                             {initialScore && isGrouped && (
                                 <div className={`flex-1 p-2.5 rounded-sm border flex items-center justify-between ${isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-500/20 text-emerald-700'}`}>
@@ -200,7 +200,7 @@ export default function TaskSection({
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto pb-10 hide-scrollbar p-6">
+                    <div className="flex-1 lg:overflow-y-auto pb-10 hide-scrollbar p-4 md:p-6">
                         {currentStep === 1 && (
                             <GapFillTask 
                                 isDark={isDark} 
@@ -275,7 +275,7 @@ export default function TaskSection({
                     </AnimatePresence>
 
                     {/* Task Actions Footer */}
-                    <div className={`p-6 border-t shrink-0 flex flex-col gap-3 ${isFullscreen ? 'bg-transparent border-white/5' : (isDark ? 'bg-[#0a0a0c]/80 border-neutral-800' : 'bg-zinc-50/80 border-zinc-100')}`}>
+                    <div className={`p-4 md:p-6 border-t shrink-0 flex flex-col gap-3 ${isFullscreen ? 'bg-transparent border-white/5' : (isDark ? 'bg-[#0a0a0c]/80 border-neutral-800' : 'bg-zinc-50/80 border-zinc-100')}`}>
                         {!showResults[currentStep] ? (
                             <button 
                                 onClick={handleCheckAnswers}

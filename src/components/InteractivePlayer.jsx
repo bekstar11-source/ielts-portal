@@ -188,42 +188,46 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                         />
                     )}
 
-                    <main className={`flex-1 overflow-hidden relative ${isFullscreen && (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') ? '' : 'grid grid-cols-1 lg:grid-cols-12'}`}>
-                        <MediaSection 
-                            isDark={isDark}
-                            podcast={podcast}
-                            isFullscreen={isFullscreen}
-                            toggleFullscreen={toggleFullscreen}
-                            isTasksVisible={isTasksVisible}
-                            setIsTasksVisible={setIsTasksVisible}
-                            combinedTimeline={combinedTimeline}
-                            activeTimelineIdx={activeTimelineIdx}
-                            handleSeek={handleMediaSeek}
-                            isPlaying={isPlaying}
-                            setIsPlaying={setIsPlaying}
-                            currentTime={currentTime}
-                            duration={duration}
-                            audioRef={audioRef}
-                        />
+                    <main className={`flex-1 overflow-y-auto lg:overflow-hidden relative ${isFullscreen && (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') ? '' : 'grid grid-cols-1 lg:grid-cols-12'}`}>
+                        <div className={`lg:col-span-6 h-auto lg:h-full flex flex-col border-b lg:border-b-0 lg:border-r ${isDark ? 'border-neutral-800' : 'border-zinc-100'}`}>
+                            <MediaSection 
+                                isDark={isDark}
+                                podcast={podcast}
+                                isFullscreen={isFullscreen}
+                                toggleFullscreen={toggleFullscreen}
+                                isTasksVisible={isTasksVisible}
+                                setIsTasksVisible={setIsTasksVisible}
+                                combinedTimeline={combinedTimeline}
+                                activeTimelineIdx={activeTimelineIdx}
+                                handleSeek={handleMediaSeek}
+                                isPlaying={isPlaying}
+                                setIsPlaying={setIsPlaying}
+                                currentTime={currentTime}
+                                duration={duration}
+                                audioRef={audioRef}
+                            />
+                        </div>
 
-                        <TaskSection 
-                            isDark={isDark}
-                            podcast={podcast}
-                            isFullscreen={isFullscreen}
-                            isTasksVisible={isTasksVisible}
-                            setIsTasksVisible={setIsTasksVisible}
-                            currentStep={currentStep}
-                            setCurrentStep={setCurrentStep}
-                            answers={answers}
-                            setAnswers={setAnswers}
-                            attempts={attempts}
-                            setAttempts={setAttempts}
-                            showResults={showResults}
-                            setShowResults={setShowResults}
-                            initialScore={initialScore}
-                            savePodcastResult={savePodcastResult}
-                            isGrouped={isGrouped}
-                        />
+                        <div className="lg:col-span-6 h-auto lg:h-full flex flex-col">
+                            <TaskSection 
+                                isDark={isDark}
+                                podcast={podcast}
+                                isFullscreen={isFullscreen}
+                                isTasksVisible={isTasksVisible}
+                                setIsTasksVisible={setIsTasksVisible}
+                                currentStep={currentStep}
+                                setCurrentStep={setCurrentStep}
+                                answers={answers}
+                                setAnswers={setAnswers}
+                                attempts={attempts}
+                                setAttempts={setAttempts}
+                                showResults={showResults}
+                                setShowResults={setShowResults}
+                                initialScore={initialScore}
+                                savePodcastResult={savePodcastResult}
+                                isGrouped={isGrouped}
+                            />
+                        </div>
                     </main>
 
                     {!isFullscreen && (

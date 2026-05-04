@@ -49,7 +49,9 @@ export default function Practice() {
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'reading');
   const [searchQuery, setSearchQuery] = useState("");
   
-  const isPro = userData?.isPro || userData?.isPremium || userData?.accountType === 'premium' || userData?.accountType === 'pro';
+  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isStandard = userData?.accountType === 'standard';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("all"); // 'all', 'completed', 'not_completed'
   const [selectedPassages, setSelectedPassages] = useState([]); // [1, 2, 3]
@@ -490,6 +492,7 @@ export default function Practice() {
                                                     onStart={handleStartTest}
                                                     onSelectSet={setSelectedSet}
                                                     isPro={isPro}
+                                                    isStandard={isStandard}
                                                 />
                                             ))}
                                         </div>
@@ -575,6 +578,7 @@ export default function Practice() {
                                                     onStart={handleStartTest}
                                                     onSelectSet={setSelectedSet}
                                                     isPro={isPro}
+                                                    isStandard={isStandard}
                                                   />
                                                 ))}
                                             </div>
@@ -628,6 +632,7 @@ export default function Practice() {
                                                         onReview={handleReview}
                                                         onSelectSet={setSelectedSet}
                                                         isPro={isPro}
+                                                        isStandard={isStandard}
                                                       />
                                                     ))}
                                                 </div>
@@ -654,6 +659,7 @@ export default function Practice() {
         handleStartTest={handleStartTest}
         handleReview={handleReview}
         isPro={isPro}
+        isStandard={isStandard}
       />
       <PricingModal 
         isOpen={showPricingModal} 

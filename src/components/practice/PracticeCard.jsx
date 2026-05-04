@@ -2,7 +2,7 @@ import React from 'react';
 import { Crown, Zap, FileText, Clock, BookOpen, Diamond } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro }) {
+export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard }) {
   const navigate = useNavigate();
   const isPremium = test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening';
   
@@ -38,19 +38,21 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
     ? (test.title.match(/Part\s*(\d+)|Section\s*(\d+)/i)?.[0] || (test.difficulty?.includes('1') ? 'Section 1' : test.difficulty?.includes('2') ? 'Section 2' : test.difficulty?.includes('3') ? 'Section 3' : test.difficulty?.includes('4') ? 'Section 4' : 'Listening Section'))
     : (test.type === 'mock_full' ? 'Full Mock' : 'IELTS Test');
 
+  const canAccess = isPro || (isStandard && (test.type === 'reading' || test.type === 'listening' || test.type === 'podcasts'));
+
   const handleClick = () => {
     if (isCompleted) {
       onReview(test);
     } else if (test.isSet) {
       onSelectSet(test);
-    } else if (!isPro && isPremium) {
+    } else if (!canAccess && isPremium) {
       navigate('/pricing');
     } else {
       onStart(test);
     }
   };
 
-  const showGetAccess = !isPro && isPremium && !isCompleted && !test.isSet;
+  const showGetAccess = !canAccess && isPremium && !isCompleted && !test.isSet;
 
   return (
     <div 
@@ -61,8 +63,14 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
         {isPremium && (
           <div className="absolute top-4 left-4">
             <div className="bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm border border-black/5">
-              <Crown size={10} className="text-[#bf953f]" />
-              <span className="text-[9px] font-bold text-[#1d1d1f] uppercase tracking-wide">Premium</span>
+              {test.type === 'reading' || test.type === 'listening' ? (
+                <Zap size={10} className="text-blue-500" />
+              ) : (
+                <Crown size={10} className="text-[#bf953f]" />
+              )}
+              <span className="text-[9px] font-bold text-[#1d1d1f] uppercase tracking-wide">
+                {test.type === 'reading' || test.type === 'listening' ? 'Standard' : 'Premium'}
+              </span>
             </div>
           </div>
         )}

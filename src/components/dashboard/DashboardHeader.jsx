@@ -54,7 +54,9 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
     { id: 'pricing', label: 'Pricing', path: '/pricing' },
   ];
 
-  const isPro = userData?.isPro || userData?.isPremium || userData?.accountType === 'premium' || userData?.accountType === 'pro';
+  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isStandard = userData?.accountType === 'standard';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
 
   const handleNavigation = (item) => {
     if (item.path) {
@@ -331,13 +333,23 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
             <Search size={16} strokeWidth={2} />
           </button>
 
-          {!isPro && (
+          {!isPremium && (
             <button 
               onClick={() => navigate('/pricing')}
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white text-[11px] font-bold shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all"
             >
               <Zap size={12} fill="currentColor" className="animate-pulse" />
               Go Pro
+            </button>
+          )}
+
+          {isStandard && !isPro && (
+            <button 
+              onClick={() => navigate('/pricing')}
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 text-[10px] font-black uppercase tracking-wider hover:bg-blue-500/20 transition-all"
+            >
+              <Zap size={10} fill="currentColor" />
+              Standard
             </button>
           )}
 
