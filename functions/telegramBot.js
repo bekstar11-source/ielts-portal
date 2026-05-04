@@ -114,7 +114,9 @@ async function handleCallback(chatId, query) {
     try {
       // Update User in Firestore
       await admin.firestore().collection("users").doc(studentUserId).update({
-        tier: tier,
+        tier: tier, // pro or standard
+        accountType: tier, // for backward compatibility and header checks
+        isPro: tier === "pro",
         subscriptionStart: admin.firestore.FieldValue.serverTimestamp()
       });
 

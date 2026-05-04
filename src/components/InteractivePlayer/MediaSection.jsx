@@ -63,21 +63,31 @@ export default function MediaSection({
         }, 2000);
     }, [isPlaying]);
 
-    // Keyboard Shortcuts (Space for Play/Pause)
+    // Keyboard Shortcuts (Space for Play/Pause, Arrows for Seeking)
     React.useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.code === "Space" && e.target.tagName !== "INPUT" && e.target.tagName !== "TEXTAREA") {
+            if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+            if (e.code === "Space") {
                 e.preventDefault();
                 setIsPlaying(!isPlaying);
-                // Show controls when space is pressed
                 setShowControls(true);
-                if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-                controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2000);
+            } else if (e.code === "ArrowRight") {
+                e.preventDefault();
+                globalHandleSeek(Math.min(duration, currentTime + 5));
+                setShowControls(true);
+            } else if (e.code === "ArrowLeft") {
+                e.preventDefault();
+                globalHandleSeek(Math.max(0, currentTime - 5));
+                setShowControls(true);
             }
+
+            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+            controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2000);
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isPlaying, setIsPlaying]);
+    }, [isPlaying, setIsPlaying, currentTime, duration, globalHandleSeek]);
 
     return (
         <section className={`

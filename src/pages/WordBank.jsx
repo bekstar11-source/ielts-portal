@@ -46,6 +46,7 @@ export default function Wordbank() {
     const [words, setWords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [expandedGroup, setExpandedGroup] = useState(null);
     const [expandedWord, setExpandedWord] = useState(null);
     const [generatingId, setGeneratingId] = useState(null);
     const [practiceMode, setPracticeMode] = useState('dashboard'); // 'dashboard', 'flashcards', 'match'
@@ -292,29 +293,17 @@ export default function Wordbank() {
 
     const renderDashboard = () => {
         const backgroundStyle = {
-            backgroundColor: isDark ? '#0F1016' : '#F8FAFC',
-            backgroundImage: isDark ? `
-              radial-gradient(circle at 15% 15%, rgba(251, 81, 2, 0.15) 0%, transparent 40%),
-              radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
-              radial-gradient(circle at 50% 50%, rgba(251, 81, 2, 0.03) 0%, transparent 60%)
-            ` : `
-              radial-gradient(circle at 15% 15%, rgba(251, 81, 2, 0.05) 0%, transparent 40%),
-              radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.05) 0%, transparent 40%)
-            `,
+            backgroundColor: isDark ? '#000000' : '#ffffff',
             minHeight: '100vh',
-            overflowX: 'hidden',
-            position: 'relative',
-            color: isDark ? '#CDCDCB' : '#334155'
+            color: isDark ? '#f5f5f7' : '#1d1d1f'
         };
         
         const learningModules = [
             { 
-              title: "Spaced Repetition", 
-              desc: "Intervalli takrorlash algoritmi", 
-              icon: <BrainCircuit className="w-6 h-6" />, 
-              action: "Takrorlashni boshlash",
-              color: "from-[#FB5102] to-[#ff7a41]",
-              stats: `${dueForReviewCount} ta so'z tayyor`,
+              title: "Review", 
+              desc: "Spaced repetition practice", 
+              icon: <BrainCircuit className="w-5 h-5" />, 
+              stats: `${dueForReviewCount} due`,
               isPrimary: true,
               onClick: () => {
                   setFilterTab('due');
@@ -323,12 +312,9 @@ export default function Wordbank() {
             },
             { 
               title: "Flashcards", 
-              desc: "Vizual yodlash kartochkalari", 
-              icon: <Layers className="w-6 h-6" />, 
-              action: "O'rganish",
-              color: isDark ? "from-purple-500/20 to-purple-500/5" : "from-purple-500/10 to-purple-500/5",
-              iconColor: "text-purple-400",
-              stats: `${words.length} ta umumiy so'z`,
+              desc: "Study all words", 
+              icon: <Layers className="w-5 h-5" />, 
+              stats: `${words.length} words`,
               onClick: () => {
                   setFilterTab('all');
                   setPracticeMode('flashcards');
@@ -336,12 +322,9 @@ export default function Wordbank() {
             },
             { 
               title: "Match Game", 
-              desc: "Tezkor moslashtirish o'yini", 
-              icon: <Gamepad2 className="w-6 h-6" />, 
-              action: "O'ynash",
-              color: isDark ? "from-emerald-500/20 to-emerald-500/5" : "from-emerald-500/10 to-emerald-500/5",
-              iconColor: "text-emerald-400",
-              stats: `${words.length + keywords.length} ta aralash so'z`,
+              desc: "Test your speed", 
+              icon: <Gamepad2 className="w-5 h-5" />, 
+              stats: "Play now",
               onClick: () => {
                   setPracticeMode('match');
               }
@@ -349,400 +332,334 @@ export default function Wordbank() {
         ];
 
         return (
-            <div style={backgroundStyle} className="font-aspekta transition-colors duration-500">
-              {/* Standardized Header */}
+            <div style={backgroundStyle} className="font-sans transition-colors duration-500 pb-20">
               <DashboardHeader
                 user={user} userData={userData}
                 activeTab="vocabulary"
-                onLogoutClick={() => navigate('/login')} // simple logout for wordbank
+                onLogoutClick={() => navigate('/login')}
                 loading={loading}
               />
 
-              {/* Background Lighting */}
-              <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                <div className={`absolute top-[-5%] right-[15%] w-[600px] h-[600px] rounded-full blur-[150px] animate-pulse ${isDark ? 'bg-[#FB5102]/10' : 'bg-[#FB5102]/5'}`}></div>
-                <div className={`absolute bottom-0 left-[10%] w-[400px] h-[400px] rounded-full blur-[120px] ${isDark ? 'bg-blue-500/5' : 'bg-blue-500/2'}`}></div>
-              </div>
-        
-              <main className="max-w-[1440px] mx-auto px-6 pt-10 pb-20 relative z-10 w-full">
-        
-                {/* Hero & Learning Modules */}
-                <div className="grid lg:grid-cols-12 gap-12 mb-20 px-4 md:px-0">
-                  
-                  {/* Left: Main Title & Quick Action */}
-                  <div className="lg:col-span-5 space-y-8">
-                    <div className="space-y-4">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#FB5102]/10 rounded-full border border-[#FB5102]/20">
-                        <Target className="w-3 h-3 text-[#FB5102]" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#FB5102]">AI-Powered Learning</span>
-                      </div>
-                      <h2 className={`text-5xl md:text-7xl font-bold leading-[1.1] font-nasalization uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        Mening <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FB5102] to-[#ff8a50]">Lug'atim</span>
-                      </h2>
-                      <p className={`text-lg font-light leading-relaxed ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
-                        IELTS lug'at boyligini tizimli oshirish uchun yaratilgan shaxsiy xotira algoritmlari majmuasi.
-                      </p>
+              <main className="max-w-[1200px] mx-auto px-6 pt-12 w-full">
+                {/* Compact Hero Section */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+                  <div className="space-y-3">
+                    <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#FB5102]/10 rounded-full border border-[#FB5102]/20">
+                      <Sparkles className="w-3 h-3 text-[#FB5102]" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#FB5102]">Personal Lexicon</span>
                     </div>
-        
-                    <button onClick={handleTranslateAll} disabled={batchProcessing || words.every(w => w.hasAI)} className={`group relative flex w-full md:w-auto items-center justify-center gap-4 border px-8 py-5 rounded-2xl transition-all overflow-hidden ${(batchProcessing || words.every(w => w.hasAI)) ? 'opacity-50 cursor-not-allowed' : ''} ${isDark ? 'bg-white/5 border-white/10 hover:border-[#FB5102]/50' : 'bg-white border-gray-200 hover:border-[#FB5102]/50 shadow-md hover:shadow-lg'}`}>
-                       <div className="absolute inset-0 bg-[#FB5102]/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                       {batchProcessing ? <Loader2 className="w-6 h-6 text-[#FB5102] animate-spin" /> : <Sparkles className="w-6 h-6 text-[#FB5102]" />}
-                       <span className={`text-base font-bold relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                           {batchProcessing ? `Tarjima qilinmoqda... ${batchCurrent}/${batchTotal}` : "Barchasiga AI Izoh olish"}
-                       </span>
-                    </button>
-        
-                    {/* Quick Overview Stats */}
-                    <div className="flex gap-10 pt-4">
-                      <div>
-                        <p className={`text-3xl font-bold font-nasalization ${isDark ? 'text-white' : 'text-slate-900'}`}>{words.length}</p>
-                        <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Jami loyihalar</p>
-                      </div>
-                      <div className={`h-10 w-[1px] self-center ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}></div>
-                      <div>
-                        <p className="text-3xl font-bold font-nasalization text-[#FB5102]">+{todayAddedCount}</p>
-                        <p className="text-[10px] uppercase tracking-widest text-[#FB5102]/70 font-bold mt-1">Bugun qo'shildi</p>
-                      </div>
-                    </div>
+                    <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">Word Bank</h1>
+                    <p className={`text-base max-w-xl ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Your personal collection of vocabulary and keywords collected from IELTS materials.
+                    </p>
                   </div>
-        
-                  {/* Right: Learning Modules Cards */}
-                  <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
-                     {learningModules.map((module, idx) => (
-                       <div 
-                        onClick={module.onClick}
-                        key={idx}
-                        className={`group p-6 rounded-[2rem] border transition-all duration-500 cursor-pointer relative overflow-hidden backdrop-blur-xl
-                          ${module.isPrimary 
-                            ? 'bg-gradient-to-br from-[#FB5102] to-[#ff7a41] border-white/20 shadow-2xl shadow-[#FB5102]/20 sm:col-span-2 flex items-center justify-between' 
-                            : isDark ? 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1' : 'bg-white border-gray-100 hover:border-[#FB5102]/30 hover:shadow-xl hover:-translate-y-1 shadow-sm'}`}
-                       >
-                         <div className={module.isPrimary ? 'flex items-center gap-6' : ''}>
-                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110
-                              ${module.isPrimary ? 'bg-white/20' : (isDark ? 'bg-white/5 border border-white/10 ' : 'bg-slate-50 border border-slate-100 ') + module.iconColor}`}>
-                              {module.icon}
-                            </div>
-                            <div>
-                              <h4 className={`text-xl font-bold font-nasalization mb-1 tracking-tight ${module.isPrimary ? 'text-white' : (isDark ? 'text-white' : 'text-slate-900')}`}>{module.title}</h4>
-                              <p className={`text-xs mb-4 ${module.isPrimary ? 'text-white/70' : (isDark ? 'text-gray-500' : 'text-slate-500')}`}>{module.desc}</p>
-                              {module.isPrimary && (
-                                <div className="bg-white/20 px-4 py-1.5 rounded-full inline-block text-[10px] font-bold text-white uppercase tracking-wider">
-                                  {module.stats}
-                                </div>
-                              )}
-                            </div>
-                         </div>
-                         
-                         {!module.isPrimary && (
-                           <div className={`flex items-center justify-between mt-6 pt-4 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{module.stats}</span>
-                              <div className={`p-2 rounded-lg transition-colors ${isDark ? 'bg-white/5' : 'bg-slate-50 group-hover:bg-[#FB5102] group-hover:text-white'}`}>
-                                <ArrowUpRight className={`w-4 h-4 ${isDark ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} />
-                              </div>
-                           </div>
-                         )}
-        
-                         {module.isPrimary && (
-                           <div className="hidden sm:flex flex-col items-end gap-2">
-                              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg shadow-white/10 group-hover:rotate-45 transition-transform">
-                                 <ArrowUpRight className="w-6 h-6 text-[#FB5102]" />
-                              </div>
-                              <span className="text-[10px] font-black uppercase text-white tracking-tighter">Boshlash</span>
-                           </div>
-                         )}
-                       </div>
-                     ))}
-                  </div>
-        
-                </div>
-        
-                {/* Content Section: Detailed List */}
-                <div className="mx-4 md:mx-0">
-                  <div className={`backdrop-blur-3xl border rounded-[2rem] md:rounded-[3.5rem] p-4 md:p-8 lg:p-12 shadow-2xl relative overflow-hidden transition-colors ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-white border-slate-200'}`}>
-                     {/* Search and Tabs */}
-                     <div className="flex flex-col xl:flex-row items-center justify-between gap-6 mb-12">
-                        <div className={`flex p-1.5 rounded-2xl border w-full xl:w-auto ${isDark ? 'bg-black/40 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
-                          <button 
-                            onClick={() => { setMainTab('vocabulary'); setExpandedWord(null); }}
-                            className={`flex-1 xl:flex-none px-6 py-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${mainTab === 'vocabulary' ? 'bg-[#FB5102] text-white shadow-lg' : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-slate-500 hover:text-slate-700'}`}
-                          >
-                            Lug'at ro'yxati
-                          </button>
-                          <button 
-                            onClick={() => { setMainTab('keywords'); setExpandedWord(null); }}
-                            className={`flex-1 xl:flex-none px-6 py-3 rounded-xl text-xs font-bold transition-all ${mainTab === 'keywords' ? 'bg-[#FB5102] text-white' : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-slate-500 hover:text-slate-700'}`}
-                          >
-                            Keywords
-                          </button>
-                        </div>
-        
-                        <div className="relative w-full xl:w-[450px] group">
-                          <div className={`absolute inset-0 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity ${isDark ? 'bg-[#FB5102]/5' : 'bg-[#FB5102]/10'}`}></div>
-                          <Search className={`absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-[#FB5102]' : 'text-slate-400 group-focus-within:text-[#FB5102]'}`} />
-                          <input 
-                            type="text" 
-                            placeholder="So'zlarni qidirish..." 
-                            className={`w-full border focus:border-[#FB5102]/50 outline-none rounded-2xl py-4 pl-14 pr-6 transition-all relative z-10 ${isDark ? 'bg-black/40 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'}`}
-                            value={mainTab === 'vocabulary' ? searchTerm : keywordSearch}
-                            onChange={(e) => mainTab === 'vocabulary' ? setSearchTerm(e.target.value) : setKeywordSearch(e.target.value)}
-                          />
-                        </div>
-                     </div>
-        
-                     {/* List Rendering */}
-                     {loading ? (
-                         <div className={`flex flex-col items-center justify-center py-32 border border-dashed rounded-[3rem] ${isDark ? 'border-white/5 bg-white/[0.01]' : 'border-slate-200 bg-slate-50'}`}>
-                            <Loader2 className="w-10 h-10 text-[#FB5102] animate-spin mb-4" />
-                            <p className={isDark ? 'text-gray-400' : 'text-slate-500'}>Yuklanmoqda...</p>
-                         </div>
-                     ) : mainTab === 'keywords' ? (
-                       keywords.length === 0 ? (
-                        <div className={`flex flex-col items-center justify-center py-32 border-2 border-dashed rounded-[3rem] ${isDark ? 'border-white/5 bg-white/[0.01]' : 'border-slate-200 bg-slate-50'}`}>
-                            <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 relative ${isDark ? 'bg-white/5' : 'bg-white shadow-sm'}`}>
-                               <div className="absolute inset-0 bg-[#FB5102]/10 blur-xl animate-pulse rounded-full"></div>
-                               <BookOpen className={`w-8 h-8 relative z-10 ${isDark ? 'text-gray-700' : 'text-slate-300'}`} />
-                            </div>
-                            <h3 className={`text-2xl font-bold mb-2 font-nasalization ${isDark ? 'text-white' : 'text-slate-800'}`}>Keywords bo'sh</h3>
-                            <p className={`text-center max-w-xs text-sm font-light ${isDark ? 'text-gray-500' : 'text-slate-500'}`}>
-                              Siz turli reading testlaridan hech qanday keyword ajratib olmagansiz.
-                            </p>
-                        </div>
-                       ) : (
-                         <div className="space-y-4">
-                             {Object.entries(
-                                 keywords.filter(k => {
-                                     if (!keywordSearch) return true;
-                                     const s = keywordSearch.toLowerCase();
-                                     return (k.passageWord && k.passageWord.toLowerCase().includes(s)) || (k.questionWord && k.questionWord.toLowerCase().includes(s));
-                                 }).reduce((acc, kw) => {
-                                     const key = kw.testName || "Noma'lum Test";
-                                     if (!acc[key]) acc[key] = [];
-                                     acc[key].push(kw);
-                                     return acc;
-                                 }, {})
-                             ).map(([testName, kwList]) => {
-                                 const isExpanded = expandedWord === `kw-${testName}`;
-                                 return (
-                                     <div key={testName} className={`rounded-xl border transition-all overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/10' : 'bg-slate-50 border-slate-200 shadow-sm'}`}>
-                                         <button 
-                                             onClick={() => setExpandedWord(isExpanded ? null : `kw-${testName}`)}
-                                             className={`w-full flex items-center justify-between p-3.5 text-left transition-colors ${isExpanded ? (isDark ? 'bg-white/5' : 'bg-white border-b border-slate-100') : 'hover:bg-white/5'}`}
-                                         >
-                                             <div className="flex items-center gap-3">
-                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? 'bg-white/5 text-[#FB5102]' : 'bg-white text-[#FB5102] shadow-sm'}`}>
-                                                     <BookOpen className="w-4 h-4" />
-                                                 </div>
-                                                 <div>
-                                                     <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>{testName}</h3>
-                                                     <p className="text-[9px] uppercase font-bold text-gray-500 tracking-wider mt-0.5">{kwList.length} ta keyword</p>
-                                                 </div>
-                                             </div>
-                                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-transform ${isExpanded ? 'rotate-180 bg-[#FB5102] text-white' : isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-slate-400 shadow-sm'}`}>
-                                                 <ChevronDown className="w-4 h-4" />
-                                             </div>
-                                         </button>
-                                         <AnimatePresence>
-                                             {isExpanded && (
-                                                 <motion.div 
-                                                     initial={{ height: 0, opacity: 0 }} 
-                                                     animate={{ height: 'auto', opacity: 1 }} 
-                                                     exit={{ height: 0, opacity: 0 }}
-                                                     className="overflow-hidden"
-                                                 >
-                                                     <div className="p-1">
-                                                         <div className={`overflow-x-auto rounded-xl hide-scrollbar ${isDark ? 'bg-black/20' : 'bg-white'}`}>
-                                                             <table className="w-full text-sm">
-                                                                 <thead>
-                                                                     <tr className={`text-gray-400 font-bold uppercase tracking-wider ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                                                                         <th className="text-left py-4 px-6">Passage Word</th>
-                                                                         <th className="text-center py-4 px-6">Turi</th>
-                                                                         <th className="text-left py-4 px-6">Question Word</th>
-                                                                         <th className="text-right py-4 px-6"></th>
-                                                                     </tr>
-                                                                 </thead>
-                                                                 <tbody>
-                                                                     {kwList.map(kw => (
-                                                                         <tr key={kw.id} className={`border-t transition-colors group ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-50 hover:bg-slate-50'}`}>
-                                                                             <td className={`py-4 px-6 font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{kw.passageWord}</td>
-                                                                             <td className="py-4 px-6 text-center">
-                                                                                 <span className={`text-[10px] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider ${kw.type === 'synonym' ? 'bg-emerald-500/20 text-emerald-400 line-clamp-1' : kw.type === 'antonym' ? 'bg-[#FB5102]/20 text-[#FB5102]' : 'bg-blue-500/20 text-blue-400'}`}>
-                                                                                     {kw.type === 'synonym' ? 'SYN' : kw.type === 'antonym' ? 'ANT' : 'PHR'}
-                                                                                 </span>
-                                                                             </td>
-                                                                             <td className={`py-4 px-6 font-semibold ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>{kw.questionWord}</td>
-                                                                             <td className="py-4 px-6 text-right">
-                                                                                 <button onClick={() => handleDeleteKeyword(kw.id)} className="text-gray-500 flex items-center justify-center p-2 rounded-lg bg-red-500/10 hover:text-white hover:bg-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all ml-auto">
-                                                                                     <Trash2 className="w-4 h-4" />
-                                                                                 </button>
-                                                                             </td>
-                                                                         </tr>
-                                                                     ))}
-                                                                 </tbody>
-                                                                             </table>
-                                                                         </div>
-                                                                     </div>
-                                                 </motion.div>
-                                             )}
-                                         </AnimatePresence>
-                                     </div>
-                                 );
-                             })}
-                         </div>
-                       )
-                     ) : (
-                        filteredWords.length === 0 ? (
-                           <div className={`flex flex-col items-center justify-center py-32 border-2 border-dashed rounded-[3rem] ${isDark ? 'border-white/5 bg-white/[0.01]' : 'border-slate-200 bg-slate-50'}`}>
-                               <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 relative ${isDark ? 'bg-white/5' : 'bg-white shadow-sm'}`}>
-                                  <div className="absolute inset-0 bg-[#FB5102]/10 blur-xl animate-pulse rounded-full"></div>
-                                  <BookOpen className={`w-8 h-8 relative z-10 ${isDark ? 'text-gray-700' : 'text-slate-300'}`} />
-                               </div>
-                               <h3 className={`text-2xl font-bold mb-2 font-nasalization ${isDark ? 'text-white' : 'text-slate-800'}`}>Laboratoriya bo'sh</h3>
-                               <p className={`text-center max-w-xs text-sm font-light ${isDark ? 'text-gray-500' : 'text-slate-500'}`}>
-                                 Siz qo'shgan so'zlar tahlil qilinishi va yodlash modullariga yuborilishi uchun tayyorlanmoqda.
-                               </p>
-                           </div>
-                        ) : (
-                           <div className="space-y-4">
-                               {Object.entries(groupedWords).map(([testTitle, testWords]) => {
-                                   const isTestExpanded = expandedWord === `test-${testTitle}`;
-                                   return (
-                                       <div key={testTitle} className={`rounded-2xl border transition-all overflow-hidden animate-fade-in-up ${isDark ? 'bg-white/[0.03] border-white/10' : 'bg-slate-50 border-slate-200 shadow-sm'}`}>
-                                           <button 
-                                               onClick={() => setExpandedWord(isTestExpanded ? null : `test-${testTitle}`)}
-                                               className={`w-full flex items-center justify-between p-4 text-left transition-colors ${isTestExpanded ? (isDark ? 'bg-white/5' : 'bg-white border-b border-slate-100') : 'hover:bg-white/5'}`}
-                                           >
-                                               <div className="flex items-center gap-4">
-                                                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-white/5 text-blue-500' : 'bg-white text-blue-500 shadow-sm'}`}>
-                                                       <BookMarked className="w-5 h-5" />
-                                                   </div>
-                                                   <div>
-                                                       <h3 className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-800'}`}>{testTitle}</h3>
-                                                       <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider mt-0.5">{testWords.length} ta yangi so'z</p>
-                                                   </div>
-                                               </div>
-                                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-transform ${isTestExpanded ? 'rotate-180 bg-blue-600 text-white' : isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-slate-400 shadow-sm'}`}>
-                                                   <ChevronDown className="w-5 h-5" />
-                                               </div>
-                                           </button>
 
-                                           <AnimatePresence>
-                                               {isTestExpanded && (
-                                                   <motion.div 
-                                                       initial={{ height: 0, opacity: 0 }} 
-                                                       animate={{ height: 'auto', opacity: 1 }} 
-                                                       exit={{ height: 0, opacity: 0 }}
-                                                       className="overflow-hidden"
-                                                   >
-                                                       <div className="p-3 md:p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                                                           {testWords.map((item, index) => {
-                                                               const isItemExpanded = expandedWord === item.id;
-                                                               return (
-                                                                   <motion.div
-                                                                       key={item.id}
-                                                                       initial={{ opacity: 0, scale: 0.98 }}
-                                                                       animate={{ opacity: 1, scale: 1 }}
-                                                                       transition={{ delay: index * 0.02 }}
-                                                                       className={`border p-3.5 rounded-xl transition-all flex flex-col group relative overflow-hidden ${isDark ? 'bg-white/5 border-white/10 hover:border-white/20' : 'bg-white border-slate-100 hover:border-[#FB5102]/20 hover:shadow-sm'}`}
-                                                                   >
-                                                                       <div className="flex justify-between items-center">
-                                                                           <div className="flex-1 min-w-0 pr-2">
-                                                                               <div className="flex items-center gap-1.5 mb-0.5">
-                                                                                   <h3 className={`text-base font-bold truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>{item.word}</h3>
-                                                                                   {item.learningStatus === 'mastered' && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-                                                                               </div>
-                                                                               <p className={`text-xs font-light truncate ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>{item.translation || "Tarjima yo'q..."}</p>
-                                                                           </div>
-                                                                           <div className="flex items-center gap-1 shrink-0">
-                                                                               <button onClick={() => playPronunciation(item.id, item.word)} className={`p-1.5 rounded-lg transition-all ${playingAudioId === item.id ? 'bg-[#FB5102]/20 text-[#FB5102] animate-pulse' : isDark ? 'bg-black/20 text-gray-500 hover:text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-900'}`}>
-                                                                                   <Volume2 className="w-3.5 h-3.5" />
-                                                                               </button>
-                                                                               <button 
-                                                                                   onClick={() => {
-                                                                                       const nextExpanded = isItemExpanded ? null : item.id;
-                                                                                       setExpandedWord(nextExpanded);
-                                                                                       if (nextExpanded && !item.hasAI) {
-                                                                                           generateAIContext(item);
-                                                                                       }
-                                                                                   }} 
-                                                                                   className={`p-1.5 rounded-lg transition-colors ${isItemExpanded ? 'bg-[#FB5102] text-white' : isDark ? 'bg-black/20 text-gray-500 hover:text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-900'}`}
-                                                                               >
-                                                                                   {isItemExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                                                                               </button>
-                                                                           </div>
-                                                                       </div>
-                                                                       <AnimatePresence>
-                                                                           {isItemExpanded && (
-                                                                               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className={`overflow-hidden mt-3 pt-3 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                                                                                   {!item.hasAI ? (
-                                                                                       <button onClick={() => generateAIContext(item)} disabled={generatingId === item.id} className="w-full flex items-center justify-center gap-2 py-2 bg-[#FB5102]/10 border border-[#FB5102]/20 text-[#FB5102] hover:bg-[#FB5102] hover:text-white transition-colors rounded-lg text-xs font-medium">
-                                                                                           {generatingId === item.id ? <><Loader2 className="w-3 h-3 animate-spin" /> ...</> : <><Sparkles className="w-3 h-3" /> AI</>}
-                                                                                       </button>
-                                                                                   ) : (
-                                                                                       <div className="space-y-3">
-                                                                                           <div>
-                                                                                               <span className="text-[9px] uppercase font-bold text-[#FB5102] tracking-wider">Tarjimasi</span>
-                                                                                               <p className={`text-sm mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.translation}</p>
-                                                                                           </div>
-                                                                                           <div className={`p-3 rounded-lg border ${isDark ? 'bg-black/40 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
-                                                                                               <span className="text-[9px] uppercase font-bold text-blue-500 tracking-wider">Izohi</span>
-                                                                                               <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>{item.definition}</p>
-                                                                                           </div>
-                                                                                           {(item.example && item.example.length > 5) && (
-                                                                                             <div>
-                                                                                                 <span className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">Misol</span>
-                                                                                                 <p className={`text-xs italic mt-0.5 border-l-2 pl-2 ${isDark ? 'text-gray-400 border-gray-700' : 'text-slate-500 border-slate-200'}`}>"{item.example}"</p>
-                                                                                             </div>
-                                                                                           )}
-                                                                                           <button onClick={() => handleDelete(item.id)} className="w-full flex items-center justify-center gap-2 py-1.5 mt-2 text-red-500 hover:text-white hover:bg-red-500/20 rounded-lg transition-all text-xs border border-red-500/10">
-                                                                                               <Trash2 className="w-3.5 h-3.5" /> O'chirish
-                                                                                           </button>
-                                                                                       </div>
-                                                                                   )}
-                                                                               </motion.div>
-                                                                           )}
-                                                                       </AnimatePresence>
-                                                                   </motion.div>
-                                                               );
-                                                           })}
-                                                       </div>
-                                                   </motion.div>
-                                               )}
-                                           </AnimatePresence>
-                                       </div>
-                                   );
-                               })}
-                           </div>
-                        )
-                     )}
+                  <div className="flex items-center gap-6 pb-1">
+                    <div className="text-right">
+                      <p className="text-2xl font-semibold">{words.length}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Total Words</p>
+                    </div>
+                    <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
+                    <div className="text-right">
+                      <p className="text-2xl font-semibold text-[#FB5102]">+{todayAddedCount}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-[#FB5102]/70 font-bold">Today</p>
+                    </div>
                   </div>
+                </div>
+
+                {/* Compact Learning Modules */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16">
+                  {learningModules.map((module, idx) => (
+                    <button 
+                      key={idx}
+                      onClick={module.onClick}
+                      className={`group p-5 rounded-2xl border transition-all duration-300 text-left relative overflow-hidden
+                        ${module.isPrimary 
+                          ? 'bg-[#1d1d1f] text-white border-transparent hover:bg-black' 
+                          : isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-[#f5f5f7] border-transparent hover:bg-gray-200'}`}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110
+                          ${module.isPrimary ? 'bg-white/10' : isDark ? 'bg-white/5' : 'bg-white shadow-sm'}`}>
+                          {module.icon}
+                        </div>
+                        <ArrowUpRight className={`w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${module.isPrimary ? 'text-white/40' : 'text-gray-400'}`} />
+                      </div>
+                      <h3 className="font-semibold text-lg">{module.title}</h3>
+                      <p className={`text-xs ${module.isPrimary ? 'text-white/60' : 'text-gray-500'}`}>{module.desc}</p>
+                      <div className={`mt-4 inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
+                        ${module.isPrimary ? 'bg-white/10 text-white' : isDark ? 'bg-white/10 text-gray-300' : 'bg-white text-gray-600 shadow-sm'}`}>
+                        {module.stats}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Refined Content Section */}
+                <div className={`border rounded-3xl p-6 md:p-8 transition-colors ${isDark ? 'bg-[#1c1c1e] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+                  {/* Tabs & Actions */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
+                    <div className="flex items-center gap-1 bg-[#f5f5f7] dark:bg-white/5 p-1 rounded-xl w-fit">
+                      {[
+                        { id: 'vocabulary', label: 'All Words' },
+                        { id: 'keywords', label: 'Keywords' }
+                      ].map(tab => (
+                        <button 
+                          key={tab.id}
+                          onClick={() => { setMainTab(tab.id); setExpandedGroup(null); setExpandedWord(null); }}
+                          className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${mainTab === tab.id ? 'bg-white dark:bg-white/10 shadow-sm text-[#1d1d1f] dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <div className="relative w-full sm:w-[320px] group">
+                        <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-[#FB5102]' : 'text-gray-400 group-focus-within:text-[#FB5102]'}`} />
+                        <input 
+                          type="text" 
+                          placeholder="Search words..." 
+                          className={`w-full border outline-none rounded-xl py-2.5 pl-11 pr-4 text-sm transition-all ${isDark ? 'bg-black/20 border-white/10 focus:border-[#FB5102]/40 text-white' : 'bg-[#f5f5f7] border-transparent focus:bg-white focus:border-[#FB5102]/30 text-gray-900'}`}
+                          value={mainTab === 'vocabulary' ? searchTerm : keywordSearch}
+                          onChange={(e) => mainTab === 'vocabulary' ? setSearchTerm(e.target.value) : setKeywordSearch(e.target.value)}
+                        />
+                      </div>
+                      
+                      <button 
+                        onClick={handleTranslateAll} 
+                        disabled={batchProcessing || words.every(w => w.hasAI)} 
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all w-full sm:w-auto justify-center
+                          ${(batchProcessing || words.every(w => w.hasAI)) 
+                            ? 'opacity-40 cursor-not-allowed' 
+                            : 'bg-[#FB5102] text-white hover:bg-[#e64a02] active:scale-95'}`}
+                      >
+                         {batchProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                         <span>{batchProcessing ? "Translating..." : "Auto-translate All"}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* List Rendering */}
+                  {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                      <Loader2 className="w-8 h-8 text-[#FB5102] animate-spin mb-3" />
+                      <p className="text-sm text-gray-500">Loading your collection...</p>
+                    </div>
+                  ) : mainTab === 'keywords' ? (
+                    keywords.length === 0 ? (
+                      <div className="text-center py-20 border-2 border-dashed border-gray-100 dark:border-white/5 rounded-2xl">
+                        <BookOpen className="w-8 h-8 text-gray-300 mx-auto mb-4" />
+                        <h3 className="font-semibold text-lg mb-1">No keywords yet</h3>
+                        <p className="text-sm text-gray-500">Keywords you highlight in reading tests will appear here.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {Object.entries(
+                            keywords.filter(k => {
+                                if (!keywordSearch) return true;
+                                const s = keywordSearch.toLowerCase();
+                                return (k.passageWord && k.passageWord.toLowerCase().includes(s)) || (k.questionWord && k.questionWord.toLowerCase().includes(s));
+                            }).reduce((acc, kw) => {
+                                const key = kw.testName || "Unknown Test";
+                                if (!acc[key]) acc[key] = [];
+                                acc[key].push(kw);
+                                return acc;
+                            }, {})
+                        ).map(([testName, kwList]) => {
+                            const isExpanded = expandedGroup === `kw-${testName}`;
+                            return (
+                                <div key={testName} className={`rounded-2xl border transition-all overflow-hidden ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                                    <button 
+                                        onClick={() => setExpandedGroup(isExpanded ? null : `kw-${testName}`)}
+                                        className={`w-full flex items-center justify-between p-4 text-left transition-colors ${isExpanded ? (isDark ? 'bg-white/5' : 'bg-white border-b border-gray-100') : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isDark ? 'bg-white/5 text-[#FB5102]' : 'bg-white text-[#FB5102] shadow-sm'}`}>
+                                                <BookOpen className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-sm">{testName}</h3>
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{kwList.length} keywords</p>
+                                            </div>
+                                        </div>
+                                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    <AnimatePresence>
+                                        {isExpanded && (
+                                            <motion.div 
+                                                initial={{ height: 0, opacity: 0 }} 
+                                                animate={{ height: 'auto', opacity: 1 }} 
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="p-2">
+                                                    <div className={`overflow-x-auto rounded-xl ${isDark ? 'bg-black/20' : 'bg-white'}`}>
+                                                        <table className="w-full text-sm">
+                                                            <thead>
+                                                                <tr className={`text-[10px] font-bold uppercase tracking-wider text-gray-400 ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                                                                    <th className="text-left py-3 px-5">Passage Word</th>
+                                                                    <th className="text-center py-3 px-5">Type</th>
+                                                                    <th className="text-left py-3 px-5">Question Word</th>
+                                                                    <th className="text-right py-3 px-5"></th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                                                                {kwList.map(kw => (
+                                                                    <tr key={kw.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                                                        <td className="py-3 px-5 font-semibold">{kw.passageWord}</td>
+                                                                        <td className="py-3 px-5 text-center">
+                                                                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tight ${kw.type === 'synonym' ? 'bg-emerald-500/10 text-emerald-500' : kw.type === 'antonym' ? 'bg-[#FB5102]/10 text-[#FB5102]' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                                                {kw.type === 'synonym' ? 'SYN' : kw.type === 'antonym' ? 'ANT' : 'PHR'}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="py-3 px-5 text-gray-500">{kw.questionWord}</td>
+                                                                        <td className="py-3 px-5 text-right">
+                                                                            <button onClick={() => handleDeleteKeyword(kw.id)} className="p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100">
+                                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            );
+                        })}
+                      </div>
+                    )
+                  ) : (
+                    filteredWords.length === 0 ? (
+                      <div className="text-center py-20 border-2 border-dashed border-gray-100 dark:border-white/5 rounded-2xl">
+                        <BookMarked className="w-8 h-8 text-gray-300 mx-auto mb-4" />
+                        <h3 className="font-semibold text-lg mb-1">Word Bank is empty</h3>
+                        <p className="text-sm text-gray-500">Words you add from tests or reading will be listed here.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {Object.entries(groupedWords).map(([testTitle, testWords]) => {
+                            const isTestExpanded = expandedGroup === `test-${testTitle}`;
+                            return (
+                                <div key={testTitle} className={`rounded-2xl border transition-all overflow-hidden ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                                    <button 
+                                        onClick={() => setExpandedGroup(isTestExpanded ? null : `test-${testTitle}`)}
+                                        className={`w-full flex items-center justify-between p-4 text-left transition-colors ${isTestExpanded ? (isDark ? 'bg-white/5' : 'bg-white border-b border-gray-100') : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isDark ? 'bg-white/5 text-blue-500' : 'bg-white text-blue-500 shadow-sm'}`}>
+                                                <BookMarked className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-sm">{testTitle}</h3>
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{testWords.length} new words</p>
+                                            </div>
+                                        </div>
+                                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isTestExpanded ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    <AnimatePresence>
+                                        {isTestExpanded && (
+                                            <motion.div 
+                                                initial={{ height: 0, opacity: 0 }} 
+                                                animate={{ height: 'auto', opacity: 1 }} 
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                    {testWords.map((item, index) => {
+                                                        const isItemExpanded = expandedWord === item.id;
+                                                        return (
+                                                            <motion.div
+                                                                key={item.id}
+                                                                initial={{ opacity: 0, scale: 0.98 }}
+                                                                animate={{ opacity: 1, scale: 1 }}
+                                                                transition={{ delay: index * 0.02 }}
+                                                                className={`p-4 rounded-xl border transition-all group relative ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-gray-100 hover:shadow-sm'}`}
+                                                            >
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <div className="flex-1 min-w-0 pr-2">
+                                                                        <div className="flex items-center gap-1.5 mb-1">
+                                                                            <h3 className="font-bold text-base truncate">{item.word}</h3>
+                                                                            {item.learningStatus === 'mastered' && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+                                                                        </div>
+                                                                        <p className="text-xs text-gray-500 truncate">{item.translation || "No translation yet"}</p>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        <button onClick={() => playPronunciation(item.id, item.word)} className={`p-2 rounded-lg transition-all ${playingAudioId === item.id ? 'bg-[#FB5102]/10 text-[#FB5102]' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+                                                                            <Volume2 className="w-4 h-4" />
+                                                                        </button>
+                                                                        <button 
+                                                                            onClick={() => {
+                                                                                const nextExpanded = isItemExpanded ? null : item.id;
+                                                                                setExpandedWord(nextExpanded);
+                                                                                if (nextExpanded && !item.hasAI) generateAIContext(item);
+                                                                            }} 
+                                                                            className={`p-2 rounded-lg transition-colors ${isItemExpanded ? 'bg-[#FB5102] text-white' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                                                                        >
+                                                                            {isItemExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <AnimatePresence>
+                                                                    {isItemExpanded && (
+                                                                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-3 pt-3 border-t border-gray-50 dark:border-white/5">
+                                                                            {!item.hasAI ? (
+                                                                                <button onClick={() => generateAIContext(item)} disabled={generatingId === item.id} className="w-full flex items-center justify-center gap-2 py-2 bg-[#FB5102]/10 text-[#FB5102] hover:bg-[#FB5102] hover:text-white transition-all rounded-lg text-xs font-bold">
+                                                                                    {generatingId === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                                                                    <span>{generatingId === item.id ? "Analyzing..." : "Get AI Insights"}</span>
+                                                                                </button>
+                                                                            ) : (
+                                                                                <div className="space-y-3">
+                                                                                    <div>
+                                                                                        <span className="text-[9px] uppercase font-bold text-[#FB5102] tracking-wider">Definition</span>
+                                                                                        <p className="text-xs mt-1 leading-relaxed text-gray-600 dark:text-gray-300">{item.definition}</p>
+                                                                                    </div>
+                                                                                    {item.example && (
+                                                                                      <div className="p-3 rounded-lg bg-[#f5f5f7] dark:bg-black/20 italic text-xs text-gray-500 border-l-2 border-[#FB5102]/30">
+                                                                                          "{item.example}"
+                                                                                      </div>
+                                                                                    )}
+                                                                                    <div className="flex items-center gap-2 pt-1">
+                                                                                        <button onClick={() => handleDelete(item.id)} className="flex-1 flex items-center justify-center gap-2 py-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider">
+                                                                                            <Trash2 className="w-3 h-3" /> Remove
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </motion.div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            );
+                        })}
+                      </div>
+                    )
+                  )}
                 </div>
               </main>
-              <div className="relative z-10"><SiteFooter /></div>
-        
-              <style>
-                {`
-                  @import url('https://fonts.cdnfonts.com/css/aspekta');
-                  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-        
-                  .font-aspekta { font-family: 'Aspekta', sans-serif; }
-                  .font-nasalization { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.05em; }
-        
-                  @keyframes pulse-slow {
-                    0%, 100% { opacity: 0.1; transform: scale(1); }
-                    50% { opacity: 0.2; transform: scale(1.1); }
-                  }
-                `}
-              </style>
+              <SiteFooter />
             </div>
         );
     };
 
     return (
-        <div className={`min-h-screen transition-colors duration-500 ${isDark ? 'bg-[#0F1016]' : 'bg-[#F8FAFC]'}`}>
+        <div className={`min-h-screen transition-colors duration-500 ${isDark ? 'bg-black' : 'bg-white'}`}>
             {practiceMode === 'flashcards' && renderFlashcards()}
             {practiceMode === 'match' && renderMatchGame()}
             {practiceMode === 'dashboard' && renderDashboard()}
         </div>
     );
 }
+

@@ -1,89 +1,102 @@
 // src/pages/AdminTests.jsx
-import { useState, useEffect, useMemo } from "react";
-import { db } from "../firebase/firebase";
-import { collection, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, updateDoc, addDoc } from "firebase/firestore";
+import React, { useState, useEffect, useMemo } from "react";
+import { db, storage } from "../firebase/firebase";
+import { 
+    collection, 
+    getDocs, 
+    deleteDoc, 
+    doc, 
+    query, 
+    orderBy, 
+    onSnapshot, 
+    updateDoc, 
+    addDoc,
+    serverTimestamp 
+} from "firebase/firestore";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
-import TagSelector from "../components/ui/TagSelector";
-// Icons
-const Icons = {
-    Edit: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
-    Eye: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>,
-    Trash: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
-    ArrowLeft: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>,
-    Plus: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
-    Filter: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>,
-    ChevronDown: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>,
-    ChevronLeft: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
-    ChevronRight: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
-    Search: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
-    Layers: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>,
-    Tag: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>,
-    X: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-};
-
-
-
-import { logAction } from "../utils/logger";
 import { useAuth } from "../context/AuthContext";
+import { logAction } from "../utils/logger";
+import TagSelector from "../components/ui/TagSelector";
+
+// Icons from lucide-react
+import { 
+    Plus, Search, Filter, MoreVertical, Edit2, 
+    Trash2, Eye, EyeOff, LayoutGrid, List, 
+    ChevronRight, Loader2, Calendar, CheckCircle2, 
+    MoreHorizontal, Globe, Lock, FolderPlus, 
+    Folder, Hash, X, Image as ImageIcon, 
+    Type, FileText, Upload, Layers, ArrowLeft,
+    BookOpen, Headphones, PenTool, Mic2, Settings
+} from "lucide-react";
+
+const TEST_TYPES = ["All", "Reading", "Listening", "Writing", "Speaking"];
 
 export default function AdminTests() {
     const navigate = useNavigate();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    const { user } = useAuth(); // Get admin user
+    const { user } = useAuth();
+    
     const [tests, setTests] = useState([]);
-
+    const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    // State: Filter & Pagination
+    
+    // UI State
     const [searchTerm, setSearchTerm] = useState("");
-    const [filterType, setFilterType] = useState("all");
-    const [currentPage, setCurrentPage] = useState(1);
+    const [viewMode, setViewMode] = useState("list"); // 'list' or 'grid'
+    const [filterType, setFilterType] = useState("All");
+    const [filterCollection, setFilterCollection] = useState("All");
+    const [filterTag, setFilterTag] = useState("all");
+    const [filterDifficulty, setFilterDifficulty] = useState("all");
+    const [filterQuestionType, setFilterQuestionType] = useState("all");
+
+    // Collection Management
+    const [isAddingCollection, setIsAddingCollection] = useState(false);
+    const [showCreateCol, setShowCreateCol] = useState(false);
+    const [newCollectionName, setNewCollectionName] = useState("");
+    const [editingCol, setEditingCol] = useState(null);
+    const [uploading, setUploading] = useState(false);
+
+    // Merge State
     const [selectedTests, setSelectedTests] = useState([]);
     const [isMerging, setIsMerging] = useState(false);
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeTitle, setMergeTitle] = useState("");
-    const [editingTagsFor, setEditingTagsFor] = useState(null); // testId
-    const [filterTag, setFilterTag] = useState("all");
-    const [filterDifficulty, setFilterDifficulty] = useState("all");
-    const [filterQuestionType, setFilterQuestionType] = useState("all");
-    const [tagLabels, setTagLabels] = useState({});
-    const itemsPerPage = 15;
 
-
-
-    const fetchTests = async () => {
+    const fetchAll = async () => {
         setLoading(true);
         try {
-            const q = query(collection(db, "tests"), orderBy("createdAt", "desc"));
-            const snapshot = await getDocs(q);
-            setTests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(t => t.id !== "tag_metadata" && t.id !== "_tag_settings"));
+            // Fetch Tests
+            const qTests = query(collection(db, "tests"), orderBy("createdAt", "desc"));
+            const snapTests = await getDocs(qTests);
+            const testsData = snapTests.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(t => t.id !== "tag_metadata" && t.id !== "_tag_settings");
+            setTests(testsData);
+
+            // Fetch Collections
+            const qCols = query(collection(db, "test_collections"), orderBy("createdAt", "asc"));
+            const snapCols = await getDocs(qCols);
+            setCollections(snapCols.docs.map(d => ({ id: d.id, ...d.data() })));
         } catch (err) {
-            console.error("Error fetching tests:", err);
+            console.error("Error fetching data:", err);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchTests();
-    }, []);
+    useEffect(() => { fetchAll(); }, []);
 
     const handleDelete = async (id, title) => {
-        if (!window.confirm(`DIQQAT! "${title}" testini o'chirmoqchimisiz?`)) return;
+        if (!window.confirm(`"${title}" testini o'chirishni tasdiqlaysizmi?`)) return;
         try {
             await deleteDoc(doc(db, "tests", id));
             logAction(user.uid, 'DELETE_TEST', { testId: id, title });
-            setTests(tests.filter(t => t.id !== id));
-            setSelectedTests(prev => prev.filter(testId => testId !== id));
+            setTests(prev => prev.filter(t => t.id !== id));
+            setSelectedTests(prev => prev.filter(tid => tid !== id));
         } catch (err) { alert("Xato: " + err.message); }
-    };
-
-    const handleSelectTest = (id) => {
-        setSelectedTests(prev =>
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-        );
     };
 
     const handleUpdateTags = async (testId, newTags) => {
@@ -95,281 +108,118 @@ export default function AdminTests() {
         }
     };
 
-    const handleMergeTests = async () => {
-        if (selectedTests.length < 2) return alert("Kamida 2 ta testni tanlang!");
-        
-        // Map selection to actual test objects in order of selection
-        const testObjects = selectedTests.map(id => tests.find(t => t.id === id));
-        const firstType = testObjects[0]?.type;
-        
-        if (!testObjects.every(t => t && t.type === firstType)) {
-            return alert("Faqat bir xil turdagi testlarni birlashtirish mumkin (masalan, faqat Reading yoki faqat Listening).");
-        }
-
-        if (firstType === 'writing' || firstType === 'speaking') {
-            return alert("Hozircha faqat Reading va Listening testlarini birlashtirish mumkin.");
-        }
-
-        // Generate automatic title by joining all selected test titles
-        const autoTitle = testObjects.map(t => t.title || "Nomsiz test").join(" / ");
-
-        setShowMergeModal(true);
-        setMergeTitle(autoTitle);
-    };
-
-    const finalizeMerge = async () => {
-        if (!mergeTitle.trim()) return alert("Test nomini kiriting!");
-        setIsMerging(true);
+    // Collection Management Functions
+    const handleCreateCollection = async () => {
+        if (!newCollectionName.trim()) return;
+        setLoading(true);
         try {
-            const testObjects = tests.filter(t => selectedTests.includes(t.id));
-            // Sort by selection order or keep original order in array
-            const sortedSelected = selectedTests.map(id => testObjects.find(t => t.id === id));
-            
-            let combinedPassages = [];
-            let combinedQuestions = [];
-            let combinedKeywords = [];
-            let passageIdOffset = 0;
-            let questionIdCounter = 1;
-
-            sortedSelected.forEach((test, testIdx) => {
-                const passages = test.passages || [];
-                const questions = test.questions || [];
-                const keywords = test.keywordTable || [];
-
-                // 1. Passage ID Mapping
-                const passageIdMap = {};
-                const mappedPassages = passages.map((p, pIdx) => {
-                    const newId = passageIdOffset + pIdx + 1;
-                    passageIdMap[String(p.id)] = String(newId);
-                    return { 
-                        ...p, 
-                        id: String(newId), 
-                        originalId: p.id,
-                        partNumber: passageIdOffset + pIdx + 1 
-                    };
-                });
-
-                // 2. Questions Processing
-                const STRUCTURAL_KEYS = new Set([
-                    'options', 'headers', 'image', 'answer', 'locationId',
-                    'introDuration', 'originalId'
-                ]);
-
-                // Helper to update text strings containing range labels
-                const updateRangeText = (text, min, max) => {
-                    if (!text || typeof text !== 'string') return text;
-                    // Supports "Questions 1-5", "Question 1", "Questions 1 to 5", etc.
-                    const rangeRegex = /(Questions?\s+)\d+(?:\s*(?:[\-–]|to)\s*\d+)?/gi;
-                    return text.replace(rangeRegex, (match, prefix) => {
-                        return `${prefix}${min}${max > min ? '–' + max : ''}`;
-                    });
-                };
-
-                const mappedQuestions = questions.map(group => {
-                    let groupMinId = Infinity;
-                    let groupMaxId = -Infinity;
-
-                    const updateIdCounter = (obj, field = 'id') => {
-                        const idStr = String(obj[field] || "");
-                        if (!idStr) return;
-
-                        // Only process IDs that look like question numbers (numeric, range, or list)
-                        const isNumeric = /^\d+$/.test(idStr);
-                        const isRange = /^\d+\s*[\-–]\s*\d+$/.test(idStr);
-                        const isList = /^\d+(?:\s*,\s*\d+)+$/.test(idStr);
-
-                        if (!isNumeric && !isRange && !isList) return;
-
-                        let count = 1;
-                        if (isRange) {
-                            const parts = idStr.split(/[\-–]/);
-                            const start = parseInt(parts[0].trim());
-                            const end = parseInt(parts[1].trim());
-                            if (!isNaN(start) && !isNaN(end)) count = Math.abs(end - start) + 1;
-                        } else if (isList) {
-                            count = idStr.split(',').filter(Boolean).length;
-                        }
-
-                        if (count > 1) {
-                            const newIds = [];
-                            for (let i = 0; i < count; i++) {
-                                const nextId = questionIdCounter++;
-                                newIds.push(String(nextId));
-                                if (nextId < groupMinId) groupMinId = nextId;
-                                if (nextId > groupMaxId) groupMaxId = nextId;
-                            }
-                            // Maintain formatting: range for ranges, comma-separated for lists
-                            obj[field] = isRange ? `${newIds[0]}–${newIds[newIds.length - 1]}` : newIds.join(', ');
-                        } else {
-                            const nextId = questionIdCounter++;
-                            obj[field] = String(nextId);
-                            if (nextId < groupMinId) groupMinId = nextId;
-                            if (nextId > groupMaxId) groupMaxId = nextId;
-                        }
-                    };
-
-                    const walkAndReindex = (obj) => {
-                        if (!obj || typeof obj !== 'object') return obj;
-                        if (Array.isArray(obj)) return obj.map(walkAndReindex);
-
-                        let updated = { ...obj };
-                        
-                        // 1. passageId update
-                        if (updated.passageId && passageIdMap[String(updated.passageId)]) {
-                            updated.passageId = passageIdMap[String(updated.passageId)];
-                        } else if (passageIdMap[String(group.passageId)]) {
-                            updated.passageId = passageIdMap[String(group.passageId)];
-                        }
-
-                        // 2. Recurse into potential question containers
-                        // We skip keys in STRUCTURAL_KEYS to avoid corrupted data
-                        const CONTAINER_KEYS = ['items', 'questions', 'groups', 'rows', 'cells', 'parts', 'content'];
-                        let hasChildrenQuestions = false;
-
-                        for (const key of CONTAINER_KEYS) {
-                            if (updated[key] && typeof updated[key] === 'object') {
-                                // If it's a container, we recurse but don't re-index this level yet
-                                hasChildrenQuestions = true;
-                                updated[key] = walkAndReindex(updated[key]);
-                            }
-                        }
-
-                        // 3. ID update: Only if it's a leaf question or a standalone item
-                        // We don't re-index groups that have child questions to avoid double-counting
-                        if (updated.id && !hasChildrenQuestions) {
-                            updateIdCounter(updated);
-                        }
-
-                        // Recursive call for other nested objects not in container list
-                        for (const key in updated) {
-                            if (!CONTAINER_KEYS.includes(key) && !STRUCTURAL_KEYS.has(key) && 
-                                updated[key] && typeof updated[key] === 'object') {
-                                updated[key] = walkAndReindex(updated[key]);
-                            }
-                        }
-                        return updated;
-                    };
-
-                    // Process the entire group structure recursively
-                    const newGroup = walkAndReindex({
-                        ...group,
-                        passageId: passageIdMap[String(group.passageId)] || group.passageId
-                    });
-
-                    // Finalize: Sync the group's own ID with the new range of its questions
-                    if (groupMinId !== Infinity && groupMaxId !== -Infinity) {
-                        const currentId = String(newGroup.id || "");
-                        // Only update if it looks like a numeric question range/ID
-                        if (/^\d+([\-–]\d+)?$/.test(currentId) || (!currentId && (group.items?.length || group.questions?.length))) {
-                            newGroup.id = groupMaxId > groupMinId ? `${groupMinId}–${groupMaxId}` : String(groupMinId);
-                        }
-                    } else if (newGroup.id && !group.items?.length && !group.questions?.length && !group.groups?.length) {
-                        // Case for standalone items/groups that aren't nested
-                        updateIdCounter(newGroup);
-                    }
-
-                    // Update instruction and text labels with correct question range
-                    if (groupMinId !== Infinity) {
-                        if (newGroup.instruction) newGroup.instruction = updateRangeText(newGroup.instruction, groupMinId, groupMaxId);
-                        if (newGroup.text) newGroup.text = updateRangeText(newGroup.text, groupMinId, groupMaxId);
-                        if (newGroup.header) newGroup.header = updateRangeText(newGroup.header, groupMinId, groupMaxId);
-                    }
-
-                    return newGroup;
-                });
-
-                // 3. Keywords Processing
-                const mappedKeywords = keywords.map(kw => ({
-                    ...kw,
-                    passageId: passageIdMap[String(kw.passageId)] || kw.passageId
-                }));
-
-                combinedPassages = [...combinedPassages, ...mappedPassages];
-                combinedQuestions = [...combinedQuestions, ...mappedQuestions];
-                combinedKeywords = [...combinedKeywords, ...mappedKeywords];
-                
-                passageIdOffset += passages.length;
+            await addDoc(collection(db, "test_collections"), {
+                name: newCollectionName.trim(),
+                description: "",
+                thumbnail: "",
+                createdAt: serverTimestamp()
             });
-
-            const newTestData = {
-                title: mergeTitle || "Merged Test",
-                type: sortedSelected[0]?.type || "reading",
-                difficulty: "medium",
-                passages: combinedPassages || [],
-                questions: combinedQuestions || [],
-                keywordTable: combinedKeywords || [],
-                introDuration: (sortedSelected[0]?.type === 'listening') ? (sortedSelected[0]?.introDuration || 10) : undefined,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                isExclusive: false
-            };
-
-            // Utility to recursively remove undefined and NaN fields for Firestore
-            // AND ensure No Nested Arrays (not supported by Firestore)
-            const cleanObject = (obj) => {
-                if (obj === null || obj === undefined) return undefined;
-                if (typeof obj !== 'object' || obj instanceof Date) {
-                    if (typeof obj === 'number' && isNaN(obj)) return undefined;
-                    return obj;
-                }
-                
-                // Firestore handle for objects with toDate (Timestamps)
-                if (obj.toDate && typeof obj.toDate === 'function') {
-                    try { return obj.toDate().toISOString(); } catch(e) { return undefined; }
-                }
-
-                if (Array.isArray(obj)) {
-                    return obj.map(item => {
-                        const cleaned = cleanObject(item);
-                        if (Array.isArray(cleaned)) {
-                            // Firestore doesn't support nested arrays. Wrap in an object.
-                            return { cells: cleaned };
-                        }
-                        return cleaned;
-                    }).filter(v => v !== undefined);
-                }
-                
-                const cleaned = {};
-                Object.keys(obj).forEach(key => {
-                    const val = cleanObject(obj[key]);
-                    if (val !== undefined) cleaned[key] = val;
-                });
-                return cleaned;
-            };
-
-            const finalPayload = cleanObject(newTestData);
-            
-            // final validation: ensure no critical fields were lost
-            if (!finalPayload.title || !finalPayload.type) {
-                throw new Error("Test ma'lumotlari to'liq emas (title yoki type yetishmayapti)");
-            }
-
-            const docRef = await addDoc(collection(db, "tests"), finalPayload);
-            logAction(user.uid, 'MERGE_TESTS', { newTestId: docRef.id, mergedFrom: selectedTests });
-            
-            alert("Testlar muvaffaqiyatli birlashtirildi!");
-            // Refresh the list and clear states
-            await fetchTests();
-            setSelectedTests([]);
-            setShowMergeModal(false);
-            setMergeTitle("");
-
-        } catch (err) {
-            console.error(err);
-            alert("Xatolik yuz berdi: " + err.message);
+            setNewCollectionName("");
+            setShowCreateCol(false);
+            fetchAll();
+        } catch (err) { 
+            console.error("Create collection error:", err);
+            alert("Xatolik: " + err.message); 
         } finally {
-            setIsMerging(false);
-            setShowMergeModal(false);
+            setLoading(false);
         }
     };
 
-    // Helper: extract display-friendly question types from a test
+    const handleUploadImage = async (file) => {
+        if (!file) return;
+        setUploading(true);
+        try {
+            const path = `test_collection_covers/${Date.now()}_${file.name}`;
+            const sRef = ref(storage, path);
+            const uploadTask = uploadBytesResumable(sRef, file);
+
+            uploadTask.on(
+                "state_changed",
+                null,
+                (err) => { alert(err.message); setUploading(false); },
+                async () => {
+                    const url = await getDownloadURL(uploadTask.snapshot.ref);
+                    setEditingCol(prev => ({ ...prev, thumbnail: url }));
+                    setUploading(false);
+                }
+            );
+        } catch (err) {
+            alert(err.message);
+            setUploading(false);
+        }
+    };
+
+    const handleUpdateCollection = async () => {
+        if (!editingCol.name.trim()) return;
+        try {
+            const { id, ...data } = editingCol;
+            await updateDoc(doc(db, "test_collections", id), data);
+            setEditingCol(null);
+            fetchAll();
+        } catch (err) { alert(err.message); }
+    };
+
+    const deleteCollection = async (id) => {
+        if (!window.confirm("To'plamni o'chirishni tasdiqlaysizmi?")) return;
+        await deleteDoc(doc(db, "test_collections", id));
+        fetchAll();
+    };
+
+    const assignToCollection = async (testId, collectionId) => {
+        try {
+            await updateDoc(doc(db, "tests", testId), {
+                collectionId: collectionId === 'None' ? null : collectionId
+            });
+            setTests(prev => prev.map(t => t.id === testId ? { ...t, collectionId: collectionId === 'None' ? null : collectionId } : t));
+        } catch (err) {
+            alert("Xatolik: " + err.message);
+        }
+    };
+
+    const bulkAssignToCollection = async (collectionId) => {
+        if (selectedTests.length === 0) return;
+        setLoading(true);
+        try {
+            const batch = writeBatch(db);
+            selectedTests.forEach(testId => {
+                batch.update(doc(db, "tests", testId), { 
+                    collectionId: collectionId === 'None' ? null : collectionId 
+                });
+            });
+            await batch.commit();
+            setTests(prev => prev.map(t => 
+                selectedTests.includes(t.id) 
+                ? { ...t, collectionId: collectionId === 'None' ? null : collectionId } 
+                : t
+            ));
+            setSelectedTests([]);
+            alert(`${selectedTests.length} ta test muvaffaqiyatli ko'chirildi!`);
+        } catch (err) {
+            alert("Xatolik: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Filter Logic
+    const getPassageLabel = (test) => {
+        if (test.passages && test.passages.length >= 3) return "Full Test";
+        if (test.difficulty === 'easy') return "Passage 1";
+        if (test.difficulty === 'medium') return "Passage 2";
+        if (test.difficulty === 'hard') return "Passage 3";
+        return null;
+    };
+
     const getQuestionTypes = (test) => {
         if (!test.questions || !Array.isArray(test.questions)) return [];
         const seen = new Set();
         test.questions.forEach(group => {
             let type = group.type || 'Other';
-            
             const mapping = {
                 'multiple_choice': 'Multiple Choice',
                 'tfng': 'TFNG',
@@ -391,26 +241,25 @@ export default function AdminTests() {
                 'pick_two': 'Pick 2',
                 'pick_three': 'Pick 3'
             };
-            
             const displayType = mapping[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             seen.add(displayType);
         });
         return Array.from(seen);
     };
 
-    // 1. FILTERING LOGIC
     const filteredTests = useMemo(() => {
-        return tests.filter(test => {
-            const matchesSearch = test.title?.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesType = filterType === 'all' || test.type === filterType;
-            const matchesTag = filterTag === 'all' || (test.tags && test.tags.includes(filterTag));
-            const matchesDifficulty = filterDifficulty === 'all' || test.difficulty === filterDifficulty;
-            const matchesQuestionType = filterQuestionType === 'all' || getQuestionTypes(test).includes(filterQuestionType);
-            return matchesSearch && matchesType && matchesTag && matchesDifficulty && matchesQuestionType;
+        return tests.filter(t => {
+            const matchesSearch = t.title?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesType = filterType === "All" || t.type?.toLowerCase() === filterType.toLowerCase();
+            const matchesCollection = filterCollection === "All" || t.collectionId === filterCollection;
+            const matchesTag = filterTag === 'all' || (t.tags && t.tags.includes(filterTag));
+            const matchesDifficulty = filterDifficulty === 'all' || t.difficulty === filterDifficulty;
+            const matchesQuestionType = filterQuestionType === 'all' || getQuestionTypes(t).includes(filterQuestionType);
+            
+            return matchesSearch && matchesType && matchesCollection && matchesTag && matchesDifficulty && matchesQuestionType;
         });
-    }, [tests, searchTerm, filterType, filterTag, filterDifficulty, filterQuestionType]);
+    }, [tests, searchTerm, filterType, filterCollection, filterTag, filterDifficulty, filterQuestionType]);
 
-    // Gather all unique question types for filtering
     const allAvailableQuestionTypes = useMemo(() => {
         const types = new Set();
         tests.forEach(test => {
@@ -419,423 +268,655 @@ export default function AdminTests() {
         return Array.from(types).sort();
     }, [tests]);
 
-    // 2. PAGINATION LOGIC
-    const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
-    const currentData = filteredTests.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
+    // Merge Logic (Preserved from original)
+    const handleMergeTests = () => {
+        if (selectedTests.length < 2) return alert("Kamida 2 ta testni tanlang!");
+        const testObjects = selectedTests.map(id => tests.find(t => t.id === id));
+        const firstType = testObjects[0]?.type;
+        if (!testObjects.every(t => t && t.type === firstType)) {
+            return alert("Faqat bir xil turdagi testlarni birlashtirish mumkin.");
+        }
+        if (firstType === 'writing' || firstType === 'speaking') {
+            return alert("Hozircha faqat Reading va Listening testlarini birlashtirish mumkin.");
+        }
+        const autoTitle = testObjects.map(t => t.title || "Nomsiz test").join(" / ");
+        setShowMergeModal(true);
+        setMergeTitle(autoTitle);
+    };
 
-    // 3. STATISTICS
-    const stats = useMemo(() => ({
-        total: tests.length,
-        reading: tests.filter(t => t.type === 'reading').length,
-        listening: tests.filter(t => t.type === 'listening').length,
-        writing: tests.filter(t => t.type === 'writing').length,
-    }), [tests]);
+    const finalizeMerge = async () => {
+        if (!mergeTitle.trim()) return alert("Test nomini kiriting!");
+        setIsMerging(true);
+        try {
+            const sortedSelected = selectedTests.map(id => tests.find(t => t.id === id));
+            
+            let combinedPassages = [];
+            let combinedQuestions = [];
+            let combinedKeywords = [];
+            let passageIdOffset = 0;
+            let questionIdCounter = 1;
+
+            sortedSelected.forEach((test) => {
+                const passages = test.passages || [];
+                const questions = test.questions || [];
+                const keywords = test.keywordTable || [];
+
+                const passageIdMap = {};
+                const mappedPassages = passages.map((p, pIdx) => {
+                    const newId = passageIdOffset + pIdx + 1;
+                    passageIdMap[String(p.id)] = String(newId);
+                    return { ...p, id: String(newId), originalId: p.id, partNumber: passageIdOffset + pIdx + 1 };
+                });
+
+                const updateRangeText = (text, min, max) => {
+                    if (!text || typeof text !== 'string') return text;
+                    const rangeRegex = /(Questions?\s+)\d+(?:\s*(?:[\-–]|to)\s*\d+)?/gi;
+                    return text.replace(rangeRegex, (match, prefix) => `${prefix}${min}${max > min ? '–' + max : ''}`);
+                };
+
+                const mappedQuestions = questions.map(group => {
+                    let groupMinId = Infinity;
+                    let groupMaxId = -Infinity;
+
+                    const updateIdCounter = (obj, field = 'id') => {
+                        const idStr = String(obj[field] || "");
+                        if (!idStr) return;
+                        const isNumeric = /^\d+$/.test(idStr);
+                        const isRange = /^\d+\s*[\-–]\s*\d+$/.test(idStr);
+                        const isList = /^\d+(?:\s*,\s*\d+)+$/.test(idStr);
+                        if (!isNumeric && !isRange && !isList) return;
+
+                        let count = 1;
+                        if (isRange) {
+                            const parts = idStr.split(/[\-–]/);
+                            const start = parseInt(parts[0].trim());
+                            const end = parseInt(parts[1].trim());
+                            if (!isNaN(start) && !isNaN(end)) count = Math.abs(end - start) + 1;
+                        } else if (isList) {
+                            count = idStr.split(',').filter(Boolean).length;
+                        }
+
+                        if (count > 1) {
+                            const newIds = [];
+                            for (let i = 0; i < count; i++) {
+                                const nextId = questionIdCounter++;
+                                newIds.push(String(nextId));
+                                if (nextId < groupMinId) groupMinId = nextId;
+                                if (nextId > groupMaxId) groupMaxId = nextId;
+                            }
+                            obj[field] = isRange ? `${newIds[0]}–${newIds[newIds.length - 1]}` : newIds.join(', ');
+                        } else {
+                            const nextId = questionIdCounter++;
+                            obj[field] = String(nextId);
+                            if (nextId < groupMinId) groupMinId = nextId;
+                            if (nextId > groupMaxId) groupMaxId = nextId;
+                        }
+                    };
+
+                    const walkAndReindex = (obj) => {
+                        if (!obj || typeof obj !== 'object') return obj;
+                        if (Array.isArray(obj)) return obj.map(walkAndReindex);
+                        let updated = { ...obj };
+                        if (updated.passageId && passageIdMap[String(updated.passageId)]) {
+                            updated.passageId = passageIdMap[String(updated.passageId)];
+                        }
+                        const CONTAINER_KEYS = ['items', 'questions', 'groups', 'rows', 'cells', 'parts', 'content'];
+                        let hasChildrenQuestions = false;
+                        for (const key of CONTAINER_KEYS) {
+                            if (updated[key] && typeof updated[key] === 'object') {
+                                hasChildrenQuestions = true;
+                                updated[key] = walkAndReindex(updated[key]);
+                            }
+                        }
+                        if (updated.id && !hasChildrenQuestions) updateIdCounter(updated);
+                        return updated;
+                    };
+
+                    const newGroup = walkAndReindex({ ...group, passageId: passageIdMap[String(group.passageId)] || group.passageId });
+                    if (groupMinId !== Infinity && groupMaxId !== -Infinity) {
+                        const currentId = String(newGroup.id || "");
+                        if (/^\d+([\-–]\d+)?$/.test(currentId) || (!currentId && (group.items?.length || group.questions?.length))) {
+                            newGroup.id = groupMaxId > groupMinId ? `${groupMinId}–${groupMaxId}` : String(groupMinId);
+                        }
+                    }
+                    if (groupMinId !== Infinity) {
+                        if (newGroup.instruction) newGroup.instruction = updateRangeText(newGroup.instruction, groupMinId, groupMaxId);
+                        if (newGroup.text) newGroup.text = updateRangeText(newGroup.text, groupMinId, groupMaxId);
+                    }
+                    return newGroup;
+                });
+
+                combinedPassages = [...combinedPassages, ...mappedPassages];
+                combinedQuestions = [...combinedQuestions, ...mappedQuestions];
+                combinedKeywords = [...combinedKeywords, ...keywords.map(kw => ({ ...kw, passageId: passageIdMap[String(kw.passageId)] || kw.passageId }))];
+                passageIdOffset += passages.length;
+            });
+
+            const newTestData = {
+                title: mergeTitle,
+                type: sortedSelected[0]?.type,
+                difficulty: "medium",
+                passages: combinedPassages,
+                questions: combinedQuestions,
+                keywordTable: combinedKeywords,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            const cleanObject = (obj) => {
+                if (obj === null || obj === undefined) return undefined;
+                if (typeof obj !== 'object') return obj;
+                if (Array.isArray(obj)) return obj.map(cleanObject).filter(v => v !== undefined);
+                const cleaned = {};
+                Object.keys(obj).forEach(k => {
+                    const v = cleanObject(obj[k]);
+                    if (v !== undefined) cleaned[k] = v;
+                });
+                return cleaned;
+            };
+
+            const docRef = await addDoc(collection(db, "tests"), cleanObject(newTestData));
+            logAction(user.uid, 'MERGE_TESTS', { newTestId: docRef.id, mergedFrom: selectedTests });
+            alert("Testlar birlashtirildi!");
+            fetchAll();
+            setSelectedTests([]);
+            setShowMergeModal(false);
+        } catch (err) {
+            alert("Xatolik: " + err.message);
+        } finally {
+            setIsMerging(false);
+        }
+    };
 
     return (
-        <div className={`min-h-screen font-sans transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F8F9FA] text-gray-800'}`}>
-
-            {/* --- HEADER --- */}
-            <div className={`border-b sticky top-0 z-20 shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => navigate('/admin')} className={`p-2 rounded-full transition ${isDark ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
-                            <Icons.ArrowLeft className="w-5 h-5" />
-                        </button>
-                        <h1 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>Testlar Boshqaruvi</h1>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {selectedTests.length >= 2 && (
-                            <button
-                                onClick={handleMergeTests}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition animate-in fade-in slide-in-from-right-4"
-                            >
-                                <Icons.Layers className="w-4 h-4" />
-                                <span>Birlashtirish ({selectedTests.length})</span>
-                            </button>
-                        )}
-                        <button
-                            onClick={() => navigate('/admin/create-test')}
-                            className="bg-[#1A73E8] hover:bg-[#1557B0] text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition"
-                        >
-                            <Icons.Plus className="w-4 h-4" />
-                            <span className="hidden sm:inline">Yangi Test</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-
-                {/* --- STATS CARDS --- */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[
-                        { label: "Jami Testlar", val: stats.total, color: isDark ? "text-white" : "text-gray-700", bg: isDark ? "bg-[#1E1E1E] border-white/5" : "bg-white border-gray-100" },
-                        { label: "Reading", val: stats.reading, color: isDark ? "text-blue-400" : "text-blue-600", bg: isDark ? "bg-blue-500/5 border-blue-500/10" : "bg-blue-50 border-blue-100" },
-                        { label: "Listening", val: stats.listening, color: isDark ? "text-purple-400" : "text-purple-600", bg: isDark ? "bg-purple-500/5 border-purple-500/10" : "bg-purple-50 border-purple-100" },
-                        { label: "Writing", val: stats.writing, color: isDark ? "text-yellow-400" : "text-yellow-600", bg: isDark ? "bg-yellow-500/5 border-yellow-500/10" : "bg-yellow-50 border-yellow-100" },
-                    ].map((stat, idx) => (
-                        <div key={idx} className={`${stat.bg} p-4 rounded-xl border shadow-sm flex flex-col items-center justify-center transition-colors`}>
-                            <span className={`text-2xl font-bold ${stat.color}`}>{stat.val}</span>
-                            <span className={`text-xs font-medium uppercase tracking-wide mt-1 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{stat.label}</span>
+        <div className={`h-screen flex font-sans transition-colors duration-200 overflow-hidden relative ${isDark ? 'bg-[#121212] text-white' : 'bg-[#f5f5f7] text-zinc-900'}`}>
+            
+            {/* CREATE COLLECTION MODAL */}
+            {showCreateCol && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateCol(false)} />
+                    <div className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 ${isDark ? 'bg-[#1E1E1E] border border-white/10' : 'bg-white'}`}>
+                        <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50/50'}`}>
+                            <h2 className="font-bold text-lg flex items-center gap-2">
+                                <Plus className="text-blue-500" size={20} /> Create New Collection
+                            </h2>
+                            <button onClick={() => setShowCreateCol(false)} className="p-2 hover:bg-black/10 rounded-full transition-colors"><X size={20} /></button>
                         </div>
-                    ))}
-                </div>
-
-                {/* --- FILTER & SEARCH BAR (REFINE APPLE DESIGN) --- */}
-                <div className="space-y-6 mb-10">
-                    <div className="flex flex-col md:flex-row gap-4">
-                        {/* 1. Search */}
-                        <div className="relative flex-1 group">
-                            <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
-                            <input
-                                type="text"
-                                placeholder="Test nomini qidiring..."
-                                className={`w-full pl-11 pr-4 py-3 rounded-2xl border-none outline-none text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-white focus:bg-white/[0.08] placeholder:text-gray-600' : 'bg-gray-100 text-gray-900 focus:bg-gray-200/50 placeholder:text-gray-500'}`}
-                                value={searchTerm}
-                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                            />
-                        </div>
-
-                        {/* 2. Hashtag Filter */}
-                        <div className={`relative w-full md:w-72 flex items-center gap-3 px-4 rounded-2xl transition-all h-[47px] ${isDark ? 'bg-white/5 focus-within:bg-white/[0.08]' : 'bg-gray-100 focus-within:bg-gray-200/50'}`}>
-                            <Icons.Tag className={`w-4 h-4 ${filterTag !== 'all' ? (isDark ? 'text-blue-400' : 'text-blue-600') : 'text-gray-500'}`} />
-                            <input 
-                                type="text"
-                                placeholder="Hashtag..."
-                                className="bg-transparent border-none outline-none text-sm font-medium w-full placeholder:text-gray-500"
-                                value={filterTag === 'all' ? '' : filterTag}
-                                onChange={(e) => {
-                                    const val = e.target.value.trim().replace(/^#/, "");
-                                    setFilterTag(val || 'all');
-                                    setCurrentPage(1);
-                                }}
-                            />
-                            {filterTag !== 'all' && (
-                                <button onClick={() => setFilterTag('all')} className="text-gray-500 hover:text-red-500 transition-colors">
-                                    <Icons.X className="w-3.5 h-3.5" />
-                                </button>
-                            )}
-                        </div>
-
-                        {/* 3. Question Type Filter */}
-                        <div className={`relative w-full md:w-64 flex items-center gap-3 px-4 rounded-2xl transition-all h-[47px] ${isDark ? 'bg-white/5 focus-within:bg-white/[0.08]' : 'bg-gray-100 focus-within:bg-gray-200/50'}`}>
-                            <Icons.Layers className={`w-4 h-4 ${filterQuestionType !== 'all' ? (isDark ? 'text-blue-400' : 'text-blue-600') : 'text-gray-500'}`} />
-                            <select 
-                                className="bg-transparent border-none outline-none text-sm font-medium w-full cursor-pointer appearance-none pr-8"
-                                value={filterQuestionType}
-                                onChange={(e) => { setFilterQuestionType(e.target.value); setCurrentPage(1); }}
-                            >
-                                <option value="all" className={isDark ? "bg-[#1E1E1E]" : ""}>Barcha savol turlari</option>
-                                {allAvailableQuestionTypes.map(t => (
-                                    <option key={t} value={t} className={isDark ? "bg-[#1E1E1E]" : ""}>{t}</option>
-                                ))}
-                            </select>
-                            <div className="absolute right-4 pointer-events-none text-gray-400">
-                                <Icons.ChevronDown className="w-4 h-4" />
+                        <div className="p-6 space-y-5">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Collection Name</label>
+                                <input 
+                                    autoFocus
+                                    className={`w-full border p-3 rounded-xl outline-none transition-all font-bold text-sm ${isDark ? 'bg-white/5 border-white/10 focus:border-blue-500' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500'}`}
+                                    placeholder="Enter collection name..."
+                                    value={newCollectionName}
+                                    onChange={e => setNewCollectionName(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleCreateCollection()}
+                                />
                             </div>
                         </div>
-                    </div>
-
-                    <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-                        {/* 3. Type Filter (Segmented Control style) */}
-                        <div className={`flex p-1.5 rounded-2xl w-full lg:w-auto overflow-x-auto no-scrollbar ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
-                            {['all', 'reading', 'listening', 'writing', 'speaking'].map(type => (
-                                <button
-                                    key={type}
-                                    onClick={() => { setFilterType(type); setCurrentPage(1); }}
-                                    className={`flex-1 lg:flex-none px-6 py-2 rounded-xl text-sm font-medium capitalize transition-all duration-200 whitespace-nowrap ${filterType === type
-                                        ? (isDark ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10' : 'bg-white text-gray-900 shadow-sm')
-                                        : (isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')
-                                        }`}
-                                >
-                                    {type}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* 4. Passage / Part Filter */}
-                        <div className={`flex p-1.5 rounded-2xl w-full lg:w-auto overflow-x-auto no-scrollbar ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
-                            {(filterType === 'listening' ? [
-                                {v:'all', l:'Hammasi'}, 
-                                {v:'full', l:'Full'}, 
-                                {v:'part 1', l:'Part 1'}, 
-                                {v:'part 2', l:'Part 2'}, 
-                                {v:'part 3', l:'Part 3'}, 
-                                {v:'part 4', l:'Part 4'}
-                            ] : [
-                                {v:'all', l:'Hammasi'}, 
-                                {v:'easy', l:'Passage 1'}, 
-                                {v:'medium', l:'Passage 2'}, 
-                                {v:'hard', l:'Passage 3'}
-                            ]).map(diff => (
-                                <button
-                                    key={diff.v}
-                                    onClick={() => { setFilterDifficulty(diff.v); setCurrentPage(1); }}
-                                    className={`flex-1 lg:flex-none px-5 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${filterDifficulty === diff.v
-                                        ? (isDark ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10' : 'bg-white text-gray-900 shadow-sm')
-                                        : (isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')
-                                        }`}
-                                >
-                                    {diff.l}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* --- TABLE --- */}
-                <div className={`rounded-xl border shadow-sm overflow-hidden transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead className={`border-b transition-colors ${isDark ? 'bg-[#262626] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
-                                <tr>
-                                    <th className="px-6 py-3 w-4">
-                                        <input 
-                                            type="checkbox" 
-                                            className={`rounded border-gray-300 text-[#1A73E8] focus:ring-[#1A73E8] ${isDark ? 'bg-[#2C2C2C] border-white/10' : ''}`}
-                                            onChange={(e) => {
-                                                if (e.target.checked) setSelectedTests(currentData.map(t => t.id));
-                                                else setSelectedTests([]);
-                                            }}
-                                            checked={currentData.length > 0 && currentData.every(t => selectedTests.includes(t.id))}
-                                        />
-                                    </th>
-                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Test Nomi</th>
-                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Turi</th>
-                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Taglar</th>
-                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Qiyinligi</th>
-                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Sana</th>
-                                    <th className={`px-6 py-3 text-[13px] font-semibold capitalize text-right ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Amallar</th>
-                                </tr>
-                            </thead>
-                            <tbody className={`divide-y transition-colors ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
-                                {loading ? (
-                                    <tr><td colSpan="6" className="p-8 text-center text-gray-500">Yuklanmoqda...</td></tr>
-                                ) : currentData.length === 0 ? (
-                                    <tr><td colSpan="6" className="p-8 text-center text-gray-400">Hech qanday test topilmadi.</td></tr>
-                                ) : (
-                                    currentData.map((test) => (
-                                        <tr key={test.id} className={`transition group ${selectedTests.includes(test.id) ? (isDark ? 'bg-blue-500/10' : 'bg-blue-50/50') : (isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50')}`}>
-                                            <td className="px-6 py-4">
-                                                <input 
-                                                    type="checkbox" 
-                                                    className={`rounded border-gray-300 text-[#1A73E8] focus:ring-[#1A73E8] ${isDark ? 'bg-[#2C2C2C] border-white/10' : ''}`}
-                                                    checked={selectedTests.includes(test.id)}
-                                                    onChange={() => handleSelectTest(test.id)}
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                 <div className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{test.title}</div>
-                                                 <div className="flex flex-wrap items-center gap-2 mt-1">
-                                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{test.questions?.length || 0} ta savol</div>
-                                                     {(test.type === 'reading' || test.type === 'listening') && getQuestionTypes(test).length > 0 && (
-                                                         <div className="flex flex-wrap gap-1">
-                                                             {getQuestionTypes(test).map((t, i) => (
-                                                                 <span key={i} className={`px-1.5 py-0.5 rounded text-[9px] font-normal uppercase tracking-tight border ${isDark ? 'bg-blue-500/5 border-blue-500/10 text-blue-400/80' : 'bg-blue-50 border-blue-100 text-blue-600/80'}`}>
-                                                                     {t}
-                                                                 </span>
-                                                             ))}
-                                                         </div>
-                                                     )}
-                                                 </div>
-                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                                            ${test.type === 'reading' ? (isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-800') :
-                                                        test.type === 'listening' ? (isDark ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-800') :
-                                                            (isDark ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-800')}`}>
-                                                    {test.type}
-                                                </span>
-                                            </td>
-                                             <td className="px-6 py-4">
-                                                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                                    {test.tags?.map((tag, idx) => (
-                                                        <span key={idx} className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${isDark ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
-                                                            #{tag}
-                                                        </span>
-                                                    ))}
-                                                    <button 
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEditingTagsFor(editingTagsFor === test.id ? null : test.id);
-                                                        }}
-                                                        className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-500 hover:text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-600'}`}
-                                                    >
-                                                        <Icons.Plus className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
-                                                {editingTagsFor === test.id && (
-                                                    <div className={`absolute mt-2 z-50 p-4 rounded-2xl shadow-2xl border animate-in fade-in zoom-in-95 duration-200 w-72 ${isDark ? 'bg-[#2C2C2C] border-white/10' : 'bg-white border-gray-200'}`}>
-                                                        <div className="flex justify-between items-center mb-3">
-                                                            <span className="text-[10px] font-bold uppercase tracking-widest text-[#3772FF]">Hashtaglar (Admin)</span>
-                                                            <button onClick={() => setEditingTagsFor(null)}><Icons.X className="w-4 h-4 text-gray-500" /></button>
-                                                        </div>
-                                                        <TagSelector 
-                                                            selectedTags={test.tags || []} 
-                                                            onChange={(newTags) => handleUpdateTags(test.id, newTags)}
-                                                            isDark={isDark}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`text-xs font-medium capitalize
-                                            ${test.difficulty === 'hard' ? 'text-red-500' :
-                                                        test.difficulty === 'easy' ? 'text-green-500' :
-                                                            'text-orange-500'}`}>
-                                                    {test.type === 'listening' ? 
-                                                        (test.difficulty?.startsWith('part') ? test.difficulty.replace('part', 'Part') : 'Full Test') :
-                                                        (test.difficulty === 'hard' ? 'Passage 3' : 
-                                                         test.difficulty === 'medium' ? 'Passage 2' : 
-                                                         test.difficulty === 'easy' ? 'Passage 1' : 
-                                                         (test.difficulty || "Passage 2"))}
-                                                </span>
-                                            </td>
-                                            <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                {test.createdAt?.seconds ? new Date(test.createdAt.seconds * 1000).toLocaleDateString() : '-'}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className={`flex items-center justify-end gap-2 transition-opacity ${isDark ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                                                    <button onClick={() => window.open(`/test/${test.id}`, '_blank')} className={`p-1.5 rounded transition ${isDark ? 'text-gray-400 hover:text-blue-400 hover:bg-white/5' : 'text-gray-400 hover:text-[#1A73E8] hover:bg-blue-50'}`} title="Ko'rish">
-                                                        <Icons.Eye className="w-4 h-4" />
-                                                    </button>
-                                                    <button onClick={() => navigate(`/admin/edit-test/${test.id}`)} className={`p-1.5 rounded transition ${isDark ? 'text-gray-400 hover:text-green-400 hover:bg-white/5' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`} title="Tahrirlash">
-                                                        <Icons.Edit className="w-4 h-4" />
-                                                    </button>
-                                                    <button onClick={() => handleDelete(test.id, test.title)} className={`p-1.5 rounded transition ${isDark ? 'text-gray-400 hover:text-red-400 hover:bg-white/5' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`} title="O'chirish">
-                                                        <Icons.Trash className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* --- PAGINATION FOOTER --- */}
-                    {totalPages > 1 && (
-                        <div className={`px-6 py-4 border-t flex items-center justify-between transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
-                            <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                                Ko'rsatilmoqda: <span className={`font-medium ${isDark ? 'text-gray-300' : ''}`}>{(currentPage - 1) * itemsPerPage + 1}</span> - <span className={`font-medium ${isDark ? 'text-gray-300' : ''}`}>{Math.min(currentPage * itemsPerPage, filteredTests.length)}</span> / {filteredTests.length}
-                            </span>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                    className={`p-1.5 rounded-md disabled:opacity-30 disabled:hover:bg-transparent transition ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
-                                >
-                                    <Icons.ChevronLeft className="w-5 h-5" />
-                                </button>
-                                {(() => {
-                                    const delta = 2;
-                                    const range = [];
-                                    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
-                                        range.push(i);
-                                    }
-
-                                    if (currentPage > delta + 2) range.unshift("...");
-                                    range.unshift(1);
-                                    if (currentPage < totalPages - (delta + 1)) range.push("...");
-                                    if (totalPages > 1) range.push(totalPages);
-
-                                    return range.map((page, index) => (
-                                        page === "..." ? (
-                                            <span key={`dots-${index}`} className={`px-2 text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>...</span>
-                                        ) : (
-                                            <button
-                                                key={page}
-                                                onClick={() => setCurrentPage(page)}
-                                                className={`w-8 h-8 rounded-md text-sm font-medium transition ${currentPage === page
-                                                    ? (isDark ? 'bg-blue-600 text-white shadow-sm' : 'bg-[#1A73E8] text-white shadow-sm')
-                                                    : (isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100')
-                                                    }`}
-                                            >
-                                                {page}
-                                            </button>
-                                        )
-                                    ));
-                                })()}
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className={`p-1.5 rounded-md disabled:opacity-30 disabled:hover:bg-transparent transition ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
-                                >
-                                    <Icons.ChevronRight className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-            </div>
-
-            {/* --- MERGE MODAL --- */}
-            {showMergeModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className={`shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200 rounded-[24px] border ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100'}`}>
-                        <div className="p-6">
-                            <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Testlarni Birlashtirish</h3>
-                            <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                Tanlangan {selectedTests.length} ta test bitta umumiy testga birlashtiriladi. 
-                                Yangi test uchun nom kiriting:
-                            </p>
-                            
-                            <div className="space-y-4">
-                                <div>
-                                    <label className={`block text-xs font-bold uppercase mb-1 ml-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Test Nomi</label>
-                                    <input 
-                                        type="text" 
-                                        autoFocus
-                                        className={`w-full border rounded-xl p-3 text-sm outline-none transition ${isDark ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10' : 'bg-gray-50 border-gray-200 focus:border-[#1A73E8] focus:ring-4 focus:ring-[#1A73E8]/10'}`}
-                                        placeholder="Masalan: Full Reading Mock #1"
-                                        value={mergeTitle}
-                                        onChange={(e) => setMergeTitle(e.target.value)}
-                                    />
-                                </div>
-                                
-                                <div className={`p-4 rounded-xl border ${isDark ? 'bg-blue-500/5 border-blue-500/10' : 'bg-blue-50 border-blue-100'}`}>
-                                    <p className={`text-xs font-medium leading-relaxed ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>
-                                        💡 <b>Ma'lumot:</b> Birlashtirilgan testda matnlar (passages) va savollar siz tanlagan tartibda joylashadi. 
-                                        Asl testlar o'chib ketmaydi.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className={`p-4 flex gap-3 justify-end ${isDark ? 'bg-white/5 border-t border-white/5' : 'bg-gray-50 border-t border-gray-100'}`}>
+                        <div className="p-6 pt-0 flex gap-3">
+                            <button onClick={() => setShowCreateCol(false)} className={`flex-1 py-3 font-bold text-sm rounded-xl transition-colors ${isDark ? 'hover:bg-white/5 text-zinc-400' : 'hover:bg-zinc-50 text-zinc-500'}`}>Cancel</button>
                             <button 
-                                onClick={() => setShowMergeModal(false)}
-                                className={`px-4 py-2 text-sm font-medium transition ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
+                                onClick={handleCreateCollection} 
+                                disabled={!newCollectionName.trim() || loading}
+                                className="flex-[2] bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50"
                             >
-                                Bekor qilish
-                            </button>
-                            <button 
-                                onClick={finalizeMerge}
-                                disabled={isMerging || !mergeTitle.trim()}
-                                className="bg-[#1A73E8] hover:bg-[#1557B0] disabled:bg-gray-400 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2"
-                            >
-                                {isMerging ? (
-                                    <>
-                                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                                        <span>Birlashtirilmoqda...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Icons.Layers className="w-4 h-4" />
-                                        <span>Birlashtirish</span>
-                                    </>
-                                )}
+                                {loading ? "Creating..." : "Create Collection"}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+            {/* COLLECTION EDIT MODAL */}
+            {editingCol && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditingCol(null)} />
+                    <div className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 ${isDark ? 'bg-[#1E1E1E] border border-white/10' : 'bg-white'}`}>
+                        <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50/50'}`}>
+                            <h2 className="font-bold text-lg flex items-center gap-2">
+                                <Folder className="text-blue-500" size={20} /> Edit Collection
+                            </h2>
+                            <button onClick={() => setEditingCol(null)} className="p-2 hover:bg-black/10 rounded-full transition-colors"><X size={20} /></button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Collection Name</label>
+                                <input 
+                                    className={`w-full border p-3 rounded-xl outline-none transition-all font-bold text-sm ${isDark ? 'bg-white/5 border-white/10 focus:border-blue-500' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500'}`}
+                                    value={editingCol.name}
+                                    onChange={e => setEditingCol({ ...editingCol, name: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Cover Image</label>
+                                <div className="flex gap-3">
+                                    <div className="flex-1 space-y-2">
+                                        <input 
+                                            className={`w-full border p-3 rounded-xl outline-none transition-all text-xs ${isDark ? 'bg-white/5 border-white/10' : 'bg-zinc-50 border-zinc-200'}`}
+                                            placeholder="Image URL..."
+                                            value={editingCol.thumbnail || ""}
+                                            onChange={e => setEditingCol({ ...editingCol, thumbnail: e.target.value })}
+                                        />
+                                        <div className="relative">
+                                            <input type="file" id="col-upload" hidden accept="image/*" onChange={e => handleUploadImage(e.target.files[0])} />
+                                            <label htmlFor="col-upload" className={`flex items-center justify-center gap-2 w-full py-2 border border-dashed rounded-xl text-xs font-bold cursor-pointer transition-all ${isDark ? 'border-white/20 text-zinc-500 hover:border-blue-500' : 'border-zinc-300 text-zinc-500 hover:border-blue-500'}`}>
+                                                {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                                                {uploading ? "Uploading..." : "Upload Cover"}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className={`w-24 h-24 rounded-xl shrink-0 overflow-hidden shadow-inner border ${isDark ? 'bg-white/5 border-white/10' : 'bg-zinc-100 border-zinc-200'}`}>
+                                        {editingCol.thumbnail ? <img src={editingCol.thumbnail} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-zinc-300"><ImageIcon size={24} /></div>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6 pt-0 flex gap-3">
+                            <button onClick={() => deleteCollection(editingCol.id)} className="px-4 py-3 text-rose-500 font-bold text-sm hover:bg-rose-50 rounded-xl transition-colors">Delete</button>
+                            <button onClick={handleUpdateCollection} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
+            {/* MERGE MODAL */}
+            {showMergeModal && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowMergeModal(false)} />
+                    <div className={`relative w-full max-w-md rounded-[24px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100'}`}>
+                        <div className="p-6">
+                            <h3 className="text-xl font-bold mb-2">Merge Tests</h3>
+                            <p className={`text-sm mb-6 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                                Selected {selectedTests.length} tests will be combined into one. Enter a title:
+                            </p>
+                            <input 
+                                className={`w-full border p-3 rounded-xl outline-none transition-all text-sm mb-4 ${isDark ? 'bg-white/5 border-white/10 focus:border-blue-500' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500'}`}
+                                placeholder="e.g. Full Reading Mock #1"
+                                value={mergeTitle}
+                                onChange={e => setMergeTitle(e.target.value)}
+                            />
+                            <div className={`p-4 rounded-xl border mb-6 ${isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
+                                <p className="text-[11px] font-medium leading-relaxed">
+                                    💡 <b>Info:</b> Passages and questions will appear in the order you selected them. Original tests will not be deleted.
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowMergeModal(false)} className={`flex-1 py-3 font-bold rounded-xl transition-colors ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-zinc-100 hover:bg-zinc-200'}`}>Cancel</button>
+                                <button onClick={finalizeMerge} disabled={isMerging || !mergeTitle.trim()} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50">
+                                    {isMerging ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Merge Tests"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* SIDEBAR */}
+            <aside className={`w-64 border-r flex flex-col shrink-0 overflow-y-auto transition-colors ${isDark ? 'bg-[#181818] border-white/5' : 'bg-[#fbfbfb] border-zinc-200'}`}>
+                <div className="p-6">
+                    <div className="flex items-center gap-3 mb-8">
+                        <button onClick={() => navigate("/admin")} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-zinc-200'}`}><ArrowLeft size={18} /></button>
+                        <h1 className="text-xl font-bold tracking-tight">Tests</h1>
+                    </div>
+                    
+                    <div className="space-y-8">
+                        <div>
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 px-2 flex justify-between items-center">
+                                Collections
+                                <button onClick={() => setShowCreateCol(true)} className="hover:text-blue-500 transition-colors">
+                                    <Plus size={12} />
+                                </button>
+                            </h3>
+                            <nav className="space-y-0.5">
+                                <button 
+                                    onClick={() => setFilterCollection("All")}
+                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-semibold transition-colors ${filterCollection === 'All' ? (isDark ? 'bg-white/10 text-white' : 'bg-zinc-200 text-zinc-900') : 'text-zinc-500 hover:bg-black/5'}`}
+                                >
+                                    <Folder size={16} /> All Tests
+                                </button>
+                                {collections.map(c => (
+                                    <div key={c.id} className="group relative">
+                                        <button 
+                                            onClick={() => setFilterCollection(c.id)}
+                                            className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-semibold transition-colors ${filterCollection === c.id ? (isDark ? 'bg-white/10 text-white' : 'bg-zinc-200 text-zinc-900') : 'text-zinc-500 hover:bg-black/5'}`}
+                                        >
+                                            <span className="flex items-center gap-3 truncate pr-10">
+                                                <div className={`w-5 h-5 rounded overflow-hidden shrink-0 flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/10' : 'bg-zinc-200 border-black/5'}`}>
+                                                    {c.thumbnail ? <img src={c.thumbnail} className="w-full h-full object-cover" /> : <Folder size={12} className="text-zinc-400" />}
+                                                </div>
+                                                {c.name}
+                                            </span>
+                                            <span className="text-[10px] font-bold opacity-40">{tests.filter(t => t.collectionId === c.id).length}</span>
+                                        </button>
+                                        <div className={`absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex items-center transition-all pl-4 ${isDark ? 'bg-gradient-to-l from-[#181818] via-[#181818]' : 'bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb]'} to-transparent`}>
+                                            <button onClick={(e) => { e.stopPropagation(); setEditingCol(c); }} className="p-1.5 hover:text-blue-500 transition-colors"><Edit2 size={12} /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {isAddingCollection && (
+                                    <div className="px-2 py-2">
+                                        <input 
+                                            autoFocus
+                                            className={`w-full px-2 py-1 rounded text-xs outline-none border ${isDark ? 'bg-white/5 border-white/10 focus:border-blue-500' : 'bg-white border-zinc-200 focus:border-blue-500'}`}
+                                            placeholder="Name..."
+                                            value={newCollectionName}
+                                            onChange={e => setNewCollectionName(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleCreateCollection()}
+                                            onBlur={() => !newCollectionName && setIsAddingCollection(false)}
+                                        />
+                                    </div>
+                                )}
+                            </nav>
+                        </div>
+
+                        <div>
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 px-2">Module Type</h3>
+                            <nav className="space-y-0.5">
+                                {TEST_TYPES.map(type => (
+                                    <button 
+                                        key={type}
+                                        onClick={() => setFilterType(type)}
+                                        className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-semibold transition-colors ${filterType === type ? (isDark ? 'bg-white/10 text-white' : 'bg-zinc-200 text-zinc-900') : 'text-zinc-500 hover:bg-black/5'}`}
+                                    >
+                                        <span className="flex items-center gap-3">
+                                            {type === 'Reading' ? <BookOpen size={16} /> : 
+                                             type === 'Listening' ? <Headphones size={16} /> : 
+                                             type === 'Writing' ? <PenTool size={16} /> : 
+                                             type === 'Speaking' ? <Mic2 size={16} /> : <Layers size={16} />}
+                                            {type}
+                                        </span>
+                                        <span className="text-[10px] font-bold opacity-40">{type === 'All' ? tests.length : tests.filter(t => t.type?.toLowerCase() === type.toLowerCase()).length}</span>
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+
+                        <div>
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 px-2">Filters</h3>
+                            <div className="px-3 space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold uppercase text-zinc-500">Difficulty / Part</label>
+                                    <select 
+                                        className={`w-full bg-transparent border-b text-xs py-1 outline-none transition-colors ${isDark ? 'border-white/10 focus:border-blue-500' : 'border-zinc-200 focus:border-blue-500'}`}
+                                        value={filterDifficulty}
+                                        onChange={e => setFilterDifficulty(e.target.value)}
+                                    >
+                                        <option value="all">All Difficulty</option>
+                                        <option value="easy">Passage 1 / Easy</option>
+                                        <option value="medium">Passage 2 / Medium</option>
+                                        <option value="hard">Passage 3 / Hard</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold uppercase text-zinc-500">Question Type</label>
+                                    <select 
+                                        className={`w-full bg-transparent border-b text-xs py-1 outline-none transition-colors ${isDark ? 'border-white/10 focus:border-blue-500' : 'border-zinc-200 focus:border-blue-500'}`}
+                                        value={filterQuestionType}
+                                        onChange={e => setFilterQuestionType(e.target.value)}
+                                    >
+                                        <option value="all">All Savol Turlari</option>
+                                        {allAvailableQuestionTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold uppercase text-zinc-500">Tag / Hashtag</label>
+                                    <div className="flex items-center gap-2">
+                                        <Hash size={12} className="text-zinc-400" />
+                                        <input 
+                                            className={`w-full bg-transparent text-xs py-1 outline-none border-b ${isDark ? 'border-white/10' : 'border-zinc-200'}`}
+                                            placeholder="Filter by tag..."
+                                            value={filterTag === 'all' ? '' : filterTag}
+                                            onChange={e => setFilterTag(e.target.value || 'all')}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            {/* MAIN CONTENT AREA */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+                
+                {/* TOOLBAR */}
+                <header className={`h-16 border-b flex items-center justify-between px-6 shrink-0 transition-colors ${isDark ? 'bg-[#1e1e1e] border-white/5' : 'bg-white border-zinc-200'}`}>
+                    <div className="flex items-center gap-4 flex-1">
+                        <div className={`flex p-1 rounded-lg ${isDark ? 'bg-white/5' : 'bg-zinc-100'}`}>
+                            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? (isDark ? 'bg-white/10 text-white' : 'bg-white shadow-sm text-zinc-900') : 'text-zinc-400 hover:text-zinc-600'}`}><LayoutGrid size={16} /></button>
+                            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? (isDark ? 'bg-white/10 text-white' : 'bg-white shadow-sm text-zinc-900') : 'text-zinc-400 hover:text-zinc-600'}`}><List size={16} /></button>
+                        </div>
+                        <div className="relative w-full max-w-sm group">
+                            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-zinc-600 group-focus-within:text-blue-500' : 'text-zinc-400 group-focus-within:text-blue-500'}`} size={14} />
+                            <input 
+                                type="text"
+                                placeholder="Search tests..."
+                                className={`w-full border-none pl-9 pr-4 py-1.5 rounded-lg text-sm outline-none transition-all ${isDark ? 'bg-white/5 focus:bg-white/10 text-white' : 'bg-zinc-100 focus:bg-zinc-200/50'}`}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {selectedTests.length > 0 && (
+                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className="relative group">
+                                    <button className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isDark ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>
+                                        <FolderPlus size={14} /> Move to Collection
+                                    </button>
+                                    <div className={`absolute top-full right-0 mt-2 w-56 rounded-xl shadow-2xl border p-2 z-[60] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ${isDark ? 'bg-[#2A2A2A] border-white/10' : 'bg-white border-zinc-100'}`}>
+                                        <button onClick={() => bulkAssignToCollection('None')} className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-zinc-50 text-zinc-600'}`}>None (Remove)</button>
+                                        {collections.map(c => (
+                                            <button key={c.id} onClick={() => bulkAssignToCollection(c.id)} className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-zinc-50 text-zinc-600'}`}>{c.name}</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {selectedTests.length >= 2 && (
+                                    <button 
+                                        onClick={handleMergeTests}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isDark ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                                    >
+                                        <GitMerge size={14} /> Merge ({selectedTests.length})
+                                    </button>
+                                )}
+                                <div className="h-8 w-px bg-zinc-200 dark:bg-white/10 mx-1" />
+                            </div>
+                        )}
+                        <button onClick={() => navigate("/admin/create-test")} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 ${isDark ? 'bg-white text-zinc-900 hover:bg-zinc-200' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                            <Plus size={14} /> Create Test
+                        </button>
+                    </div>
+                </header>
+
+                {/* CONTENT LISTING */}
+                <main className={`flex-1 overflow-y-auto p-6 transition-colors ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+                    {loading ? (
+                        <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-blue-500" size={32} /></div>
+                    ) : filteredTests.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-zinc-300">
+                            <FileText size={64} strokeWidth={1} />
+                            <p className="mt-4 text-sm font-bold">No tests found</p>
+                        </div>
+                    ) : viewMode === 'list' ? (
+                        /* LIST VIEW */
+                        <div className={`rounded-xl border overflow-hidden ${isDark ? 'border-white/5 bg-[#1e1e1e]' : 'border-zinc-200 bg-white'}`}>
+                            <table className="w-full border-collapse text-left">
+                                <thead className={`border-b text-[10px] font-semibold uppercase tracking-widest transition-colors ${isDark ? 'bg-white/5 border-white/5 text-zinc-500' : 'bg-zinc-50 border-zinc-100 text-zinc-400'}`}>
+                                    <tr>
+                                        <th className="py-3 px-4 w-4">
+                                            <input 
+                                                type="checkbox" 
+                                                className="rounded border-zinc-300 text-blue-600"
+                                                checked={filteredTests.length > 0 && filteredTests.every(t => selectedTests.includes(t.id))}
+                                                onChange={e => setSelectedTests(e.target.checked ? filteredTests.map(t => t.id) : [])}
+                                            />
+                                        </th>
+                                        <th className="py-3 px-2 font-semibold">Test Title</th>
+                                        <th className="py-3 px-2 font-semibold">Type</th>
+                                        <th className="py-3 px-2 font-semibold">Collection</th>
+                                        <th className="py-3 px-2 font-semibold">Tags</th>
+                                        <th className="py-3 px-2 font-semibold text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-zinc-50'}`}>
+                                    {filteredTests.map(t => (
+                                        <tr key={t.id} className={`group hover:bg-black/5 transition-colors ${selectedTests.includes(t.id) ? (isDark ? 'bg-blue-500/10' : 'bg-blue-50') : ''}`}>
+                                            <td className="py-3 px-4">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="rounded border-zinc-300 text-blue-600"
+                                                    checked={selectedTests.includes(t.id)}
+                                                    onChange={() => setSelectedTests(prev => prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id])}
+                                                />
+                                            </td>
+                                            <td className="py-3 px-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 border ${isDark ? 'bg-white/5 border-white/10' : 'bg-zinc-100 border-zinc-200'}`}>
+                                                        {t.type === 'reading' ? <BookOpen size={14} className="text-blue-500" /> : 
+                                                         t.type === 'listening' ? <Headphones size={14} className="text-purple-500" /> : 
+                                                         t.type === 'writing' ? <PenTool size={14} className="text-yellow-500" /> : <Mic2 size={14} className="text-emerald-500" />}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-semibold line-clamp-1">{t.title || "Untitled"}</div>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-semibold uppercase text-zinc-400 tracking-tight">
+                                                                    {getPassageLabel(t) && <span className="mr-2 text-blue-500/80">{getPassageLabel(t)} •</span>}
+                                                                    {(() => {
+                                                                        if (!t.questions || !Array.isArray(t.questions)) return 0;
+                                                                        let total = 0;
+                                                                        t.questions.forEach(g => {
+                                                                            const idStr = String(g.id || "");
+                                                                            const nums = idStr.match(/\d+/g);
+                                                                            if (nums && nums.length >= 2 && (idStr.includes('-') || idStr.includes('–'))) {
+                                                                                total += Math.abs(parseInt(nums[nums.length - 1]) - parseInt(nums[0])) + 1;
+                                                                            } else if (nums && nums.length > 0) {
+                                                                                total += nums.length;
+                                                                            } else if (g.items) {
+                                                                                total += g.items.length;
+                                                                            } else {
+                                                                                total += 1;
+                                                                            }
+                                                                        });
+                                                                        return total;
+                                                                    })()} Questions
+                                                                </span>
+                                                            {getQuestionTypes(t).slice(0, 2).map((qt, i) => (
+                                                                <span key={i} className="text-[9px] font-semibold text-blue-500 bg-blue-500/10 px-1 rounded">{qt}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-2">
+                                                <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded ${
+                                                    t.type === 'reading' ? 'bg-blue-100 text-blue-600' :
+                                                    t.type === 'listening' ? 'bg-purple-100 text-purple-600' :
+                                                    'bg-zinc-100 text-zinc-600'
+                                                }`}>
+                                                    {t.type}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 px-2">
+                                                <select 
+                                                    className={`bg-transparent border-none text-[10px] font-bold uppercase tracking-tight outline-none cursor-pointer hover:text-blue-500 transition-colors appearance-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}
+                                                    value={t.collectionId || "None"}
+                                                    onChange={(e) => assignToCollection(t.id, e.target.value)}
+                                                >
+                                                    <option value="None">📦 No Collection</option>
+                                                    {collections.map(c => <option key={c.id} value={c.id}>📁 {c.name}</option>)}
+                                                </select>
+                                            </td>
+                                            <td className="py-3 px-2">
+                                                <div className="flex flex-wrap gap-1 max-w-[150px]">
+                                                    {t.tags?.slice(0, 3).map((tag, i) => (
+                                                        <span key={i} className="text-[9px] font-bold text-zinc-400 bg-black/5 px-1.5 py-0.5 rounded">#{tag}</span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-4 text-right">
+                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => navigate(`/admin/edit-test/${t.id}`)} className={`p-2 rounded-md border transition-all ${isDark ? 'hover:bg-white/5 border-transparent hover:border-white/10 text-zinc-400 hover:text-white' : 'hover:bg-zinc-50 border-transparent hover:border-zinc-200 text-zinc-400 hover:text-zinc-900'}`}><Edit2 size={14} /></button>
+                                                    <button onClick={() => window.open(`/test/${t.id}`, '_blank')} className={`p-2 rounded-md border transition-all ${isDark ? 'hover:bg-white/5 border-transparent hover:border-white/10 text-zinc-400 hover:text-white' : 'hover:bg-zinc-50 border-transparent hover:border-zinc-200 text-zinc-400 hover:text-zinc-900'}`}><Eye size={14} /></button>
+                                                    <button onClick={() => handleDelete(t.id, t.title)} className={`p-2 rounded-md border transition-all ${isDark ? 'hover:bg-white/5 border-transparent hover:border-white/10 text-zinc-400 hover:text-rose-500' : 'hover:bg-rose-50 border-transparent hover:border-zinc-200 text-zinc-300 hover:text-rose-600'}`}><Trash2 size={14} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        /* GRID VIEW */
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                            {filteredTests.map(t => (
+                                <div key={t.id} className={`group border rounded-2xl p-4 transition-all hover:shadow-xl hover:shadow-blue-500/5 ${isDark ? 'bg-[#1e1e1e] border-white/5 hover:border-blue-500/50' : 'bg-white border-zinc-200 hover:border-blue-500/50'}`}>
+                                    <div className={`aspect-[4/3] rounded-xl mb-4 relative overflow-hidden border ${isDark ? 'bg-white/5 border-white/10' : 'bg-zinc-50 border-zinc-100'}`}>
+                                        <div className="w-full h-full flex items-center justify-center opacity-20 group-hover:opacity-40 transition-opacity">
+                                            {t.type === 'reading' ? <BookOpen size={48} /> : 
+                                             t.type === 'listening' ? <Headphones size={48} /> : 
+                                             t.type === 'writing' ? <PenTool size={48} /> : <Mic2 size={48} />}
+                                        </div>
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
+                                            <button onClick={() => navigate(`/admin/edit-test/${t.id}`)} className="p-2 bg-white text-zinc-900 rounded-lg shadow-xl hover:text-blue-600 active:scale-95"><Edit2 size={14} /></button>
+                                            <button onClick={() => handleDelete(t.id, t.title)} className="p-2 bg-white text-rose-500 rounded-lg shadow-xl hover:bg-rose-50 active:scale-95"><Trash2 size={14} /></button>
+                                        </div>
+                                        <div className="absolute bottom-2 left-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <select 
+                                                className="w-full bg-black/60 backdrop-blur-md text-white text-[9px] font-bold uppercase p-1.5 rounded-md outline-none cursor-pointer"
+                                                value={t.collectionId || "None"}
+                                                onChange={(e) => assignToCollection(t.id, e.target.value)}
+                                            >
+                                                <option value="None">📦 No Collection</option>
+                                                {collections.map(c => <option key={c.id} value={c.id}>📁 {c.name}</option>)}
+                                            </select>
+                                        </div>
+                                        {selectedTests.includes(t.id) && (
+                                            <div className="absolute inset-0 bg-blue-600/20 flex items-center justify-center">
+                                                <div className="bg-blue-600 text-white rounded-full p-1 shadow-lg"><CheckCircle2 size={24} /></div>
+                                            </div>
+                                        )}
+                                        <button 
+                                            onClick={() => setSelectedTests(prev => prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id])}
+                                            className="absolute inset-0"
+                                        />
+                                    </div>
+                                    <div className="p-4">
+                                        <h3 className="text-sm font-semibold mb-3 line-clamp-2 min-h-[40px] leading-snug">{t.title || "Untitled"}</h3>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-semibold uppercase text-zinc-400 tracking-wider">
+                                                {getPassageLabel(t) && <span className="text-blue-500 font-bold mr-1.5">{getPassageLabel(t)}</span>}
+                                                {getPassageLabel(t) && <span className="mr-1.5">•</span>}
+                                                {(() => {
+                                                    if (!t.questions || !Array.isArray(t.questions)) return 0;
+                                                    let total = 0;
+                                                    t.questions.forEach(g => {
+                                                        const idStr = String(g.id || "");
+                                                        const nums = idStr.match(/\d+/g);
+                                                        if (nums && nums.length >= 2 && (idStr.includes('-') || idStr.includes('–'))) {
+                                                            total += Math.abs(parseInt(nums[nums.length - 1]) - parseInt(nums[0])) + 1;
+                                                        } else if (nums && nums.length > 0) {
+                                                            total += nums.length;
+                                                        } else if (g.items) {
+                                                            total += g.items.length;
+                                                        } else {
+                                                            total += 1;
+                                                        }
+                                                    });
+                                                    return total;
+                                                })()} Questions
+                                            </span>
+                                            <span className={`w-2 h-2 rounded-full ${t.type === 'reading' ? 'bg-blue-500' : 'bg-purple-500'}`}></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </main>
+            </div>
+        </div>
     );
 }

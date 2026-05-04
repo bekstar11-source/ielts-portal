@@ -64,12 +64,29 @@ export default function InteractivePlayer({ isOpen, onClose }) {
     };
 
     const toggleFullscreen = () => {
-        if (!document.fullscreenElement) {
-            playerRef.current.requestFullscreen().catch(err => {
-                console.error(`Error: ${err.message}`);
-            });
+        const element = playerRef.current;
+        if (!element) return;
+
+        const isNativeActive = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+        if (!isNativeActive) {
+            // Try native first
+            if (element.requestFullscreen) {
+                element.requestFullscreen().catch(() => setIsFullscreen(true));
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+            } else {
+                // Fallback for iOS/Mobile: Pseudo Fullscreen
+                setIsFullscreen(true);
+            }
         } else {
-            document.exitFullscreen();
+            // Exit native
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+            setIsFullscreen(false);
         }
     };
 
@@ -135,9 +152,23 @@ export default function InteractivePlayer({ isOpen, onClose }) {
     };
 
     useEffect(() => {
-        const handleFs = () => setIsFullscreen(!!document.fullscreenElement);
+        const handleFs = () => {
+            const isNativeActive = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            if (isNativeActive) {
+                setIsFullscreen(true);
+            } else {
+                // We only set to false if it was native and is now not.
+                // If it was pseudo, this event wouldn't have fired anyway.
+                // But to be safe, we check if we were in native before.
+                setIsFullscreen(false);
+            }
+        };
         document.addEventListener('fullscreenchange', handleFs);
-        return () => document.removeEventListener('fullscreenchange', handleFs);
+        document.addEventListener('webkitfullscreenchange', handleFs);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFs);
+            document.removeEventListener('webkitfullscreenchange', handleFs);
+        };
     }, []);
 
     // Combined Timeline for Script

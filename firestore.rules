@@ -5,8 +5,8 @@ service cloud.firestore {
     // Helper function to check if user is admin
     function isAdmin() {
       return request.auth != null && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        request.auth.token.email == 'bekstar11@gmail.com'
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'none') == 'admin') ||
+        (request.auth.token.get('email', '') != null && request.auth.token.get('email', '').matches('(?i)bekstar11@gmail.com'))
       );
     }
 
@@ -139,6 +139,12 @@ service cloud.firestore {
     match /podcast_collections/{collectionId} {
       allow read: if isAuth();
       allow write: if isAdmin();
+    }
+
+    // TEST COLLECTIONS
+    match /test_collections/{collectionId} {
+      allow read: if isAuth();
+      allow write: if isAdmin() || isTeacher();
     }
 
     // PODCAST RESULTS (Natijalar)

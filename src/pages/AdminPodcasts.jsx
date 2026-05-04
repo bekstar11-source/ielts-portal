@@ -154,7 +154,7 @@ export default function AdminPodcasts() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f5f5f7] flex font-sans text-zinc-900 overflow-hidden relative">
+        <div className="h-screen bg-[#f5f5f7] flex font-sans text-zinc-900 overflow-hidden relative">
             
             {/* COLLECTION EDIT MODAL */}
             {editingCol && (
