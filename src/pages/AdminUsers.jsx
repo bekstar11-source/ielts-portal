@@ -17,7 +17,7 @@ import {
     Search, Filter, UserCheck, Users, Layers, BookOpen,
     Calendar, ChevronDown, Check, X, Trash2, Plus,
     MoreVertical, Edit2, Eye, Shield, Lock, Unlock, Clock,
-    Headphones, Book, PenTool, Mic, Globe, Zap, AlertCircle
+    Headphones, Book, PenTool, Mic, Globe, Zap, AlertCircle, Crown
 } from 'lucide-react';
 
 // Date Picker

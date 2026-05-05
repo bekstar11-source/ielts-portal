@@ -428,7 +428,10 @@ export const MatchingGridQuestion = ({
 
                             return (
                                 <tr key={q.id}>
-                                    <td className="p-2 text-center align-middle border border-black/20 bg-white font-bold text-[15px] text-gray-900">
+                                    <td 
+                                        className={`p-2 text-center align-middle border border-black/20 bg-white font-bold text-[15px] text-gray-900 ${isReviewMode ? 'cursor-pointer hover:text-blue-600 hover:bg-blue-50 transition-colors' : ''}`}
+                                        onClick={() => isReviewMode && handleLocationClick(q.locationId, group.passageId)}
+                                    >
                                         {q.id}
                                     </td>
                                     <td className="p-2 text-left align-middle border border-black/20 bg-white">

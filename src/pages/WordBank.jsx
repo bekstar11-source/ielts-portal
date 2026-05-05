@@ -90,6 +90,7 @@ export default function Wordbank() {
 
     const handleDeleteKeyword = async (kwId) => {
         if (!user) return;
+        if (!window.confirm("Bu keyword o'chirilsinmi?")) return;
         try {
             await deleteWordFromBank(user.uid, kwId);
             setKeywords(keywords.filter(k => k.id !== kwId));
@@ -515,7 +516,7 @@ export default function Wordbank() {
                                                                         </td>
                                                                         <td className="py-3 px-5 text-gray-500">{kw.questionWord}</td>
                                                                         <td className="py-3 px-5 text-right">
-                                                                            <button onClick={() => handleDeleteKeyword(kw.id)} className="p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100">
+                                                                            <button onClick={() => handleDeleteKeyword(kw.id)} className="p-1.5 rounded-md text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all sm:opacity-0 sm:group-hover:opacity-100">
                                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                                             </button>
                                                                         </td>
@@ -594,6 +595,15 @@ export default function Wordbank() {
                                                                             <Volume2 className="w-4 h-4" />
                                                                         </button>
                                                                         <button 
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if(window.confirm("O'chirilsinmi?")) handleDelete(item.id);
+                                                                            }} 
+                                                                            className="p-2 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                        <button 
                                                                             onClick={() => {
                                                                                 const nextExpanded = isItemExpanded ? null : item.id;
                                                                                 setExpandedWord(nextExpanded);
@@ -609,10 +619,15 @@ export default function Wordbank() {
                                                                     {isItemExpanded && (
                                                                         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-3 pt-3 border-t border-gray-50 dark:border-white/5">
                                                                             {!item.hasAI ? (
-                                                                                <button onClick={() => generateAIContext(item)} disabled={generatingId === item.id} className="w-full flex items-center justify-center gap-2 py-2 bg-[#FB5102]/10 text-[#FB5102] hover:bg-[#FB5102] hover:text-white transition-all rounded-lg text-xs font-bold">
-                                                                                    {generatingId === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                                                                    <span>{generatingId === item.id ? "Analyzing..." : "Get AI Insights"}</span>
-                                                                                </button>
+                                                                                <div className="space-y-3">
+                                                                                    <button onClick={() => generateAIContext(item)} disabled={generatingId === item.id} className="w-full flex items-center justify-center gap-2 py-2 bg-[#FB5102]/10 text-[#FB5102] hover:bg-[#FB5102] hover:text-white transition-all rounded-lg text-xs font-bold">
+                                                                                        {generatingId === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                                                                        <span>{generatingId === item.id ? "Analyzing..." : "Get AI Insights"}</span>
+                                                                                    </button>
+                                                                                    <button onClick={() => { if(window.confirm("O'chirilsinmi?")) handleDelete(item.id); }} className="w-full flex items-center justify-center gap-2 py-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider">
+                                                                                        <Trash2 className="w-3 h-3" /> Remove
+                                                                                    </button>
+                                                                                </div>
                                                                             ) : (
                                                                                 <div className="space-y-3">
                                                                                     <div>
@@ -625,7 +640,7 @@ export default function Wordbank() {
                                                                                       </div>
                                                                                     )}
                                                                                     <div className="flex items-center gap-2 pt-1">
-                                                                                        <button onClick={() => handleDelete(item.id)} className="flex-1 flex items-center justify-center gap-2 py-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider">
+                                                                                        <button onClick={() => { if(window.confirm("O'chirilsinmi?")) handleDelete(item.id); }} className="flex-1 flex items-center justify-center gap-2 py-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider">
                                                                                             <Trash2 className="w-3 h-3" /> Remove
                                                                                         </button>
                                                                                     </div>
