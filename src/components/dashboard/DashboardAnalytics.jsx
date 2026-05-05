@@ -15,25 +15,25 @@ export default function DashboardAnalytics({ skillStats, onToggleSkill }) {
                 {/* Left Side: Title & Info */}
                 <div className="flex-1 flex flex-col items-center lg:items-start max-w-[520px] text-center lg:text-left">
                     <div className="flex items-center gap-2 mb-4">
-                        <span className="text-[60px] md:text-[86px] font-semibold tracking-tighter text-[#1D1D1F] leading-none">
+                        <span className="text-[52px] md:text-[86px] font-semibold tracking-tighter text-[#1D1D1F] leading-none">
                             IELTS
                         </span>
                     </div>
                     
-                    <h2 className="text-[28px] md:text-[42px] font-bold text-[#1D1D1F] leading-[1.05] tracking-tight mb-10">
+                    <h2 className="text-[24px] md:text-[42px] font-bold text-[#1D1D1F] leading-[1.1] tracking-tight mb-8 sm:mb-10">
                         Barcha to'rt ko'nikmani bitta joyda jamlang va yuqori ballga erishing.
                     </h2>
                     
-                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 w-full sm:w-auto">
                         <button 
                             onClick={() => navigate('/practice')}
-                            className="bg-[#1D1D1F] hover:bg-black text-white px-8 py-3.5 rounded-full text-[15px] font-medium transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/10"
+                            className="w-full sm:w-auto bg-[#1D1D1F] hover:bg-black text-white px-8 py-3.5 rounded-full text-[15px] font-medium transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/10"
                         >
                             Mashqni boshlash
                         </button>
                         <button 
                             onClick={() => navigate('/statistics')}
-                            className="border border-[#1D1D1F] hover:bg-black/5 text-[#1D1D1F] px-8 py-3.5 rounded-full text-[15px] font-medium transition-all"
+                            className="w-full sm:w-auto border border-[#1D1D1F] hover:bg-black/5 text-[#1D1D1F] px-8 py-3.5 rounded-full text-[15px] font-medium transition-all"
                         >
                             Batafsil statistika
                         </button>
@@ -61,19 +61,19 @@ export default function DashboardAnalytics({ skillStats, onToggleSkill }) {
                             <div 
                                 key={skill.name} 
                                 onClick={() => onToggleSkill && onToggleSkill(skill.name)}
-                                className={`grid grid-cols-[1fr_100px] md:grid-cols-[1fr_140px] items-center w-full max-w-[480px] group ${onToggleSkill ? 'cursor-pointer' : 'cursor-default'}`}
+                                className={`grid grid-cols-[1fr_80px] md:grid-cols-[1fr_140px] items-center w-full max-w-[480px] group ${onToggleSkill ? 'cursor-pointer' : 'cursor-default'}`}
                                 title={onToggleSkill ? "Ushbu bo'limni umumiy balldan chiqarib tashlash/qo'shish uchun bosing" : ""}
                             >
                                 {/* Skill Name */}
-                                <div className={`${skillColor} transition-all duration-300 ${isActive ? 'group-hover:translate-x-[-8px]' : 'group-hover:opacity-70'}`}>
-                                    <span className={`text-[48px] md:text-[68px] font-bold tracking-tighter leading-none ${isActive ? '' : 'line-through decoration-black/20 decoration-2'}`}>
+                                <div className={`${skillColor} transition-all duration-300 ${isActive ? 'group-hover:translate-x-[-8px]' : 'group-hover:opacity-70'} overflow-hidden`}>
+                                    <span className={`text-[36px] sm:text-[48px] md:text-[68px] font-bold tracking-tighter leading-none whitespace-nowrap ${isActive ? '' : 'line-through decoration-black/20 decoration-2'}`}>
                                         {skill.name}
                                     </span>
                                 </div>
                                 
                                 {/* Skill Score (Aligned) */}
                                 <div className="text-right">
-                                    <span className={`text-[44px] md:text-[56px] font-bold ${scoreColor} leading-none tracking-tighter transition-all duration-300 inline-block ${isActive ? 'group-hover:scale-110' : ''}`}>
+                                    <span className={`text-[38px] sm:text-[44px] md:text-[56px] font-bold ${scoreColor} leading-none tracking-tighter transition-all duration-300 inline-block ${isActive ? 'group-hover:scale-110' : ''}`}>
                                         {parseFloat(skill.score || 0).toFixed(1)}
                                     </span>
                                 </div>

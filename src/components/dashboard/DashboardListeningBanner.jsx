@@ -39,27 +39,29 @@ export default function DashboardListeningBanner({ isListeningPaused, setIsListe
                                 </h2>
                             </div>
                             
-                            <div className="flex items-center gap-6">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mt-6 lg:mt-0 w-full lg:w-auto">
                                 <button 
                                     onClick={() => navigate('/listening')}
-                                    className="bg-white text-black px-8 py-3 rounded-full text-[15px] font-bold hover:bg-zinc-100 transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap"
+                                    className="w-full sm:w-auto bg-white text-black px-8 py-3.5 sm:py-3 rounded-full text-[15px] font-bold hover:bg-zinc-100 transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap"
                                 >
                                     Bepul o'rganing
                                 </button>
-                                <button className="border-2 border-white/30 text-white px-8 py-3 rounded-full text-[15px] font-bold hover:bg-white/10 transition-all hover:scale-105 active:scale-95 whitespace-nowrap">
-                                    Ko'proq ma'lumot
-                                </button>
-                                
-                                <button 
-                                    onClick={() => setIsListeningPaused(!isListeningPaused)}
-                                    className="w-12 h-12 rounded-full border-2 border-white/30 flex items-center justify-center text-white hover:bg-white/10 transition-all active:scale-90 ml-4"
-                                >
-                                    {isListeningPaused ? (
-                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg>
-                                    ) : (
-                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                                    )}
-                                </button>
+                                <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start gap-4">
+                                    <button className="border-2 border-white/30 text-white px-8 py-3.5 sm:py-3 rounded-full text-[15px] font-bold hover:bg-white/10 transition-all hover:scale-105 active:scale-95 whitespace-nowrap flex-1 sm:flex-auto">
+                                        Ko'proq ma'lumot
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={() => setIsListeningPaused(!isListeningPaused)}
+                                        className="w-12 h-12 shrink-0 rounded-full border-2 border-white/30 flex items-center justify-center text-white hover:bg-white/10 transition-all active:scale-90"
+                                    >
+                                        {isListeningPaused ? (
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg>
+                                        ) : (
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

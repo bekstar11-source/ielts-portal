@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Key, LogOut, RotateCw, ArrowUpRight, Settings, Search, Zap, Crown } from 'lucide-react';
+import { ChevronDown, Key, LogOut, RotateCw, ArrowUpRight, Settings, Search, Zap, Crown, Menu, X } from 'lucide-react';
 import SearchOverlay from './SearchOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 export default function DashboardHeader({ user, userData, onKeyClick, onLogoutClick, activeTab, setActiveTab, onPremiumClick, onRefreshClick, loading }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredTab, setHoveredTab] = useState(null);
   const dropdownRef = useRef(null);
@@ -84,16 +85,26 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         ? 'bg-white/80 backdrop-blur-md border-b border-zinc-200/50 shadow-sm' 
         : 'bg-white border-b border-zinc-100'
     }`}>
-      <div className="w-full px-8 h-full flex items-center justify-between">
-        {/* Logo */}
-        <div className="cursor-pointer flex items-center pr-6 transition-transform hover:scale-105 active:scale-95" onClick={() => navigate('/dashboard')}>
-           <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center shadow-lg transform -rotate-6 group hover:rotate-0 transition-all duration-500">
-             <Zap size={18} className="text-white fill-current" />
-           </div>
+      <div className="w-full px-4 md:px-8 h-full flex items-center justify-between">
+        <div className="flex items-center gap-3">
+            {/* Mobile Menu Button */}
+            <button 
+              className="md:hidden flex items-center justify-center text-black/60 hover:text-black transition-colors"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+
+            {/* Logo */}
+            <div className="cursor-pointer flex items-center md:pr-6 transition-transform hover:scale-105 active:scale-95" onClick={() => navigate('/dashboard')}>
+               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center shadow-lg transform -rotate-6 group hover:rotate-0 transition-all duration-500">
+                 <Zap size={18} className="text-white fill-current" />
+               </div>
+            </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex items-center justify-center gap-6 md:gap-10 h-full flex-1 overflow-x-auto hide-scrollbar">
+        {/* Navigation - Desktop */}
+        <nav className="hidden md:flex items-center justify-center gap-6 md:gap-10 h-full flex-1 overflow-x-auto hide-scrollbar">
           {menuItems.map((item) => {
             const isTabActive = activeTab === item.id;
             const hasMegaMenu = ['library', 'reading', 'listening', 'podcasts'].includes(item.id);
@@ -300,6 +311,32 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Mobile Menu Dropdown */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute top-12 left-0 w-full bg-white border-b border-zinc-100 shadow-2xl z-50 md:hidden overflow-hidden"
+            >
+              <div className="flex flex-col py-4 px-6 gap-1">
+                <p className="text-[11px] text-black/40 font-bold uppercase tracking-widest mb-2">Menu</p>
+                {menuItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => { handleNavigation(item); setIsMobileMenuOpen(false); }}
+                    className={`text-left text-[16px] font-semibold py-3 transition-colors ${activeTab === item.id ? 'text-[#0066cc]' : 'text-zinc-600'}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Backdrop overlay */}
         <AnimatePresence>
@@ -323,7 +360,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
         </AnimatePresence>
 
         {/* Right Section */}
-        <div className="flex items-center gap-4 pl-4">
+        <div className="flex items-center gap-3 md:gap-4 pl-2 md:pl-4">
           {/* Search Button */}
           <button 
             onClick={() => setIsSearchOpen(true)}

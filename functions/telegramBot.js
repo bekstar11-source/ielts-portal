@@ -3,7 +3,7 @@ const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
 // Yangi API Token
-const TELEGRAM_TOKEN = "8727553547:AAGgaEuqs2ZHADttfcjKlzeHtLrZcaqX0c4";
+const TELEGRAM_TOKEN = "8622410650:AAE1qXWWncsD9aOrOXzeE4aA37hhIOwkU0s";
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 
 // Admin ID
@@ -36,10 +36,21 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
     // 2. To'lov uchun /start deep linking (start=USERID_PLANID_BILLING)
     if (text && text.startsWith("/start ")) {
       const payload = text.split(" ")[1];
-      const parts = payload.split("_");
-      if (parts.length >= 2) {
-        const [userId, planId, billing] = parts;
-        await handlePaymentStart(chatId, userId, planId, billing);
+      
+      if (payload === "login") {
+        await sendAuthCodePrompt(chatId);
+      } else {
+        const parts = payload.split("_");
+        // params: USERID_PLANID_BILLING
+        // Agar userId ichida "_" bo'lsa (masalan telegram_ID), parts uzunligi 3 tadan ko'p bo'ladi
+        if (parts.length >= 3) {
+          const billing = parts.pop();
+          const planId = parts.pop();
+          const userId = parts.join("_");
+          await handlePaymentStart(chatId, userId, planId, billing);
+        } else {
+          await sendWelcome(chatId, message.from.first_name);
+        }
       }
     } 
     // 3. Oddiy /start
@@ -143,19 +154,23 @@ async function handleCallback(chatId, query) {
     await sendMessage(chatId, "✍️ <b>Foydalanuvchiga yubormoqchi bo'lgan xabaringizni yozing:</b>\n\n(Keyingi yuborgan xabaringiz unga boradi)");
   }
   else if (data === "get_auth_code") {
-    const msg = "📱 <b>Telefon raqamingizni yuboring</b>\n\n" +
-      "Saytga kirish kodi (OTP) olish uchun quyidagi tugmani bosib telefon raqamingizni bot bilan ulashing.";
-    
-    const keyboard = {
-      keyboard: [
-        [{ text: "📱 Telefon raqamni yuborish", request_contact: true }]
-      ],
-      resize_keyboard: true,
-      one_time_keyboard: true
-    };
-    
-    await sendMessage(chatId, msg, keyboard);
+    await sendAuthCodePrompt(chatId);
   }
+}
+
+async function sendAuthCodePrompt(chatId) {
+  const msg = "📱 <b>Telefon raqamingizni yuboring</b>\n\n" +
+    "Saytga kirish kodi (OTP) olish uchun quyidagi tugmani bosib telefon raqamingizni bot bilan ulashing.";
+  
+  const keyboard = {
+    keyboard: [
+      [{ text: "📱 Telefon raqamni yuborish", request_contact: true }]
+    ],
+    resize_keyboard: true,
+    one_time_keyboard: true
+  };
+  
+  await sendMessage(chatId, msg, keyboard);
 }
 
 // Edit message helper
@@ -283,30 +298,51 @@ async function handleAuthContact(chatId, contact) {
 
 exports.verifyTelegramOTP = functions.https.onCall(async (data, context) => {
   const { phoneNumber, code } = data;
-  if (!phoneNumber || !code) {
-    throw new functions.https.HttpsError("invalid-argument", "Telefon raqam va kod kerak.");
+  if (!code) {
+    throw new functions.https.HttpsError("invalid-argument", "Kod kiritilishi shart.");
   }
 
-  const cleanPhone = phoneNumber.replace(/\D/g, "");
+  let doc;
   
-  const snapshot = await admin.firestore().collection("telegram_codes")
-    .where("phoneNumber", "==", cleanPhone)
-    .get();
-
-  if (snapshot.empty) {
-    throw new functions.https.HttpsError("not-found", "Kod topilmadi. Botga /start yozib kodingizni yangilang.");
+  if (phoneNumber) {
+    const cleanPhone = phoneNumber.replace(/\D/g, "");
+    const snapshot = await admin.firestore().collection("telegram_codes")
+      .where("phoneNumber", "==", cleanPhone)
+      .get();
+      
+    if (snapshot.empty) {
+      throw new functions.https.HttpsError("not-found", "Ushbu raqam uchun kod topilmadi.");
+    }
+    
+    // Sort by timestamp and get latest
+    const docs = snapshot.docs.sort((a, b) => {
+      const tA = a.data().timestamp ? a.data().timestamp.toMillis() : 0;
+      const tB = b.data().timestamp ? b.data().timestamp.toMillis() : 0;
+      return tB - tA;
+    });
+    
+    doc = docs[0];
+  } else {
+    // Search by code only (if phone not provided by client)
+    const snapshot = await admin.firestore().collection("telegram_codes")
+      .where("code", "==", code.toString())
+      .get();
+      
+    if (snapshot.empty) {
+      throw new functions.https.HttpsError("not-found", "Kod noto'g'ri yoki muddati o'tgan.");
+    }
+    
+    // Get the most recent one with this code
+    const docs = snapshot.docs.sort((a, b) => {
+      const tA = a.data().timestamp ? a.data().timestamp.toMillis() : 0;
+      const tB = b.data().timestamp ? b.data().timestamp.toMillis() : 0;
+      return tB - tA;
+    });
+    
+    doc = docs[0];
   }
 
-  // Eng oxirgisini topamiz
-  const docs = snapshot.docs.sort((a, b) => {
-    const tA = a.data().timestamp ? a.data().timestamp.toMillis() : 0;
-    const tB = b.data().timestamp ? b.data().timestamp.toMillis() : 0;
-    return tB - tA;
-  });
-  
-  const doc = docs[0];
   const storedData = doc.data();
-
   if (storedData.code !== code.toString()) {
     throw new functions.https.HttpsError("permission-denied", "Kod noto'g'ri.");
   }
@@ -317,10 +353,37 @@ exports.verifyTelegramOTP = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError("deadline-exceeded", "Kod muddati tugagan.");
   }
 
+  const telegramId = doc.id;
+  const phoneNumberVal = storedData.phoneNumber;
+
+  // 1. Firebase Custom Token yaratish (telegramId ni UID sifatida ishlatamiz)
+  const firebaseUid = `telegram_${telegramId}`;
+  const token = await admin.auth().createCustomToken(firebaseUid);
+
+  // 2. Foydalanuvchi bazada bormi tekshiramiz
+  const userRef = admin.firestore().collection("users").doc(firebaseUid);
+  const userSnap = await userRef.get();
+  let isNewUser = false;
+
+  if (!userSnap.exists) {
+    isNewUser = true;
+    await userRef.set({
+      uid: firebaseUid,
+      telegramId: telegramId,
+      phoneNumber: phoneNumberVal,
+      role: "student",
+      accountType: "public",
+      onboardingCompleted: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastActiveAt: admin.firestore.FieldValue.serverTimestamp(),
+      isOnline: true
+    });
+  }
+
   // Muvaffaqiyatli - kodni o'chiramiz
   await doc.ref.delete();
 
-  return { success: true, telegramId: doc.id };
+  return { success: true, token, isNewUser, telegramId };
 });
 
 // Universal sendMessage function

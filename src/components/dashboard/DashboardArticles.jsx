@@ -96,11 +96,11 @@ export default function DashboardArticles() {
                         </h2>
                     </div>
                     
-                    <div className="flex items-center gap-6 pb-2">
-                        <button className="bg-[#1D1D1F] text-white px-8 py-3 rounded-full text-[15px] font-semibold hover:bg-black transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 pb-2 w-full lg:w-auto mt-6 lg:mt-0">
+                        <button className="w-full sm:w-auto bg-[#1D1D1F] text-white px-8 py-3.5 sm:py-3 rounded-full text-[15px] font-semibold hover:bg-black transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap">
                             Bepul o'qish
                         </button>
-                        <div className="flex items-center gap-24">
+                        <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start gap-4 sm:gap-8 lg:gap-24">
                             <button className="text-[#1D1D1F] hover:underline text-[16px] font-medium flex items-center gap-1 group whitespace-nowrap">
                                 Barchasini ko'rish
                                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -108,7 +108,7 @@ export default function DashboardArticles() {
                             
                             <button 
                                 onClick={() => setIsPaused(!isPaused)}
-                                className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-400 hover:text-black hover:border-zinc-400 transition-all active:scale-90"
+                                className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-400 hover:text-black hover:border-zinc-400 transition-all active:scale-90 shrink-0"
                             >
                                 {isPaused ? (
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg>

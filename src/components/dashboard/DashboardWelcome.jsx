@@ -15,36 +15,36 @@ export default function DashboardWelcome({
     return (
         <>
             {/* Hero Content */}
-            <main className="flex flex-col items-center justify-center text-center px-4 pt-[10vh] pb-20 max-w-[1100px] mx-auto animate-fade-in w-full">
+            <main className="flex flex-col items-center justify-center text-center px-4 pt-[6vh] sm:pt-[10vh] pb-12 sm:pb-20 max-w-[1100px] mx-auto animate-fade-in w-full">
                 {/* Top Badge */}
-                <div className="flex items-center gap-2 text-sm font-medium text-zinc-400 mb-3 tracking-wide uppercase">
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-zinc-400 mb-3 tracking-wide uppercase">
                     <span className="text-black">IELTS 2026</span>
                     <span className="text-[10px]">•</span>
                     <span>Reallik</span>
                 </div>
 
                 {/* Main Headline */}
-                <h1 className="text-[52px] sm:text-[64px] md:text-[88px] font-bold text-black tracking-[-0.04em] leading-[1.05] mb-8 max-w-[1000px]">
+                <h1 className="text-[40px] sm:text-[64px] md:text-[88px] font-bold text-black tracking-[-0.04em] leading-[1.05] mb-6 sm:mb-8 max-w-[1000px]">
                     Mo'jiza kutma,<br />
                     o'zing mo'jiza yarat.
                 </h1>
 
                 {/* Subheadline */}
-                <p className="text-[18px] md:text-[21px] text-zinc-400 font-normal leading-[1.6] max-w-[760px] mb-12">
+                <p className="text-[16px] sm:text-[18px] md:text-[21px] text-zinc-400 font-normal leading-[1.6] max-w-[760px] mb-8 sm:mb-12">
                     Hech qanday "maxfiy strategiya" yo'q. Bor narsa — shu ekran, matnlar, audiyolar va sening vaqting. Diqqatingni jamla, bugun kechagidan bir oz yaxshiroq bo'l.
                 </p>
 
                 {/* Call to Actions */}
-                <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
                     <button 
                         onClick={() => navigate('/practice')}
-                        className="w-full sm:w-auto px-10 py-4 bg-black text-white text-[15px] font-semibold rounded-full hover:bg-zinc-800 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/10"
+                        className="w-full sm:w-auto px-8 sm:px-10 py-4 bg-black text-white text-[15px] font-semibold rounded-full hover:bg-zinc-800 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/10"
                     >
                         Bugungi vazifalar
                     </button>
                     <button 
                         onClick={() => navigate('/my-results')}
-                        className="w-full sm:w-auto px-10 py-4 bg-[#F5F5F7] text-black text-[15px] font-semibold rounded-full border border-zinc-200/60 hover:bg-zinc-100 transition-all hover:scale-105 active:scale-95"
+                        className="w-full sm:w-auto px-8 sm:px-10 py-4 bg-[#F5F5F7] text-black text-[15px] font-semibold rounded-full border border-zinc-200/60 hover:bg-zinc-100 transition-all hover:scale-105 active:scale-95"
                     >
                         Natijalarni ko'rish
                     </button>

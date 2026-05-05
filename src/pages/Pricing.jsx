@@ -230,7 +230,7 @@ export default function PricingPage() {
                     onClick={() => {
                       if (plan.id !== 'free') {
                         const params = `${user?.uid || 'guest'}_${plan.id}_${billing}`;
-                        window.open(`https://t.me/englev_pay_bot?start=${params}`, '_blank');
+                        window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, '_blank');
                       }
                     }}
                     className={`w-full py-3 rounded-xl font-bold text-[14px] transition-all mt-auto ${
@@ -368,7 +368,7 @@ export default function PricingPage() {
             <button
               onClick={() => {
                 const params = `${user?.uid || 'guest'}_pro_${billing}`;
-                window.open(`https://t.me/englev_pay_bot?start=${params}`, '_blank');
+                window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, '_blank');
               }}
               className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white font-bold text-[15px] shadow-xl shadow-blue-500/30 hover:scale-[1.03] active:scale-[0.97] transition-all whitespace-nowrap"
             >
