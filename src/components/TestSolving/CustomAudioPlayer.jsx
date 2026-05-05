@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 
 /**
  * CustomAudioPlayer Component
@@ -6,7 +6,7 @@ import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react'
  * Multi-part listening tests uchun maxsus audio player.
  * Har bir 'part' uchun alohida audio element bo'ladi, lekin faqat active part UI ko'rinadi.
  */
-export default function CustomAudioPlayer({ 
+const CustomAudioPlayer = forwardRef(({ 
     src, 
     index, 
     activePart, 
@@ -17,8 +17,18 @@ export default function CustomAudioPlayer({
     endTime = 0,
     variant = 'light', // 'light' (default) or 'dark' (for dark headers)
     volume = 1 // Added volume prop
-}) {
+}, ref) => {
     const audioRef = useRef(null);
+
+    // Allow parent to seek
+    useImperativeHandle(ref, () => ({
+        seekTo: (time) => {
+            if (audioRef.current) {
+                audioRef.current.currentTime = time;
+                audioRef.current.play().catch(() => {});
+            }
+        }
+    }));
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -312,6 +322,6 @@ export default function CustomAudioPlayer({
             )}
         </div>
     );
-}
+});
 
-
+export default CustomAudioPlayer;

@@ -47,7 +47,8 @@ const ListeningRightPane = memo(({
     onIntroEnd,
     isHighlighterActive: isHighlighterActiveProp,
     hideSecondaryIntro,
-    isPremium
+    isPremium,
+    onSeekTo
 }) => {
     // --- HIGHLIGHT HOOK ---
     // isHighlighterActiveProp props orqali kelsa hookka uzatiladi (tashqaridan boshqariladi)
@@ -102,18 +103,18 @@ const ListeningRightPane = memo(({
 
     // --- MAIN DISPATCHER ---
     const renderGroupContent = (group) => {
-        if (group.type === 'map_labeling') return <MapLabeling group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
-        if (group.type === 'matching') return <Matching group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
-        if (['selection', 'pick_two', 'pick_three', 'pick_four', 'pick_five', 'multi_three', 'multi_choice_box', 'multiple_choice_multiple_answer'].includes(group.type)) return <SelectionBox group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
-        if (['table_completion', 'table'].includes(group.type)) return <TableCompletion group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
+        if (group.type === 'map_labeling') return <MapLabeling group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+        if (group.type === 'matching') return <Matching group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+        if (['selection', 'pick_two', 'pick_three', 'pick_four', 'pick_five', 'multi_three', 'multi_choice_box', 'multiple_choice_multiple_answer'].includes(group.type)) return <SelectionBox group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+        if (['table_completion', 'table'].includes(group.type)) return <TableCompletion group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
         const completionTypes = ['note_completion', 'gap_fill', 'sentence_completion', 'summary_completion'];
         if (completionTypes.includes(group.type)) {
             const normalized = group.groups ? group : { ...group, groups: [{ items: group.items || group.questions || [] }] };
-            return <NoteCompletion group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
+            return <NoteCompletion group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
         }
         if (group.type === 'flow_chart') {
             const normalized = group.groups ? group : { ...group, groups: [{ items: group.items || group.questions || [] }] };
-            return <FlowChart group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
+            return <FlowChart group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
         }
 
         // --- MCQ HANDLER ---
@@ -152,7 +153,7 @@ const ListeningRightPane = memo(({
             };
         }
 
-        return <StandardMCQ group={normalizedGroup} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />;
+        return <StandardMCQ group={normalizedGroup} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
     };
 
     const currentPassage = testData.passages[activePart];

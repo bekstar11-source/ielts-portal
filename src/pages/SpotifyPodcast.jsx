@@ -6,7 +6,8 @@ import { db } from "../firebase/firebase";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
     Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, 
-    Mic2, List as ListIcon, Heart, Expand, X, CheckCircle2 
+    Mic2, List as ListIcon, Heart, Expand, X, CheckCircle2,
+    Shuffle, Repeat
 } from "lucide-react";
 import { usePodcast } from "../context/PodcastContext";
 import LazyImage from "../components/common/LazyImage";

@@ -200,7 +200,7 @@ export default function TaskSection({
                         </div>
                     )}
 
-                    <div className="flex-1 lg:overflow-y-auto pb-10 hide-scrollbar p-4 md:p-6">
+                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-10 p-4 md:p-6">
                         {currentStep === 1 && (
                             <GapFillTask 
                                 isDark={isDark} 

@@ -43,6 +43,7 @@ export default function TestReview() {
     const [task2Band, setTask2Band] = useState("");
     const [adminFeedback, setAdminFeedback] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const audioRefs = useRef([]); // Track multiple audio players
 
     // --- MOCK REVIEW STATE ---
     const [activeMockPart, setActiveMockPart] = useState('listening'); // listening, reading, writing
@@ -354,6 +355,20 @@ export default function TestReview() {
         }
     };
 
+    const handleSeekTo = (partIndex, timestamp) => {
+        if (!timestamp && timestamp !== 0) return;
+        
+        // Ensure the part is active so the player is visible/active
+        setListeningActivePart(partIndex);
+        
+        // Small delay to ensure the player is ready/mounted if it was hidden
+        setTimeout(() => {
+            if (audioRefs.current[partIndex]) {
+                audioRefs.current[partIndex].seekTo(timestamp);
+            }
+        }, 100);
+    };
+
     if (loading) return <div className="flex h-screen items-center justify-center font-bold text-gray-500">Yuklanmoqda...</div>;
     if (!resultData || !testData) return <div className="p-10 text-center">Ma'lumot topilmadi</div>;
 
@@ -428,6 +443,7 @@ export default function TestReview() {
                                     return (
                                         <CustomAudioPlayer
                                             key={index}
+                                            ref={el => audioRefs.current[index] = el}
                                             src={src}
                                             index={index}
                                             variant="dark"
@@ -442,6 +458,7 @@ export default function TestReview() {
                                 })}
                                 {(!testData.passages || testData.passages.length === 0) && (testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file) && (
                                     <CustomAudioPlayer
+                                        ref={el => audioRefs.current[0] = el}
                                         src={testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file}
                                         index={0}
                                         variant="dark"
@@ -638,6 +655,7 @@ export default function TestReview() {
                                 setActivePart={setListeningActivePart}
                                 audioCurrentTime={audioTime}
                                 isPremium={isPremium}
+                                onSeekTo={handleSeekTo}
                             />
                         </div>
                     ) : testData.type?.toLowerCase() === 'writing' ? (

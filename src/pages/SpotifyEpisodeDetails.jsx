@@ -94,7 +94,6 @@ export default function SpotifyEpisodeDetails() {
         } else {
             playTrack(podcast);
         }
-        setIsExpanded(true); // Open the interactive player for audio too
     };
 
     const handleScroll = (e) => {
@@ -386,7 +385,16 @@ export default function SpotifyEpisodeDetails() {
 
                     <div className="flex flex-col items-center max-w-[650px] w-full px-4">
                         <div className="flex items-center gap-7 mb-3">
-                            <button className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95" onClick={() => setIsPlaying(!isPlaying)}>
+                            <button 
+                                className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95" 
+                                onClick={() => {
+                                    const isVideo = currentTrack?.mediaType === 'youtube' || currentTrack?.mediaType === 'video';
+                                    if (!isPlaying && isVideo) {
+                                        setIsExpanded(true);
+                                    }
+                                    setIsPlaying(!isPlaying);
+                                }}
+                            >
                                 {isPlaying ? <Pause size={20} fill="black" /> : <Play size={20} fill="black" className="ml-1" />}
                             </button>
                         </div>

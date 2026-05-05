@@ -29,7 +29,8 @@ export default function ListeningInterface({
   onPlayPartAudio,
   onIntroEnd,        // <-- Exam modeda intro tugagach audio play triggerini yuboradi
   hideSecondaryIntro,
-  isPremium
+  isPremium,
+  onSeekTo
 }) {
   // --- 1. RESIZE & SELECTION HOOKS ---
   // Listeningda chap taraf (matn) odatda kichikroq bo'ladi (default 40%)
@@ -169,6 +170,7 @@ export default function ListeningInterface({
             isHighlighterActive={isHighlighterActive}
             hideSecondaryIntro={hideSecondaryIntro}
             isPremium={isPremium}
+            onSeekTo={onSeekTo}
           />
         </div>
       </div>

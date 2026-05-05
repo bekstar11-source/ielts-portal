@@ -7,13 +7,25 @@ export const HighlighterIcon = ({ active }) => (
     </svg>
 );
 
-export const QuestionBadge = ({ id, isReviewMode, onClick }) => (
+export const QuestionBadge = ({ id, isReviewMode, onClick, onSeekTo, timestamp, activePart }) => (
     <span
-        className={`min-w-[20px] h-[26px] flex items-center justify-center text-[15px] font-bold text-gray-900 shrink-0 select-none mr-1 
-        ${isReviewMode ? 'cursor-pointer' : ''}`}
-        onClick={onClick}
+        className={`min-w-[20px] h-[26px] flex items-center justify-center text-[15px] font-bold text-gray-900 shrink-0 select-none mr-1 px-1.5 rounded-md transition-all
+        ${isReviewMode ? 'cursor-pointer hover:bg-zinc-100 group/badge' : ''}`}
+        onClick={(e) => {
+            if (isReviewMode && onSeekTo && (timestamp || timestamp === 0)) {
+                e.stopPropagation();
+                onSeekTo(activePart, timestamp);
+            } else if (onClick) {
+                onClick(e);
+            }
+        }}
     >
         {id}
+        {isReviewMode && (timestamp || timestamp === 0) && (
+            <svg className="w-3 h-3 ml-1 text-blue-500 opacity-40 group-hover/badge:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+            </svg>
+        )}
     </span>
 );
 
@@ -47,7 +59,7 @@ export const SelectInput = ({ id, value, onChange, options, isReviewMode, isCorr
 };
 
 // 🔥 REFACTORED: renderInput funksiyasi endi komponent
-export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, timestamp, activePart }) => {
     const val = userAnswers[id] || "";
     const isCorrect = isReviewMode ? checkAnswer(val, answer) : false;
     const styles = getStatusStyles(isReviewMode, isCorrect, false, 'input');
@@ -55,7 +67,14 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
     return (
         <span className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative group/input">
             {isReviewMode && (
-                <QuestionBadge id={id} isReviewMode={isReviewMode} onClick={() => locationId && handleLocationClick(locationId)} />
+                <QuestionBadge 
+                    id={id} 
+                    isReviewMode={isReviewMode} 
+                    onClick={() => locationId && handleLocationClick(locationId)} 
+                    onSeekTo={onSeekTo}
+                    timestamp={timestamp}
+                    activePart={activePart}
+                />
             )}
             <input
                 className={`w-[140px] h-[26px] border rounded-none px-2 text-center font-semibold text-[0.875em] focus:outline-none transition-all shadow-sm ${styles} ${!isReviewMode ? 'placeholder-black' : 'placeholder-transparent'}`}

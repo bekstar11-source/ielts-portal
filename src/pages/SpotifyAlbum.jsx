@@ -271,12 +271,13 @@ export default function SpotifyAlbum() {
                                                         <button 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
+                                                                const isVideo = p.mediaType === 'youtube' || p.mediaType === 'video';
                                                                 if (currentTrack?.id === p.id) {
                                                                     setIsPlaying(!isPlaying);
-                                                                    setIsExpanded(true);
+                                                                    if (isVideo) setIsExpanded(true);
                                                                 } else {
                                                                     playTrack(p);
-                                                                    setIsExpanded(true);
+                                                                    if (isVideo) setIsExpanded(true);
                                                                 }
                                                             }}
                                                             className={`w-8 h-8 rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 shrink-0 shadow-md ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`}
@@ -335,7 +336,16 @@ export default function SpotifyAlbum() {
                     <div className="flex items-center gap-6 mb-1.5">
                         <Shuffle size={16} className={`cursor-pointer transition-colors ${shuffle ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setShuffle(!shuffle)} />
                         <SkipBack size={20} fill="currentColor" className={`transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)} />
-                        <button className={`w-9 h-9 rounded-full flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`} onClick={() => setIsPlaying(!isPlaying)}>
+                        <button 
+                            className={`w-9 h-9 rounded-full flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`} 
+                            onClick={() => {
+                                const isVideo = currentTrack?.mediaType === 'youtube' || currentTrack?.mediaType === 'video';
+                                if (!isPlaying && isVideo) {
+                                    setIsExpanded(true);
+                                }
+                                setIsPlaying(!isPlaying);
+                            }}
+                        >
                             {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
                         </button>
                         <SkipForward size={20} fill="currentColor" className={`transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime += 10)} />

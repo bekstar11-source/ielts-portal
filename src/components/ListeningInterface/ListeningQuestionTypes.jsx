@@ -39,7 +39,7 @@ const stripLeadingOptionLabel = (val) => {
     return stripped || String(text).trim();
 };
 
-export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
     const [activeId, setActiveId] = React.useState(null);
     const options = group.options || [];
     const questions = group.questions || group.items || [];
@@ -115,11 +115,18 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                                 {questions.map((q) => {
                                     const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer) : false;
                                     return (
-                                        <div key={q.id} className={`flex items-center justify-between gap-4 py-0.5 px-3 rounded-xl transition-all hover:bg-gray-50/50 ${isReviewMode ? 'pr-20' : ''}`}>
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
-                                                <div className="font-bold text-gray-800 text-[15px] truncate" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />
-                                            </div>
+                                            <div key={q.id} className={`flex items-center justify-between gap-4 py-0.5 px-3 rounded-xl transition-all hover:bg-gray-50/50 ${isReviewMode ? 'pr-20' : ''}`}>
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <QuestionBadge 
+                                                        id={q.id} 
+                                                        isReviewMode={isReviewMode} 
+                                                        onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
+                                                        onSeekTo={onSeekTo}
+                                                        timestamp={q.timestamp}
+                                                        activePart={activePart}
+                                                    />
+                                                    <div className="font-bold text-gray-800 text-[15px] truncate" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />
+                                                </div>
                                             <MapDroppableSlot
                                                 id={q.id}
                                                 value={userAnswers[q.id]}
@@ -431,7 +438,7 @@ const PoolDroppable = ({ children, isDragging }) => {
     );
 };
 
-export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
     const [activeId, setActiveId] = React.useState(null);
     const options = group.options || [];
     const questions = group.questions || group.items || [];
@@ -508,7 +515,14 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                             return (
                                 <div key={q.id} className={`flex items-center justify-between gap-6 py-0.5 px-3 rounded-2xl transition-all hover:bg-gray-50/50 ${isReviewMode ? 'pr-20' : ''}`}>
                                     <div className="flex items-center gap-4 flex-1">
-                                        <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
+                                        <QuestionBadge 
+                                            id={q.id} 
+                                            isReviewMode={isReviewMode} 
+                                            onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
+                                            onSeekTo={onSeekTo}
+                                            timestamp={q.timestamp}
+                                            activePart={activePart}
+                                        />
                                         <div className="font-bold text-gray-800 text-[1em]" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
                                     </div>
                                     <DroppableSlot
@@ -567,7 +581,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
     );
 };
 
-export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
     const questions = group.questions || group.items || [];
     const options = group.options || [];
     if (questions.length === 0 || options.length === 0) return null;
@@ -616,7 +630,7 @@ export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode,
     );
 };
 
-export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
     const renderSingleTable = (tableData, key) => {
         const headers = tableData.headers || [];
         const rows = tableData.rows || [];
@@ -697,7 +711,18 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
 
                                                         return (
                                                             <div key={`input-${refinedPart.id}`} className="inline-flex items-baseline mb-1">
-                                                                <ListeningTextInput id={refinedPart.id} answer={answer} locationId={locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />
+                                                                <ListeningTextInput 
+                                                                    id={refinedPart.id} 
+                                                                    answer={answer} 
+                                                                    locationId={locationId} 
+                                                                    userAnswers={userAnswers} 
+                                                                    onAnswerChange={onAnswerChange} 
+                                                                    isReviewMode={isReviewMode} 
+                                                                    handleLocationClick={handleLocationClick} 
+                                                                    onSeekTo={onSeekTo}
+                                                                    timestamp={item?.timestamp || cell?.timestamp || refinedPart?.timestamp}
+                                                                    activePart={activePart}
+                                                                />
                                                             </div>
                                                         );
                                                     }
@@ -740,7 +765,7 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
     return renderSingleTable(group, 'table-root');
 };
 
-export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
     return (
         <div className="mb-2 space-y-8">
             {group.groups.map((sub, sIdx) => (
@@ -782,7 +807,18 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                                 content = (
                                     <div key={`q-${q.id}`} className={`font-normal text-gray-800 leading-[1.8] flex flex-wrap items-baseline ${shouldStartNewRow ? 'pl-4 inline-flex w-full md:w-auto' : 'pl-2 inline-flex'}`}>
                                         {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
-                                        <ListeningTextInput id={q.id} answer={q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value} locationId={q.locationId} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} />
+                                        <ListeningTextInput 
+                                            id={q.id} 
+                                            answer={q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value} 
+                                            locationId={q.locationId} 
+                                            userAnswers={userAnswers} 
+                                            onAnswerChange={onAnswerChange} 
+                                            isReviewMode={isReviewMode} 
+                                            handleLocationClick={handleLocationClick} 
+                                            onSeekTo={onSeekTo}
+                                            timestamp={q.timestamp}
+                                            activePart={activePart}
+                                        />
                                         {parts[1] && <span className="ml-1" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
                                     </div>
                                 );
@@ -915,7 +951,7 @@ const FlowPoolDroppable = ({ children, isDragging }) => {
     );
 };
 
-export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
     const options = group.options || [];
     const hasOptions = options.length > 0;
     const [activeId, setActiveId] = React.useState(null);
@@ -1018,6 +1054,9 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
                             onAnswerChange={onAnswerChange}
                             isReviewMode={isReviewMode}
                             handleLocationClick={handleLocationClick}
+                            onSeekTo={onSeekTo}
+                            timestamp={item.timestamp}
+                            activePart={activePart}
                         />
                     )}
 
@@ -1145,13 +1184,20 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
     );
 };
 
-export const StandardMCQ = memo(({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick }) => {
+export const StandardMCQ = memo(({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
     const renderQuestion = (q) => {
         const options = q.options || group.options || [];
         return (
             <div key={q.id} id={`q-${q.id}`} className="mb-3 p-1 rounded-xl">
                 <div className="flex gap-2 mb-2 items-start">
-                    <QuestionBadge id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} />
+                    <QuestionBadge 
+                        id={q.id} 
+                        isReviewMode={isReviewMode} 
+                        onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
+                        onSeekTo={onSeekTo}
+                        timestamp={q.timestamp}
+                        activePart={activePart}
+                    />
                     {q.text && <div className="font-semibold text-gray-900 leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />}
                 </div>
                 <div className="flex flex-col gap-0 pl-2 sm:pl-10">

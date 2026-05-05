@@ -220,7 +220,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                     )}
 
                     <main className={`flex-1 overflow-y-auto lg:overflow-hidden relative ${isFullscreen && (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') ? '' : 'grid grid-cols-1 lg:grid-cols-12'}`}>
-                        <div className={`lg:col-span-6 h-auto lg:h-full flex flex-col border-b lg:border-b-0 lg:border-r ${isDark ? 'border-neutral-800' : 'border-zinc-100'}`}>
+                        <div className="lg:col-span-6 h-auto lg:h-full lg:overflow-hidden flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-800 dark:border-neutral-800 border-zinc-100">
                             <MediaSection 
                                 isDark={isDark}
                                 podcast={podcast}
@@ -239,7 +239,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                             />
                         </div>
 
-                        <div className="lg:col-span-6 h-auto lg:h-full flex flex-col">
+                        <div className="lg:col-span-6 h-auto lg:h-full lg:overflow-hidden flex flex-col">
                             <TaskSection 
                                 isDark={isDark}
                                 podcast={podcast}
@@ -277,9 +277,15 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                     )}
 
                     <style dangerouslySetInnerHTML={{__html: `
-                        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.1); border-radius: 999px; }
+                        .custom-scrollbar::-webkit-scrollbar-thumb { 
+                            background-color: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}; 
+                            border-radius: 10px; 
+                        }
+                        .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+                            background-color: ${isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}; 
+                        }
                         
                         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
                         @keyframes slide-in-from-right { from { transform: translateX(20px); } to { transform: translateX(0); } }

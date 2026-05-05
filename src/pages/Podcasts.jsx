@@ -153,7 +153,18 @@ export default function Podcasts() {
                                         </div>
                                     ))}
                                     {podcasts.slice(0, 8).map(p => (
-                                        <div key={p.id} onClick={() => { setCurrentTrack(p); setIsExpanded(true); }} className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition group ${isDark ? 'hover:bg-zinc-800/50' : 'hover:bg-zinc-100'}`}>
+                                        <div 
+                                            key={p.id} 
+                                            onClick={() => { 
+                                                if (p.mediaType === 'youtube' || p.mediaType === 'video') {
+                                                    setCurrentTrack(p);
+                                                    setIsExpanded(true);
+                                                } else {
+                                                    navigate(`/podcast/spotify/${p.id}`);
+                                                }
+                                            }} 
+                                            className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition group ${isDark ? 'hover:bg-zinc-800/50' : 'hover:bg-zinc-100'}`}
+                                        >
                                             <div className="w-12 h-12 rounded-lg bg-zinc-800 flex-shrink-0 overflow-hidden shadow-lg">
                                                 <LazyImage src={p.thumbnail || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&q=80"} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                             </div>
@@ -312,7 +323,14 @@ export default function Podcasts() {
                                         return (
                                             <div 
                                                 key={p.id}
-                                                onClick={() => navigate(`/podcast/spotify/${p.id}`)}
+                                                onClick={() => {
+                                                    if (p.mediaType === 'youtube' || p.mediaType === 'video') {
+                                                        setCurrentTrack(p);
+                                                        setIsExpanded(true);
+                                                    } else {
+                                                        navigate(`/podcast/spotify/${p.id}`);
+                                                    }
+                                                }}
                                                 className={`group rounded-xl p-6 cursor-pointer relative overflow-hidden flex flex-col justify-between transition-transform hover:scale-[1.02] shadow-lg min-h-[280px] ${DIFF_COLORS[p.difficulty] || 'bg-blue-800'}`}
                                             >
                                                 <div className="relative z-10 flex flex-col h-full">
@@ -329,13 +347,12 @@ export default function Podcasts() {
                                                         <div 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                if (p.mediaType === 'youtube') {
+                                                                if (p.mediaType === 'youtube' || p.mediaType === 'video') {
                                                                     setCurrentTrack(p);
                                                                     setIsExpanded(true);
                                                                     setIsPlaying(false);
                                                                 } else {
                                                                     playTrack(p);
-                                                                    setIsExpanded(true);
                                                                 }
                                                             }}
                                                             className={`w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 shrink-0 ${isPlayingThis ? 'scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'}`}
@@ -389,7 +406,16 @@ export default function Podcasts() {
                     <div className="flex items-center gap-4 md:gap-7 mb-1 md:mb-3">
                         <Shuffle size={16} className={`hidden md:block cursor-pointer transition-colors ${shuffle ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setShuffle(!shuffle)} />
                         <SkipBack size={20} fill="currentColor" className={`md:w-6 md:h-6 transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)} />
-                        <button className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`} onClick={() => setIsPlaying(!isPlaying)}>
+                        <button 
+                            className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`} 
+                            onClick={() => {
+                                const isVideo = currentTrack?.mediaType === 'youtube' || currentTrack?.mediaType === 'video';
+                                if (!isPlaying && isVideo) {
+                                    setIsExpanded(true);
+                                }
+                                setIsPlaying(!isPlaying);
+                            }}
+                        >
                             {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
                         </button>
                         <SkipForward size={20} fill="currentColor" className={`md:w-6 md:h-6 transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime += 10)} />

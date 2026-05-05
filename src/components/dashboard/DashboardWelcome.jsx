@@ -31,7 +31,7 @@ export default function DashboardWelcome({
 
                 {/* Subheadline */}
                 <p className="text-[18px] md:text-[21px] text-zinc-400 font-normal leading-[1.6] max-w-[760px] mb-12">
-                    Hech qanday "maxfiy strategiya" yo'q. Bor narsa — shu ekran, matnlar, audiyolar va sening vaqting. Diqqatingni jamla, bugun kechagidan bir oz yaxshroq bo'l.
+                    Hech qanday "maxfiy strategiya" yo'q. Bor narsa — shu ekran, matnlar, audiyolar va sening vaqting. Diqqatingni jamla, bugun kechagidan bir oz yaxshiroq bo'l.
                 </p>
 
                 {/* Call to Actions */}

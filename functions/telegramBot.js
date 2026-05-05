@@ -142,6 +142,20 @@ async function handleCallback(chatId, query) {
     
     await sendMessage(chatId, "✍️ <b>Foydalanuvchiga yubormoqchi bo'lgan xabaringizni yozing:</b>\n\n(Keyingi yuborgan xabaringiz unga boradi)");
   }
+  else if (data === "get_auth_code") {
+    const msg = "📱 <b>Telefon raqamingizni yuboring</b>\n\n" +
+      "Saytga kirish kodi (OTP) olish uchun quyidagi tugmani bosib telefon raqamingizni bot bilan ulashing.";
+    
+    const keyboard = {
+      keyboard: [
+        [{ text: "📱 Telefon raqamni yuborish", request_contact: true }]
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: true
+    };
+    
+    await sendMessage(chatId, msg, keyboard);
+  }
 }
 
 // Edit message helper
@@ -247,11 +261,14 @@ async function handleScreenshot(chatId, photoArray, from) {
 
 async function handleAuthContact(chatId, contact) {
   const cleanPhone = contact.phone_number.replace(/\D/g, "");
-  const telegramId = contact.user_id.toString();
+  const telegramId = (contact.user_id || chatId).toString();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
   await admin.firestore().collection("telegram_codes").doc(telegramId).set({
-    code, phoneNumber: cleanPhone, timestamp: admin.firestore.FieldValue.serverTimestamp(), chatId
+    code, 
+    phoneNumber: cleanPhone, 
+    timestamp: admin.firestore.FieldValue.serverTimestamp(), 
+    chatId: chatId.toString()
   });
 
   const msg = `🔑 <b>TASDIQLASH KODI</b>\n\n` +
@@ -263,6 +280,48 @@ async function handleAuthContact(chatId, contact) {
     inline_keyboard: [[{ text: "🌐 Saytga qaytish", url: "https://ielts-portal-v1.web.app/login" }]]
   });
 }
+
+exports.verifyTelegramOTP = functions.https.onCall(async (data, context) => {
+  const { phoneNumber, code } = data;
+  if (!phoneNumber || !code) {
+    throw new functions.https.HttpsError("invalid-argument", "Telefon raqam va kod kerak.");
+  }
+
+  const cleanPhone = phoneNumber.replace(/\D/g, "");
+  
+  const snapshot = await admin.firestore().collection("telegram_codes")
+    .where("phoneNumber", "==", cleanPhone)
+    .get();
+
+  if (snapshot.empty) {
+    throw new functions.https.HttpsError("not-found", "Kod topilmadi. Botga /start yozib kodingizni yangilang.");
+  }
+
+  // Eng oxirgisini topamiz
+  const docs = snapshot.docs.sort((a, b) => {
+    const tA = a.data().timestamp ? a.data().timestamp.toMillis() : 0;
+    const tB = b.data().timestamp ? b.data().timestamp.toMillis() : 0;
+    return tB - tA;
+  });
+  
+  const doc = docs[0];
+  const storedData = doc.data();
+
+  if (storedData.code !== code.toString()) {
+    throw new functions.https.HttpsError("permission-denied", "Kod noto'g'ri.");
+  }
+
+  const now = Date.now();
+  const timestamp = storedData.timestamp ? storedData.timestamp.toMillis() : 0;
+  if (now - timestamp > 10 * 60 * 1000) {
+    throw new functions.https.HttpsError("deadline-exceeded", "Kod muddati tugagan.");
+  }
+
+  // Muvaffaqiyatli - kodni o'chiramiz
+  await doc.ref.delete();
+
+  return { success: true, telegramId: doc.id };
+});
 
 // Universal sendMessage function
 async function sendMessage(chatId, text, replyMarkup = null) {
