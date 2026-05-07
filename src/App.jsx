@@ -29,7 +29,7 @@ import DiagnosticIntro from './pages/DiagnosticIntro';
 import DiagnosticTestSolving from './pages/DiagnosticTestSolving';
 import DiagnosticResult from './pages/DiagnosticResult';
 import { ThemeProvider } from './context/ThemeContext';
-import { PodcastProvider } from './context/PodcastContext';
+import { PodcastProvider, usePodcast } from './context/PodcastContext';
 import AdminLayout from './components/common/AdminLayout';
 
 // ADMIN SAHIFALAR
@@ -65,7 +65,12 @@ import Listening from './pages/Listening';
 import Reading from './pages/Reading';
 import Pricing from './pages/Pricing';
 import Library from './pages/Library';
-import GlobalPodcastPlayer from './components/GlobalPodcastPlayer';
+import InteractivePlayer from './components/InteractivePlayer';
+
+const GlobalPodcastPlayer = () => {
+  const { isExpanded, setIsExpanded } = usePodcast();
+  return <InteractivePlayer isOpen={isExpanded} onClose={() => setIsExpanded(false)} />;
+};
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();
@@ -121,6 +126,7 @@ function App() {
     <ThemeProvider>
       <PodcastProvider>
         <ScrollToTop />
+        <GlobalPodcastPlayer />
         <Routes>
         {/* Bosh sahifa (Landing) */}
         <Route
@@ -442,7 +448,6 @@ function App() {
         {/* Noma'lum sahifalar uchun redirect */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-        <GlobalPodcastPlayer />
       </PodcastProvider>
     </ThemeProvider>
   );

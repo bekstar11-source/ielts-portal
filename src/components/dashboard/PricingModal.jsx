@@ -3,12 +3,17 @@ import { X, Check, Zap, Star, Shield, ArrowRight, Sparkles, CreditCard } from 'l
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
+import { useAuth } from '../../context/AuthContext';
+
 export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" }) {
     const navigate = useNavigate();
+    const { user } = useAuth();
     if (!isOpen) return null;
 
     const plans = [
         {
+            id: "standard",
+            billing: "monthly",
             name: "Standard 1 Oylik",
             price: "29,000",
             period: "oyiga",
@@ -18,6 +23,8 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
             popular: false
         },
         {
+            id: "standard",
+            billing: "tri",
             name: "Standard 3 Oylik",
             price: "79,000",
             period: "3 oyga",
@@ -27,6 +34,8 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
             popular: false
         },
         {
+            id: "pro",
+            billing: "monthly",
             name: "Pro 1 Oylik",
             price: "39,000",
             period: "oyiga",
@@ -36,6 +45,8 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
             popular: false
         },
         {
+            id: "pro",
+            billing: "tri",
             name: "Pro 3 Oylik",
             price: "99,000",
             period: "3 oyga",
@@ -131,7 +142,10 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
                                     </ul>
 
                                     <button
-                                        onClick={() => window.open('https://t.me/your_bot_username', '_blank')}
+                                        onClick={() => {
+                                            const params = `${user?.uid || 'guest'}_${plan.id}_${plan.billing}`;
+                                            window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, '_blank');
+                                        }}
                                         className={`w-full py-2.5 rounded-lg font-bold text-[12px] transition-all flex items-center justify-center gap-1.5 group ${
                                             plan.popular 
                                             ? 'bg-white text-black hover:bg-gray-100' 

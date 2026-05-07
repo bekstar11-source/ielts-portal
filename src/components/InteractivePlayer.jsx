@@ -17,7 +17,7 @@ import TaskSection from "./InteractivePlayer/TaskSection";
 import { useYouTubeBridge } from "./InteractivePlayer/useYouTubeBridge";
 
 export default function InteractivePlayer({ isOpen, onClose }) {
-    const { playTrack, currentTrack: podcast, setCurrentTrack, isPlaying, setIsPlaying, currentTime, setCurrentTime, duration, setDuration, volume, isMuted, playbackRate, handleSeek, toggleMute, updateVolume, audioRef } = usePodcast();
+    const { playTrack, currentTrack: podcast, setCurrentTrack, isPlaying, setIsPlaying, currentTime, setCurrentTime, duration, setDuration, volume, isMuted, playbackRate, handleSeek, toggleMute, updateVolume, audioRef, youtubePlayerRef } = usePodcast();
     const { user, userData } = useAuth();
     
     const [currentStep, setCurrentStep] = useState(1);
@@ -44,7 +44,8 @@ export default function InteractivePlayer({ isOpen, onClose }) {
         setIsPlaying, 
         setCurrentTime, 
         setDuration,
-        currentTime
+        currentTime,
+        youtubePlayerRef
     );
 
     // Sync YouTube playback state with context
@@ -204,8 +205,12 @@ export default function InteractivePlayer({ isOpen, onClose }) {
             initial={{ y: "100%" }}
             animate={{ y: isOpen ? 0 : "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
-            className={`fixed inset-0 z-[100] flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#050505] text-white' : 'bg-white text-zinc-900'} ${isFullscreen ? 'p-0' : ''}`}
+            style={{ 
+                pointerEvents: isOpen ? 'auto' : 'none',
+                visibility: isOpen ? 'visible' : 'hidden',
+                zIndex: isOpen ? 100 : -1 // Moved to style to ensure it's behind everything when closed
+            }}
+            className={`fixed inset-0 flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#050505] text-white' : 'bg-white text-zinc-900'} ${isFullscreen ? 'p-0' : ''}`}
         >
             {!isFullscreen && (
                 <PlayerHeader 

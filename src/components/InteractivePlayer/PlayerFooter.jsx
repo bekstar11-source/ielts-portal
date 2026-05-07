@@ -11,12 +11,19 @@ export default function PlayerFooter({
     handleMediaSkip, 
     handleMediaSeek, 
     formatTime,
-    currentStep 
+    currentStep,
+    onExpand, // Added prop to open player
+    isFixed = false // Added prop to control positioning
 }) {
     return (
-        <footer className={`h-20 shrink-0 border-t px-4 md:px-8 flex items-center justify-between relative z-20 transition-colors duration-300 ${isDark ? 'border-neutral-800 bg-[#0a0a0c]/80 backdrop-blur-xl' : 'border-zinc-100 bg-white/90 backdrop-blur-xl'}`}>
+        <footer className={`h-20 shrink-0 border-t px-4 md:px-8 flex items-center justify-between z-50 transition-colors duration-300 
+            ${isFixed ? 'fixed bottom-0 left-0 w-full' : 'relative'}
+            ${isDark ? 'border-neutral-800 bg-[#0a0a0c]/80 backdrop-blur-xl text-white' : 'border-zinc-100 bg-white/90 backdrop-blur-xl text-zinc-900'}`}>
             {/* Left: Info & Mini Video - Hidden on mobile */}
-            <div className="hidden lg:flex items-center gap-4 w-1/4 min-w-[280px]">
+            <div 
+                onClick={onExpand}
+                className={`hidden lg:flex items-center gap-4 w-1/4 min-w-[280px] ${onExpand ? 'cursor-pointer group' : ''}`}
+            >
                 {/* Mini Video Preview for YouTube Podcasts */}
                 {podcast.mediaType === 'youtube' && podcast.showVideo !== false && String(podcast.showVideo) !== 'false' ? (
                     <div className="w-16 h-10 rounded bg-black overflow-hidden shadow-lg border border-white/10 shrink-0 relative group/mini">
@@ -26,10 +33,12 @@ export default function PlayerFooter({
                             title="Mini Video"
                             frameBorder="0"
                         />
-                        <div className="absolute inset-0 bg-black/20 group-hover/mini:bg-transparent transition-colors" />
+                        <div className="absolute inset-0 bg-black/20 group-hover/mini:bg-transparent transition-colors flex items-center justify-center">
+                             {onExpand && <Target size={14} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />}
+                        </div>
                     </div>
                 ) : (
-                    <div className={`w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center border shadow-md shrink-0 ${isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-zinc-100 border-zinc-200'}`}>
+                    <div className={`w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center border shadow-md shrink-0 transition-transform group-hover:scale-105 ${isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-zinc-100 border-zinc-200'}`}>
                         {podcast.thumbnail ? (
                             <img src={podcast.thumbnail} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -39,7 +48,7 @@ export default function PlayerFooter({
                 )}
                 
                 <div className="flex flex-col overflow-hidden">
-                    <span className={`text-sm font-medium leading-tight truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>{podcast.title}</span>
+                    <span className={`text-sm font-bold leading-tight truncate group-hover:text-emerald-500 transition-colors ${isDark ? 'text-white' : 'text-zinc-900'}`}>{podcast.title}</span>
                     <span className="text-xs text-neutral-500 truncate">Englev Podcast • EP {podcast.level || "B2"}</span>
                 </div>
             </div>
@@ -101,7 +110,7 @@ export default function PlayerFooter({
                     >
                         <div 
                             className="absolute top-0 left-0 h-full bg-emerald-500 rounded-full transition-all duration-100"
-                            style={{ width: `${(currentTime / duration) * 100}%` }}
+                            style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                         >
                             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg scale-100 lg:scale-0 group-hover:scale-100 transition-transform" />
                         </div>
@@ -112,9 +121,11 @@ export default function PlayerFooter({
 
             {/* Right: Info/Shortcuts - Hidden on mobile */}
             <div className="hidden lg:flex items-center justify-end gap-1 w-1/4 min-w-[200px]">
-                <div className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-full border ${isDark ? 'border-neutral-800 text-neutral-600' : 'border-zinc-200 text-zinc-400'}`}>
-                    {currentStep === 1 ? 'Filling Gaps' : currentStep === 2 ? 'MCQ Active' : 'Sentence Completion'}
-                </div>
+                {currentStep && (
+                    <div className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-full border ${isDark ? 'border-neutral-800 text-neutral-600' : 'border-zinc-200 text-zinc-400'}`}>
+                        {currentStep === 1 ? 'Filling Gaps' : currentStep === 2 ? 'MCQ Active' : 'Sentence Completion'}
+                    </div>
+                )}
             </div>
         </footer>
     );

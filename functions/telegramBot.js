@@ -120,7 +120,10 @@ async function handleCallback(chatId, query) {
   }
   else if (data.startsWith("approve_")) {
     // approve_tier_studentChatId_studentUserId
-    const [_, tier, studentChatId, studentUserId] = data.split("_");
+    const parts = data.split("_");
+    const tier = parts[1];
+    const studentChatId = parts[2];
+    const studentUserId = parts.slice(3).join("_");
     
     try {
       // Update User in Firestore

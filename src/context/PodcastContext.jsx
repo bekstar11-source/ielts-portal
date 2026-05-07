@@ -16,7 +16,8 @@ export const PodcastProvider = ({ children }) => {
     const [isMuted, setIsMuted] = useState(false);
     const [repeat, setRepeat] = useState(false);
     const [shuffle, setShuffle] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false); // Global player expansion state
+    const youtubePlayerRef = useRef(null); // Global ref for YouTube player
 
     // Persist state to localStorage
     useEffect(() => {
@@ -79,10 +80,12 @@ export const PodcastProvider = ({ children }) => {
     };
 
     const handleSeek = (time) => {
-        if (audioRef.current) {
+        if (currentTrack?.mediaType === 'youtube' && youtubePlayerRef.current?.seekTo) {
+            youtubePlayerRef.current.seekTo(time, true);
+        } else if (audioRef.current) {
             audioRef.current.currentTime = time;
-            setCurrentTime(time);
         }
+        setCurrentTime(time);
     };
 
     const toggleMute = () => {
@@ -117,6 +120,7 @@ export const PodcastProvider = ({ children }) => {
             repeat, setRepeat,
             shuffle, setShuffle,
             isExpanded, setIsExpanded,
+            youtubePlayerRef,
             playbackRate, updatePlaybackRate,
             playTrack,
             handleSeek,

@@ -9,12 +9,15 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { usePodcast } from "../context/PodcastContext";
 import LazyImage from "../components/common/LazyImage";
-import InteractivePlayer from "../components/InteractivePlayer";
+import PlayerFooter from "../components/InteractivePlayer/PlayerFooter";
 
 export default function SpotifyEpisodeDetails() {
     const { podcastId } = useParams();
     const navigate = useNavigate();
-    const { playTrack, currentTrack, setCurrentTrack, isPlaying, setIsPlaying, currentTime, duration, handleSeek } = usePodcast();
+    const { 
+        playTrack, currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
+        currentTime, duration, handleSeek, isExpanded, setIsExpanded 
+    } = usePodcast();
     
     const [podcast, setPodcast] = useState(null);
     const [album, setAlbum] = useState(null);
@@ -22,7 +25,6 @@ export default function SpotifyEpisodeDetails() {
     const [showMoreDesc, setShowMoreDesc] = useState(false);
     const [scrollOpacity, setScrollOpacity] = useState(0);
     const [openSection, setOpenSection] = useState(null); // 'exercises' or 'transcript'
-    const { isExpanded, setIsExpanded } = usePodcast();
 
     useEffect(() => {
         const fetchPodcastAndAlbum = async () => {
@@ -61,11 +63,10 @@ export default function SpotifyEpisodeDetails() {
     };
 
     const formatTime = (time) => {
-        if (!time || isNaN(time)) return "0 min 0 sec";
+        if (!time || isNaN(time)) return "0:00";
         const m = Math.floor(time / 60);
         const s = Math.floor(time % 60);
-        if (m > 0) return `${m} min ${s} sec`;
-        return `${s} sec`;
+        return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
     const getPodcastDate = (p) => {
@@ -84,6 +85,11 @@ export default function SpotifyEpisodeDetails() {
         }
         setIsExpanded(true);
         setIsPlaying(true); // Player ochilganda ijro etishni boshlaymiz
+    };
+
+    const handleMediaSkip = (amount) => {
+        const target = Math.max(0, Math.min(duration, currentTime + amount));
+        handleSeek(target);
     };
 
     const handleScroll = (e) => {
@@ -343,13 +349,26 @@ export default function SpotifyEpisodeDetails() {
                 </div>
             </div>
 
-                </div>
-            </div>
-
-            {/* InteractivePlayer is now global */}
-
-                </div>
-            </div>
+            {/* Global Footer Player (Unified with Interactive Player) */}
+            {currentTrack && (
+                <PlayerFooter 
+                    isDark={true}
+                    podcast={currentTrack}
+                    isPlaying={isPlaying}
+                    setIsPlaying={setIsPlaying}
+                    currentTime={currentTime}
+                    duration={duration}
+                    handleMediaSkip={handleMediaSkip}
+                    handleMediaSeek={handleSeek}
+                    formatTime={(s) => {
+                        const m = Math.floor(s / 60);
+                        const sec = Math.floor(s % 60);
+                        return `${m}:${sec.toString().padStart(2, '0')}`;
+                    }}
+                    onExpand={() => setIsExpanded(true)}
+                    isFixed={true}
+                />
+            )}
         </div>
     );
 }

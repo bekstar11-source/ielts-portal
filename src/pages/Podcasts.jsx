@@ -1,7 +1,7 @@
 // src/pages/Podcasts.jsx
 import React, { useState, useEffect } from "react";
 import { 
-    Home, Search, ChevronLeft, ChevronRight, Library, Play, Pause, Mic2, List as ListIcon, Heart, Expand, Bell, Plus, Clock, MoreHorizontal, PlusCircle, ArrowDownCircle, ChevronDown
+    Home, Search, ChevronLeft, ChevronRight, Library, Play, Pause, Zap, Mic2, Shuffle, SkipBack, SkipForward, Repeat, List as ListIcon, Volume2, VolumeX, Heart, Expand, Bell, Plus, Clock, MoreHorizontal, PlusCircle, ArrowDownCircle, ChevronDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
@@ -9,6 +9,7 @@ import { db } from "../firebase/firebase";
 import { motion } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { usePodcast } from "../context/PodcastContext";
+import PlayerFooter from "../components/InteractivePlayer/PlayerFooter";
 import LazyImage from "../components/common/LazyImage";
 import { Sun, Moon } from "lucide-react";
 
@@ -26,7 +27,9 @@ export default function Podcasts() {
     
     const { 
         currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
-        playTrack, isExpanded, setIsExpanded
+        currentTime, duration, volume, isMuted, repeat, setRepeat, 
+        shuffle, setShuffle, playTrack, handleSeek, toggleMute, updateVolume, audioRef,
+        isExpanded, setIsExpanded
     } = usePodcast();
 
     // Data State
@@ -66,6 +69,24 @@ export default function Podcasts() {
         };
         fetchData();
     }, [currentTrack, setCurrentTrack]);
+
+    const formatTime = (time) => {
+        if (isNaN(time)) return "0:00";
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    const onSeek = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        handleSeek(percent * duration);
+    };
+
+    const handleMediaSkip = (amount) => {
+        const target = Math.max(0, Math.min(duration, currentTime + amount));
+        handleSeek(target);
+    };
 
     const filteredPodcasts = podcasts.filter(p => 
         p.title?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -353,11 +374,30 @@ export default function Podcasts() {
                 </div>
             </div>
 
+            {/* Global Footer Player (Unified) */}
+            {currentTrack && (
+                <PlayerFooter 
+                    isDark={isDark}
+                    podcast={currentTrack}
+                    isPlaying={isPlaying}
+                    setIsPlaying={setIsPlaying}
+                    currentTime={currentTime}
+                    duration={duration}
+                    handleMediaSkip={handleMediaSkip}
+                    handleMediaSeek={handleSeek}
+                    formatTime={formatTime}
+                    onExpand={() => setIsExpanded(true)}
+                    isFixed={true}
+                />
+            )}
+
             <style dangerouslySetInnerHTML={{__html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}; border-radius: 9999px; }
             `}} />
+
+            
         </div>
     );
 }

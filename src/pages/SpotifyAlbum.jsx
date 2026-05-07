@@ -8,7 +8,7 @@ import { db } from "../firebase/firebase";
 import { motion } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { usePodcast } from "../context/PodcastContext";
-import InteractivePlayer from "../components/InteractivePlayer";
+import PlayerFooter from "../components/InteractivePlayer/PlayerFooter";
 import LazyImage from "../components/common/LazyImage";
 import { Sun, Moon } from "lucide-react";
 
@@ -20,7 +20,8 @@ export default function SpotifyAlbum() {
 
     const { 
         currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
-        playTrack, duration, currentTime, toggleMute, isMuted, volume, updateVolume, repeat, setRepeat, shuffle, setShuffle, audioRef
+        playTrack, duration, currentTime, toggleMute, isMuted, volume, updateVolume, repeat, setRepeat, shuffle, setShuffle, audioRef,
+        isExpanded, setIsExpanded, handleSeek
     } = usePodcast();
 
     const [podcasts, setPodcasts] = useState([]);
@@ -29,7 +30,6 @@ export default function SpotifyAlbum() {
         return cached ? JSON.parse(cached) : null;
     });
     const [loading, setLoading] = useState(true);
-    const { isExpanded, setIsExpanded } = usePodcast();
     const [dominantColor, setDominantColor] = useState(() => {
         return localStorage.getItem(`album-color-${albumId}`) || "#222222";
     });
@@ -88,6 +88,11 @@ export default function SpotifyAlbum() {
         }
     };
 
+    const handleMediaSkip = (amount) => {
+        const target = Math.max(0, Math.min(duration, currentTime + amount));
+        handleSeek(target);
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -128,7 +133,7 @@ export default function SpotifyAlbum() {
 
     return (
         <div className={`h-screen w-full flex flex-col font-sans select-none overflow-hidden relative transition-colors duration-300 ${isDark ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
-            {/* InteractivePlayer is now global */}
+            
             
             <div className={`flex-1 overflow-y-auto flex flex-col relative custom-scrollbar ${isDark ? 'bg-gradient-to-b from-[#222222] to-[#121212]' : 'bg-white'}`}>
                 <div className={`sticky top-0 z-30 px-8 py-4 flex items-center justify-between backdrop-blur-xl border-b ${isDark ? 'bg-[#121212]/40 border-transparent' : 'bg-white/80 border-zinc-100'}`}>
@@ -314,8 +319,22 @@ export default function SpotifyAlbum() {
                 </div>
             </div>
 
-                </div>
-            </div>
+            {/* Global Footer Player (Unified with Interactive Player) */}
+            {currentTrack && (
+                <PlayerFooter 
+                    isDark={isDark}
+                    podcast={currentTrack}
+                    isPlaying={isPlaying}
+                    setIsPlaying={setIsPlaying}
+                    currentTime={currentTime}
+                    duration={duration}
+                    handleMediaSkip={handleMediaSkip}
+                    handleMediaSeek={handleSeek}
+                    formatTime={formatTime}
+                    onExpand={() => setIsExpanded(true)}
+                    isFixed={true}
+                />
+            )}
 
             <style dangerouslySetInnerHTML={{__html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 10px; }
