@@ -38,6 +38,7 @@ export default function CompletionTask({
                     return (
                         <div key={qKey} className={`border p-3 rounded-sm transition-colors ${isDark ? 'bg-[#121214]' : 'bg-white'} ${stepResults ? (isCorrect ? 'border-emerald-500/50' : 'border-rose-500/50') : (isDark ? 'border-neutral-800' : 'border-zinc-100')}`}>
                             <div className={`text-[13px] leading-relaxed mb-3 ${isDark ? 'text-white' : 'text-zinc-800'}`}>
+                                <span className={`font-bold mr-2 ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>{idx + 1}.</span>
                                 {parts[0]}
                                 <input 
                                     type="text"

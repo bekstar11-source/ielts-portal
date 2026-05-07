@@ -122,7 +122,7 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                                                         isReviewMode={isReviewMode} 
                                                         onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
                                                         onSeekTo={onSeekTo}
-                                                        timestamp={q.timestamp}
+                                                        timestamp={q.timestamp ?? q.timeStep ?? q.time_step ?? q['time step']}
                                                         activePart={activePart}
                                                     />
                                                     <div className="font-bold text-gray-800 text-[15px] truncate" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />
@@ -520,7 +520,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                                             isReviewMode={isReviewMode} 
                                             onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
                                             onSeekTo={onSeekTo}
-                                            timestamp={q.timestamp}
+                                            timestamp={q.timestamp ?? q.timeStep ?? q.time_step ?? q['time step']}
                                             activePart={activePart}
                                         />
                                         <div className="font-bold text-gray-800 text-[1em]" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
@@ -720,7 +720,7 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
                                                                     isReviewMode={isReviewMode} 
                                                                     handleLocationClick={handleLocationClick} 
                                                                     onSeekTo={onSeekTo}
-                                                                    timestamp={item?.timestamp || cell?.timestamp || refinedPart?.timestamp}
+                                                                    timestamp={item?.timestamp ?? item?.timeStep ?? item?.time_step ?? item?.['time step'] ?? cell?.timestamp ?? cell?.timeStep ?? cell?.time_step ?? cell?.['time step'] ?? refinedPart?.timestamp ?? refinedPart?.timeStep ?? refinedPart?.time_step ?? refinedPart?.['time step']}
                                                                     activePart={activePart}
                                                                 />
                                                             </div>
@@ -816,7 +816,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                                             isReviewMode={isReviewMode} 
                                             handleLocationClick={handleLocationClick} 
                                             onSeekTo={onSeekTo}
-                                            timestamp={q.timestamp}
+                                            timestamp={q.timestamp ?? q.timeStep ?? q.time_step ?? q['time step']}
                                             activePart={activePart}
                                         />
                                         {parts[1] && <span className="ml-1" dangerouslySetInnerHTML={{ __html: parts[1] }} />}
@@ -1055,7 +1055,7 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
                             isReviewMode={isReviewMode}
                             handleLocationClick={handleLocationClick}
                             onSeekTo={onSeekTo}
-                            timestamp={item.timestamp}
+                            timestamp={item.timestamp ?? item.timeStep ?? item.time_step ?? item['time step']}
                             activePart={activePart}
                         />
                     )}
@@ -1195,7 +1195,7 @@ export const StandardMCQ = memo(({ group, userAnswers, onAnswerChange, isReviewM
                         isReviewMode={isReviewMode} 
                         onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
                         onSeekTo={onSeekTo}
-                        timestamp={q.timestamp}
+                        timestamp={q.timestamp ?? q.timeStep ?? q.time_step ?? q['time step']}
                         activePart={activePart}
                     />
                     {q.text && <div className="font-semibold text-gray-900 leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />}

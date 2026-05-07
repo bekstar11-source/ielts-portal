@@ -11,7 +11,11 @@ import {
     onSnapshot, 
     updateDoc, 
     addDoc,
-    serverTimestamp 
+    serverTimestamp,
+    limit,
+    startAfter,
+    writeBatch,
+    getCountFromServer 
 } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
@@ -28,7 +32,8 @@ import {
     MoreHorizontal, Globe, Lock, FolderPlus, 
     Folder, Hash, X, Image as ImageIcon, 
     Type, FileText, Upload, Layers, ArrowLeft,
-    BookOpen, Headphones, PenTool, Mic2, Settings
+    BookOpen, Headphones, PenTool, Mic2, Settings,
+    GitMerge
 } from "lucide-react";
 
 const TEST_TYPES = ["All", "Reading", "Listening", "Writing", "Speaking"];
@@ -42,6 +47,11 @@ export default function AdminTests() {
     const [tests, setTests] = useState([]);
     const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [lastVisible, setLastVisible] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [totalTestCount, setTotalTestCount] = useState(0);
+    const PAGE_SIZE = 50;
     
     // UI State
     const [searchTerm, setSearchTerm] = useState("");
@@ -65,18 +75,29 @@ export default function AdminTests() {
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeTitle, setMergeTitle] = useState("");
 
-    const fetchAll = async () => {
+    const fetchInitial = async () => {
         setLoading(true);
         try {
-            // Fetch Tests
-            const qTests = query(collection(db, "tests"), orderBy("createdAt", "desc"));
+            // Fetch Tests (First Page)
+            const qTests = query(
+                collection(db, "tests"), 
+                orderBy("createdAt", "desc"), 
+                limit(PAGE_SIZE)
+            );
             const snapTests = await getDocs(qTests);
             const testsData = snapTests.docs
                 .map(d => ({ id: d.id, ...d.data() }))
                 .filter(t => t.id !== "tag_metadata" && t.id !== "_tag_settings");
+            
             setTests(testsData);
+            setLastVisible(snapTests.docs[snapTests.docs.length - 1]);
+            setHasMore(snapTests.docs.length === PAGE_SIZE);
 
-            // Fetch Collections
+            // Fetch Total Count
+            const countSnap = await getCountFromServer(collection(db, "tests"));
+            setTotalTestCount(countSnap.data().count);
+
+            // Fetch Collections (Keep fetching all for now as they are usually few)
             const qCols = query(collection(db, "test_collections"), orderBy("createdAt", "asc"));
             const snapCols = await getDocs(qCols);
             setCollections(snapCols.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -87,7 +108,32 @@ export default function AdminTests() {
         }
     };
 
-    useEffect(() => { fetchAll(); }, []);
+    const loadMore = async () => {
+        if (!lastVisible || loadingMore || !hasMore) return;
+        setLoadingMore(true);
+        try {
+            const qTests = query(
+                collection(db, "tests"), 
+                orderBy("createdAt", "desc"), 
+                startAfter(lastVisible),
+                limit(PAGE_SIZE)
+            );
+            const snapTests = await getDocs(qTests);
+            const newTests = snapTests.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(t => t.id !== "tag_metadata" && t.id !== "_tag_settings");
+            
+            setTests(prev => [...prev, ...newTests]);
+            setLastVisible(snapTests.docs[snapTests.docs.length - 1]);
+            setHasMore(snapTests.docs.length === PAGE_SIZE);
+        } catch (err) {
+            console.error("Error loading more tests:", err);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    useEffect(() => { fetchInitial(); }, []);
 
     const handleDelete = async (id, title) => {
         if (!window.confirm(`"${title}" testini o'chirishni tasdiqlaysizmi?`)) return;
@@ -121,7 +167,7 @@ export default function AdminTests() {
             });
             setNewCollectionName("");
             setShowCreateCol(false);
-            fetchAll();
+            fetchInitial();
         } catch (err) { 
             console.error("Create collection error:", err);
             alert("Xatolik: " + err.message); 
@@ -160,14 +206,14 @@ export default function AdminTests() {
             const { id, ...data } = editingCol;
             await updateDoc(doc(db, "test_collections", id), data);
             setEditingCol(null);
-            fetchAll();
+            fetchInitial();
         } catch (err) { alert(err.message); }
     };
 
     const deleteCollection = async (id) => {
         if (!window.confirm("To'plamni o'chirishni tasdiqlaysizmi?")) return;
         await deleteDoc(doc(db, "test_collections", id));
-        fetchAll();
+        fetchInitial();
     };
 
     const assignToCollection = async (testId, collectionId) => {
@@ -418,7 +464,7 @@ export default function AdminTests() {
             const docRef = await addDoc(collection(db, "tests"), cleanObject(newTestData));
             logAction(user.uid, 'MERGE_TESTS', { newTestId: docRef.id, mergedFrom: selectedTests });
             alert("Testlar birlashtirildi!");
-            fetchAll();
+            fetchInitial();
             setSelectedTests([]);
             setShowMergeModal(false);
         } catch (err) {
@@ -571,9 +617,14 @@ export default function AdminTests() {
                             <nav className="space-y-0.5">
                                 <button 
                                     onClick={() => setFilterCollection("All")}
-                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-semibold transition-colors ${filterCollection === 'All' ? (isDark ? 'bg-white/10 text-white' : 'bg-zinc-200 text-zinc-900') : 'text-zinc-500 hover:bg-black/5'}`}
+                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-semibold transition-colors ${filterCollection === 'All' ? (isDark ? 'bg-white/10 text-white' : 'bg-zinc-200 text-zinc-900') : 'text-zinc-500 hover:bg-black/5'}`}
                                 >
-                                    <Folder size={16} /> All Tests
+                                    <span className="flex items-center gap-3">
+                                        <Folder size={16} /> All Tests
+                                    </span>
+                                    {!loading && totalTestCount > 0 && (
+                                        <span className="text-[10px] font-bold opacity-40">{totalTestCount}</span>
+                                    )}
                                 </button>
                                 {collections.map(c => (
                                     <div key={c.id} className="group relative">
@@ -587,7 +638,7 @@ export default function AdminTests() {
                                                 </div>
                                                 {c.name}
                                             </span>
-                                            <span className="text-[10px] font-bold opacity-40">{tests.filter(t => t.collectionId === c.id).length}</span>
+                                            {/* We only show loaded count here as per-collection server count is expensive, but for "All" we show real total */}
                                         </button>
                                         <div className={`absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex items-center transition-all pl-4 ${isDark ? 'bg-gradient-to-l from-[#181818] via-[#181818]' : 'bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb]'} to-transparent`}>
                                             <button onClick={(e) => { e.stopPropagation(); setEditingCol(c); }} className="p-1.5 hover:text-blue-500 transition-colors"><Edit2 size={12} /></button>
@@ -626,7 +677,12 @@ export default function AdminTests() {
                                              type === 'Speaking' ? <Mic2 size={16} /> : <Layers size={16} />}
                                             {type}
                                         </span>
-                                        <span className="text-[10px] font-bold opacity-40">{type === 'All' ? tests.length : tests.filter(t => t.type?.toLowerCase() === type.toLowerCase()).length}</span>
+                                        <span className="text-[10px] font-bold opacity-40">
+                                            {type === 'All' 
+                                                ? (!loading ? totalTestCount : tests.length)
+                                                : tests.filter(t => t.type?.toLowerCase() === type.toLowerCase()).length
+                                            }
+                                        </span>
                                     </button>
                                 ))}
                             </nav>
@@ -913,6 +969,33 @@ export default function AdminTests() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* Pagination - Load More */}
+                    {hasMore && (
+                        <div className="mt-8 mb-12 flex justify-center">
+                            <button 
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                                className={`px-10 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg ${
+                                    isDark 
+                                    ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-900/20' 
+                                    : 'bg-zinc-900 text-white hover:bg-zinc-800 shadow-zinc-900/20'
+                                } active:scale-95 disabled:opacity-50`}
+                            >
+                                {loadingMore ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Loading...
+                                    </>
+                                ) : (
+                                    <>
+                                        More Tests
+                                        <ChevronRight size={16} />
+                                    </>
+                                )}
+                            </button>
                         </div>
                     )}
                 </main>

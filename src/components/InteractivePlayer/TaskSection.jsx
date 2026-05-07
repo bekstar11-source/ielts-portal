@@ -100,18 +100,13 @@ export default function TaskSection({
         <AnimatePresence>
             {(isTasksVisible || !isFullscreen) && (
                 <motion.section 
-                    initial={isFullscreen ? { x: 350, opacity: 0 } : false}
+                    initial={false}
                     animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: 350, opacity: 0 }}
                     transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
                     className={`
-                        ${isFullscreen && (podcast.mediaType === 'youtube' || podcast.mediaType === 'video')
-                            ? 'absolute right-0 top-0 bottom-0 w-[350px] z-30 shadow-[-20px_0_50px_rgba(0,0,0,0.3)]' 
-                            : 'lg:col-span-6 relative flex flex-col'}
-                        overflow-hidden flex flex-col transition-all duration-500
-                        ${isFullscreen 
-                            ? (isDark ? 'bg-black/5 backdrop-blur-[80px] border-l border-white/5' : 'bg-white/5 backdrop-blur-[80px] border-l border-white/20 shadow-2xl') 
-                            : (isDark ? 'bg-[#121214] border-neutral-800' : 'bg-white border-zinc-100')}
+                        lg:col-span-6 relative flex flex-col
+                        overflow-hidden transition-all duration-500
+                        ${isDark ? 'bg-[#121214] border-neutral-800' : 'bg-white border-zinc-100'}
                     `}
                 >
                     <div className={`h-14 md:h-16 shrink-0 px-4 md:px-8 flex items-center justify-between border-b ${isFullscreen ? (isDark ? 'border-white/5' : 'border-black/5') : (isDark ? 'border-white/5' : 'border-zinc-100')}`}>
@@ -143,14 +138,6 @@ export default function TaskSection({
                             </div>
                         )}
                         <div className="flex items-center gap-2">
-                            {isFullscreen && (
-                                <button 
-                                    onClick={() => setIsTasksVisible(false)}
-                                    className={`p-1.5 rounded-full hover:bg-white/10 transition-colors ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}
-                                >
-                                    <X size={14} />
-                                </button>
-                            )}
                         </div>
                     </div>
 

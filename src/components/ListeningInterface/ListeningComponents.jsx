@@ -8,25 +8,31 @@ export const HighlighterIcon = ({ active }) => (
 );
 
 export const QuestionBadge = ({ id, isReviewMode, onClick, onSeekTo, timestamp, activePart }) => (
-    <span
-        className={`min-w-[20px] h-[26px] flex items-center justify-center text-[15px] font-bold text-gray-900 shrink-0 select-none mr-1 px-1.5 rounded-md transition-all
-        ${isReviewMode ? 'cursor-pointer hover:bg-zinc-100 group/badge' : ''}`}
-        onClick={(e) => {
-            if (isReviewMode && onSeekTo && (timestamp || timestamp === 0)) {
-                e.stopPropagation();
-                onSeekTo(activePart, timestamp);
-            } else if (onClick) {
-                onClick(e);
-            }
-        }}
-    >
-        {id}
+    <div className="flex items-center gap-1 group/q-badge mr-1">
+        {/* Play Button - Only visible in review mode if timestamp exists */}
         {isReviewMode && (timestamp || timestamp === 0) && (
-            <svg className="w-3 h-3 ml-1 text-blue-500 opacity-40 group-hover/badge:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-            </svg>
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (onSeekTo) onSeekTo(activePart, timestamp);
+                }}
+                className="w-6 h-6 flex items-center justify-center rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100 active:scale-90 shrink-0"
+                title="Play from this point"
+            >
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                </svg>
+            </button>
         )}
-    </span>
+        
+        <span
+            className={`min-w-[20px] h-[26px] flex items-center justify-center text-[15px] font-bold text-gray-900 shrink-0 select-none px-1.5 rounded-md transition-all
+            ${isReviewMode && onClick ? 'cursor-pointer hover:bg-zinc-100' : ''}`}
+            onClick={onClick}
+        >
+            {id}
+        </span>
+    </div>
 );
 
 export const CorrectAnswerTooltip = ({ answer }) => (

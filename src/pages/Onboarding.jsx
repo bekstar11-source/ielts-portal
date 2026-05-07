@@ -175,8 +175,34 @@ export default function Onboarding() {
         hasTakenIELTS: null,
         previousIELTSScore: "",
         targetBand: "7.0",
-        examDate: ""
+        examDate: "",
+        weakSkills: [],
+        dailyStudyTime: ""
     });
+
+    const { userData } = useAuth();
+
+    React.useEffect(() => {
+        if (userData) {
+            const names = userData.fullName ? userData.fullName.split(' ') : [];
+            setFormData(prev => ({
+                ...prev,
+                firstName: userData.firstName || names[0] || "",
+                lastName: userData.lastName || names.slice(1).join(' ') || "",
+                currentLevel: userData.currentLevel || "",
+                targetBand: userData.targetBand || "7.0"
+            }));
+        }
+    }, [userData]);
+
+    const handleSkillToggle = (skill) => {
+        setFormData(prev => ({
+            ...prev,
+            weakSkills: prev.weakSkills.includes(skill)
+                ? prev.weakSkills.filter(s => s !== skill)
+                : [...prev.weakSkills, skill]
+        }));
+    };
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));

@@ -20,7 +20,10 @@ export default function MCQTask({
                 
                 return (
                     <div key={qKey} className={`border p-3 rounded-sm ${isDark ? 'bg-[#0a0a0c] border-neutral-800' : 'bg-zinc-50 border-zinc-100'}`}>
-                        <p className={`text-[13px] mb-3 font-medium ${isDark ? 'text-white' : 'text-zinc-900'}`}>{q.data.question}</p>
+                        <p className={`text-[13px] mb-3 font-medium flex gap-2 ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                            <span className={`font-bold ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>{idx + 1}.</span>
+                            <span>{q.data.question}</span>
+                        </p>
                         <div className="space-y-2">
                             {q.data.options.map((opt, oIdx) => (
                                 <label 

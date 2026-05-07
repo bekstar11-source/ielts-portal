@@ -282,6 +282,8 @@ async function handleAuthContact(chatId, contact) {
   await admin.firestore().collection("telegram_codes").doc(telegramId).set({
     code, 
     phoneNumber: cleanPhone, 
+    firstName: contact.first_name || "",
+    lastName: contact.last_name || "",
     timestamp: admin.firestore.FieldValue.serverTimestamp(), 
     chatId: chatId.toString()
   });
@@ -367,10 +369,12 @@ exports.verifyTelegramOTP = functions.https.onCall(async (data, context) => {
 
   if (!userSnap.exists) {
     isNewUser = true;
+    const fullName = `${storedData.firstName || ""} ${storedData.lastName || ""}`.trim();
     await userRef.set({
       uid: firebaseUid,
       telegramId: telegramId,
       phoneNumber: phoneNumberVal,
+      fullName: fullName || "Telegram User",
       role: "student",
       accountType: "public",
       onboardingCompleted: false,
@@ -378,6 +382,15 @@ exports.verifyTelegramOTP = functions.https.onCall(async (data, context) => {
       lastActiveAt: admin.firestore.FieldValue.serverTimestamp(),
       isOnline: true
     });
+  } else {
+    // If user exists but name is missing or "Noma'lum", update it
+    const existingData = userSnap.data();
+    if (!existingData.fullName || existingData.fullName === "Noma'lum" || existingData.fullName === "Telegram User") {
+      const fullName = `${storedData.firstName || ""} ${storedData.lastName || ""}`.trim();
+      if (fullName) {
+        await userRef.update({ fullName });
+      }
+    }
   }
 
   // Muvaffaqiyatli - kodni o'chiramiz

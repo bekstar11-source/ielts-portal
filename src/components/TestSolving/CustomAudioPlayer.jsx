@@ -23,9 +23,44 @@ const CustomAudioPlayer = forwardRef(({
     // Allow parent to seek
     useImperativeHandle(ref, () => ({
         seekTo: (time) => {
+            console.log("[CustomAudioPlayer] seekTo called with time:", time);
             if (audioRef.current) {
-                audioRef.current.currentTime = time;
-                audioRef.current.play().catch(() => {});
+                let targetTime = 0;
+                
+                // Parse time if it's a string like "1:30" or "01:30"
+                if (typeof time === 'string' && time.includes(':')) {
+                    const parts = time.split(':').map(Number);
+                    if (parts.length === 2) {
+                        targetTime = parts[0] * 60 + parts[1];
+                    } else if (parts.length === 3) {
+                        targetTime = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                    }
+                } else {
+                    targetTime = Number(time);
+                }
+
+                if (isNaN(targetTime)) targetTime = 0;
+
+                console.log("[CustomAudioPlayer] Parsed targetTime:", targetTime, "startTime:", startTime);
+
+                // Set time relative to the passage's startTime
+                audioRef.current.currentTime = startTime + targetTime;
+                
+                // Pause all other audio elements to prevent overlapping audio
+                document.querySelectorAll('audio[id^="audio-part-"]').forEach(a => {
+                    if (a !== audioRef.current && !a.paused) {
+                        console.log("[CustomAudioPlayer] Pausing other audio:", a.id);
+                        a.pause();
+                    }
+                });
+
+                // Play audio
+                console.log("[CustomAudioPlayer] Playing audio from:", audioRef.current.currentTime);
+                audioRef.current.play().catch(err => {
+                    console.error("[CustomAudioPlayer] Play error after seek:", err);
+                });
+            } else {
+                console.error("[CustomAudioPlayer] audioRef.current is null!");
             }
         }
     }));

@@ -65,17 +65,41 @@ export default function PlayerFooter({
                     <span className="text-[10px] font-mono text-neutral-500">{formatTime(currentTime)}</span>
                     <div 
                         className={`flex-1 h-1.5 rounded-full cursor-pointer relative group ${isDark ? 'bg-neutral-800' : 'bg-zinc-200'}`}
-                        onClick={(e) => {
+                        onMouseDown={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect();
-                            const percent = (e.clientX - rect.left) / rect.width;
-                            handleMediaSeek(duration * percent);
+                            const handleMouseMove = (moveEvent) => {
+                                const percent = Math.max(0, Math.min(1, (moveEvent.clientX - rect.left) / rect.width));
+                                handleMediaSeek(duration * percent);
+                            };
+                            const handleMouseUp = () => {
+                                document.removeEventListener('mousemove', handleMouseMove);
+                                document.removeEventListener('mouseup', handleMouseUp);
+                            };
+                            document.addEventListener('mousemove', handleMouseMove);
+                            document.addEventListener('mouseup', handleMouseUp);
+                            handleMouseMove(e);
+                        }}
+                        onTouchStart={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const handleTouchMove = (moveEvent) => {
+                                const touch = moveEvent.touches[0];
+                                const percent = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                                handleMediaSeek(duration * percent);
+                            };
+                            const handleTouchEnd = () => {
+                                document.removeEventListener('touchmove', handleTouchMove);
+                                document.removeEventListener('touchend', handleTouchEnd);
+                            };
+                            document.addEventListener('touchmove', handleTouchMove);
+                            document.addEventListener('touchend', handleTouchEnd);
+                            handleTouchMove(e);
                         }}
                     >
                         <div 
                             className="absolute top-0 left-0 h-full bg-emerald-500 rounded-full transition-all duration-100"
                             style={{ width: `${(currentTime / duration) * 100}%` }}
                         >
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg scale-0 group-hover:scale-100 transition-transform" />
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg scale-100 lg:scale-0 group-hover:scale-100 transition-transform" />
                         </div>
                     </div>
                     <span className="text-[10px] font-mono text-neutral-500">{formatTime(duration)}</span>

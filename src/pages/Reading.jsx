@@ -7,8 +7,9 @@ import { db } from "../firebase/firebase";
 import { collection, query, where, doc, updateDoc, arrayUnion, getDocs } from "firebase/firestore";
 import { 
   BookOpen, Headphones, PenTool, Mic, Crown, 
-  RotateCw, ChevronLeft, ChevronRight, Search 
+  RotateCw, ChevronLeft, ChevronRight, Search, Loader2 
 } from 'lucide-react';
+import { limit, startAfter, getCountFromServer } from "firebase/firestore";
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -51,7 +52,60 @@ export default function Reading() {
   const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
   
   const { assignments, loading, error: errorMsg, refresh } = useStudentData(user);
-  const rawAssignments = useMemo(() => [...assignments], [assignments]);
+  
+  // Library Pagination State
+  const [libraryTests, setLibraryTests] = useState([]);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalLibraryCount, setTotalLibraryCount] = useState(0);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const PAGE_SIZE = 12;
+
+  const rawAssignments = useMemo(() => {
+    // Deduplicate between assignments and library tests
+    const assignedIds = new Set(assignments.map(a => a.id));
+    const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
+    return [...assignments, ...uniqueLibrary];
+  }, [assignments, libraryTests]);
+
+  const fetchLibraryPage = async (isFirstPage = false) => {
+    if (loadingLibrary || (!hasMore && !isFirstPage)) return;
+    setLoadingLibrary(true);
+    try {
+        let q = query(
+            collection(db, 'tests'),
+            where('type', '==', 'reading'),
+            limit(PAGE_SIZE)
+        );
+
+        if (!isFirstPage && lastVisible) {
+            q = query(q, startAfter(lastVisible));
+        }
+
+        const snap = await getDocs(q);
+        const newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
+        
+        if (isFirstPage) {
+            setLibraryTests(newTests);
+            // Fetch Total Count for students library
+            const countSnap = await getCountFromServer(query(collection(db, 'tests'), where('type', '==', 'reading')));
+            setTotalLibraryCount(countSnap.data().count);
+        } else {
+            setLibraryTests(prev => [...prev, ...newTests]);
+        }
+        
+        setLastVisible(snap.docs[snap.docs.length - 1]);
+        setHasMore(snap.docs.length === PAGE_SIZE);
+    } catch (err) {
+        console.error("Error fetching library tests:", err);
+    } finally {
+        setLoadingLibrary(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLibraryPage(true);
+  }, []);
 
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [showStartConfirm, setShowStartConfirm] = useState(false);
@@ -299,7 +353,7 @@ export default function Reading() {
         <PracticeHero 
           activeTab="reading" 
           categories={categories} 
-          totalCount={rawAssignments.filter(t => t.type === 'reading').length}
+          totalCount={loading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading').length)}
           filteredCount={filteredTests.length}
         />
 
@@ -466,6 +520,25 @@ export default function Reading() {
                                     ))}
                                 </div>
                             </motion.div>
+                        )}
+                        {/* Load More Button */}
+                        {hasMore && (
+                            <div className="flex justify-center pt-10 pb-20">
+                                <button
+                                    onClick={() => fetchLibraryPage()}
+                                    disabled={loadingLibrary}
+                                    className="group relative flex items-center gap-3 px-8 py-4 bg-[#1d1d1f] text-white rounded-full font-semibold transition-all hover:bg-black active:scale-95 disabled:opacity-50"
+                                >
+                                    {loadingLibrary ? (
+                                        <Loader2 size={20} className="animate-spin" />
+                                    ) : (
+                                        <>
+                                            Show More Tests
+                                            <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         )}
                     </motion.div>
                 )}

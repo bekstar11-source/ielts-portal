@@ -102,19 +102,23 @@ export function useStudentData(user) {
             }
 
             // 2. Firestore dan yuklash
-            const results = await Promise.all([
-                getDoc(doc(db, 'users', user.uid)).catch(e => { console.error("User fetch error:", e); return null; }),
-                getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))).catch(e => { console.error("Groups fetch error:", e); return { docs: [] }; }),
-                getDocs(query(collection(db, 'results'), where('userId', '==', user.uid))).catch(e => { console.error("Results fetch error:", e); return { docs: [] }; }),
-                getDocs(query(collection(db, 'tests'), where('type', '==', 'reading'))).catch(e => { console.error("All Reading tests fetch error:", e); return { docs: [] }; }),
-                getDocs(query(collection(db, 'tests'), where('type', '==', 'listening'))).catch(e => { console.error("All Listening tests fetch error:", e); return { docs: [] }; })
+            // Only fetch user-specific and group-specific assignments
+            const [uSnap, gSnap, resultsSnap] = await Promise.all([
+                getDoc(doc(db, 'users', user.uid)),
+                getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))),
+                getDocs(query(collection(db, 'results'), where('userId', '==', user.uid)))
             ]);
 
-            const userSnap = results[0];
-            const groupsSnap = results[1];
-            const resultsSnap = results[2];
-            const allReadingTestsSnap = results[3];
-            const allListeningTestsSnap = results[4];
+            const userData = uSnap.data() || {};
+            const userAssignments = userData.assignedTests || [];
+            
+            const groupAssignments = [];
+            gSnap.docs.forEach(doc => {
+                const gData = doc.data();
+                if (gData.assignedTests) {
+                    groupAssignments.push(...gData.assignedTests.map(a => ({ ...a, groupId: doc.id, groupName: gData.name })));
+                }
+            });
 
             const myResults = resultsSnap?.docs?.map(d => ({ id: d.id, ...d.data() })) || [];
             setUserResults(myResults);
@@ -127,43 +131,18 @@ export function useStudentData(user) {
                 return null;
             };
 
-            let allAssignments = [];
-            const currentUserData = userSnap?.exists() ? userSnap.data() : null;
+            // Combine and normalize all assignments
+            const normalizedUserAssignments = userAssignments.map(normalizeAssignment).filter(Boolean);
+            const normalizedGroupAssignments = groupAssignments.map(a => {
+                const norm = normalizeAssignment(a);
+                return norm ? { ...norm, groupId: a.groupId, groupName: a.groupName } : null;
+            }).filter(Boolean);
 
-            if (currentUserData?.assignedTests) {
-                allAssignments = [...allAssignments, ...currentUserData.assignedTests.map(normalizeAssignment)];
-            }
-            if (groupsSnap?.docs) {
-                groupsSnap.docs.forEach(gDoc => {
-                    const gData = gDoc.data();
-                    if (gData.assignedTests) {
-                        allAssignments = [...allAssignments, ...gData.assignedTests.map(normalizeAssignment)];
-                    }
-                });
-            }
+            const allAssignments = [
+                ...normalizedUserAssignments,
+                ...normalizedGroupAssignments
+            ];
             
-            // Add all Reading tests
-            if (allReadingTestsSnap?.docs) {
-                allReadingTestsSnap.docs.forEach(tDoc => {
-                    const testId = tDoc.id;
-                    if (!allAssignments.some(a => a.id === testId)) {
-                        allAssignments.push({ id: testId, type: 'test' });
-                    }
-                });
-            }
-
-            // Add all Listening tests
-            if (allListeningTestsSnap?.docs) {
-                allListeningTestsSnap.docs.forEach(tDoc => {
-                    const testId = tDoc.id;
-                    if (!allAssignments.some(a => a.id === testId)) {
-                        allAssignments.push({ id: testId, type: 'test' });
-                    }
-                });
-            }
-            
-            allAssignments = allAssignments.filter(Boolean);
-
             // 4. Testlar va Set larni BATCH bilan fetch qilish
             const testIdsToFetch = [];
             const setIdsToFetch = [];

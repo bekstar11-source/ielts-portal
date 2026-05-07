@@ -69,7 +69,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
 
         const isNativeActive = !!(document.fullscreenElement || document.webkitFullscreenElement);
 
-        if (!isNativeActive) {
+        if (!isFullscreen && !isNativeActive) {
             // Try native first
             if (element.requestFullscreen) {
                 element.requestFullscreen().catch(() => setIsFullscreen(true));
@@ -81,10 +81,12 @@ export default function InteractivePlayer({ isOpen, onClose }) {
             }
         } else {
             // Exit native
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
+            if (isNativeActive) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
             }
             setIsFullscreen(false);
         }
@@ -219,8 +221,8 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                         />
                     )}
 
-                    <main className={`flex-1 overflow-y-auto lg:overflow-hidden relative ${isFullscreen && (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') ? '' : 'grid grid-cols-1 lg:grid-cols-12'}`}>
-                        <div className="lg:col-span-6 h-auto lg:h-full lg:overflow-hidden flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-800 dark:border-neutral-800 border-zinc-100">
+                    <main className={`flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden relative`}>
+                        <div className="flex-none lg:col-span-6 h-auto lg:h-full lg:overflow-hidden flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-800 dark:border-neutral-800 border-zinc-100 shadow-md lg:shadow-none">
                             <MediaSection 
                                 isDark={isDark}
                                 podcast={podcast}
@@ -239,7 +241,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                             />
                         </div>
 
-                        <div className="lg:col-span-6 h-auto lg:h-full lg:overflow-hidden flex flex-col">
+                        <div className="flex-1 lg:col-span-6 h-full overflow-y-auto lg:overflow-hidden flex flex-col">
                             <TaskSection 
                                 isDark={isDark}
                                 podcast={podcast}

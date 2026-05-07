@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { Lock, Zap } from 'lucide-react';
+import { Lock, Zap, ChevronDown } from 'lucide-react';
 import HighlightableText from './HighlightableText';
 import { injectKeywordsToHTML } from '../../utils/highlightUtils';
 
@@ -40,9 +40,19 @@ const cleanExplanation = (text) => {
 };
 
 const QuestionExplanation = ({ text, isPremium }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [activeLang, setActiveLang] = useState('en');
+
     if (!text) return null;
-    const cleaned = cleanExplanation(text);
-    if (!cleaned) return null;
+
+    // Support both string and {en, uz} object formats
+    const isBilingual = typeof text === 'object' && text !== null && (text.en || text.uz);
+    const enText = isBilingual ? cleanExplanation(text.en) : cleanExplanation(typeof text === 'string' ? text : '');
+    const uzText = isBilingual ? cleanExplanation(text.uz) : '';
+    
+    if (!enText && !uzText) return null;
+
+    const activeText = activeLang === 'uz' && uzText ? uzText : enText;
 
     if (!isPremium) {
         return (
@@ -51,7 +61,7 @@ const QuestionExplanation = ({ text, isPremium }) => {
                     <Lock size={12} className="shrink-0" />
                     Explanation (Locked)
                 </div>
-                <div className="filter blur-sm select-none opacity-40 text-xs line-clamp-2" dangerouslySetInnerHTML={{ __html: cleaned }} />
+                <div className="filter blur-sm select-none opacity-40 text-xs line-clamp-2" dangerouslySetInnerHTML={{ __html: enText }} />
                 <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px]">
                     <button 
                         onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}
@@ -66,14 +76,60 @@ const QuestionExplanation = ({ text, isPremium }) => {
     }
     
     return (
-        <div className="mt-3 p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-gray-700 leading-relaxed animate-in fade-in slide-in-from-top-1">
-            <div className="flex items-center gap-1.5 mb-1.5 text-blue-700 font-bold uppercase tracking-wider text-[10px]">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="mt-3">
+            {/* Toggle Button */}
+            <button
+                onClick={() => setIsOpen(prev => !prev)}
+                className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-800 transition-colors py-1 px-0 bg-transparent border-none cursor-pointer select-none group/expl"
+            >
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Explanation
+                <span>Explanation</span>
+                <ChevronDown 
+                    size={14} 
+                    className={`shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
+                />
+            </button>
+
+            {/* Collapsible Content */}
+            <div 
+                className="overflow-hidden transition-all duration-300 ease-in-out"
+                style={{ 
+                    maxHeight: isOpen ? '500px' : '0px', 
+                    opacity: isOpen ? 1 : 0,
+                    marginTop: isOpen ? '8px' : '0px'
+                }}
+            >
+                <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-gray-700 leading-relaxed">
+                    {/* Language Tabs (only if bilingual) */}
+                    {isBilingual && uzText && (
+                        <div className="flex gap-1 mb-2.5 border-b border-blue-100 pb-2">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setActiveLang('en'); }}
+                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border-none cursor-pointer ${
+                                    activeLang === 'en' 
+                                        ? 'bg-blue-600 text-white shadow-sm' 
+                                        : 'bg-transparent text-blue-500 hover:bg-blue-100'
+                                }`}
+                            >
+                                English
+                            </button>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setActiveLang('uz'); }}
+                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border-none cursor-pointer ${
+                                    activeLang === 'uz' 
+                                        ? 'bg-blue-600 text-white shadow-sm' 
+                                        : 'bg-transparent text-blue-500 hover:bg-blue-100'
+                                }`}
+                            >
+                                O'zbekcha
+                            </button>
+                        </div>
+                    )}
+                    <div dangerouslySetInnerHTML={{ __html: activeText }} />
+                </div>
             </div>
-            <div dangerouslySetInnerHTML={{ __html: cleaned }} />
         </div>
     );
 };
@@ -778,6 +834,11 @@ export const GapFillQuestion = ({
         return (
             <span id={`q-${q.id}`} className="group/item relative">
                 {renderParts()}
+                {isReviewMode && q.explanation && (
+                    <span className="block">
+                        <QuestionExplanation text={q.explanation} isPremium={isPremium} />
+                    </span>
+                )}
             </span>
         );
     }

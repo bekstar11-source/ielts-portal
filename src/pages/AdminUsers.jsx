@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { logAction } from '../utils/logger';
 import UserDetailPanel from '../components/admin/UserDetailPanel';
 import GroupDetailPanel from '../components/admin/GroupDetailPanel';
+import { useStudentSearch } from '../hooks/useStudentSearch';
 
 // Icons
 import {
@@ -98,9 +99,11 @@ export default function AdminUsers() {
                 getDocs(query(collection(db, 'testSets'), orderBy('createdAt', 'desc'))),
             ]);
 
-            // All Users (Paginated, filtered in JS for now to prevent missing users without createdAt)
+            // All Users (Paginated)
             const userQuery = query(
-                collection(db, 'users')
+                collection(db, 'users'),
+                orderBy('createdAt', 'desc'), // Consistent ordering for pagination
+                limit(100)
             );
             const u = await getDocs(userQuery);
             const allFetchedUsers = u.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -210,17 +213,14 @@ function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, total
     const [showDetailPanel, setShowDetailPanel] = useState(false);
     const [filterBand, setFilterBand] = useState('all');
 
+    const { combinedStudents, isSearchingDb } = useStudentSearch(students, searchTerm);
+
     const filteredStudents = useMemo(() => {
-        return students.filter(s => {
-            const matchesSearch = (
-                s.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                s.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                s.id?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
+        return combinedStudents.filter(s => {
             const matchesBand = filterBand === 'all' || s.targetBand === filterBand;
-            return matchesSearch && matchesBand;
+            return matchesBand;
         });
-    }, [students, searchTerm, filterBand]);
+    }, [combinedStudents, filterBand]);
 
     return (
         <div className={`rounded-xl border h-full flex flex-col overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
@@ -229,7 +229,11 @@ function SmartUserTable({ students, onRefresh, theme, hasMore, onLoadMore, total
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
                     <div className={`flex items-center px-4 py-2.5 rounded-xl transition-all group ${isDark ? 'bg-white/5 focus-within:bg-white/[0.08]' : 'bg-white border border-gray-200 focus-within:border-blue-400'}`}>
-                        <Search size={16} className={`mr-2 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
+                        {isSearchingDb ? (
+                            <div className="w-4 h-4 mr-2 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0"></div>
+                        ) : (
+                            <Search size={16} className={`mr-2 shrink-0 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
+                        )}
                         <input
                             type="text"
                             placeholder="Qidirish..."
@@ -564,6 +568,8 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
 
+    const { combinedStudents: searchResults, isSearchingDb } = useStudentSearch(students, searchUser);
+
     const filteredMaterials = useMemo(() => {
         const source = assignmentType === 'test' ? allTests : testSets;
         return source.filter(item => {
@@ -660,7 +666,11 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
 
                     <div className="p-3 border-b">
                         <div className={`flex items-center px-3 h-10 rounded-xl border transition-all duration-300 group ${isDark ? 'bg-[#121212] border-white/5 focus-within:border-blue-500/50' : 'bg-gray-50 border-gray-100 focus-within:border-blue-400'}`}>
-                            <Search size={14} className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                            {isSearchingDb && subTab === 'individual' ? (
+                                <div className="w-3.5 h-3.5 mr-2 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0"></div>
+                            ) : (
+                                <Search size={14} className="mr-2 text-gray-400 group-focus-within:text-blue-500 transition-colors shrink-0" />
+                            )}
                             <input
                                 type="text"
                                 placeholder={subTab === 'groups' ? "Guruh..." : "Qidirish..."}
@@ -691,7 +701,7 @@ function AssignTab({ students, groups, allTests, testSets, theme }) {
                                 </div>
                             ))
                         ) : (
-                            students.filter(s => s.fullName?.toLowerCase().includes(searchUser.toLowerCase())).map(s => (
+                            searchResults.map(s => (
                                 <div
                                     key={s.id}
                                     onClick={() => setSelectedStudents(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { X, Save, Trash2, Users, BookOpen, Plus, Search, Check } from 'lucide-react';
-import { doc, updateDoc, arrayRemove, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, arrayUnion, getDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
+import { useStudentSearch } from '../../hooks/useStudentSearch';
 
 export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, allStudents }) {
     const { theme } = useTheme();
@@ -12,11 +13,46 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
     const [searchStudent, setSearchStudent] = useState('');
     const [saving, setSaving] = useState(false);
 
+    const [extraStudents, setExtraStudents] = useState({});
+    const { combinedStudents: searchResults, isSearchingDb } = useStudentSearch(allStudents, searchStudent);
+
     useEffect(() => {
         if (group) {
             setGroupName(group.name || '');
         }
     }, [group]);
+
+    // Fetch missing students
+    useEffect(() => {
+        if (!isOpen || !group?.studentIds) return;
+
+        const missingIds = group.studentIds.filter(id => 
+            !allStudents.find(s => s.id === id) && !extraStudents[id]
+        );
+
+        if (missingIds.length > 0) {
+            const fetchMissing = async () => {
+                const newExtras = { ...extraStudents };
+                // Chunk IDs into batches of 30 (Firestore limit for 'in' operator)
+                for (let i = 0; i < missingIds.length; i += 30) {
+                    const batch = missingIds.slice(i, i + 30);
+                    try {
+                        const q = query(collection(db, 'users'), where('__name__', 'in', batch));
+                        const snapshot = await getDocs(q);
+                        snapshot.forEach(doc => {
+                            newExtras[doc.id] = { id: doc.id, ...doc.data() };
+                        });
+                    } catch (e) {
+                        console.error("Error fetching student batch:", e);
+                    }
+                }
+                setExtraStudents(newExtras);
+            };
+            fetchMissing();
+        }
+    }, [isOpen, group, allStudents]);
+
+    const getStudent = (id) => allStudents.find(s => s.id === id) || extraStudents[id];
 
     const handleSaveName = async () => {
         if (!groupName.trim()) return;
@@ -70,12 +106,8 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
     if (!isOpen || !group) return null;
 
     // Filter students for adding
-    const currentStudentIds = group.studentIds || [];
-    const availableStudents = allStudents.filter(s => !currentStudentIds.includes(s.id));
-    const searchFilteredAvailable = availableStudents.filter(s =>
-        s.fullName?.toLowerCase().includes(searchStudent.toLowerCase()) ||
-        s.email?.toLowerCase().includes(searchStudent.toLowerCase())
-    );
+    const currentStudentIds = group?.studentIds || [];
+    const searchFilteredAvailable = searchResults.filter(s => !currentStudentIds.includes(s.id));
 
     return (
         <>
@@ -131,12 +163,16 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
 
                         <div className={`rounded-xl border max-h-48 overflow-y-auto custom-scrollbar ${isDark ? 'border-white/5 bg-[#2C2C2C]' : 'border-gray-100 bg-gray-50'}`}>
                             {currentStudentIds.length > 0 ? currentStudentIds.map(stId => {
-                                const st = allStudents.find(s => s.id === stId);
+                                const st = getStudent(stId);
                                 return (
                                     <div key={stId} className={`flex justify-between items-center p-3 border-b last:border-0 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                                         <div className="text-sm">
-                                            <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{st?.fullName || "Noma'lum"}</p>
-                                            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{st?.email || ""}</p>
+                                            <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                                {st?.fullName || (st ? "Noma'lum" : "Yuklanmoqda...")}
+                                            </p>
+                                            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                                {st?.email || st?.phoneNumber || (st ? "" : stId)}
+                                            </p>
                                         </div>
                                         <button onClick={() => handleRemoveStudent(stId)} className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition">
                                             <Trash2 size={14} />
@@ -152,7 +188,11 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
                         <div className="pt-2">
                             <p className={`text-xs mb-2 font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>O'quvchi qo'shish:</p>
                             <div className={`flex items-center px-3 py-2 mb-2 rounded-xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
-                                <Search size={14} className="text-gray-400 mr-2" />
+                                {isSearchingDb ? (
+                                    <div className="w-3.5 h-3.5 mr-2 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0"></div>
+                                ) : (
+                                    <Search size={14} className="text-gray-400 mr-2 shrink-0" />
+                                )}
                                 <input
                                     type="text"
                                     placeholder="O'quvchini qidirish..."

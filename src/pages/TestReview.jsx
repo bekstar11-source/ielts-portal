@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Volume1, VolumeX, Lock, Zap, ArrowRight } from 'lucide-react';
 import { useParams, useNavigate } from "react-router-dom";
@@ -356,17 +356,22 @@ export default function TestReview() {
     };
 
     const handleSeekTo = (partIndex, timestamp) => {
-        if (!timestamp && timestamp !== 0) return;
+        console.log("[TestReview] handleSeekTo called:", { partIndex, timestamp });
+        if (!timestamp && timestamp !== 0) {
+            console.warn("[TestReview] Missing timestamp!");
+            return;
+        }
         
         // Ensure the part is active so the player is visible/active
         setListeningActivePart(partIndex);
         
-        // Small delay to ensure the player is ready/mounted if it was hidden
-        setTimeout(() => {
-            if (audioRefs.current[partIndex]) {
-                audioRefs.current[partIndex].seekTo(timestamp);
-            }
-        }, 100);
+        // Call immediately to preserve the user gesture chain (prevents Safari from blocking play())
+        if (audioRefs.current[partIndex]) {
+            console.log("[TestReview] Triggering seekTo on ref:", partIndex);
+            audioRefs.current[partIndex].seekTo(timestamp);
+        } else {
+            console.error("[TestReview] audioRefs.current[partIndex] is undefined for index:", partIndex);
+        }
     };
 
     if (loading) return <div className="flex h-screen items-center justify-center font-bold text-gray-500">Yuklanmoqda...</div>;
