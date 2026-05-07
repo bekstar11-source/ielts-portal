@@ -24,25 +24,14 @@ export default function SpotifyPodcast() {
     const [podcast, setPodcast] = useState(null);
     const [loading, setLoading] = useState(true);
     
-    // Questions logic
-    const [currentQuestion, setCurrentQuestion] = useState(null);
-    const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
-    const [userAnswer, setUserAnswer] = useState("");
-    const [isCorrect, setIsCorrect] = useState(null);
+    // Questions logic removed as per user request
+
 
     // Combined Timeline: Text + Questions
     const combinedTimeline = useMemo(() => {
         if (!podcast) return [];
-        const items = [
-            ...(podcast.transcript || []).map(t => ({ ...t, type: 'text' })),
-            ...(podcast.questions || []).map(q => ({ 
-                time: q.time, 
-                text: q.type === 'gapfill' ? q.data.text.replace(/\{\{([^}]+)\}\}/g, '____') : "❓ Savolga javob bering...", 
-                type: 'question',
-                questionData: q
-            }))
-        ];
-        return items.sort((a, b) => a.time - b.time);
+        return (podcast.transcript || []).map(t => ({ ...t, type: 'text' }))
+            .sort((a, b) => a.time - b.time);
     }, [podcast]);
 
     const activeTimelineIdx = useMemo(() => {
@@ -76,34 +65,7 @@ export default function SpotifyPodcast() {
         fetchPodcast();
     }, [podcastId, currentTrack, setCurrentTrack, setIsPlaying]);
 
-    // Handle questions trigger
-    useEffect(() => {
-        if (podcast?.questions && !currentQuestion) {
-            const question = podcast.questions.find(q => 
-                currentTime >= q.time && currentTime < q.time + 0.5 && !answeredQuestions.has(q.id || q.time)
-            );
-            if (question) {
-                setCurrentQuestion(question);
-            }
-        }
-    }, [currentTime, podcast, answeredQuestions, currentQuestion, setIsPlaying]);
 
-    const submitQuestion = () => {
-        let correct = false;
-        if (currentQuestion.type === 'mcq') {
-            correct = userAnswer === currentQuestion.data.correctIndex;
-        } else {
-            correct = userAnswer.toLowerCase().trim() === currentQuestion.data.answer.toLowerCase().trim();
-        }
-        
-        setIsCorrect(correct);
-        setTimeout(() => {
-            setAnsweredQuestions(prev => new Set([...prev, currentQuestion.id || currentQuestion.time]));
-            setCurrentQuestion(null);
-            setUserAnswer("");
-            setIsCorrect(null);
-        }, 1200);
-    };
 
     const formatTime = (time) => {
         if (isNaN(time)) return "0:00";
@@ -186,80 +148,11 @@ export default function SpotifyPodcast() {
                 </div>
             </main>
 
-            {/* Premium Player Bar (Identical to Podcasts.jsx) */}
-            <div className="h-[95px] bg-black border-t border-white/5 px-6 flex items-center justify-between z-50 shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-                <div className="flex items-center gap-4 w-[30%] min-w-[200px]">
-                    <div className="w-14 h-14 bg-zinc-800 rounded-lg flex-shrink-0 overflow-hidden relative group cursor-pointer shadow-2xl">
-                        <LazyImage src={podcast.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                    </div>
-                    <div className="hidden sm:block truncate pr-4">
-                        <p className="text-[14px] font-black truncate text-white leading-tight">{podcast.title}</p>
-                        <p className="text-[11px] text-[#a7a7a7] font-bold uppercase tracking-wider">{podcast.level || "B2"} Podcast</p>
-                    </div>
-                    <Heart size={18} className="text-[#a7a7a7] hover:text-white transition-colors cursor-pointer" />
                 </div>
+            </main>
+        </div>
+    );
 
-                <div className="flex flex-col items-center max-w-[650px] w-full px-4">
-                    <div className="flex items-center gap-7 mb-3">
-                        <Shuffle size={18} className={`cursor-pointer transition-colors ${shuffle ? 'text-emerald-500' : 'text-[#a7a7a7] hover:text-white'}`} onClick={() => setShuffle(!shuffle)} />
-                        <SkipBack size={24} fill="currentColor" className="text-[#a7a7a7] hover:text-white transition-transform active:scale-90 cursor-pointer" onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)} />
-                        <button className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95" onClick={() => setIsPlaying(!isPlaying)}>
-                            {isPlaying ? <Pause size={20} fill="black" /> : <Play size={20} fill="black" className="ml-1" />}
-                        </button>
-                        <SkipForward size={24} fill="currentColor" className="text-[#a7a7a7] hover:text-white transition-transform active:scale-90 cursor-pointer" onClick={() => audioRef.current && (audioRef.current.currentTime += 10)} />
-                        <Repeat size={18} className={`cursor-pointer transition-colors ${repeat ? 'text-emerald-500' : 'text-[#a7a7a7] hover:text-white'}`} onClick={() => setRepeat(!repeat)} />
-                    </div>
-                    <div className="flex items-center gap-3 w-full">
-                        <span className="text-[11px] text-[#a7a7a7] font-black w-8 text-right tabular-nums">{formatTime(currentTime)}</span>
-                        <div className="flex-1 h-[4px] bg-[#4d4d4d] rounded-full group cursor-pointer flex items-center" onClick={onSeek}>
-                            <div className="h-full bg-white group-hover:bg-[#1ed760] rounded-full relative transition-colors" style={{ width: `${(currentTime / duration) * 100 || 0}%` }}>
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
-                            </div>
-                        </div>
-                        <span className="text-[11px] text-[#a7a7a7] font-black w-8 tabular-nums">{formatTime(duration)}</span>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-5 w-[30%] min-w-[200px] text-[#a7a7a7]">
-                    <Mic2 size={18} className="hover:text-white transition cursor-pointer hidden lg:block" />
-                    <ListIcon size={18} className="hover:text-white transition cursor-pointer hidden lg:block" />
-                    <div className="flex items-center gap-2 w-[110px] group">
-                        <button className="hover:text-white transition-colors" onClick={toggleMute}>{isMuted || volume === 0 ? <VolumeX size={18} className="text-rose-500" /> : <Volume2 size={18} />}</button>
-                        <div className="flex-1 h-[4px] bg-[#4d4d4d] rounded-full cursor-pointer flex items-center" onClick={onVolumeChange}>
-                            <div className="h-full bg-white group-hover:bg-[#1ed760] rounded-full relative transition-colors" style={{ width: `${isMuted ? 0 : volume * 100}%` }}>
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Questions Modal */}
-            <AnimatePresence>
-                {currentQuestion && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-3xl">
-                        <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -50, opacity: 0 }} className="bg-[#121212] border border-white/5 p-8 md:p-12 rounded-[40px] max-w-[580px] w-full shadow-2xl relative">
-                            <h2 className="text-2xl md:text-3xl font-black mb-8 leading-tight text-white">{currentQuestion.type === 'mcq' ? currentQuestion.data.question : "Listen and fill the gap:"}</h2>
-                            {currentQuestion.type === 'mcq' ? (
-                                <div className="grid grid-cols-1 gap-3">
-                                    {currentQuestion.data.options.map((opt, idx) => (
-                                        <button key={idx} onClick={() => setUserAnswer(idx)} className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 ${userAnswer === idx ? "bg-emerald-500 text-black border-emerald-500 shadow-lg" : "bg-white/5 border-transparent hover:border-white/10"}`}>{opt}</button>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    <p className="text-zinc-500 text-lg font-medium italic bg-white/5 p-6 rounded-3xl">"{currentQuestion.data.text.replace(/\{\{([^}]+)\}\}/g, '_______')}"</p>
-                                    <input autoFocus className="w-full bg-white/5 border-2 border-transparent p-6 rounded-3xl text-xl font-black outline-none focus:border-emerald-500 transition-all" placeholder="Type answer..." value={userAnswer} onChange={e => setUserAnswer(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitQuestion()} />
-                                </div>
-                            )}
-                            <button onClick={submitQuestion} disabled={userAnswer === "" || isCorrect !== null} className={`w-full mt-8 py-5 rounded-3xl font-black text-base transition-all flex items-center justify-center gap-3 ${isCorrect === true ? "bg-green-500 text-white" : isCorrect === false ? "bg-red-500 text-white" : "bg-white text-black hover:opacity-90 active:scale-95"}`}>
-                                {isCorrect === true ? <CheckCircle2 size={20} /> : null}
-                                {isCorrect === null ? "Submit Answer" : isCorrect ? "Correct!" : "Incorrect"}
-                            </button>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </div>
     );
 }

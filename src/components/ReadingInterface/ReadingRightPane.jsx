@@ -9,7 +9,8 @@ import {
     MatchingOptionsBox,
     MatchingGridQuestion,
     ReadingDraggableHeading,
-    FlowChartQuestion
+    FlowChartQuestion,
+    QuestionExplanation
 } from './ReadingQuestionTypes';
 
 const ReadingRightPane = memo(({
@@ -355,24 +356,38 @@ const ReadingRightPane = memo(({
                                             ) : isDiagram ? (
                                                 <DiagramLabelingQuestion {...commonProps} />
                                             ) : isSummary && !isFlowChart ? (
-                                                <p className="leading-[2.2] text-black">
-                                                    {group.items?.map((q, qIdx) => {
-                                                        const startsWithBold = q.text && q.text.trimStart().startsWith('<b>');
-                                                        return (
-                                                            <React.Fragment key={q.id}>
-                                                                {qIdx > 0 && startsWithBold && <br />}
-                                                                <GapFillQuestion 
-                                                                    q={q} 
-                                                                    val={userAnswers[q.id] || ""} 
-                                                                    isSummary={isSummary} 
-                                                                    isFlowChart={false}
-                                                                    isLast={qIdx === (group.items.length - 1)}
-                                                                    {...commonProps} 
+                                                <>
+                                                    <p className="leading-[2.2] text-black">
+                                                        {group.items?.map((q, qIdx) => {
+                                                            const startsWithBold = q.text && q.text.trimStart().startsWith('<b>');
+                                                            return (
+                                                                <React.Fragment key={q.id}>
+                                                                    {qIdx > 0 && startsWithBold && <br />}
+                                                                    <GapFillQuestion 
+                                                                        q={q} 
+                                                                        val={userAnswers[q.id] || ""} 
+                                                                        isSummary={isSummary} 
+                                                                        isFlowChart={false}
+                                                                        isLast={qIdx === (group.items.length - 1)}
+                                                                        {...commonProps} 
+                                                                    />
+                                                                </React.Fragment>
+                                                            );
+                                                        })}
+                                                    </p>
+                                                    {isReviewMode && group.items?.some(q => q.explanation) && (
+                                                        <div className="mt-4 flex flex-col gap-2">
+                                                            {group.items.filter(q => q.explanation).map(q => (
+                                                                <QuestionExplanation 
+                                                                    key={`exp-${q.id}`} 
+                                                                    text={q.explanation} 
+                                                                    isPremium={isPremium} 
+                                                                    titleId={q.id}
                                                                 />
-                                                            </React.Fragment>
-                                                        );
-                                                    })}
-                                                </p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </>
                                             ) : isFlowChart ? (
                                                 <FlowChartQuestion {...commonProps} />
                                             ) : (

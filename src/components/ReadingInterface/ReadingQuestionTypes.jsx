@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { Lock, Zap, ChevronDown } from 'lucide-react';
+import { Lock, Zap } from 'lucide-react';
 import HighlightableText from './HighlightableText';
 import { injectKeywordsToHTML } from '../../utils/highlightUtils';
 
@@ -39,33 +39,32 @@ const cleanExplanation = (text) => {
         .trim();
 };
 
-const QuestionExplanation = ({ text, isPremium }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [activeLang, setActiveLang] = useState('en');
+export const QuestionExplanation = ({ text, isPremium, titleId }) => {
+    const [isOpen, setIsOpen] = React.useState(false);
 
     if (!text) return null;
-
-    // Support both string and {en, uz} object formats
-    const isBilingual = typeof text === 'object' && text !== null && (text.en || text.uz);
-    const enText = isBilingual ? cleanExplanation(text.en) : cleanExplanation(typeof text === 'string' ? text : '');
-    const uzText = isBilingual ? cleanExplanation(text.uz) : '';
     
-    if (!enText && !uzText) return null;
+    const isObject = typeof text === 'object' && text !== null;
+    const hasContent = isObject ? (text.en || text.uz) : text;
+    if (!hasContent) return null;
 
-    const activeText = activeLang === 'uz' && uzText ? uzText : enText;
+    const cleanedEn = isObject ? cleanExplanation(text.en) : cleanExplanation(text);
+    const cleanedUz = isObject ? cleanExplanation(text.uz) : "";
+
+    if (!cleanedEn && !cleanedUz) return null;
 
     if (!isPremium) {
         return (
-            <div className="mt-3 p-4 bg-[#F5F5F7] border border-gray-100 rounded-2xl relative overflow-hidden group">
+            <div className="mt-3 p-4 bg-[#F5F5F7] border border-gray-100 rounded-sm relative overflow-hidden group">
                 <div className="flex items-center gap-2 mb-2 text-[#86868B] font-bold uppercase tracking-widest text-[10px]">
                     <Lock size={12} className="shrink-0" />
                     Explanation (Locked)
                 </div>
-                <div className="filter blur-sm select-none opacity-40 text-xs line-clamp-2" dangerouslySetInnerHTML={{ __html: enText }} />
+                <div className="filter blur-sm select-none opacity-40 text-xs line-clamp-2" dangerouslySetInnerHTML={{ __html: cleanedEn || cleanedUz }} />
                 <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px]">
                     <button 
                         onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}
-                        className="bg-white/90 border border-gray-200 px-4 py-2 rounded-full text-[11px] font-bold text-[#0071E3] shadow-sm hover:scale-105 transition-all flex items-center gap-1.5"
+                        className="bg-white/90 border border-gray-200 px-4 py-2 rounded-sm text-[11px] font-bold text-[#0071E3] shadow-sm hover:scale-105 transition-all flex items-center gap-1.5"
                     >
                         <Zap size={12} fill="currentColor" />
                         Unlock Detailed Analysis
@@ -76,58 +75,52 @@ const QuestionExplanation = ({ text, isPremium }) => {
     }
     
     return (
-        <div className="mt-3">
-            {/* Toggle Button */}
-            <button
-                onClick={() => setIsOpen(prev => !prev)}
-                className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-800 transition-colors py-1 px-0 bg-transparent border-none cursor-pointer select-none group/expl"
+        <div className={`mt-2 transition-all duration-300 ease-out ${isOpen ? 'bg-sky-50/60 border border-sky-100 rounded-sm shadow-sm' : ''}`}>
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className={`
+                    flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-all duration-300
+                    ${isOpen 
+                        ? 'bg-sky-100 border-sky-200 text-sky-700 w-auto ml-1 mt-1 shadow-sm' 
+                        : 'bg-sky-50/50 border-sky-100 text-sky-600 hover:border-sky-300 hover:text-sky-700 hover:bg-sky-100/50'
+                    }
+                `}
             >
-                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <span className="text-[12px] font-semibold">
+                    {titleId ? `Q${titleId} Explanation` : 'Explanation'}
+                </span>
+                <svg className={`w-3 h-3 transition-transform duration-500 ease-in-out ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                 </svg>
-                <span>Explanation</span>
-                <ChevronDown 
-                    size={14} 
-                    className={`shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
-                />
             </button>
-
-            {/* Collapsible Content */}
-            <div 
-                className="overflow-hidden transition-all duration-300 ease-in-out"
-                style={{ 
-                    maxHeight: isOpen ? '500px' : '0px', 
-                    opacity: isOpen ? 1 : 0,
-                    marginTop: isOpen ? '8px' : '0px'
-                }}
-            >
-                <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-gray-700 leading-relaxed">
-                    {/* Language Tabs (only if bilingual) */}
-                    {isBilingual && uzText && (
-                        <div className="flex gap-1 mb-2.5 border-b border-blue-100 pb-2">
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); setActiveLang('en'); }}
-                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border-none cursor-pointer ${
-                                    activeLang === 'en' 
-                                        ? 'bg-blue-600 text-white shadow-sm' 
-                                        : 'bg-transparent text-blue-500 hover:bg-blue-100'
-                                }`}
-                            >
-                                English
-                            </button>
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); setActiveLang('uz'); }}
-                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border-none cursor-pointer ${
-                                    activeLang === 'uz' 
-                                        ? 'bg-blue-600 text-white shadow-sm' 
-                                        : 'bg-transparent text-blue-500 hover:bg-blue-100'
-                                }`}
-                            >
-                                O'zbekcha
-                            </button>
-                        </div>
-                    )}
-                    <div dangerouslySetInnerHTML={{ __html: activeText }} />
+            
+            <div className={`
+                grid transition-all duration-500 ease-in-out
+                ${isOpen ? 'grid-rows-[1fr] opacity-100 p-4' : 'grid-rows-[0fr] opacity-0 p-0 pointer-events-none'}
+            `}>
+                <div className="overflow-hidden">
+                    <div className="space-y-4">
+                        {cleanedUz && (
+                            <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="h-px flex-1 bg-sky-100"></div>
+                                    <span className="text-[10px] font-bold text-sky-400 tracking-wide">O'zbekcha tushuntirish</span>
+                                    <div className="h-px flex-1 bg-sky-100"></div>
+                                </div>
+                                <div className="text-gray-800 text-[13.5px] leading-relaxed selection:bg-sky-100" dangerouslySetInnerHTML={{ __html: cleanedUz }} />
+                            </div>
+                        )}
+                        {cleanedEn && (
+                            <div className="animate-in fade-in slide-in-from-top-1 duration-500">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="h-px flex-1 bg-gray-100"></div>
+                                    <span className="text-[10px] font-bold text-gray-400 tracking-wide">English Explanation</span>
+                                    <div className="h-px flex-1 bg-gray-100"></div>
+                                </div>
+                                <div className={`${cleanedUz ? 'text-gray-600 text-[12.5px]' : 'text-gray-800 text-[13.5px]'} leading-relaxed selection:bg-sky-100`} dangerouslySetInnerHTML={{ __html: cleanedEn }} />
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -441,7 +434,7 @@ export const MatchingOptionsBox = ({
 };
 
 export const MatchingGridQuestion = ({ 
-    group, activePassage, userAnswers, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, handleLocationClick, onOpenNotes 
+    group, activePassage, userAnswers, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, handleLocationClick, onOpenNotes, isPremium 
 }) => {
     const options = group.options || [];
     const items = group.items || group.questions || [];
@@ -561,6 +554,19 @@ export const MatchingGridQuestion = ({
                     </tbody>
                 </table>
             </div>
+
+            {isReviewMode && items?.some(q => q.explanation) && (
+                <div className="mt-6 flex flex-col gap-2">
+                    {items.filter(q => q.explanation).map(q => (
+                        <QuestionExplanation 
+                            key={`exp-${q.id}`} 
+                            text={q.explanation} 
+                            isPremium={isPremium} 
+                            titleId={q.id}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
@@ -728,7 +734,7 @@ export const ChoiceQuestion = ({
                         );
                     })}
                 </div>
-                {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} isPremium={isPremium} />}
+                {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} isPremium={isPremium} titleId={q.id} />}
             </div>
         </div>
     );
@@ -834,11 +840,6 @@ export const GapFillQuestion = ({
         return (
             <span id={`q-${q.id}`} className="group/item relative">
                 {renderParts()}
-                {isReviewMode && q.explanation && (
-                    <span className="block">
-                        <QuestionExplanation text={q.explanation} isPremium={isPremium} />
-                    </span>
-                )}
             </span>
         );
     }
@@ -848,13 +849,13 @@ export const GapFillQuestion = ({
             <div className={`flex gap-3 items-start pl-2 ${isFlowChart ? 'mb-0' : 'mb-2'}`}>
                 <span className="flex-1 text-black">{renderParts()}</span>
             </div>
-            {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} isPremium={isPremium} />}
+            {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} isPremium={isPremium} titleId={q.id} />}
         </div>
     );
 };
 
 const FlowItem = ({ 
-    item, index, total, group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, onOpenNotes 
+    item, index, total, group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, onOpenNotes, isPremium 
 }) => {
     const itemText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
     const hasInput = itemText && (String(itemText).includes('[INPUT]') || String(itemText).includes('[DROP]'));
@@ -882,6 +883,7 @@ const FlowItem = ({
                     activePassage={activePassage}
                     handleLocationClick={handleLocationClick}
                     onOpenNotes={onOpenNotes}
+                    isPremium={isPremium}
                     isFlowChart={true}
                 />
             </div>
@@ -930,7 +932,7 @@ const FlowItem = ({
 };
 
 export const FlowChartQuestion = ({ 
-    group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, onOpenNotes 
+    group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, onOpenNotes, isPremium 
 }) => {
     const allSubGroups = (group.groups || [{ items: group.items || group.questions || [] }]);
 
@@ -1012,6 +1014,7 @@ export const FlowChartQuestion = ({
                                     keywordTable={keywordTable}
                                     activePassage={activePassage}
                                     onOpenNotes={onOpenNotes}
+                                    isPremium={isPremium}
                                 />
                             ))}
                         </div>
@@ -1023,7 +1026,7 @@ export const FlowChartQuestion = ({
 };
 
 export const DiagramLabelingQuestion = ({ 
-    group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, onOpenNotes 
+    group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, onOpenNotes, isPremium 
 }) => {
     return (
         <div className="diagram-labeling-question flex flex-col gap-6 w-full mb-8">
@@ -1044,10 +1047,10 @@ export const DiagramLabelingQuestion = ({
                     
                     return (
                         <div key={q.id} className="flex flex-col gap-2 p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-gray-200 transition-all group/diag">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-start gap-3">
                                 {isReviewMode && (
                                     <span 
-                                        className="inline-flex min-w-[26px] h-[26px] items-center justify-center rounded-lg bg-gray-50 border border-gray-300 text-[13px] font-bold text-gray-700 cursor-pointer hover:border-ielts-blue hover:text-ielts-blue transition-all shadow-sm"
+                                        className="inline-flex min-w-[26px] h-[26px] items-center justify-center rounded-lg bg-gray-50 border border-gray-300 text-[13px] font-bold text-gray-700 cursor-pointer hover:border-ielts-blue hover:text-ielts-blue transition-all shadow-sm mt-0.5"
                                         onClick={() => handleLocationClick(q.locationId, group.passageId)}
                                     >
                                         {q.id}
@@ -1069,20 +1072,30 @@ export const DiagramLabelingQuestion = ({
                                             activePassage={activePassage}
                                             handleLocationClick={handleLocationClick}
                                             onOpenNotes={onOpenNotes}
+                                            isPremium={isPremium}
                                         />
                                     ) : (
-                                        <div className="flex items-center gap-2">
-                                            {!isReviewMode && (
-                                                <span className="text-sm font-bold text-gray-500 min-w-[1.5em]">{q.id}.</span>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center gap-2">
+                                                {!isReviewMode && (
+                                                    <span className="text-sm font-bold text-gray-500 min-w-[1.5em]">{q.id}.</span>
+                                                )}
+                                                <ReadingTextInput 
+                                                    id={q.id}
+                                                    value={val}
+                                                    answer={q.answer}
+                                                    onChange={onAnswerChange}
+                                                    isReviewMode={isReviewMode}
+                                                    isCorrect={isCorrect}
+                                                />
+                                            </div>
+                                            {isReviewMode && q.explanation && (
+                                                <QuestionExplanation 
+                                                    text={q.explanation} 
+                                                    isPremium={isPremium} 
+                                                    titleId={q.id}
+                                                />
                                             )}
-                                            <ReadingTextInput 
-                                                id={q.id}
-                                                value={val}
-                                                answer={q.answer}
-                                                onChange={onAnswerChange}
-                                                isReviewMode={isReviewMode}
-                                                isCorrect={isCorrect}
-                                            />
                                         </div>
                                     )}
                                 </div>
@@ -1096,81 +1109,113 @@ export const DiagramLabelingQuestion = ({
 };
 
 export const TableQuestion = ({ 
-    group, activePassage, userAnswers, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, handleLocationClick, onOpenNotes 
+    group, activePassage, userAnswers, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, handleLocationClick, onOpenNotes, isPremium 
 }) => {
     const rows = group.rows || group.items || [];
     return (
-        <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm mb-6">
-            <table className="w-full text-left border-collapse">
-                <tbody>
-                    {rows.map((row, rIdx) => (
-                        <tr key={rIdx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50/50">
-                            {row.cells && row.cells.map((cell, cIdx) => {
-                                const cellId = `p-${activePassage}-table-cell-${rIdx}-${cIdx}`;
-                                return (
-                                    <td key={cIdx} className="border-r border-gray-200 last:border-r-0 p-3 align-top text-black leading-relaxed">
-                                        {!cell.isMixed && (
-                                            <HighlightableText
-                                                id={cellId}
-                                                content={(isReviewMode && keywordTable?.length) ? injectKeywordsToHTML(cell.text, keywordTable, true, null) : cell.text}
-                                                highlights={highlights ? highlights[cellId] || [] : []}
-                                                onTextSelect={handlePartSelect}
-                                                onHighlightRemove={onRemoveHighlight}
-                                                onOpenNotes={onOpenNotes}
-                                                isReviewMode={isReviewMode}
-                                                className="inline text-black select-text"
-                                            />
-                                        )}
-                                        {cell.isMixed && cell.parts && cell.parts.map((part, pIdx) => {
-                                            if (part.type === 'text') {
-                                                const partId = `${cellId}-part-${pIdx}`;
-                                                return (
-                                                    <HighlightableText
-                                                        key={pIdx}
-                                                        id={partId}
-                                                        content={(isReviewMode && keywordTable?.length) ? injectKeywordsToHTML(part.content, keywordTable, true, null) : part.content}
-                                                        highlights={highlights ? highlights[partId] || [] : []}
-                                                        onTextSelect={handlePartSelect}
-                                                        onHighlightRemove={onRemoveHighlight}
-                                                        onOpenNotes={onOpenNotes}
-                                                        isReviewMode={isReviewMode}
-                                                        className="inline text-black select-text"
-                                                    />
-                                                );
-                                            }
-                                            if (part.type === 'input') {
-                                                const val = userAnswers[part.id] || "";
-                                                const isCorrect = checkAnswer(val, part.answer);
-                                                return (
-                                                    <div key={pIdx} className="inline-flex items-center">
-                                                        {isReviewMode && (
-                                                            <span 
-                                                                className="inline-flex min-w-[22px] px-1 h-[22px] items-center justify-center rounded bg-gray-50 border border-gray-300 text-[12px] font-bold text-gray-600 mr-1 cursor-pointer hover:border-ielts-blue transition-all"
-                                                                onClick={() => handleLocationClick(part.locationId, group.passageId)}
-                                                            >
-                                                                {part.id}
-                                                            </span>
-                                                        )}
-                                                        <ReadingTextInput 
-                                                            id={part.id}
-                                                            value={val}
-                                                            answer={part.answer}
-                                                            onChange={onAnswerChange}
+        <div className="mb-6">
+            <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
+                <table className="w-full text-left border-collapse">
+                    <tbody>
+                        {rows.map((row, rIdx) => (
+                            <tr key={rIdx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50/50">
+                                {row.cells && row.cells.map((cell, cIdx) => {
+                                    const cellId = `p-${activePassage}-table-cell-${rIdx}-${cIdx}`;
+                                    return (
+                                        <td key={cIdx} className="border-r border-gray-200 last:border-r-0 p-3 align-top text-black leading-relaxed">
+                                            {!cell.isMixed && (
+                                                <HighlightableText
+                                                    id={cellId}
+                                                    content={(isReviewMode && keywordTable?.length) ? injectKeywordsToHTML(cell.text, keywordTable, true, null) : cell.text}
+                                                    highlights={highlights ? highlights[cellId] || [] : []}
+                                                    onTextSelect={handlePartSelect}
+                                                    onHighlightRemove={onRemoveHighlight}
+                                                    onOpenNotes={onOpenNotes}
+                                                    isReviewMode={isReviewMode}
+                                                    className="inline text-black select-text"
+                                                />
+                                            )}
+                                            {cell.isMixed && cell.parts && cell.parts.map((part, pIdx) => {
+                                                if (part.type === 'text') {
+                                                    const partId = `${cellId}-part-${pIdx}`;
+                                                    return (
+                                                        <HighlightableText
+                                                            key={pIdx}
+                                                            id={partId}
+                                                            content={(isReviewMode && keywordTable?.length) ? injectKeywordsToHTML(part.content, keywordTable, true, null) : part.content}
+                                                            highlights={highlights ? highlights[partId] || [] : []}
+                                                            onTextSelect={handlePartSelect}
+                                                            onHighlightRemove={onRemoveHighlight}
+                                                            onOpenNotes={onOpenNotes}
                                                             isReviewMode={isReviewMode}
-                                                            isCorrect={isCorrect}
+                                                            className="inline text-black select-text"
                                                         />
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        })}
-                                    </td>
-                                );
-                            })}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+                                                    );
+                                                }
+                                                if (part.type === 'input') {
+                                                    const val = userAnswers[part.id] || "";
+                                                    const isCorrect = checkAnswer(val, part.answer);
+                                                    return (
+                                                        <div key={pIdx} className="inline-flex items-center">
+                                                            {isReviewMode && (
+                                                                <span 
+                                                                    className="inline-flex min-w-[22px] px-1 h-[22px] items-center justify-center rounded bg-gray-50 border border-gray-300 text-[12px] font-bold text-gray-600 mr-1 cursor-pointer hover:border-ielts-blue transition-all"
+                                                                    onClick={() => handleLocationClick(part.locationId, group.passageId)}
+                                                                >
+                                                                    {part.id}
+                                                                </span>
+                                                            )}
+                                                            <ReadingTextInput 
+                                                                id={part.id}
+                                                                value={val}
+                                                                answer={part.answer}
+                                                                onChange={onAnswerChange}
+                                                                isReviewMode={isReviewMode}
+                                                                isCorrect={isCorrect}
+                                                            />
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })}
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {isReviewMode && (() => {
+                const tableItemsWithExplanation = [];
+                rows.forEach(row => {
+                    const cells = Array.isArray(row) ? row : (row.cells || []);
+                    cells.forEach(cell => {
+                        if (cell.explanation) tableItemsWithExplanation.push(cell);
+                        if (cell.parts) {
+                            cell.parts.forEach(part => {
+                                if (part.explanation) tableItemsWithExplanation.push(part);
+                            });
+                        }
+                    });
+                });
+
+                if (tableItemsWithExplanation.length === 0) return null;
+
+                return (
+                    <div className="mt-4 flex flex-col gap-2">
+                        {tableItemsWithExplanation.map(q => (
+                            <QuestionExplanation 
+                                key={`exp-${q.id}`} 
+                                text={q.explanation} 
+                                isPremium={isPremium} 
+                                titleId={q.id}
+                            />
+                        ))}
+                    </div>
+                );
+            })()}
         </div>
     );
 };

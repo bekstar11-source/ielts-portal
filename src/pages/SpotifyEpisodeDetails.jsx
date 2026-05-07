@@ -22,7 +22,7 @@ export default function SpotifyEpisodeDetails() {
     const [showMoreDesc, setShowMoreDesc] = useState(false);
     const [scrollOpacity, setScrollOpacity] = useState(0);
     const [openSection, setOpenSection] = useState(null); // 'exercises' or 'transcript'
-    const [isExpanded, setIsExpanded] = useState(false);
+    const { isExpanded, setIsExpanded } = usePodcast();
 
     useEffect(() => {
         const fetchPodcastAndAlbum = async () => {
@@ -78,22 +78,12 @@ export default function SpotifyEpisodeDetails() {
     };
 
     const handlePlay = () => {
-        if (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') {
-            // For Video/YouTube podcasts, open the interactive player
-            if (currentTrack?.id !== podcast.id) {
-                setCurrentTrack(podcast);
-            }
-            setIsExpanded(true);
-            setIsPlaying(false); // Let user press play inside to avoid browser blocking
-            return;
+        // Har qanday media turi uchun interaktiv player ochilsin
+        if (currentTrack?.id !== podcast.id) {
+            setCurrentTrack(podcast);
         }
-
-        // For Audio podcasts
-        if (currentTrack?.id === podcast.id) {
-            setIsPlaying(!isPlaying);
-        } else {
-            playTrack(podcast);
-        }
+        setIsExpanded(true);
+        setIsPlaying(true); // Player ochilganda ijro etishni boshlaymiz
     };
 
     const handleScroll = (e) => {
@@ -353,71 +343,13 @@ export default function SpotifyEpisodeDetails() {
                 </div>
             </div>
 
-            <InteractivePlayer isOpen={isExpanded} onClose={() => setIsExpanded(false)} />
-
-            {/* Global Footer Player (Spotify Style) */}
-            {currentTrack && (
-                <div className="h-[95px] bg-black border-t border-white/5 px-6 flex items-center justify-between z-50 shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] fixed bottom-0 left-0 w-full transition-all duration-500">
-                    <div className="flex items-center gap-4 w-[30%] min-w-[280px]">
-                        {/* Mini Video Preview for YouTube Podcasts */}
-                        {currentTrack.mediaType === 'youtube' ? (
-                            <div className="w-16 h-10 rounded bg-black overflow-hidden shadow-lg border border-white/10 shrink-0 relative group/mini cursor-pointer" onClick={() => setIsExpanded(true)}>
-                                <iframe 
-                                    className="w-[140%] h-[140%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none scale-110"
-                                    src={`https://www.youtube.com/embed/${currentTrack.youtubeId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&origin=${window.location.origin}`}
-                                    title="Mini Video"
-                                    frameBorder="0"
-                                />
-                                <div className="absolute inset-0 bg-black/20 group-hover/mini:bg-transparent transition-colors flex items-center justify-center">
-                                    <ChevronDown size={16} className="text-white opacity-0 group-hover/mini:opacity-100 transition-opacity" />
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="w-14 h-14 bg-zinc-800 rounded-lg flex-shrink-0 overflow-hidden relative group cursor-pointer shadow-2xl" onClick={() => setIsExpanded(true)}>
-                                <LazyImage src={currentTrack.thumbnail || null} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                            </div>
-                        )}
-                        <div className="hidden sm:block truncate pr-4 cursor-pointer" onClick={() => setIsExpanded(true)}>
-                            <p className="text-[14px] font-black truncate text-white leading-tight">{currentTrack.title}</p>
-                            <p className="text-[11px] text-[#a7a7a7] font-bold uppercase tracking-wider">{currentTrack.level || "B2"} Podcast</p>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col items-center max-w-[650px] w-full px-4">
-                        <div className="flex items-center gap-7 mb-3">
-                            <button 
-                                className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95" 
-                                onClick={() => {
-                                    const isVideo = currentTrack?.mediaType === 'youtube' || currentTrack?.mediaType === 'video';
-                                    if (!isPlaying && isVideo) {
-                                        setIsExpanded(true);
-                                    }
-                                    setIsPlaying(!isPlaying);
-                                }}
-                            >
-                                {isPlaying ? <Pause size={20} fill="black" /> : <Play size={20} fill="black" className="ml-1" />}
-                            </button>
-                        </div>
-                        <div className="flex items-center gap-3 w-full">
-                            <span className="text-[11px] text-[#a7a7a7] font-black w-8 text-right tabular-nums">{Math.floor(currentTime / 60)}:{(Math.floor(currentTime % 60)).toString().padStart(2, '0')}</span>
-                            <div className="flex-1 h-[4px] bg-[#4d4d4d] rounded-full group cursor-pointer flex items-center" onClick={(e) => {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                const percent = (e.clientX - rect.left) / rect.width;
-                                handleSeek(percent * duration);
-                            }}>
-                                <div className="h-full bg-white group-hover:bg-[#1ed760] rounded-full relative transition-colors" style={{ width: `${(currentTime / duration) * 100 || 0}%` }}>
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
-                                </div>
-                            </div>
-                            <span className="text-[11px] text-[#a7a7a7] font-black w-8 tabular-nums">{Math.floor(duration / 60)}:{(Math.floor(duration % 60)).toString().padStart(2, '0')}</span>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-5 w-[30%] min-w-[200px] text-[#a7a7a7]">
-                        {/* Empty space for layout balance */}
-                    </div>
                 </div>
-            )}
+            </div>
+
+            {/* InteractivePlayer is now global */}
+
+                </div>
+            </div>
         </div>
     );
 }

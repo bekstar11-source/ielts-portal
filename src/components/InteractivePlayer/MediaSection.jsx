@@ -89,6 +89,8 @@ export default function MediaSection({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isPlaying, setIsPlaying, currentTime, duration, globalHandleSeek]);
 
+    const isVideoMode = (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') && podcast.showVideo !== false && String(podcast.showVideo) !== 'false';
+
     return (
         <section className={`
             lg:col-span-6 border-r relative flex flex-col
@@ -98,12 +100,12 @@ export default function MediaSection({
             {(!isFullscreen || (podcast.mediaType !== 'youtube' && podcast.mediaType !== 'video')) && (
                 <div className={`h-12 md:h-16 shrink-0 px-4 md:px-8 flex items-center border-b ${isDark ? 'border-neutral-800' : 'border-zinc-100'}`}>
                     <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>
-                        {podcast.mediaType === 'youtube' || podcast.mediaType === 'video' ? 'Video Lesson' : 'Audio Transcript'}
+                        {isVideoMode ? 'Video Lesson' : 'Audio Transcript'}
                     </h3>
                 </div>
             )}
             
-            {podcast.mediaType === 'youtube' || podcast.mediaType === 'video' ? (
+            {isVideoMode ? (
                 <div className={`flex-1 relative flex flex-col items-center justify-center p-0 md:p-4 ${!isDark && !isFullscreen ? 'bg-zinc-100/50' : 'bg-black'}`}>
                     <div className={`
                         w-full aspect-video md:rounded-lg shadow-2xl border 
@@ -179,6 +181,39 @@ export default function MediaSection({
                 </div>
             ) : (
                 <div className="flex-1 relative overflow-hidden flex flex-col justify-center">
+                    {/* Hidden Media Player for Script Mode (Only for Audio Sync) */}
+                    {(podcast.mediaType === 'youtube' || podcast.mediaType === 'video') && (
+                        <div 
+                            className="pointer-events-none overflow-hidden"
+                            style={{ 
+                                position: 'absolute', 
+                                top: -9999, 
+                                left: -9999, 
+                                width: 1, 
+                                height: 1, 
+                                opacity: 0,
+                                visibility: 'hidden'
+                            }}
+                        >
+                            {podcast.mediaType === 'youtube' ? (
+                                <iframe 
+                                    id="youtube-player-iframe"
+                                    width="100"
+                                    height="100"
+                                    src={`https://www.youtube.com/embed/${podcast.youtubeId}?autoplay=0&modestbranding=1&rel=0&controls=0&enablejsapi=1&iv_load_policy=3&disablekb=1&origin=${window.location.origin}`}
+                                    title="YouTube video player hidden" 
+                                    frameBorder="0" 
+                                />
+                            ) : (
+                                <video 
+                                    ref={videoRef}
+                                    src={podcast.audioUrl}
+                                    style={{ display: 'none' }}
+                                />
+                            )}
+                        </div>
+                    )}
+
                     <div className={`absolute top-0 left-0 w-full h-32 z-10 pointer-events-none ${isDark ? 'bg-gradient-to-b from-[#0a0a0c] to-transparent' : 'bg-gradient-to-b from-zinc-50 to-transparent'}`}></div>
                     <div className={`absolute bottom-0 left-0 w-full h-32 z-10 pointer-events-none ${isDark ? 'bg-gradient-to-t from-[#0a0a0c] to-transparent' : 'bg-gradient-to-t from-zinc-50 to-transparent'}`}></div>
 
@@ -188,7 +223,7 @@ export default function MediaSection({
                                 const item = combinedTimeline[activeTimelineIdx + offset];
                                 if (!item) return null;
                                 return (
-                                    <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => handleSeek(item.time)}>
+                                    <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
                                         <p className={`font-medium text-lg leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
                                     </div>
                                 );
@@ -201,7 +236,7 @@ export default function MediaSection({
                                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                 animate={{ opacity: 1, scale: 1.05, y: 0 }}
                                 className="text-center px-12 max-w-2xl cursor-pointer"
-                                onClick={() => handleSeek(combinedTimeline[activeTimelineIdx]?.time)}
+                                onClick={() => globalHandleSeek(combinedTimeline[activeTimelineIdx]?.time)}
                             >
                                 <p className={`font-bold text-3xl leading-snug tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                                     {combinedTimeline[activeTimelineIdx]?.text}
@@ -214,7 +249,7 @@ export default function MediaSection({
                                 const item = combinedTimeline[activeTimelineIdx + offset];
                                 if (!item) return null;
                                 return (
-                                    <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => handleSeek(item.time)}>
+                                    <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
                                         <p className={`font-medium text-lg leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
                                     </div>
                                 );

@@ -29,7 +29,7 @@ export default function SpotifyAlbum() {
         return cached ? JSON.parse(cached) : null;
     });
     const [loading, setLoading] = useState(true);
-    const [isExpanded, setIsExpanded] = useState(false);
+    const { isExpanded, setIsExpanded } = usePodcast();
     const [dominantColor, setDominantColor] = useState(() => {
         return localStorage.getItem(`album-color-${albumId}`) || "#222222";
     });
@@ -128,7 +128,7 @@ export default function SpotifyAlbum() {
 
     return (
         <div className={`h-screen w-full flex flex-col font-sans select-none overflow-hidden relative transition-colors duration-300 ${isDark ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
-            <InteractivePlayer isOpen={isExpanded} onClose={() => setIsExpanded(false)} />
+            {/* InteractivePlayer is now global */}
             
             <div className={`flex-1 overflow-y-auto flex flex-col relative custom-scrollbar ${isDark ? 'bg-gradient-to-b from-[#222222] to-[#121212]' : 'bg-white'}`}>
                 <div className={`sticky top-0 z-30 px-8 py-4 flex items-center justify-between backdrop-blur-xl border-b ${isDark ? 'bg-[#121212]/40 border-transparent' : 'bg-white/80 border-zinc-100'}`}>
@@ -271,13 +271,13 @@ export default function SpotifyAlbum() {
                                                         <button 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                const isVideo = p.mediaType === 'youtube' || p.mediaType === 'video';
+                                                                 const isVideoDisplay = (p.mediaType === 'youtube' || p.mediaType === 'video') && p.showVideo !== false && String(p.showVideo) !== 'false';
                                                                 if (currentTrack?.id === p.id) {
                                                                     setIsPlaying(!isPlaying);
-                                                                    if (isVideo) setIsExpanded(true);
+                                                                    if (isVideoDisplay) setIsExpanded(true);
                                                                 } else {
                                                                     playTrack(p);
-                                                                    if (isVideo) setIsExpanded(true);
+                                                                    if (isVideoDisplay) setIsExpanded(true);
                                                                 }
                                                             }}
                                                             className={`w-8 h-8 rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 shrink-0 shadow-md ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`}
@@ -314,68 +314,6 @@ export default function SpotifyAlbum() {
                 </div>
             </div>
 
-            {/* Global Footer Player */}
-            <div className={`h-[75px] border-t px-4 md:px-6 flex items-center justify-between z-50 shrink-0 shadow-2xl transition-colors duration-300 ${isDark ? 'bg-black border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]' : 'bg-white border-zinc-200'}`}>
-                <div className="flex items-center gap-4 w-[30%] min-w-[200px]">
-                    {currentTrack ? (
-                        <>
-                            <div className={`w-11 h-11 rounded-md flex-shrink-0 overflow-hidden relative group cursor-pointer shadow-2xl ${isDark ? 'bg-zinc-800' : 'bg-zinc-100 border border-zinc-200'}`} onClick={() => setIsExpanded(true)}>
-                                <LazyImage src={currentTrack.thumbnail || null} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><ChevronLeft size={20} className="text-white rotate-90" /></div>
-                            </div>
-                            <div className="hidden sm:block truncate pr-4 cursor-pointer" onClick={() => setIsExpanded(true)}>
-                                <p className={`text-[13px] font-black hover:underline truncate leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{currentTrack.title}</p>
-                                <p className={`text-[10px] hover:underline truncate mt-0.5 font-bold uppercase tracking-wider ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{currentTrack.level || "B2"} Podcast</p>
-                            </div>
-                            <Heart size={18} className={`transition-colors cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
-                        </>
-                    ) : <div className={`animate-pulse w-full h-12 rounded-lg ${isDark ? 'bg-white/5' : 'bg-zinc-100'}`} />}
-                </div>
-
-                <div className="flex flex-col items-center max-w-[650px] w-full px-4 -mt-1">
-                    <div className="flex items-center gap-6 mb-1.5">
-                        <Shuffle size={16} className={`cursor-pointer transition-colors ${shuffle ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setShuffle(!shuffle)} />
-                        <SkipBack size={20} fill="currentColor" className={`transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)} />
-                        <button 
-                            className={`w-9 h-9 rounded-full flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`} 
-                            onClick={() => {
-                                const isVideo = currentTrack?.mediaType === 'youtube' || currentTrack?.mediaType === 'video';
-                                if (!isPlaying && isVideo) {
-                                    setIsExpanded(true);
-                                }
-                                setIsPlaying(!isPlaying);
-                            }}
-                        >
-                            {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
-                        </button>
-                        <SkipForward size={20} fill="currentColor" className={`transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime += 10)} />
-                        <button className={`cursor-pointer transition-colors ${repeat ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setRepeat(!repeat)}>
-                            <Repeat size={16} />
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-2 w-full">
-                        <span className={`text-[11px] font-medium min-w-[32px] text-right tabular-nums ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{formatTime(currentTime)}</span>
-                        <div className={`flex-1 h-[4px] rounded-full group cursor-pointer flex items-center ${isDark ? 'bg-[#4d4d4d]' : 'bg-zinc-200'}`}>
-                            <div className={`h-full rounded-full relative transition-colors ${isDark ? 'bg-white group-hover:bg-[#1ed760]' : 'bg-zinc-900 group-hover:bg-emerald-600'}`} style={{ width: `${(currentTime / duration) * 100 || 0}%` }}>
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border border-zinc-200 rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
-                            </div>
-                        </div>
-                        <span className={`text-[11px] font-medium min-w-[32px] tabular-nums ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{formatTime(duration)}</span>
-                    </div>
-                </div>
-
-                <div className={`flex items-center justify-end gap-5 w-[30%] min-w-[200px] ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-400'}`}>
-                    <div className="flex items-center gap-4">
-                        <div className="group flex items-center gap-2">
-                            <button className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-zinc-900'}`} onClick={toggleMute}>{isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>
-                            <div className={`w-20 h-1 rounded-full relative group cursor-pointer hidden sm:flex items-center ${isDark ? 'bg-white/10' : 'bg-zinc-200'}`}>
-                                <div className={`h-full rounded-full relative ${isDark ? 'bg-emerald-500' : 'bg-zinc-900'}`} style={{ width: `${volume * 100}%` }}>
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white border border-zinc-200 rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
-                                </div>
-                                <input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => updateVolume(parseFloat(e.target.value))} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 

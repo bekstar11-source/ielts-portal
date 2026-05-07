@@ -18,7 +18,7 @@ export default function PlayerFooter({
             {/* Left: Info & Mini Video - Hidden on mobile */}
             <div className="hidden lg:flex items-center gap-4 w-1/4 min-w-[280px]">
                 {/* Mini Video Preview for YouTube Podcasts */}
-                {podcast.mediaType === 'youtube' ? (
+                {podcast.mediaType === 'youtube' && podcast.showVideo !== false && String(podcast.showVideo) !== 'false' ? (
                     <div className="w-16 h-10 rounded bg-black overflow-hidden shadow-lg border border-white/10 shrink-0 relative group/mini">
                         <iframe 
                             className="w-[140%] h-[140%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none scale-110"
@@ -29,8 +29,12 @@ export default function PlayerFooter({
                         <div className="absolute inset-0 bg-black/20 group-hover/mini:bg-transparent transition-colors" />
                     </div>
                 ) : (
-                    <div className={`w-10 h-10 rounded-sm flex items-center justify-center border shadow-md shrink-0 ${isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-zinc-100 border-zinc-200'}`}>
-                        <Target size={18} className="text-emerald-500" />
+                    <div className={`w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center border shadow-md shrink-0 ${isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-zinc-100 border-zinc-200'}`}>
+                        {podcast.thumbnail ? (
+                            <img src={podcast.thumbnail} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                            <Target size={18} className="text-emerald-500" />
+                        )}
                     </div>
                 )}
                 

@@ -45,7 +45,8 @@ export default function CreateSpotifyPodcast() {
         thumbnail: "",
         collectionId: "None",
         mediaType: "audio", // "audio" or "youtube"
-        youtubeId: ""
+        youtubeId: "",
+        showVideo: true
     });
 
     // Timeline State
@@ -71,7 +72,8 @@ export default function CreateSpotifyPodcast() {
                         thumbnail: data.thumbnail || "",
                         collectionId: data.collectionId || "None",
                         mediaType: data.mediaType || "audio",
-                        youtubeId: data.youtubeId || ""
+                        youtubeId: data.youtubeId || "",
+                        showVideo: data.showVideo !== undefined ? data.showVideo : true
                     });
                     
                     // Convert stored format to our working format
@@ -173,6 +175,7 @@ export default function CreateSpotifyPodcast() {
             const podId = editId || doc(collection(db, "podcasts")).id;
             const saveData = {
                 ...form,
+                showVideo: form.showVideo !== false && String(form.showVideo) !== 'false',
                 transcript: finalTranscript,
                 questions: finalQuestions,
                 mode: "spotify",
@@ -417,6 +420,29 @@ export default function CreateSpotifyPodcast() {
                                         }}
                                     />
                                     <p className="text-[10px] text-zinc-400 mt-2 font-bold uppercase tracking-tight">Video ID: <span className="text-rose-500">{form.youtubeId?.length === 11 ? form.youtubeId : 'Not detected'}</span></p>
+                                 </div>
+                             )}
+
+                            {/* Show Video Toggle */}
+                            {form.mediaType !== 'audio' && (
+                                <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1">Video Display</label>
+                                            <p className="text-xs font-bold text-zinc-600">{form.showVideo ? 'Video + Script' : 'Audio Script Only'}</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => setForm(f => ({ ...f, showVideo: !f.showVideo }))}
+                                            className={`w-12 h-6 rounded-full transition-all relative ${form.showVideo ? 'bg-emerald-500' : 'bg-zinc-300'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${form.showVideo ? 'right-1' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
+                                        {form.showVideo 
+                                            ? "Talaba dars davomida videoni ko'radi." 
+                                            : "Video yashiriladi va talaba faqat audioli podcast ko'rinishidagi scriptni ko'radi."}
+                                    </p>
                                 </div>
                             )}
                         </div>

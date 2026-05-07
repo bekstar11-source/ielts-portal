@@ -1,7 +1,7 @@
 // src/pages/Podcasts.jsx
 import React, { useState, useEffect } from "react";
 import { 
-    Home, Search, ChevronLeft, ChevronRight, Library, Play, Pause, Zap, Mic2, Shuffle, SkipBack, SkipForward, Repeat, List as ListIcon, Volume2, VolumeX, Heart, Expand, Bell, Plus, Clock, MoreHorizontal, PlusCircle, ArrowDownCircle, ChevronDown
+    Home, Search, ChevronLeft, ChevronRight, Library, Play, Pause, Mic2, List as ListIcon, Heart, Expand, Bell, Plus, Clock, MoreHorizontal, PlusCircle, ArrowDownCircle, ChevronDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
@@ -9,7 +9,6 @@ import { db } from "../firebase/firebase";
 import { motion } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { usePodcast } from "../context/PodcastContext";
-import InteractivePlayer from "../components/InteractivePlayer";
 import LazyImage from "../components/common/LazyImage";
 import { Sun, Moon } from "lucide-react";
 
@@ -27,8 +26,7 @@ export default function Podcasts() {
     
     const { 
         currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
-        currentTime, duration, volume, isMuted, repeat, setRepeat, 
-        shuffle, setShuffle, playTrack, handleSeek, toggleMute, updateVolume, audioRef 
+        playTrack, isExpanded, setIsExpanded
     } = usePodcast();
 
     // Data State
@@ -36,7 +34,6 @@ export default function Podcasts() {
     const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [isExpanded, setIsExpanded] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     useEffect(() => {
@@ -69,25 +66,6 @@ export default function Podcasts() {
         };
         fetchData();
     }, [currentTrack, setCurrentTrack]);
-
-    const formatTime = (time) => {
-        if (isNaN(time)) return "0:00";
-        const minutes = Math.floor(time / 60);
-        const seconds = Math.floor(time % 60);
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    const onSeek = (e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const percent = (e.clientX - rect.left) / rect.width;
-        handleSeek(percent * duration);
-    };
-
-    const onVolumeChange = (e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const percent = (e.clientX - rect.left) / rect.width;
-        updateVolume(Math.max(0, Math.min(1, percent)));
-    };
 
     const filteredPodcasts = podcasts.filter(p => 
         p.title?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -156,7 +134,8 @@ export default function Podcasts() {
                                         <div 
                                             key={p.id} 
                                             onClick={() => { 
-                                                if (p.mediaType === 'youtube' || p.mediaType === 'video') {
+                                                const isVideoDisplay = (p.mediaType === 'youtube' || p.mediaType === 'video') && p.showVideo !== false && String(p.showVideo) !== 'false';
+                                                if (isVideoDisplay) {
                                                     setCurrentTrack(p);
                                                     setIsExpanded(true);
                                                 } else {
@@ -324,7 +303,8 @@ export default function Podcasts() {
                                             <div 
                                                 key={p.id}
                                                 onClick={() => {
-                                                    if (p.mediaType === 'youtube' || p.mediaType === 'video') {
+                                                    const isVideoDisplay = (p.mediaType === 'youtube' || p.mediaType === 'video') && p.showVideo !== false && String(p.showVideo) !== 'false';
+                                                    if (isVideoDisplay) {
                                                         setCurrentTrack(p);
                                                         setIsExpanded(true);
                                                     } else {
@@ -347,7 +327,8 @@ export default function Podcasts() {
                                                         <div 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                if (p.mediaType === 'youtube' || p.mediaType === 'video') {
+                                                                const isVideoDisplay = (p.mediaType === 'youtube' || p.mediaType === 'video') && p.showVideo !== false && String(p.showVideo) !== 'false';
+                                                                if (isVideoDisplay) {
                                                                     setCurrentTrack(p);
                                                                     setIsExpanded(true);
                                                                     setIsPlaying(false);
@@ -372,95 +353,11 @@ export default function Podcasts() {
                 </div>
             </div>
 
-            {/* Global Footer Player */}
-            <div className={`h-[75px] md:h-[85px] border-t px-4 md:px-6 flex items-center justify-between z-50 shrink-0 shadow-2xl transition-colors duration-300 ${isDark ? 'bg-black border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]' : 'bg-white border-zinc-200'}`}>
-                <div className="flex items-center gap-4 w-[20%] md:w-[30%] min-w-0 md:min-w-[280px]">
-                    {currentTrack ? (
-                        <>
-                            {/* Mini Video Preview for YouTube Podcasts */}
-                            {currentTrack.mediaType === 'youtube' ? (
-                                <div className="w-12 h-8 md:w-16 md:h-10 rounded bg-black overflow-hidden shadow-lg border border-white/10 shrink-0 relative group/mini cursor-pointer" onClick={() => setIsExpanded(true)}>
-                                    <iframe 
-                                        className="w-[140%] h-[140%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none scale-110"
-                                        src={`https://www.youtube.com/embed/${currentTrack.youtubeId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&origin=${window.location.origin}`}
-                                        title="Mini Video"
-                                        frameBorder="0"
-                                    />
-                                </div>
-                            ) : (
-                                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg flex-shrink-0 overflow-hidden relative group cursor-pointer shadow-2xl ${isDark ? 'bg-zinc-800' : 'bg-zinc-100 border border-zinc-200'}`} onClick={() => setIsExpanded(true)}>
-                                    <LazyImage src={currentTrack.thumbnail || null} alt="" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                                </div>
-                            )}
-                            
-                            <div className="hidden lg:block truncate pr-4 cursor-pointer" onClick={() => setIsExpanded(true)}>
-                                <p className={`text-[13px] font-black hover:underline truncate leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{currentTrack.title}</p>
-                                <p className={`text-[10px] hover:underline truncate mt-0.5 font-bold uppercase tracking-wider ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{currentTrack.level || "B2"} Podcast</p>
-                            </div>
-                            <Heart size={18} className={`hidden sm:block transition-colors cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
-                        </>
-                    ) : <div className={`animate-pulse w-full h-12 rounded-lg ${isDark ? 'bg-white/5' : 'bg-zinc-100'}`} />}
-                </div>
-
-                <div className="flex-1 flex flex-col items-center max-w-[650px] px-2 md:px-4">
-                    <div className="flex items-center gap-4 md:gap-7 mb-1 md:mb-3">
-                        <Shuffle size={16} className={`hidden md:block cursor-pointer transition-colors ${shuffle ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setShuffle(!shuffle)} />
-                        <SkipBack size={20} fill="currentColor" className={`md:w-6 md:h-6 transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)} />
-                        <button 
-                            className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center hover:scale-110 transition-all shadow-lg active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`} 
-                            onClick={() => {
-                                const isVideo = currentTrack?.mediaType === 'youtube' || currentTrack?.mediaType === 'video';
-                                if (!isPlaying && isVideo) {
-                                    setIsExpanded(true);
-                                }
-                                setIsPlaying(!isPlaying);
-                            }}
-                        >
-                            {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
-                        </button>
-                        <SkipForward size={20} fill="currentColor" className={`md:w-6 md:h-6 transition-transform active:scale-90 cursor-pointer ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={() => audioRef.current && (audioRef.current.currentTime += 10)} />
-                        <button className={`hidden md:block cursor-pointer transition-colors ${repeat ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`} onClick={() => setRepeat(!repeat)}>
-                            <Repeat size={16} />
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-2 md:gap-3 w-full">
-                        <span className={`text-[9px] md:text-[11px] font-black w-6 md:w-8 text-right tabular-nums ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{formatTime(currentTime)}</span>
-                        <div className={`flex-1 h-[3px] md:h-[4px] rounded-full group cursor-pointer flex items-center ${isDark ? 'bg-[#4d4d4d]' : 'bg-zinc-200'}`} onClick={onSeek}>
-                            <div className={`h-full rounded-full relative transition-colors ${isDark ? 'bg-white group-hover:bg-[#1ed760]' : 'bg-zinc-900 group-hover:bg-emerald-600'}`} style={{ width: `${(currentTime / duration) * 100 || 0}%` }}>
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 md:w-3 md:h-3 bg-white border border-zinc-200 rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
-                            </div>
-                        </div>
-                        <span className={`text-[9px] md:text-[11px] font-black w-6 md:w-8 tabular-nums ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>{formatTime(duration)}</span>
-                    </div>
-                </div>
-
-                <div className={`flex items-center justify-end gap-3 md:gap-5 w-[20%] md:w-[30%] min-w-0 md:min-w-[200px] ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-400'}`}>
-                    <Mic2 size={18} className={`transition cursor-pointer hidden xl:block ${isDark ? 'hover:text-white' : 'hover:text-zinc-900'}`} />
-                    <ListIcon size={18} className={`transition cursor-pointer hidden xl:block ${isDark ? 'hover:text-white' : 'hover:text-zinc-900'}`} />
-                    <div className="flex items-center gap-2 w-full max-w-[100px] group hidden sm:flex">
-                        <button className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-zinc-900'}`} onClick={toggleMute}>{isMuted || volume === 0 ? <VolumeX size={16} className="text-rose-500" /> : <Volume2 size={16} />}</button>
-                        <div className={`flex-1 h-[3px] md:h-[4px] rounded-full cursor-pointer flex items-center ${isDark ? 'bg-[#4d4d4d]' : 'bg-zinc-200'}`} onClick={onVolumeChange}>
-                            <div className={`h-full rounded-full relative transition-colors ${isDark ? 'bg-white group-hover:bg-[#1ed760]' : 'bg-zinc-900 group-hover:bg-emerald-600'}`} style={{ width: `${isMuted ? 0 : volume * 100}%` }}>
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 md:w-3 md:h-3 bg-white border border-zinc-200 rounded-full opacity-0 group-hover:opacity-100 shadow-xl" />
-                            </div>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={() => setIsExpanded(true)}
-                        className={`md:hidden p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-zinc-400 hover:text-white' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
-                    >
-                        <Expand size={18} />
-                    </button>
-                </div>
-            </div>
-
             <style dangerouslySetInnerHTML={{__html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}; border-radius: 9999px; }
             `}} />
-
-            <InteractivePlayer isOpen={isExpanded} onClose={() => setIsExpanded(false)} />
         </div>
     );
 }

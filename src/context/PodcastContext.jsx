@@ -16,6 +16,7 @@ export const PodcastProvider = ({ children }) => {
     const [isMuted, setIsMuted] = useState(false);
     const [repeat, setRepeat] = useState(false);
     const [shuffle, setShuffle] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     // Persist state to localStorage
     useEffect(() => {
@@ -23,18 +24,9 @@ export const PodcastProvider = ({ children }) => {
         if (saved) {
             try {
                 const data = JSON.parse(saved);
-                const now = Date.now();
-                const diff = now - (data.timestamp || 0);
-                const twentyMinutes = 20 * 60 * 1000;
-
-                if (diff < twentyMinutes) {
-                    setCurrentTrack(data.track);
-                    setCurrentTime(data.time);
-                } else {
-                    // Too old, just set track but start from 0
-                    setCurrentTrack(data.track);
-                    setCurrentTime(0);
-                }
+                // Vaqtincha o'chirildi: har doim boshidan boshlansin
+                setCurrentTrack(data.track);
+                setCurrentTime(0);
             } catch (e) { console.error("Error loading saved podcast", e); }
         }
     }, []);
@@ -81,10 +73,8 @@ export const PodcastProvider = ({ children }) => {
             setDuration(audioRef.current.duration);
             audioRef.current.playbackRate = playbackRate;
             
-            // If we have a saved time, apply it once metadata is ready
-            if (currentTime > 0 && Math.abs(audioRef.current.currentTime - currentTime) > 1) {
-                audioRef.current.currentTime = currentTime;
-            }
+            // Resume feature vaqtincha o'chirildi
+            audioRef.current.currentTime = 0;
         }
     };
 
@@ -126,6 +116,7 @@ export const PodcastProvider = ({ children }) => {
             isMuted, setIsMuted,
             repeat, setRepeat,
             shuffle, setShuffle,
+            isExpanded, setIsExpanded,
             playbackRate, updatePlaybackRate,
             playTrack,
             handleSeek,
@@ -134,7 +125,7 @@ export const PodcastProvider = ({ children }) => {
             audioRef
         }}>
             {children}
-            {currentTrack && currentTrack.mediaType !== 'youtube' && (
+            {currentTrack && (currentTrack.mediaType !== 'youtube' || currentTrack.audioUrl) && (
                 currentTrack.mediaType === 'video' ? (
                     <video 
                         ref={audioRef}

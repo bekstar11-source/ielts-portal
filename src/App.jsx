@@ -65,6 +65,7 @@ import Listening from './pages/Listening';
 import Reading from './pages/Reading';
 import Pricing from './pages/Pricing';
 import Library from './pages/Library';
+import GlobalPodcastPlayer from './components/GlobalPodcastPlayer';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();
@@ -441,6 +442,7 @@ function App() {
         {/* Noma'lum sahifalar uchun redirect */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+        <GlobalPodcastPlayer />
       </PodcastProvider>
     </ThemeProvider>
   );

@@ -199,102 +199,98 @@ export default function InteractivePlayer({ isOpen, onClose }) {
     if (!podcast) return null;
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div 
-                    ref={playerRef}
-                    initial={{ y: "100%" }}
-                    animate={{ y: 0 }}
-                    exit={{ y: "100%" }}
-                    transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                    className={`fixed inset-0 z-[100] flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#050505] text-white' : 'bg-white text-zinc-900'} ${isFullscreen ? 'p-0' : ''}`}
-                >
-                    {!isFullscreen && (
-                        <PlayerHeader 
-                            isDark={isDark}
-                            toggleTheme={toggleTheme}
-                            isFullscreen={isFullscreen}
-                            toggleFullscreen={toggleFullscreen}
-                            onClose={onClose}
-                            currentStep={currentStep}
-                            setCurrentStep={setCurrentStep}
-                        />
-                    )}
-
-                    <main className={`flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden relative`}>
-                        <div className="flex-none lg:col-span-6 h-auto lg:h-full lg:overflow-hidden flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-800 dark:border-neutral-800 border-zinc-100 shadow-md lg:shadow-none">
-                            <MediaSection 
-                                isDark={isDark}
-                                podcast={podcast}
-                                isFullscreen={isFullscreen}
-                                toggleFullscreen={toggleFullscreen}
-                                isTasksVisible={isTasksVisible}
-                                setIsTasksVisible={setIsTasksVisible}
-                                combinedTimeline={combinedTimeline}
-                                activeTimelineIdx={activeTimelineIdx}
-                                handleSeek={handleMediaSeek}
-                                isPlaying={isPlaying}
-                                setIsPlaying={setIsPlaying}
-                                currentTime={currentTime}
-                                duration={duration}
-                                audioRef={audioRef}
-                            />
-                        </div>
-
-                        <div className="flex-1 lg:col-span-6 h-full overflow-y-auto lg:overflow-hidden flex flex-col">
-                            <TaskSection 
-                                isDark={isDark}
-                                podcast={podcast}
-                                isFullscreen={isFullscreen}
-                                isTasksVisible={isTasksVisible}
-                                setIsTasksVisible={setIsTasksVisible}
-                                currentStep={currentStep}
-                                setCurrentStep={setCurrentStep}
-                                answers={answers}
-                                setAnswers={setAnswers}
-                                attempts={attempts}
-                                setAttempts={setAttempts}
-                                showResults={showResults}
-                                setShowResults={setShowResults}
-                                initialScore={initialScore}
-                                savePodcastResult={savePodcastResult}
-                                isGrouped={isGrouped}
-                            />
-                        </div>
-                    </main>
-
-                    {!isFullscreen && (
-                        <PlayerFooter 
-                            isDark={isDark}
-                            podcast={podcast}
-                            isPlaying={isPlaying}
-                            setIsPlaying={setIsPlaying}
-                            currentTime={currentTime}
-                            duration={duration}
-                            handleMediaSkip={handleMediaSkip}
-                            handleMediaSeek={handleMediaSeek}
-                            formatTime={formatTime}
-                            currentStep={currentStep}
-                        />
-                    )}
-
-                    <style dangerouslySetInnerHTML={{__html: `
-                        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                        .custom-scrollbar::-webkit-scrollbar-thumb { 
-                            background-color: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}; 
-                            border-radius: 10px; 
-                        }
-                        .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
-                            background-color: ${isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}; 
-                        }
-                        
-                        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-                        @keyframes slide-in-from-right { from { transform: translateX(20px); } to { transform: translateX(0); } }
-                        .animate-in { animation: fade-in 0.5s ease-out, slide-in-from-right 0.5s ease-out; }
-                    `}} />
-                </motion.div>
+        <motion.div 
+            ref={playerRef}
+            initial={{ y: "100%" }}
+            animate={{ y: isOpen ? 0 : "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
+            className={`fixed inset-0 z-[100] flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#050505] text-white' : 'bg-white text-zinc-900'} ${isFullscreen ? 'p-0' : ''}`}
+        >
+            {!isFullscreen && (
+                <PlayerHeader 
+                    isDark={isDark}
+                    toggleTheme={toggleTheme}
+                    isFullscreen={isFullscreen}
+                    toggleFullscreen={toggleFullscreen}
+                    onClose={onClose}
+                    currentStep={currentStep}
+                    setCurrentStep={setCurrentStep}
+                />
             )}
-        </AnimatePresence>
+
+            <main className={`flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden relative`}>
+                <div className="flex-none lg:col-span-6 h-auto lg:h-full lg:overflow-hidden flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-800 dark:border-neutral-800 border-zinc-100 shadow-md lg:shadow-none">
+                    <MediaSection 
+                        isDark={isDark}
+                        podcast={podcast}
+                        isFullscreen={isFullscreen}
+                        toggleFullscreen={toggleFullscreen}
+                        isTasksVisible={isTasksVisible}
+                        setIsTasksVisible={setIsTasksVisible}
+                        combinedTimeline={combinedTimeline}
+                        activeTimelineIdx={activeTimelineIdx}
+                        handleSeek={handleMediaSeek}
+                        isPlaying={isPlaying}
+                        setIsPlaying={setIsPlaying}
+                        currentTime={currentTime}
+                        duration={duration}
+                        audioRef={audioRef}
+                    />
+                </div>
+
+                <div className="flex-1 lg:col-span-6 h-full overflow-y-auto lg:overflow-hidden flex flex-col">
+                    <TaskSection 
+                        isDark={isDark}
+                        podcast={podcast}
+                        isFullscreen={isFullscreen}
+                        isTasksVisible={isTasksVisible}
+                        setIsTasksVisible={setIsTasksVisible}
+                        currentStep={currentStep}
+                        setCurrentStep={setCurrentStep}
+                        answers={answers}
+                        setAnswers={setAnswers}
+                        attempts={attempts}
+                        setAttempts={setAttempts}
+                        showResults={showResults}
+                        setShowResults={setShowResults}
+                        initialScore={initialScore}
+                        savePodcastResult={savePodcastResult}
+                        isGrouped={isGrouped}
+                    />
+                </div>
+            </main>
+
+            {!isFullscreen && (
+                <PlayerFooter 
+                    isDark={isDark}
+                    podcast={podcast}
+                    isPlaying={isPlaying}
+                    setIsPlaying={setIsPlaying}
+                    currentTime={currentTime}
+                    duration={duration}
+                    handleMediaSkip={handleMediaSkip}
+                    handleMediaSeek={handleMediaSeek}
+                    formatTime={formatTime}
+                    currentStep={currentStep}
+                />
+            )}
+
+            <style dangerouslySetInnerHTML={{__html: `
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { 
+                    background-color: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}; 
+                    border-radius: 10px; 
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+                    background-color: ${isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}; 
+                }
+                
+                @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slide-in-from-right { from { transform: translateX(20px); } to { transform: translateX(0); } }
+                .animate-in { animation: fade-in 0.5s ease-out, slide-in-from-right 0.5s ease-out; }
+            `}} />
+        </motion.div>
     );
 }

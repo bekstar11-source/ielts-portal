@@ -4,7 +4,7 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
     const ytPlayerRef = useRef(null);
 
     useEffect(() => {
-        if (!podcast || podcast.mediaType !== 'youtube' || !isOpen) return;
+        if (!podcast || podcast.mediaType !== 'youtube') return;
 
         if (!window.YT) {
             const tag = document.createElement('script');
@@ -21,11 +21,6 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                     onReady: (event) => {
                         const d = event.target.getDuration();
                         if (d) setDuration(d);
-                        
-                        // Seek to saved position if available
-                        if (currentTime > 0) {
-                            event.target.seekTo(currentTime, true);
-                        }
                     },
                     onStateChange: (event) => {
                         if (event.data === window.YT.PlayerState.PLAYING) {
@@ -61,11 +56,10 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
 
         return () => {
             clearInterval(interval);
-            if (ytPlayerRef.current && ytPlayerRef.current.destroy) {
-                ytPlayerRef.current.destroy();
-            }
+            // Don't destroy the player on unmount if we want background play
+            // Actually, we keep it alive because InteractivePlayer stays mounted.
         };
-    }, [podcast?.youtubeId, isOpen, setIsPlaying, setCurrentTime, setDuration]);
+    }, [podcast?.youtubeId, setIsPlaying, setCurrentTime, setDuration]);
 
     const handleYoutubeSeek = (time) => {
         if (ytPlayerRef.current && ytPlayerRef.current.seekTo) {
