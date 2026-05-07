@@ -1,6 +1,8 @@
 import React from 'react';
 import { Crown, Zap, FileText, Clock, BookOpen, Diamond } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { hapticFeedback } from '../../utils/haptic';
 
 export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard }) {
   const navigate = useNavigate();
@@ -55,8 +57,13 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
   const showGetAccess = !canAccess && isPremium && !isCompleted && !test.isSet;
 
   return (
-    <div 
-      className="group w-full bg-[#F6F6FA] rounded-xl overflow-hidden transition-all duration-[600ms] [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] hover:shadow-lg hover:border-black/10 flex flex-col h-full cursor-default shadow-sm border border-black/5"
+    <motion.div 
+      whileTap={{ scale: 0.98 }}
+      onClick={() => {
+        hapticFeedback('light');
+        handleClick();
+      }}
+      className="group w-full bg-[#F6F6FA] rounded-xl overflow-hidden transition-all duration-[600ms] [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] hover:shadow-lg hover:border-black/10 flex flex-col h-full cursor-pointer shadow-sm border border-black/5"
     >
       <div className="w-full aspect-[4/3] bg-[#f5f5f7] relative overflow-hidden">
         <img src={cardImage} alt={test.title} className="w-full h-full object-cover transition-transform duration-700" />
@@ -107,7 +114,7 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
         <div className="mt-auto pt-4 border-t border-black/[0.04]">
           {showGetAccess ? (
             <button 
-              onClick={(e) => { e.stopPropagation(); handleClick(); }}
+              onClick={(e) => { e.stopPropagation(); hapticFeedback('medium'); handleClick(); }}
               className="w-full py-2 rounded-lg bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white font-bold text-[15px] flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20"
             >
               <Zap size={16} fill="currentColor" className="animate-pulse" /> Go Pro
@@ -127,7 +134,7 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
                 </div>
               </div>
               <button 
-                onClick={(e) => { e.stopPropagation(); handleClick(); }}
+                onClick={(e) => { e.stopPropagation(); hapticFeedback('light'); handleClick(); }}
                 className="text-white text-[14px] font-bold px-6 py-2 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2"
               >
                 {isCompleted ? 'Review' : 'Start'}
@@ -136,6 +143,6 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

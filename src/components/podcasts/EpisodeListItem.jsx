@@ -1,9 +1,10 @@
-import React from "react";
-import { Play, Pause, PlusCircle } from "lucide-react";
+import { Play, Pause, PlusCircle, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import LazyImage from "../common/LazyImage";
 import { formatTime, getPodcastDuration, getPodcastDate } from "../../utils/podcastUtils";
+import { usePodcast } from "../../context/PodcastContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function EpisodeListItem({ 
     p, 
@@ -15,6 +16,9 @@ export default function EpisodeListItem({
     setIsPlaying, 
     setIsExpanded 
 }) {
+    const { user } = useAuth();
+    const { likedPodcasts, toggleLike } = usePodcast();
+    const isLiked = likedPodcasts.includes(p?.id);
     const navigate = useNavigate();
     const isPlayingThis = currentTrack?.id === p.id && isPlaying;
     const isActiveThis = currentTrack?.id === p.id;
@@ -65,6 +69,12 @@ export default function EpisodeListItem({
                 <div className="mt-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <PlusCircle size={22} strokeWidth={1.5} className={`transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} onClick={(e) => e.stopPropagation()} />
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); toggleLike(user?.uid, p?.id); }}
+                            className={`flex items-center gap-1 transition-all active:scale-125 ${isLiked ? 'text-emerald-500' : (isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`}
+                        >
+                            <Heart size={18} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 1.5} />
+                        </button>
                         <span className={`text-[13px] font-medium transition-colors ${isDark ? 'text-[#a7a7a7] group-hover:text-white' : 'text-zinc-400 group-hover:text-zinc-900'}`}>
                             {getPodcastDate(p)} • {formatTime(getPodcastDuration(p))}
                         </span>

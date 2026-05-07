@@ -15,6 +15,8 @@ import DashboardHeader from "../components/dashboard/DashboardHeader";
 import SiteFooter from "../components/common/SiteFooter";
 import TestCommentSection from "../components/TestReview/TestCommentSection";
 import { motion, AnimatePresence } from "framer-motion";
+import { hapticFeedback } from "../utils/haptic";
+import BottomNav from "../components/dashboard/BottomNav";
 
 const getTestTheme = (type) => {
   switch (type) {
@@ -340,16 +342,49 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
         </div>
       )}
 
-      <main className={`max-w-6xl mx-auto ${isComponent ? 'px-0 pt-0 pb-0' : 'pt-12 pb-section px-8'}`}>
+      {!isComponent && (
+        <div className="md:hidden sticky top-0 z-[100] w-full bg-stone-50 border-b border-divider-soft flex items-center justify-between px-6 h-14">
+          <span className="text-lg font-bold">Results</span>
+          <div className="flex items-center gap-4">
+             <Search size={20} className="text-neutral-500" />
+             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold uppercase">
+                {userData?.fullName?.charAt(0) || user?.email?.charAt(0)}
+             </div>
+          </div>
+        </div>
+      )}
+
+      <main className={`max-w-6xl mx-auto ${isComponent ? 'px-0 pt-0 pb-0' : 'pt-6 md:pt-12 pb-32 md:pb-section px-4 md:px-8'}`}>
         {!isComponent && (
-          <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div>
+          <header className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="hidden md:block">
               <h1 className="font-display-md text-display-md text-ink">Natijalarim</h1>
               <p className="font-body text-body text-ink-muted-48 mt-2">Barcha topshirilgan imtihonlaringizning batafsil statistikasi.</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="relative w-full md:w-64">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted-48 text-[20px]">search</span>
+            
+            {/* Mobile Filters */}
+            <div className="flex md:hidden overflow-x-auto no-scrollbar gap-2 pb-2">
+              {filters.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    hapticFeedback('light');
+                    setFilterType(f.id);
+                  }}
+                  className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                    filterType === f.id 
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
+                    : 'bg-white text-neutral-500 border-neutral-200'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted-48" size={18} />
                 <input 
                   type="text" 
                   value={searchTerm}
@@ -359,8 +394,8 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                 />
               </div>
               <button className="flex items-center gap-2 bg-white border border-hairline px-4 py-2.5 rounded-full text-sm font-medium hover:bg-pearl transition-colors active:scale-95">
-                <span className="material-symbols-outlined text-[18px]">ios_share</span>
-                Eksport
+                <Download size={18} />
+                <span className="hidden sm:inline">Eksport</span>
               </button>
             </div>
           </header>
@@ -393,52 +428,57 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
               const time = dateObj.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
 
               return (
-                <div 
+                <motion.div 
                   key={res.id}
-                  onClick={() => navigate(`/review/${res.id}`)}
-                  className="group bg-white rounded-xl border border-hairline p-5 flex items-center gap-6 hover:bg-white transition-all active:scale-[0.99] cursor-pointer"
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    hapticFeedback('light');
+                    navigate(`/review/${res.id}`);
+                  }}
+                  className="group bg-white rounded-xl border border-hairline p-4 md:p-5 flex items-center gap-4 md:gap-6 hover:bg-white transition-all cursor-pointer shadow-sm"
                 >
-                  <div className="flex-shrink-0 w-16 h-16 bg-tile-dark-1 rounded-lg flex flex-col items-center justify-center text-white">
-                    <span className="text-xs font-medium opacity-80">{month}</span>
-                    <span className="text-xl font-bold">{day}</span>
+                  <div className="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 bg-tile-dark-1 rounded-lg flex flex-col items-center justify-center text-white">
+                    <span className="text-[10px] md:text-xs font-medium opacity-80">{month}</span>
+                    <span className="text-lg md:text-xl font-bold leading-none">{day}</span>
                   </div>
-                  <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="font-body-strong text-body-strong text-ink line-clamp-1">
+                  <div className="flex-grow flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-sm md:text-[17px] text-ink line-clamp-1">
                         {res.title || res.testTitle || (res.type === 'mock_full' ? "IELTS Mock Exam" : "Practice Test")}
                       </h3>
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[12px] font-bold tracking-widest text-action-blue uppercase">{theme.label}</span>
-                        <span className="text-[12px] text-ink-muted-48 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">schedule</span>
+                        <span className="text-[10px] md:text-[12px] font-black tracking-widest text-blue-600 uppercase">{theme.label}</span>
+                        <span className="text-[10px] md:text-[12px] text-ink-muted-48 flex items-center gap-1">
+                          <Clock size={12} />
                           {time}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center md:justify-end gap-12">
-                      <div className="text-right">
-                        <div className="font-display-md text-display-md text-ink leading-none">
+                    
+                    <div className="flex items-center justify-between md:justify-end gap-6 md:gap-12 mt-2 md:mt-0">
+                      <div className="md:text-right">
+                        <div className="font-bold text-xl md:text-[28px] text-ink leading-none flex items-baseline">
                           {isGraded ? (
                             <>
                               {res.type === 'mock_full' 
                                 ? Number(res.scores?.overallBand || res.overallBand || 0).toFixed(1)
                                 : Number(bandScore || 0).toFixed(1)}
-                              <span className="text-sm font-medium text-ink-muted-48 uppercase ml-1">Band</span>
+                              <span className="text-[10px] md:text-sm font-black text-ink-muted-48 uppercase ml-1">Band</span>
                             </>
                           ) : (
-                            <span className="text-sm font-medium text-ink-muted-48">Grading...</span>
+                            <span className="text-[10px] md:text-sm font-medium text-ink-muted-48">Grading...</span>
                           )}
                         </div>
                         {isGraded && (
-                          <div className="text-sm text-ink-muted-48 mt-1 uppercase">
+                          <div className="text-[10px] md:text-[12px] text-ink-muted-48 mt-0.5 md:mt-1 font-bold uppercase tracking-wide">
                             {res.score !== undefined ? `${res.score}/${res.totalQuestions || 40} SCORE` : "EVALUATED"}
                           </div>
                         )}
                       </div>
-                      <span className="material-symbols-outlined text-ink-muted-48 group-hover:text-action-blue transition-colors">chevron_right</span>
+                      <ChevronRight size={20} className="text-ink-muted-48 group-hover:text-blue-600 transition-colors hidden sm:block" />
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })
           )}
@@ -534,6 +574,20 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
           </>
         )}
       </AnimatePresence>
+      
+      {!isComponent && (
+        <BottomNav 
+          activeTab="results" 
+          setActiveTab={(id) => {
+            hapticFeedback('light');
+            if (id === 'dashboard') navigate('/dashboard');
+            else if (id === 'library') navigate('/library');
+            else if (id === 'podcasts') navigate('/podcasts');
+            else if (id === 'results') navigate('/my-results');
+            else if (id === 'settings') navigate('/settings');
+          }} 
+        />
+      )}
     </div>
   );
 }

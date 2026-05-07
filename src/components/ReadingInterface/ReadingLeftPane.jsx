@@ -3,6 +3,30 @@ import HighlightMenu from "./HighlightMenu";
 import useTextSelection from "../../hooks/useTextSelection";
 import { ReadingDroppableSlot } from "./ReadingQuestionTypes";
 
+// --- UTILS ---
+const ensureParagraphs = (content) => {
+    if (!content) return "";
+    
+    let processed = content;
+    // 1. Paragraflarni ajratish (\n\n bo'lsa)
+    if (!/<p>|<div|<h[1-6]/i.test(content)) {
+        processed = content
+            .split(/\n\s*\n/)
+            .map(p => p.trim())
+            .filter(p => p.length > 0)
+            .map(p => `<p>${p}</p>`)
+            .join("");
+    }
+    
+    // 2. Paragraf harflarini (A, B, C... yoki Paragraph A...) bold qilish
+    // Faqat paragraf boshida kelsa: <p>A ... yoki <p>Paragraph A ...
+    processed = processed.replace(/(<p[^>]*>)\s*((?:Paragraph\s+)?[A-Z0-9ivx]+[\.\s\)])/gi, (match, p1, p2) => {
+        return `${p1}<strong>${p2}</strong>`;
+    });
+
+    return processed;
+};
+
 // --- MEMOIZED CONTENT DISPLAY ---
 const ContentDisplay = memo(({ content, onClick }) => {
     return (
@@ -221,7 +245,12 @@ const ReadingLeftPane = memo(({
     onOpenNotes
 }) => {
     const containerRef = useRef(null);
-    const [displayContent, setDisplayContent] = useState(content);
+    const [displayContent, setDisplayContent] = useState(() => ensureParagraphs(content));
+
+    // Update display content when raw content changes
+    useEffect(() => {
+        setDisplayContent(ensureParagraphs(content));
+    }, [content]);
 
     // Hook
     const { menuPos, handleTextSelection, applyHighlight, applyNote, clearSelection, addToDictionary } = useTextSelection();
@@ -232,7 +261,7 @@ const ReadingLeftPane = memo(({
     // --- STORAGE ---
     useEffect(() => {
         if (isReviewMode) {
-            setDisplayContent(content);
+            setDisplayContent(ensureParagraphs(content));
             return;
         }
 
@@ -268,7 +297,7 @@ const ReadingLeftPane = memo(({
                 console.error("Error parsing saved highlights:", e);
             }
         } else {
-            setDisplayContent(content);
+            setDisplayContent(ensureParagraphs(content));
         }
     }, [storageKey, content, isReviewMode, hasMatchingHeadings]);
 

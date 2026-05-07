@@ -104,42 +104,35 @@ export default function TaskSection({
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
                     className={`
-                        lg:col-span-6 relative flex flex-col
+                        lg:col-span-6 relative flex flex-col h-full
                         overflow-hidden transition-all duration-500
                         ${isDark ? 'bg-[#121214] border-neutral-800' : 'bg-white border-zinc-100'}
                     `}
                 >
-                    <div className={`h-14 md:h-16 shrink-0 px-4 md:px-8 flex items-center justify-between border-b ${isFullscreen ? (isDark ? 'border-white/5' : 'border-black/5') : (isDark ? 'border-white/5' : 'border-zinc-100')}`}>
-                        {!isFullscreen ? (
-                            <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>
-                                {currentStep === 1 ? 'Gap Filling' : currentStep === 2 ? 'Multiple Choice' : 'Sentence Completion'}
-                            </h3>
-                        ) : (
-                            <div className="flex items-center gap-2 p-1 rounded-lg bg-white/5 border border-white/5">
+                    {isFullscreen && (
+                        <div className={`sticky top-0 z-30 h-10 shrink-0 px-4 md:px-8 flex items-center justify-between border-b ${isDark ? 'bg-[#121214] border-white/5' : 'bg-white border-zinc-100'}`}>
+                            <div className="flex items-center gap-1 p-0.5 rounded-md bg-black/30 border border-white/5 mx-auto">
                                 {[
-                                    { id: 1, icon: <TextCursorInput size={14} />, label: 'Gap' },
-                                    { id: 2, icon: <List size={14} />, label: 'MCQ' },
-                                    { id: 3, icon: <Target size={14} />, label: 'Completion' }
+                                    { id: 1, icon: <TextCursorInput size={12} />, label: 'Gap' },
+                                    { id: 2, icon: <List size={12} />, label: 'MCQ' },
+                                    { id: 3, icon: <Target size={12} />, label: 'Task' }
                                 ].map((step) => (
                                     <button
                                         key={step.id}
                                         onClick={() => setCurrentStep(step.id)}
-                                        className={`p-2 rounded-md transition-all flex items-center gap-2 ${
+                                        className={`px-2 py-1 rounded-sm transition-all flex items-center gap-1.5 ${
                                             currentStep === step.id 
-                                                ? 'bg-emerald-600 text-white shadow-lg' 
-                                                : 'text-white/40 hover:text-white hover:bg-white/5'
+                                                ? 'bg-emerald-600 text-white shadow-sm' 
+                                                : (isDark ? 'text-white/30 hover:text-white hover:bg-white/5' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100')
                                         }`}
-                                        title={step.label}
                                     >
                                         {step.icon}
-                                        <span className="text-[9px] font-black uppercase tracking-tighter hidden md:block">{step.label}</span>
+                                        <span className="text-[8px] font-black uppercase tracking-tight">{step.label}</span>
                                     </button>
                                 ))}
                             </div>
-                        )}
-                        <div className="flex items-center gap-2">
                         </div>
-                    </div>
+                    )}
 
                     {/* Score Cards Row */}
                     {((initialScore && isGrouped) || showResults[currentStep]) && (
@@ -188,6 +181,7 @@ export default function TaskSection({
                     )}
 
                     <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-10 p-4 md:p-6">
+
                         {currentStep === 1 && (
                             <GapFillTask 
                                 isDark={isDark} 
@@ -262,11 +256,11 @@ export default function TaskSection({
                     </AnimatePresence>
 
                     {/* Task Actions Footer */}
-                    <div className={`p-4 md:p-6 border-t shrink-0 flex flex-col gap-3 ${isFullscreen ? 'bg-transparent border-white/5' : (isDark ? 'bg-[#0a0a0c]/80 border-neutral-800' : 'bg-zinc-50/80 border-zinc-100')}`}>
+                    <div className={`shrink-0 flex flex-col gap-3 ${isFullscreen ? 'p-3 bg-transparent border-t border-white/5' : 'p-4 md:p-6 border-t ' + (isDark ? 'bg-[#0a0a0c]/80 border-neutral-800' : 'bg-zinc-50/80 border-zinc-100')}`}>
                         {!showResults[currentStep] ? (
                             <button 
                                 onClick={handleCheckAnswers}
-                                className="w-full py-3 bg-emerald-600 text-white font-black text-[11px] uppercase tracking-widest rounded-sm hover:bg-emerald-500 transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                                className={`w-full bg-emerald-600 text-white font-black text-[11px] uppercase tracking-widest rounded-lg hover:bg-emerald-500 transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 ${isFullscreen ? 'py-2.5' : 'py-3'}`}
                             >
                                 <Check size={14} />
                                 {isGrouped && attempts[currentStep] === 1 ? 'Check Final Attempt' : 'Check Answers'}

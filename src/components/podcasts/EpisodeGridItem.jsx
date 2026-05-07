@@ -1,7 +1,9 @@
 import React from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import LazyImage from "../common/LazyImage";
+import { usePodcast } from "../../context/PodcastContext";
+import { useAuth } from "../../context/AuthContext";
 
 const DIFF_COLORS = {
     easy: "bg-emerald-500",
@@ -12,14 +14,19 @@ const DIFF_COLORS = {
 
 export default function EpisodeGridItem({ 
     p, 
+    isDark,
     currentTrack, 
     isPlaying, 
-    setCurrentTrack, 
-    setIsPlaying, 
     setIsExpanded, 
-    playTrack 
+    playTrack,
+    setCurrentTrack,
+    setIsPlaying
 }) {
+    const { user } = useAuth();
+    const { likedPodcasts, toggleLike } = usePodcast();
+    const isLiked = likedPodcasts.includes(p?.id);
     const navigate = useNavigate();
+    if (!p) return null;
     const isPlayingThis = currentTrack?.id === p.id && isPlaying;
 
     const handleContainerClick = () => {
@@ -47,25 +54,55 @@ export default function EpisodeGridItem({
     return (
         <div 
             onClick={handleContainerClick}
-            className={`group rounded-xl p-6 cursor-pointer relative overflow-hidden flex flex-col justify-between transition-transform hover:scale-[1.02] shadow-lg min-h-[280px] ${DIFF_COLORS[p.difficulty] || 'bg-blue-800'}`}
+            className={`group rounded-lg p-4 cursor-pointer relative overflow-hidden flex flex-col transition-all duration-300 ${
+                isDark 
+                    ? 'bg-[#181818] hover:bg-[#282828] border border-white/5' 
+                    : 'bg-white border border-zinc-200 hover:shadow-xl'
+            }`}
         >
-            <div className="relative z-10 flex flex-col h-full">
-                <div>
-                    <h3 className="text-2xl font-black text-white leading-tight mb-2 line-clamp-3">{p.title}</h3>
-                    <p className="text-white/80 font-medium text-sm">Episode • {p.level || "IELTS"}</p>
-                </div>
+            <div className="relative aspect-square w-full mb-4 shadow-lg rounded-md overflow-hidden">
+                <LazyImage src={p.thumbnail} alt="" className="w-full h-full object-cover transition-transform duration-500" />
                 
-                <div className="mt-auto pt-6 flex items-end justify-between">
-                    <div className="w-32 h-32 rounded-lg shadow-2xl overflow-hidden rotate-[-5deg] translate-y-4 translate-x-[-10px] group-hover:rotate-0 group-hover:translate-y-0 group-hover:translate-x-0 transition-all duration-500 border-4 border-white/10 shrink-0">
-                        <LazyImage src={p.thumbnail} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    
-                    <div 
-                        onClick={handlePlayClick}
-                        className={`w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 shrink-0 ${isPlayingThis ? 'scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'}`}
+                {/* Difficulty Badge */}
+                <div className={`absolute top-2 left-2 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest text-white shadow-lg ${DIFF_COLORS[p.difficulty] || 'bg-blue-500'}`}>
+                    {p.level || "IELTS"}
+                </div>
+
+                {/* Play Button Overlay */}
+                <div 
+                    onClick={handlePlayClick}
+                    className={`absolute bottom-2 right-2 w-10 h-10 bg-[#1ed760] rounded-full flex items-center justify-center shadow-xl transition-all duration-300 transform ${
+                        isPlayingThis ? 'scale-100' : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'
+                    } hover:scale-110`}
+                >
+                    {isPlayingThis ? <Pause size={20} fill="black" stroke="black" /> : <Play size={20} fill="black" stroke="black" className="ml-0.5" />}
+                </div>
+            </div>
+            
+            <div className="flex items-center justify-between mt-auto">
+                <div className="flex flex-col gap-1 overflow-hidden flex-1 mr-2">
+                    <h3 className={`font-bold text-[14px] leading-tight line-clamp-1 transition-colors ${
+                        isDark ? 'text-white' : 'text-zinc-900'
+                    } group-hover:text-emerald-500`}>
+                        {p.title}
+                    </h3>
+                    <p className={`text-[11px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        {p.duration || '15 min'}
+                    </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleLike(user?.uid, p?.id);
+                        }}
+                        className={`flex items-center gap-1 p-1 rounded-full transition-all active:scale-125 ${
+                            isLiked ? 'text-emerald-500' : (isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900')
+                        }`}
                     >
-                        {isPlayingThis ? <Pause size={24} fill="black" stroke="black" /> : <Play size={24} fill="black" stroke="black" className="ml-1" />}
-                    </div>
+                        <Heart size={14} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
+                        <span className="text-[11px] font-bold">{(p.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                    </button>
                 </div>
             </div>
         </div>

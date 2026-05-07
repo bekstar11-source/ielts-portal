@@ -1,5 +1,7 @@
 // src/context/PodcastContext.jsx
 import React, { createContext, useContext, useState, useRef, useEffect } from "react";
+import { db } from "../firebase/firebase";
+import { collection, addDoc, deleteDoc, doc, query, where, getDocs, onSnapshot, updateDoc, increment, setDoc } from "firebase/firestore";
 
 const PodcastContext = createContext();
 
@@ -17,7 +19,48 @@ export const PodcastProvider = ({ children }) => {
     const [repeat, setRepeat] = useState(false);
     const [shuffle, setShuffle] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false); // Global player expansion state
+    const [likedPodcasts, setLikedPodcasts] = useState([]); // Array of podcast IDs
     const youtubePlayerRef = useRef(null); // Global ref for YouTube player
+
+    // Fetch Likes for a user
+    const fetchUserLikes = (userId) => {
+        if (!userId) {
+            setLikedPodcasts([]);
+            return;
+        }
+        const q = query(collection(db, "podcastLikes"), where("userId", "==", userId));
+        return onSnapshot(q, (snapshot) => {
+            const likedIds = snapshot.docs.map(doc => doc.data().podcastId);
+            setLikedPodcasts(likedIds);
+        });
+    };
+
+    const toggleLike = async (userId, podcastId) => {
+        if (!userId || !podcastId) return;
+
+        const isLiked = likedPodcasts.includes(podcastId);
+        const likeDocId = `${userId}_${podcastId}`;
+        const likeRef = doc(db, "podcastLikes", likeDocId);
+        const podcastRef = doc(db, "podcasts", podcastId);
+
+        try {
+            if (isLiked) {
+                // Unlike
+                await deleteDoc(likeRef);
+                await updateDoc(podcastRef, { likesCount: increment(-1) }).catch(() => {});
+            } else {
+                // Like
+                await setDoc(likeRef, {
+                    userId,
+                    podcastId,
+                    createdAt: new Date()
+                });
+                await updateDoc(podcastRef, { likesCount: increment(1) }).catch(() => {});
+            }
+        } catch (e) {
+            console.error("Error toggling like:", e);
+        }
+    };
 
     // Persist state to localStorage
     useEffect(() => {
@@ -120,6 +163,7 @@ export const PodcastProvider = ({ children }) => {
             repeat, setRepeat,
             shuffle, setShuffle,
             isExpanded, setIsExpanded,
+            likedPodcasts, fetchUserLikes, toggleLike,
             youtubePlayerRef,
             playbackRate, updatePlaybackRate,
             playTrack,

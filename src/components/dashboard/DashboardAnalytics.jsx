@@ -61,7 +61,7 @@ export default function DashboardAnalytics({ skillStats, onToggleSkill }) {
                             <div 
                                 key={skill.name} 
                                 onClick={() => onToggleSkill && onToggleSkill(skill.name)}
-                                className={`grid grid-cols-[1fr_80px] md:grid-cols-[1fr_140px] items-center w-full max-w-[480px] group ${onToggleSkill ? 'cursor-pointer' : 'cursor-default'}`}
+                                className={`grid grid-cols-[1fr_80px] md:grid-cols-[1fr_140px] items-center w-full max-w-[480px] group ${onToggleSkill ? 'cursor-pointer active:scale-[0.98] transition-transform duration-200' : 'cursor-default'}`}
                                 title={onToggleSkill ? "Ushbu bo'limni umumiy balldan chiqarib tashlash/qo'shish uchun bosing" : ""}
                             >
                                 {/* Skill Name */}
@@ -73,7 +73,7 @@ export default function DashboardAnalytics({ skillStats, onToggleSkill }) {
                                 
                                 {/* Skill Score (Aligned) */}
                                 <div className="text-right">
-                                    <span className={`text-[38px] sm:text-[44px] md:text-[56px] font-bold ${scoreColor} leading-none tracking-tighter transition-all duration-300 inline-block ${isActive ? 'group-hover:scale-110' : ''}`}>
+                                    <span className={`text-[38px] sm:text-[44px] md:text-[56px] font-bold ${scoreColor} leading-none tracking-tighter transition-all duration-300 inline-block ${isActive ? 'group-hover:scale-110 group-active:scale-90' : ''}`}>
                                         {parseFloat(skill.score || 0).toFixed(1)}
                                     </span>
                                 </div>

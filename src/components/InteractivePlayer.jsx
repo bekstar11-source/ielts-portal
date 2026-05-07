@@ -203,12 +203,25 @@ export default function InteractivePlayer({ isOpen, onClose }) {
         <motion.div 
             ref={playerRef}
             initial={{ y: "100%" }}
-            animate={{ y: isOpen ? 0 : "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            animate={{ 
+                y: isOpen ? 0 : "100%",
+                opacity: isOpen ? 1 : 0
+            }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.7}
+            onDragEnd={(e, info) => {
+                if (info.offset.y > 150 || info.velocity.y > 500) {
+                    onClose();
+                }
+            }}
+            transition={isOpen 
+                ? { type: "spring", damping: 20, stiffness: 250, mass: 0.5 } 
+                : { type: "spring", damping: 30, stiffness: 80, mass: 1 }
+            }
             style={{ 
                 pointerEvents: isOpen ? 'auto' : 'none',
-                visibility: isOpen ? 'visible' : 'hidden',
-                zIndex: isOpen ? 100 : -1 // Moved to style to ensure it's behind everything when closed
+                zIndex: 100
             }}
             className={`fixed inset-0 flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#050505] text-white' : 'bg-white text-zinc-900'} ${isFullscreen ? 'p-0' : ''}`}
         >
@@ -225,7 +238,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
             )}
 
             <main className={`flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden relative`}>
-                <div className="flex-none lg:col-span-6 h-auto lg:h-full lg:overflow-hidden flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-800 dark:border-neutral-800 border-zinc-100 shadow-md lg:shadow-none">
+                <div className={`flex-none lg:col-span-6 h-auto lg:h-full flex flex-col lg:border-r z-20 ${isDark ? 'border-neutral-800 shadow-none' : 'border-zinc-100 shadow-sm'}`}>
                     <MediaSection 
                         isDark={isDark}
                         podcast={podcast}
@@ -244,7 +257,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                     />
                 </div>
 
-                <div className="flex-1 lg:col-span-6 h-full overflow-y-auto lg:overflow-hidden flex flex-col">
+                <div className="flex-1 lg:col-span-6 h-full overflow-hidden bg-inherit z-10">
                     <TaskSection 
                         isDark={isDark}
                         podcast={podcast}

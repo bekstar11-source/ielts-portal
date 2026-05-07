@@ -16,10 +16,10 @@ export default function CompletionTask({
     return (
         <div className="animate-in fade-in slide-in-from-right-4 flex flex-col gap-6">
             {/* Word Bank: Sticky Header */}
-            <div className={`sticky -top-6 z-20 pb-4 pt-1 ${isDark ? 'bg-[#121214]' : 'bg-white'} ${isFullscreen && 'bg-transparent'}`}>
-                <div className={`p-4 rounded-lg border flex flex-wrap gap-2 ${isDark ? 'bg-black/40 border-neutral-800' : 'bg-zinc-50 border-zinc-100 shadow-sm'}`}>
+            <div className={`sticky -top-6 z-20 pb-3 pt-1 ${isDark ? 'bg-[#121214]' : 'bg-white'} ${isFullscreen && 'bg-transparent'}`}>
+                <div className={`p-2 rounded-lg border flex flex-wrap gap-1.5 ${isDark ? 'bg-black/40 border-neutral-800' : 'bg-zinc-50 border-zinc-100 shadow-sm'}`}>
                     {words.map(word => (
-                        <div key={word} className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${isDark ? 'bg-neutral-900 border-neutral-700 text-emerald-400' : 'bg-white border-zinc-200 text-emerald-600 shadow-sm'}`}>
+                        <div key={word} className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${isDark ? 'bg-neutral-900 border-neutral-700 text-emerald-400' : 'bg-white border-zinc-200 text-emerald-600 shadow-sm'}`}>
                             {word}
                         </div>
                     ))}

@@ -19,6 +19,7 @@ import PricingModal from "../components/dashboard/PricingModal";
 import SiteFooter from "../components/common/SiteFooter";
 import LimitReachedSheet from "../components/dashboard/LimitReachedSheet";
 import { useDailyLimit } from "../hooks/useDailyLimit";
+import BottomNav from "../components/dashboard/BottomNav";
 
 // REFACTORED COMPONENTS
 import PracticeHero from "../components/practice/PracticeHero";
@@ -320,7 +321,7 @@ export default function Reading() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 pb-24">
+    <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden">
       <DashboardHeader
         user={user} userData={userData}
         activeTab="reading"
@@ -349,7 +350,7 @@ export default function Reading() {
         }
       />
 
-      <main className="w-full">
+      <main className="w-full pb-24 md:pb-0">
         <PracticeHero 
           activeTab="reading" 
           categories={categories} 
@@ -563,6 +564,16 @@ export default function Reading() {
         isOpen={showPricingModal} 
         onClose={() => setShowPricingModal(false)}
         userName={userData?.fullName?.split(' ')[0]} 
+      />
+      <BottomNav 
+        activeTab="library" 
+        setActiveTab={(id) => {
+          if (id === 'dashboard') navigate('/dashboard');
+          else if (id === 'library') navigate('/library');
+          else if (id === 'podcasts') navigate('/podcasts');
+          else if (id === 'results') navigate('/my-results');
+          else if (id === 'settings') navigate('/settings');
+        }} 
       />
       <SiteFooter />
     </div>

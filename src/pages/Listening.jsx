@@ -19,6 +19,7 @@ import PricingModal from "../components/dashboard/PricingModal";
 import SiteFooter from "../components/common/SiteFooter";
 import { useDailyLimit } from "../hooks/useDailyLimit";
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import BottomNav from "../components/dashboard/BottomNav";
 
 // REFACTORED COMPONENTS
 import PracticeHero from "../components/practice/PracticeHero";
@@ -339,7 +340,7 @@ export default function Listening() {
         </div>
       </div>
 
-      <main className="w-full">
+      <main className="w-full pb-24 md:pb-0">
         {/* SPACING */}
         <div className="h-8 md:h-12" />
 
@@ -543,6 +544,16 @@ export default function Listening() {
         isOpen={showPricingModal} 
         onClose={() => setShowPricingModal(false)}
         userName={userData?.fullName?.split(' ')[0]} 
+      />
+      <BottomNav 
+        activeTab="library" 
+        setActiveTab={(id) => {
+          if (id === 'dashboard') navigate('/dashboard');
+          else if (id === 'library') navigate('/library');
+          else if (id === 'podcasts') navigate('/podcasts');
+          else if (id === 'results') navigate('/my-results');
+          else if (id === 'settings') navigate('/settings');
+        }} 
       />
       <SiteFooter />
     </div>

@@ -107,7 +107,8 @@ service cloud.firestore {
     // PODCASTS (O'qish autentifikatsiya bo'lganlarga, Yozish faqat adminga)
     match /podcasts/{podcastId} {
       allow read: if isAuth();
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount']));
 
       match /segments/{segmentId} {
         allow read: if isAuth();
@@ -154,9 +155,19 @@ service cloud.firestore {
         isAdmin() || 
         isTeacher()
       );
-      allow create: if isAuth();
+      allow create: if isAuth() && (request.resource.data.userId == request.auth.uid);
       allow update, delete: if isAdmin();
     }
+
+    // PODCAST LIKES
+    match /podcastLikes/{likeId} {
+      allow read: if isAuth();
+      allow create, delete: if isAuth() && (
+        (request.resource != null && request.resource.data.userId == request.auth.uid) || 
+        (resource != null && resource.data.userId == request.auth.uid)
+      );
+    }
+
     // TEST COMMENTS
     match /testComments/{commentId} {
       allow read: if request.auth != null;

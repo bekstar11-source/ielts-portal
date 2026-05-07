@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Search, Library, ChevronLeft, List as ListIcon } from "lucide-react";
+import { Home, Search, Library, ChevronLeft, List as ListIcon, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import LazyImage from "../common/LazyImage";
 import { SidebarSkeleton } from "./PodcastSkeletons";
@@ -44,6 +44,23 @@ export default function PodcastSidebar({
                     <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-4'} group w-full`}>
                         <Library size={26} strokeWidth={2.5} className={`transition-colors ${isDark ? 'group-hover:text-white' : 'group-hover:text-zinc-900'}`} />
                         {!isSidebarCollapsed && <span className="hidden md:block font-bold text-[16px] truncate">Your Library</span>}
+                    </div>
+                </div>
+
+                <div className="px-2 md:px-3 mb-2">
+                    <div 
+                        onClick={() => navigate('/podcasts?tab=liked')}
+                        className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} p-2 rounded-md cursor-pointer transition group ${isDark ? 'hover:bg-zinc-800/50' : 'hover:bg-zinc-100'}`}
+                    >
+                        <div className="w-12 h-12 rounded bg-gradient-to-br from-indigo-700 to-blue-400 flex-shrink-0 flex items-center justify-center shadow-sm">
+                            <Heart size={20} fill="white" className="text-white" />
+                        </div>
+                        {!isSidebarCollapsed && (
+                            <div className="hidden md:block overflow-hidden">
+                                <p className={`font-bold truncate text-[14px] leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>Liked Podcasts</p>
+                                <p className={`text-[12px] truncate mt-0.5 font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Playlist</p>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 md:px-3 pb-4 space-y-1 custom-scrollbar">

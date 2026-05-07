@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BookOpen, Headphones, PenTool, Mic, Flame, Trophy, AlertTriangle, ArrowRight, ArrowUp, RotateCw } from "lucide-react";
 import { useStudentData } from "../hooks/useStudentData";
+import { hapticFeedback } from "../utils/haptic";
 
 // COMPONENTS
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -28,6 +29,8 @@ import { useAnalytics } from "../hooks/useAnalytics";
 import { getRecommendations } from "../utils/recommendations";
 import Leaderboard from "../components/dashboard/Leaderboard";
 import SiteFooter from "../components/common/SiteFooter";
+import BottomNav from "../components/dashboard/BottomNav";
+import { Search, Plus } from "lucide-react";
 
 
 
@@ -142,6 +145,22 @@ export default function StudentDashboard() {
             return; 
         }
         navigate(`/test/${test.id || test.testId}`);
+    };
+
+    const handleTabChange = (tabId) => {
+        const pathMap = {
+            'library': '/library',
+            'podcasts': '/podcasts',
+            'articles': '/articles',
+            'vocabulary': '/vocabulary'
+        };
+
+        if (pathMap[tabId]) {
+            navigate(pathMap[tabId]);
+        } else {
+            setActiveTab(tabId);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     };
 
     // Gamification ma'lumotlarini yuklash (Mistakes, Vocab) — 1 soatlik localStorage cache
@@ -405,9 +424,13 @@ export default function StudentDashboard() {
                 onRefreshClick={handleManualRefresh}
                 loading={loading}
             />
-            <main className="w-full">
+            <main className="w-full pb-24 md:pb-0">
                 {renderContent()}
             </main>
+            
+
+            <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} />
+            
             <SiteFooter />
             <DashboardModals
                 showKeyModal={showKeyModal} setShowKeyModal={setShowKeyModal}

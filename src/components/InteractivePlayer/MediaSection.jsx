@@ -97,20 +97,11 @@ export default function MediaSection({
             overflow-hidden transition-all duration-500
             ${isDark ? 'border-neutral-800 bg-[#0a0a0c]' : 'border-zinc-100 bg-zinc-50'}
         `}>
-            {(!isFullscreen || (podcast.mediaType !== 'youtube' && podcast.mediaType !== 'video')) && (
-                <div className={`h-12 md:h-16 shrink-0 px-4 md:px-8 flex items-center border-b ${isDark ? 'border-neutral-800' : 'border-zinc-100'}`}>
-                    <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>
-                        {isVideoMode ? 'Video Lesson' : 'Audio Transcript'}
-                    </h3>
-                </div>
-            )}
-            
             {isVideoMode ? (
-                <div className={`flex-1 relative flex flex-col items-center justify-center p-0 md:p-4 ${!isDark && !isFullscreen ? 'bg-zinc-100/50' : 'bg-black'}`}>
+                <div className={`flex-1 relative flex flex-col items-center justify-center p-0 md:p-4 ${isDark ? 'bg-black' : (isFullscreen ? 'bg-black' : 'bg-zinc-50')}`}>
                     <div className={`
-                        w-full aspect-video md:rounded-lg shadow-2xl border 
-                        bg-black overflow-hidden transition-all duration-500 group relative
-                        ${isDark ? 'border-white/5' : 'border-zinc-200'}
+                        w-full aspect-video md:rounded-lg overflow-hidden transition-all duration-500 group relative
+                        ${isFullscreen ? 'border-none shadow-none md:rounded-none' : (isDark ? 'border-white/5 md:shadow-2xl' : 'border-zinc-100 md:shadow-lg')}
                     `}>
                         {podcast.mediaType === 'youtube' ? (
                             <iframe 
@@ -143,14 +134,33 @@ export default function MediaSection({
                             </div>
                         )}
 
-                        {/* Hover Shield & Custom Play Button */}
-                        <div 
-                            className="absolute inset-0 z-20 cursor-pointer bg-black/10 hover:bg-black/20 transition-all flex items-center justify-center group/shield" 
-                            onClick={() => setIsPlaying(!isPlaying)}
-                        >
+                        {/* Interactive Overlays for Seeking & Play/Pause */}
+                        <div className="absolute inset-0 z-20 flex group/shield">
+                            {/* Left Half: Backward 5s */}
+                            <div 
+                                className="flex-1 cursor-pointer active:bg-white/5 transition-colors"
+                                onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    globalHandleSeek(Math.max(0, currentTime - 5));
+                                }}
+                                onClick={() => setIsPlaying(!isPlaying)}
+                            />
+                            
+                            {/* Right Half: Forward 5s */}
+                            <div 
+                                className="flex-1 cursor-pointer active:bg-white/5 transition-colors"
+                                onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    globalHandleSeek(Math.min(duration, currentTime + 5));
+                                }}
+                                onClick={() => setIsPlaying(!isPlaying)}
+                            />
+
                             {!isPlaying && (
-                                <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)] border-4 border-emerald-400/30 group-hover/shield:scale-110 transition-all duration-300">
-                                    <Play fill="white" size={32} className="ml-1.5 text-white" />
+                                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                    <div className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] border-2 border-emerald-400/30 group-hover/shield:scale-110 transition-all duration-300">
+                                        <Play fill="white" size={24} className="ml-1 text-white" />
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -172,8 +182,9 @@ export default function MediaSection({
                         </button>
                     </div>
 
+                    {/* Hide title/desc on mobile to save space for sticky player */}
                     {!isFullscreen && (
-                        <div className="mt-4 md:mt-8 text-center px-4">
+                        <div className="hidden md:block mt-8 text-center px-4">
                             <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-zinc-900'}`}>{podcast.title}</h2>
                             <p className={`${isDark ? 'text-neutral-500' : 'text-zinc-500'} text-sm max-w-md mx-auto`}>Watch the video and complete the tasks on the right side.</p>
                         </div>

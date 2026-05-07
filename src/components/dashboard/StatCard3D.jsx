@@ -79,11 +79,11 @@ const StatCard3D = ({
     return (
         <div 
             ref={hitboxRef}
-            className="hitbox relative w-full md:w-64 cursor-pointer group"
+            className="hitbox relative w-[260px] sm:w-64 cursor-pointer group"
             style={{ 
                 zIndex: isHovered ? 50 : getBaseZ(),
                 transformStyle: 'preserve-3d',
-                height: type === 'center' ? '360px' : '340px',
+                height: type === 'center' ? '340px' : '320px',
             }}
             onMouseMove={handleMouseMove}
             onMouseEnter={handleMouseEnter}
@@ -98,7 +98,7 @@ const StatCard3D = ({
                     transition: 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)'
                 }}
             >
-                <div className="glass-card w-full h-full rounded-[2.5rem] p-8 flex flex-col items-start text-left relative overflow-hidden bg-[#F6F6FA] border border-black/[0.06] shadow-[0_2px_20px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.10),0_2px_8px_rgba(0,0,0,0.06)] hover:bg-white transition-all duration-500">
+                <div className="glass-card w-full h-full rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-start text-left relative overflow-hidden bg-[#F6F6FA] border border-black/[0.06] shadow-[0_2px_20px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.10),0_2px_8px_rgba(0,0,0,0.06)] hover:bg-white transition-all duration-500">
                     <div ref={glareRef} className="glare absolute inset-0 pointer-events-none rounded-[2.5rem] opacity-0 transition-opacity duration-300 z-20 mix-blend-overlay"></div>
                     
                     <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent ${theme.gradient} to-transparent opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500`}></div>
@@ -106,17 +106,17 @@ const StatCard3D = ({
                     
                     <div className="relative z-10 w-full flex flex-col h-full">
                         {/* Header */}
-                        <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-2xl ${theme.bg} border ${theme.border} flex items-center justify-center ${theme.text} shadow-sm shrink-0`}>
-                                <Icon size={24} />
+                        <div className="flex items-center gap-3 sm:gap-4">
+                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl ${theme.bg} border ${theme.border} flex items-center justify-center ${theme.text} shadow-sm shrink-0`}>
+                                <Icon size={20} />
                             </div>
-                            <h3 className="text-[13px] font-bold text-gray-400 tracking-[0.15em] uppercase mt-1">{label}</h3>
+                            <h3 className="text-[11px] sm:text-[13px] font-bold text-gray-400 tracking-[0.1em] sm:tracking-[0.15em] uppercase mt-1">{label}</h3>
                         </div>
 
                         {/* Main Value */}
-                        <div className="mt-6 flex items-baseline gap-2">
-                            <span className="text-[72px] font-medium text-gray-900 leading-none tracking-tighter">{value}</span>
-                            {unit && <span className="text-[28px] text-gray-400 font-normal">{unit}</span>}
+                        <div className="mt-4 sm:mt-6 flex items-baseline gap-2">
+                            <span className="text-[56px] sm:text-[72px] font-medium text-gray-900 leading-none tracking-tighter">{value}</span>
+                            {unit && <span className="text-[20px] sm:text-[28px] text-gray-400 font-normal">{unit}</span>}
                         </div>
 
                         {/* Charts */}
@@ -158,7 +158,7 @@ const StatCard3D = ({
                             </div>
                         )}
 
-                        <p className="text-[15px] text-slate-500 font-medium mt-auto">{subLabel}</p>
+                        <p className="text-[13px] sm:text-[15px] text-slate-500 font-medium mt-auto leading-snug">{subLabel}</p>
                     </div>
                 </div>
             </div>

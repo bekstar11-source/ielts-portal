@@ -1,5 +1,7 @@
 import React from "react";
-import { RotateCcw, Pause, Play, RotateCw, Target } from "lucide-react";
+import { RotateCcw, Pause, Play, RotateCw, Target, Heart } from "lucide-react";
+import { usePodcast } from "../../context/PodcastContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PlayerFooter({ 
     isDark, 
@@ -13,52 +15,102 @@ export default function PlayerFooter({
     formatTime,
     currentStep,
     onExpand, // Added prop to open player
-    isFixed = false // Added prop to control positioning
+    isFixed = false, // Added prop to control positioning
+    hasBottomNav = false // Added prop to adjust for bottom navigation bar
 }) {
+    const { likedPodcasts, toggleLike } = usePodcast();
+    const { user } = useAuth();
+    const isLiked = likedPodcasts.includes(podcast?.id);
+
     return (
-        <footer className={`h-20 shrink-0 border-t px-4 md:px-8 flex items-center justify-between z-50 transition-colors duration-300 
-            ${isFixed ? 'fixed bottom-0 left-0 w-full' : 'relative'}
-            ${isDark ? 'border-neutral-800 bg-[#0a0a0c]/80 backdrop-blur-xl text-white' : 'border-zinc-100 bg-white/90 backdrop-blur-xl text-zinc-900'}`}>
-            {/* Left: Info & Mini Video - Hidden on mobile */}
+        <footer className={`shrink-0 border-t z-50 transition-all duration-300 
+            ${isFixed ? `fixed ${hasBottomNav ? 'bottom-[56px]' : 'bottom-0'} md:bottom-0 left-0 right-0 md:w-full rounded-none shadow-[0_-4px_12px_rgba(0,0,0,0.1)] md:shadow-none` : 'relative'}
+            ${isDark ? 'border-neutral-800 bg-[#121212]/98 backdrop-blur-xl text-white' : 'border-zinc-100 bg-white/98 backdrop-blur-xl text-zinc-900'}
+            h-[56px] md:h-20 px-3 md:px-8 flex items-center justify-between`}>
+            
+            {/* Left: Info & Mini Preview (Mobile Friendly) */}
             <div 
                 onClick={onExpand}
-                className={`hidden lg:flex items-center gap-4 w-1/4 min-w-[280px] ${onExpand ? 'cursor-pointer group' : ''}`}
+                className={`flex items-center gap-3 w-full md:w-1/4 h-full relative overflow-hidden group/seek ${onExpand ? 'cursor-pointer' : ''}`}
+                onMouseDown={(e) => {
+                    if (window.innerWidth >= 768) return; // Only for mobile swipe-seek on the title
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const startX = e.clientX;
+                    const startTime = currentTime;
+                    
+                    const handleMouseMove = (moveEvent) => {
+                        const deltaX = moveEvent.clientX - startX;
+                        const percentChange = deltaX / rect.width;
+                        const newTime = Math.max(0, Math.min(duration, startTime + (duration * percentChange)));
+                        handleMediaSeek(newTime);
+                    };
+                    const handleMouseUp = () => {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                    };
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                }}
+                onTouchStart={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const touch = e.touches[0];
+                    const startX = touch.clientX;
+                    const startTime = currentTime;
+                    
+                    const handleTouchMove = (moveEvent) => {
+                        const moveTouch = moveEvent.touches[0];
+                        const deltaX = moveTouch.clientX - startX;
+                        const percentChange = deltaX / rect.width;
+                        const newTime = Math.max(0, Math.min(duration, startTime + (duration * percentChange)));
+                        handleMediaSeek(newTime);
+                    };
+                    const handleTouchEnd = () => {
+                        document.removeEventListener('touchmove', handleTouchMove);
+                        document.removeEventListener('touchend', handleTouchEnd);
+                    };
+                    document.addEventListener('touchmove', handleTouchMove);
+                    document.addEventListener('touchend', handleTouchEnd);
+                }}
             >
-                {/* Mini Video Preview for YouTube Podcasts */}
-                {podcast.mediaType === 'youtube' && podcast.showVideo !== false && String(podcast.showVideo) !== 'false' ? (
-                    <div className="w-16 h-10 rounded bg-black overflow-hidden shadow-lg border border-white/10 shrink-0 relative group/mini">
-                        <iframe 
-                            className="w-[140%] h-[140%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none scale-110"
-                            src={`https://www.youtube.com/embed/${podcast.youtubeId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&origin=${window.location.origin}`}
-                            title="Mini Video"
-                            frameBorder="0"
-                        />
-                        <div className="absolute inset-0 bg-black/20 group-hover/mini:bg-transparent transition-colors flex items-center justify-center">
-                             {onExpand && <Target size={14} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />}
-                        </div>
-                    </div>
-                ) : (
-                    <div className={`w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center border shadow-md shrink-0 transition-transform group-hover:scale-105 ${isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-zinc-100 border-zinc-200'}`}>
-                        {podcast.thumbnail ? (
-                            <img src={podcast.thumbnail} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                            <Target size={18} className="text-emerald-500" />
-                        )}
-                    </div>
-                )}
-                
-                <div className="flex flex-col overflow-hidden">
-                    <span className={`text-sm font-bold leading-tight truncate group-hover:text-emerald-500 transition-colors ${isDark ? 'text-white' : 'text-zinc-900'}`}>{podcast.title}</span>
-                    <span className="text-xs text-neutral-500 truncate">Englev Podcast • EP {podcast.level || "B2"}</span>
+                {/* Progress Overlay (Dark shadow moving over the title) */}
+                <div 
+                    className="absolute inset-0 z-0 bg-black/20 pointer-events-none transition-all duration-500 ease-linear"
+                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                />
+                <div className="absolute bottom-0 left-0 h-[3px] bg-emerald-500 z-10 transition-all duration-500 ease-linear" 
+                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                />
+
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded overflow-hidden flex items-center justify-center border shadow-md shrink-0 z-10 ${isDark ? 'bg-neutral-800 border-white/5' : 'bg-zinc-100 border-zinc-200'}`}>
+                    {podcast.thumbnail ? (
+                        <img src={podcast.thumbnail} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                        <Target size={18} className="text-emerald-500" />
+                    )}
                 </div>
+                
+                <div className="flex flex-col overflow-hidden flex-1 z-10">
+                    <span className={`text-[13px] md:text-sm font-bold leading-tight truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>{podcast.title}</span>
+                    <span className="text-[11px] text-neutral-500 truncate">EP {podcast.level || "B2"}</span>
+                </div>
+
+                {/* Like Button */}
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        toggleLike(user?.uid, podcast?.id);
+                    }}
+                    className={`shrink-0 p-2 transition-all active:scale-125 z-20 ${isLiked ? 'text-emerald-500' : (isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900')}`}
+                >
+                    <Heart size={20} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
+                </button>
             </div>
 
-            {/* Center: Controls & Progress */}
-            <div className="flex-1 max-w-2xl flex flex-col items-center gap-1.5">
-                <div className="flex items-center gap-6">
-                    <button onClick={() => handleMediaSkip(-5)} className={`flex items-center gap-1 transition-colors group ${isDark ? 'text-neutral-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`}>
+            {/* Center: Controls (Compact for Mobile) */}
+            <div className="flex items-center gap-4 md:gap-6 ml-auto md:ml-0">
+                <div className="hidden md:flex items-center gap-6 mr-6">
+                    <button onClick={() => handleMediaSkip(-5)} className={`flex items-center gap-1 transition-colors ${isDark ? 'text-neutral-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`}>
                         <RotateCcw size={16} strokeWidth={2.5} />
-                        <span className="text-[9px] font-mono font-bold -ml-1">5</span>
                     </button>
                     
                     <button 
@@ -68,12 +120,22 @@ export default function PlayerFooter({
                         {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="ml-0.5" />}
                     </button>
                     
-                    <button onClick={() => handleMediaSkip(5)} className={`flex items-center gap-1 transition-colors group ${isDark ? 'text-neutral-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`}>
+                    <button onClick={() => handleMediaSkip(5)} className={`flex items-center gap-1 transition-colors ${isDark ? 'text-neutral-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`}>
                         <RotateCw size={16} strokeWidth={2.5} />
-                        <span className="text-[9px] font-mono font-bold -ml-1">5</span>
                     </button>
                 </div>
-                
+
+                {/* Mobile-only Play Button */}
+                <button 
+                    onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
+                    className={`md:hidden w-10 h-10 flex items-center justify-center transition-transform active:scale-90 ${isDark ? 'text-white' : 'text-zinc-900'}`}
+                >
+                    {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
+                </button>
+            </div>
+
+            {/* Desktop-only Progress Bar Section */}
+            <div className="hidden md:flex flex-1 max-w-xl flex-col items-center gap-1.5 ml-8">
                 <div className="w-full flex items-center gap-3">
                     <span className="text-[10px] font-mono text-neutral-500">{formatTime(currentTime)}</span>
                     <div 
@@ -92,40 +154,24 @@ export default function PlayerFooter({
                             document.addEventListener('mouseup', handleMouseUp);
                             handleMouseMove(e);
                         }}
-                        onTouchStart={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const handleTouchMove = (moveEvent) => {
-                                const touch = moveEvent.touches[0];
-                                const percent = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-                                handleMediaSeek(duration * percent);
-                            };
-                            const handleTouchEnd = () => {
-                                document.removeEventListener('touchmove', handleTouchMove);
-                                document.removeEventListener('touchend', handleTouchEnd);
-                            };
-                            document.addEventListener('touchmove', handleTouchMove);
-                            document.addEventListener('touchend', handleTouchEnd);
-                            handleTouchMove(e);
-                        }}
                     >
                         <div 
-                            className="absolute top-0 left-0 h-full bg-emerald-500 rounded-full transition-all duration-100"
+                            className="absolute top-0 left-0 h-full bg-emerald-500 rounded-full"
                             style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                         >
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg scale-100 lg:scale-0 group-hover:scale-100 transition-transform" />
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg scale-0 group-hover:scale-100 transition-transform" />
                         </div>
                     </div>
                     <span className="text-[10px] font-mono text-neutral-500">{formatTime(duration)}</span>
                 </div>
             </div>
 
-            {/* Right: Info/Shortcuts - Hidden on mobile */}
-            <div className="hidden lg:flex items-center justify-end gap-1 w-1/4 min-w-[200px]">
-                {currentStep && (
-                    <div className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-full border ${isDark ? 'border-neutral-800 text-neutral-600' : 'border-zinc-200 text-zinc-400'}`}>
-                        {currentStep === 1 ? 'Filling Gaps' : currentStep === 2 ? 'MCQ Active' : 'Sentence Completion'}
-                    </div>
-                )}
+            {/* Mobile-only Progress Line (Bottom of pill) */}
+            <div className="md:hidden absolute bottom-0 left-3 right-3 h-0.5 bg-neutral-800/30 rounded-full overflow-hidden">
+                <div 
+                    className="h-full bg-white transition-all duration-300"
+                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                />
             </div>
         </footer>
     );

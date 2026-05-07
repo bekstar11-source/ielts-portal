@@ -11,7 +11,10 @@ export default function PlayerHeader({
     setCurrentStep
 }) {
     return (
-        <header className={`h-16 shrink-0 px-4 md:px-8 flex items-center justify-between border-b ${isDark ? 'border-neutral-800' : 'border-zinc-100'}`}>
+        <header className={`h-12 shrink-0 px-4 md:px-8 flex items-center justify-between border-b relative ${isDark ? 'bg-[#0a0a0c] border-neutral-800' : 'bg-white border-zinc-100'}`}>
+            {/* Drag Handle for Mobile */}
+            <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-zinc-500/20 md:hidden" />
+            
             <div className="flex items-center gap-2 md:gap-3 w-[20%] md:w-1/4">
                 <button 
                     onClick={onClose}

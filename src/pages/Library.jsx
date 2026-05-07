@@ -11,6 +11,7 @@ import DashboardHeader from "../components/dashboard/DashboardHeader";
 import DashboardModals from "../components/dashboard/DashboardModals";
 import LibrarySubHeader from "../components/dashboard/LibrarySubHeader";
 import SiteFooter from "../components/common/SiteFooter";
+import BottomNav from "../components/dashboard/BottomNav";
 
 export default function Library() {
   const { user, userData, logout } = useAuth();
@@ -33,7 +34,7 @@ export default function Library() {
 
       <LibrarySubHeader activeTab={activeTab} />
 
-      <main className="w-full">
+      <main className="w-full pb-24 md:pb-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -70,6 +71,17 @@ export default function Library() {
         showLogoutConfirm={showLogoutConfirm}
         setShowLogoutConfirm={setShowLogoutConfirm}
         confirmLogout={logout}
+      />
+      
+      <BottomNav 
+        activeTab="library" 
+        setActiveTab={(id) => {
+          if (id === 'dashboard') navigate('/dashboard');
+          else if (id === 'library') navigate('/library');
+          else if (id === 'podcasts') navigate('/podcasts');
+          else if (id === 'results') navigate('/my-results');
+          else if (id === 'settings') navigate('/settings');
+        }} 
       />
     </div>
   );
