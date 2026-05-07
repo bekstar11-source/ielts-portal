@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, setDuration, currentTime, youtubePlayerRef) {
     // We now use the global youtubePlayerRef passed from PodcastContext
+    let interval;
 
     useEffect(() => {
         if (!podcast || podcast.mediaType !== 'youtube') return;
@@ -12,8 +13,6 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
             const firstScriptTag = document.getElementsByTagName('script')[0];
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         }
-
-        let interval;
 
         const startInterval = () => {
             if (interval) clearInterval(interval);
@@ -56,17 +55,25 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                     }
                 }
             });
+            youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
             startInterval();
         };
 
         if (window.YT && window.YT.Player) {
+            // Check if THIS video is already loaded in THIS player instance
+            if (youtubePlayerRef.current && youtubePlayerRef.current.loadedVideoId === podcast.youtubeId) {
+                startInterval();
+                return;
+            }
+
             if (youtubePlayerRef.current && typeof youtubePlayerRef.current.loadVideoById === 'function') {
-                // If player exists, just load the new video
+                // Different video, load it
                 youtubePlayerRef.current.loadVideoById(podcast.youtubeId);
                 setIsPlaying(true);
                 setCurrentTime(0);
-                setDuration(0); // Reset duration to avoid flicker
-                startInterval(); // CRITICAL: Restart interval for the new video
+                setDuration(0);
+                youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
+                startInterval();
             } else {
                 initPlayer();
             }
@@ -75,9 +82,7 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
         }
 
         return () => {
-            clearInterval(interval);
-            // Don't destroy the player on unmount if we want background play
-            // Actually, we keep it alive because InteractivePlayer stays mounted.
+            if (interval) clearInterval(interval);
         };
     }, [podcast?.youtubeId, setIsPlaying, setCurrentTime, setDuration]);
 
