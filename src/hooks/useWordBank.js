@@ -1,0 +1,132 @@
+import { useState, useEffect, useCallback } from 'react';
+import { db } from '../firebase/firebase';
+import { collection, query, getDocs, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { getUserWordBank, deleteWordFromBank } from '../utils/wordbankUtils';
+
+export const useWordBank = (user) => {
+    const [words, setWords] = useState([]);
+    const [keywords, setKeywords] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [generatingId, setGeneratingId] = useState(null);
+    const [batchProcessing, setBatchProcessing] = useState(false);
+    const [batchTotal, setBatchTotal] = useState(0);
+    const [batchCurrent, setBatchCurrent] = useState(0);
+
+    const fetchWords = useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            const q = query(
+                collection(db, "users", user.uid, "vocabulary"),
+                orderBy("addedAt", "desc")
+            );
+            const snapshot = await getDocs(q);
+            const fetchedWords = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setWords(fetchedWords);
+
+            const kw = await getUserWordBank(user.uid);
+            setKeywords(kw);
+        } catch (error) {
+            console.error("Error fetching vocabulary:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
+
+    useEffect(() => { fetchWords(); }, [fetchWords]);
+
+    const handleDeleteWord = async (wordId) => {
+        if (!user) return;
+        try {
+            await deleteDoc(doc(db, "users", user.uid, "vocabulary", wordId));
+            setWords(prev => prev.filter(w => w.id !== wordId));
+        } catch (error) { console.error(error); }
+    };
+
+    const handleDeleteKeyword = async (kwId) => {
+        if (!user) return;
+        if (!window.confirm("Bu keyword o'chirilsinmi?")) return;
+        try {
+            await deleteWordFromBank(user.uid, kwId);
+            setKeywords(prev => prev.filter(k => k.id !== kwId));
+        } catch (error) { console.error(error); }
+    };
+
+    const updateWordStatus = async (wordId, updateData) => {
+        if (!user) return;
+        try {
+            const wordRef = doc(db, "users", user.uid, "vocabulary", wordId);
+            await updateDoc(wordRef, updateData);
+            setWords(prev => prev.map(w => w.id === wordId ? { ...w, ...updateData } : w));
+        } catch (error) { console.error(error); }
+    };
+
+    const generateAIContext = async (wordItem) => {
+        if (!user) return;
+        setGeneratingId(wordItem.id);
+        try {
+            const functions = getFunctions();
+            const translateWordFn = httpsCallable(functions, "translateWord");
+            const result = await translateWordFn({ 
+                word: wordItem.word, 
+                contextSentence: wordItem.contextSentence 
+            });
+
+            const { definition, example, translation } = result.data;
+            const wordRef = doc(db, "users", user.uid, "vocabulary", wordItem.id);
+            await updateDoc(wordRef, { definition, example, translation, hasAI: true });
+
+            setWords(prev => prev.map(w => w.id === wordItem.id ? {
+                ...w, definition, example, translation, hasAI: true
+            } : w));
+        } catch (error) {
+            console.error("AI error:", error);
+            alert("AI tarjimada xatolik: " + error.message);
+        } finally {
+            setGeneratingId(null);
+        }
+    };
+
+    const handleTranslateAll = async () => {
+        const untranslated = words.filter(w => !w.hasAI);
+        if (untranslated.length === 0) return;
+
+        setBatchProcessing(true);
+        setBatchTotal(untranslated.length);
+        setBatchCurrent(0);
+
+        const functions = getFunctions();
+        const translateWordFn = httpsCallable(functions, "translateWord");
+
+        for (let i = 0; i < untranslated.length; i++) {
+            const wordItem = untranslated[i];
+            setBatchCurrent(i + 1);
+            try {
+                const result = await translateWordFn({ 
+                    word: wordItem.word, 
+                    contextSentence: wordItem.contextSentence 
+                });
+                const { definition, example, translation } = result.data;
+                const wordRef = doc(db, "users", user.uid, "vocabulary", wordItem.id);
+                await updateDoc(wordRef, { definition, example, translation, hasAI: true });
+
+                setWords(prev => prev.map(w => w.id === wordItem.id ? {
+                    ...w, definition, example, translation, hasAI: true
+                } : w));
+            } catch (error) { console.error(error); }
+        }
+        setBatchProcessing(false);
+    };
+
+    return {
+        words, keywords, loading,
+        generatingId, batchProcessing, batchTotal, batchCurrent,
+        handleDeleteWord, handleDeleteKeyword,
+        updateWordStatus, generateAIContext, handleTranslateAll,
+        refresh: fetchWords
+    };
+};
