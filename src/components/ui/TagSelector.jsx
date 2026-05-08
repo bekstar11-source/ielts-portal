@@ -5,7 +5,8 @@ export default function TagSelector({ selectedTags = [], onChange, isDark }) {
     const [inputValue, setInputValue] = useState("");
 
     const handleKeyDown = (e) => {
-        if (e.key === 'Enter' || e.key === ',') {
+        if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+            if (e.key === ' ' && !inputValue.trim()) return; // Don't add if empty
             e.preventDefault();
             addTag();
         }

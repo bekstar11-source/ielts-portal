@@ -3,1009 +3,129 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
 
-import { db } from "../firebase/firebase";
-import {
-    collection,
-    getCountFromServer,
-    getDocs,
-    query,
-    limit,
-    where,
-    doc,
-    updateDoc,
-    arrayUnion,
-    startAfter,
-    orderBy
-} from "firebase/firestore";
+// Hooks & Components
+import { useAdminDashboard } from "../hooks/useAdminDashboard";
+import AdminDashboardStats from "../components/admin/AdminDashboard/AdminDashboardStats";
+import AdminDashboardActions from "../components/admin/AdminDashboard/AdminDashboardActions";
+import AdminDashboardUsers from "../components/admin/AdminDashboard/AdminDashboardUsers";
 import AdvancedAnalyticsChart from "../components/common/AdvancedAnalyticsChart";
+import { UserDetailModal, GroupSelectionModal } from "../components/admin/AdminDashboard/AdminDashboardModals";
 
-// --- MOCK CHART DATA ---
-// --- MOCK CHART DATA REMOVED (Now using real data) ---
+// Modals (Will extract soon or use from existing if available)
+// Note: Keeping it brief here to show the impact of refactoring
 
-// --- 1. ICONS (Barcha kerakli ikonkalar) ---
-const Icons = {
-    Home: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>,
-    Analytics: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" /><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" /></svg>,
-    Stats: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>,
-    Users: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>,
-    Test: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>,
-    Key: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>,
-    Plus: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>,
-    Logout: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>,
-    Close: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
-    Search: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>,
-    Trash: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>,
-    Filter: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" /></svg>,
-    Lock: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
-    Eye: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-    Activity: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>,
-    Bell: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>,
-    Megaphone: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.43.055-3.46 0-3.46" /></svg>,
-    ChevronLeft: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>,
-    ChevronRight: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>,
-    Newspaper: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h.008v.008H12V7.5zM12 10.5h.008v.008H12v-.008zM12 13.5h.008v.008H12v-.008z" /></svg>,
-};
-
-// --- 2. SKELETON LOADER COMPONENT ---
-function DashboardSkeleton() {
-    return (
-        <div className="flex h-screen bg-[#F5F5F7] dark:bg-[#121212] font-sans overflow-hidden transition-colors">
-            <div className="w-[72px] bg-white dark:bg-[#1E1E1E] m-4 mr-0 rounded-[30px] shadow-2xl border border-gray-200 dark:border-white/5 animate-pulse hidden md:block"></div>
-
-
-            <main className="flex-1 p-4 lg:p-6 flex flex-col gap-6 w-full">
-                <div className="flex justify-between items-center mb-2 animate-pulse">
-                    <div className="space-y-2">
-                        <div className="h-4 w-32 bg-gray-200 dark:bg-[#333] rounded"></div>
-                        <div className="h-8 w-48 bg-gray-200 dark:bg-[#333] rounded"></div>
-                    </div>
-                    <div className="h-10 w-10 bg-gray-200 dark:bg-[#333] rounded-full"></div>
-
-                </div>
-                <div className="grid grid-cols-12 gap-6 h-full overflow-hidden">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="col-span-12 md:col-span-4 h-32 bg-white dark:bg-[#272727] rounded-[24px] border border-gray-200 dark:border-white/5 animate-pulse"></div>
-                    ))}
-
-                    <div className="col-span-12 h-4 bg-[#333] w-32 mt-2 rounded animate-pulse"></div>
-                    {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="col-span-6 md:col-span-3 h-36 bg-white dark:bg-[#272727] rounded-[24px] border border-gray-200 dark:border-white/5 animate-pulse"></div>
-                    ))}
-                    <div className="col-span-12 bg-white dark:bg-[#272727] rounded-[24px] p-6 h-96 border border-gray-200 dark:border-white/5 animate-pulse">
-
-                        <div className="flex justify-between mb-6">
-                            <div className="h-6 w-1/4 bg-gray-200 dark:bg-[#333] rounded"></div>
-                            <div className="h-8 w-1/4 bg-gray-200 dark:bg-[#333] rounded"></div>
-                        </div>
-                        {[1, 2, 3, 4, 5].map(j => (
-                            <div key={j} className="h-16 bg-gray-200 dark:bg-[#333] mb-3 rounded-xl w-full"></div>
-                        ))}
-                    </div>
-
-                </div>
-            </main>
-        </div>
-    )
-}
-
-// --- 3. HELPER: TIME STATUS CALCULATOR (GOD MODE) ---
-const getTimeStatus = (lastActiveAt) => {
-    if (!lastActiveAt) return { status: 'offline', text: 'Uzoq vaqt oldin' };
-
-    // Firestore Timestamp ni Date ga o'tkazish
-    const date = lastActiveAt.seconds ? new Date(lastActiveAt.seconds * 1000) : new Date(lastActiveAt);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 5) return { status: 'online', text: 'Online' };
-    if (diffMins < 60) return { status: 'offline', text: `${diffMins} daqiqa oldin` };
-    if (diffMins < 1440) return { status: 'offline', text: `${Math.floor(diffMins / 60)} soat oldin` };
-
-    return { status: 'offline', text: date.toLocaleDateString() };
-};
-
-// --- 4. MAIN COMPONENT ---
 export default function AdminDashboard() {
-    const { logout, userData } = useAuth();
+    const { userData } = useAuth();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const navigate = useNavigate();
 
     const [isAuthorized, setIsAuthorized] = useState(false);
-
-    // STATISTIKA STATE
-    const [stats, setStats] = useState({ users: 0, tests: 0, results: 0, loading: true });
-
-    // STUDENT MANAGEMENT STATE (OPTIMAL)
-    const [allUsers, setAllUsers] = useState([]);
-    const [displayedUsers, setDisplayedUsers] = useState([]);
-    const [loadingUsers, setLoadingUsers] = useState(false);
-    const [lastVisible, setLastVisible] = useState(null);
-    const [hasMore, setHasMore] = useState(true);
-
-    // SEARCH & FILTER STATE
+    const [chartRange, setChartRange] = useState("week");
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOption, setSortOption] = useState("fullName");
-
-    // GROUP DATA
-    const [groups, setGroups] = useState([]);
-
-    // MODALS
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [showGroupModal, setShowGroupModal] = useState(false);
-    const [showDetailModal, setShowDetailModal] = useState(false);
-    const [processing, setProcessing] = useState(false);
-
-    // ANALYTICS RANGE
-    const [chartRange, setChartRange] = useState("week"); // week or month
-
-    // PAGINATION STATE
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [showGroupModal, setShowGroupModal] = useState(false);
     const itemsPerPage = 25;
 
-    // --- AUTH CHECK ---
+    const {
+        stats, groups, displayedUsers, setDisplayedUsers,
+        fetchAllUsers, handleUpdateStatus, handleAddToGroup, handleBlockUser
+    } = useAdminDashboard(isAuthorized);
+
     useEffect(() => {
         if (userData === undefined) return;
         if (!userData || userData.role !== 'admin') {
             navigate('/');
         } else {
             setIsAuthorized(true);
+            fetchAllUsers();
         }
     }, [userData, navigate]);
 
-    // --- DATA FETCHING (CACHE BILAN) ---
-    useEffect(() => {
-        async function fetchInitialData() {
-            try {
-                // Keshni tekshirish (10 daqiqalik kesh)
-                const cachedTime = sessionStorage.getItem("admin_data_time");
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 10 * 60 * 1000);
-
-                if (isCacheValid) {
-                    const cachedStats = sessionStorage.getItem("admin_stats");
-                    const cachedGroups = sessionStorage.getItem("admin_groups");
-                    if (cachedStats) {
-                        const parsedStats = JSON.parse(cachedStats);
-                        setStats(parsedStats);
-                        if (cachedGroups) setGroups(JSON.parse(cachedGroups));
-                        return;
-                    }
-                }
-
-                // 1. STATS COUNTS
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-                const usersSnap = await getCountFromServer(collection(db, "users"));
-                // 🔥 FIX: limitSIZ o'qish o'rniga getCountFromServer + limit ishlatamiz
-                const testsCountSnap = await getCountFromServer(collection(db, "tests"));
-                const testsSnap = await getDocs(query(collection(db, "tests"), limit(200)));
-
-                // Faqat oxirgi 30 kunlik natijalarni olamiz (Readlarni tejash uchun)
-                // Fetch more results and filter in-memory to handle mixed date types (String vs Timestamp)
-                const resultsQuery = query(
-                    collection(db, "results"),
-                    orderBy("date", "desc"),
-                    limit(1000)
-                );
-                const resultsSnap = await getDocs(resultsQuery);
-
-                const testsDocs = testsSnap.docs.map(d => d.data());
-                const resultsDocs = resultsSnap.docs.map(d => {
-                    const data = d.data();
-                    let dateVal = data.date;
-                    let dateObj;
-                    
-                    if (dateVal && dateVal.seconds) { // Timestamp
-                        dateObj = new Date(dateVal.seconds * 1000);
-                    } else if (typeof dateVal === 'string') { // ISO String
-                        dateObj = new Date(dateVal);
-                    } else {
-                        dateObj = new Date();
-                    }
-                    
-                    return { 
-                        ...data, 
-                        id: d.id,
-                        normalizedDate: dateObj,
-                        // Maintain compatibility with existing logic
-                        date: dateVal 
-                    };
-                }).filter(r => r.normalizedDate >= thirtyDaysAgo);
-
-                // 2. PREPARE CHART DATA
-                const testTypes = { reading: 0, listening: 0, writing: 0, speaking: 0 };
-                testsDocs.forEach(t => {
-                    const type = t.type?.toLowerCase() || 'other';
-                    if (testTypes[type] !== undefined) testTypes[type]++;
-                });
-                const realTestsData = [
-                    { name: 'Reading', value: testTypes.reading },
-                    { name: 'Listening', value: testTypes.listening },
-                    { name: 'Writing', value: testTypes.writing },
-                    { name: 'Speaking', value: testTypes.speaking },
-                ];
-
-                const last30Days = [...Array(30)].map((_, i) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() - (29 - i));
-                    return d.toISOString().split('T')[0];
-                });
-
-                const activityDataMap = last30Days.reduce((acc, date) => ({
-                    ...acc,
-                    [date]: { name: date, tests: 0, score: 0, users: 0, totalScore: 0 }
-                }), {});
-
-                // Aggregating Results (Tests & Scores)
-                resultsDocs.forEach(r => {
-                    try {
-                        const dateObj = r.normalizedDate;
-                        if (!dateObj || isNaN(dateObj.getTime())) return;
-
-                        if (dateObj && !isNaN(dateObj)) {
-                            const dateKey = dateObj.toISOString().split('T')[0];
-                            if (activityDataMap[dateKey]) {
-                                activityDataMap[dateKey].tests++;
-                                const s = parseFloat(r.bandScore || r.score || 0);
-                                activityDataMap[dateKey].totalScore += s;
-                            }
-                        }
-                    } catch (e) { }
-                });
-
-                Object.values(activityDataMap).forEach(day => {
-                    if (day.tests > 0) day.score = day.totalScore / day.tests;
-                });
-
-                // Aggregating New Users (Faqat oxirgi 30 kundagilar)
-                const recentUsersQuery = query(
-                    collection(db, "users"),
-                    where("createdAt", ">=", thirtyDaysAgo.toISOString())
-                );
-                const usersListSnap = await getDocs(recentUsersQuery);
-                usersListSnap.docs.forEach(d => {
-                    const u = d.data();
-                    if (u.createdAt) {
-                        const dateObj = u.createdAt.seconds ? new Date(u.createdAt.seconds * 1000) : new Date(u.createdAt);
-                        const dateKey = dateObj.toISOString().split('T')[0];
-                        if (activityDataMap[dateKey]) activityDataMap[dateKey].users++;
-                    }
-                });
-
-                const allActivityData = Object.values(activityDataMap).map(item => ({
-                    ...item,
-                    name: new Date(item.name).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                }));
-
-                // 3. SET STATE
-                const statsData = {
-                    users: usersSnap.data().count,
-                    totalTests: testsCountSnap.data().count,
-                    tests: testsDocs.length,
-                    results: 0, // Will update below
-                    activityData: allActivityData, // Full 30 days
-                    testsData: realTestsData,
-                    loading: false
-                };
-
-                // Get total results count accurately
-                const totalResultsSnap = await getCountFromServer(collection(db, "results"));
-                statsData.results = totalResultsSnap.data().count;
-
-                setStats(statsData);
-
-                // Groups
-                const groupsSnap = await getDocs(collection(db, "groups"));
-                const groupsData = groupsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                setGroups(groupsData);
-
-                // Cache Save
-                sessionStorage.setItem("admin_stats", JSON.stringify(statsData));
-                sessionStorage.setItem("admin_groups", JSON.stringify(groupsData));
-                sessionStorage.setItem("admin_data_time", Date.now().toString());
-
-            } catch (error) {
-                console.error("Stats Error:", error);
-                setStats(prev => ({ ...prev, loading: false }));
-            }
-        }
-        if (isAuthorized) fetchInitialData();
-    }, [isAuthorized]);
-
-    // --- USERLARNI YUKLASH ---
-    useEffect(() => {
-        if (isAuthorized) {
-            fetchAllUsers();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAuthorized]);
-
-    useEffect(() => {
-        applyFilterAndSearch(allUsers, searchTerm, sortOption);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm, sortOption, allUsers]);
-
-    const fetchAllUsers = async () => {
-        setLoadingUsers(true);
-        try {
-            const q = query(
-                collection(db, "users"),
-                limit(200)
-            );
-            const snap = await getDocs(q);
-            const fetchedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            
-            // Filter and Sort in JS (including users who might lack createdAt)
-            const studentsOnly = fetchedUsers.filter(u => u.role !== 'admin' && u.role !== 'teacher');
-            studentsOnly.sort((a, b) => {
-                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                return dateB - dateA;
-            });
-
-            setAllUsers(studentsOnly);
-            setLastVisible(snap.docs[snap.docs.length - 1]);
-            setHasMore(snap.docs.length === 200);
-            sessionStorage.setItem("admin_all_users", JSON.stringify(studentsOnly));
-            applyFilterAndSearch(studentsOnly, searchTerm, sortOption);
-        } catch (err) {
-            console.error("Fetch Error:", err);
-        } finally {
-            setLoadingUsers(false);
-        }
-    };
-
-    const loadMoreUsers = async () => {
-        if (!lastVisible || !hasMore) return;
-        setLoadingUsers(true);
-        try {
-            const q = query(
-                collection(db, "users"),
-                startAfter(lastVisible),
-                limit(200)
-            );
-            const snap = await getDocs(q);
-            const fetchedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-            if (fetchedUsers.length > 0) {
-                const studentsOnly = fetchedUsers.filter(u => u.role !== 'admin' && u.role !== 'teacher');
-                const combined = [...allUsers, ...studentsOnly];
-                setAllUsers(combined);
-                setLastVisible(snap.docs[snap.docs.length - 1]);
-                setHasMore(snap.docs.length === 200);
-                sessionStorage.setItem("admin_all_users", JSON.stringify(combined));
-            } else {
-                setHasMore(false);
-            }
-        } catch (err) {
-            console.error("Load More Error:", err);
-        } finally {
-            setLoadingUsers(false);
-        }
-    };
-
-    const applyFilterAndSearch = (usersList, term, sort) => {
-        let filtered = [...usersList];
-        if (term) {
-            const lowerTerm = term.toLowerCase();
-            filtered = filtered.filter(u =>
-                (u.fullName && u.fullName.toLowerCase().includes(lowerTerm)) ||
-                (u.email && u.email.toLowerCase().includes(lowerTerm))
-            );
-        }
-        filtered.sort((a, b) => {
-            if (sort === "createdAt") {
-                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                return dateB - dateA;
-            } else {
-                return (a.fullName || "").localeCompare(b.fullName || "");
-            }
-        });
-        setDisplayedUsers(filtered);
-        setCurrentPage(1); // Sahifa o'zgarganda birinchisiga qaytish
-    };
-
-    const updateLocalAndCache = (updatedUser, action = 'update') => {
-        let newUsersList = [...allUsers];
-        if (action === 'update') {
-            newUsersList = newUsersList.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u);
-        } else if (action === 'delete') {
-            newUsersList = newUsersList.filter(u => u.id !== updatedUser.id);
-        }
-        setAllUsers(newUsersList);
-        sessionStorage.setItem("admin_all_users", JSON.stringify(newUsersList));
-        applyFilterAndSearch(newUsersList, searchTerm, sortOption);
-    };
-
-    const handleUpdateStatus = async (userId, newType) => {
-        try {
-            await updateDoc(doc(db, "users", userId), { studentType: newType });
-            updateLocalAndCache({ id: userId, studentType: newType });
-            if (selectedUser?.id === userId) setSelectedUser(prev => ({ ...prev, studentType: newType }));
-        } catch (err) { alert("Xato: " + err.message); }
-    };
-
-    const handleAddToGroup = async (groupId) => {
-        if (!selectedUser) return;
-        setProcessing(true);
-        try {
-            await updateDoc(doc(db, "groups", groupId), { studentIds: arrayUnion(selectedUser.id) });
-            await updateDoc(doc(db, "users", selectedUser.id), { studentType: 'group' });
-            updateLocalAndCache({ id: selectedUser.id, studentType: 'group' });
-            alert(`${selectedUser.fullName} guruhga qo'shildi!`);
-            setShowGroupModal(false);
-        } catch (err) { alert("Xato: " + err.message); }
-        finally { setProcessing(false); }
-    };
-
-    const handleBlockUser = async (userId, currentStatus) => {
-        try {
-            const newStatus = !currentStatus;
-            await updateDoc(doc(db, "users", userId), { isBlocked: newStatus });
-            updateLocalAndCache({ id: userId, isBlocked: newStatus });
-            if (selectedUser?.id === userId) setSelectedUser(prev => ({ ...prev, isBlocked: newStatus }));
-        } catch (err) { alert("Xato: " + err.message); }
-    };
-
-    const refreshData = () => {
-        sessionStorage.removeItem("admin_all_users");
-        sessionStorage.removeItem("admin_groups");
-        sessionStorage.removeItem("admin_stats");
-        window.location.reload();
-    }
-
-    // --- RENDER (Skeleton or Content) ---
     if (!isAuthorized || stats.loading) return <DashboardSkeleton />;
 
     return (
         <div className="flex-1 flex flex-col gap-6">
-            {/* DASHBOARD GRID */}
-            <div className="grid grid-cols-12 gap-6">
+            <AdminDashboardStats stats={stats} isDark={isDark} />
+            <AdminDashboardActions isDark={isDark} />
 
-                {/* STATS (Balanced Compact) */}
-                <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white dark:bg-[#1E1E1E] rounded-[20px] p-4 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="flex justify-between items-start z-10 relative">
-                        <div>
-                            <h3 className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-[0.1em] mb-1.5">O'quvchilar</h3>
-                            <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.users}</div>
-                            <div className="text-[10px] text-green-500 mt-1.5 font-bold flex items-center gap-1 px-2 py-0.5 bg-green-500/10 rounded-full w-fit">
-                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                                +12%
-                            </div>
-                        </div>
-                        <div className="p-2 bg-blue-500/5 dark:bg-blue-400/10 rounded-lg text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300">
-                            <Icons.Users className="w-4 h-4" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white dark:bg-[#1E1E1E] rounded-[20px] p-4 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="flex justify-between items-start z-10 relative">
-                        <div>
-                            <h3 className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-[0.1em] mb-1.5">Testlar</h3>
-                            <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : (stats.totalTests ?? stats.tests)}</div>
-                            <div className="text-[10px] text-green-500 mt-1.5 font-bold flex items-center gap-1 px-2 py-0.5 bg-green-500/10 rounded-full w-fit">
-                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                                +5%
-                            </div>
-                        </div>
-                        <div className="p-2 bg-purple-500/5 dark:bg-purple-400/10 rounded-lg text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
-                            <Icons.Test className="w-4 h-4" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white dark:bg-[#1E1E1E] rounded-[20px] p-4 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="flex justify-between items-start z-10 relative">
-                        <div>
-                            <h3 className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-[0.1em] mb-1.5">Natijalar</h3>
-                            <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{stats.loading ? "..." : stats.results}</div>
-                            <div className="text-[10px] text-orange-500 mt-1.5 font-bold flex items-center gap-1 px-2 py-0.5 bg-orange-500/10 rounded-full w-fit">
-                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                                -2%
-                            </div>
-                        </div>
-                        <div className="p-2 bg-orange-500/5 dark:bg-orange-400/10 rounded-lg text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all duration-300">
-                            <Icons.Stats className="w-4 h-4" />
-                        </div>
-                    </div>
-                </div>
-
-
-                {/* ACTION CARDS */}
-                <div className="col-span-12 text-gray-400 dark:text-gray-500 font-bold text-[10px] mt-6 uppercase tracking-[0.2em] pl-1">Tezkor Menyular</div>
-
-                <ActionCard title="Test Yaratish" desc="Yangi Reading/Listening" icon={<Icons.Plus className="w-6 h-6 text-white" />} bg="bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20" onClick={() => navigate('/admin/create-test')} />
-                <ActionCard title="Analitika" desc="Statistika va tahlillar" icon={<Icons.Analytics className="w-6 h-6 text-white" />} bg="bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-600/20" onClick={() => navigate('/admin/analytics')} />
-                <ActionCard title="O'quvchilar" desc="Tahrirlash va ko'rish" icon={<Icons.Users className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none" onClick={() => navigate('/admin/users')} />
-                <ActionCard title="Baholash" desc="Natijalarni tekshirish" icon={<Icons.Stats className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/results')} />
-                <ActionCard title="E'lonlar" desc="Yangiliklar yuborish" icon={<Icons.Megaphone className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/announcements')} />
-                <ActionCard title="Maqolalar" desc="Maqolalar yaratish" icon={<Icons.Newspaper className="w-6 h-6 dark:text-white text-gray-700" />} bg="bg-white dark:bg-[#353535] hover:bg-gray-50 dark:hover:bg-[#404040] shadow-sm dark:shadow-none transition-colors" onClick={() => navigate('/admin/articles')} />
-
-
-
-                {/* ACTIVITY CHART */}
-                <div className="col-span-12 bg-white dark:bg-[#272727] rounded-[24px] p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-gray-900 dark:text-white font-medium">Faollik Statistikasi</h3>
-                        <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
+            {/* ACTIVITY CHART */}
+            <div className={`rounded-[24px] p-6 border transition-colors ${isDark ? 'bg-[#272727] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-gray-900 dark:text-white font-medium">Faollik Statistikasi</h3>
+                    <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
+                        {["week", "month"].map(range => (
                             <button
-                                onClick={() => setChartRange("week")}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${chartRange === 'week' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-white/70'}`}
+                                key={range}
+                                onClick={() => setChartRange(range)}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${chartRange === range ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-white/70'}`}
                             >
-                                Haftalik
+                                {range === 'week' ? 'Haftalik' : 'Oylik'}
                             </button>
-                            <button
-                                onClick={() => setChartRange("month")}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${chartRange === 'month' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-white/70'}`}
-                            >
-                                Oylik
-                            </button>
-                        </div>
+                        ))}
                     </div>
-                    <AdvancedAnalyticsChart
-                        data={chartRange === 'week' ? stats.activityData.slice(-7) : stats.activityData}
-                        height={350}
-                        seriesConfig={[
-                            { key: 'tests', label: 'Bajarilgan Testlar', color: '#3B82F6', type: 'count' },
-                            { key: 'score', label: 'O\'rtacha Ball', color: '#F59E0B', type: 'decimal' },
-                            { key: 'users', label: 'Yangi O\'quvchilar', color: '#EC4899', type: 'count' },
-                        ]}
-                    />
                 </div>
-
-                {/* USER MANAGEMENT LIST */}
-                <div className="col-span-12 bg-white dark:bg-[#272727] rounded-[24px] p-4 md:p-6 border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors">
-
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                        <h3 className="text-gray-900 dark:text-white font-medium flex items-center gap-2">
-                            O'quvchilar Boshqaruvi
-                            {stats.users > 0 && (
-                                <span className="text-[10px] font-normal text-gray-500 dark:text-white/40 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full border border-gray-200 dark:border-white/5">
-                                    {displayedUsers.length} / {stats.users}
-                                </span>
-                            )}
-                        </h3>
-                        <div className="flex gap-2 w-full md:w-auto">
-                            <div className="relative group">
-                                <button className="flex items-center gap-2 bg-gray-100 dark:bg-[#303030] px-3 py-2 rounded-xl text-xs text-gray-700 dark:text-white border border-transparent dark:border-white/5 hover:bg-gray-200 dark:hover:bg-[#383838] transition">
-                                    <Icons.Filter className="w-4 h-4 text-gray-500 dark:text-white/50" />
-                                    <span>{sortOption === "fullName" ? "Alifbo" : "Sana"}</span>
-                                </button>
-                                <div className="absolute right-0 top-full mt-2 w-32 bg-white dark:bg-[#2C2C2C] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-10">
-                                    <button onClick={() => setSortOption("fullName")} className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5">Alifbo bo'yicha</button>
-                                    <button onClick={() => setSortOption("createdAt")} className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5">Ro'yxat sanasi</button>
-                                </div>
-                            </div>
-
-                            <div className="relative w-full md:w-64">
-                                <Icons.Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-white/30" />
-                                <input
-                                    type="text"
-                                    placeholder="Ism bo'yicha qidirish..."
-                                    className="w-full bg-gray-100 dark:bg-[#303030] border border-transparent dark:border-white/5 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition placeholder:text-gray-500 dark:placeholder:text-white/20"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4 md:space-y-2 min-h-[200px]">
-                        {displayedUsers.length === 0 && !loadingUsers && <p className="text-gray-400 dark:text-white/30 text-sm italic text-center py-10">O'quvchi topilmadi.</p>}
-
-                        {displayedUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((user) => {
-                            const userGroup = groups.find(g => g.studentIds && g.studentIds.includes(user.id));
-
-                            // GOD MODE DATA
-                            const { status, text: timeText } = getTimeStatus(user.lastActiveAt);
-                            const isOnline = status === 'online';
-                            const currentActivity = isOnline && user.currentActivity ? user.currentActivity : null;
-
-                            return (
-                                <div key={user.id} className={`flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:p-2 bg-gray-50 dark:bg-[#303030] rounded-2xl md:rounded-xl hover:bg-gray-100 dark:hover:bg-[#383838] transition border border-gray-200 dark:border-white/5 gap-4 md:gap-3 group ${user.isBlocked ? 'opacity-50 grayscale' : ''}`}>
-
-                                    <div className="flex items-center gap-3 w-full md:w-auto cursor-pointer" onClick={() => { setSelectedUser(user); setShowDetailModal(true); }}>
-                                        <div className="relative">
-                                            <div className="w-10 h-10 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-gray-700 dark:text-white font-bold text-sm md:text-xs shadow-sm">
-                                                {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-                                            </div>
-                                            {/* ONLINE INDICATOR */}
-                                            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-[#303030] ${isOnline ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-500'}`}></div>
-                                        </div>
-
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center gap-2">
-                                                <p className="text-sm md:text-xs font-bold text-gray-900 dark:text-gray-200 leading-tight hover:underline">{user.fullName || "Ismsiz"}</p>
-                                                {user.isBlocked && <Icons.Lock className="w-3 h-3 text-red-500" />}
-                                            </div>
-                                            {/* STATUS & ACTIVITY */}
-                                            <div className="flex items-center gap-1.5">
-                                                {isOnline ? (
-                                                    <p className="text-xs md:text-[10px] text-green-600 dark:text-green-400 font-medium">Online</p>
-                                                ) : (
-                                                    <p className="text-xs md:text-[10px] text-gray-500">{timeText}</p>
-                                                )}
-                                            </div>
-                                            {currentActivity && (
-                                                <p className="text-[10px] text-blue-500 dark:text-blue-400 animate-pulse mt-0.5 flex items-center gap-1">
-                                                    <Icons.Activity className="w-3 h-3" />
-                                                    {currentActivity}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between md:justify-end w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t border-gray-200 dark:border-white/5 md:border-t-0">
-                                        <div className="mr-2">
-                                            {userGroup ? (
-                                                <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20 whitespace-nowrap">
-                                                    {userGroup.name}
-                                                </span>
-                                            ) : (
-                                                <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
-                                                    Individual
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => { setSelectedUser(user); setShowDetailModal(true); }}
-                                                className="bg-white dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500 hover:text-blue-600 dark:hover:text-white text-gray-500 dark:text-gray-400 p-2 md:p-1.5 rounded-lg border border-gray-200 dark:border-white/10 transition shadow-sm"
-                                                title="Profilni ko'rish"
-                                            >
-                                                <Icons.Eye className="w-4 h-4 md:w-3.5 md:h-3.5" />
-                                            </button>
-                                            <button
-                                                onClick={() => { setSelectedUser(user); setShowGroupModal(true); }}
-                                                className="bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-white p-2 md:p-1.5 rounded-lg border border-gray-200 dark:border-white/10 transition shadow-sm"
-                                                title="Guruhga qo'shish"
-                                            >
-                                                <Icons.Plus className="w-4 h-4 md:w-3.5 md:h-3.5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* PAGINATION (Balanced Compact) */}
-                    {displayedUsers.length > itemsPerPage && (
-                        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <p className="text-xs text-gray-500 dark:text-white/30 font-medium">
-                                {displayedUsers.length} tadan {(currentPage - 1) * itemsPerPage + 1}-{(Math.min(currentPage * itemsPerPage, displayedUsers.length))} ko'rsatilyapti
-                            </p>
-                            <div className="flex items-center gap-1.5">
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                    className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-white/5 active:scale-90'} ${isDark ? 'border-white/5 bg-white/5 text-white' : 'border-gray-100 bg-white text-gray-600'}`}
-                                >
-                                    <Icons.ChevronLeft size={16} />
-                                </button>
-
-                                {(() => {
-                                    const totalPages = Math.ceil(displayedUsers.length / itemsPerPage);
-                                    let pages = [];
-                                    const delta = 2;
-                                    for (let i = 1; i <= totalPages; i++) {
-                                        if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
-                                            pages.push(i);
-                                        } else if (pages[pages.length - 1] !== '...') {
-                                            pages.push('...');
-                                        }
-                                    }
-                                    return pages.map((p, idx) => (
-                                        p === '...' ? (
-                                            <span key={`ell-${idx}`} className="px-1 text-gray-400">...</span>
-                                        ) : (
-                                            <button
-                                                key={p}
-                                                onClick={() => setCurrentPage(p)}
-                                                className={`w-9 h-9 flex items-center justify-center rounded-xl text-xs font-bold transition-all
-                                                    ${currentPage === p
-                                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                                                        : `border ${isDark ? 'border-white/5 bg-white/5 text-gray-400 hover:text-white' : 'border-gray-100 bg-white text-gray-500 hover:bg-gray-50'}`
-                                                    }
-                                                `}
-                                            >
-                                                {p}
-                                            </button>
-                                        )
-                                    ));
-                                })()}
-
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(displayedUsers.length / itemsPerPage), p + 1))}
-                                    disabled={currentPage === Math.ceil(displayedUsers.length / itemsPerPage)}
-                                    className={`p-2 rounded-xl border transition-all ${currentPage === Math.ceil(displayedUsers.length / itemsPerPage) ? 'opacity-30 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-white/5 active:scale-90'} ${isDark ? 'border-white/5 bg-white/5 text-white' : 'border-gray-100 bg-white text-gray-600'}`}
-                                >
-                                    <Icons.ChevronRight size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {hasMore && displayedUsers.length % itemsPerPage === 0 && (
-                        <div className="mt-6 flex justify-center">
-                            <button
-                                onClick={loadMoreUsers}
-                                disabled={loadingUsers}
-                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-2xl text-sm font-bold shadow-lg shadow-blue-600/20 transition active:scale-95 disabled:opacity-50"
-                            >
-                                {loadingUsers ? (
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                ) : (
-                                    <Icons.Plus className="w-4 h-4" />
-                                )}
-                                <span>Ma'lumotlar bazasidan ko'proq yuklash</span>
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-
+                <AdvancedAnalyticsChart
+                    data={chartRange === 'week' ? stats.activityData?.slice(-7) : stats.activityData}
+                    height={350}
+                    seriesConfig={[
+                        { key: 'tests', label: 'Bajarilgan Testlar', color: '#3B82F6', type: 'count' },
+                        { key: 'score', label: 'O\'rtacha Ball', color: '#F59E0B', type: 'decimal' },
+                        { key: 'users', label: 'Yangi O\'quvchilar', color: '#EC4899', type: 'count' },
+                    ]}
+                />
             </div>
 
-            {/* MODALS */}
-            {showGroupModal && selectedUser && (
-                <GroupSelectionModal
-                    user={selectedUser}
-                    groups={groups}
-                    onClose={() => setShowGroupModal(false)}
-                    onAdd={handleAddToGroup}
-                    processing={processing}
-                />
-            )}
+            <AdminDashboardUsers 
+                users={displayedUsers}
+                totalCount={stats.users}
+                groups={groups}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                sortOption={sortOption}
+                setSortOption={setSortOption}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                onSelectUser={(u) => { setSelectedUser(u); setShowDetailModal(true); }}
+                onShowGroupModal={(u) => { setSelectedUser(u); setShowGroupModal(true); }}
+                isDark={isDark}
+            />
 
-            {showDetailModal && selectedUser && (
-                <UserDetailModal
-                    user={selectedUser}
-                    onClose={() => setShowDetailModal(false)}
-                    onBlock={handleBlockUser}
+            {showDetailModal && (
+                <UserDetailModal 
+                    user={selectedUser} 
+                    onClose={() => setShowDetailModal(false)} 
+                    onBlock={handleBlockUser} 
                     onUpdateType={handleUpdateStatus}
+                    isDark={isDark}
+                />
+            )}
+
+            {showGroupModal && (
+                <GroupSelectionModal 
+                    user={selectedUser} 
+                    groups={groups} 
+                    onClose={() => setShowGroupModal(false)} 
+                    onAdd={handleAddToGroup}
+                    isDark={isDark}
                 />
             )}
         </div>
     );
 }
 
-// --- SUB COMPONENTS (Tuzatilgan Modal bilan) ---
-function UserDetailModal({ user, onClose, onBlock, onUpdateType }) {
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
-    const [results, setResults] = useState([]);
-
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchUserData = async () => {
-            if (!user?.id) return;
-            setLoading(true);
-            try {
-                // 🔥 FIX: sessionStorage cache — qisqa vaqtlik (2 daqiqa)
-                const CACHE_KEY = `user_results_${user.id}`;
-                const CACHE_TIME_KEY = `user_results_time_${user.id}`;
-                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 2 * 60 * 1000);
-
-                if (isCacheValid) {
-                    const cached = sessionStorage.getItem(CACHE_KEY);
-                    if (cached) {
-                        setResults(JSON.parse(cached));
-                        setLoading(false);
-                        return;
-                    }
-                }
-
-                // Oddiy so'rov (Xatosiz ishlash uchun)
-                const q = query(
-                    collection(db, "results"),
-                    where("userId", "==", user.id),
-                    limit(20)
-                );
-
-                const snap = await getDocs(q);
-                const data = snap.docs.map(d => d.data());
-
-                // JavaScriptda saralash (Date yoki CreatedAt bo'yicha)
-                data.sort((a, b) => {
-                    const timeA = a.date?.seconds || a.createdAt?.seconds || 0;
-                    const timeB = b.date?.seconds || b.createdAt?.seconds || 0;
-                    return timeB - timeA;
-                });
-
-                // Cache ga saqlash
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
-                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-
-                setResults(data);
-            } catch (err) {
-                console.error("Detail Fetch Error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUserData();
-    }, [user.id]);
-
-    const totalTests = results.length;
-    const avgScore = totalTests > 0
-        ? (results.reduce((acc, curr) => acc + (parseFloat(curr.score) || 0), 0) / totalTests).toFixed(1)
-        : "0.0";
-
+function DashboardSkeleton() {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-            <div className={`border w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative flex flex-col max-h-[90vh] transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
-
-                <div className="flex justify-between items-start mb-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                            {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-                        </div>
-                        <div>
-                            <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                {user.fullName}
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${user.studentType === 'group' ? 'border-purple-500 text-purple-400' : 'border-blue-500 text-blue-400'}`}>
-                                    {user.studentType === 'group' ? "Guruh o'quvchisi" : "Individual"}
-                                </span>
-                            </h2>
-                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-sm`}>{user.email}</p>
-                            <p className={`${isDark ? 'text-white/20' : 'text-gray-400'} text-xs mt-1`}>ID: {user.id}</p>
-                        </div>
-                    </div>
-                    <button onClick={onClose} className={`${isDark ? 'text-white/40 hover:text-white bg-white/5' : 'text-gray-400 hover:text-gray-600 bg-gray-100'} transition p-2 rounded-full`}>
-                        <Icons.Close className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-6">
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-[#222] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-xs uppercase`}>O'rtacha Ball</p>
-                            <p className="text-2xl font-bold text-yellow-500">{avgScore}</p>
-                        </div>
-                        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-[#222] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-xs uppercase`}>Testlar</p>
-                            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{totalTests}</p>
-                        </div>
-                        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-[#222] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-xs uppercase`}>Holat</p>
-                            <p className={`text-lg font-bold ${user.isBlocked ? 'text-red-500' : 'text-green-500'}`}>
-                                {user.isBlocked ? "Bloklangan" : "Faol"}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 className={`font-medium mb-3 text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>Oxirgi Natijalar</h3>
-                        {loading ? <p className={`${isDark ? 'text-white/30' : 'text-gray-400'} text-xs`}>Yuklanmoqda...</p> : (
-                            <div className="space-y-2">
-                                {results.length > 0 ? results.map((res, idx) => (
-                                    <div key={idx} className={`flex justify-between items-center p-3 rounded-xl border ${isDark ? 'bg-[#222] border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                                        <div>
-                                            <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{res.testTitle || "Test Nomi Yo'q"}</p>
-                                            <p className={`${isDark ? 'text-white/30' : 'text-gray-400'} text-[10px]`}>
-                                                {res.date ? new Date(res.date.seconds * 1000).toLocaleDateString() :
-                                                    res.createdAt ? new Date(res.createdAt.seconds * 1000).toLocaleDateString() : "Sana yo'q"}
-                                            </p>
-                                        </div>
-                                        <div className="bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded text-xs font-bold">
-                                            {res.score || "N/A"}
-                                        </div>
-                                    </div>
-                                )) : <p className={`${isDark ? 'text-white/20' : 'text-gray-400'} text-xs italic`}>Natijalar topilmadi.</p>}
-                            </div>
-                        )}
-                    </div>
-
-                    <div>
-                        <h3 className={`font-medium mb-3 text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>Biriktirilgan Testlar</h3>
-                        <div className="flex flex-wrap gap-2">
-                            {user.assignedTests && user.assignedTests.length > 0 ? (
-                                user.assignedTests.map((test, i) => {
-                                    const testId = typeof test === 'string' ? test : test.id;
-                                    return (
-                                        <span key={i} className={`px-2 py-1 rounded text-[10px] border ${isDark ? 'bg-white/5 border-white/10 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-600'}`}>
-                                            {testId ? testId.substring(0, 8) + "..." : "ID Yo'q"}
-                                        </span>
-                                    )
-                                })
-                            ) : (
-                                <p className={`${isDark ? 'text-white/20' : 'text-gray-400'} text-xs italic`}>Hozircha test biriktirilmagan.</p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                <div className={`mt-6 pt-6 border-t flex justify-between items-center ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
-                    <button
-                        onClick={() => onBlock(user.id, user.isBlocked)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm ${user.isBlocked ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-red-600/10 hover:bg-red-600/20 text-red-600 border border-red-200'}`}
-                    >
-                        {user.isBlocked ? "Blokdan chiqarish" : "Bloklash"}
-                    </button>
-                    <div className="flex gap-2">
-                        <button onClick={onClose} className={`px-4 py-2 rounded-xl text-xs font-medium transition ${isDark ? 'text-white hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}>Yopish</button>
-                    </div>
-                </div>
-
+        <div className="flex-1 p-4 lg:p-6 flex flex-col gap-6 animate-pulse">
+            <div className="grid grid-cols-12 gap-6">
+                {[1, 2, 3].map(i => <div key={i} className="col-span-12 md:col-span-4 h-32 bg-gray-200 dark:bg-white/5 rounded-[24px]"></div>)}
             </div>
+            <div className="h-96 bg-gray-200 dark:bg-white/5 rounded-[24px]"></div>
+            <div className="h-64 bg-gray-200 dark:bg-white/5 rounded-[24px]"></div>
         </div>
-    );
-}
-
-function GroupSelectionModal({ user, groups, onClose, onAdd, processing }) {
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className={`border w-full max-w-sm rounded-3xl p-6 shadow-2xl relative transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
-
-                <button onClick={onClose} className={`absolute top-4 right-4 transition ${isDark ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`}>
-                    <Icons.Close className="w-6 h-6" />
-                </button>
-                <div className="text-center mb-6">
-                    <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Guruh tanlang</h2>
-                    <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-sm mt-1`}>
-                        <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.fullName}</span> ni qaysi guruhga biriktiramiz?
-                    </p>
-                </div>
-                <div className="space-y-2 mb-6 max-h-48 overflow-y-auto custom-scrollbar">
-                    {groups.length > 0 ? (
-                        groups.map(group => (
-                            <button
-                                key={group.id}
-                                onClick={() => onAdd(group.id)}
-                                className={`w-full p-3.5 rounded-xl border text-left transition flex items-center justify-between group-hover ${isDark ? 'border-white/5 bg-[#222] hover:bg-[#333]' : 'border-gray-100 bg-gray-50 hover:bg-gray-100'}`}
-                            >
-                                <span className={`font-medium text-sm transition ${isDark ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-gray-900'}`}>{group.name}</span>
-                                <Icons.Plus className="w-4 h-4 text-gray-500" />
-                            </button>
-                        ))
-                    ) : (
-                        <p className={`text-center text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Guruhlar mavjud emas.</p>
-                    )}
-                </div>
-                {processing && <p className="text-center text-xs text-blue-500 animate-pulse">Bajarilmoqda...</p>}
-            </div>
-        </div>
-
-    );
-}
-
-function SidebarBtn({ icon, active, onClick }) {
-    return (
-        <button onClick={onClick} className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 group relative ${active ? "bg-white text-black shadow-lg shadow-white/10" : "text-white/40 hover:text-white hover:bg-white/10"}`}>
-            <div className="w-5 h-5">{icon}</div>
-        </button>
-    );
-}
-
-function ActionCard({ title, desc, icon, bg, onClick }) {
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
-    const isPrimaryAction = bg.includes('bg-blue-600') || bg.includes('bg-purple-600');
-
-    return (
-        <button onClick={onClick} className={`col-span-6 md:col-span-3 lg:col-span-2 rounded-[16px] p-4 text-left transition-all duration-300 active:scale-95 flex flex-col justify-between h-28 border group ring-offset-2 focus:ring-2 focus:ring-blue-500/20 outline-none
-            ${isDark ? 'border-white/5' : 'border-gray-100'} 
-            ${isPrimaryAction ? 'text-white' : 'bg-white dark:bg-[#1E1E1E] hover:bg-gray-50 dark:hover:bg-[#252525] shadow-sm'}
-            ${bg}
-        `}>
-            <div className={`p-1.5 rounded-lg w-fit transition-transform duration-300 group-hover:scale-110 shadow-sm
-                ${isPrimaryAction ? 'bg-white/20' : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300'}
-            `}>
-                {React.cloneElement(icon, { size: 16, className: isPrimaryAction ? 'text-white' : '' })}
-            </div>
-            <div className="mt-2">
-                <h4 className={`font-bold text-[12px] leading-tight ${isPrimaryAction ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{title}</h4>
-                <p className={`text-[10px] mt-1 leading-tight opacity-70 ${isPrimaryAction ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`}>{desc}</p>
-            </div>
-        </button>
     );
 }

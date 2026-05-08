@@ -72,7 +72,7 @@ const TestBasicInfo = ({ testData, setTestData, collections, isDark }) => {
                 </div>
                 <div className="md:col-span-2">
                     <label className="text-xs font-bold mb-1.5 block opacity-60">Taglar</label>
-                    <TagSelector selectedTags={testData.tags || []} onTagsChange={handleTagsChange} />
+                    <TagSelector selectedTags={testData.tags || []} onChange={handleTagsChange} />
                 </div>
             </div>
         </div>

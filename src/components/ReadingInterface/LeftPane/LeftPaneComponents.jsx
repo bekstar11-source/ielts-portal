@@ -80,6 +80,7 @@ export const PassageWithDropZones = memo(({
         const mapping = {};
         const unmappedQuestions = [];
         
+        // Step 1: Map questions that have an explicit locationId
         questions.forEach(q => {
             if (q.locationId) {
                 const locTarget = paragraphs.findIndex(p => p.includes(`id="${q.locationId}"`));
@@ -91,36 +92,53 @@ export const PassageWithDropZones = memo(({
             unmappedQuestions.push(q);
         });
         
-        if (unmappedQuestions.length > 0) {
-            const contentParagraphIndices = paragraphs
-                .map((p, i) => ({ html: p, index: i }))
-                .filter(({ html, index }) => {
-                    if (mapping[index]) return false;
+        if (unmappedQuestions.length === 0) return mapping;
 
-                    const textOnly = html.replace(/<[^>]+>/g, '').trim();
-                    const isHeadingTag = /^<h[1-4]/i.test(html.trim());
-                    
-                    if (isHeadingTag || textOnly.length < 20) return false;
+        // Step 2: Detect IELTS labeled paragraphs (A, B, C, ... or i, ii, ...)
+        // A labeled paragraph is a <p> block whose text content starts with
+        // a single uppercase letter (or roman numeral) followed by a space + more text.
+        const isLabeledParagraph = (html) => {
+            // Skip heading tags — they're titles, not paragraph labels
+            if (/^<h[1-6]/i.test(html.trim())) return false;
 
-                    if (index < 2) {
-                        const hasParaLabel = /^\s*(Paragraph\s+)?[A-Za-z0-9ivx]+\s*[\.\s\)]/i.test(textOnly) || 
-                                           /^(<b>|<strong>)\s*[A-Za-z0-9]\s*(<\/b>|<\/strong>)/i.test(html.trim());
-                        
-                        if (!hasParaLabel && textOnly.length < 200) {
-                            return false; 
-                        }
-                    }
+            const textOnly = html.replace(/<[^>]+>/g, '').trim();
 
-                    return true;
-                })
-                .map(({ index }) => index);
-            
-            unmappedQuestions.forEach((q, idx) => {
-                if (idx < contentParagraphIndices.length) {
-                    mapping[contentParagraphIndices[idx]] = q;
-                }
-            });
-        }
+            // Must have substantive content
+            if (textOnly.length < 30) return false;
+
+            // Pattern 1: <strong>A</strong> or <b>A</b> at the very start of a <p>
+            // Matches: <p><strong>A</strong> When Irish...
+            if (/^<p[^>]*>\s*(<strong>|<b>)\s*[A-Z]\s*(<\/strong>|<\/b>)/i.test(html.trim())) {
+                return true;
+            }
+
+            // Pattern 2: Plain text starts with a single uppercase letter then a space
+            // then another uppercase letter (the actual sentence start).
+            // e.g. "A When Irish archaeologists..."  or "B Simpson's findings..."
+            if (/^[A-Z]\s+[A-Z]/.test(textOnly)) {
+                return true;
+            }
+
+            // Pattern 3: Roman numeral label (i, ii, iii, iv, v...)
+            if (/^(i{1,3}v?|iv|vi{0,3}|ix|x)\s+[A-Z]/i.test(textOnly)) {
+                return true;
+            }
+
+            return false;
+        };
+
+        // Collect labeled paragraph indices in document order
+        const labeledIndices = paragraphs
+            .map((html, i) => ({ html, index: i }))
+            .filter(({ html, index }) => !mapping[index] && isLabeledParagraph(html))
+            .map(({ index }) => index);
+
+        // Step 3: Map unmapped questions in order to labeled paragraphs
+        unmappedQuestions.forEach((q, idx) => {
+            if (idx < labeledIndices.length) {
+                mapping[labeledIndices[idx]] = q;
+            }
+        });
         
         return mapping;
     }, [questions, paragraphs]);

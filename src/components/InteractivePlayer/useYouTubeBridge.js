@@ -36,7 +36,9 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                 playerVars: {
                     autoplay: 1,
                     modestbranding: 1,
-                    rel: 0
+                    rel: 0,
+                    enablejsapi: 1,
+                    origin: window.location.origin
                 },
                 events: {
                     onReady: (event) => {

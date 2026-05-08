@@ -106,7 +106,7 @@ export default function ReadingInterface({
         });
         const passageStorageKey = `reading_session_${currentTestId}_passage_${passageIndex}`;
         const contentDiv = document.getElementById('reading-content-display');
-        if (contentDiv) {
+        if (contentDiv && !isReviewMode) {
             localStorage.setItem(passageStorageKey, JSON.stringify({
                 html: contentDiv.innerHTML,
                 timestamp: Date.now()

@@ -10,7 +10,7 @@ import StudentsTab from '../components/admin/AdminUsers/StudentsTab';
 import GroupsTab from '../components/admin/AdminUsers/GroupsTab';
 import AssignTab from '../components/admin/AdminUsers/AssignTab';
 import SetsTab from '../components/admin/AdminUsers/SetsTab';
-import { TabButton } from '../components/admin/AdminUsers/AdminUsersUtils';
+import { TabButton } from '@/components/admin/AdminUsers/AdminUsersUtils';
 
 export default function AdminUsers() {
     const { theme } = useTheme();

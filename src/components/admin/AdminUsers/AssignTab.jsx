@@ -4,7 +4,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { db } from '../../../firebase/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { CustomDateInput, customDatepickerStyles } from './AdminUsersUtils';
+import { CustomDateInput, customDatepickerStyles } from '@/components/admin/AdminUsers/AdminUsersUtils';
 
 const AssignTab = ({ groups, students, allTests, theme }) => {
     const isDark = theme === 'dark';

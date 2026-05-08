@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { BookPlus, Check, ArrowRightLeft, Loader2, StickyNote } from "lucide-react";
+import { BookPlus, Check, ArrowRightLeft, Loader2, StickyNote, Eraser } from "lucide-react";
 
-export default function HighlightMenu({ position, onHighlight, onClear, onAddDictionary, isReviewMode, onAddToWordBank, onAddNote, source }) {
+export default function HighlightMenu({ position, onHighlight, onClear, onClearAllHighlights, onAddDictionary, isReviewMode, onAddToWordBank, onAddNote, source }) {
     const [isAdded, setIsAdded] = useState(false);
     const [isWBAdded, setIsWBAdded] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -18,6 +18,11 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
     const handleAddNote = (e) => {
         e.preventDefault();
         if (onAddNote) onAddNote();
+    };
+
+    const handleClearAll = (e) => {
+        e.preventDefault();
+        if (onClearAllHighlights) onClearAllHighlights();
     };
 
     const handleAddDict = async (e) => {
@@ -76,7 +81,7 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
 
     return (
         <div
-            className="fixed z-[1000] flex items-center gap-1 bg-gray-900/90 backdrop-blur-md text-white px-1.5 py-1 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2 animate-in fade-in zoom-in slide-in-from-bottom-2 duration-200"
+            className="fixed z-[1000] flex items-center gap-1 bg-gray-900/90 backdrop-blur-md text-white px-1.5 py-1 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2"
             style={{
                 top: position.top,
                 left: position.left
@@ -100,6 +105,16 @@ export default function HighlightMenu({ position, onHighlight, onClear, onAddDic
                     <div className="w-3.5 h-3.5 rounded-full bg-green-300 border border-green-400 group-hover:scale-110 shadow-sm transition-transform"></div>
                 </button>
             </div>
+
+            <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
+
+            <button
+                className="flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group text-red-400"
+                onMouseDown={handleClearAll}
+                title="Barcha highlightlarni o'chirish"
+            >
+                <Eraser size={16} className="group-hover:scale-110 transition-transform" />
+            </button>
 
             <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
 

@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef, useState, useCallback } from "react";
 import HighlightMenu from "./HighlightMenu";
 import useTextSelection from "../../hooks/useTextSelection";
-import { ensureParagraphs } from './LeftPane/LeftPaneUtils';
+import { ensureParagraphs, stripReviewHighlights } from './LeftPane/LeftPaneUtils';
 import { ContentDisplay, PassageWithDropZones } from './LeftPane/LeftPaneComponents';
 
 const ReadingLeftPane = memo(({
@@ -21,11 +21,15 @@ const ReadingLeftPane = memo(({
     onOpenNotes
 }) => {
     const containerRef = useRef(null);
-    const [displayContent, setDisplayContent] = useState(() => ensureParagraphs(content));
+    const [displayContent, setDisplayContent] = useState(() => {
+        const base = isReviewMode ? content : stripReviewHighlights(content);
+        return ensureParagraphs(base);
+    });
 
     useEffect(() => {
-        setDisplayContent(ensureParagraphs(content));
-    }, [content]);
+        const base = isReviewMode ? content : stripReviewHighlights(content);
+        setDisplayContent(ensureParagraphs(base));
+    }, [content, isReviewMode]);
 
     const { menuPos, handleTextSelection, applyHighlight, applyNote, clearSelection, addToDictionary } = useTextSelection();
 
@@ -45,10 +49,18 @@ const ReadingLeftPane = memo(({
                 if (Date.now() - parsed.timestamp < 30 * 24 * 60 * 60 * 1000) {
                     let html = parsed.html;
 
-                    if (hasMatchingHeadings && html.includes('data-reading-slot')) {
+                    if (html.includes('data-reading-slot') || html.includes('keyword-highlight') || html.includes('<mark')) {
                         const temp = document.createElement('div');
                         temp.innerHTML = html;
+                        
+                        // Remove reading slots
                         temp.querySelectorAll('[data-reading-slot="true"]').forEach(s => s.remove());
+                        
+                        // Remove review-mode keyword highlights but keep the text
+                        temp.querySelectorAll('.keyword-highlight, mark').forEach(m => {
+                            const text = document.createTextNode(m.textContent);
+                            m.parentNode.replaceChild(text, m);
+                        });
                         
                         let clean = "";
                         Array.from(temp.childNodes).forEach(node => {
@@ -67,12 +79,13 @@ const ReadingLeftPane = memo(({
                 console.error("Error parsing saved highlights:", e);
             }
         } else {
-            setDisplayContent(ensureParagraphs(content));
+            const base = isReviewMode ? content : stripReviewHighlights(content);
+            setDisplayContent(ensureParagraphs(base));
         }
     }, [storageKey, content, isReviewMode, hasMatchingHeadings]);
 
     const saveCurrentContent = useCallback(() => {
-        if (!containerRef.current || !storageKey) return;
+        if (!containerRef.current || !storageKey || isReviewMode) return;
 
         const contentDiv = containerRef.current.querySelector('#reading-content-display');
         if (contentDiv) {
@@ -140,6 +153,21 @@ const ReadingLeftPane = memo(({
         }
     }, [saveCurrentContent, onOpenNotes]);
 
+    const handleClearAllHighlights = useCallback(() => {
+        if (!containerRef.current) return;
+        const contentDiv = containerRef.current.querySelector('#reading-content-display');
+        if (!contentDiv) return;
+
+        const highlights = contentDiv.querySelectorAll('.highlight-mark:not(.note-highlight)');
+        highlights.forEach(span => {
+            const text = document.createTextNode(span.textContent);
+            span.parentNode.replaceChild(text, span);
+        });
+        
+        saveCurrentContent();
+        clearSelection();
+    }, [saveCurrentContent, clearSelection]);
+
     const handleMenuAction = (action) => {
         if (action === 'note') {
             const noteInfo = applyNote(saveCurrentContent);
@@ -157,6 +185,7 @@ const ReadingLeftPane = memo(({
                 position={menuPos}
                 onHighlight={handleMenuAction}
                 onClear={clearSelection}
+                onClearAllHighlights={handleClearAllHighlights}
                 onAddDictionary={() => addToDictionary({ sectionTitle: title, testTitle: passageLabel || "Reading Test" })}
                 isReviewMode={isReviewMode}
                 onAddToWordBank={onAddToWordBank}

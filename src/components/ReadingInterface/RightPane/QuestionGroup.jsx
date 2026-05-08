@@ -7,10 +7,9 @@ import {
     MatchingGridQuestion,
     ReadingDraggableHeading,
     FlowChartQuestion,
-    QuestionExplanation,
-    toRoman
+    QuestionExplanation
 } from '../ReadingQuestionTypes';
-import { getRangeLabel, cleanInstructions } from './RightPaneUtils';
+import { getRangeLabel, cleanInstructions, toRoman } from './RightPaneUtils';
 
 const QuestionGroup = ({ 
     group, 

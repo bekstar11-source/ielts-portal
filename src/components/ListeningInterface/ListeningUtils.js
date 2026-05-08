@@ -37,3 +37,28 @@ export const getStatusStyles = (isReviewMode, isCorrect, isSelected = false, typ
         return "border-red-500 bg-red-50 text-red-700 font-bold ring-1 ring-red-500";
     }
 };
+
+/**
+ * Matn oxiridagi savol raqamini olib tashlaydi.
+ */
+export const stripLeadingId = (val, id) => {
+    if (!val) return "";
+    const text = (typeof val === 'object') ? (val.text || val.label || val.content || "") : val;
+    if (id == null) return text;
+    return String(text)
+        .replace(new RegExp(`\\b${id}\\s*$`), '')   
+        .replace(new RegExp(`^\\s*${id}\\b\.?\\s*`), '') 
+        .trim();
+};
+
+/**
+ * Variant matni boshidagi "A. ", "B) " kabi belgilarni olib tashlaydi.
+ */
+export const stripLeadingOptionLabel = (val) => {
+    if (!val) return "";
+    const text = (typeof val === 'object') ? (val.text || val.label || val.content || "") : val;
+    const stripped = String(text)
+        .replace(/^\s*[A-Z][\.\)\-]\s+/, '') 
+        .trim();
+    return stripped || String(text).trim();
+};

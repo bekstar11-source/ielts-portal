@@ -1,657 +1,111 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { db } from "../firebase/firebase";
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, setDoc, increment, serverTimestamp, writeBatch } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
-import { calculateBandScore, checkAnswer, scoreMultiAnswer, isMultiAnswerType } from "../utils/ieltsScoring";
-import { logAction } from "../utils/logger";
+
+// Modular Hooks
+import { useTestFetch } from "./test/useTestFetch";
+import { useTestTimer } from "./test/useTestTimer";
+import { useTestAnswers } from "./test/useTestAnswers";
+import { useTestScoring } from "./test/useTestScoring";
+import { useTestSubmission } from "./test/useTestSubmission";
 
 export function useTestLogic() {
     const { testId } = useParams();
     const navigate = useNavigate();
     const { user, userData } = useAuth();
+    const stateRef = useRef({});
 
-    // STATES
-    const [test, setTest] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // UI & Navigation States
     const [testMode, setTestMode] = useState(null);
     const [showModeSelection, setShowModeSelection] = useState(true);
-    const [userAnswers, setUserAnswers] = useState({});
-    const [writingEssay, setWritingEssay] = useState("");
-    const [flaggedQuestions, setFlaggedQuestions] = useState(new Set());
     const [showResult, setShowResult] = useState(false);
     const [score, setScore] = useState(0);
     const [bandScore, setBandScore] = useState(0);
-    const [saving, setSaving] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(3600);
     const [textSize, setTextSize] = useState('text-base');
     const [isReviewing, setIsReviewing] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [startedAt] = useState(new Date());
-    const stateRef = useRef({});
 
     // Audio States
     const [activePart, setActivePart] = useState(0);
     const [audioTime, setAudioTime] = useState(0);
 
-    // 1. TESTNI YUKLASH
+    // Modularized Logic
+    const { test, loading } = useTestFetch(testId, user, userData, navigate);
+    const { userAnswers, setUserAnswers, writingEssay, setWritingEssay, flaggedQuestions, handleSelectAnswer, toggleFlag } = useTestAnswers();
+    const { timeLeft, setTimeLeft } = useTestTimer(testId, user?.uid, testMode, 3600, !!test && !showModeSelection && !showResult);
+    const { calculateScore } = useTestScoring();
+    const { saving, submitTest } = useTestSubmission(user, userData);
+
+    // Initialize Mode & Settings
     useEffect(() => {
-        if (!testId || !user) return;
+        if (!test) return;
+        const type = test.type?.toLowerCase();
+        const draftKey = `draft_${user.uid}_${test.id}`;
+        const savedDraft = localStorage.getItem(draftKey);
+        const savedMode = localStorage.getItem(`mode_${user.uid}_${test.id}`);
 
-        const fetchTest = async () => {
-            try {
-                // --- ADMIN OPTIMIZATION ---
-                if (userData?.role === 'admin') {
-                    const docSnap = await getDoc(doc(db, "tests", testId));
-                    if (docSnap.exists()) {
-                        const data = { id: docSnap.id, ...docSnap.data() };
-                        if (data.type) data.type = data.type.toLowerCase(); // 🔥 NORMALIZE TYPE
-                        setTest(data);
-                        initializeTestSettings(data);
-                    } else {
-                        alert("Test bazadan topilmadi!");
-                        navigate("/dashboard");
-                    }
-                    setLoading(false);
-                    return;
-                }
+        if (savedDraft) {
+            try { setUserAnswers(JSON.parse(savedDraft)); } catch { setWritingEssay(savedDraft); }
+        }
 
-                // --- STUDENT OPTIMIZATION: Parallelize everything ---
-                let rawAssignments = [];
-                let setsMap = {};
-                
-                // 1) CACHE TEKSHIRUVI (User va Groups)
-                const CACHE_KEY = `student_raw_assignments_${user.uid}`;
-                const CACHE_TIME_KEY = `student_raw_time_${user.uid}`;
-                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
-
-                const fetchPromises = [getDoc(doc(db, "tests", testId))];
-
-                if (isCacheValid && sessionStorage.getItem(CACHE_KEY)) {
-                    rawAssignments = JSON.parse(sessionStorage.getItem(CACHE_KEY));
-                } else {
-                    fetchPromises.push(getDoc(doc(db, 'users', user.uid)));
-                    fetchPromises.push(getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))));
-                }
-
-                // 🚀 OPTIMIZATION: Pull results query into the main parallel batch
-                fetchPromises.push(getDocs(
-                    query(
-                        collection(db, 'results'),
-                        where('userId', '==', user.uid),
-                        where('testId', '==', testId)
-                    )
-                ));
-
-                const results = await Promise.all(fetchPromises);
-                const testSnap = results[0];
-                
-                // Assign results depending on whether cache was used or not
-                let prevSnap;
-                if (fetchPromises.length === 2) { // testSnap + resultsSnap (cache was valid)
-                    prevSnap = results[1];
-                } else if (fetchPromises.length === 4) { // all docs (cache was invalid)
-                    const userSnap = results[1];
-                    const groupsSnap = results[2];
-                    prevSnap = results[3];
-                    
-                    const currentUserData = userSnap?.data();
-                    if (currentUserData?.assignedTests) rawAssignments.push(...currentUserData.assignedTests);
-                    groupsSnap?.docs?.forEach(doc => { 
-                        const gData = doc.data(); 
-                        if (gData.assignedTests) rawAssignments.push(...gData.assignedTests); 
-                    });
-                    sessionStorage.setItem(CACHE_KEY, JSON.stringify(rawAssignments));
-                    sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-                } else {
-                     // Fallback for unexpected lengths
-                     prevSnap = results[results.length - 1];
-                }
-
-                if (!testSnap.exists()) {
-                    alert("Test bazadan topilmadi!");
-                    navigate("/dashboard");
-                    setLoading(false);
-                    return;
-                }
-
-                const testData = { id: testSnap.id, ...testSnap.data() };
-                if (testData.type) testData.type = testData.type.toLowerCase();
-
-                // 2) Kesh testSets (Faqatgina to'plamlar kiritilgan bo'lsa)
-                const assignedSetIds = rawAssignments
-                    .filter(a => (typeof a === 'object' && a.type === 'set') || (typeof a === 'string' && a.startsWith('SET_')))
-                    .map(a => typeof a === 'string' ? a.trim() : String(a.id).trim());
-
-                if (assignedSetIds.length > 0) {
-                    const SETS_CACHE_KEY = `student_sets_map`;
-                    const SETS_TIME_KEY = `student_sets_time`;
-                    const setsTime = sessionStorage.getItem(SETS_TIME_KEY);
-                    const isSetsCacheValid = setsTime && (Date.now() - parseInt(setsTime) < 15 * 60 * 1000);
-                    
-                    if (isSetsCacheValid && sessionStorage.getItem(SETS_CACHE_KEY)) {
-                        setsMap = JSON.parse(sessionStorage.getItem(SETS_CACHE_KEY));
-                    } else {
-                        // 🚀 OPTIMIZATION: Fetch specific sets only
-                        const setPromises = assignedSetIds.map(sid => getDoc(doc(db, 'testSets', sid)));
-                        const setSnaps = await Promise.all(setPromises);
-                        setSnaps.forEach(s => { if (s.exists()) setsMap[s.id] = s.data(); });
-                        
-                        sessionStorage.setItem(SETS_CACHE_KEY, JSON.stringify(setsMap));
-                        sessionStorage.setItem(SETS_TIME_KEY, Date.now().toString());
-                    }
-                }
-
-                // --- ATTEMPT LIMIT & PERMISSION CHECK ---
-                let maxAttempts = 1;
-                let isBlockedByStrict = false;
-                let hasValidAssignment = false;
-                const now = new Date();
-
-                rawAssignments.forEach(a => {
-                    const aid = typeof a === 'string' ? a.trim() : String(a.id).trim();
-                    const atype = typeof a === 'string' ? 'test' : (a.type || 'test');
-                    const aMax = a.maxAttempts || 1;
-                    const isStrict = a.isStrict || false;
-                    const end = a.endDate ? new Date(a.endDate) : null;
-                    const isExpired = end && now > end;
-
-                    let appliesToThisTest = false;
-
-                    if (aid === String(testId).trim() && atype === 'test') {
-                        appliesToThisTest = true;
-                    } else if (atype === 'set') {
-                        const setSchema = setsMap[aid];
-                        appliesToThisTest = setSchema?.testIds?.some(tid => String(tid).trim() === String(testId).trim());
-                    }
-
-                    if (appliesToThisTest) {
-                        if (aMax > maxAttempts) maxAttempts = aMax;
-                        if (isStrict && isExpired) {
-                            isBlockedByStrict = true;
-                        } else {
-                            hasValidAssignment = true;
-                        }
-                    }
-                });
-
-                if (isBlockedByStrict && !hasValidAssignment) {
-                    alert("Ushbu testning muddati tugagan (Strict Mode)!");
-                    navigate("/dashboard");
-                    return;
-                }
-
-                // 1) Avval tez LocalStorage tekshiruvi
-                const completedKey = `completed_${user.uid}_${testId}_exam`;
-                const localAttempts = parseInt(localStorage.getItem(completedKey) || '0', 10);
-                if (localAttempts >= maxAttempts) {
-                    alert(`Siz bu testni topshirish limitiga yetgansiz (${maxAttempts} marta)!`);
-                    navigate("/dashboard");
-                    return;
-                }
-
-                // 2) Firestore tekshiruvi (Already fetched above)
-                if (prevSnap && prevSnap.size >= maxAttempts) {
-                    localStorage.setItem(completedKey, prevSnap.size.toString());
-                    alert(`Siz bu testni topshirish limitiga yetgansiz (${maxAttempts} marta)!`);
-                    navigate("/dashboard");
-                    return;
-                }
-
-                setTest(testData);
-                initializeTestSettings(testData);
-
-            } catch (error) { 
-                console.error("Xatolik:", error); 
-                alert("Testni yuklashda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
-            } finally { 
-                setLoading(false); 
-            }
-        };
-
-        const initializeTestSettings = (data) => {
-            const type = data.type?.toLowerCase()?.trim();
-            const draftKey = `draft_${user.uid}_${data.id}`;
-            const savedDraft = localStorage.getItem(draftKey);
-
-            // 1. Timer initialization
-            const savedTime = localStorage.getItem(`timer_${user.uid}_${data.id}`);
-            if (savedTime) setTimeLeft(parseInt(savedTime));
-            else {
-                if (type === 'listening') setTimeLeft(2400);
-                else if (type === 'writing') setTimeLeft(3600);
-                else if (type === 'speaking') setTimeLeft(900);
-                else setTimeLeft(3600);
-            }
-
-            // 2. Answers initialization
-            if (type === 'writing' && savedDraft) {
-                try { 
-                    const parsed = JSON.parse(savedDraft); 
-                    if (typeof parsed === 'object') setUserAnswers(parsed); 
-                    else setWritingEssay(savedDraft); 
-                } catch { setWritingEssay(savedDraft); }
-            } else if (savedDraft) { 
-                try { setUserAnswers(JSON.parse(savedDraft)); } catch (e) { } 
-            }
-
-            // 3. Mode Selection initialization
-            const canSelectMode = type === 'reading' || type === 'listening' || type === 'writing';
-            const savedMode = localStorage.getItem(`mode_${user.uid}_${data.id}`);
-
-            if (canSelectMode) {
-                // Faqat draft bo'lsa va oldin rejim tanlangan bo'lsa modalni yashiramiz
-                if (savedMode && savedDraft) {
-                    setTestMode(savedMode);
-                    setShowModeSelection(false);
-                } else {
-                    setShowModeSelection(true);
-                    setTestMode(null);
-                }
-            } else {
-                // Speaking va boshqalar uchun har doim Exam mode
-                setTestMode('exam');
+        if (['reading', 'listening', 'writing'].includes(type)) {
+            if (savedMode && savedDraft) {
+                setTestMode(savedMode);
                 setShowModeSelection(false);
             }
-        };
+        } else {
+            setTestMode('exam');
+            setShowModeSelection(false);
+        }
+    }, [test]);
 
-        fetchTest();
-    }, [testId, navigate, user, userData?.role]);
-
-    // 2. TIMER LOGIC
-    useEffect(() => {
-        if (showResult || loading || showModeSelection || !test) return;
-        if (testMode === 'exam' && timeLeft <= 0) return;
-
-        const timerId = setInterval(() => {
-            setTimeLeft(prev => {
-                const newVal = testMode === 'practice' ? prev + 1 : prev - 1;
-                // ✅ YECHIM 4: Har 1 soniyada bir marta localStorage ga yozish
-                localStorage.setItem(`timer_${user.uid}_${testId}`, newVal);
-                return newVal;
-            });
-        }, 1000);
-        return () => clearInterval(timerId);
-    }, [timeLeft, showResult, loading, user.uid, testId, showModeSelection, test, testMode]);
-
-    // 3. AUTO SAVE
+    // Auto Save
     useEffect(() => {
         if (!test || showResult) return;
         const draftKey = `draft_${user.uid}_${test.id}`;
-        if (test.type === 'writing') {
-            const dataToSave = test.writingTasks ? JSON.stringify(userAnswers) : writingEssay;
-            localStorage.setItem(draftKey, dataToSave);
-        } else if (test.type === 'reading' || test.type === 'listening') {
-            localStorage.setItem(draftKey, JSON.stringify(userAnswers));
-        }
-        if ((test.type === 'listening' || test.type === 'reading') && testMode) {
-            localStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
-        }
-    }, [writingEssay, userAnswers, test, user.uid, showResult, testMode]);
+        localStorage.setItem(draftKey, JSON.stringify(userAnswers));
+        if (testMode) localStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
+    }, [userAnswers, test, testMode, showResult]);
 
-    // ANTI-CHEAT: TAB CLOSE DETECTION
+    // Anti-Cheat
     useEffect(() => {
-        stateRef.current = { testMode, showResult, saving, submitFunc: handleSubmit };
-    }, [testMode, showResult, saving]); // we don't put handleSubmit in deps to avoid constant updates if it's not memoized, but in React it's recreated. Let's just update the ref on render.
-
-    useEffect(() => {
-        stateRef.current.submitFunc = handleSubmit;
+        stateRef.current = { testMode, showResult, saving, handleSubmit };
     });
 
-    useEffect(() => {
-        const handleBeforeUnload = (e) => {
-            const { testMode, showResult, saving } = stateRef.current;
-            if (testMode && !showResult && !saving) {
-                e.preventDefault();
-                e.returnValue = "Sahifani yopsangiz, test natijangiz avtomatik yuboriladi!";
-                return e.returnValue;
-            }
+    const handleSubmit = async (violationType = null) => {
+        if (!test) return;
+        const { correctCount, totalQ, band, mistakes } = calculateScore(test, userAnswers);
+        
+        const resultData = {
+            testId: test.id,
+            testTitle: test.title,
+            type: test.type,
+            mode: testMode,
+            date: new Date().toISOString(),
+            score: correctCount,
+            bandScore: band,
+            totalQuestions: totalQ,
+            violation: typeof violationType === 'string' ? violationType : null
         };
 
-        const handlePageHide = () => {
-            const { testMode, showResult, saving, submitFunc } = stateRef.current;
-            if (testMode && !showResult && !saving && submitFunc) {
-                submitFunc('tab_closed');
-            }
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        window.addEventListener('pagehide', handlePageHide);
-
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-            window.removeEventListener('pagehide', handlePageHide);
-        };
-    }, []);
-
-    // HANDLERS
-    const handleSelectAnswer = (questionId, option) => {
-        if (showResult && !isReviewing) return;
-        if (isReviewing) return;
-        setUserAnswers(prev => {
-            if (prev[questionId] === option) return prev;
-            return { ...prev, [questionId]: option };
-        });
-    };
-
-    const toggleFlag = (questionId) => {
-        setFlaggedQuestions(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(questionId)) newSet.delete(questionId);
-            else newSet.add(questionId);
-            return newSet;
-        });
+        const success = await submitTest(test, resultData, mistakes);
+        if (success) {
+            setScore(correctCount);
+            setBandScore(band);
+            setShowResult(true);
+            localStorage.removeItem(`draft_${user.uid}_${test.id}`);
+            localStorage.removeItem(`timer_${user.uid}_${test.id}`);
+        }
     };
 
     const handleToggleFullScreen = () => {
         if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch((err) => console.error(err));
+            document.documentElement.requestFullscreen();
             setIsFullScreen(true);
         } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-                setIsFullScreen(false);
-            }
-        }
-    };
-
-    const handleSubmit = async (violationType = null) => {
-        const vType = typeof violationType === 'string' ? violationType : null;
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small UI delay
-        setSaving(true);
-
-        try {
-            // 1. Calculate Score
-            let correctCount = 0;
-            let totalQ = 0;
-            let resultData = {
-                userId: user.uid,
-                userName: userData?.fullName || user.email || 'Unknown User',
-                testId: test.id,
-                testTitle: test.title || 'Untitled Test',
-                type: test.type,
-                mode: testMode || 'practice',
-                date: new Date().toISOString(),
-                createdAt: serverTimestamp(),
-                startedAt: typeof startedAt === 'object' ? startedAt.toISOString() : new Date().toISOString(),
-                userAnswers: userAnswers || {}
-            };
-                    
-                    if (vType) {
-                        resultData.violation = vType;
-                    }
-
-                    let mistakes = [];
-
-                    if (test.type === 'reading' || test.type === 'listening') {
-                        const scoredIds = new Set();
-                        let localCorrect = 0;
-                        let localTotal = 0;
-                        let localMistakes = [];
-
-                        const getWeight = (id) => {
-                            if (!id) return 1;
-                            const s = String(id).trim();
-                            if (s.includes('-')) {
-                                const parts = s.split('-').map(n => parseInt(n));
-                                if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                                   return Math.abs(parts[1] - parts[0]) + 1;
-                                }
-                            }
-                            if (s.includes(',')) return s.split(',').length;
-                            return 1;
-                        };
-
-                        const walk = (obj, parentType) => {
-                            if (!obj || typeof obj !== 'object') return;
-                            const currentType = String(obj.type || parentType || "").toLowerCase();
-
-                            // Helper to extract correct answer safely
-                            const getAnswer = (o) => o?.answer || o?.correct_answer || o?.correctAnswer || o?.correct_answer_value;
-
-                            // 1. MULTI-ANSWER GROUP HANDLING (Shuffling support)
-                            if (isMultiAnswerType(obj.type) && !obj.id) {
-                                const groupItems = [];
-                                const collectItems = (o) => {
-                                    if (!o || typeof o !== 'object') return;
-                                    const ans = getAnswer(o);
-                                    if (o.id && ans) groupItems.push(o);
-                                    const sub = ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'];
-                                    for (const sk of sub) {
-                                        if (o[sk] && Array.isArray(o[sk])) o[sk].forEach(collectItems);
-                                        else if (o[sk]) collectItems(o[sk]);
-                                    }
-                                };
-                                collectItems(obj);
-
-                                if (groupItems.length > 0) {
-                                    const allCorrect = groupItems.map(i => getAnswer(i)).join(', ');
-                                    const allUser = groupItems.map(i => userAnswers[String(i.id)] || "").join(', ');
-                                    
-                                    let weight = groupItems.length;
-                                    if (currentType.includes('three')) weight = 3;
-                                    else if (currentType.includes('two')) weight = 2;
-
-                                    const result = scoreMultiAnswer(allCorrect, allUser, weight);
-                                    localCorrect += result.matches;
-                                    localTotal += result.weight;
-
-                                    if (result.matches < result.weight && allUser.trim()) {
-                                        localMistakes.push({
-                                            questionId: groupItems.map(i => i.id).join(', '),
-                                            testId: test.id,
-                                            testTitle: test.title || 'Untitled Test',
-                                            attemptDate: resultData.date,
-                                            userResponse: allUser,
-                                            correctAnswer: allCorrect,
-                                            isMulti: true
-                                        });
-                                    }
-
-                                    groupItems.forEach(i => scoredIds.add(String(i.id).trim()));
-                                    return; 
-                                }
-                            }
-
-                            // 2. INDIVIDUAL ITEM HANDLING
-                            const itemAns = getAnswer(obj);
-                            if (obj.id && itemAns) {
-                                const idStr = String(obj.id).trim();
-                                if (!scoredIds.has(idStr)) {
-                                    scoredIds.add(idStr);
-                                    const correct = itemAns;
-                                    const userResp = userAnswers[idStr] || "";
-                                    
-                                    const isMulti = isMultiAnswerType(currentType);
-                                    const weight = getWeight(idStr);
-
-                                    if (isMulti || idStr.includes('-') || idStr.includes(',')) {
-                                        const result = scoreMultiAnswer(correct, userResp, weight);
-                                        localCorrect += result.matches;
-                                        localTotal += result.weight;
-
-                                        if (result.matches < result.weight && userResp.trim()) {
-                                            localMistakes.push({
-                                                questionId: idStr,
-                                                testId: test.id,
-                                                testTitle: test.title || 'Untitled Test',
-                                                attemptDate: resultData.date,
-                                                userResponse: userResp,
-                                                correctAnswer: correct
-                                            });
-                                        }
-                                    } else {
-                                        localTotal++;
-                                        if (checkAnswer(correct, userResp)) {
-                                            localCorrect++;
-                                        } else if (userResp.trim()) {
-                                            localMistakes.push({
-                                                questionId: idStr,
-                                                testId: test.id,
-                                                testTitle: test.title || 'Untitled Test',
-                                                attemptDate: resultData.date,
-                                                userResponse: userResp,
-                                                correctAnswer: correct
-                                            });
-                                        }
-                                    }
-                                }
-                            }
-
-                            // 3. RECURSE TO CONTAINERS
-                            const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
-                            for (const key of CONTAINER_KEYS) {
-                                const val = obj[key];
-                                if (val && Array.isArray(val)) {
-                                    val.forEach(child => walk(child, currentType));
-                                } else if (val && typeof val === 'object') {
-                                    walk(val, currentType);
-                                }
-                            }
-                        };
-
-                        walk(test);
-
-                        // 🔍 Update outer scope variables
-                        correctCount = localCorrect;
-                        totalQ = localTotal;
-                        mistakes = localMistakes;
-
-                        const band = calculateBandScore(correctCount, test.type, totalQ);
-                        resultData.bandScore = band || 0;
-                        resultData.score = correctCount;
-                        resultData.totalQuestions = totalQ;
-                        resultData.percentage = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
-                        resultData.status = "graded";
-                        
-                        setScore(correctCount);
-                        setBandScore(resultData.bandScore);
-                    } else {
-                        resultData.status = "submitted";
-                        resultData.score = 0;
-                        resultData.bandScore = 0;
-                    }
-
-            // 2. Calculate Time Spent
-            let timeSpent = 0;
-            if (testMode === 'practice') {
-                // In practice mode, timeLeft counts UP from 0 or saved time
-                timeSpent = timeLeft || 0;
-            } else {
-                // In exam mode, timeLeft counts DOWN from total duration
-                let totalDuration = 3600; // Default
-                if (test.type === 'listening') totalDuration = 2400;
-                else if (test.type === 'speaking') totalDuration = 900;
-                timeSpent = Math.max(0, totalDuration - timeLeft);
-            }
-            resultData.timeSpent = timeSpent;
-
-            // 3. Sanitize Data (Remove undefined)
-            Object.keys(resultData).forEach(key => {
-                if (resultData[key] === undefined) delete resultData[key];
-            });
-
-            // 4. Save to Firestore
-            setScore(correctCount);
-            setBandScore(resultData.bandScore);
-
-            // ✅ YECHIM 3: Faqat natijani batch orqali saqlash (ENG MUHIM)
-            const batch = writeBatch(db);
-            const resultRef = doc(collection(db, "results"));
-            batch.set(resultRef, resultData);
-            await batch.commit();
-
-            // ✅ YECHIM 1: Exam yakunlandi — LocalStorage dagi urinishlar sonini oshirish
-            if (userData?.role !== 'admin') {
-                const completedKey = `completed_${user.uid}_${test.id}_exam`;
-                const currCount = parseInt(localStorage.getItem(completedKey) || '0', 10);
-                localStorage.setItem(completedKey, (currCount + 1).toString());
-            }
-
-            // Log Action
-            logAction(user.uid, 'TEST_SUBMIT', {
-                testId: test.id,
-                title: test.title || 'Untitled',
-                score: correctCount,
-                band: resultData.bandScore
-            });
-
-            // NON-CRITICAL: Mistakes — xato bo'lsa natijaga ta'sir qilmaydi
-            if (mistakes.length > 0) {
-                try {
-                    const mistakeSessionRef = doc(collection(db, "users", user.uid, "mistakeSessions"));
-                    await setDoc(mistakeSessionRef, {
-                        mistakes,
-                        date: resultData.date,
-                        testId: test.id,
-                        testTitle: test.title || 'Untitled Test'
-                    });
-                } catch (mErr) {
-                    console.warn("Mistakes session log failed (non-critical):", mErr);
-                }
-            }
-
-            // 4c. User stats va gamification — NON-CRITICAL (xato bo'lsa natija saqlanadi)
-            if (resultData.bandScore > 0 || correctCount > 0) {
-                try {
-                    const userRef = doc(db, "users", user.uid);
-
-                    // GAMIFICATION: Streak Calculation
-                    let newStreak = userData?.streakCount || 0;
-                    const lastActive = userData?.lastActiveAt?.toDate() || new Date(0);
-                    const today = new Date();
-                    const yesterday = new Date(today);
-                    yesterday.setDate(yesterday.getDate() - 1);
-
-                    if (
-                        lastActive.getFullYear() === yesterday.getFullYear() &&
-                        lastActive.getMonth() === yesterday.getMonth() &&
-                        lastActive.getDate() === yesterday.getDate()
-                    ) {
-                        newStreak += 1;
-                    } else if (
-                        lastActive.getFullYear() !== today.getFullYear() ||
-                        lastActive.getMonth() !== today.getMonth() ||
-                        lastActive.getDate() !== today.getDate()
-                    ) {
-                        newStreak = 1;
-                    }
-
-                    const gainedXP = Math.round(resultData.bandScore * 10) || (correctCount * 5);
-
-                    await updateDoc(userRef, {
-                        "stats.totalTests": increment(1),
-                        "stats.totalBandScore": increment(resultData.bandScore),
-                        "gamification.points": increment(gainedXP),
-                        streakCount: newStreak,
-                        "lastActiveAt": serverTimestamp()
-                    });
-                } catch (statsErr) {
-                    console.warn("Stats update failed (non-critical):", statsErr);
-                }
-            }
-
-            // 6. Cleanup LocalStorage & SessionStorage Cache
-            localStorage.removeItem(`draft_${user.uid}_${test.id}`);
-            localStorage.removeItem(`timer_${user.uid}_${test.id}`);
-            localStorage.removeItem(`mode_${user.uid}_${test.id}`);
-
-            // 🚀 Force Invalidate Analytics & Data Cache (v6)
-            if (typeof sessionStorage !== 'undefined') {
-                sessionStorage.removeItem(`student_assignments_v6_${user.uid}`);
-                sessionStorage.removeItem(`student_results_v6_${user.uid}`);
-                sessionStorage.removeItem(`student_results_time_v6_${user.uid}`);
-                sessionStorage.removeItem(`analytics_stats_v6_${user.uid}`);
-                sessionStorage.removeItem(`analytics_stats_time_v6_${user.uid}`);
-            }
-
-            setShowResult(true);
-        } catch (error) {
-            console.error("Submit Error:", error);
-            alert(`Saqlashda xatolik yuz berdi: ${error.message}`);
-        } finally {
-            setSaving(false);
+            document.exitFullscreen();
+            setIsFullScreen(false);
         }
     };
 

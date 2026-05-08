@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { MapLabeling, Matching, SelectionBox, TableCompletion, NoteCompletion, FlowChart, StandardMCQ } from "./ListeningQuestionTypes";
+import { MapLabeling, Matching, SelectionBox, TableCompletion, NoteCompletion, FlowChart, MultipleChoice } from "./ListeningQuestionTypes";
 import { useListeningHighlight } from "../../hooks/useListeningHighlight";
 
 const formatIELTSInstruction = (text) => {
@@ -128,7 +128,7 @@ const ListeningRightPane = memo(({
         const hasNestedGroups = Array.isArray(group.groups) && group.groups.length > 0;
 
         if (hasNestedGroups) {
-            // StandardMCQ allaqachon groups bilan ishlashni biladi
+            // MultipleChoice allaqachon groups bilan ishlashni biladi
             normalizedGroup = group;
         } else if (!hasNestedQuestions && !hasNestedItems && group.id != null) {
             // FLAT tuzilish: group o'zi bitta savol — uni questions arrayga o'raymiz
@@ -153,7 +153,7 @@ const ListeningRightPane = memo(({
             };
         }
 
-        return <StandardMCQ group={normalizedGroup} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+        return <MultipleChoice group={normalizedGroup} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
     };
 
     const currentPassage = testData.passages[activePart];
