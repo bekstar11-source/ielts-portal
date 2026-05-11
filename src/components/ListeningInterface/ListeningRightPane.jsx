@@ -161,9 +161,9 @@ const ListeningRightPane = memo(({
 
     return (
         <div
-            className={`p-6 pb-5 bg-white select-text w-full relative h-[100%] flex flex-col ielts-font`}
+            className={`p-6 pb-2 bg-white select-text w-full relative h-[100%] flex flex-col ielts-font`}
             style={{
-                fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-xl' ? '20px' : '16px',
+                fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-xl' ? '20px' : '16.5px',
                 transition: 'font-size 0.3s ease-in-out'
             }}
         >
@@ -277,7 +277,7 @@ const ListeningRightPane = memo(({
                 const isDuplicateGroupText = prevGroup && normalizeHTML(prevGroup.text) === normalizeHTML(group.text);
 
                 return (
-                    <div key={gIdx} className="mb-8 animate-in fade-in duration-500">
+                    <div key={gIdx} className="mb-8">
                         <div className="mb-1 flex flex-col">
                             {questionRange && (
                                 <div className="mb-1">
@@ -288,7 +288,7 @@ const ListeningRightPane = memo(({
                             )}
                             <div className="mb-4">
                                 {!isDuplicateInstruction && group.instruction && (
-                                    <div className="text-[1.05em] font-normal text-gray-900 leading-snug">
+                                    <div className="text-[1.05em] font-medium text-gray-900 leading-snug">
                                         <span dangerouslySetInnerHTML={{ __html: formatIELTSInstruction(group.instruction) }} />
                                     </div>
                                 )}

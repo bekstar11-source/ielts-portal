@@ -42,8 +42,8 @@ export function useTestLogic() {
         if (!test) return;
         const type = test.type?.toLowerCase();
         const draftKey = `draft_${user.uid}_${test.id}`;
-        const savedDraft = localStorage.getItem(draftKey);
-        const savedMode = localStorage.getItem(`mode_${user.uid}_${test.id}`);
+        const savedDraft = sessionStorage.getItem(draftKey);
+        const savedMode = sessionStorage.getItem(`mode_${user.uid}_${test.id}`);
 
         if (savedDraft) {
             try { setUserAnswers(JSON.parse(savedDraft)); } catch { setWritingEssay(savedDraft); }
@@ -64,8 +64,8 @@ export function useTestLogic() {
     useEffect(() => {
         if (!test || showResult) return;
         const draftKey = `draft_${user.uid}_${test.id}`;
-        localStorage.setItem(draftKey, JSON.stringify(userAnswers));
-        if (testMode) localStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
+        sessionStorage.setItem(draftKey, JSON.stringify(userAnswers));
+        if (testMode) sessionStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
     }, [userAnswers, test, testMode, showResult]);
 
     // Anti-Cheat
@@ -94,8 +94,8 @@ export function useTestLogic() {
             setScore(correctCount);
             setBandScore(band);
             setShowResult(true);
-            localStorage.removeItem(`draft_${user.uid}_${test.id}`);
-            localStorage.removeItem(`timer_${user.uid}_${test.id}`);
+            sessionStorage.removeItem(`draft_${user.uid}_${test.id}`);
+            sessionStorage.removeItem(`timer_${user.uid}_${test.id}`);
         }
     };
 

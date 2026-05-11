@@ -199,8 +199,8 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                                 return (
                                     <React.Fragment key={entryIdx}>
                                         {breakEl}
-                                        <div className={`font-normal text-gray-900 leading-relaxed ielts-font ${forceBlock ? 'pl-4 flex w-full mb-3 items-start' : 'pl-2 inline-flex items-baseline'}`}>
-                                            {showBullet && <div className="mt-2.5 w-[5px] h-[5px] rounded-full bg-black shrink-0 mr-3" />}
+                                        <div className={`font-medium text-gray-900 leading-relaxed ielts-font ${forceBlock ? 'pl-4 flex w-full mb-3 items-start' : 'pl-2 inline-flex items-baseline'}`}>
+                                            {showBullet && <div className="mt-2.5 w-[5px] h-[5px] rounded-full bg-black shrink-0 mr-2" />}
                                             <div className="flex-1 flex flex-wrap items-baseline gap-y-1">
                                                 {renderParts()}
                                             </div>

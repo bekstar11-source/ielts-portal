@@ -155,12 +155,12 @@ export function useListeningHighlight(testId, activePart, userAnswers, externalI
     const storageKey = `${STORAGE_PREFIX}${testId ?? "test"}_p${activePart}`;
 
     const load = useCallback(() => {
-        try { return JSON.parse(localStorage.getItem(storageKey) || "[]"); }
+        try { return JSON.parse(sessionStorage.getItem(storageKey) || "[]"); }
         catch { return []; }
     }, [storageKey]);
 
     const save = useCallback((list) => {
-        try { localStorage.setItem(storageKey, JSON.stringify(list)); }
+        try { sessionStorage.setItem(storageKey, JSON.stringify(list)); }
         catch { /* ignore */ }
     }, [storageKey]);
 

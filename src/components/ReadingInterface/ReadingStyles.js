@@ -1,7 +1,7 @@
 // src/components/ReadingInterface/ReadingStyles.js
 
 export const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
 
   :root { 
     --ielts-blue: #2563eb; 
@@ -11,6 +11,7 @@ export const styles = `
     --border-color: #e5e7eb;
     --highlight-yellow: #fef08a;
     --footer-height: 50px; 
+    --passage-font: 'Inter', sans-serif;
   }
   
   /* =========================================
@@ -21,7 +22,7 @@ export const styles = `
       flex-direction: column;
       height: 100vh; 
       width: 100vw;
-      font-family: 'Inter', sans-serif; 
+      font-family: var(--passage-font); 
       background: var(--ielts-bg); 
       color: var(--text-primary);
       position: relative;
@@ -119,33 +120,45 @@ export const styles = `
   .text-xl { font-size: 20px !important; line-height: 2.2 !important; }
 
   .passage-content { 
-      flex: 1; padding: 40px; overflow-y: auto; color: #000000;
-      outline: none; scroll-behavior: smooth; font-size: 16px; 
+      flex: 1; overflow-y: auto; color: #000000;
+      outline: none; scroll-behavior: smooth; font-size: 18px; 
       scroll-padding-top: 60px;
+      font-family: var(--passage-font);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      overscroll-behavior-y: none;
+  }
+  
+  .reading-pane-scroll {
+      overscroll-behavior-y: none;
   }
   
   /* Matnni o'qish va belgilash uchun qulayroq qilish */
   .passage-content p { 
-      margin-bottom: 1em; 
-      line-height: 1.7;
+      margin-bottom: 1.5em; 
+      line-height: 1.5;
       letter-spacing: 0.01em;
+      font-weight: 510; /* Inter (Variable Font) bilan bu juda aniq ishlaydi */
+      color: #000000;
   }
   .passage-content h1 { 
-      font-size: 28px !important;  
-      font-weight: 900 !important; 
-      margin-bottom: 16px; 
+      font-size: 26px !important;  
+      font-weight: 700 !important; 
+      margin-bottom: 32px; 
       line-height: 1.2;
-      color: #111827;
-      letter-spacing: -0.02em;
+      color: #000000;
+      letter-spacing: -0.01em;
+      font-family: var(--passage-font);
   }
 
-  /* 🔥 Kichik sarlavhalar ham kattalashtirildi */
+  /* 🔥 Kichik sarlavhalar */
   .passage-content h2 { 
       font-size: 20px !important; 
-      font-weight: 800 !important; 
+      font-weight: 700 !important; 
       margin-top: 24px; 
       margin-bottom: 12px; 
-      color: #374151;
+      color: #000000;
   }
 
   .passage-content p { margin-bottom: 1em; } 
@@ -240,8 +253,9 @@ export const styles = `
   .static-option-item { font-size: 0.9em; font-weight: 500; color: #000000; line-height: 1.3; margin-bottom: 2px; display: block; }
   
   /* Highlight Tools */
-  .highlight-span { background-color: var(--highlight-yellow); cursor: pointer; mix-blend-mode: multiply; border-radius: 2px; }
-  .evidence-highlight { background-color: #86efac; transition: background 0.5s; padding: 2px 0; }
+  .highlight-span { background-color: var(--highlight-yellow); cursor: pointer !important; mix-blend-mode: multiply; border-radius: 0; }
+  .evidence-highlight { background-color: #86efac; transition: background 0.5s; padding: 2px 0; border-radius: 0; }
+  .highlight-mark { border-radius: 0 !important; cursor: pointer !important; }
 
   .floating-menu { 
       position: fixed; background: #1f2937; padding: 6px; border-radius: 8px; 

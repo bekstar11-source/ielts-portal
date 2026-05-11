@@ -4,6 +4,7 @@ import ListeningRightPane from "./ListeningRightPane";
 import ListeningFooter from "./ListeningFooter";
 import HighlightMenu from "../ReadingInterface/HighlightMenu";
 import { HighlighterIcon } from "./ListeningComponents";
+import { ArrowsLeftRight } from "@phosphor-icons/react";
 
 // Hooklar (Loyiha papkasida bor deb hisoblaymiz)
 import { useResizablePane } from "../../hooks/useResizablePane";
@@ -138,11 +139,17 @@ export default function ListeningInterface({
               />
             </div>
 
-            <div
-              className="w-[6px] bg-gray-50 hover:bg-gray-200 cursor-col-resize flex justify-center items-center border-x border-gray-200 z-10 shrink-0 select-none"
+            <div 
+              className="w-4 -mx-2 flex items-center justify-center cursor-col-resize z-30 group relative" 
               onMouseDown={startResizing}
             >
-              <div className="w-[1px] h-[20px] bg-gray-300"></div>
+              {/* Vertical Line - visible like in image */}
+              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-gray-400 group-hover:bg-blue-500 transition-colors" />
+              
+              {/* Drag Handle - Square matching the image */}
+              <div className="z-10 w-7 h-7 bg-[#f9f9f9] border border-gray-500 flex items-center justify-center shadow-sm group-hover:border-blue-500 group-hover:text-blue-600 transition-all">
+                <ArrowsLeftRight size={18} weight="bold" className="text-gray-700" />
+              </div>
             </div>
           </>
         )}

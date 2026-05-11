@@ -33,13 +33,13 @@ const DraggableOption = ({ label, text, isReviewMode }) => {
             {...listeners}
             {...attributes}
             className={`
-                px-3 py-1.5 border border-black rounded-none cursor-grab active:cursor-grabbing
-                select-none flex items-center justify-start w-fit transition-all
-                ${isDragging ? 'opacity-40 ring-1 ring-blue-500 shadow-xl scale-105 z-[1000] bg-white border-blue-400' : 'bg-white hover:border-gray-800 hover:shadow-sm'}
+                px-3 h-[26px] border border-gray-400 rounded-[4px] cursor-grab active:cursor-grabbing
+                select-none flex items-center justify-start w-fit transition-all shadow-sm
+                ${isDragging ? 'opacity-40 ring-2 ring-blue-500 shadow-xl scale-105 z-[1000] bg-white border-transparent' : 'bg-white hover:border-gray-600'}
                 ${isReviewMode ? 'cursor-default opacity-100 grayscale-0' : ''}
             `}
         >
-            <span className="leading-tight text-[15px] font-medium text-gray-800">{stripLeadingOptionLabel(text)}</span>
+            <span className="leading-tight text-[1em] font-normal text-black">{stripLeadingOptionLabel(text)}</span>
         </div>
     );
 };
@@ -59,36 +59,36 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
         <div
             ref={setNodeRef}
             className={`
-                min-w-[140px] md:min-w-[180px] min-h-[32px] border rounded-none flex items-center justify-center relative
-                transition-all duration-300 px-3 py-1 group/slot
+                min-w-[150px] w-fit max-w-[400px] h-[26px] border rounded-[4px] flex items-center justify-center relative
+                px-3 py-0 group/slot
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')
-                        : 'border-sky-500 bg-white shadow-sm'
+                        : 'border-blue-500 bg-white shadow-sm'
                       )
                     : (isOver 
-                        ? 'border-black bg-gray-50 border-dashed scale-[1.01]' 
-                        : 'border-black/30 bg-gray-50/50 border-dashed'
+                        ? 'border-blue-500 bg-blue-50 border-dashed scale-[1.02]' 
+                        : 'border-gray-500 bg-transparent border-dashed'
                       )
                 }
             `}
         >
             {value ? (
-                <div className="flex items-center w-full px-2 animate-in fade-in zoom-in-95 duration-200">
-                    <span className="text-[14px] font-normal text-gray-900 line-clamp-1 flex-1 leading-tight text-center">
+                <div className="flex items-center w-full px-1">
+                    <span className="text-[1em] font-normal text-black flex-1 leading-tight text-center whitespace-normal">
                         {stripLeadingOptionLabel(selectedOption?.text || value)}
                     </span>
                     {!isReviewMode && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onClear(); }}
-                            className="bg-white border border-gray-200 shadow-sm hover:bg-red-50 hover:text-red-500 text-gray-400 rounded-full p-0.5 opacity-0 group-hover/slot:opacity-100 transition-opacity z-10"
+                            className="bg-white border border-gray-200 shadow-sm hover:bg-red-50 hover:text-red-500 text-gray-400 rounded-full p-0.5 opacity-0 group-hover/slot:opacity-100 transition-opacity z-10 absolute right-1"
                         >
                             <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     )}
                 </div>
             ) : (
-                <span className="text-gray-600 text-[12px] font-medium uppercase tracking-wider">{id} Drop</span>
+                <span className="text-black text-[1em] font-bold tracking-wider">{id}</span>
             )}
 
             {isReviewMode && !isCorrect && (
@@ -164,23 +164,17 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
             onDragStart={handleDragStart}
             onDragEnd={isReviewMode ? undefined : handleDragEnd}
         >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 mb-10 mt-4 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 mb-10 mt-4 items-start ielts-font">
                 <div className="flex flex-col gap-4">
-                    <h4 className="text-[20px] font-bold text-black uppercase tracking-wide mb-1 px-1 text-center">{questionTitle}</h4>
-                    <div className="flex flex-col gap-0.5">
+                    <h4 className="text-[1.2em] font-bold text-black mb-1 px-1">{questionTitle}</h4>
+                    <div className="flex flex-col gap-2">
                         {questions.map((q) => {
                             const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer) : false;
                             const qText = (typeof q.text === 'object' ? q.text.text : q.text) || "";
                             const cleanText = String(qText).replace('[DROP]', '').trim();
                             return (
-                                <div key={q.id} className={`flex items-center justify-between gap-6 py-0.5 px-3 rounded-2xl transition-all hover:bg-gray-50/50 ${isReviewMode ? 'pr-20' : ''}`}>
-                                    <div className="flex items-center gap-4 flex-1">
-                                        <QuestionBadge 
-                                            id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
-                                            onSeekTo={onSeekTo} timestamp={q.timestamp ?? q.timeStep ?? q.time_step ?? q['time step']} activePart={activePart}
-                                        />
-                                        <div className="font-bold text-gray-800 text-[1em]" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
-                                    </div>
+                                <div key={q.id} className={`flex items-center gap-3 py-1.5 transition-all ${isReviewMode ? 'pr-24' : ''}`}>
+                                    <div className="font-normal text-black text-[1.1em] shrink-0" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
                                     <DroppableSlot
                                         id={q.id} value={userAnswers[q.id]} options={options} isReviewMode={isReviewMode} isCorrect={isCorrect}
                                         correctAnswer={q.answer || q.correct_answer || q.correctAnswer} onClear={() => onAnswerChange(q.id, "")}
@@ -192,7 +186,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                 </div>
 
                 <PoolDroppable isDragging={!!activeId}>
-                    <h4 className="text-[20px] font-bold text-black uppercase tracking-wide mb-4 text-center">{optionTitle}</h4>
+                    <h4 className="text-[1.2em] font-bold text-black mb-4 px-1">{optionTitle}</h4>
                     <div className="flex flex-col gap-2 items-start justify-center">
                         {options.map((opt, idx) => {
                             const label = opt.label || String.fromCharCode(65 + idx);

@@ -149,7 +149,7 @@ function AudioPreloader({ passages, test, onReady }) {
 
 const IELTSLogo = () => (
     <div className="flex items-start select-none relative pt-0.5">
-        <span className="text-[38px] font-[900] text-[#E31837] tracking-[-0.05em] leading-[0.8]" style={{ fontFamily: 'Arial Black, sans-serif' }}>
+        <span className="text-[34px] font-[850] text-[#E31837] tracking-[-0.05em] leading-[0.8]" style={{ fontFamily: 'Inter, sans-serif' }}>
             IELTS
         </span>
         <span className="text-[#E31837] text-[10px] font-black absolute -top-1 -right-1.5">®</span>
@@ -278,10 +278,10 @@ const TestHeader = ({
                 />
             )}
 
-            <header className="h-[65px] bg-white border-b border-gray-200 flex items-center justify-between pl-4 pr-6 shrink-0 z-50 relative">
+            <header className="h-[58px] bg-white border-b border-gray-200 flex items-center justify-between pl-4 pr-6 shrink-0 z-50 relative">
 
                 {/* LEFT: Logo + Test ID + Time */}
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="flex items-center gap-10 flex-1 min-w-0">
                     <IELTSLogo />
                     <div className="flex flex-col justify-center min-w-0">
                         <span className="text-[15px] font-bold text-black leading-tight truncate max-w-[400px]" title={test?.title || test?.name}>
@@ -420,9 +420,6 @@ const TestHeader = ({
                                 </AnimatePresence>
                             </div>
                         )}
-                        <button className="hover:text-black transition-colors" title="Notifications">
-                            <Bell size={24} strokeWidth={1.5} />
-                        </button>
                         <button 
                             className="hover:text-black transition-colors" 
                             title="Menu"
@@ -447,7 +444,7 @@ const TestHeader = ({
                         <button
                             onClick={onFinish}
                             disabled={saving}
-                            className={`ml-4 px-5 py-2 rounded font-bold text-sm transition-all shadow-sm ${
+                            className={`ml-4 px-5 py-1.5 rounded font-bold text-sm transition-all shadow-sm ${
                                 saving ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-800 hover:bg-gray-200 active:scale-95'
                             }`}
                         >
@@ -457,7 +454,7 @@ const TestHeader = ({
                     {(showResult || isReviewing) && (
                         <button 
                             onClick={onFinish} 
-                            className="ml-4 px-5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded uppercase tracking-widest border border-red-100 transition-colors"
+                            className="ml-4 px-5 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded uppercase tracking-widest border border-red-100 transition-colors"
                         >
                             Exit
                         </button>
@@ -466,164 +463,118 @@ const TestHeader = ({
             </header>
 
 
-            {/* OPTIONS MODAL */}
+            {/* OPTIONS MODAL (Refactored to Centered Modal) */}
             <AnimatePresence>
                 {isOptionsOpen && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[1000] bg-white flex flex-col items-center pt-24"
-                    >
-                        <div className="absolute top-0 left-0 right-0 h-[70px] border-b border-gray-100 flex items-center px-6">
-                            {/* Centered Title */}
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <h2 className="text-[18px] font-bold text-gray-900 capitalize">
-                                    {currentView === 'menu' ? 'Options' : currentView.replace('-', ' ')}
-                                </h2>
-                            </div>
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsOptionsOpen(false)}
+                            className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+                        />
 
-                            {/* Navigation Buttons */}
-                            <div className="flex items-center justify-between w-full relative z-10">
-                                {currentView !== 'menu' ? (
-                                    <button 
-                                        onClick={() => setCurrentView('menu')}
-                                        className="flex items-center gap-1.5 text-gray-600 font-bold hover:text-black transition-colors py-2"
-                                    >
-                                        <ArrowLeft size={20} strokeWidth={2.5} />
-                                        <span className="text-sm uppercase tracking-wider">Options</span>
-                                    </button>
-                                ) : <div />}
-
+                        {/* Modal Content */}
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                            className="relative bg-white/90 backdrop-blur-2xl w-full max-w-[340px] rounded-[18px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-white/20 overflow-hidden flex flex-col"
+                            style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200/50">
+                                <h2 className="text-[15px] font-semibold text-gray-900">Exam Settings</h2>
                                 <button 
                                     onClick={() => setIsOptionsOpen(false)}
-                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    className="w-7 h-7 flex items-center justify-center bg-gray-200/50 hover:bg-gray-200 rounded-full transition-colors"
                                 >
-                                    <X size={24} className="text-gray-900" />
+                                    <X size={14} className="text-gray-500" />
                                 </button>
                             </div>
-                        </div>
 
-                        {/* CONTENT CONTAINER */}
-                        <div className="w-full max-w-2xl bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4">
-                            
-                            {currentView === 'menu' && (
-                                <div className="divide-y divide-gray-100">
-                                    {/* CONTRAST */}
-                                    <button 
-                                        onClick={() => setCurrentView('contrast')}
-                                        className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <ContrastIcon size={24} className="text-gray-400 group-hover:text-black" strokeWidth={1.5} />
-                                            <span className="text-[17px] font-medium text-gray-700">Contrast</span>
-                                        </div>
-                                        <ChevronRight size={20} className="text-gray-300" />
-                                    </button>
-
-                                    {/* TEXT SIZE */}
-                                    <button 
-                                        onClick={() => setCurrentView('text-size')}
-                                        className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <Type size={24} className="text-gray-400 group-hover:text-black" strokeWidth={1.5} />
-                                            <span className="text-[17px] font-medium text-gray-700">Text size</span>
-                                        </div>
-                                        <ChevronRight size={20} className="text-gray-300" />
-                                    </button>
-
-                                    {/* TEST INSTRUCTIONS */}
-                                    <button 
-                                        onClick={() => setCurrentView('instructions')}
-                                        className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <Info size={24} className="text-gray-400 group-hover:text-black" strokeWidth={1.5} />
-                                            <span className="text-[17px] font-medium text-gray-700">Test Instructions</span>
-                                        </div>
-                                        <ChevronRight size={20} className="text-gray-300" />
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* CONTRAST VIEW */}
-                            {currentView === 'contrast' && (
-                                <div className="animate-in fade-in slide-in-from-right-4">
-                                    <div className="p-8 pt-12">
-                                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                                            {[
-                                                { id: 'default', label: 'Black on white' },
-                                                { id: 'white-on-black', label: 'White on black' },
-                                                { id: 'yellow-on-black', label: 'Yellow on black' }
-                                            ].map((option) => (
-                                                <button
-                                                    key={option.id}
-                                                    onClick={() => handleContrastChange(option.id)}
-                                                    className={`w-full flex items-center gap-4 p-5 text-left border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors ${contrastMode === option.id ? 'bg-gray-50' : ''}`}
-                                                >
-                                                    <div className="w-5 flex justify-center">
-                                                        {contrastMode === option.id && <div className="w-4 h-4 text-black"><CheckIcon size={16} strokeWidth={3} /></div>}
-                                                    </div>
-                                                    <span className={`text-[17px] ${contrastMode === option.id ? 'font-medium text-black' : 'text-gray-700'}`}>
-                                                        {option.label}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TEXT SIZE VIEW */}
-                            {currentView === 'text-size' && (
-                                <div className="p-8 text-center">
-                                    <h3 className="text-[18px] font-bold text-gray-900 mb-8 mt-4 uppercase tracking-tight">Select Text Size</h3>
-                                    <div className="flex border border-gray-200 rounded-2xl overflow-hidden divide-x divide-gray-200">
-                                        {['text-sm', 'text-base', 'text-xl'].map((size, idx) => (
+                            {/* Modal Body */}
+                            <div className="p-4 space-y-6">
+                                {/* THEME SECTION */}
+                                <div className="space-y-2">
+                                    <span className="px-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Appearance</span>
+                                    <div className="bg-gray-100/50 rounded-xl overflow-hidden border border-gray-200/30">
+                                        {[
+                                            { id: 'default', label: 'Light', icon: <Volume2 size={16} /> }, 
+                                            { id: 'white-on-black', label: 'Dark', icon: <Volume1 size={16} /> },
+                                            { id: 'yellow-on-black', label: 'System', icon: <Maximize size={16} /> }
+                                        ].map((option, idx) => (
                                             <button
-                                                key={size}
-                                                onClick={() => setTextSize(size)}
-                                                className={`flex-1 py-8 transition-all ${textSize === size ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-400 hover:bg-gray-50'}`}
+                                                key={option.id}
+                                                onClick={() => handleContrastChange(option.id)}
+                                                className={`w-full flex items-center justify-between px-4 py-3 transition-all ${
+                                                    idx !== 0 ? 'border-t border-gray-200/50' : ''
+                                                } ${
+                                                    contrastMode === option.id 
+                                                    ? 'bg-blue-600 text-white' 
+                                                    : 'hover:bg-gray-200/50 text-gray-700'
+                                                }`}
                                             >
-                                                <div className={size === 'text-sm' ? 'text-[9px]' : size === 'text-base' ? 'text-[12px]' : 'text-[15px]'}>
-                                                    Aa
+                                                <div className="flex items-center gap-3">
+                                                    <span className={contrastMode === option.id ? 'text-white' : 'text-blue-500'}>
+                                                        {option.id === 'default' ? <Volume2 size={16} /> : option.id === 'white-on-black' ? <Volume1 size={16} /> : <Maximize size={16} />}
+                                                    </span>
+                                                    <span className="text-[13.5px] font-medium">{option.label}</span>
                                                 </div>
-                                                <div className="mt-1 text-[9px] uppercase tracking-widest font-bold opacity-60">
-                                                    {idx === 0 ? 'Standard' : idx === 1 ? 'Large' : 'Extra Large'}
-                                                </div>
+                                                {contrastMode === option.id && <CheckIcon size={14} strokeWidth={3} />}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* INSTRUCTIONS VIEW */}
-                            {currentView === 'instructions' && (
-                                <div className="p-8">
-                                    <h3 className="text-xl font-black mb-4 mt-2">Test Instructions</h3>
-                                    <div className="prose prose-sm max-h-[400px] overflow-y-auto pr-2 custom-scrollbar text-left">
-                                        <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                            {test?.instructions || (
-                                                <div className="p-6 bg-blue-50 rounded-xl text-blue-800 border border-blue-100 flex items-start gap-4">
-                                                    <Info size={24} className="shrink-0" />
-                                                    <div className="text-sm">
-                                                        <p className="font-bold mb-1">How to navigate the test:</p>
-                                                        <ul className="list-disc list-inside space-y-1">
-                                                            <li>Answer all questions in the allotted time.</li>
-                                                            <li>You can flag questions to review them later using the bookmark icon.</li>
-                                                            <li>Use the "Finish" button once you have completed all parts of the test.</li>
-                                                            <li>Navigation through questions is available at the bottom of the screen.</li>
-                                                        </ul>
-                                                    </div>
+                                {/* TEXT SIZE SECTION */}
+                                <div className="space-y-2">
+                                    <span className="px-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Text Display</span>
+                                    <div className="bg-gray-100/50 rounded-xl overflow-hidden border border-gray-200/30">
+                                        {[
+                                            { id: 'text-sm', label: 'Standard', size: 'text-[11px]' },
+                                            { id: 'text-base', label: 'Large', size: 'text-[13px]' },
+                                            { id: 'text-xl', label: 'Extra Large', size: 'text-[15px]' }
+                                        ].map((size, idx) => (
+                                            <button
+                                                key={size.id}
+                                                onClick={() => setTextSize(size.id)}
+                                                className={`w-full flex items-center justify-between px-4 py-3 transition-all ${
+                                                    idx !== 0 ? 'border-t border-gray-200/50' : ''
+                                                } ${
+                                                    textSize === size.id 
+                                                    ? 'bg-blue-600 text-white' 
+                                                    : 'hover:bg-gray-200/50 text-gray-700'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`font-serif ${size.size} ${textSize === size.id ? 'text-white' : 'text-gray-400'}`}>Aa</span>
+                                                    <span className="text-[13.5px] font-medium">{size.label}</span>
                                                 </div>
-                                            )}
-                                        </div>
+                                                {textSize === size.id && <CheckIcon size={14} strokeWidth={3} />}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    </motion.div>
+
+                                {/* LEAVE SECTION */}
+                                <button
+                                    onClick={onFinish}
+                                    className="w-full flex items-center gap-3 px-4 py-3.5 bg-red-50/50 hover:bg-red-50 text-red-600 rounded-xl border border-red-100/50 transition-all group"
+                                >
+                                    <div className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                                        <ArrowLeft size={16} strokeWidth={2.5} />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="text-[13px] font-bold leading-none mb-1">Exit Test</div>
+                                        <div className="text-[11px] text-red-500/70">Progress will not be saved</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </>

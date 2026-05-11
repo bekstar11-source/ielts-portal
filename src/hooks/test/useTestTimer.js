@@ -6,8 +6,8 @@ export function useTestTimer(testId, userId, testMode, initialTime = 3600, isAct
     useEffect(() => {
         if (!isActive || !testId || !userId) return;
 
-        // Load saved time from localStorage
-        const savedTime = localStorage.getItem(`timer_${userId}_${testId}`);
+        // Load saved time from sessionStorage
+        const savedTime = sessionStorage.getItem(`timer_${userId}_${testId}`);
         if (savedTime) setTimeLeft(parseInt(savedTime));
         else setTimeLeft(initialTime);
     }, [testId, userId, initialTime, isActive]);
@@ -19,7 +19,7 @@ export function useTestTimer(testId, userId, testMode, initialTime = 3600, isAct
         const timerId = setInterval(() => {
             setTimeLeft(prev => {
                 const newVal = testMode === 'practice' ? prev + 1 : prev - 1;
-                localStorage.setItem(`timer_${userId}_${testId}`, newVal);
+                sessionStorage.setItem(`timer_${userId}_${testId}`, newVal);
                 return newVal;
             });
         }, 1000);

@@ -40,7 +40,7 @@ export const applyHighlightsToText = (htmlContent, highlights = []) => {
                     mark.className = bgClass;
                 }
                 
-                mark.className += " rounded py-0.5 cursor-pointer highlight-mark";
+                mark.className += " py-0.5 cursor-pointer highlight-mark";
                 mark.setAttribute('data-highlight-id', id);
                 if (isNote) {
                     mark.setAttribute('data-is-note', 'true');

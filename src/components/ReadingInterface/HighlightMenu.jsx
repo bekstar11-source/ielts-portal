@@ -92,29 +92,11 @@ export default function HighlightMenu({ position, onHighlight, onClear, onClearA
                 <button
                     className="flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group"
                     onMouseDown={() => onHighlight('yellow')}
-                    title="Highlight Yellow"
+                    title="Highlight"
                 >
                     <div className="w-3.5 h-3.5 rounded-full bg-yellow-300 border border-yellow-400 group-hover:scale-110 shadow-sm transition-transform"></div>
                 </button>
-
-                <button
-                    className="flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group"
-                    onMouseDown={() => onHighlight('green')}
-                    title="Highlight Green"
-                >
-                    <div className="w-3.5 h-3.5 rounded-full bg-green-300 border border-green-400 group-hover:scale-110 shadow-sm transition-transform"></div>
-                </button>
             </div>
-
-            <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
-
-            <button
-                className="flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group text-red-400"
-                onMouseDown={handleClearAll}
-                title="Barcha highlightlarni o'chirish"
-            >
-                <Eraser size={16} className="group-hover:scale-110 transition-transform" />
-            </button>
 
             <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
 

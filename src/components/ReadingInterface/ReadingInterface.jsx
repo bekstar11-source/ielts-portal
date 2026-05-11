@@ -6,7 +6,6 @@ import ReadingLeftPane from "./ReadingLeftPane";
 import ReadingRightPane from "./ReadingRightPane";
 import ReadingFooter from "./ReadingFooter";
 import ReadingNotesSidePanel from "./ReadingNotesSidePanel";
-import ResumeModal from "./ResumeModal";
 import VocabSynonymCanvas from "../ReviewInterface/VocabSynonymCanvas";
 
 import { useResizablePane } from "../../hooks/useResizablePane";
@@ -19,6 +18,8 @@ import {
     detectPassageLabelSuffix, 
     findMatchingHeadingsGroup 
 } from "./ReadingInterfaceUtils";
+import { ArrowsLeftRight } from "@phosphor-icons/react";
+import { styles as readingInterfaceStyles } from "./ReadingStyles";
 
 export default function ReadingInterface({
   testData,
@@ -47,8 +48,6 @@ export default function ReadingInterface({
   const {
     answers: sessionAnswers,
     handleAnswerChange: setSessionAnswer,
-    showResumeModal,
-    confirmResume,
     confirmRestart
   } = useTestSession(`ielts_reading_session_${currentTestId || 'default'}`);
 
@@ -61,25 +60,25 @@ export default function ReadingInterface({
 
   const handleRestart = () => {
     if (currentTestId) {
-      localStorage.removeItem(`${HL_STORAGE_PREFIX}${currentTestId}`);
+      sessionStorage.removeItem(`${HL_STORAGE_PREFIX}${currentTestId}`);
       setAllHighlights({});
       const passagesCount = testData.passages?.length || 3;
       for (let i = 0; i < passagesCount; i++) {
-        localStorage.removeItem(`reading_session_${currentTestId}_passage_${i}`);
+        sessionStorage.removeItem(`reading_session_${currentTestId}_passage_${i}`);
       }
     }
     confirmRestart();
   };
 
   useEffect(() => {
-    if (!showResumeModal && sessionAnswers) {
+    if (sessionAnswers) {
       Object.entries(sessionAnswers).forEach(([key, val]) => {
         if (parentAnswers && parentAnswers[key] !== val) {
           setParentAnswer(key, val);
         }
       });
     }
-  }, [showResumeModal, sessionAnswers, setParentAnswer]);
+  }, [sessionAnswers, setParentAnswer]);
 
   // --- 2. PERSISTENCE (Highlights & Notes) ---
   const {
@@ -107,7 +106,7 @@ export default function ReadingInterface({
         const passageStorageKey = `reading_session_${currentTestId}_passage_${passageIndex}`;
         const contentDiv = document.getElementById('reading-content-display');
         if (contentDiv && !isReviewMode) {
-            localStorage.setItem(passageStorageKey, JSON.stringify({
+            sessionStorage.setItem(passageStorageKey, JSON.stringify({
                 html: contentDiv.innerHTML,
                 timestamp: Date.now()
             }));
@@ -162,7 +161,7 @@ export default function ReadingInterface({
     if (isReviewMode && currentTestId) {
       const storageKey = `reading_session_${currentTestId}_passage_${activePassage}`;
       try {
-        const saved = localStorage.getItem(storageKey);
+        const saved = sessionStorage.getItem(storageKey);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Date.now() - parsed.timestamp < 30 * 24 * 60 * 60 * 1000) baseContent = parsed.html;
@@ -187,14 +186,52 @@ export default function ReadingInterface({
 
   return (
     <div className={`flex flex-col h-full w-full bg-ielts-bg text-black overflow-hidden relative ${textSize || 'text-base'}`} ref={rootRef}>
-      <ResumeModal show={showResumeModal} onRestart={handleRestart} onResume={confirmResume} />
+      <style>{readingInterfaceStyles}</style>
+
+      {/* Header Bar spanning across both panes */}
+      <div className="px-4 pt-1 pb-2 bg-white select-none" style={{ fontFamily: 'Arial, sans-serif' }}>
+          <div className="bg-[#f2f4f1] border border-[#dcdfd9] rounded-[4px] px-5 py-1.5 shadow-sm">
+              <div className="font-bold text-[#000000] text-[16px]">
+                  Passage {labelSuffix}
+              </div>
+              <div className="text-[#000000] text-[14px] font-semibold">
+                  {(() => {
+                      // Robust question range calculation
+                      const qNums = (passageQuestions || []).flatMap(g => {
+                          if (g.questions && g.questions.length > 0) {
+                              return g.questions.map(q => q.number);
+                          }
+                          if (g.startNumber && g.endNumber) {
+                              return Array.from({length: g.endNumber - g.startNumber + 1}, (_, i) => g.startNumber + i);
+                          }
+                          return [];
+                      }).filter(n => n !== undefined && n !== null);
+                      
+                      const minQ = qNums.length > 0 ? Math.min(...qNums) : "";
+                      const maxQ = qNums.length > 0 ? Math.max(...qNums) : "";
+                      
+                      if (minQ && maxQ) {
+                          return `Read the text and answer questions ${minQ}–${maxQ}.`;
+                      }
+
+                      // Fallback if passageQuestions is empty due to missing passageId mapping
+                      const fallbackRanges = {
+                          1: "1–13",
+                          2: "14–26",
+                          3: "27–40"
+                      };
+                      return `Read the text and answer questions ${fallbackRanges[activePassage + 1] || "below"}.`;
+                  })()}
+              </div>
+          </div>
+      </div>
 
       <DndContext sensors={dndSensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
-        <div className="flex w-full h-[calc(100vh-50px)] overflow-hidden relative">
-          <div className="bg-white flex flex-col h-full overflow-y-auto select-text shadow-sm" style={{ width: `${leftWidth}%` }}>
+        <div className="flex w-full flex-1 overflow-hidden relative pb-[50px]">
+          <div className="bg-white flex flex-col h-full select-text shadow-sm" style={{ width: `${leftWidth}%` }}>
             <ReadingLeftPane
                 key={`${currentTestId}-passage-${activePassage}`}
-                passageLabel={`READING PASSAGE ${labelSuffix}`}
+                passageLabel={`Passage ${labelSuffix}`}
                 title={currentPassageRaw?.title || ""}
                 content={highlightedPassageContent || ""}
                 textSize={textSize}
@@ -208,12 +245,24 @@ export default function ReadingInterface({
                 onAnswerChange={handleDualAnswerChange}
                 onAddNote={(noteData) => addNote(activePassage, noteData)}
                 onOpenNotes={() => setIsNotesVisible(true)}
+                questions={passageQuestions}
             />
           </div>
 
-          <div className="w-[8px] -mx-[4px] bg-transparent hover:bg-blue-500/10 cursor-col-resize z-20 shrink-0 transition-colors" onMouseDown={startResizing}></div>
+          <div 
+            className="w-4 -mx-2 flex items-center justify-center cursor-col-resize z-30 group relative" 
+            onMouseDown={startResizing}
+          >
+            {/* Vertical Line - visible like in image */}
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-gray-400 group-hover:bg-blue-500 transition-colors" />
+            
+            {/* Drag Handle - Square matching the image */}
+            <div className="z-10 w-7 h-7 bg-[#f9f9f9] border border-gray-500 flex items-center justify-center shadow-sm group-hover:border-blue-500 group-hover:text-blue-600 transition-all">
+              <ArrowsLeftRight size={18} weight="bold" className="text-gray-700" />
+            </div>
+          </div>
 
-          <div className="flex-1 bg-slate-50 flex flex-col overflow-y-auto h-full relative select-text" style={{ width: `${100 - leftWidth}%` }}>
+          <div className="flex-1 bg-slate-50 flex flex-col h-full relative select-text" style={{ width: `${100 - leftWidth}%` }}>
             <ReadingRightPane
               testData={testData}
               activePassage={activePassage}

@@ -18,31 +18,55 @@ const ReadingLeftPane = memo(({
     isReviewMode,
     onAddToWordBank,
     onAddNote,
-    onOpenNotes
+    onOpenNotes,
+    questions = []
 }) => {
     const containerRef = useRef(null);
     const [displayContent, setDisplayContent] = useState(() => {
+        // Initial load from storage if available
+        if (storageKey) {
+            const saved = sessionStorage.getItem(storageKey);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Date.now() - parsed.timestamp < 30 * 24 * 60 * 60 * 1000) {
+                        return parsed.html;
+                    }
+                } catch (e) {}
+            }
+        }
         const base = isReviewMode ? content : stripReviewHighlights(content);
         return ensureParagraphs(base);
     });
 
     useEffect(() => {
-        const base = isReviewMode ? content : stripReviewHighlights(content);
+        // Only update if it's a fresh content change or review mode toggle
+        // and check storage again to be safe
+        let base = isReviewMode ? content : stripReviewHighlights(content);
+        
+        if (storageKey) {
+            const saved = sessionStorage.getItem(storageKey);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Date.now() - parsed.timestamp < 30 * 24 * 60 * 60 * 1000) {
+                        base = parsed.html;
+                    }
+                } catch (e) {}
+            }
+        }
+        
         setDisplayContent(ensureParagraphs(base));
-    }, [content, isReviewMode]);
+    }, [content, isReviewMode, storageKey]);
 
     const { menuPos, handleTextSelection, applyHighlight, applyNote, clearSelection, addToDictionary } = useTextSelection();
 
     const hasMatchingHeadings = !!(matchingHeadingsGroup && matchingHeadingsGroup.items?.length > 0);
 
+    // This second effect is now redundant for initial load but kept for sync if needed
     useEffect(() => {
-        if (isReviewMode) {
-            setDisplayContent(ensureParagraphs(content));
-            return;
-        }
-
         if (!storageKey) return;
-        const saved = localStorage.getItem(storageKey);
+        const saved = sessionStorage.getItem(storageKey);
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
@@ -53,10 +77,8 @@ const ReadingLeftPane = memo(({
                         const temp = document.createElement('div');
                         temp.innerHTML = html;
                         
-                        // Remove reading slots
                         temp.querySelectorAll('[data-reading-slot="true"]').forEach(s => s.remove());
                         
-                        // Remove review-mode keyword highlights but keep the text
                         temp.querySelectorAll('.keyword-highlight, mark').forEach(m => {
                             const text = document.createTextNode(m.textContent);
                             m.parentNode.replaceChild(text, m);
@@ -78,11 +100,8 @@ const ReadingLeftPane = memo(({
             } catch (e) {
                 console.error("Error parsing saved highlights:", e);
             }
-        } else {
-            const base = isReviewMode ? content : stripReviewHighlights(content);
-            setDisplayContent(ensureParagraphs(base));
         }
-    }, [storageKey, content, isReviewMode, hasMatchingHeadings]);
+    }, [storageKey, isReviewMode]);
 
     const saveCurrentContent = useCallback(() => {
         if (!containerRef.current || !storageKey || isReviewMode) return;
@@ -108,14 +127,14 @@ const ReadingLeftPane = memo(({
                 const finalHtml = cleanHtml.trim() || temp.innerHTML;
                 
                 setDisplayContent(finalHtml);
-                localStorage.setItem(storageKey, JSON.stringify({
+                sessionStorage.setItem(storageKey, JSON.stringify({
                     html: finalHtml,
                     timestamp: Date.now()
                 }));
             } else {
                 const html = contentDiv.innerHTML;
                 setDisplayContent(html);
-                localStorage.setItem(storageKey, JSON.stringify({
+                sessionStorage.setItem(storageKey, JSON.stringify({
                     html: html,
                     timestamp: Date.now()
                 }));
@@ -195,21 +214,17 @@ const ReadingLeftPane = memo(({
 
             <div
                 ref={containerRef}
-                className={`p-8 pb-20 h-full overflow-y-auto leading-relaxed text-black selectable-text relative`}
+                className={`pt-10 px-6 !pb-24 overflow-y-auto leading-relaxed text-black selectable-text relative passage-content`}
                 style={{
-                    fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',
+                    fontSize: textSize === 'text-sm' ? '13px' : textSize === 'text-lg' ? '17px' : textSize === 'text-xl' ? '19px' : '15px',
                     transition: 'font-size 0.3s ease-in-out'
                 }}
                 onMouseUp={(e) => {
                     if (e.button === 0) handleTextSelection();
                 }}
             >
-                <div className="text-xs font-bold text-black uppercase tracking-widest mb-1 select-none">
-                    {passageLabel || "READING PASSAGE 1"}
-                </div>
-
                 {title && (
-                    <h1 className="text-[1.6em] font-bold text-black mb-6 mt-0 leading-tight">
+                    <h1 className="text-2xl font-bold mb-6 text-black tracking-tight leading-tight">
                         {title}
                     </h1>
                 )}
