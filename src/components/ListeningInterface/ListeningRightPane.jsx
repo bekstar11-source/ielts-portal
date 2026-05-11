@@ -107,7 +107,7 @@ const ListeningRightPane = memo(({
         if (group.type === 'matching') return <Matching group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
         if (['selection', 'pick_two', 'pick_three', 'pick_four', 'pick_five', 'multi_three', 'multi_choice_box', 'multiple_choice_multiple_answer'].includes(group.type)) return <SelectionBox group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
         if (['table_completion', 'table'].includes(group.type)) return <TableCompletion group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
-        const completionTypes = ['note_completion', 'gap_fill', 'sentence_completion', 'summary_completion'];
+        const completionTypes = ['note_completion', 'gap_fill', 'sentence_completion', 'summary_completion', 'form_completion'];
         if (completionTypes.includes(group.type)) {
             const normalized = group.groups ? group : { ...group, groups: [{ items: group.items || group.questions || [] }] };
             return <NoteCompletion group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
@@ -161,7 +161,7 @@ const ListeningRightPane = memo(({
 
     return (
         <div
-            className={`p-6 pb-5 bg-white select-text w-full relative h-[100%] flex flex-col`}
+            className={`p-6 pb-5 bg-white select-text w-full relative h-[100%] flex flex-col ielts-font`}
             style={{
                 fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-xl' ? '20px' : '16px',
                 transition: 'font-size 0.3s ease-in-out'
@@ -280,21 +280,20 @@ const ListeningRightPane = memo(({
                     <div key={gIdx} className="mb-8 animate-in fade-in duration-500">
                         <div className="mb-1 flex flex-col">
                             {questionRange && (
-                                <div className="mb-0.5">
-                                    <h3 className="text-[1.1em] font-bold text-black leading-tight">
+                                <div className="mb-1">
+                                    <h3 className="text-[1.25em] font-bold text-black leading-tight tracking-tight">
                                         {questionRange}
                                     </h3>
                                 </div>
                             )}
-
-                            <div className="mb-2">
+                            <div className="mb-4">
                                 {!isDuplicateInstruction && group.instruction && (
-                                    <div className="text-[1.1em] font-normal text-gray-900 leading-snug">
+                                    <div className="text-[1.05em] font-normal text-gray-900 leading-snug">
                                         <span dangerouslySetInnerHTML={{ __html: formatIELTSInstruction(group.instruction) }} />
                                     </div>
                                 )}
                                 {!isDuplicateGroupText && group.text && (group.questions?.length > 0 || group.items?.length > 0 || group.groups?.length > 0) && (
-                                    <div className="mt-4 text-[1.1em] font-bold text-gray-900 leading-tight">
+                                    <div className="mt-6 text-[1.2em] font-bold text-black leading-tight">
                                         <span dangerouslySetInnerHTML={{ __html: group.text }} />
                                     </div>
                                 )}

@@ -48,7 +48,7 @@ export default function AdminDashboard() {
     if (!isAuthorized || stats.loading) return <DashboardSkeleton />;
 
     return (
-        <div className="flex-1 flex flex-col gap-6">
+        <div className="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar flex flex-col gap-6">
             <AdminDashboardStats stats={stats} isDark={isDark} />
             <AdminDashboardActions isDark={isDark} />
 

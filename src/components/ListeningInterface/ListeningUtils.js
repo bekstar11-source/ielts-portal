@@ -45,10 +45,12 @@ export const stripLeadingId = (val, id) => {
     if (!val) return "";
     const text = (typeof val === 'object') ? (val.text || val.label || val.content || "") : val;
     if (id == null) return text;
-    return String(text)
-        .replace(new RegExp(`\\b${id}\\s*$`), '')   
-        .replace(new RegExp(`^\\s*${id}\\b\.?\\s*`), '') 
+    const cleaned = String(text)
+        .replace(new RegExp(`^\\s*${id}\\b\\.?\\s*`), '') // Start of string
+        .replace(new RegExp(`\\b${id}\\.?\\s*(?=\\[INPUT\\])`), '') // Before [INPUT] placeholder
+        .replace(new RegExp(`\\b${id}\\.?\\s*$`), '') // End of string
         .trim();
+    return cleaned;
 };
 
 /**

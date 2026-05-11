@@ -14,14 +14,14 @@ export default function AdminLayout() {
             <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
 
-            {/* MAIN CONTENT AREA */}
+                {/* MAIN CONTENT AREA */}
             <div className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
 
                 {/* HEADER */}
                 <AdminHeader toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
                 {/* SCROLLABLE CONTENT */}
-                <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+                <main className="flex-1 overflow-hidden">
                     <Outlet />
                 </main>
             </div>

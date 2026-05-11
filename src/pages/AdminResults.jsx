@@ -7,6 +7,7 @@ import { Icons } from "../components/Icons";
 // Components
 import ResultsFilters from "../components/admin/AdminResults/ResultsFilters";
 import ResultsTable from "../components/admin/AdminResults/ResultsTable";
+import Pagination from "../components/common/Pagination";
 
 export default function AdminResults() {
     const navigate = useNavigate();
@@ -49,7 +50,7 @@ export default function AdminResults() {
     );
 
     return (
-        <div className={`min-h-screen p-6 font-sans transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-slate-800'}`}>
+        <div className={`h-full overflow-y-auto custom-scrollbar p-6 font-sans transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-slate-800'}`}>
             <div className="max-w-7xl mx-auto">
                 {/* Back Button */}
                 <div className="mb-4">
@@ -80,15 +81,17 @@ export default function AdminResults() {
                 />
 
                 {/* Pagination */}
-                <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-1">
-                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)} className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded bg-white disabled:opacity-50"><Icons.ChevronLeft className="w-4 h-4" /></button>
-                        <div className="flex gap-1">{renderPagination()}</div>
-                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)} className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded bg-white disabled:opacity-50"><Icons.ChevronRight className="w-4 h-4" /></button>
-                    </div>
-                    <span className="text-[13px] font-medium text-gray-500">
+                <div className="mt-8 border-t border-zinc-200 dark:border-white/5 pt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-zinc-400 order-2 sm:order-1">
                         {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)} of {filteredResults.length} natijalar
                     </span>
+                    <div className="order-1 sm:order-2">
+                        <Pagination 
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

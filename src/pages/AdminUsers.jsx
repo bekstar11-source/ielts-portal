@@ -44,7 +44,7 @@ export default function AdminUsers() {
     );
 
     return (
-        <div className={`h-screen flex flex-col overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`h-full flex flex-col overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
             
             {/* Header / Nav */}
             <div className={`h-14 px-4 md:px-6 flex items-center justify-between border-b shrink-0 z-20 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>

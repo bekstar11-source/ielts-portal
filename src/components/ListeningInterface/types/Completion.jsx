@@ -75,53 +75,143 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
 
 // --- NOTE / FLOWCHART / SUMMARY COMPLETION ---
 export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
+
+    /**
+     * Pre-processes a flat list of question items and merges consecutive items
+     * that share the EXACT same text template into a single "merged entry".
+     *
+     * Example: Q38 and Q39 both have the text:
+     *   "• Starts with a noise that sounds like 38. [INPUT], produced by two people moving large pieces of 39. [INPUT]"
+     * 
+     * Both share the same text with 2 [INPUT]s → they get merged into one row
+     * that renders a single bullet with two inline inputs (one for Q38, one for Q39).
+     */
+    const mergeSharedTextItems = (items) => {
+        const merged = [];
+        let i = 0;
+        while (i < items.length) {
+            const current = items[i];
+            const currentRaw = (typeof current.text === 'object' ? current.text.text : current.text) || "";
+            const inputCount = (currentRaw.match(/\[INPUT\]/g) || []).length;
+
+            // If this text has multiple [INPUT] placeholders, try to merge the next siblings
+            // that have the same text (one sibling per additional [INPUT])
+            if (inputCount > 1) {
+                const siblings = [current];
+                for (let j = 1; j < inputCount && (i + j) < items.length; j++) {
+                    const sibling = items[i + j];
+                    const siblingRaw = (typeof sibling.text === 'object' ? sibling.text.text : sibling.text) || "";
+                    if (siblingRaw === currentRaw) {
+                        siblings.push(sibling);
+                    } else {
+                        break; // texts diverge — stop merging
+                    }
+                }
+                // Only merge if we collected exactly as many siblings as [INPUT] slots
+                if (siblings.length === inputCount) {
+                    merged.push({ isMerged: true, siblings, rawText: currentRaw });
+                    i += inputCount;
+                    continue;
+                }
+            }
+
+            // Default: single item
+            merged.push({ isMerged: false, item: current, rawText: currentRaw });
+            i++;
+        }
+        return merged;
+    };
+
     return (
         <div className="mb-2 space-y-8">
-            {(group.groups || [group]).map((sub, sIdx) => (
-                <div key={sIdx} className="bg-white py-2 rounded-xl">
-                    {sub.header && <h3 className="text-[1.1em] font-black text-gray-900 mb-4 mt-2 pt-3 uppercase tracking-wider border-t border-gray-100">{typeof sub.header === 'object' ? sub.header.text : sub.header}</h3>}
-                    <div className="flex flex-wrap items-baseline gap-y-1">
-                        {(sub.items || sub.questions || []).map((q, qIdx) => {
-                            const qText = (typeof q.text === 'object' ? q.text.text : q.text) || "";
-                            const isBullet = /^[•\-\*]/.test(String(qText).trim()) || /^\d+[\.\)]/.test(String(qText).trim());
-                            const breakEl = ( (q.type === 'heading' || isBullet) && qIdx > 0) ? <div className="w-full h-0" /> : null;
+            {(group.groups || [group]).map((sub, sIdx) => {
+                const allItems = sub.items || sub.questions || [];
+                const mergedItems = mergeSharedTextItems(allItems);
 
-                            if (q.type === 'heading') return <React.Fragment key={qIdx}>{breakEl}<div className="font-bold text-black text-[1.125em] w-full mt-4 mb-1">{qText}</div></React.Fragment>;
-                            
-                            return (
-                                <React.Fragment key={qIdx}>
-                                    {breakEl}
-                                    <div className={`font-normal text-gray-800 leading-relaxed ${isBullet ? 'pl-4 inline-flex w-full md:w-auto' : 'pl-2 inline-flex'}`}>
-                                        {(() => {
-                                            // Handle cases where [INPUT] is in the text but q.parts is missing
-                                            let parts = q.parts;
-                                            if (!parts && String(qText).includes('[INPUT]')) {
-                                                parts = String(qText).split(/(\[INPUT\])/g).map(p => {
-                                                    if (p === '[INPUT]') return { type: 'input' };
-                                                    return { type: 'text', content: p };
-                                                }).filter(p => p.type === 'input' || p.content);
-                                            }
+                return (
+                    <div key={sIdx} className="bg-white py-2 rounded-xl">
+                        {sub.header && <h3 className="text-[1.1em] font-black text-gray-900 mb-4 mt-2 pt-3 uppercase tracking-wider border-t border-gray-100">{typeof sub.header === 'object' ? sub.header.text : sub.header}</h3>}
+                        <div className="flex flex-wrap items-baseline gap-y-1">
+                            {mergedItems.map((entry, entryIdx) => {
+                                const rawText = entry.rawText;
+                                const hasNativeBullet = /^[•\-\*]/.test(rawText.trim());
+                                
+                                const isNoteCompletion = group.type === 'note_completion';
+                                const isBlockCompletion = isNoteCompletion || group.type === 'sentence_completion' || group.type === 'form_completion';
+                                
+                                // Only show bullet dot if the JSON explicitly had one (e.g., starts with •, -, *)
+                                const showBullet = hasNativeBullet;
+                                
+                                // Force new line if it's supposed to be a block or if the user explicitly requested based on hyphens
+                                const forceBlock = showBullet || isBlockCompletion || rawText.includes('-');
+                                
+                                const firstItem = entry.isMerged ? entry.siblings[0] : entry.item;
+                                const isHeading = firstItem.type === 'heading';
+                                const breakEl = ((isHeading || forceBlock) && entryIdx > 0) ? <div className="w-full h-0" /> : null;
 
-                                            return (parts || [{type: 'text', content: qText}]).map((part, pIdx) => {
-                                                if (part.type === 'text') return <span key={pIdx} className="mr-1" dangerouslySetInnerHTML={{ __html: stripLeadingId(part.content, q.id) }} />;
-                                                if (part.type === 'input') return (
-                                                    <ListeningTextInput 
-                                                        key={pIdx} id={part.id || q.id} answer={part.answer || q.answer} locationId={part.locationId || q.locationId}
-                                                        userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode}
-                                                        handleLocationClick={handleLocationClick} onSeekTo={onSeekTo}
-                                                        timestamp={q.timestamp || q.timeStep} activePart={activePart}
-                                                    />
-                                                );
-                                                return null;
-                                            });
-                                        })()}
-                                    </div>
-                                </React.Fragment>
-                            );
-                        })}
+                                if (isHeading) {
+                                    const headingText = rawText.replace(/^[•\-\*]\s*/, '').trim();
+                                    return <React.Fragment key={entryIdx}>{breakEl}<div className="font-bold text-black text-[1.25em] w-full mt-6 mb-4 ielts-font">{headingText}</div></React.Fragment>;
+                                }
+
+                                // Render the text once, substituting each [INPUT] with the correct question's input field
+                                const renderParts = () => {
+                                    const segments = rawText.split(/(\[INPUT\])/g);
+                                    const questions = entry.isMerged ? entry.siblings : [firstItem];
+                                    let inputIdx = 0;
+
+                                    return segments.map((seg, segIdx) => {
+                                        if (seg === '[INPUT]') {
+                                            const q = questions[inputIdx] || firstItem;
+                                            inputIdx++;
+                                            return (
+                                                <ListeningTextInput
+                                                    key={`input-${segIdx}-${q.id}`}
+                                                    id={q.id}
+                                                    answer={q.answer}
+                                                    locationId={q.locationId}
+                                                    userAnswers={userAnswers}
+                                                    onAnswerChange={onAnswerChange}
+                                                    isReviewMode={isReviewMode}
+                                                    handleLocationClick={handleLocationClick}
+                                                    onSeekTo={onSeekTo}
+                                                    timestamp={q.timestamp || q.timeStep}
+                                                    activePart={activePart}
+                                                />
+                                            );
+                                        }
+                                        // Strip leading bullet from first segment (we render our own bullet dot)
+                                        let textContent = segIdx === 0
+                                            ? seg.replace(/^[•\-\*]\s*/, '').trim()
+                                            : seg;
+                                        
+                                        // Remove question ID from the text segment (either at the start or end)
+                                        const currentQ = questions[Math.floor(segIdx / 2)];
+                                        if (currentQ && currentQ.id) {
+                                            textContent = stripLeadingId(textContent, currentQ.id);
+                                        }
+
+                                        if (!textContent) return null;
+                                        return <span key={segIdx} className="mr-0.5" dangerouslySetInnerHTML={{ __html: textContent }} />;
+                                    });
+                                };
+
+                                return (
+                                    <React.Fragment key={entryIdx}>
+                                        {breakEl}
+                                        <div className={`font-normal text-gray-900 leading-relaxed ielts-font ${forceBlock ? 'pl-4 flex w-full mb-3 items-start' : 'pl-2 inline-flex items-baseline'}`}>
+                                            {showBullet && <div className="mt-2.5 w-[5px] h-[5px] rounded-full bg-black shrink-0 mr-3" />}
+                                            <div className="flex-1 flex flex-wrap items-baseline gap-y-1">
+                                                {renderParts()}
+                                            </div>
+                                        </div>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };

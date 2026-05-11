@@ -83,7 +83,7 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
                 />
             )}
             <input
-                className={`w-[140px] h-[26px] border rounded-none px-2 text-center font-semibold text-[0.875em] focus:outline-none transition-all shadow-sm ${styles} ${!isReviewMode ? 'placeholder-black' : 'placeholder-transparent'}`}
+                className={`w-[150px] h-[24px] border border-gray-300 rounded-[4px] px-2 text-center font-bold text-[1em] focus:outline-none focus:border-blue-500 transition-all shadow-sm ${styles} ${!isReviewMode ? 'placeholder-black' : 'placeholder-transparent'}`}
                 value={val}
                 placeholder={!isReviewMode ? String(id) : ""}
                 onChange={(e) => onAnswerChange(id, e.target.value)}
