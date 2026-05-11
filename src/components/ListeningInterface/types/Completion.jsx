@@ -18,7 +18,7 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
                             <tr key={rIdx} className="hover:bg-gray-50/50 transition-colors">
                                 {(row.cells || (Array.isArray(row) ? row : [])).map((cell, cIdx) => (
                                     <td key={cIdx} className="px-4 py-3 border border-black align-top">
-                                        {!cell.isMixed && (cell.text || typeof cell !== 'object') ? (
+                                        {(!cell.isMixed && (cell.text || typeof cell !== 'object') && !String(cell.text || cell).includes('[INPUT]')) ? (
                                             <div className="text-gray-800 font-semibold leading-relaxed pt-0.5 w-full">
                                                 {(() => {
                                                     const content = cell.text || cell;
@@ -29,24 +29,34 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
                                             </div>
                                         ) : (
                                             <div className="flex flex-wrap items-baseline leading-[2] text-gray-900 font-semibold gap-y-1">
-                                                {(cell.parts || []).map((refinedPart, index) => {
-                                                    if (refinedPart.type === 'text') return <span key={index} className="pr-1" dangerouslySetInnerHTML={{ __html: refinedPart.content }} />;
-                                                    if (refinedPart.type === 'input') {
-                                                        const lookupItems = (group.items || group.questions || []);
-                                                        const item = lookupItems.find(it => String(it.id) === String(refinedPart.id));
-                                                        return (
-                                                            <div key={`input-${refinedPart.id}`} className="inline-flex items-baseline mb-1">
-                                                                <ListeningTextInput 
-                                                                    id={refinedPart.id} answer={refinedPart.answer || item?.answer} locationId={refinedPart.locationId || item?.locationId} 
-                                                                    userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} 
-                                                                    handleLocationClick={handleLocationClick} onSeekTo={onSeekTo}
-                                                                    timestamp={item?.timestamp || item?.timeStep} activePart={activePart}
-                                                                />
-                                                            </div>
-                                                        );
+                                                {(() => {
+                                                    let parts = cell.parts;
+                                                    if (!parts && String(cell.text || cell).includes('[INPUT]')) {
+                                                        parts = String(cell.text || cell).split(/(\[INPUT\])/g).map(p => {
+                                                            if (p === '[INPUT]') return { type: 'input', id: cell.id };
+                                                            return { type: 'text', content: p };
+                                                        }).filter(p => p.type === 'input' || p.content);
                                                     }
-                                                    return null;
-                                                })}
+
+                                                    return (parts || []).map((refinedPart, index) => {
+                                                        if (refinedPart.type === 'text') return <span key={index} className="pr-1" dangerouslySetInnerHTML={{ __html: refinedPart.content }} />;
+                                                        if (refinedPart.type === 'input') {
+                                                            const lookupItems = (group.items || group.questions || []);
+                                                            const item = lookupItems.find(it => String(it.id) === String(refinedPart.id));
+                                                            return (
+                                                                <div key={`input-${refinedPart.id}`} className="inline-flex items-baseline mb-1">
+                                                                    <ListeningTextInput 
+                                                                        id={refinedPart.id} answer={refinedPart.answer || item?.answer} locationId={refinedPart.locationId || item?.locationId} 
+                                                                        userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} 
+                                                                        handleLocationClick={handleLocationClick} onSeekTo={onSeekTo}
+                                                                        timestamp={item?.timestamp || item?.timeStep} activePart={activePart}
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    });
+                                                })()}
                                             </div>
                                         )}
                                     </td>
@@ -82,18 +92,29 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                                 <React.Fragment key={qIdx}>
                                     {breakEl}
                                     <div className={`font-normal text-gray-800 leading-relaxed ${isBullet ? 'pl-4 inline-flex w-full md:w-auto' : 'pl-2 inline-flex'}`}>
-                                        {(q.parts || [{type: 'text', content: qText}]).map((part, pIdx) => {
-                                            if (part.type === 'text') return <span key={pIdx} className="mr-1" dangerouslySetInnerHTML={{ __html: stripLeadingId(part.content, q.id) }} />;
-                                            if (part.type === 'input') return (
-                                                <ListeningTextInput 
-                                                    key={pIdx} id={part.id || q.id} answer={part.answer || q.answer} locationId={part.locationId || q.locationId}
-                                                    userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode}
-                                                    handleLocationClick={handleLocationClick} onSeekTo={onSeekTo}
-                                                    timestamp={q.timestamp || q.timeStep} activePart={activePart}
-                                                />
-                                            );
-                                            return null;
-                                        })}
+                                        {(() => {
+                                            // Handle cases where [INPUT] is in the text but q.parts is missing
+                                            let parts = q.parts;
+                                            if (!parts && String(qText).includes('[INPUT]')) {
+                                                parts = String(qText).split(/(\[INPUT\])/g).map(p => {
+                                                    if (p === '[INPUT]') return { type: 'input' };
+                                                    return { type: 'text', content: p };
+                                                }).filter(p => p.type === 'input' || p.content);
+                                            }
+
+                                            return (parts || [{type: 'text', content: qText}]).map((part, pIdx) => {
+                                                if (part.type === 'text') return <span key={pIdx} className="mr-1" dangerouslySetInnerHTML={{ __html: stripLeadingId(part.content, q.id) }} />;
+                                                if (part.type === 'input') return (
+                                                    <ListeningTextInput 
+                                                        key={pIdx} id={part.id || q.id} answer={part.answer || q.answer} locationId={part.locationId || q.locationId}
+                                                        userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode}
+                                                        handleLocationClick={handleLocationClick} onSeekTo={onSeekTo}
+                                                        timestamp={q.timestamp || q.timeStep} activePart={activePart}
+                                                    />
+                                                );
+                                                return null;
+                                            });
+                                        })()}
                                     </div>
                                 </React.Fragment>
                             );

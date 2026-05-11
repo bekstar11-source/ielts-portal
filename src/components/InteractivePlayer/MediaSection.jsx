@@ -97,151 +97,101 @@ export default function MediaSection({
             overflow-hidden transition-all duration-500
             ${isDark ? 'border-neutral-800 bg-[#0a0a0c]' : 'border-zinc-100 bg-zinc-50'}
         `}>
-            {isVideoMode ? (
-                <div className={`flex-1 relative flex flex-col items-center justify-center p-0 md:p-4 ${isDark ? 'bg-black' : (isFullscreen ? 'bg-black' : 'bg-zinc-50')}`}>
+            {/* STABLE YOUTUBE PLAYER CONTAINER */}
+            {podcast.mediaType === 'youtube' && (
+                <div 
+                    className={`transition-all duration-500 overflow-hidden ${isVideoMode ? 'flex-1 relative flex flex-col items-center justify-center p-0 md:p-4' : 'absolute pointer-events-none opacity-0 w-1 h-1'}`}
+                    style={!isVideoMode ? { top: -9999, left: -9999 } : {}}
+                >
                     <div className={`
                         w-full aspect-video md:rounded-lg overflow-hidden transition-all duration-500 group relative
-                        ${isFullscreen ? 'border-none shadow-none md:rounded-none' : (isDark ? 'border-white/5 md:shadow-2xl' : 'border-zinc-100 md:shadow-lg')}
+                        ${isVideoMode && isFullscreen ? 'border-none shadow-none md:rounded-none' : (isDark ? 'border-white/5 md:shadow-2xl' : 'border-zinc-100 md:shadow-lg')}
                     `}>
-                        {podcast.mediaType === 'youtube' ? (
-                            <iframe 
-                                id="youtube-player-iframe"
-                                className="w-full h-full"
-                                src={`https://www.youtube.com/embed/${podcast.youtubeId}?autoplay=0&modestbranding=1&rel=0&controls=0&enablejsapi=1&iv_load_policy=3&disablekb=1&origin=${window.location.origin}`}
-                                title="YouTube video player" 
-                                frameBorder="0" 
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                                referrerPolicy="strict-origin-when-cross-origin" 
-                            ></iframe>
-                        ) : (
-                            <div className="w-full h-full relative">
-                                <video 
-                                    ref={videoRef}
-                                    className="w-full h-full object-contain"
-                                    src={podcast.audioUrl}
-                                    onWaiting={() => setIsBuffering(true)}
-                                    onPlaying={() => setIsBuffering(false)}
-                                    onCanPlay={() => setIsBuffering(false)}
-                                    onLoadStart={() => setIsBuffering(true)}
-                                    onClick={() => setIsPlaying(!isPlaying)}
-                                />
-                                
-                                {isBuffering && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-30 pointer-events-none">
-                                        <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_20px_rgba(16,185,129,0.3)]" />
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        <iframe 
+                            id="youtube-player-iframe"
+                            className="w-full h-full"
+                            src={`https://www.youtube.com/embed/${podcast.youtubeId}?autoplay=0&modestbranding=1&rel=0&controls=0&enablejsapi=1&iv_load_policy=3&disablekb=1&origin=${window.location.origin}`}
+                            title="YouTube video player" 
+                            frameBorder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                            referrerPolicy="strict-origin-when-cross-origin" 
+                        ></iframe>
 
-                        {/* Interactive Overlays for Seeking & Play/Pause */}
-                        <div className="absolute inset-0 z-20 flex group/shield">
-                            {/* Left Half: Backward 5s */}
-                            <div 
-                                className="flex-1 cursor-pointer active:bg-white/5 transition-colors"
-                                onDoubleClick={(e) => {
-                                    e.stopPropagation();
-                                    globalHandleSeek(Math.max(0, currentTime - 5));
-                                }}
-                                onClick={() => setIsPlaying(!isPlaying)}
-                            />
-                            
-                            {/* Right Half: Forward 5s */}
-                            <div 
-                                className="flex-1 cursor-pointer active:bg-white/5 transition-colors"
-                                onDoubleClick={(e) => {
-                                    e.stopPropagation();
-                                    globalHandleSeek(Math.min(duration, currentTime + 5));
-                                }}
-                                onClick={() => setIsPlaying(!isPlaying)}
-                            />
-
-                            {!isPlaying && (
-                                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                    <div className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] border-2 border-emerald-400/30 group-hover/shield:scale-110 transition-all duration-300">
-                                        <Play fill="white" size={24} className="ml-1 text-white" />
-                                    </div>
+                        {/* Interactive Overlays (Only in video mode) */}
+                        {isVideoMode && (
+                            <>
+                                <div className="absolute inset-0 z-20 flex group/shield">
+                                    <div 
+                                        className="flex-1 cursor-pointer active:bg-white/5 transition-colors"
+                                        onDoubleClick={(e) => { e.stopPropagation(); globalHandleSeek(Math.max(0, currentTime - 5)); }}
+                                        onClick={() => setIsPlaying(!isPlaying)}
+                                    />
+                                    <div 
+                                        className="flex-1 cursor-pointer active:bg-white/5 transition-colors"
+                                        onDoubleClick={(e) => { e.stopPropagation(); globalHandleSeek(Math.min(duration, currentTime + 5)); }}
+                                        onClick={() => setIsPlaying(!isPlaying)}
+                                    />
+                                    {!isPlaying && (
+                                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                            <div className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] border-2 border-emerald-400/30 group-hover/shield:scale-110 transition-all duration-300">
+                                                <Play fill="white" size={24} className="ml-1 text-white" />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Corner Fullscreen Toggle (Right) */}
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFullscreen();
-                            }}
-                            className={`absolute bottom-4 right-4 md:bottom-6 md:right-6 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full ${isFullscreen ? 'bg-white/20 hover:bg-white/30 backdrop-blur-md' : 'bg-emerald-600 hover:bg-emerald-500'} text-white transition-all shadow-lg border border-white/20 flex items-center justify-center group/btn active:scale-90`}
-                            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                        >
-                            {isFullscreen ? (
-                                <Minimize size={20} className="group-hover/btn:scale-110 transition-transform" />
-                            ) : (
-                                <Maximize size={22} className="group-hover/btn:scale-110 transition-transform" />
-                            )}
-                        </button>
+                            </>
+                        )}
                     </div>
-
-                    {/* Hide title/desc on mobile to save space for sticky player */}
-                    {!isFullscreen && (
+                    {isVideoMode && !isFullscreen && (
                         <div className="hidden md:block mt-8 text-center px-4">
                             <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-zinc-900'}`}>{podcast.title}</h2>
                             <p className={`${isDark ? 'text-neutral-500' : 'text-zinc-500'} text-sm max-w-md mx-auto`}>Watch the video and complete the tasks on the right side.</p>
                         </div>
                     )}
                 </div>
-            ) : (
-                <div className="flex-1 relative overflow-hidden flex flex-col justify-center">
-                    {/* Hidden Media Player for Script Mode (Only for Audio Sync) */}
-                    {(podcast.mediaType === 'youtube' || podcast.mediaType === 'video') && (
-                        <div 
-                            className="pointer-events-none overflow-hidden"
-                            style={{ 
-                                position: 'absolute', 
-                                top: -9999, 
-                                left: -9999, 
-                                width: 1, 
-                                height: 1, 
-                                opacity: 0,
-                                visibility: 'hidden'
-                            }}
-                        >
-                            {podcast.mediaType === 'youtube' ? (
-                                <iframe 
-                                    id="youtube-player-iframe"
-                                    width="100"
-                                    height="100"
-                                    src={`https://www.youtube.com/embed/${podcast.youtubeId}?autoplay=0&modestbranding=1&rel=0&controls=0&enablejsapi=1&iv_load_policy=3&disablekb=1&origin=${window.location.origin}`}
-                                    title="YouTube video player hidden" 
-                                    frameBorder="0" 
-                                />
-                            ) : (
-                                <video 
-                                    ref={videoRef}
-                                    src={podcast.audioUrl}
-                                    style={{ display: 'none' }}
-                                />
-                            )}
-                        </div>
-                    )}
+            )}
 
+            {/* LOCAL VIDEO PLAYER CONTAINER */}
+            {podcast.mediaType === 'video' && isVideoMode && (
+                <div className={`flex-1 relative flex flex-col items-center justify-center p-0 md:p-4 ${isDark ? 'bg-black' : (isFullscreen ? 'bg-black' : 'bg-zinc-50')}`}>
+                    <div className={`w-full aspect-video md:rounded-lg overflow-hidden transition-all duration-500 group relative ${isFullscreen ? 'border-none shadow-none md:rounded-none' : (isDark ? 'border-white/5 md:shadow-2xl' : 'border-zinc-100 md:shadow-lg')}`}>
+                        <video 
+                            ref={videoRef}
+                            className="w-full h-full object-contain"
+                            src={podcast.audioUrl}
+                            onWaiting={() => setIsBuffering(true)}
+                            onPlaying={() => setIsBuffering(false)}
+                            onClick={() => setIsPlaying(!isPlaying)}
+                        />
+                        {isBuffering && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-30 pointer-events-none">
+                                <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_20px_rgba(16,185,129,0.3)]" />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* TRANSCRIPT VIEW (Only if NOT isVideoMode) */}
+            {!isVideoMode && (
+                <div className="flex-1 relative overflow-hidden flex flex-col justify-center">
                     <div className={`absolute top-0 left-0 w-full h-32 z-10 pointer-events-none ${isDark ? 'bg-gradient-to-b from-[#0a0a0c] to-transparent' : 'bg-gradient-to-b from-zinc-50 to-transparent'}`}></div>
                     <div className={`absolute bottom-0 left-0 w-full h-32 z-10 pointer-events-none ${isDark ? 'bg-gradient-to-t from-[#0a0a0c] to-transparent' : 'bg-gradient-to-t from-zinc-50 to-transparent'}`}></div>
 
                     <div className="h-full flex flex-col justify-center items-center relative overflow-hidden">
-                        <div className="flex-1 flex flex-col-reverse justify-start items-center gap-8 pb-8 overflow-hidden opacity-40">
+                        <div className="flex-1 flex flex-col-reverse justify-start items-center gap-4 pb-4 overflow-hidden opacity-40">
                             {[-1, -2, -3].map(offset => {
                                 const item = combinedTimeline[activeTimelineIdx + offset];
                                 if (!item) return null;
                                 return (
                                     <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
-                                        <p className={`font-medium text-lg leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
+                                        <p className={`font-medium text-base leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
                                     </div>
                                 );
                             })}
                         </div>
 
-                        <div className="flex-none py-8 z-10">
+                        <div className="flex-none py-4 z-10">
                             <motion.div 
                                 key={combinedTimeline[activeTimelineIdx]?.time}
                                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
@@ -249,19 +199,19 @@ export default function MediaSection({
                                 className="text-center px-12 max-w-2xl cursor-pointer"
                                 onClick={() => globalHandleSeek(combinedTimeline[activeTimelineIdx]?.time)}
                             >
-                                <p className={`font-bold text-3xl leading-snug tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                <p className={`font-bold text-xl leading-snug tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                                     {combinedTimeline[activeTimelineIdx]?.text}
                                 </p>
                             </motion.div>
                         </div>
 
-                        <div className="flex-1 flex flex-col justify-start items-center gap-8 pt-8 overflow-hidden opacity-40">
+                        <div className="flex-1 flex flex-col justify-start items-center gap-4 pt-4 overflow-hidden opacity-40">
                             {[1, 2, 3].map(offset => {
                                 const item = combinedTimeline[activeTimelineIdx + offset];
                                 if (!item) return null;
                                 return (
                                     <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
-                                        <p className={`font-medium text-lg leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
+                                        <p className={`font-medium text-base leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
                                     </div>
                                 );
                             })}

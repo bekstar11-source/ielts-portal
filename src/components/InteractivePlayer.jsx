@@ -45,7 +45,8 @@ export default function InteractivePlayer({ isOpen, onClose }) {
         setCurrentTime, 
         setDuration,
         currentTime,
-        youtubePlayerRef
+        youtubePlayerRef,
+        isPlaying
     );
 
     // Sync YouTube playback state with context
@@ -199,6 +200,8 @@ export default function InteractivePlayer({ isOpen, onClose }) {
 
     if (!podcast) return null;
 
+    const isVideoMode = (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') && podcast.showVideo !== false && String(podcast.showVideo) !== 'false';
+
     return (
         <motion.div 
             ref={playerRef}
@@ -238,7 +241,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
             )}
 
             <main className={`flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden relative`}>
-                <div className={`flex-none lg:col-span-6 h-auto lg:h-full flex flex-col lg:border-r z-20 ${isDark ? 'border-neutral-800 shadow-none' : 'border-zinc-100 shadow-sm'}`}>
+                <div className={`flex-none lg:col-span-6 ${!isVideoMode ? 'h-[25vh]' : 'h-auto'} lg:h-full flex flex-col lg:border-r z-20 ${isDark ? 'border-neutral-800 shadow-none' : 'border-zinc-100 shadow-sm'}`}>
                     <MediaSection 
                         isDark={isDark}
                         podcast={podcast}

@@ -15,6 +15,7 @@ import PodcastError from "../components/podcasts/PodcastError";
 import EpisodeHero from "../components/podcasts/EpisodeHero";
 import ExerciseAccordion from "../components/podcasts/ExerciseAccordion";
 import TranscriptAccordion from "../components/podcasts/TranscriptAccordion";
+import PodcastBottomNav from "../components/podcasts/PodcastBottomNav";
 
 export default function SpotifyEpisodeDetails() {
     const { podcastId } = useParams();
@@ -23,7 +24,7 @@ export default function SpotifyEpisodeDetails() {
     const isDark = theme === 'dark';
     const { 
         playTrack, currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
-        currentTime, duration, handleSeek, setIsExpanded 
+        currentTime, duration, handleSeek, isExpanded, setIsExpanded 
     } = usePodcast();
     
     // Data Hook
@@ -190,9 +191,10 @@ export default function SpotifyEpisodeDetails() {
                     formatTime={formatTime}
                     onExpand={() => setIsExpanded(true)}
                     isFixed={true}
-                    hasBottomNav={false}
+                    hasBottomNav={true}
                 />
             )}
+            {!isExpanded && <PodcastBottomNav isDark={isDark} />}
         </div>
     );
 }

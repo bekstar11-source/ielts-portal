@@ -25,7 +25,18 @@ export default function Podcasts() {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const currentMobileTab = queryParams.get('tab') || 'home';
-    const [showSplash, setShowSplash] = useState(location.state?.fromBottomNav || false);
+    const [showSplash, setShowSplash] = useState(() => {
+        // Faqat bir marta session davomida ko'rsatish
+        const hasShown = sessionStorage.getItem('podcast_splash_shown');
+        if (hasShown) return false;
+        
+        const shouldShow = location.state?.fromBottomNav || false;
+        if (shouldShow) {
+            sessionStorage.setItem('podcast_splash_shown', 'true');
+            return true;
+        }
+        return false;
+    });
 
     useEffect(() => {
         if (showSplash) {

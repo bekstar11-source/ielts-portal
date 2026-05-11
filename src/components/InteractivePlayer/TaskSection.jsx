@@ -256,19 +256,19 @@ export default function TaskSection({
                     </AnimatePresence>
 
                     {/* Task Actions Footer */}
-                    <div className={`shrink-0 flex flex-col gap-3 ${isFullscreen ? 'p-3 bg-transparent border-t border-white/5' : 'p-4 md:p-6 border-t ' + (isDark ? 'bg-[#0a0a0c]/80 border-neutral-800' : 'bg-zinc-50/80 border-zinc-100')}`}>
+                    <div className={`shrink-0 flex flex-col gap-2 ${isFullscreen ? 'p-2 bg-transparent border-t border-white/5' : 'p-2 md:p-3 border-t ' + (isDark ? 'bg-[#0a0a0c]/80 border-neutral-800' : 'bg-zinc-50/80 border-zinc-100')}`}>
                         {!showResults[currentStep] ? (
                             <button 
                                 onClick={handleCheckAnswers}
-                                className={`w-full bg-emerald-600 text-white font-black text-[11px] uppercase tracking-widest rounded-lg hover:bg-emerald-500 transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 ${isFullscreen ? 'py-2.5' : 'py-3'}`}
+                                className={`w-fit mx-auto bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest rounded-md hover:bg-emerald-500 transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 px-8 ${isFullscreen ? 'py-1.5' : 'py-2'}`}
                             >
-                                <Check size={14} />
+                                <Check size={12} />
                                 {isGrouped && attempts[currentStep] === 1 ? 'Check Final Attempt' : 'Check Answers'}
                             </button>
                         ) : (
                             <button 
                                 onClick={handleResetStep}
-                                className="w-full py-3 bg-rose-600 text-white font-black text-[11px] uppercase tracking-widest rounded-sm hover:bg-rose-500 transition-all shadow-lg active:scale-[0.98]"
+                                className="w-fit mx-auto px-8 py-2 bg-rose-600 text-white font-black text-[10px] uppercase tracking-widest rounded-md hover:bg-rose-500 transition-all shadow-lg active:scale-[0.98]"
                             >
                                 Reset This Step
                             </button>

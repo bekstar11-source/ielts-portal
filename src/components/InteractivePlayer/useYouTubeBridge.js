@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, setDuration, currentTime, youtubePlayerRef) {
+export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, setDuration, currentTime, youtubePlayerRef, isPlaying) {
     // We now use the global youtubePlayerRef passed from PodcastContext
     let interval;
 
@@ -34,7 +34,7 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
             youtubePlayerRef.current = new window.YT.Player('youtube-player-iframe', {
                 videoId: podcast.youtubeId,
                 playerVars: {
-                    autoplay: 1,
+                    autoplay: 0,
                     modestbranding: 1,
                     rel: 0,
                     enablejsapi: 1,
@@ -44,7 +44,10 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                     onReady: (event) => {
                         const d = event.target.getDuration();
                         if (d) setDuration(d);
-                        event.target.playVideo();
+                        // Only play if isPlaying is already true
+                        if (isPlaying) {
+                            event.target.playVideo();
+                        }
                     },
                     onStateChange: (event) => {
                         if (event.data === window.YT.PlayerState.PLAYING) {
@@ -71,7 +74,7 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
             if (youtubePlayerRef.current && typeof youtubePlayerRef.current.loadVideoById === 'function') {
                 // Different video, load it
                 youtubePlayerRef.current.loadVideoById(podcast.youtubeId);
-                setIsPlaying(true);
+                // setIsPlaying(true); // Don't auto-play on load
                 setCurrentTime(0);
                 setDuration(0);
                 youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
@@ -86,7 +89,7 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [podcast?.youtubeId, setIsPlaying, setCurrentTime, setDuration]);
+    }, [podcast?.youtubeId, setIsPlaying, setCurrentTime, setDuration, isPlaying]);
 
     const handleYoutubeSeek = (time) => {
         if (youtubePlayerRef.current && youtubePlayerRef.current.seekTo) {

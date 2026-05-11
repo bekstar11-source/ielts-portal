@@ -36,7 +36,7 @@ export default function TestReview() {
         adminFeedback, setAdminFeedback,
         isSaving,
         handleSaveGrade,
-        listeningActivePart,
+        listeningActivePart, setListeningActivePart,
         audioTime, setAudioTime,
         volume, setVolume,
         audioRefs,
@@ -108,7 +108,7 @@ export default function TestReview() {
                                 textSize={textSize}
                                 testMode="practice"
                                 activePart={listeningActivePart}
-                                setActivePart={() => {}} // Controlled by hook via seek/tab
+                                setActivePart={setListeningActivePart}
                                 audioCurrentTime={audioTime}
                                 isPremium={isPremium}
                                 onSeekTo={handleSeekTo}

@@ -59,12 +59,6 @@ export default function PlayerHeader({
                 >
                     {isDark ? <Sun size={20} /> : <Moon size={20} />}
                 </button>
-                <button 
-                    onClick={toggleFullscreen}
-                    className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/5 text-zinc-400 hover:text-white' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
-                >
-                    {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                </button>
                 <button onClick={onClose} className={`hidden md:flex p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/5 text-zinc-400 hover:text-white' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}>
                     <ChevronDown size={24} />
                 </button>

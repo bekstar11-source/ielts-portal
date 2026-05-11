@@ -68,7 +68,18 @@ import Library from './pages/Library';
 import InteractivePlayer from './components/InteractivePlayer';
 
 const GlobalPodcastPlayer = () => {
-  const { isExpanded, setIsExpanded } = usePodcast();
+  const { isExpanded, setIsExpanded, setIsPlaying } = usePodcast();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if the current path is NOT a podcast-related path
+    const isPodcastRoute = location.pathname.startsWith('/podcast') || location.pathname === '/podcasts';
+    
+    if (!isPodcastRoute) {
+      setIsPlaying(false);
+    }
+  }, [location.pathname, setIsPlaying]);
+
   return <InteractivePlayer isOpen={isExpanded} onClose={() => setIsExpanded(false)} />;
 };
 

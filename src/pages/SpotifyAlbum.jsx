@@ -14,6 +14,7 @@ import AlbumHero from "../components/podcasts/AlbumHero";
 import EpisodeListItem from "../components/podcasts/EpisodeListItem";
 import { EpisodeRowSkeleton } from "../components/podcasts/PodcastSkeletons";
 import PodcastError from "../components/podcasts/PodcastError";
+import PodcastBottomNav from "../components/podcasts/PodcastBottomNav";
 
 export default function SpotifyAlbum() {
     const { albumId } = useParams();
@@ -170,8 +171,10 @@ export default function SpotifyAlbum() {
                     formatTime={formatTime}
                     onExpand={() => setIsExpanded(true)}
                     isFixed={true}
+                    hasBottomNav={true}
                 />
             )}
+            {!isExpanded && <PodcastBottomNav isDark={isDark} />}
 
             <style dangerouslySetInnerHTML={{__html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 10px; }
