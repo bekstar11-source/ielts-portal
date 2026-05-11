@@ -418,11 +418,11 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
             filteredResults.map((res) => {
               const theme = getTestTheme(res.type);
               const bandScore = (res.type === 'reading' || res.type === 'listening')
-                ? (res.bandScore || calculateBandScore(res.score, res.type, res.totalQuestions))
+                ? (res.bestBandScore || res.bandScore || calculateBandScore(res.score, res.type, res.totalQuestions))
                 : (res.type === 'writing' ? (res.writingBand || res.bandScore) : res.score);
               const isGraded = res.status === 'graded' || res.writingBand != null || res.bandScore != null || (res.score !== null && res.type !== 'mock_full');
               
-              const dateObj = new Date(res.date);
+              const dateObj = new Date(res.lastAttemptDate || res.date);
               const day = dateObj.getDate();
               const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
               const time = dateObj.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
@@ -430,28 +430,25 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
               return (
                 <motion.div 
                   key={res.id}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    hapticFeedback('light');
-                    navigate(`/review/${res.id}`);
-                  }}
-                  className="group bg-white rounded-xl border border-hairline p-4 md:p-5 flex items-center gap-4 md:gap-6 hover:bg-white transition-all cursor-pointer shadow-sm"
+                  className="group bg-white rounded-xl border border-hairline p-4 md:p-5 flex flex-col transition-all shadow-sm"
                 >
-                  <div className="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 bg-tile-dark-1 rounded-lg flex flex-col items-center justify-center text-white">
-                    <span className="text-[10px] md:text-xs font-medium opacity-80">{month}</span>
-                    <span className="text-lg md:text-xl font-bold leading-none">{day}</span>
-                  </div>
-                  <div className="flex-grow flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-sm md:text-[17px] text-ink line-clamp-1">
-                        {res.title || res.testTitle || (res.type === 'mock_full' ? "IELTS Mock Exam" : "Practice Test")}
-                      </h3>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] md:text-[12px] font-black tracking-widest text-blue-600 uppercase">{theme.label}</span>
-                        <span className="text-[10px] md:text-[12px] text-ink-muted-48 flex items-center gap-1">
-                          <Clock size={12} />
-                          {time}
-                        </span>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 md:gap-6 flex-1">
+                      <div className="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 bg-tile-dark-1 rounded-lg flex flex-col items-center justify-center text-white">
+                        <span className="text-[10px] md:text-xs font-medium opacity-80">{month}</span>
+                        <span className="text-lg md:text-xl font-bold leading-none">{day}</span>
+                      </div>
+                      <div className="flex-grow flex flex-col justify-center">
+                        <h3 className="font-bold text-sm md:text-[17px] text-ink line-clamp-1">
+                          {res.title || res.testTitle || (res.type === 'mock_full' ? "IELTS Mock Exam" : "Practice Test")}
+                        </h3>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-[10px] md:text-[12px] font-black tracking-widest text-blue-600 uppercase">{theme.label}</span>
+                          <span className="text-[10px] md:text-[12px] text-ink-muted-48 flex items-center gap-1">
+                            <Clock size={12} />
+                            {time}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     
@@ -463,7 +460,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                               {res.type === 'mock_full' 
                                 ? Number(res.scores?.overallBand || res.overallBand || 0).toFixed(1)
                                 : Number(bandScore || 0).toFixed(1)}
-                              <span className="text-[10px] md:text-sm font-black text-ink-muted-48 uppercase ml-1">Band</span>
+                              <span className="text-[10px] md:text-sm font-black text-ink-muted-48 uppercase ml-1">Best Band</span>
                             </>
                           ) : (
                             <span className="text-[10px] md:text-sm font-medium text-ink-muted-48">Grading...</span>
@@ -471,11 +468,63 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                         </div>
                         {isGraded && (
                           <div className="text-[10px] md:text-[12px] text-ink-muted-48 mt-0.5 md:mt-1 font-bold uppercase tracking-wide">
-                            {res.score !== undefined ? `${res.score}/${res.totalQuestions || 40} SCORE` : "EVALUATED"}
+                            {res.bestScore !== undefined ? `${res.bestScore}/${res.totalQuestions || 40} BEST SCORE` : "EVALUATED"}
                           </div>
                         )}
                       </div>
-                      <ChevronRight size={20} className="text-ink-muted-48 group-hover:text-blue-600 transition-colors hidden sm:block" />
+                    </div>
+                  </div>
+
+                  {/* Attempts History */}
+                  <div className="w-full mt-5 pt-4 border-t border-hairline">
+                    <p className="text-xs text-ink-muted-48 uppercase font-bold mb-3 tracking-wider">
+                      Urinishlar tarixi ({res.attempts?.length || 1})
+                    </p>
+                    <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+                      {res.attempts && res.attempts.length > 0 ? (
+                        [...res.attempts].reverse().map((attempt, index) => {
+                          const attemptDateObj = new Date(attempt.date);
+                          const attemptDateStr = attemptDateObj.toLocaleDateString('uz-UZ', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
+                          const minsSpent = Math.max(1, Math.floor((attempt.timeSpent || 0) / 60));
+                          return (
+                            <div key={attempt.attemptId} className="flex justify-between items-center bg-stone-50 p-3 rounded-lg border border-hairline">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-ink-muted-48 font-bold">#{res.attempts.length - index}</span>
+                                <span className="text-sm text-ink font-medium">{attemptDateStr}</span>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="text-xs text-ink-muted-48 hidden sm:inline">{minsSpent} min</span>
+                                <span className="text-sm font-bold text-action-blue">{attempt.bandScore || attempt.score} {attempt.bandScore ? 'band' : 'ball'}</span>
+                                <button 
+                                  onClick={() => navigate(`/review/${res.testId || res.id}?attempt=${attempt.attemptId}`)}
+                                  className="text-xs bg-white border border-hairline hover:bg-pearl text-ink px-3 py-1.5 rounded-full font-medium transition-colors shadow-sm"
+                                >
+                                  Review
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        // Fallback for old data without attempts array
+                        <div className="flex justify-between items-center bg-stone-50 p-3 rounded-lg border border-hairline">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-ink-muted-48 font-bold">#1</span>
+                            <span className="text-sm text-ink font-medium">
+                              {new Date(res.date).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm font-bold text-action-blue">{bandScore} band</span>
+                            <button 
+                              onClick={() => navigate(`/review/${res.id}`)}
+                              className="text-xs bg-white border border-hairline hover:bg-pearl text-ink px-3 py-1.5 rounded-full font-medium transition-colors shadow-sm"
+                            >
+                              Review
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>

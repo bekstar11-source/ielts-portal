@@ -36,7 +36,7 @@ const ReviewHeader = ({
                             {resultData.userName || 'Student'}
                         </span>
                         <span className="w-1 h-1 bg-zinc-800 rounded-full" />
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${
                             resultData.type === 'mock_full' ? 'text-indigo-400 bg-indigo-400/10' : 'text-blue-400 bg-blue-400/10'
                         }`}>
                             {resultData.type === 'mock_full' ? 'FULL MOCK' : 'PARTIAL'}

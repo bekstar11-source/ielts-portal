@@ -21,7 +21,7 @@ export default function DashboardReadingCarousel({ onStartTest }) {
             setIsLoading(true);
             try {
                 // 1. First, take reading tests from assignments
-                let readingTests = assignments.filter(t => (t.type || '').toLowerCase() === 'reading' && t.status !== 'completed');
+                let readingTests = assignments.filter(t => (t.type || '').toLowerCase() === 'reading');
                 
                 // 2. If not enough (less than 6), fetch latest public reading tests from DB
                 if (readingTests.length < 6) {
@@ -146,7 +146,7 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                                             onClick={() => onStartTest ? onStartTest(item) : navigate(`/test/${item.id}`)}
                                             className="bg-[#0071e3] text-white text-[13px] font-bold px-5 py-2 rounded-lg hover:bg-[#0077ed] transition-all relative z-20 cursor-pointer"
                                         >
-                                            Start Test
+                                            {item.status === 'completed' ? 'Retake' : 'Start Test'}
                                         </button>
                                     </div>
                                 </div>

@@ -92,13 +92,28 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
                     Go Pro
                   </button>
               ) : (
-                <span className="text-white text-[14px] font-bold opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300 flex items-center gap-1.5">
-                  {isCompleted ? 'Review' : 'Start Now'}
-                </span>
+                <div className="flex gap-3 items-center">
+                  {isCompleted && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onReview(test); }}
+                      className="bg-white/20 text-white px-4 py-2 rounded-full font-bold text-[14px] hover:bg-white/30 backdrop-blur-md transition-all duration-300 flex items-center gap-2 z-10"
+                    >
+                      Review
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); isCompleted ? onStart(test) : handleClick(); }}
+                    className="flex items-center gap-3 group/btn z-10"
+                  >
+                    <span className="text-white text-[14px] font-bold opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300 flex items-center gap-1.5">
+                      {isCompleted ? 'Retake' : 'Start Now'}
+                    </span>
+                    <div className="w-12 h-12 rounded-full bg-white text-[#0071e3] flex items-center justify-center shadow-lg transform group-hover/btn:scale-110 transition-transform duration-300">
+                      <Play size={20} className="fill-current ml-1" />
+                    </div>
+                  </button>
+                </div>
               )}
-              <div className="w-12 h-12 rounded-full bg-white text-[#0071e3] flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300">
-                {isCompleted ? <ArrowRight size={20} /> : <Play size={20} className="fill-current ml-1" />}
-              </div>
             </div>
           </div>
         </div>

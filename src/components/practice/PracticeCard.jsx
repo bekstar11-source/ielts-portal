@@ -133,12 +133,22 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
                   )}
                 </div>
               </div>
-              <button 
-                onClick={(e) => { e.stopPropagation(); hapticFeedback('light'); handleClick(); }}
-                className="text-white text-[14px] font-bold px-6 py-2 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2"
-              >
-                {isCompleted ? 'Review' : 'Start'}
-              </button>
+              <div className="flex gap-2">
+                {isCompleted && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); hapticFeedback('light'); onReview(test); }}
+                    className="text-[#0071e3] bg-blue-50 text-[14px] font-bold px-4 py-2 rounded-lg hover:bg-blue-100 transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    Review
+                  </button>
+                )}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); hapticFeedback('light'); isCompleted ? onStart(test) : handleClick(); }}
+                  className="text-white text-[14px] font-bold px-6 py-2 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {isCompleted ? 'Retake' : 'Start'}
+                </button>
+              </div>
             </div>
           )}
         </div>

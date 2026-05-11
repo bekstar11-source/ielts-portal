@@ -102,8 +102,8 @@ export const ChoiceQuestion = ({
 
                         let containerClass = "bg-transparent border-transparent";
                         let badgeClass = 'text-gray-600';
-                        let checkContainerClass = isSelected ? "border-gray-400" : "border-gray-300";
-                        let checkIconColor = "bg-orange-500";
+                        let checkContainerClass = isSelected ? "border-blue-600" : "border-gray-300";
+                        let checkIconColor = "bg-blue-600";
 
                         if (isReviewMode) {
                             const isThisCorrect = correctAnswersList.includes(String(finalValue).toLowerCase());
@@ -111,12 +111,12 @@ export const ChoiceQuestion = ({
                                 containerClass = "bg-green-50/50 border-transparent";
                                 badgeClass = "text-green-700 font-bold";
                                 checkContainerClass = "border-green-600 bg-white ring-green-100";
-                                checkIconColor = "text-green-600";
+                                checkIconColor = "bg-green-600";
                             } else if (isSelected && !isThisCorrect) {
                                 containerClass = "bg-red-50/50 border-transparent";
                                 badgeClass = "text-red-700 font-bold";
                                 checkContainerClass = "border-red-600 bg-white ring-red-100";
-                                checkIconColor = "text-red-600";
+                                checkIconColor = "bg-red-600";
                             } else {
                                 containerClass = "opacity-60 border-transparent";
                             }
@@ -151,7 +151,7 @@ export const ChoiceQuestion = ({
                                     />
                                     <div className={`w-4 h-4 border transition-all flex items-center justify-center bg-white ${isMultiSelect ? 'rounded-[2px]' : 'rounded-full'} ${checkContainerClass}`}>
                                         {isSelected && (
-                                            <div className={`w-2 h-2 rounded-full ${checkIconColor} animate-in zoom-in-50 duration-200`}></div>
+                                            <div className={`w-2 h-2 rounded-full ${checkIconColor}`}></div>
                                         )}
                                     </div>
                                 </div>

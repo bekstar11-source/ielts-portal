@@ -164,7 +164,11 @@ export function useStudentData(user) {
             const findBestResult = (testId, results) => {
                 const attempts = results.filter(r => String(r.testId).trim() === String(testId).trim());
                 if (attempts.length === 0) return null;
-                return attempts.sort((a, b) => parseFloat(b.bandScore || b.score || 0) - parseFloat(a.bandScore || a.score || 0))[0];
+                return attempts.sort((a, b) => {
+                    const scoreA = parseFloat(a.bestBandScore || a.bandScore || a.bestScore || a.score || 0);
+                    const scoreB = parseFloat(b.bestBandScore || b.bandScore || b.bestScore || b.score || 0);
+                    return scoreB - scoreA;
+                })[0];
             };
 
             let processedList = [];
@@ -174,7 +178,11 @@ export function useStudentData(user) {
                 if (assign.type === 'mock_full' || assign.mockKey || String(assign.id).startsWith('MOCK_')) {
                     const mockAttempts = myResults.filter(r => r.mockKey === assign.mockKey);
                     const bestMockResult = mockAttempts.length > 0
-                        ? mockAttempts.sort((a, b) => parseFloat(b.bandScore || 0) - parseFloat(a.bandScore || 0))[0]
+                        ? mockAttempts.sort((a, b) => {
+                            const scoreA = parseFloat(a.bestBandScore || a.bandScore || a.bestScore || a.score || 0);
+                            const scoreB = parseFloat(b.bestBandScore || b.bandScore || b.bestScore || b.score || 0);
+                            return scoreB - scoreA;
+                        })[0]
                         : null;
                     processedList.push({
                         ...assign,

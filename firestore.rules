@@ -60,12 +60,13 @@ service cloud.firestore {
     // RESULTS (Natijalar)
     match /results/{resultId} {
       allow read: if isAuth() && (
+        (resultId.size() >= request.auth.uid.size() + 1 && resultId[0:request.auth.uid.size() + 1] == request.auth.uid + "_") || 
         (resource != null && resource.data.userId == request.auth.uid) || 
         isAdmin() || 
         isTeacher()
       );
-      allow create: if isAuth(); 
-      allow update: if isAdmin() || isTeacher();
+      allow create: if isAuth() && (request.resource.data.userId == request.auth.uid); 
+      allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin() || isTeacher());
       allow delete: if isAdmin();
     }
     

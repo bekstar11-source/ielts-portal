@@ -296,7 +296,7 @@ const TestHeader = ({
                             </span>
                         )}
                         {(showResult || isReviewing) && (
-                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-wider self-start mt-1">
+                            <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm uppercase tracking-wider self-start mt-0.5">
                                 Review Mode
                             </span>
                         )}

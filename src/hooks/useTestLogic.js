@@ -77,6 +77,8 @@ export function useTestLogic() {
         if (!test) return;
         const { correctCount, totalQ, band, mistakes } = calculateScore(test, userAnswers);
         
+        const totalTime = (test.duration || 60) * 60;
+        const timeSpent = totalTime - timeLeft;
         const resultData = {
             testId: test.id,
             testTitle: test.title,
@@ -86,7 +88,9 @@ export function useTestLogic() {
             score: correctCount,
             bandScore: band,
             totalQuestions: totalQ,
-            violation: typeof violationType === 'string' ? violationType : null
+            violation: typeof violationType === 'string' ? violationType : null,
+            timeSpent,
+            userAnswers
         };
 
         const success = await submitTest(test, resultData, mistakes);
@@ -96,6 +100,15 @@ export function useTestLogic() {
             setShowResult(true);
             sessionStorage.removeItem(`draft_${user.uid}_${test.id}`);
             sessionStorage.removeItem(`timer_${user.uid}_${test.id}`);
+            sessionStorage.removeItem(`ielts_reading_session_${test.id}`);
+            sessionStorage.removeItem(`ielts_listening_session_${test.id}`);
+            sessionStorage.removeItem(`ielts_writing_session_${test.id}`);
+            sessionStorage.removeItem(`ielts_speaking_session_${test.id}`);
+            sessionStorage.removeItem(`ielts_hl_${test.id}`);
+            sessionStorage.removeItem(`ielts_listening_hl_${test.id}`);
+            for (let i = 0; i < 5; i++) {
+                sessionStorage.removeItem(`reading_session_${test.id}_passage_${i}`);
+            }
         }
     };
 
