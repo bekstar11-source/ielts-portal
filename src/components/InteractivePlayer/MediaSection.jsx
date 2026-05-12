@@ -176,13 +176,13 @@ export default function MediaSection({
                     <div className={`absolute bottom-0 left-0 w-full h-32 z-10 pointer-events-none ${isDark ? 'bg-gradient-to-t from-[#0a0a0c] to-transparent' : 'bg-gradient-to-t from-zinc-50 to-transparent'}`}></div>
 
                     <div className="h-full flex flex-col justify-center items-center relative overflow-hidden">
-                        <div className="flex-1 flex flex-col-reverse justify-start items-center gap-4 pb-4 overflow-hidden opacity-40">
+                        <div className="flex-1 flex flex-col-reverse justify-start items-center gap-2 pb-4 overflow-hidden opacity-40">
                             {[-1, -2, -3].map(offset => {
                                 const item = combinedTimeline[activeTimelineIdx + offset];
                                 if (!item) return null;
                                 return (
                                     <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
-                                        <p className={`font-medium text-base leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
+                                        <p className={`font-medium text-sm leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
                                     </div>
                                 );
                             })}
@@ -196,19 +196,19 @@ export default function MediaSection({
                                 className="text-center px-12 max-w-2xl cursor-pointer"
                                 onClick={() => globalHandleSeek(combinedTimeline[activeTimelineIdx]?.time)}
                             >
-                                <p className={`font-bold text-xl leading-snug tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                <p className={`font-bold text-lg leading-snug tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                                     {combinedTimeline[activeTimelineIdx]?.text}
                                 </p>
                             </motion.div>
                         </div>
 
-                        <div className="flex-1 flex flex-col justify-start items-center gap-4 pt-4 overflow-hidden opacity-40">
+                        <div className="flex-1 flex flex-col justify-start items-center gap-2 pt-4 overflow-hidden opacity-40">
                             {[1, 2, 3].map(offset => {
                                 const item = combinedTimeline[activeTimelineIdx + offset];
                                 if (!item) return null;
                                 return (
                                     <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
-                                        <p className={`font-medium text-base leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
+                                        <p className={`font-medium text-sm leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
                                     </div>
                                 );
                             })}

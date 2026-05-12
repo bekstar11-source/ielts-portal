@@ -19,15 +19,26 @@ const safeDate = (dateVal) => {
     return isNaN(d.getTime()) ? null : d;
 };
 
+// PERF: Cache question counts to avoid repeated heavy calculations
+const questionCountCache = new Map();
+
 // Yangi savol sanash funksiyasi
 const getActualQuestionCount = (questions) => {
     if (!questions || !Array.isArray(questions)) return 0;
-    return questions.reduce((sum, q) => {
+    
+    // Simple hash for cache key
+    const cacheKey = JSON.stringify(questions.length + (questions[0]?.id || ''));
+    if (questionCountCache.has(cacheKey)) return questionCountCache.get(cacheKey);
+
+    const count = questions.reduce((sum, q) => {
         if (q.questions && Array.isArray(q.questions)) return sum + q.questions.length;
         if (q.items && Array.isArray(q.items)) return sum + q.items.length;
         if (q.groups && Array.isArray(q.groups)) return sum + q.groups.length;
         return sum + 1;
     }, 0);
+
+    questionCountCache.set(cacheKey, count);
+    return count;
 };
 
 // Batch query: N ta alohida getDoc o'rniga bitta getDocs 'in' query
@@ -106,7 +117,12 @@ export function useStudentData(user) {
             const [uSnap, gSnap, resultsSnap] = await Promise.all([
                 getDoc(doc(db, 'users', user.uid)),
                 getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))),
-                getDocs(query(collection(db, 'results'), where('userId', '==', user.uid)))
+                getDocs(query(
+                    collection(db, 'results'), 
+                    where('userId', '==', user.uid),
+                    orderBy('createdAt', 'desc'),
+                    limit(50) // PERF: Only last 50 results to avoid massive reads
+                ))
             ]);
 
             const userData = uSnap.data() || {};

@@ -19,7 +19,7 @@ export default function CompletionTask({
             <div className={`sticky -top-6 z-20 pb-3 pt-1 ${isDark ? 'bg-[#121214]' : 'bg-white'} ${isFullscreen && 'bg-transparent'}`}>
                 <div className={`p-2 rounded-lg border flex flex-wrap gap-1.5 ${isDark ? 'bg-black/40 border-neutral-800' : 'bg-zinc-50 border-zinc-100 shadow-sm'}`}>
                     {words.map(word => (
-                        <div key={word} className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${isDark ? 'bg-neutral-900 border-neutral-700 text-emerald-400' : 'bg-white border-zinc-200 text-emerald-600 shadow-sm'}`}>
+                        <div key={word} className={`px-2 py-0.5 rounded text-[12px] font-bold border transition-all ${isDark ? 'bg-neutral-900 border-neutral-700 text-emerald-400' : 'bg-white border-zinc-200 text-emerald-600 shadow-sm'}`}>
                             {word}
                         </div>
                     ))}
@@ -37,14 +37,14 @@ export default function CompletionTask({
 
                     return (
                         <div key={qKey} className={`border p-3 rounded-sm transition-colors ${isDark ? 'bg-[#121214]' : 'bg-white'} ${stepResults ? (isCorrect ? 'border-emerald-500/50' : 'border-rose-500/50') : (isDark ? 'border-neutral-800' : 'border-zinc-100')}`}>
-                            <div className={`text-[13px] leading-relaxed mb-3 ${isDark ? 'text-white' : 'text-zinc-800'}`}>
+                            <div className={`text-[16px] leading-relaxed mb-3 ${isDark ? 'text-white' : 'text-zinc-800'}`}>
                                 <span className={`font-bold mr-2 ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>{idx + 1}.</span>
                                 {parts[0]}
                                 <input 
                                     type="text"
                                     disabled={stepResults}
                                     placeholder="..."
-                                    className={`inline-block mx-1.5 border-b outline-none bg-transparent transition-all px-1 py-0.5 text-center min-w-[30px] text-[12px] ${
+                                    className={`inline-block mx-1.5 border-b outline-none bg-transparent transition-all px-1 py-0.5 text-center min-w-[40px] text-[16px] ${
                                         stepResults 
                                             ? (isCorrect ? 'text-emerald-500 border-emerald-500' : 'text-rose-500 border-rose-500') 
                                             : 'text-emerald-600 border-emerald-500/30 focus:border-emerald-500'
@@ -77,12 +77,12 @@ export default function CompletionTask({
                                     
                                     <div className="space-y-2">
                                         <div className="flex flex-col">
-                                            <span className={`text-[10px] font-black uppercase tracking-tighter ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>Definition:</span>
-                                            <p className={`text-[13px] ${isDark ? 'text-neutral-300' : 'text-zinc-600'}`}>{q.data.definition}</p>
+                                            <span className={`text-[11px] font-black uppercase tracking-tighter ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>Definition:</span>
+                                            <p className={`text-[14px] ${isDark ? 'text-neutral-300' : 'text-zinc-600'}`}>{q.data.definition}</p>
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className={`text-[10px] font-black uppercase tracking-tighter ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>Collocation:</span>
-                                            <p className={`text-[13px] italic ${isDark ? 'text-emerald-400/80' : 'text-emerald-700'}`}>{q.data.collocation}</p>
+                                            <span className={`text-[11px] font-black uppercase tracking-tighter ${isDark ? 'text-neutral-500' : 'text-zinc-400'}`}>Collocation:</span>
+                                            <p className={`text-[14px] italic ${isDark ? 'text-emerald-400/80' : 'text-emerald-700'}`}>{q.data.collocation}</p>
                                         </div>
                                     </div>
                                 </div>

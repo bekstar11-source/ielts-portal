@@ -1,474 +1,180 @@
 // src/App.jsx
-import React, { useEffect } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-
-// SAHIFALAR
-import LandingPage from './pages/LandingPage';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import StudentDashboard from './pages/StudentDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-// TEACHER SAHIFALAR
-import TeacherLayout from './components/common/TeacherLayout';
-import TeacherDashboard from './pages/TeacherDashboard';
-import TeacherTests from './pages/TeacherTests';
-import TeacherWritingReview from './pages/TeacherWritingReview';
-import TeacherGroupStats from './pages/TeacherGroupStats';
-import TeacherAllResults from './pages/TeacherAllResults';
-import TeacherCreateWriting from './pages/TeacherCreateWriting';
-import AdminUsers from './pages/AdminUsers';
-import AdminAnalytics from './pages/AdminAnalytics';
-import AdminTests from './pages/AdminTests';
-import Onboarding from './pages/Onboarding';
-import Practice from './pages/Practice';
-import RoadmapPage from './pages/RoadmapPage';
-import Settings from './pages/Settings';
-import PublicDashboard from './pages/PublicDashboard';
-import DiagnosticIntro from './pages/DiagnosticIntro';
-import DiagnosticTestSolving from './pages/DiagnosticTestSolving';
-import DiagnosticResult from './pages/DiagnosticResult';
 import { ThemeProvider } from './context/ThemeContext';
-import { PodcastProvider, usePodcast } from './context/PodcastContext';
-import AdminLayout from './components/common/AdminLayout';
+import { PodcastProvider } from './context/PodcastContext';
 
-// ADMIN SAHIFALAR
-import CreateTest from './pages/CreateTest';
-import AdminResults from './pages/AdminResults';
-import AdminAnnouncements from './pages/AdminAnnouncements';
-import AdminLogs from './pages/AdminLogs';
-import AdminGamification from './pages/AdminGamification';
-
-// TEST BILAN BOG'LIQ SAHIFALAR
-import TestSolving from './pages/TestSolving';
-import TestReview from './pages/TestReview';
-
-import MockExam from './pages/MockExam';
-import MyResults from './pages/MyResults';
-import WordBank from './pages/WordBank';
-import PodcastPlayer from './pages/PodcastPlayer';
-import AdminPodcasts from './pages/AdminPodcasts';
-import CreatePodcast from './pages/CreatePodcast';
-import KeyManager from './pages/KeyManager';
-import SpotifyPodcast from './pages/SpotifyPodcast';
-import CreateSpotifyPodcast from './pages/CreateSpotifyPodcast';
-import SpotifyAlbum from './pages/SpotifyAlbum';
-import SpotifyEpisodeDetails from './pages/SpotifyEpisodeDetails';
-import StudentStatistics from './pages/StudentStatistics';
-import StudentLeaderboard from './pages/StudentLeaderboard';
-import SpeakingPractice from './pages/SpeakingPractice';
-import ArticleReading from './pages/ArticleReading';
-import Articles from './pages/Articles';
-import AdminArticles from './pages/AdminArticles';
-import AdminRoadmap from './pages/AdminRoadmap';
-import Podcasts from './pages/Podcasts';
-import Listening from './pages/Listening';
-import Reading from './pages/Reading';
-import Pricing from './pages/Pricing';
-import Library from './pages/Library';
-import InteractivePlayer from './components/InteractivePlayer';
-
-const GlobalPodcastPlayer = () => {
-  const { isExpanded, setIsExpanded, setIsPlaying } = usePodcast();
-  const location = useLocation();
-
-  useEffect(() => {
-    // Check if the current path is NOT a podcast-related path
-    const isPodcastRoute = location.pathname.startsWith('/podcast') || location.pathname === '/podcasts';
-    
-    if (!isPodcastRoute) {
-      setIsPlaying(false);
-    }
-  }, [location.pathname, setIsPlaying]);
-
-  return <InteractivePlayer isOpen={isExpanded} onClose={() => setIsExpanded(false)} />;
-};
-
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, userData, loading } = useAuth();
-  if (loading) return <div className="flex h-screen items-center justify-center">Yuklanmoqda...</div>;
-  if (!user) return <Navigate to="/" />;
-  if (allowedRoles && !allowedRoles.includes(userData?.role)) {
-    // Rolga qarab to'g'ri sahifaga yo'naltirish (cheksiz loop oldini olish)
-    if (userData?.role === 'admin') return <Navigate to="/admin" />;
-    if (userData?.role === 'teacher') return <Navigate to="/teacher" />;
-    return <Navigate to="/dashboard" />;
-  }
-  return children;
-};
-
-const DashboardRouter = () => {
-  const { userData, loading } = useAuth();
-
-  if (loading || !userData) return <div className="flex h-screen items-center justify-center bg-[#050505] text-white">Yuklanmoqda...</div>;
-
-  if (userData.role === 'admin') {
-    return <Navigate to="/admin" />;
-  }
-
-  // Teacher rolga yo'naltirish
-  if (userData.role === 'teacher') {
-    return <Navigate to="/teacher" />;
-  }
-
-  // Agar public user bo'lsa va Onboarding'dan o'tmagan bo'lsa
-  if (userData.accountType === 'public' && userData.onboardingCompleted === false) {
-    return <Navigate to="/onboarding" />;
-  }
-
-  // Agar public user bo'lsa va Onboarding'dan o'tgan bo'lsa
-  if (userData.accountType === 'public' && userData.onboardingCompleted === true) {
-    return <PublicDashboard />;
-  }
-
-  // Qolgan barcha holatlarda (eski o'quvchilar, groupId borlar, accountType yo'qlar)
-  return <StudentDashboard />;
-};
-
+// COMPONENTS
 import ScrollToTop from './components/common/ScrollToTop';
+import GlobalPodcastPlayer from './components/podcast/GlobalPodcastPlayer';
+import { ProtectedRoute, DashboardRouter } from './components/common/RouteGuards';
+
+// STATIC PAGES (Immediate access)
+import LandingPage from './pages/public/LandingPage';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+
+// LAZY PAGES (Code Splitting)
+const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
+const TeacherTests = lazy(() => import('./pages/teacher/TeacherTests'));
+const TeacherWritingReview = lazy(() => import('./pages/teacher/TeacherWritingReview'));
+const TeacherGroupStats = lazy(() => import('./pages/teacher/TeacherGroupStats'));
+const TeacherAllResults = lazy(() => import('./pages/teacher/TeacherAllResults'));
+const TeacherCreateWriting = lazy(() => import('./pages/teacher/TeacherCreateWriting'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
+const AdminTests = lazy(() => import('./pages/admin/AdminTests'));
+const Onboarding = lazy(() => import('./pages/auth/Onboarding'));
+const Practice = lazy(() => import('./pages/student/Practice'));
+const RoadmapPage = lazy(() => import('./pages/student/RoadmapPage'));
+const Settings = lazy(() => import('./pages/student/Settings'));
+const DiagnosticIntro = lazy(() => import('./pages/diagnostic/DiagnosticIntro'));
+const DiagnosticTestSolving = lazy(() => import('./pages/diagnostic/DiagnosticTestSolving'));
+const DiagnosticResult = lazy(() => import('./pages/diagnostic/DiagnosticResult'));
+const CreateTest = lazy(() => import('./pages/admin/CreateTest'));
+const AdminResults = lazy(() => import('./pages/admin/AdminResults'));
+const AdminAnnouncements = lazy(() => import('./pages/admin/AdminAnnouncements'));
+const AdminLogs = lazy(() => import('./pages/admin/AdminLogs'));
+const AdminGamification = lazy(() => import('./pages/admin/AdminGamification'));
+const TestSolving = lazy(() => import('./pages/test/TestSolving'));
+const TestReview = lazy(() => import('./pages/test/TestReview'));
+const MockExam = lazy(() => import('./pages/test/MockExam'));
+const MyResults = lazy(() => import('./pages/student/MyResults'));
+const WordBank = lazy(() => import('./pages/student/WordBank'));
+const PodcastPlayer = lazy(() => import('./pages/podcasts/PodcastPlayer'));
+const AdminPodcasts = lazy(() => import('./pages/admin/AdminPodcasts'));
+const CreatePodcast = lazy(() => import('./pages/podcasts/CreatePodcast'));
+const KeyManager = lazy(() => import('./pages/admin/KeyManager'));
+const SpotifyPodcast = lazy(() => import('./pages/podcasts/SpotifyPodcast'));
+const CreateSpotifyPodcast = lazy(() => import('./pages/podcasts/CreateSpotifyPodcast'));
+const SpotifyAlbum = lazy(() => import('./pages/podcasts/SpotifyAlbum'));
+const SpotifyEpisodeDetails = lazy(() => import('./pages/podcasts/SpotifyEpisodeDetails'));
+const StudentStatistics = lazy(() => import('./pages/student/StudentStatistics'));
+const StudentLeaderboard = lazy(() => import('./pages/student/StudentLeaderboard'));
+const SpeakingPractice = lazy(() => import('./pages/test/SpeakingPractice'));
+const ArticleReading = lazy(() => import('./pages/articles/ArticleReading'));
+const Articles = lazy(() => import('./pages/articles/Articles'));
+const AdminArticles = lazy(() => import('./pages/admin/AdminArticles'));
+const AdminRoadmap = lazy(() => import('./pages/admin/AdminRoadmap'));
+const Podcasts = lazy(() => import('./pages/podcasts/Podcasts'));
+const Listening = lazy(() => import('./pages/test/Listening'));
+const Reading = lazy(() => import('./pages/test/Reading'));
+const Pricing = lazy(() => import('./pages/public/Pricing'));
+const Library = lazy(() => import('./pages/student/Library'));
+
+// LAYOUTS
+const TeacherLayout = lazy(() => import('./components/common/TeacherLayout'));
+const AdminLayout = lazy(() => import('./components/common/AdminLayout'));
+
+const PageLoading = () => (
+  <div className="flex h-screen items-center justify-center bg-[#050505] text-white">
+    <div className="animate-pulse text-2xl font-bold">ENGLEV...</div>
+  </div>
+);
 
 function App() {
   const { user, userData, loading } = useAuth();
-  const location = useLocation();
 
-
-  if (loading) return <div className="flex h-screen items-center justify-center">ENGLEV...</div>;
+  if (loading) return <PageLoading />;
 
   return (
     <ThemeProvider>
       <PodcastProvider>
         <ScrollToTop />
         <GlobalPodcastPlayer />
-        <Routes>
-        {/* Bosh sahifa (Landing) */}
-        <Route
-          path="/"
-          element={
-            user ? (
-              userData?.role === 'admin' ? <Navigate to="/admin" />
-              : userData?.role === 'teacher' ? <Navigate to="/teacher" />
-              : <Navigate to="/dashboard" />
-            ) : (
-              <LandingPage />
-            )
-          }
-        />
+        <Suspense fallback={<PageLoading />}>
+          <Routes>
+            {/* PUBLIC ROUTES */}
+            <Route path="/" element={
+              user ? (
+                userData?.role === 'admin' ? <Navigate to="/admin" /> 
+                : userData?.role === 'teacher' ? <Navigate to="/teacher" /> 
+                : <Navigate to="/dashboard" />
+              ) : <LandingPage />
+            } />
+            <Route path="/register" element={
+              user ? <Navigate to="/dashboard" /> : <Register />
+            } />
+            <Route path="/login" element={
+              user ? <Navigate to="/dashboard" /> : <Login />
+            } />
 
-        {/* Register sahifasi */}
-        <Route
-          path="/register"
-          element={
-            user ? (
-              userData?.role === 'admin' ? <Navigate to="/admin" />
-              : userData?.role === 'teacher' ? <Navigate to="/teacher" />
-              : <Navigate to="/dashboard" />
-            ) : (
-              <Register />
-            )
-          }
-        />
+            {/* SHARED PROTECTED ROUTES */}
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
+            <Route path="/test/:testId" element={<ProtectedRoute><TestSolving /></ProtectedRoute>} />
+            <Route path="/review/:id" element={<ProtectedRoute><TestReview /></ProtectedRoute>} />
+            <Route path="/statistics" element={<ProtectedRoute><StudentStatistics /></ProtectedRoute>} />
+            <Route path="/leaderboard" element={<ProtectedRoute><StudentLeaderboard /></ProtectedRoute>} />
+            <Route path="/my-results" element={<ProtectedRoute><MyResults /></ProtectedRoute>} />
+            <Route path="/vocabulary" element={<ProtectedRoute><WordBank /></ProtectedRoute>} />
 
-        {/* STUDENT YO'NALISHLARI */}
-        <Route
-          path="/onboarding"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <Onboarding />
-            </ProtectedRoute>
-          }
-        />
+            {/* STUDENT SPECIFIC ROUTES */}
+            <Route path="/onboarding" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Onboarding /></ProtectedRoute>} />
+            <Route path="/practice" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Practice /></ProtectedRoute>} />
+            <Route path="/reading" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Reading /></ProtectedRoute>} />
+            <Route path="/listening" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Listening /></ProtectedRoute>} />
+            <Route path="/library" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Library /></ProtectedRoute>} />
+            <Route path="/roadmap" element={<ProtectedRoute allowedRoles={['student', 'admin']}><RoadmapPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Settings /></ProtectedRoute>} />
+            <Route path="/mock-exam" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockExam /></ProtectedRoute>} />
+            
+            {/* CONTENT ROUTES */}
+            <Route path="/podcasts" element={<ProtectedRoute><Podcasts /></ProtectedRoute>} />
+            <Route path="/podcast/:podcastId" element={<ProtectedRoute><PodcastPlayer /></ProtectedRoute>} />
+            <Route path="/podcast/spotify/:podcastId" element={<ProtectedRoute><SpotifyPodcast /></ProtectedRoute>} />
+            <Route path="/podcast/album/:albumId" element={<ProtectedRoute><SpotifyAlbum /></ProtectedRoute>} />
+            <Route path="/podcast/episode/:podcastId" element={<ProtectedRoute><SpotifyEpisodeDetails /></ProtectedRoute>} />
+            <Route path="/articles" element={<ProtectedRoute><Articles /></ProtectedRoute>} />
+            <Route path="/article/:id" element={<ProtectedRoute><ArticleReading /></ProtectedRoute>} />
+            <Route path="/speaking-practice" element={<ProtectedRoute><SpeakingPractice /></ProtectedRoute>} />
+            <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
 
-        <Route
-          path="/roadmap"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <RoadmapPage />
-            </ProtectedRoute>
-          }
-        />
+            {/* DIAGNOSTIC ROUTES */}
+            <Route path="/diagnostic-intro" element={<ProtectedRoute><DiagnosticIntro /></ProtectedRoute>} />
+            <Route path="/diagnostic-test/:testId" element={<ProtectedRoute><DiagnosticTestSolving /></ProtectedRoute>} />
+            <Route path="/diagnostic-result/:id" element={<ProtectedRoute><DiagnosticResult /></ProtectedRoute>} />
 
-        <Route
-          path="/practice"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <Practice />
-            </ProtectedRoute>
-          }
-        />
+            {/* TEACHER ROUTES */}
+            <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
+              <Route index element={<TeacherDashboard />} />
+              <Route path="tests" element={<TeacherTests />} />
+              <Route path="writing-review" element={<TeacherWritingReview />} />
+              <Route path="create-writing" element={<TeacherCreateWriting />} />
+              <Route path="group-stats" element={<TeacherGroupStats />} />
+              <Route path="results" element={<TeacherAllResults />} />
+              <Route path="articles" element={<AdminArticles />} />
+            </Route>
 
-        <Route
-          path="/reading"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <Reading />
-            </ProtectedRoute>
-          }
-        />
+            {/* ADMIN ROUTES */}
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+              <Route path="tests" element={<AdminTests />} />
+              <Route path="roadmap" element={<AdminRoadmap />} />
+              <Route path="announcements" element={<AdminAnnouncements />} />
+              <Route path="articles" element={<AdminArticles />} />
+              <Route path="create-test" element={<CreateTest />} />
+              <Route path="edit-test/:id" element={<CreateTest />} />
+              <Route path="results" element={<AdminResults />} />
+              <Route path="logs" element={<AdminLogs />} />
+              <Route path="gamification" element={<AdminGamification />} />
+              <Route path="podcasts" element={<AdminPodcasts />} />
+              <Route path="writing-review" element={<TeacherWritingReview />} />
+              <Route path="create-podcast" element={<CreatePodcast />} />
+              <Route path="edit-podcast/:id" element={<CreatePodcast />} />
+              <Route path="create-spotify-podcast" element={<CreateSpotifyPodcast />} />
+              <Route path="edit-spotify-podcast/:id" element={<CreateSpotifyPodcast />} />
+              <Route path="key-manager" element={<KeyManager />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
 
-        <Route
-          path="/library"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <Library />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/listening"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <Listening />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/pricing"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <Pricing />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <DashboardRouter />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/diagnostic-intro"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <DiagnosticIntro />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/diagnostic-test/:testId"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <DiagnosticTestSolving />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/diagnostic-result/:id"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <DiagnosticResult />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/statistics"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <StudentStatistics />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/leaderboard"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <StudentLeaderboard />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/my-results"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <MyResults />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/test/:testId"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <TestSolving />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/review/:id"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <TestReview />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/mock-exam"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <MockExam />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/vocabulary"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <WordBank />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/podcast/:podcastId"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <PodcastPlayer />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/podcast/spotify/:podcastId"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <SpotifyPodcast />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/podcast/album/:albumId"
-          element={
-            <ProtectedRoute>
-              <SpotifyAlbum />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/podcast/episode/:podcastId"
-          element={
-            <ProtectedRoute>
-              <SpotifyEpisodeDetails />
-            </ProtectedRoute>
-          }
-        />
-
-
-        <Route
-          path="/podcasts"
-          element={
-            <ProtectedRoute>
-              <Podcasts />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/speaking-practice"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <SpeakingPractice />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/articles"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <Articles />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/article/:id"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
-              <ArticleReading />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* --- TEACHER YO'NALISHLARI --- */}
-        <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
-          <Route index element={<TeacherDashboard />} />
-          <Route path="tests" element={<TeacherTests />} />
-          <Route path="writing-review" element={<TeacherWritingReview />} />
-          <Route path="create-writing" element={<TeacherCreateWriting />} />
-          <Route path="group-stats" element={<TeacherGroupStats />} />
-          <Route path="results" element={<TeacherAllResults />} />
-          <Route path="articles" element={<AdminArticles />} />
-        </Route>
-
-        {/* --- ADMIN YO'NALISHLARI (LAYOUT BILAN) --- */}
-        <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="analytics" element={<AdminAnalytics />} />
-          <Route path="tests" element={<AdminTests />} />
-          <Route path="roadmap" element={<AdminRoadmap />} />
-          <Route path="announcements" element={<AdminAnnouncements />} />
-          <Route path="articles" element={<AdminArticles />} />
-          <Route path="create-test" element={<CreateTest />} />
-          <Route path="edit-test/:id" element={<CreateTest />} />
-          <Route path="results" element={<AdminResults />} />
-          <Route path="logs" element={<AdminLogs />} />
-          <Route path="gamification" element={<AdminGamification />} />
-          <Route path="podcasts" element={<AdminPodcasts />} />
-          <Route path="writing-review" element={<TeacherWritingReview />} />
-          <Route path="create-podcast" element={<CreatePodcast />} />
-          <Route path="edit-podcast/:id" element={<CreatePodcast />} />
-          <Route path="create-spotify-podcast" element={<CreateSpotifyPodcast />} />
-          <Route path="edit-spotify-podcast/:id" element={<CreateSpotifyPodcast />} />
-          <Route path="key-manager" element={<KeyManager />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-
-
-
-        {/* Login sahifasi */}
-        <Route
-          path="/login"
-          element={
-            user ? (
-              userData?.role === 'admin' ? <Navigate to="/admin" />
-              : userData?.role === 'teacher' ? <Navigate to="/teacher" />
-              : <Navigate to="/dashboard" />
-            ) : (
-              <Login />
-            )
-          }
-        />
-
-
-
-        {/* Noma'lum sahifalar uchun redirect */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Suspense>
       </PodcastProvider>
     </ThemeProvider>
   );

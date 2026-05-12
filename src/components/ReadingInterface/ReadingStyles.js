@@ -20,7 +20,8 @@ export const styles = `
   .ielts-container { 
       display: flex; 
       flex-direction: column;
-      height: 100vh; 
+      height: 100vh;
+      height: 100dvh; 
       width: 100vw;
       font-family: var(--passage-font); 
       background: var(--ielts-bg); 
@@ -347,5 +348,78 @@ export const styles = `
   }
   .animate-bounce-subtle {
     animation: bounce-subtle 2s infinite ease-in-out;
+  }
+
+  /* =========================================
+     7. MOBILE INTEGRITY STYLES
+     ========================================= */
+  @media (max-width: 768px) {
+    .resizer { display: none !important; }
+    
+    .mobile-tab-container {
+      display: flex;
+      justify-content: center;
+      padding: 2px 16px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .mobile-tab-switcher {
+      display: flex;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .mobile-tab-btn {
+      flex: 1;
+      padding: 3px 12px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      color: #64748b;
+      border: none;
+      background: transparent;
+    }
+
+    .mobile-tab-btn.active {
+      background: #fff;
+      color: #0f172a;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Adjusting panes for mobile */
+    .pane-mobile-full {
+      width: 100% !important;
+      height: 100% !important;
+      flex: 1 !important;
+    }
+
+    /* Reading content adjustments */
+    .passage-content {
+      padding: 20px 16px 100px 16px !important;
+    }
+
+    .q-area {
+      padding: 16px 16px 100px 16px !important;
+    }
+
+    /* Fixed buttons position adjustment */
+    .fixed.bottom-\[70px\].right-6 {
+      bottom: 80px !important;
+      right: 16px !important;
+    }
+
+    .fixed.bottom-\[70px\].right-6 button {
+      width: 44px;
+      height: 44px;
+    }
   }
 `;

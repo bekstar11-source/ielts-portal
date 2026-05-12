@@ -2,66 +2,50 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if user is admin
+    // --- HELPER FUNCTIONS ---
+    
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isAdmin() {
-      return request.auth != null && (
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'none') == 'admin') ||
-        (request.auth.token.get('email', '') != null && request.auth.token.get('email', '').matches('(?i)bekstar11@gmail.com'))
-      );
+      return isAuth() && getUserData().get('role', 'none') == 'admin';
     }
 
     function isTeacher() {
-      return request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'student') == 'teacher';
+      return isAuth() && getUserData().get('role', 'student') == 'teacher';
     }
 
-    // Helper function to check if user is authenticated
-    function isAuth() {
-        return request.auth != null;
-    }
+    // --- COLLECTION RULES ---
 
     // USERS
     match /users/{userId} {
       allow read: if isAuth();
       allow write: if isAuth() && (request.auth.uid == userId || isAdmin());
 
-      // O'ziga tegishli subcollection'larga (vocabulary, mistakes, wordbank) ruxsat
-      match /vocabulary/{wordId} {
-        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
-      }
-      match /wordbank/{wordId} {
-        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
-      }
-      match /mistakes/{mistakeId} {
-        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
-      }
-      match /mistakeSessions/{sessionId} {
-        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
-      }
-      // Sinonim/antonim juftlari: nested subcollection
-      match /synonymPairs/{testId}/pairs/{pairId} {
-        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
-      }
-      match /xpHistory/{historyId} {
+      match /{allSubcollections=**} {
         allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
       }
     }
 
-    // TESTS (O'qish hammaga, Yozish faqat adminga)
+    // TESTS
     match /tests/{testId} {
-      allow read: if true;
+      allow read: if isAuth(); // Changed from 'true' to 'isAuth' for security
       allow create: if isAdmin() || isTeacher();
       allow update, delete: if isAdmin() || (isTeacher() && resource.data.createdBy == request.auth.uid);
     }
 
-    // ANNOUNCEMENTS (Yangiliklar)
+    // ANNOUNCEMENTS
     match /announcements/{announcementId} {
-      allow read: if true;
+      allow read: if isAuth();
       allow write: if isAdmin();
     }
 
-    // RESULTS (Natijalar)
+    // RESULTS
     match /results/{resultId} {
       allow read: if isAuth() && (
         isAdmin() || 
@@ -86,7 +70,7 @@ service cloud.firestore {
         allow write: if isAdmin();
     }
 
-    // ARTICLES (Maqolalar)
+    // ARTICLES
     match /articles/{articleId} {
       allow read: if isAuth();
       allow update: if isAuth() && (
@@ -99,41 +83,29 @@ service cloud.firestore {
     // LOGS
     match /logs/{logId} {
       allow read: if isAdmin();
-      allow create: if true; // anyone can log (login, register, etc.)
+      allow create: if isAuth(); // Secured: only authenticated users can log
       allow update, delete: if isAdmin();
     }
     
     // ACCESS KEYS
     match /accessKeys/{keyId} {
-      allow read: if true; // Kalitni tekshirish uchun
+      allow read: if isAuth(); // Secured: only auth users can check keys
       allow write: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isUsed', 'usedBy', 'usedByName', 'usedAt']));
     }
 
-    // PODCASTS (O'qish autentifikatsiya bo'lganlarga, Yozish faqat adminga)
+    // PODCASTS
     match /podcasts/{podcastId} {
       allow read: if isAuth();
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount']));
 
-      match /segments/{segmentId} {
-        allow read: if isAuth();
-        allow write: if isAdmin();
-      }
-      match /mcqQuestions/{questionId} {
-        allow read: if isAuth();
-        allow write: if isAdmin();
-      }
-      match /gapFill/{docId} {
-        allow read: if isAuth();
-        allow write: if isAdmin();
-      }
-      match /vocabulary/{wordId} {
+      match /{allSub=**} {
         allow read: if isAuth();
         allow write: if isAdmin();
       }
     }
 
-    // PODCAST ATTEMPTS (O'quvchi o'z urinishini boshqaradi)
+    // PODCAST ATTEMPTS
     match /podcastAttempts/{attemptId} {
       allow read: if isAuth() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuth();
@@ -141,19 +113,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // PODCAST COLLECTIONS
-    match /podcast_collections/{collectionId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // TEST COLLECTIONS
-    match /test_collections/{collectionId} {
-      allow read: if isAuth();
-      allow write: if isAdmin() || isTeacher();
-    }
-
-    // PODCAST RESULTS (Natijalar)
+    // PODCAST RESULTS
     match /podcastResults/{resultId} {
       allow read: if isAuth() && (
         (resource != null && resource.data.userId == request.auth.uid) || 
@@ -164,27 +124,19 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // PODCAST LIKES
-    match /podcastLikes/{likeId} {
-      allow read: if isAuth();
-      allow create, delete: if isAuth() && (
-        (request.resource != null && request.resource.data.userId == request.auth.uid) || 
-        (resource != null && resource.data.userId == request.auth.uid)
-      );
-    }
-
     // TEST COMMENTS
     match /testComments/{commentId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        request.auth.token.email == 'bekstar11@gmail.com'
-      );
-      allow delete: if request.auth != null && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        resource.data.userId == request.auth.uid
-      );
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow delete: if isAuth() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
+    
+    // OTHER COLLECTIONS (Generic fallback)
+    match /{path=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
   }
 }

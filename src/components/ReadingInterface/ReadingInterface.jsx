@@ -122,8 +122,26 @@ export default function ReadingInterface({
   const [highlightTrigger, setHighlightTrigger] = useState(0); 
   const rootRef = useRef(null);
 
+  // --- MOBILE DETECTION ---
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [mobileActiveTab, setMobileActiveTab] = useState('passage'); // 'passage' | 'questions'
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleLocationClick = (locId, passageIdOrIndex) => {
     if (!locId) return;
+    
+    // Switch to passage tab on mobile
+    if (isMobile && mobileActiveTab !== 'passage') {
+      setMobileActiveTab('passage');
+    }
+
     if (passageIdOrIndex !== undefined && passageIdOrIndex !== null) {
       let targetIndex = typeof passageIdOrIndex === 'number' 
         ? passageIdOrIndex 
@@ -135,6 +153,21 @@ export default function ReadingInterface({
   };
 
   const handleScrollToQuestion = (questionId) => {
+    // Switch to questions tab on mobile
+    if (isMobile && mobileActiveTab !== 'questions') {
+      setMobileActiveTab('questions');
+      // Wait for re-render before scrolling
+      setTimeout(() => {
+        const element = document.getElementById(`q-${questionId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          element.classList.add("bg-blue-50", "transition-colors", "duration-500");
+          setTimeout(() => element.classList.remove("bg-blue-50"), 1500);
+        }
+      }, 50);
+      return;
+    }
+
     const element = document.getElementById(`q-${questionId}`);
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -184,17 +217,57 @@ export default function ReadingInterface({
   const labelSuffix = detectPassageLabelSuffix(testData, activePassage);
   const matchingHeadingsGroup = findMatchingHeadingsGroup(passageQuestions);
 
+  // --- PROGRESS CALCULATION (for floating bar) ---
+  const progressPercent = useMemo(() => {
+    if (!passageQuestions.length) return 0;
+    
+    const extractAllIds = (groups) => {
+        const ids = new Set();
+        groups.forEach(g => {
+            if (g.items) g.items.forEach(i => ids.add(i.id));
+            else if (g.questions) g.questions.forEach(q => ids.add(q.id));
+        });
+        return Array.from(ids);
+    };
+
+    const qIds = extractAllIds(passageQuestions);
+    if (!qIds.length) return 0;
+    
+    const answeredCount = qIds.filter(id => parentAnswers[id] && String(parentAnswers[id]).trim() !== "").length;
+    return Math.min(100, (answeredCount / qIds.length) * 100);
+  }, [passageQuestions, parentAnswers]);
+
+  // --- HAPTIC UTILITY ---
+  const triggerHaptic = useCallback((type = 'light') => {
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+        if (type === 'light') window.navigator.vibrate(30);
+        else if (type === 'medium') window.navigator.vibrate(50);
+        else if (type === 'success') window.navigator.vibrate([30, 50, 30]);
+        else if (type === 'error') window.navigator.vibrate([60, 100, 60]);
+    }
+  }, []);
+
+  // Wrap dual answer change to include haptic
+  const handleAnswerWithHaptic = useCallback((id, val) => {
+    handleDualAnswerChange(id, val);
+    triggerHaptic('light');
+  }, [handleDualAnswerChange, triggerHaptic]);
+
   return (
-    <div className={`flex flex-col h-full w-full bg-ielts-bg text-black overflow-hidden relative ${textSize || 'text-base'}`} ref={rootRef}>
+    <div 
+        className={`flex flex-col w-full bg-ielts-bg text-black overflow-hidden relative ${textSize || 'text-base'}`} 
+        style={{ height: '100dvh' }} 
+        ref={rootRef}
+    >
       <style>{readingInterfaceStyles}</style>
 
       {/* Header Bar spanning across both panes */}
-      <div className="px-4 pt-1 pb-2 bg-white select-none" style={{ fontFamily: 'Arial, sans-serif' }}>
-          <div className="bg-[#f2f4f1] border border-[#dcdfd9] rounded-[4px] px-5 py-1.5 shadow-sm">
-              <div className="font-bold text-[#000000] text-[16px]">
+      <div className={`px-4 pt-1 pb-2 bg-white select-none ${isMobile ? 'px-2 py-0' : ''}`} style={{ fontFamily: 'Arial, sans-serif' }}>
+          <div className={`bg-[#f2f4f1] border border-[#dcdfd9] rounded-[4px] px-5 py-1.5 shadow-sm ${isMobile ? 'px-3 py-0.5' : ''}`}>
+              <div className={`font-bold text-[#000000] ${isMobile ? 'text-[14px]' : 'text-[16px]'}`}>
                   Passage {labelSuffix}
               </div>
-              <div className="text-[#000000] text-[14px] font-semibold">
+              <div className={`text-[#000000] font-semibold ${isMobile ? 'text-[11px] leading-tight' : 'text-[14px]'}`}>
                   {(() => {
                       // Robust question range calculation
                       const qNums = (passageQuestions || []).flatMap(g => {
@@ -226,9 +299,21 @@ export default function ReadingInterface({
           </div>
       </div>
 
+      {isMobile && (
+          <div className="w-full bg-white h-[3px] overflow-hidden">
+              <div 
+                  className="h-full bg-ielts-blue transition-all duration-500 ease-out" 
+                  style={{ width: `${progressPercent}%` }}
+              />
+          </div>
+      )}
+
       <DndContext sensors={dndSensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
         <div className="flex w-full flex-1 overflow-hidden relative pb-[50px]">
-          <div className="bg-white flex flex-col h-full select-text shadow-sm" style={{ width: `${leftWidth}%` }}>
+          <div 
+            className={`bg-white flex flex-col h-full select-text shadow-sm ${isMobile && mobileActiveTab !== 'passage' ? 'hidden' : ''} ${isMobile ? 'pane-mobile-full' : ''}`} 
+            style={!isMobile ? { width: `${leftWidth}%` } : {}}
+          >
             <ReadingLeftPane
                 key={`${currentTestId}-passage-${activePassage}`}
                 passageLabel={`Passage ${labelSuffix}`}
@@ -242,32 +327,34 @@ export default function ReadingInterface({
                 onAddToWordBank={onAddToWordBank}
                 matchingHeadingsGroup={matchingHeadingsGroup || null}
                 userAnswers={parentAnswers || {}}
-                onAnswerChange={handleDualAnswerChange}
+                onAnswerChange={handleAnswerWithHaptic}
                 onAddNote={(noteData) => addNote(activePassage, noteData)}
                 onOpenNotes={() => setIsNotesVisible(true)}
                 questions={passageQuestions}
             />
           </div>
 
-          <div 
-            className="w-4 -mx-2 flex items-center justify-center cursor-col-resize z-30 group relative" 
-            onMouseDown={startResizing}
-          >
-            {/* Vertical Line - visible like in image */}
-            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-gray-400 group-hover:bg-blue-500 transition-colors" />
-            
-            {/* Drag Handle - Square matching the image */}
-            <div className="z-10 w-7 h-7 bg-[#f9f9f9] border border-gray-500 flex items-center justify-center shadow-sm group-hover:border-blue-500 group-hover:text-blue-600 transition-all">
-              <ArrowsLeftRight size={18} weight="bold" className="text-gray-700" />
+          {!isMobile && (
+            <div 
+              className="w-4 -mx-2 flex items-center justify-center cursor-col-resize z-30 group relative" 
+              onMouseDown={startResizing}
+            >
+              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-gray-400 group-hover:bg-blue-500 transition-colors" />
+              <div className="z-10 w-7 h-7 bg-[#f9f9f9] border border-gray-500 flex items-center justify-center shadow-sm group-hover:border-blue-500 group-hover:text-blue-600 transition-all">
+                <ArrowsLeftRight size={18} weight="bold" className="text-gray-700" />
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="flex-1 bg-slate-50 flex flex-col h-full relative select-text" style={{ width: `${100 - leftWidth}%` }}>
+          <div 
+            className={`flex-1 bg-slate-50 flex flex-col h-full relative select-text ${isMobile && mobileActiveTab !== 'questions' ? 'hidden' : ''} ${isMobile ? 'pane-mobile-full' : ''}`} 
+            style={!isMobile ? { width: `${100 - leftWidth}%` } : {}}
+          >
             <ReadingRightPane
               testData={testData}
               activePassage={activePassage}
               userAnswers={parentAnswers || {}}
-              onAnswerChange={handleDualAnswerChange}
+              onAnswerChange={handleAnswerWithHaptic}
               onFlag={onFlag}
               flaggedQuestions={flaggedQuestions}
               isReviewMode={isReviewMode}
@@ -286,10 +373,33 @@ export default function ReadingInterface({
           </div>
         </div>
 
+        {isMobile && (
+          <div className="fixed bottom-[50px] left-1/2 -translate-x-1/2 z-[2001] flex gap-6 p-1">
+            <button 
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-black transition-all duration-300 shadow-xl border-2 ${mobileActiveTab === 'passage' ? 'bg-blue-600 text-white border-white scale-110 shadow-blue-500/40' : 'bg-white text-blue-600 border-blue-100 shadow-sm'}`}
+              onClick={() => {
+                if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(10);
+                setMobileActiveTab('passage');
+              }}
+            >
+              P
+            </button>
+            <button 
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-black transition-all duration-300 shadow-xl border-2 ${mobileActiveTab === 'questions' ? 'bg-blue-600 text-white border-white scale-110 shadow-blue-500/40' : 'bg-white text-blue-600 border-blue-100 shadow-sm'}`}
+              onClick={() => {
+                if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(10);
+                setMobileActiveTab('questions');
+              }}
+            >
+              Q
+            </button>
+          </div>
+        )}
+
         <DragOverlay dropAnimation={null}>
           {activeDragData && (
-            <div className="px-3 py-2.5 border-2 border-blue-600 rounded-none bg-white shadow-[0_15px_30px_rgba(0,0,0,0.15)] flex items-start gap-3 max-w-sm opacity-95 ring-2 ring-blue-100/50">
-              <span className="leading-snug text-[14.5px] font-semibold text-gray-900">
+            <div className="px-3 py-1 border border-blue-500 rounded-md bg-white shadow-[0_10px_20px_rgba(0,0,0,0.1)] flex items-start gap-2 w-fit opacity-90">
+              <span className="leading-snug text-[14px] font-bold text-black">
                 {typeof activeDragData.text === 'string' 
                   ? activeDragData.text.replace(/^([ivx\d]+)[\.\)\s]+/i, '').trim() 
                   : activeDragData.text}
@@ -300,7 +410,15 @@ export default function ReadingInterface({
       </DndContext>
 
       <div className="fixed bottom-0 left-0 w-full h-[50px] bg-white border-t border-gray-200 z-[2000] shadow-md">
-        <ReadingFooter testData={testData} activePassage={activePassage} setActivePassage={setActivePassage} userAnswers={parentAnswers || {}} scrollToQuestionDiv={handleScrollToQuestion} />
+        <ReadingFooter 
+          testData={testData} 
+          activePassage={activePassage} 
+          setActivePassage={setActivePassage} 
+          userAnswers={parentAnswers || {}} 
+          scrollToQuestionDiv={handleScrollToQuestion}
+          isMobile={isMobile}
+          setMobileActiveTab={setMobileActiveTab}
+        />
       </div>
 
       {isReviewMode && <VocabSynonymCanvas captureData={captureData} onClearCapture={onClearCapture} userId={userId} testId={testId} testTitle={testData?.title || testName || testId} />}

@@ -9,7 +9,7 @@ export default function useTextSelection() {
     const { user } = useAuth();
 
     // 1. Menyu pozitsiyasi
-    const handleTextSelection = useCallback(() => {
+    const handleTextSelection = useCallback((targetContainer) => {
         const selection = window.getSelection();
 
         if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
@@ -18,28 +18,34 @@ export default function useTextSelection() {
         }
 
         const selectedText = selection.toString().trim();
-        // 🛠️ Yengil select: Judayam qisqa belgilashlarda menyu chiqmasligi uchun
         if (selectedText.length < 2) {
             setMenuPos(null);
             return;
         }
 
         const range = selection.getRangeAt(0);
-        const rects = range.getClientRects();
+        const rect = range.getBoundingClientRect();
         
-        // Agar bir nechta qator bo'lsa, oxirgi qatorni yoki markazni aniqlash
-        if (rects.length === 0) {
-            setMenuPos(null);
-            return;
+        // Konteynermi aniqlash (absolute position uchun)
+        let container = targetContainer;
+        if (!container) {
+            const common = range.commonAncestorContainer;
+            container = common.nodeType === 1 ? common.closest('.passage-content') : common.parentElement?.closest('.passage-content');
         }
 
-        const rect = range.getBoundingClientRect();
-
-        // Menyuni matnning tepasida, markazda chiqarish
-        setMenuPos({
-            top: rect.top - 55, // Biroz yuqoriroq
-            left: rect.left + (rect.width / 2)
-        });
+        if (container) {
+            const containerRect = container.getBoundingClientRect();
+            setMenuPos({
+                top: rect.top - containerRect.top + container.scrollTop - 45,
+                left: rect.left - containerRect.left + container.scrollLeft + (rect.width / 2)
+            });
+        } else {
+            // Fallback to fixed positioning logic if container not found
+            setMenuPos({
+                top: rect.top - 55,
+                left: rect.left + (rect.width / 2)
+            });
+        }
     }, []);
 
     // 2. Highlight Logic (TreeWalker)
@@ -244,6 +250,27 @@ export default function useTextSelection() {
             return false;
         }
     }, [user]);
+
+    useEffect(() => {
+        const onSelectionChange = () => {
+            const selection = window.getSelection();
+            if (!selection || selection.isCollapsed) {
+                setMenuPos(null);
+                return;
+            }
+            
+            // Input yoki textarea ichida bo'lsa menyuni ko'rsatmaslik
+            const activeElement = document.activeElement;
+            if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+                return;
+            }
+
+            handleTextSelection();
+        };
+
+        document.addEventListener('selectionchange', onSelectionChange);
+        return () => document.removeEventListener('selectionchange', onSelectionChange);
+    }, [handleTextSelection]);
 
     useEffect(() => {
         const handleResize = () => { if (menuPos) setMenuPos(null); };

@@ -6,7 +6,9 @@ export default function ReadingFooter({
     activePassage, 
     setActivePassage, 
     userAnswers, 
-    scrollToQuestionDiv 
+    scrollToQuestionDiv,
+    isMobile,
+    setMobileActiveTab
 }) {
     if (!testData || !testData.passages) return null;
 
@@ -155,6 +157,9 @@ export default function ReadingFooter({
                                                     key={q.id} 
                                                     onClick={(e) => { 
                                                         e.stopPropagation(); 
+                                                        if (isMobile && setMobileActiveTab) {
+                                                            setMobileActiveTab('questions');
+                                                        }
                                                         scrollToQuestionDiv(q.parentQuestionId || q.id); 
                                                     }}
                                                     className={`
@@ -183,35 +188,6 @@ export default function ReadingFooter({
             </div>
 
 
-            {/* O'ng pastki burchakdagi Next/Prev tugmalari */}
-            <div className="fixed bottom-[70px] right-6 flex gap-2 z-[2100]">
-                <button
-                    onClick={() => activePassage > 0 && setActivePassage(activePassage - 1)}
-                    disabled={activePassage === 0}
-                    className={`w-11 h-11 flex items-center justify-center rounded-[12px] transition-all shadow-md ${
-                        activePassage === 0 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-ielts-blue text-white hover:opacity-90 hover:-translate-y-0.5'
-                    }`}
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                    </svg>
-                </button>
-                <button
-                    onClick={() => activePassage < testData.passages.length - 1 && setActivePassage(activePassage + 1)}
-                    disabled={activePassage === testData.passages.length - 1}
-                    className={`w-11 h-11 flex items-center justify-center rounded-[12px] transition-all shadow-md ${
-                        activePassage === testData.passages.length - 1 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-ielts-blue text-white hover:opacity-90 hover:-translate-y-0.5'
-                    }`}
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                    </svg>
-                </button>
-            </div>
         </div>
     );
 }

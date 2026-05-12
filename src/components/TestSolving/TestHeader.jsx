@@ -149,10 +149,10 @@ function AudioPreloader({ passages, test, onReady }) {
 
 const IELTSLogo = () => (
     <div className="flex items-start select-none relative pt-0.5">
-        <span className="text-[34px] font-[850] text-[#E31837] tracking-[-0.05em] leading-[0.8]" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <span className="text-[24px] md:text-[34px] font-[850] text-[#E31837] tracking-[-0.05em] leading-[0.8]" style={{ fontFamily: 'Inter, sans-serif' }}>
             IELTS
         </span>
-        <span className="text-[#E31837] text-[10px] font-black absolute -top-1 -right-1.5">®</span>
+        <span className="text-[#E31837] text-[8px] md:text-[10px] font-black absolute -top-0.5 -right-1 md:-top-1 md:-right-1.5">®</span>
     </div>
 );
 
@@ -278,26 +278,26 @@ const TestHeader = ({
                 />
             )}
 
-            <header className="h-[58px] bg-white border-b border-gray-200 flex items-center justify-between pl-4 pr-6 shrink-0 z-50 relative">
+            <header className="h-[52px] md:h-[58px] bg-white border-b border-gray-200 flex items-center justify-between px-3 md:px-6 shrink-0 z-50 relative">
 
                 {/* LEFT: Logo + Test ID + Time */}
-                <div className="flex items-center gap-10 flex-1 min-w-0">
+                <div className="flex items-center gap-3 md:gap-10 flex-1 min-w-0">
                     <IELTSLogo />
                     <div className="flex flex-col justify-center min-w-0">
-                        <span className="text-[15px] font-bold text-black leading-tight truncate max-w-[400px]" title={test?.title || test?.name}>
+                        <span className="text-[13px] md:text-[15px] font-bold text-black leading-tight truncate max-w-[120px] md:max-w-[400px]" title={test?.title || test?.name}>
                             {test?.title || test?.name || "IELTS Official Test"}
                         </span>
                         {!showResult && !showModeSelection && (
-                            <span className="text-[11px] font-medium text-gray-500 leading-none mt-0.5 tabular-nums">
+                            <span className="text-[10px] md:text-[11px] font-medium text-gray-500 leading-none mt-0.5 tabular-nums">
                                 {testMode === 'practice' 
-                                    ? `${Math.floor(timeLeft / 60)} minutes past` 
-                                    : `${Math.ceil(timeLeft / 60)} minutes remaining`
+                                    ? <span className="flex gap-1"><span>{Math.floor(timeLeft / 60)}</span><span className="hidden md:inline">minutes past</span><span className="md:hidden">min</span></span>
+                                    : <span className="flex gap-1"><span>{Math.ceil(timeLeft / 60)}</span><span className="hidden md:inline">minutes remaining</span><span className="md:hidden">min left</span></span>
                                 }
                             </span>
                         )}
                         {(showResult || isReviewing) && (
-                            <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm uppercase tracking-wider self-start mt-0.5">
-                                Review Mode
+                            <span className="text-[8px] md:text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm uppercase tracking-wider self-start mt-0.5">
+                                Review
                             </span>
                         )}
                     </div>
@@ -328,20 +328,18 @@ const TestHeader = ({
                 )}
 
                 {/* RIGHT: Official IELTS Controls */}
-                <div className="flex items-center gap-6 justify-end flex-1 z-20">
+                <div className="flex items-center gap-2 md:gap-6 justify-end flex-1 z-20">
                     
-
-
-                    <div className="flex items-center gap-6 text-gray-700">
+                    <div className="flex items-center gap-2 md:gap-6 text-gray-700">
                         <button 
                             onClick={toggleFullScreen}
                             className="hover:text-black transition-colors" 
                             title={isFullScreen ? "Exit Full Screen" : "Full Screen"}
                         >
                             {isFullScreen ? (
-                                <Minimize size={22} strokeWidth={1.5} />
+                                <Minimize size={20} strokeWidth={1.5} />
                             ) : (
-                                <Maximize size={22} strokeWidth={1.5} />
+                                <Maximize size={20} strokeWidth={1.5} />
                             )}
                         </button>
                         {isListening && (
@@ -351,9 +349,9 @@ const TestHeader = ({
                                     data-tip="Volume"
                                     onClick={() => setShowVolumeSlider(!showVolumeSlider)}
                                 >
-                                    {volume === 0 ? <VolumeX size={22} strokeWidth={2} /> : 
-                                     volume < 0.5 ? <Volume1 size={22} strokeWidth={2} /> : 
-                                     <Volume2 size={22} strokeWidth={2} />}
+                                    {volume === 0 ? <VolumeX size={18} strokeWidth={2} /> : 
+                                     volume < 0.5 ? <Volume1 size={18} strokeWidth={2} /> : 
+                                     <Volume2 size={18} strokeWidth={2} />}
                                 </button>
                                 
                                 <AnimatePresence>
@@ -428,14 +426,14 @@ const TestHeader = ({
                                 setIsOptionsOpen(true);
                             }}
                         >
-                            <Menu size={24} strokeWidth={1.5} />
+                            <Menu size={20} strokeWidth={1.5} />
                         </button>
                         <button 
                             className="hover:text-black transition-colors" 
                             title="Notes"
                             onClick={onOpenNotes}
                         >
-                            <PenLine size={24} strokeWidth={1.5} />
+                            <PenLine size={20} strokeWidth={1.5} />
                         </button>
                     </div>
 
@@ -444,7 +442,7 @@ const TestHeader = ({
                         <button
                             onClick={onFinish}
                             disabled={saving}
-                            className={`ml-4 px-5 py-1.5 rounded font-bold text-sm transition-all shadow-sm ${
+                            className={`ml-1 md:ml-4 px-3 md:px-5 py-1 md:py-1.5 rounded font-bold text-[11px] md:text-sm transition-all shadow-sm whitespace-nowrap ${
                                 saving ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-800 hover:bg-gray-200 active:scale-95'
                             }`}
                         >
@@ -454,7 +452,7 @@ const TestHeader = ({
                     {(showResult || isReviewing) && (
                         <button 
                             onClick={onFinish} 
-                            className="ml-4 px-5 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded uppercase tracking-widest border border-red-100 transition-colors"
+                            className="ml-1 md:ml-4 px-3 md:px-5 py-1 md:py-1.5 bg-red-50 text-red-600 hover:bg-red-100 text-[10px] md:text-xs font-black rounded uppercase tracking-widest border border-red-100 transition-colors"
                         >
                             Exit
                         </button>

@@ -167,7 +167,7 @@ export const PassageWithDropZones = memo(({
                 return (
                     <React.Fragment key={idx}>
                         {question && (
-                            <div className="my-2" data-reading-slot="true">
+                            <div className="mt-4 mb-1" data-reading-slot="true">
                                 <ReadingDroppableSlot
                                     id={question.id}
                                     questionId={question.id}
@@ -177,6 +177,8 @@ export const PassageWithDropZones = memo(({
                                     isCorrect={isReviewMode ? checkAnswer(userAnswers?.[question.id], question.answer) : false}
                                     correctAnswer={question.answer}
                                     onClear={() => onAnswerChange?.(question.id, "")}
+                                    onAnswerChange={onAnswerChange}
+                                    userAnswers={userAnswers}
                                 />
                             </div>
                         )}

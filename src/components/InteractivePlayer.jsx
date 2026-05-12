@@ -1,6 +1,6 @@
 // src/components/InteractivePlayer.jsx
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { usePodcast } from "../context/PodcastContext";
 import { useAuth } from "../context/AuthContext";
@@ -19,6 +19,7 @@ import { useYouTubeBridge } from "./InteractivePlayer/useYouTubeBridge";
 export default function InteractivePlayer({ isOpen, onClose }) {
     const { playTrack, currentTrack: podcast, setCurrentTrack, isPlaying, setIsPlaying, currentTime, setCurrentTime, duration, setDuration, volume, isMuted, playbackRate, handleSeek, toggleMute, updateVolume, audioRef, youtubePlayerRef } = usePodcast();
     const { user, userData } = useAuth();
+    const dragControls = useDragControls();
     
     const [currentStep, setCurrentStep] = useState(1);
     const [answers, setAnswers] = useState({});
@@ -211,6 +212,8 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                 opacity: isOpen ? 1 : 0
             }}
             drag="y"
+            dragControls={dragControls}
+            dragListener={false}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={0.7}
             onDragEnd={(e, info) => {
@@ -237,6 +240,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                     onClose={onClose}
                     currentStep={currentStep}
                     setCurrentStep={setCurrentStep}
+                    dragControls={dragControls}
                 />
             )}
 

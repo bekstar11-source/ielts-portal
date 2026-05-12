@@ -89,7 +89,7 @@ const QuestionGroup = ({
             ) : isMatchingHeading && group.options && group.options.length > 0 ? (
                 <div className="flex flex-col gap-4">
                     <div className="bg-transparent p-0 border-none shadow-none">
-                        <p className="text-[14px] font-bold mb-4 uppercase text-slate-800 tracking-wide">
+                        <p className="text-[16px] font-bold mb-4 text-black">
                             List of Headings
                         </p>
                         <div className="flex flex-col gap-2">

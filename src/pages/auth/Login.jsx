@@ -1,0 +1,420 @@
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, motionValue, useAnimationFrame } from 'framer-motion';
+import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { db, auth } from "../../firebase/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { useAuth } from "../../context/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../firebase/firebase";
+import { signInWithCustomToken } from "firebase/auth";
+import { Send } from 'lucide-react';
+
+const Testimonials = [
+    { name: "Dilshodbek T.", score: "7.0", text: "Readingda vaqtni to'g'ri taqsimlashni o'rgandim, natijam kutilganidek chiqdi." },
+    { name: "Shahlo A.", score: "7.5", text: "Listening part 4 juda qiyin edi, platformadagi mashqlar juda katta yordam berdi." },
+    { name: "Bekzod S.", score: "6.5", text: "Speakingda AI bilan gaplashish imtihon oldidan qo'rquvni yengishga yordam berdi." },
+    { name: "Maftuna R.", score: "7.0", text: "Writing Task 2 bo'yicha berilgan feedbacklar xatolarimni tushunishga yordam berdi." },
+    { name: "Azizbek M.", score: "8.0", text: "Mock testlar haqiqiy imtihon darajasida ekan, hamma savollar o'ta aniq." },
+    { name: "Nigora K.", score: "7.5", text: "Vocabulary banki orqali akademik so'zlarni tez va oson o'rgandim." },
+    { name: "Jamshid H.", score: "6.0", text: "Boshida darajam 4.5 edi, 2 oylik tayyorgarlikdan keyin 6.0 ball oldim." },
+];
+
+const ScrollingComments = () => {
+    const [isHovered, setIsHovered] = useState(false);
+    const y = useMemo(() => motionValue(0), []);
+    
+    useAnimationFrame((time, delta) => {
+        // Normal speed is ~1px per 35ms, hover speed is much slower.
+        // delta is in ms. speed = pixels per ms.
+        const normalSpeed = 0.8; // px per frame approx
+        const hoverSpeed = 0.15;
+        const currentSpeed = isHovered ? hoverSpeed : normalSpeed;
+        
+        let nextY = y.get() - currentSpeed;
+        if (nextY <= -1000) nextY = 0;
+        y.set(nextY);
+    });
+
+    return (
+        <div 
+            className="relative h-[450px] overflow-hidden flex flex-col items-center"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <motion.div
+                style={{ y, willChange: "transform", translateZ: 0 }}
+                className="space-y-6 w-full"
+            >
+                {[...Testimonials, ...Testimonials, ...Testimonials].map((item, i) => (
+                    <motion.div 
+                        key={i} 
+                        whileHover={{ backgroundColor: "#fafafa" }}
+                        className="p-5 bg-white border border-[#eee] rounded-3xl shadow-sm transition-colors duration-300"
+                    >
+                        <div className="flex justify-between items-center mb-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center text-[10px] font-bold text-white">
+                                    {item.name[0]}
+                                </div>
+                                <span className="text-black font-bold text-[13px] tracking-tight">{item.name}</span>
+                            </div>
+                            <span className="text-white text-[10px] font-extrabold bg-black px-2.5 py-0.5 rounded-full tracking-tighter uppercase font-mono">BAND {item.score}</span>
+                        </div>
+                        <p className="text-[#666] text-[13px] leading-[1.6] font-medium tracking-tight">
+                            <span className="text-black opacity-20 text-lg leading-none mr-1">“</span>
+                            {item.text}
+                        </p>
+                    </motion.div>
+                ))}
+            </motion.div>
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-[#f5f5f7] via-transparent to-[#f5f5f7]" />
+        </div>
+    );
+};
+
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState(1); // 1: Email, 2: Password, 3: Telegram Phone, 4: Telegram OTP
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [telegramLoading, setTelegramLoading] = useState(false);
+
+  const { login, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
+
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      await signInWithGoogle();
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          if (userData.role === 'admin') navigate('/admin');
+          else navigate('/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    } catch (err) {
+      setError("Google orqali kirishda xatolik!");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (step === 1) {
+        if (email.includes('@')) setStep(2);
+        else setError("Iltimos, to'g'ri email kiriting");
+        return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      await login(email, password);
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          if (userData.role === 'admin') navigate('/admin');
+          else navigate('/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    } catch (err) {
+      setError("Email yoki parol noto'g'ri!");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTelegramLogin = () => {
+    // Open telegram bot with deep link to trigger /start immediately
+    window.open("https://t.me/ielts_portal_auth_bot?start=login", "_blank");
+    setStep(4); // Go straight to OTP input
+  };
+
+  const handleVerifyOtp = async (e) => {
+    if (e) e.preventDefault();
+    
+    setTelegramLoading(true);
+    setError("");
+
+    try {
+      const verifyOTP = httpsCallable(functions, "verifyTelegramOTP");
+      const result = await verifyOTP({ code: otp });
+      const { token, isNewUser } = result.data;
+      
+      await signInWithCustomToken(auth, token);
+      navigate(isNewUser ? '/onboarding' : '/dashboard');
+    } catch (err) {
+      setError(err.message || "Kod noto'g'ri yoki muddati o'tgan");
+      console.error(err);
+    } finally {
+      setTelegramLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex bg-white font-sans selection:bg-black/10 selection:text-black">
+      {/* Left Side - Login Form */}
+      <div className="flex-[1.4] flex flex-col justify-center items-center px-6 py-12 md:px-24 bg-white relative z-10 border-r border-[#f0f0f0]">
+        <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-[300px]"
+        >
+
+          <div className="text-center mb-10">
+            <h1 className="text-2xl font-bold text-[#1a1a1a] tracking-tight mb-2">
+              ENGLEV ga xush kelibsiz
+            </h1>
+            <p className="text-[#666] text-[15px] font-medium leading-relaxed">
+              O'qishni davom ettirish uchun <br /> hisobingizga kiring.
+            </p>
+          </div>
+
+          {error && (
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-red-50 text-red-600 text-[12px] p-2.5 rounded-lg mb-5 flex items-center gap-2 border border-red-100"
+            >
+              <AlertCircle size={13} className="shrink-0" />
+              <span>{error}</span>
+            </motion.div>
+          )}
+
+          <div className="space-y-3.5">
+            {/* Google Login */}
+            {step === 1 && (
+                <>
+                    <button
+                        onClick={handleGoogleLogin}
+                        disabled={loading}
+                        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white border border-[#eee] hover:bg-[#f9f9f9] text-black rounded-lg transition-all duration-200 text-[13px] font-bold active:scale-[0.98] disabled:opacity-50"
+                    >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                        </svg>
+                        Google bilan kirish
+                    </button>
+
+                    <button
+                        onClick={handleTelegramLogin}
+                        disabled={loading}
+                        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-[#24A1DE] hover:bg-[#208fba] text-white rounded-lg transition-all duration-200 text-[13px] font-bold active:scale-[0.98] disabled:opacity-50"
+                    >
+                        <Send size={16} />
+                        Telegram bilan kirish
+                    </button>
+
+                    <div className="flex items-center gap-4 py-2">
+                        <div className="flex-1 border-t border-[#f0f0f0]"></div>
+                        <div className="text-[11px] font-bold text-[#666]">YOKI</div>
+                        <div className="flex-1 border-t border-[#f0f0f0]"></div>
+                    </div>
+                </>
+            )}
+
+            <form onSubmit={step < 3 ? handleSubmit : handleVerifyOtp} className="space-y-3.5">
+              <AnimatePresence mode="wait">
+                {step === 1 ? (
+                    <motion.div
+                        key="email"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        className="space-y-3.5"
+                    >
+                        <input
+                            type="email"
+                            placeholder="Email manzilingiz"
+                            className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb]"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                        <button
+                            type="submit"
+                            className="w-full !mt-8 py-2.5 bg-[#1a1a1a] hover:bg-black text-white rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+                        >
+                            Davom etish
+                            <ArrowRight size={14} />
+                        </button>
+                    </motion.div>
+                ) : step === 2 ? (
+                    <motion.div
+                        key="password"
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        className="space-y-3.5"
+                    >
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Parol"
+                                className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-[#000000]/20 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb]"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoFocus
+                                required
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-[#aaa] hover:text-[#1a1a1a]"
+                            >
+                                {showPassword ? "Yashirish" : "Ko'rsatish"}
+                            </button>
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full !mt-8 py-2.5 bg-[#1a1a1a] hover:bg-black text-white rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+                        >
+                            {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Kirish"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setStep(1)}
+                            className="w-full text-[12px] font-bold text-[#aaa] hover:text-[#1a1a1a]"
+                        >
+                            Orqaga qaytish
+                        </button>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="telegram"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="space-y-3.5"
+                    >
+                        {step === 3 ? (
+                            <div className="space-y-3.5">
+                                <p className="text-[12px] text-[#666] font-medium mb-2">
+                                    Telegram botdan kod olish uchun raqamingizni kiriting:
+                                </p>
+                                <input
+                                    type="tel"
+                                    placeholder="+998901234567"
+                                    className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb]"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    autoFocus
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    className="w-full !mt-4 py-2.5 bg-black text-white rounded-lg text-[13px] font-bold flex items-center justify-center gap-2"
+                                >
+                                    Kodni kiritish <ArrowRight size={14} />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-3.5">
+                                <p className="text-[12px] text-[#666] font-medium mb-2">
+                                    Telegram bot yuborgan 6 xonali kodni kiriting:
+                                </p>
+                                <input
+                                    type="text"
+                                    maxLength={6}
+                                    placeholder="000000"
+                                    className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb] text-center tracking-[0.5em] font-mono text-lg"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                                    autoFocus
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={telegramLoading || otp.length < 6}
+                                    className="w-full !mt-4 py-2.5 bg-black text-white rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {telegramLoading ? <Loader2 className="animate-spin w-4 h-4" /> : "Tasdiqlash"}
+                                </button>
+                            </div>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => setStep(1)}
+                            className="w-full text-[12px] font-bold text-[#aaa] hover:text-[#1a1a1a]"
+                        >
+                            Orqaga qaytish
+                        </button>
+                    </motion.div>
+                )}
+              </AnimatePresence>
+            </form>
+
+            <div className="pt-4 text-center">
+              <p className="text-[12px] text-[#aaa] font-medium">
+                Hisobingiz yo'qmi?{" "}
+                <Link to="/register" className="text-[#888] font-bold hover:text-[#1a1a1a] transition-all underline underline-offset-4 decoration-[#FF5520]/20">
+                  Ro'yxatdan o'ting
+                </Link>
+              </p>
+            </div>
+          </div>
+        </motion.div>
+        
+        {/* Footer */}
+        <div className="absolute bottom-6 text-[10px] text-[#ccc] font-medium tracking-wide flex gap-4 uppercase">
+            <a href="#" className="hover:text-[#999]">Maxfiylik</a>
+            <a href="#" className="hover:text-[#999]">Shartlar</a>
+            <span>&copy; 2024 ENGLEV</span>
+        </div>
+      </div>
+
+      {/* Right Side - Animation */}
+      <div className="hidden lg:flex flex-[0.8] bg-[#f5f5f7] relative items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 bg-white/50" />
+        
+        {/* Animated Squares Grid */}
+        <div className="relative z-10 w-full px-10">
+            <div className="mb-10">
+            <div className="mb-12">
+                <motion.h2 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-3xl font-bold text-black leading-tight mb-4 tracking-[-0.03em]"
+                >
+                    O'quvchilarimizdan <br />
+                    fikrlar.
+                </motion.h2>
+            </div>
+
+            <div className="relative w-full max-w-[340px]">
+                <ScrollingComments />
+            </div>
+        </div>
+        </div>
+
+        {/* Ambient background glow */}
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-black/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-black/5 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/3" />
+      </div>
+    </div>
+  );
+}

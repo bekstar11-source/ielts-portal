@@ -25,11 +25,11 @@ export default function GapFillTask({
                     return (
                         <div key={qKey} className={`border p-4 rounded-sm transition-all ${isDark ? 'bg-[#0a0a0c] border-neutral-800' : 'bg-zinc-50 border-zinc-100'} ${stepResults ? (isCorrect ? 'border-emerald-500/50' : 'border-rose-500/50') : (isDark ? 'hover:border-neutral-700' : 'hover:border-zinc-300')}`}>
                             <div className="flex items-start gap-4">
-                                <div className={`w-6 h-6 shrink-0 border rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5 ${isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-500' : 'bg-zinc-100 border-zinc-200 text-zinc-400'}`}>
+                                <div className={`w-7 h-7 shrink-0 border rounded-full flex items-center justify-center text-[12px] font-bold mt-0.5 ${isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-500' : 'bg-zinc-100 border-zinc-200 text-zinc-400'}`}>
                                     {idx + 1}
                                 </div>
                                 <div className="flex-1">
-                                    <div className={`text-[13px] leading-relaxed ${isDark ? 'text-neutral-300' : 'text-zinc-800'}`}>
+                                    <div className={`text-[16px] leading-relaxed ${isDark ? 'text-neutral-300' : 'text-zinc-800'}`}>
                                         {q.data.text.split(/\{\{([^}]+)\}\}/g).map((part, i) => {
                                             if (i % 2 === 1) {
                                                 return (
@@ -38,7 +38,7 @@ export default function GapFillTask({
                                                             type="text" 
                                                             disabled={stepResults}
                                                             placeholder="..." 
-                                                            className={`min-w-[100px] max-w-[150px] border-b-2 px-2 py-0.5 outline-none transition-all text-center font-bold text-[13px] ${
+                                                            className={`min-w-[120px] max-w-[180px] border-b-2 px-2 py-0.5 outline-none transition-all text-center font-bold text-[16px] ${
                                                                 isDark ? 'bg-neutral-900/50' : 'bg-white/50'
                                                             } ${
                                                                 stepResults 

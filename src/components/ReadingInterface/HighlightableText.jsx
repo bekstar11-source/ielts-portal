@@ -14,8 +14,8 @@ const HighlightableText = memo(({
 }) => {
 
     // Matn belgilanganda (Selection)
-    const handleMouseUp = (e) => {
-        if (e.button !== 0) return; // Only process left-clicks
+    const handleSelection = (e) => {
+        // PointerUp ham mouseup, ham touchend uchun ishlaydi
         const selection = window.getSelection();
         if (!selection || selection.isCollapsed) return;
 
@@ -55,9 +55,9 @@ const HighlightableText = memo(({
     return (
         <span
             id={id}
-            className={`highlightable-zone inline leading-relaxed relative ${className}`}
+            className={`highlightable-zone inline leading-relaxed relative selection:bg-blue-100 ${className}`}
             dangerouslySetInnerHTML={{ __html: renderedHTML }}
-            onMouseUp={handleMouseUp}
+            onPointerUp={handleSelection}
             onClick={handleClick}
         />
     );

@@ -46,14 +46,19 @@ const ReadingRightPane = memo(({
 
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
+        
+        // Konteyner o'lchamini olish
+        const paneNode = internalRef.current;
+        if (!paneNode) return;
+        const paneRect = paneNode.getBoundingClientRect();
 
         setTempSelection({
             id: partId,
             start,
             end,
             position: {
-                top: rect.top - 55,
-                left: rect.left + (rect.width / 2)
+                top: rect.top - paneRect.top + paneNode.scrollTop - 45,
+                left: rect.left - paneRect.left + paneNode.scrollLeft + (rect.width / 2)
             }
         });
     }, []);
@@ -102,6 +107,31 @@ const ReadingRightPane = memo(({
         window.getSelection().removeAllRanges();
     }, []);
 
+    // Mobile selection uchun qo'shimcha listener
+    React.useEffect(() => {
+        const onSelectionChange = () => {
+            const selection = window.getSelection();
+            if (!selection || selection.isCollapsed) {
+                // Faqat menyu ochiq bo'lsa va tanlov yo'qolsa yopamiz
+                if (tempSelection) setTempSelection(null);
+                return;
+            }
+
+            // Belgilangan matn qaysi highlightable-zone ichida ekanligini topamiz
+            let node = selection.anchorNode;
+            if (node.nodeType === 3) node = node.parentNode;
+            
+            const zone = node.closest('.highlightable-zone');
+            if (zone) {
+                const partId = zone.id;
+                handlePartSelect(partId, selection, zone);
+            }
+        };
+
+        document.addEventListener('selectionchange', onSelectionChange);
+        return () => document.removeEventListener('selectionchange', onSelectionChange);
+    }, [handlePartSelect, tempSelection]);
+
     if (!testData || !testData.questions || !testData.passages) {
         return <div className="h-full flex items-center justify-center text-black">Loading...</div>;
     }
@@ -110,17 +140,6 @@ const ReadingRightPane = memo(({
 
     return (
         <div className="h-full relative flex flex-col">
-            <HighlightMenu
-                position={tempSelection?.position}
-                onHighlight={applyAction}
-                onClear={clearSelectionMenu}
-                onAddDictionary={() => addToDictionary({ sectionTitle: testData?.passages?.[activePassage]?.title || `Questions`, testTitle: testName || "Reading Test" })}
-                isReviewMode={isReviewMode}
-                onAddToWordBank={onAddToWordBank}
-                onAddNote={() => applyAction('note')}
-                source="question"
-            />
-
             <div
                 className={`flex-1 overflow-y-auto pt-10 px-6 pb-20 box-border relative select-text bg-white text-black reading-pane-scroll`}
                 style={{
@@ -129,6 +148,16 @@ const ReadingRightPane = memo(({
                 }}
                 ref={setRefs}
             >
+                <HighlightMenu
+                    position={tempSelection?.position}
+                    onHighlight={applyAction}
+                    onClear={clearSelectionMenu}
+                    onAddDictionary={() => addToDictionary({ sectionTitle: testData?.passages?.[activePassage]?.title || `Questions`, testTitle: testName || "Reading Test" })}
+                    isReviewMode={isReviewMode}
+                    onAddToWordBank={onAddToWordBank}
+                    onAddNote={() => applyAction('note')}
+                    source="question"
+                />
                 {filteredQuestions.map((group, gIdx) => (
                     <QuestionGroup 
                         key={gIdx}

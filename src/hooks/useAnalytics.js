@@ -238,7 +238,9 @@ export function useAnalytics(userId, initialResults = null) {
 
                 const q = query(
                     collection(db, 'results'),
-                    where('userId', '==', userId)
+                    where('userId', '==', userId),
+                    orderBy('createdAt', 'desc'),
+                    limit(50) // PERF: Limit to last 50 results for analytics
                 );
                 const snapshot = await getDocs(q);
                 let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

@@ -199,7 +199,17 @@ const ReadingLeftPane = memo(({
     };
 
     return (
-        <>
+        <div
+            ref={containerRef}
+            className={`pt-10 px-6 !pb-24 overflow-y-auto leading-relaxed text-black selectable-text relative passage-content`}
+            style={{
+                fontSize: textSize === 'text-sm' ? '13px' : textSize === 'text-lg' ? '17px' : textSize === 'text-xl' ? '19px' : '15px',
+                transition: 'font-size 0.3s ease-in-out'
+            }}
+            onMouseUp={(e) => {
+                if (e.button === 0) handleTextSelection(containerRef.current);
+            }}
+        >
             <HighlightMenu
                 position={menuPos}
                 onHighlight={handleMenuAction}
@@ -212,40 +222,28 @@ const ReadingLeftPane = memo(({
                 source="passage"
             />
 
-            <div
-                ref={containerRef}
-                className={`pt-10 px-6 !pb-24 overflow-y-auto leading-relaxed text-black selectable-text relative passage-content`}
-                style={{
-                    fontSize: textSize === 'text-sm' ? '13px' : textSize === 'text-lg' ? '17px' : textSize === 'text-xl' ? '19px' : '15px',
-                    transition: 'font-size 0.3s ease-in-out'
-                }}
-                onMouseUp={(e) => {
-                    if (e.button === 0) handleTextSelection();
-                }}
-            >
-                {title && (
-                    <h1 className="text-2xl font-bold mb-6 text-black tracking-tight leading-tight">
-                        {title}
-                    </h1>
-                )}
+            {title && (
+                <h1 className="text-2xl font-bold mb-6 text-black tracking-tight leading-tight">
+                    {title}
+                </h1>
+            )}
 
-                {hasMatchingHeadings ? (
-                    <PassageWithDropZones
-                        content={displayContent}
-                        matchingHeadingsGroup={matchingHeadingsGroup}
-                        userAnswers={userAnswers}
-                        onAnswerChange={onAnswerChange}
-                        isReviewMode={isReviewMode}
-                        onClick={handleHighlightClick}
-                    />
-                ) : (
-                    <ContentDisplay
-                        content={displayContent}
-                        onClick={handleHighlightClick}
-                    />
-                )}
-            </div>
-        </>
+            {hasMatchingHeadings ? (
+                <PassageWithDropZones
+                    content={displayContent}
+                    matchingHeadingsGroup={matchingHeadingsGroup}
+                    userAnswers={userAnswers}
+                    onAnswerChange={onAnswerChange}
+                    isReviewMode={isReviewMode}
+                    onClick={handleHighlightClick}
+                />
+            ) : (
+                <ContentDisplay
+                    content={displayContent}
+                    onClick={handleHighlightClick}
+                />
+            )}
+        </div>
     );
 });
 
