@@ -1,8 +1,8 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import PublicDashboard from '../../pages/PublicDashboard';
-import StudentDashboard from '../../pages/StudentDashboard';
+import PublicDashboard from '../../pages/public/PublicDashboard';
+import StudentDashboard from '../../pages/student/StudentDashboard';
 
 export const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, userData, loading } = useAuth();

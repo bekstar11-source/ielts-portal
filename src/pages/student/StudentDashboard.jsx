@@ -14,7 +14,7 @@ import AnnouncementsBoard from "../../components/dashboard/AnnouncementsBoard";
 import DashboardModals from "../../components/dashboard/DashboardModals";
 import PricingModal from "../../components/dashboard/PricingModal";
 import SettingsTab from "../../components/dashboard/SettingsTab";
-import MyResults from "../../pages/MyResults";
+import MyResults from "./MyResults";
 import Leaderboard from "../../components/dashboard/Leaderboard";
 import SiteFooter from "../../components/common/SiteFooter";
 import BottomNav from "../../components/dashboard/BottomNav";

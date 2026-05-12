@@ -177,37 +177,37 @@ export default function MediaSection({
 
                     <div className="h-full flex flex-col justify-center items-center relative overflow-hidden">
                         <div className="flex-1 flex flex-col-reverse justify-start items-center gap-2 pb-4 overflow-hidden opacity-40">
-                            {[-1, -2, -3].map(offset => {
+                            {[-1, -2, -3, -4, -5].map(offset => {
                                 const item = combinedTimeline[activeTimelineIdx + offset];
                                 if (!item) return null;
                                 return (
-                                    <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
+                                    <div key={`${item.time}-${item.text}`} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
                                         <p className={`font-medium text-sm leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
                                     </div>
                                 );
                             })}
                         </div>
 
-                        <div className="flex-none py-4 z-10">
+                        <div className="flex-none py-4 z-10 min-h-[60px] flex items-center">
                             <motion.div 
-                                key={combinedTimeline[activeTimelineIdx]?.time}
+                                key={activeTimelineIdx === -1 ? 'intro' : `${combinedTimeline[activeTimelineIdx]?.time}-${combinedTimeline[activeTimelineIdx]?.text}`}
                                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                 animate={{ opacity: 1, scale: 1.05, y: 0 }}
                                 className="text-center px-12 max-w-2xl cursor-pointer"
-                                onClick={() => globalHandleSeek(combinedTimeline[activeTimelineIdx]?.time)}
+                                onClick={() => activeTimelineIdx !== -1 && globalHandleSeek(combinedTimeline[activeTimelineIdx]?.time)}
                             >
                                 <p className={`font-bold text-lg leading-snug tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-                                    {combinedTimeline[activeTimelineIdx]?.text}
+                                    {activeTimelineIdx === -1 ? 'Podcast beginning...' : combinedTimeline[activeTimelineIdx]?.text}
                                 </p>
                             </motion.div>
                         </div>
 
                         <div className="flex-1 flex flex-col justify-start items-center gap-2 pt-4 overflow-hidden opacity-40">
-                            {[1, 2, 3].map(offset => {
+                            {[1, 2, 3, 4, 5].map(offset => {
                                 const item = combinedTimeline[activeTimelineIdx + offset];
                                 if (!item) return null;
                                 return (
-                                    <div key={item.time} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
+                                    <div key={`${item.time}-${item.text}`} className="text-center w-full px-12 cursor-pointer transition-all hover:opacity-100" onClick={() => globalHandleSeek(item.time)}>
                                         <p className={`font-medium text-sm leading-relaxed italic ${isDark ? 'text-neutral-400' : 'text-zinc-500'}`}>{item.text}</p>
                                     </div>
                                 );

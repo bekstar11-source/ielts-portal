@@ -179,17 +179,36 @@ export default function InteractivePlayer({ isOpen, onClose }) {
     // Combined Timeline for Script
     const combinedTimeline = useMemo(() => {
         if (!podcast || !podcast.transcript) return [];
-        return [...podcast.transcript]
+        
+        // Ensure it's an array and handle potential duplicates or out-of-order items
+        const raw = Array.isArray(podcast.transcript) ? [...podcast.transcript] : [];
+        
+        return raw
             .map(t => ({ ...t, type: 'text' }))
-            .sort((a, b) => a.time - b.time);
+            .sort((a, b) => a.time - b.time)
+            // Filter out exact duplicates (same time and text) to avoid UI glitches
+            .filter((item, index, self) => 
+                index === 0 || !(item.time === self[index-1].time && item.text === self[index-1].text)
+            );
     }, [podcast]);
 
     const activeTimelineIdx = useMemo(() => {
-        const idx = combinedTimeline.findIndex((item, i) => {
-            const nextTime = combinedTimeline[i + 1]?.time || Infinity;
-            return currentTime >= item.time && currentTime < nextTime;
-        });
-        return idx === -1 ? 0 : idx;
+        if (combinedTimeline.length === 0) return 0;
+        
+        // If currentTime is before the first item, return -1 or 0
+        if (currentTime < combinedTimeline[0].time) return -1;
+
+        // Find the LAST item whose time is <= currentTime
+        // This is more robust for overlapping timestamps
+        let lastIdx = 0;
+        for (let i = 0; i < combinedTimeline.length; i++) {
+            if (currentTime >= combinedTimeline[i].time) {
+                lastIdx = i;
+            } else {
+                break;
+            }
+        }
+        return lastIdx;
     }, [combinedTimeline, currentTime]);
 
     const formatTime = (seconds) => {

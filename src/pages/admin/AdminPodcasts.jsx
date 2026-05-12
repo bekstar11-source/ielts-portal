@@ -154,7 +154,7 @@ export default function AdminPodcasts() {
     };
 
     return (
-        <div className="h-screen bg-[#f5f5f7] flex font-sans text-zinc-900 overflow-hidden relative">
+        <div className="min-h-full bg-[#f5f5f7] flex font-sans text-zinc-900 relative">
             
             {/* COLLECTION EDIT MODAL */}
             {editingCol && (
@@ -227,7 +227,7 @@ export default function AdminPodcasts() {
             )}
 
             {/* FINDER SIDEBAR */}
-            <aside className="w-64 bg-[#fbfbfb] border-r border-zinc-200 flex flex-col shrink-0 overflow-y-auto">
+            <aside className="w-64 bg-[#fbfbfb] border-r border-zinc-200 flex flex-col shrink-0 sticky top-0 h-[calc(100vh-64px)] overflow-y-auto">
                 <div className="p-6">
                     <h1 className="text-xl font-bold tracking-tight mb-8">Podcasts</h1>
                     

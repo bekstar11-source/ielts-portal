@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { db } from "../../firebase/firebase";
 import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, writeBatch } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 // --- ICONS ---
 const Icons = {
@@ -55,13 +56,13 @@ export default function KeyManager() {
 
   const handleGenerate = async () => {
     if (!selectedTests.reading || !selectedTests.listening || !selectedTests.writing) {
-      alert("Iltimos, 3 ta fanni ham tanlang!");
+      toast.error("Iltimos, 3 ta fanni ham tanlang!");
       return;
     }
     
     // Cheklov (xavfsizlik uchun)
-    if (bulkCount > 50) return alert("Maksimal 50 ta kalit yaratish mumkin.");
-    if (bulkCount < 1) return alert("Kamida 1 ta.");
+    if (bulkCount > 50) return toast.error("Maksimal 50 ta kalit yaratish mumkin.");
+    if (bulkCount < 1) return toast.error("Kamida 1 ta.");
 
     setLoading(true);
     const batch = writeBatch(db); // Batch Write (Hammasini bittada yozadi)
@@ -90,12 +91,12 @@ export default function KeyManager() {
       await batch.commit(); // Baza bilan bitta tranzaksiya
       
       setKeys([...newKeysList, ...keys]);
-      alert(`${bulkCount} ta kalit muvaffaqiyatli yaratildi! 🎉`);
+      toast.success(`${bulkCount} ta kalit muvaffaqiyatli yaratildi! 🎉`);
       setBulkCount(1); // Reset
 
     } catch (error) { 
         console.error(error);
-        alert("Xatolik yuz berdi"); 
+        toast.error("Xatolik yuz berdi"); 
     }
     setLoading(false);
   };
@@ -108,15 +109,12 @@ export default function KeyManager() {
 
   const copyToClipboard = (text) => {
       navigator.clipboard.writeText(text);
-      alert("Nusxalandi!");
+      toast.success("Nusxalandi!");
   };
 
   // Faqat yangi yaratilganlarni nusxalash (Oxirgi N tasi)
   const copyLatestBatch = () => {
-      // Hozirgi eng yangi `bulkCount` ta kalitni olib berish mantiqi murakkab bo'lishi mumkin,
-      // shuning uchun oddiygina sahifadagi eng yuqori N tasini olamiz (chunki ular eng yangisi).
-      // Lekin UX uchun har birini alohida copy qilgan yaxshi.
-      alert("Hozircha faqat bittalab nusxalash mumkin.");
+      toast.error("Hozircha faqat bittalab nusxalash mumkin.");
   };
 
   return (

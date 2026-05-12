@@ -9,6 +9,8 @@ import { PodcastProvider } from './context/PodcastContext';
 import ScrollToTop from './components/common/ScrollToTop';
 import GlobalPodcastPlayer from './components/podcast/GlobalPodcastPlayer';
 import { ProtectedRoute, DashboardRouter } from './components/common/RouteGuards';
+import { Toaster } from 'react-hot-toast';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // STATIC PAGES (Immediate access)
 import LandingPage from './pages/public/LandingPage';
@@ -81,12 +83,25 @@ function App() {
   if (loading) return <PageLoading />;
 
   return (
-    <ThemeProvider>
-      <PodcastProvider>
-        <ScrollToTop />
-        <GlobalPodcastPlayer />
-        <Suspense fallback={<PageLoading />}>
-          <Routes>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <PodcastProvider>
+          <ScrollToTop />
+          <GlobalPodcastPlayer />
+          <Suspense fallback={<PageLoading />}>
+            <Toaster 
+              position="top-center"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#1d1d1f',
+                  color: '#fff',
+                  borderRadius: '12px',
+                  border: '1px solid #333'
+                },
+              }}
+            />
+            <Routes>
             {/* PUBLIC ROUTES */}
             <Route path="/" element={
               user ? (
@@ -177,6 +192,7 @@ function App() {
         </Suspense>
       </PodcastProvider>
     </ThemeProvider>
+  </ErrorBoundary>
   );
 }
 

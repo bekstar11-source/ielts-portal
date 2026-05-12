@@ -1,16 +1,8 @@
-// src/hooks/useStudentData.js
-// StudentDashboard va Practice sahifalarida umumiy data fetch logic
-// Ikkala sahifa bitta sessionStorage cache dan foydalanadi
-// => Dashboard -> Practice navigatsiyasida ZERO extra Firestore reads
-
 import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../firebase/firebase';
-import {
-    collection, getDocs, query, where, doc, getDoc, documentId
-} from 'firebase/firestore';
-
-const CACHE_DURATION = 5 * 60 * 1000; // 5 daqiqa (Assignments uchun)
-const RESULTS_CACHE_DURATION = 60 * 1000; // 1 daqiqa (Natijalar uchun)
+import { collection, query, where, getDocs, orderBy, limit, doc, getDoc, documentId } from 'firebase/firestore';
+import { getSafeBandScore } from '../utils/scoreUtils';
 
 const safeDate = (dateVal) => {
     if (!dateVal) return null;
@@ -26,8 +18,8 @@ const questionCountCache = new Map();
 const getActualQuestionCount = (questions) => {
     if (!questions || !Array.isArray(questions)) return 0;
     
-    // Simple hash for cache key
-    const cacheKey = JSON.stringify(questions.length + (questions[0]?.id || ''));
+    // Lightweight key: avoids heavy JSON.stringify
+    const cacheKey = `${questions.length}-${questions[0]?.id || 'no-id'}`;
     if (questionCountCache.has(cacheKey)) return questionCountCache.get(cacheKey);
 
     const count = questions.reduce((sum, q) => {
@@ -70,50 +62,18 @@ const fetchDocumentsByIds = async (collectionName, ids) => {
 };
 
 export function useStudentData(user) {
-    const [assignments, setAssignments] = useState([]);
-    const [userResults, setUserResults] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const queryClient = useQueryClient();
+    const queryKey = ['studentData', user?.uid];
+    const CACHE_KEY = `student_data_cache_${user?.uid}`;
 
-    const CACHE_KEY = user ? `student_assignments_v8_${user.uid}` : null;
-    const CACHE_TIME_KEY = user ? `student_assignments_time_v8_${user.uid}` : null;
-    const RESULTS_CACHE_KEY = user ? `student_results_v8_${user.uid}` : null;
-    const RESULTS_CACHE_TIME_KEY = user ? `student_results_time_v8_${user.uid}` : null;
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey,
+        enabled: !!user?.uid,
+        staleTime: 1000 * 60 * 5, // 5 daqiqa
+        queryFn: async () => {
+            if (!user) return { assignments: [], userResults: [] };
 
-    const fetchData = async (forceRefresh = false) => {
-        if (!user) return;
-        setLoading(true);
-        setError(null);
-
-        try {
-            // 1. Cache tekshirish
-            if (!forceRefresh) {
-                const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
-                const resultsCachedTime = sessionStorage.getItem(RESULTS_CACHE_TIME_KEY);
-                
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION);
-                const isResultsCacheValid = resultsCachedTime && (Date.now() - parseInt(resultsCachedTime) < RESULTS_CACHE_DURATION);
-
-                if (isCacheValid) {
-                    const cachedAssignments = sessionStorage.getItem(CACHE_KEY);
-                    const cachedResults = isResultsCacheValid ? sessionStorage.getItem(RESULTS_CACHE_KEY) : null;
-                    
-                    if (cachedAssignments) {
-                        try {
-                            const parsedAssigments = JSON.parse(cachedAssignments);
-                            setAssignments(parsedAssigments);
-                            if (cachedResults) {
-                                setUserResults(JSON.parse(cachedResults));
-                                setLoading(false);
-                                return;
-                            }
-                        } catch (e) { console.warn('Cache parse xatolik', e); }
-                    }
-                }
-            }
-
-            // 2. Firestore dan yuklash
-            // Only fetch user-specific and group-specific assignments
+            // 1. Firestore dan yuklash
             const [uSnap, gSnap, resultsSnap] = await Promise.all([
                 getDoc(doc(db, 'users', user.uid)),
                 getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))),
@@ -121,7 +81,7 @@ export function useStudentData(user) {
                     collection(db, 'results'), 
                     where('userId', '==', user.uid),
                     orderBy('createdAt', 'desc'),
-                    limit(50) // PERF: Only last 50 results to avoid massive reads
+                    limit(50)
                 ))
             ]);
 
@@ -137,9 +97,8 @@ export function useStudentData(user) {
             });
 
             const myResults = resultsSnap?.docs?.map(d => ({ id: d.id, ...d.data() })) || [];
-            setUserResults(myResults);
 
-            // 3. Assignment normalizatsiya
+            // 2. Assignment normalizatsiya
             const normalizeAssignment = (assign) => {
                 if (!assign) return null;
                 if (typeof assign === 'string') return { id: assign.trim(), type: 'test' };
@@ -147,44 +106,53 @@ export function useStudentData(user) {
                 return null;
             };
 
-            // Combine and normalize all assignments
             const normalizedUserAssignments = userAssignments.map(normalizeAssignment).filter(Boolean);
             const normalizedGroupAssignments = groupAssignments.map(a => {
                 const norm = normalizeAssignment(a);
                 return norm ? { ...norm, groupId: a.groupId, groupName: a.groupName } : null;
             }).filter(Boolean);
 
-            const allAssignments = [
-                ...normalizedUserAssignments,
-                ...normalizedGroupAssignments
-            ];
+            const allAssignments = [...normalizedUserAssignments, ...normalizedGroupAssignments];
             
-            // 4. Testlar va Set larni BATCH bilan fetch qilish
-            const testIdsToFetch = [];
+            // 3. Testlar va Set larni BATCH bilan fetch qilish
+            const directTestIds = [];
             const setIdsToFetch = [];
             allAssignments.forEach(assign => {
                 if (assign.type === 'set') { setIdsToFetch.push(assign.id); }
-                else if (assign.id && !assign.id.startsWith('MOCK_')) { testIdsToFetch.push(assign.id); }
+                else if (assign.id && !assign.id.startsWith('MOCK_')) { directTestIds.push(assign.id); }
             });
 
-            const setsMap = await fetchDocumentsByIds('testSets', setIdsToFetch);
+            // Parallel fetch sets and direct tests
+            const [setsMap, directTestsMap] = await Promise.all([
+                fetchDocumentsByIds('testSets', setIdsToFetch),
+                fetchDocumentsByIds('tests', directTestIds)
+            ]);
+
+            // Now check if we need more tests from the sets
+            const indirectTestIds = [];
             Object.values(setsMap).forEach(set => {
                 if (set.testIds) {
-                    set.testIds.forEach(tid => testIdsToFetch.push(String(tid).trim()));
+                    set.testIds.forEach(tid => {
+                        const cleanId = String(tid).trim();
+                        if (!directTestsMap[cleanId]) indirectTestIds.push(cleanId);
+                    });
                 }
             });
 
-            const testsMap = await fetchDocumentsByIds('tests', testIdsToFetch);
+            const indirectTestsMap = await fetchDocumentsByIds('tests', indirectTestIds);
+            const testsMap = { ...directTestsMap, ...indirectTestsMap };
 
-            // 5. Processlanib chiqarish
+            // 4. Processlanib chiqarish
             const findBestResult = (testId, results) => {
                 const attempts = results.filter(r => String(r.testId).trim() === String(testId).trim());
                 if (attempts.length === 0) return null;
-                return attempts.sort((a, b) => {
-                    const scoreA = parseFloat(a.bestBandScore || a.bandScore || a.bestScore || a.score || 0);
-                    const scoreB = parseFloat(b.bestBandScore || b.bandScore || b.bestScore || b.score || 0);
-                    return scoreB - scoreA;
-                })[0];
+                
+                // Optimized: Find max without full sort
+                return attempts.reduce((best, current) => {
+                    const scoreCurr = getSafeBandScore(current);
+                    const scoreBest = getSafeBandScore(best);
+                    return scoreCurr > scoreBest ? current : best;
+                }, attempts[0]);
             };
 
             let processedList = [];
@@ -194,11 +162,11 @@ export function useStudentData(user) {
                 if (assign.type === 'mock_full' || assign.mockKey || String(assign.id).startsWith('MOCK_')) {
                     const mockAttempts = myResults.filter(r => r.mockKey === assign.mockKey);
                     const bestMockResult = mockAttempts.length > 0
-                        ? mockAttempts.sort((a, b) => {
-                            const scoreA = parseFloat(a.bestBandScore || a.bandScore || a.bestScore || a.score || 0);
-                            const scoreB = parseFloat(b.bestBandScore || b.bandScore || b.bestScore || b.score || 0);
-                            return scoreB - scoreA;
-                        })[0]
+                        ? mockAttempts.reduce((best, current) => {
+                            const scoreCurr = getSafeBandScore(current);
+                            const scoreBest = getSafeBandScore(best);
+                            return scoreCurr > scoreBest ? current : best;
+                        }, mockAttempts[0])
                         : null;
                     processedList.push({
                         ...assign,
@@ -248,78 +216,34 @@ export function useStudentData(user) {
                     if (testDataFromDb) {
                         const bestResult = findBestResult(assign.id, myResults);
                         const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim()).length;
-                        const maxAttempts = assign.maxAttempts || 1;
-
-                        // Extract question types for card display
+                        
                         const typeMap = {
-                            'mcq': 'MCQ',
-                            'multiple_choice': 'MCQ',
-                            'gap_fill': 'GAP FILL',
-                            'notes_completion': 'NOTES',
-                            'summary_completion': 'SUMMARY',
-                            'table_completion': 'TABLE',
-                            'flow_chart_completion': 'FLOW CHART',
-                            'map_labeling': 'MAP',
-                            'matching': 'MATCHING',
-                            'true_false_not_given': 'TRUE/FALSE/NG',
-                            'true_false': 'TRUE/FALSE/NG',
-                            'tfng': 'TRUE/FALSE/NG',
-                            'yes_no_not_given': 'YES/NO/NG',
-                            'yes_no': 'YES/NO/NG',
-                            'ynng': 'YES/NO/NG',
-                            'short_answer': 'SHORT ANSWER',
-                            'sentence_completion': 'SENTENCE',
-                            'diagram_labeling': 'DIAGRAM',
-                            'heading_matching': 'HEADINGS',
+                            'mcq': 'MCQ', 'multiple_choice': 'MCQ', 'gap_fill': 'GAP FILL',
+                            'notes_completion': 'NOTES', 'summary_completion': 'SUMMARY',
+                            'table_completion': 'TABLE', 'flow_chart_completion': 'FLOW CHART',
+                            'map_labeling': 'MAP', 'matching': 'MATCHING',
+                            'true_false_not_given': 'TRUE/FALSE/NG', 'true_false': 'TRUE/FALSE/NG',
+                            'tfng': 'TRUE/FALSE/NG', 'yes_no_not_given': 'YES/NO/NG',
+                            'yes_no': 'YES/NO/NG', 'ynng': 'YES/NO/NG',
+                            'short_answer': 'SHORT ANSWER', 'sentence_completion': 'SENTENCE',
+                            'diagram_labeling': 'DIAGRAM', 'heading_matching': 'HEADINGS',
                             'paragraph_matching': 'PARA MATCH',
                         };
+                        
                         const questionTypes = [];
                         if (testDataFromDb.questions && Array.isArray(testDataFromDb.questions)) {
                             const seen = new Set();
                             testDataFromDb.questions.forEach(q => {
                                 if (q.type && !seen.has(q.type)) {
                                     seen.add(q.type);
-                                    const label = typeMap[q.type] || q.type.replace(/_/g, ' ').toUpperCase();
-                                    questionTypes.push(label);
+                                    questionTypes.push(typeMap[q.type] || q.type.replace(/_/g, ' ').toUpperCase());
                                 }
                             });
                         }
 
                         let totalQuestions = testDataFromDb.totalQuestions || 0;
-                        if (!totalQuestions && testDataFromDb.questions) {
-                            totalQuestions = getActualQuestionCount(testDataFromDb.questions);
-                        }
+                        if (!totalQuestions && testDataFromDb.questions) totalQuestions = getActualQuestionCount(testDataFromDb.questions);
                         
-                        // Fallback for Reading/Listening where questions might be inside passages/parts
-                        if (!totalQuestions && (testDataFromDb.passages || testDataFromDb.parts)) {
-                            const sections = testDataFromDb.passages || testDataFromDb.parts || [];
-                            totalQuestions = sections.reduce((sum, p) => sum + getActualQuestionCount(p.questions || p.items || p.groups), 0);
-                        }
-
-                        // Override for Full Tests to be exactly 40 if they are close or named Full
-                        const isFull = testDataFromDb.difficulty?.toLowerCase().includes('full') || 
-                                       testDataFromDb.title?.toLowerCase().includes('full') ||
-                                       (totalQuestions > 30 && totalQuestions < 45); // If it's around 40, it's likely a full test
-
-                        if (isFull && (testDataFromDb.type === 'reading' || testDataFromDb.type === 'listening')) {
-                            totalQuestions = 40;
-                        }
-
-                        // Hard fallback logic based on type and title/difficulty
-                        if (!totalQuestions) {
-                            if (testDataFromDb.type === 'listening') {
-                                const isFull = testDataFromDb.difficulty?.toLowerCase().includes('full') || 
-                                              testDataFromDb.title?.toLowerCase().includes('full');
-                                totalQuestions = isFull ? 40 : 10;
-                            } else if (testDataFromDb.type === 'reading') {
-                                const isFull = testDataFromDb.difficulty?.toLowerCase().includes('full') || 
-                                              testDataFromDb.title?.toLowerCase().includes('full');
-                                totalQuestions = isFull ? 40 : 13;
-                            } else {
-                                totalQuestions = 40;
-                            }
-                        }
-
                         const finalTestData = {
                             ...testDataFromDb,
                             ...assign,
@@ -327,7 +251,6 @@ export function useStudentData(user) {
                             title: testDataFromDb?.title || assign.title || 'IELTS Test',
                             type: testDataFromDb?.type || assign.type || 'unknown',
                             attemptsCount,
-                            maxAttempts,
                             questionTypes,
                             totalQuestions
                         };
@@ -345,60 +268,40 @@ export function useStudentData(user) {
                 }
             });
 
-            // 6. Dublikatlarni o'chirish
             const uniqueTests = processedList.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-
-            // 7. Chronological Sort: Newest first (createdAt descending)
             uniqueTests.sort((a, b) => {
                 const dA = safeDate(a.assignedAt) || safeDate(a.createdAt);
                 const dB = safeDate(b.assignedAt) || safeDate(b.createdAt);
-                const dateA = dA ? dA.getTime() : 0;
-                const dateB = dB ? dB.getTime() : 0;
-                return dateB - dateA;
+                return (dB ? dB.getTime() : 0) - (dA ? dA.getTime() : 0);
             });
 
-            // 8. Cache ga saqlash
-            try {
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify(uniqueTests));
-                sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-                sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(myResults));
-                sessionStorage.setItem(RESULTS_CACHE_TIME_KEY, Date.now().toString());
-            } catch (quotaError) {
-                console.warn("SessionStorage quota exceeded.");
-                try {
-                    sessionStorage.removeItem(CACHE_KEY);
-                    sessionStorage.removeItem(CACHE_TIME_KEY);
-                    sessionStorage.removeItem(RESULTS_CACHE_KEY);
-                    sessionStorage.removeItem(RESULTS_CACHE_TIME_KEY);
-                } catch (e) { /* ignore */ }
-            }
-
-            setAssignments(uniqueTests);
-
-        } catch (err) {
-            console.error('useStudentData fetch xatolik:', err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
+            const result = { assignments: uniqueTests, userResults: myResults };
+            
+            // Cache save
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify(result));
+            
+            return result;
         }
-    };
+    });
 
-    const invalidateCache = () => {
-        if (!user) return;
+    // Check cache on mount
+    const [cachedData, setCachedData] = useState(() => {
+        const saved = sessionStorage.getItem(`student_data_cache_${user?.uid}`);
+        return saved ? JSON.parse(saved) : null;
+    });
+
+    const refresh = () => {
         sessionStorage.removeItem(CACHE_KEY);
-        sessionStorage.removeItem(CACHE_TIME_KEY);
-        sessionStorage.removeItem(RESULTS_CACHE_KEY);
-        sessionStorage.removeItem(RESULTS_CACHE_TIME_KEY);
+        return queryClient.invalidateQueries({ queryKey });
     };
 
-    const refresh = async () => {
-        invalidateCache();
-        await fetchData(true);
+    const finalData = data || cachedData;
+
+    return { 
+        assignments: finalData?.assignments || [], 
+        userResults: finalData?.userResults || [], 
+        loading: isLoading && !cachedData, 
+        error: error?.message, 
+        refresh 
     };
-
-    useEffect(() => {
-        if (user) fetchData();
-    }, [user?.uid]);
-
-    return { assignments, userResults, loading, error, refresh, invalidateCache };
 }

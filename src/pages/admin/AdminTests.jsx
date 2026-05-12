@@ -65,7 +65,7 @@ export default function AdminTests() {
     };
 
     return (
-        <div className={`h-full flex font-sans transition-colors duration-200 overflow-hidden relative ${isDark ? 'bg-[#121212] text-white' : 'bg-[#f5f5f7] text-zinc-900'}`}>
+        <div className={`min-h-full flex font-sans transition-colors duration-200 relative ${isDark ? 'bg-[#121212] text-white' : 'bg-[#f5f5f7] text-zinc-900'}`}>
             <AdminTestsSidebar 
                 collections={collections}
                 filterCollection={filterCollection}
@@ -78,7 +78,7 @@ export default function AdminTests() {
                 isDark={isDark}
             />
 
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col">
                 <AdminTestsToolbar 
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
