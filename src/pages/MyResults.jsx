@@ -496,7 +496,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                                 <span className="text-xs text-ink-muted-48 hidden sm:inline">{minsSpent} min</span>
                                 <span className="text-sm font-bold text-action-blue">{attempt.bandScore || attempt.score} {attempt.bandScore ? 'band' : 'ball'}</span>
                                 <button 
-                                  onClick={() => navigate(`/review/${res.testId || res.id}?attempt=${attempt.attemptId}`)}
+                                  onClick={() => navigate(`/review/${res.id}?attempt=${attempt.attemptId}`)}
                                   className="text-xs bg-white border border-hairline hover:bg-pearl text-ink px-3 py-1.5 rounded-full font-medium transition-colors shadow-sm"
                                 >
                                   Review

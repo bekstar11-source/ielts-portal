@@ -77,11 +77,28 @@ export function useTestSubmission(user, userData) {
             // Update user stats
             if (resultData.bandScore > 0 || resultData.score > 0) {
                 const userRef = doc(db, "users", user.uid);
-                await updateDoc(userRef, {
+                const userSnap = await getDoc(userRef);
+                const currentUserData = userSnap.data() || {};
+                
+                const updateData = {
                     "stats.totalTests": increment(1),
                     "stats.totalBandScore": increment(resultData.bandScore || 0),
                     "lastActiveAt": serverTimestamp()
-                });
+                };
+                
+                if (test.type?.toLowerCase() === 'reading') {
+                    const currentBest = currentUserData.bestReadingBand || 0;
+                    if (resultData.bandScore > currentBest) {
+                        updateData.bestReadingBand = resultData.bandScore;
+                    }
+                } else if (test.type?.toLowerCase() === 'listening') {
+                    const currentBest = currentUserData.bestListeningBand || 0;
+                    if (resultData.bandScore > currentBest) {
+                        updateData.bestListeningBand = resultData.bandScore;
+                    }
+                }
+                
+                await updateDoc(userRef, updateData);
             }
 
             logAction(user.uid, 'TEST_SUBMIT', { testId: test.id, score: resultData.score });

@@ -7,7 +7,7 @@ const ReviewQuestionStrip = ({ resultData, testData, setIsCommentsOpen }) => {
             <div className="flex items-center gap-3 min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5">
                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap hidden sm:inline mr-2">Results:</span>
                 <div className="flex flex-wrap gap-1 max-h-[26px]">
-                    {Object.entries(resultData.answers || {}).slice(0, 40).map(([qId, val], idx) => {
+                    {Object.entries(resultData.userAnswers || {}).sort(([a], [b]) => parseInt(a) - parseInt(b)).slice(0, 40).map(([qId, val], idx) => {
                         const q = testData.questions?.find(q => String(q.id) === String(qId));
                         const ans = q?.answer || q?.correct_answer || q?.correctAnswer || q?.correct_answer_value;
                         const isCorrect = String(ans || "").toLowerCase() === String(val || "").toLowerCase();

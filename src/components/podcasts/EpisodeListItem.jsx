@@ -14,7 +14,8 @@ export default function EpisodeListItem({
     isPlaying, 
     playTrack, 
     setIsPlaying, 
-    setIsExpanded 
+    setIsExpanded,
+    setCurrentTrack
 }) {
     const { user } = useAuth();
     const { likedPodcasts, toggleLike } = usePodcast();
@@ -25,19 +26,16 @@ export default function EpisodeListItem({
 
     const handlePlayClick = (e) => {
         e.stopPropagation();
-        const isVideoDisplay = (p.mediaType === 'youtube' || p.mediaType === 'video') && p.showVideo !== false && String(p.showVideo) !== 'false';
-        if (currentTrack?.id === p.id) {
-            setIsPlaying(!isPlaying);
-            if (isVideoDisplay) setIsExpanded(true);
-        } else {
-            playTrack(p);
-            if (isVideoDisplay) setIsExpanded(true);
-        }
+        setCurrentTrack(p);
+        setIsExpanded(true);
     };
 
     return (
         <div 
-            onClick={() => navigate(`/podcast/episode/${p.id}`)}
+        onClick={() => {
+            setCurrentTrack(p);
+            setIsExpanded(true);
+        }}
             className={`group flex gap-4 p-4 -mx-4 rounded-md cursor-pointer transition-colors border-b last:border-0 ${
                 isDark 
                     ? `hover:bg-white/5 border-white/10 ${isActiveThis ? 'bg-white/5' : ''}` 

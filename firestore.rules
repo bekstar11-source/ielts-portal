@@ -12,7 +12,8 @@ service cloud.firestore {
 
     function isTeacher() {
       return request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'student') == 'teacher';
     }
 
     // Helper function to check if user is authenticated
@@ -42,6 +43,9 @@ service cloud.firestore {
       match /synonymPairs/{testId}/pairs/{pairId} {
         allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
       }
+      match /xpHistory/{historyId} {
+        allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());
+      }
     }
 
     // TESTS (O'qish hammaga, Yozish faqat adminga)
@@ -60,10 +64,10 @@ service cloud.firestore {
     // RESULTS (Natijalar)
     match /results/{resultId} {
       allow read: if isAuth() && (
-        (resultId.size() >= request.auth.uid.size() + 1 && resultId[0:request.auth.uid.size() + 1] == request.auth.uid + "_") || 
-        (resource != null && resource.data.userId == request.auth.uid) || 
         isAdmin() || 
-        isTeacher()
+        isTeacher() ||
+        (resource == null && resultId.startsWith(request.auth.uid)) ||
+        (resource != null && (resource.data.userId == request.auth.uid || resultId.startsWith(request.auth.uid)))
       );
       allow create: if isAuth() && (request.resource.data.userId == request.auth.uid); 
       allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin() || isTeacher());

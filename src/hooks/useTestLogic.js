@@ -8,12 +8,14 @@ import { useTestTimer } from "./test/useTestTimer";
 import { useTestAnswers } from "./test/useTestAnswers";
 import { useTestScoring } from "./test/useTestScoring";
 import { useTestSubmission } from "./test/useTestSubmission";
+import { useGamification } from "./useGamification";
 
 export function useTestLogic() {
     const { testId } = useParams();
     const navigate = useNavigate();
     const { user, userData } = useAuth();
     const stateRef = useRef({});
+    const { awardXP } = useGamification();
 
     // UI & Navigation States
     const [testMode, setTestMode] = useState(null);
@@ -95,6 +97,8 @@ export function useTestLogic() {
 
         const success = await submitTest(test, resultData, mistakes);
         if (success) {
+            const xpAmount = Math.max(10, Math.round(band * 10));
+            await awardXP('test', test.id, test.title, xpAmount);
             setScore(correctCount);
             setBandScore(band);
             setShowResult(true);

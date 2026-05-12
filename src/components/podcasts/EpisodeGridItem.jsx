@@ -30,25 +30,14 @@ export default function EpisodeGridItem({
     const isPlayingThis = currentTrack?.id === p.id && isPlaying;
 
     const handleContainerClick = () => {
-        const isVideoDisplay = (p.mediaType === 'youtube' || p.mediaType === 'video') && p.showVideo !== false && String(p.showVideo) !== 'false';
-        if (isVideoDisplay) {
-            setCurrentTrack(p);
-            setIsExpanded(true);
-        } else {
-            navigate(`/podcast/spotify/${p.id}`);
-        }
+        setCurrentTrack(p);
+        setIsExpanded(true);
     };
 
     const handlePlayClick = (e) => {
         e.stopPropagation();
-        const isVideoDisplay = (p.mediaType === 'youtube' || p.mediaType === 'video') && p.showVideo !== false && String(p.showVideo) !== 'false';
-        if (isVideoDisplay) {
-            setCurrentTrack(p);
-            setIsExpanded(true);
-            setIsPlaying(false);
-        } else {
-            playTrack(p);
-        }
+        setCurrentTrack(p);
+        setIsExpanded(true);
     };
 
     return (

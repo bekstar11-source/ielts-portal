@@ -6,7 +6,7 @@ import {
   ArrowRight, ExternalLink, Clock, User,
   Star, PlayCircle, MoreHorizontal, Send, 
   X, MessageSquare as MessageSquareIcon, Sparkles, Volume2,
-  Pause, Play
+  Pause, Play, Award
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from "../firebase/firebase";
@@ -14,6 +14,7 @@ import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import { useAuth } from '../context/AuthContext';
 import SiteFooter from '../components/common/SiteFooter';
+import { useGamification } from '../hooks/useGamification';
 
 export default function ArticleReading() {
   const { user, userData } = useAuth();
@@ -23,6 +24,7 @@ export default function ArticleReading() {
   const [loading, setLoading] = useState(true);
   const [textSize, setTextSize] = useState('text-lg'); // text-base, text-lg, text-xl
   const [completed, setCompleted] = useState(false);
+  const { awardXP } = useGamification();
   
   // Interaction states
   const [claps, setClaps] = useState(0);
@@ -76,6 +78,20 @@ export default function ArticleReading() {
     }
     
     setTimeout(() => setIsClapping(false), 300);
+  };
+
+  const handleClaimXP = async () => {
+    if (!user || !article) return;
+    const result = await awardXP('article', article.id, article.title);
+    if (result.success) {
+      alert(`Tabriklaymiz! Siz ushbu maqolani o'qib ${result.amount} XP yig'dingiz.`);
+      setCompleted(true);
+    } else if (result.alreadyAwarded) {
+      alert("Siz allaqachon bu maqola uchun XP olgansiz!");
+      setCompleted(true);
+    } else {
+      alert("Xatolik: " + result.error);
+    }
   };
 
   const handlePostComment = async () => {
@@ -474,6 +490,26 @@ export default function ArticleReading() {
             );
           })()}
         </article>
+        
+        {/* Claim XP Section */}
+        {user && article && !article.isMemberOnly && (
+          <div className="mt-16 flex flex-col items-center justify-center p-8 bg-blue-50/50 rounded-3xl border border-blue-100">
+            <Sparkles className="text-blue-500 mb-4" size={32} />
+            <h3 className="text-xl font-bold text-[#242424] mb-2">Maqolani o'qib chiqdingizmi?</h3>
+            <p className="text-[#6B6B6B] mb-6 text-center">XP yig'ing va reytingda ko'tariling.</p>
+            <button 
+              onClick={handleClaimXP}
+              disabled={completed || userData?.awardedItems?.includes(article.id)}
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-full font-bold text-sm transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-blue-500/20"
+            >
+              {completed || userData?.awardedItems?.includes(article.id) ? (
+                <><CheckCircle2 size={18} /> XP Olindi</>
+              ) : (
+                <><Award size={18} /> XP Olish (+10)</>
+              )}
+            </button>
+          </div>
+        )}
         <style>{`
           .article-container, 
           .article-container h2, 

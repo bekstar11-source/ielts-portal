@@ -55,6 +55,7 @@ import CreateSpotifyPodcast from './pages/CreateSpotifyPodcast';
 import SpotifyAlbum from './pages/SpotifyAlbum';
 import SpotifyEpisodeDetails from './pages/SpotifyEpisodeDetails';
 import StudentStatistics from './pages/StudentStatistics';
+import StudentLeaderboard from './pages/StudentLeaderboard';
 import SpeakingPractice from './pages/SpeakingPractice';
 import ArticleReading from './pages/ArticleReading';
 import Articles from './pages/Articles';
@@ -281,6 +282,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
               <StudentStatistics />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>
+              <StudentLeaderboard />
             </ProtectedRoute>
           }
         />

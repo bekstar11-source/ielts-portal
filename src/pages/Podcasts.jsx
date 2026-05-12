@@ -187,7 +187,7 @@ export default function Podcasts() {
                                         </div>
                                     ))}
                                     {podcasts.slice(0, 6).map(p => (
-                                        <div key={p.id} onClick={() => navigate(`/podcast/spotify/${p.id}`)} className="flex flex-col items-center gap-2">
+                                        <div key={p.id} onClick={() => { setCurrentTrack(p); setIsExpanded(true); }} className="flex flex-col items-center gap-2">
                                             <div className="w-full aspect-square rounded-full overflow-hidden shadow-lg">
                                                 <img src={p.thumbnail} alt="" className="w-full h-full object-cover" />
                                             </div>

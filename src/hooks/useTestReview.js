@@ -37,8 +37,34 @@ export const useTestReview = (id, user, userData, navigate) => {
             const rData = resultSnap.data();
             setResultData(rData);
 
+            // Extract attempt ID from URL
+            const params = new URLSearchParams(window.location.search);
+            const attemptId = params.get('attempt');
+
             let testIdToLoad = rData.testId;
             let partAnswers = rData.userAnswers || {};
+
+            // If we have attempts array (new system)
+            if (rData.attempts && Array.isArray(rData.attempts) && rData.attempts.length > 0) {
+                let targetAttempt = null;
+                
+                if (attemptId) {
+                    targetAttempt = rData.attempts.find(a => a.attemptId === attemptId);
+                }
+                
+                // Fallback to latest attempt if no specific attemptId or not found
+                if (!targetAttempt) {
+                    targetAttempt = rData.attempts[rData.attempts.length - 1];
+                }
+
+                if (targetAttempt) {
+                    partAnswers = targetAttempt.userAnswers || {};
+                    // Override resultData with this attempt's data for accurate review display
+                    rData.score = targetAttempt.score;
+                    rData.bandScore = targetAttempt.bandScore;
+                    rData.userAnswers = partAnswers;
+                }
+            }
 
             if (rData.type === 'mock_full') {
                 if (rData.subTests && rData.subTests[activeMockPart]) {

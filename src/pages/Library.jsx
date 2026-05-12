@@ -91,7 +91,7 @@ function LibraryOverview({ onTabChange }) {
   return (
     <div className="space-y-0">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-white pt-12 pb-24 px-0">
+      <section className="relative overflow-hidden bg-white pt-8 pb-12 px-0">
         <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
@@ -99,7 +99,7 @@ function LibraryOverview({ onTabChange }) {
             transition={{ duration: 0.6 }}
             className="text-[56px] font-bold tracking-tight text-[#1d1d1f] leading-[1.07] mb-6"
           >
-            Your Complete IELTS Resource Hub.
+            IELTS
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -114,7 +114,7 @@ function LibraryOverview({ onTabChange }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex gap-4 mb-20"
+            className="flex gap-4 mb-10"
           >
             <button 
               onClick={() => onTabChange('reading')}
@@ -134,8 +134,8 @@ function LibraryOverview({ onTabChange }) {
             className="w-full max-w-5xl shadow-[rgba(0,0,0,0.22)_3px_5px_30px] rounded-2xl overflow-hidden bg-[#f5f5f7]"
           >
             <img 
-              className="w-full h-[500px] object-cover" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA7RJIIQRtuY9EQ3VpbJhrNJHq2URLQaG6kCpJeAZ6f8pLfFcvPvNWh4miR8jaaGugWcf0oqHZJkdZxsChZiQzVd_yWl2xExDOzia3rHplt0k1psHBWYBuNKlOYncJx1EaLYmgmVxjjlNN2aCL3WhxleMMtLf6xKb3mE8aMIN5Zux0Qbbufc7Mgmu4941dALP4di13aMWLpu4e3BPB-tds4rdbn9hv6dB6VxGy8UIz6oq-KKLge6gjoetgwlO9-E7X4iU6sgDrHTlV" 
+              className="w-full h-[350px] object-cover object-center" 
+              src="/compact_hero_mockup.png" 
               alt="IELTS Hub Preview"
             />
           </motion.div>

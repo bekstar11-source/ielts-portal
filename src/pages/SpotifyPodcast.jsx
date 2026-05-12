@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { usePodcast } from "../context/PodcastContext";
 import LazyImage from "../components/common/LazyImage";
+import { useGamification } from "../hooks/useGamification";
+import { useAuth } from "../context/AuthContext";
 
 export default function SpotifyPodcast() {
     const { podcastId } = useParams();
@@ -23,6 +25,9 @@ export default function SpotifyPodcast() {
 
     const [podcast, setPodcast] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { awardXP } = useGamification();
+    const { user, userData } = useAuth();
+    const [xpAwardedSession, setXpAwardedSession] = useState(false);
     
     // Questions logic removed as per user request
 
@@ -64,6 +69,19 @@ export default function SpotifyPodcast() {
         };
         fetchPodcast();
     }, [podcastId, currentTrack, setCurrentTrack, setIsPlaying]);
+
+    useEffect(() => {
+        if (podcast && user && duration > 0 && currentTime > 0 && !xpAwardedSession) {
+            if (currentTime / duration > 0.9) {
+                setXpAwardedSession(true);
+                awardXP('podcast', podcast.id, podcast.title).then(res => {
+                    if (res.success) {
+                        alert(`Tabriklaymiz! Siz ushbu podcastni tinglab ${res.amount} XP yig'dingiz.`);
+                    }
+                });
+            }
+        }
+    }, [currentTime, duration, podcast, user, xpAwardedSession, awardXP]);
 
 
 
