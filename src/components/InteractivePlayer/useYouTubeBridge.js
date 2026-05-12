@@ -1,111 +1,127 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, setDuration, currentTime, youtubePlayerRef, isPlaying) {
-    // We now use the global youtubePlayerRef passed from PodcastContext
-    let interval;
+    const intervalRef = useRef(null);
 
-    useEffect(() => {
-        if (!podcast || podcast.mediaType !== 'youtube') return;
-
-        if (!window.YT) {
-            const tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        }
-
-        const startInterval = () => {
-            if (interval) clearInterval(interval);
-            interval = setInterval(() => {
-                if (youtubePlayerRef.current && typeof youtubePlayerRef.current.getCurrentTime === 'function') {
+    const startInterval = useCallback(() => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(() => {
+            if (youtubePlayerRef.current && typeof youtubePlayerRef.current.getCurrentTime === 'function') {
+                try {
                     const state = youtubePlayerRef.current.getPlayerState();
                     if (state === window.YT.PlayerState.PLAYING || state === window.YT.PlayerState.PAUSED) {
                         const time = youtubePlayerRef.current.getCurrentTime();
-                        if (time !== undefined) setCurrentTime(time);
+                        if (time !== undefined && typeof time === 'number') setCurrentTime(time);
                         
                         const d = youtubePlayerRef.current.getDuration();
                         if (d && d > 0) setDuration(d);
                     }
+                } catch (e) {
+                    // Ignore errors during state polling
                 }
-            }, 200);
-        };
+            }
+        }, 500); // Polling every 500ms is enough and safer
+    }, [setCurrentTime, setDuration, youtubePlayerRef]);
 
-        const initPlayer = () => {
-            youtubePlayerRef.current = new window.YT.Player('youtube-player-iframe', {
-                videoId: podcast.youtubeId,
-                playerVars: {
-                    autoplay: 0,
-                    modestbranding: 1,
-                    rel: 0,
-                    enablejsapi: 1,
-                    origin: window.location.origin
+    const initPlayer = useCallback(() => {
+        if (!podcast || podcast.mediaType !== 'youtube') return;
+        
+        // Ensure the target element exists
+        const target = document.getElementById('youtube-player-iframe');
+        if (!target) return;
+
+        youtubePlayerRef.current = new window.YT.Player('youtube-player-iframe', {
+            videoId: podcast.youtubeId,
+            playerVars: {
+                autoplay: isPlaying ? 1 : 0,
+                modestbranding: 1,
+                rel: 0,
+                enablejsapi: 1,
+                origin: window.location.origin,
+                widget_referrer: window.location.href
+            },
+            events: {
+                onReady: (event) => {
+                    const d = event.target.getDuration();
+                    if (d) setDuration(d);
+                    if (isPlaying) {
+                        event.target.playVideo();
+                    }
                 },
-                events: {
-                    onReady: (event) => {
+                onStateChange: (event) => {
+                    if (event.data === window.YT.PlayerState.PLAYING) {
+                        setIsPlaying(true);
                         const d = event.target.getDuration();
                         if (d) setDuration(d);
-                        // Only play if isPlaying is already true
-                        if (isPlaying) {
-                            event.target.playVideo();
-                        }
-                    },
-                    onStateChange: (event) => {
-                        if (event.data === window.YT.PlayerState.PLAYING) {
-                            setIsPlaying(true);
-                            const d = event.target.getDuration();
-                            if (d) setDuration(d);
-                        } else if (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED) {
-                            setIsPlaying(false);
-                        }
+                    } else if (event.data === window.YT.PlayerState.PAUSED) {
+                        setIsPlaying(false);
+                    } else if (event.data === window.YT.PlayerState.ENDED) {
+                        setIsPlaying(false);
                     }
+                },
+                onError: (e) => {
+                    console.error("YouTube Player Error:", e.data);
                 }
-            });
-            youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
-            startInterval();
-        };
-
-        if (window.YT && window.YT.Player) {
-            // Check if THIS video is already loaded in THIS player instance
-            if (youtubePlayerRef.current && youtubePlayerRef.current.loadedVideoId === podcast.youtubeId) {
-                startInterval();
-                return;
             }
+        });
+        youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
+        startInterval();
+    }, [podcast, isPlaying, setIsPlaying, setDuration, startInterval, youtubePlayerRef]);
 
-            if (youtubePlayerRef.current && typeof youtubePlayerRef.current.loadVideoById === 'function') {
-                // Different video, load it
+    useEffect(() => {
+        if (!podcast || podcast.mediaType !== 'youtube') return;
+
+        if (!window.YT || !window.YT.Player) {
+            if (!window.YT) {
+                const tag = document.createElement('script');
+                tag.src = "https://www.youtube.com/iframe_api";
+                const firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            }
+            window.onYouTubeIframeAPIReady = initPlayer;
+        } else {
+            // Check if player is already initialized for this video
+            if (youtubePlayerRef.current && youtubePlayerRef.current.loadedVideoId === podcast.youtubeId) {
+                // Already loaded, just ensure interval is running
+                startInterval();
+            } else if (youtubePlayerRef.current && typeof youtubePlayerRef.current.loadVideoById === 'function') {
+                // Different video, load it into existing player
                 youtubePlayerRef.current.loadVideoById(podcast.youtubeId);
-                // setIsPlaying(true); // Don't auto-play on load
                 setCurrentTime(0);
                 setDuration(0);
                 youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
                 startInterval();
             } else {
+                // Not initialized or broken, init fresh
                 initPlayer();
             }
-        } else {
-            window.onYouTubeIframeAPIReady = initPlayer;
         }
 
         return () => {
-            if (interval) clearInterval(interval);
+            if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [podcast?.youtubeId, setIsPlaying, setCurrentTime, setDuration, isPlaying]);
+    }, [podcast?.youtubeId, initPlayer, startInterval, youtubePlayerRef, setCurrentTime, setDuration]);
 
-    const handleYoutubeSeek = (time) => {
-        if (youtubePlayerRef.current && youtubePlayerRef.current.seekTo) {
+    const handleYoutubeSeek = useCallback((time) => {
+        if (youtubePlayerRef.current && typeof youtubePlayerRef.current.seekTo === 'function') {
             youtubePlayerRef.current.seekTo(time, true);
         }
-    };
+    }, [youtubePlayerRef]);
 
-    const syncYoutubeState = (isPlaying) => {
-        if (!youtubePlayerRef.current || !youtubePlayerRef.current.getPlayerState) return;
-        const state = youtubePlayerRef.current.getPlayerState();
-        if (isPlaying && state !== window.YT.PlayerState.PLAYING) {
-            youtubePlayerRef.current.playVideo();
-        } else if (!isPlaying && state === window.YT.PlayerState.PLAYING) {
-            youtubePlayerRef.current.pauseVideo();
+    const syncYoutubeState = useCallback((playing) => {
+        if (!youtubePlayerRef.current || typeof youtubePlayerRef.current.getPlayerState !== 'function') return;
+        
+        try {
+            const state = youtubePlayerRef.current.getPlayerState();
+            if (playing && state !== window.YT.PlayerState.PLAYING) {
+                youtubePlayerRef.current.playVideo();
+            } else if (!playing && state === window.YT.PlayerState.PLAYING) {
+                youtubePlayerRef.current.pauseVideo();
+            }
+        } catch (e) {
+            console.error("Error syncing YT state:", e);
         }
-    };
+    }, [youtubePlayerRef]);
 
     return { ytPlayerRef: youtubePlayerRef, handleYoutubeSeek, syncYoutubeState };
 }

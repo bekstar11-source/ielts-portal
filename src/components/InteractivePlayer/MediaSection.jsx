@@ -70,6 +70,9 @@ export default function MediaSection({
 
             if (e.code === "Space") {
                 e.preventDefault();
+                if (!isPlaying && podcast?.mediaType === 'youtube' && globalHandleSeek /* we can't easily access youtubePlayerRef here unless we pass it */) {
+                    // We need to pass youtubePlayerRef from InteractivePlayer to MediaSection to do this synchronously
+                }
                 setIsPlaying(!isPlaying);
                 setShowControls(true);
             } else if (e.code === "ArrowRight") {
@@ -100,22 +103,16 @@ export default function MediaSection({
             {/* STABLE YOUTUBE PLAYER CONTAINER */}
             {podcast.mediaType === 'youtube' && (
                 <div 
-                    className={`transition-all duration-500 overflow-hidden ${isVideoMode ? 'flex-1 relative flex flex-col items-center justify-center p-0 md:p-4' : 'absolute pointer-events-none opacity-0 w-1 h-1'}`}
-                    style={!isVideoMode ? { top: -9999, left: -9999 } : {}}
+                    className={`transition-all duration-500 overflow-hidden ${isVideoMode ? 'flex-1 relative flex flex-col items-center justify-center p-0 md:p-4' : 'absolute top-0 left-0 w-[300px] h-[200px] pointer-events-none opacity-[0.001] z-0'}`}
                 >
                     <div className={`
                         w-full aspect-video md:rounded-lg overflow-hidden transition-all duration-500 group relative
                         ${isVideoMode && isFullscreen ? 'border-none shadow-none md:rounded-none' : (isDark ? 'border-white/5 md:shadow-2xl' : 'border-zinc-100 md:shadow-lg')}
                     `}>
-                        <iframe 
+                        <div 
                             id="youtube-player-iframe"
                             className="w-full h-full"
-                            src={`https://www.youtube.com/embed/${podcast.youtubeId}?autoplay=0&modestbranding=1&rel=0&controls=0&enablejsapi=1&iv_load_policy=3&disablekb=1&origin=${window.location.origin}`}
-                            title="YouTube video player" 
-                            frameBorder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                            referrerPolicy="strict-origin-when-cross-origin" 
-                        ></iframe>
+                        ></div>
 
                         {/* Interactive Overlays (Only in video mode) */}
                         {isVideoMode && (

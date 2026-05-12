@@ -257,6 +257,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                         currentTime={currentTime}
                         duration={duration}
                         audioRef={audioRef}
+                        youtubePlayerRef={youtubePlayerRef}
                     />
                 </div>
 

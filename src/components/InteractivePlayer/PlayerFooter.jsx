@@ -18,7 +18,7 @@ export default function PlayerFooter({
     isFixed = false, // Added prop to control positioning
     hasBottomNav = false // Added prop to adjust for bottom navigation bar
 }) {
-    const { likedPodcasts, toggleLike } = usePodcast();
+    const { likedPodcasts, toggleLike, youtubePlayerRef } = usePodcast();
     const { user } = useAuth();
     const isLiked = likedPodcasts.includes(podcast?.id);
 
@@ -119,7 +119,15 @@ export default function PlayerFooter({
                     </button>
                     
                     <button 
-                        onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (!isPlaying && podcast?.mediaType === 'youtube' && youtubePlayerRef?.current?.playVideo) {
+                                youtubePlayerRef.current.playVideo();
+                            } else if (isPlaying && podcast?.mediaType === 'youtube' && youtubePlayerRef?.current?.pauseVideo) {
+                                youtubePlayerRef.current.pauseVideo();
+                            }
+                            setIsPlaying(!isPlaying); 
+                        }}
                         className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:scale-105 active:scale-90 transition-all shadow-lg ${isDark ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`}
                     >
                         {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
