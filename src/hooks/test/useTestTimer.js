@@ -8,9 +8,12 @@ export function useTestTimer(testId, userId, testMode, initialTime = 3600, isAct
 
         // Load saved time from sessionStorage
         const savedTime = sessionStorage.getItem(`timer_${userId}_${testId}`);
-        if (savedTime) setTimeLeft(parseInt(savedTime));
-        else setTimeLeft(initialTime);
-    }, [testId, userId, initialTime, isActive]);
+        if (savedTime) {
+            setTimeLeft(parseInt(savedTime));
+        } else {
+            setTimeLeft(testMode === 'practice' ? 0 : initialTime);
+        }
+    }, [testId, userId, initialTime, isActive, testMode]);
 
     useEffect(() => {
         if (!isActive || !testMode) return;

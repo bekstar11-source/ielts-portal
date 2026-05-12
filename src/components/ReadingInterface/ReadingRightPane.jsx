@@ -114,7 +114,7 @@ const ReadingRightPane = memo(({
                 position={tempSelection?.position}
                 onHighlight={applyAction}
                 onClear={clearSelectionMenu}
-                onAddDictionary={() => addToDictionary({ sectionTitle: `Questions`, testTitle: testName || "Reading Test" })}
+                onAddDictionary={() => addToDictionary({ sectionTitle: testData?.passages?.[activePassage]?.title || `Questions`, testTitle: testName || "Reading Test" })}
                 isReviewMode={isReviewMode}
                 onAddToWordBank={onAddToWordBank}
                 onAddNote={() => applyAction('note')}

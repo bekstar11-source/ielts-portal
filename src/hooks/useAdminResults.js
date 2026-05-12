@@ -40,12 +40,27 @@ export const useAdminResults = () => {
 
             const data = querySnapshot.docs.map((doc) => {
                 const d = doc.data();
+                
+                // Duration
+                let currentTimeSpent = d.timeSpent;
+                if (currentTimeSpent === undefined && d.attempts && Array.isArray(d.attempts) && d.attempts.length > 0) {
+                    const lastAttempt = d.attempts[d.attempts.length - 1];
+                    currentTimeSpent = lastAttempt.timeSpent;
+                }
+                
                 let durationStr = "-";
-                if (d.timeSpent) {
-                    const mins = Math.floor(d.timeSpent / 60);
-                    const secs = d.timeSpent % 60;
+                if (currentTimeSpent) {
+                    const mins = Math.floor(currentTimeSpent / 60);
+                    const secs = currentTimeSpent % 60;
                     durationStr = `${mins}m ${secs}s`;
                 }
+                
+                // Score & Band Score
+                let currentScore = d.score;
+                if (currentScore === undefined && d.latestScore !== undefined) currentScore = d.latestScore;
+                
+                let currentBandScore = d.bandScore;
+                if (currentBandScore === undefined && d.latestBandScore !== undefined) currentBandScore = d.latestBandScore;
                 
                 return {
                     id: doc.id,
@@ -53,7 +68,8 @@ export const useAdminResults = () => {
                     userName: d.userName || "Noma'lum",
                     testTitle: d.testTitle || "Nomsiz Test",
                     type: d.type || "other",
-                    score: d.score !== undefined ? d.score : "-",
+                    score: currentScore !== undefined ? currentScore : "-",
+                    bandScore: currentBandScore,
                     status: d.status || "pending",
                     date: d.date ? (d.date.toDate ? d.date.toDate() : new Date(d.date)) : null,
                     isOrphan: d.testId && !validTestIds.has(d.testId),

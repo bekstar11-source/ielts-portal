@@ -66,8 +66,8 @@ service cloud.firestore {
       allow read: if isAuth() && (
         isAdmin() || 
         isTeacher() ||
-        (resource == null && resultId.startsWith(request.auth.uid)) ||
-        (resource != null && (resource.data.userId == request.auth.uid || resultId.startsWith(request.auth.uid)))
+        (resource == null && resultId.matches('^' + request.auth.uid + '.*')) ||
+        (resource != null && (resource.data.userId == request.auth.uid || resultId.matches('^' + request.auth.uid + '.*')))
       );
       allow create: if isAuth() && (request.resource.data.userId == request.auth.uid); 
       allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin() || isTeacher());
