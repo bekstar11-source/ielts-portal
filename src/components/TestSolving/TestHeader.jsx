@@ -306,10 +306,11 @@ const TestHeader = ({
                 {/* CENTER: Audio Player */}
                 {isListening && !showModeSelection && (!showResult || isReviewing) && (
                     <div className={`
-                        fixed md:absolute left-1/2 bottom-4 md:top-1/2 
-                        -translate-x-1/2 md:-translate-y-1/2 
-                        w-[calc(100%-24px)] md:w-[600px] 
-                        z-[100] 
+                        absolute left-0 md:left-1/2 top-full md:top-1/2 
+                        md:-translate-x-1/2 md:-translate-y-1/2 
+                        w-full md:w-[600px] 
+                        px-2 md:px-0 py-1 md:py-0
+                        z-[100] bg-white md:bg-transparent border-b md:border-b-0 border-gray-100
                         ${(testMode === 'exam' && !isReviewing) ? 'pointer-events-none select-none opacity-90' : ''}
                     `}>
                         {test?.passages?.map((passage, index) => {

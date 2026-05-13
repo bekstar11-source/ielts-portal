@@ -44,7 +44,7 @@ const MapDraggableOption = ({ label, text, isReviewMode }) => {
     );
 };
 
-const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear }) => {
+const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear, onSelect, isMenuOpen, onToggleMenu, allowReuse, userAnswers }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: `map-slot-${id}`,
         disabled: isReviewMode
@@ -58,9 +58,10 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
     return (
         <div
             ref={setNodeRef}
+            onClick={() => !isReviewMode && onToggleMenu()}
             className={`
                 min-w-[140px] md:min-w-[180px] min-h-[32px] border rounded-none flex items-center justify-center relative
-                transition-all duration-300 px-3 py-1 group/slot
+                transition-all duration-300 px-3 py-1 group/slot cursor-pointer
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')
@@ -89,6 +90,35 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
                 </div>
             ) : (
                 <span className="text-gray-600 text-[12px] font-medium uppercase tracking-wider">{id} Drop</span>
+            )}
+
+            {isMenuOpen && !isReviewMode && (
+                <div className="absolute top-full left-0 mt-1 w-max min-w-full bg-white border border-gray-200 rounded-md shadow-lg z-[2000] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                    <div className="max-h-60 overflow-y-auto py-1">
+                        {options.map((opt, idx) => {
+                            const label = opt.label || String.fromCharCode(65 + idx);
+                            const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : "");
+                            const isUsed = !allowReuse && Object.values(userAnswers).includes(label);
+                            
+                            if (isUsed) return null;
+                            
+                            return (
+                                <button
+                                    key={label}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelect(label);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-[14px] hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                >
+                                    <span className="font-bold mr-2">{label}.</span>
+                                    {stripLeadingOptionLabel(text)}
+                                </button>
+                            );
+                        })}
+                        {options.length === 0 && <div className="px-4 py-2 text-gray-400 text-xs">No options available</div>}
+                    </div>
+                </div>
             )}
 
             {isReviewMode && !isCorrect && (
@@ -135,6 +165,7 @@ const MapPoolDroppable = ({ children, isDragging }) => {
 
 export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
     const [activeId, setActiveId] = React.useState(null);
+    const [openMenuId, setOpenMenuId] = React.useState(null);
     const options = group.options || [];
     const questions = group.questions || group.items || [];
     const allowReuse = group.allowReuse || 
@@ -164,6 +195,13 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
         const slotId = over.id.replace('map-slot-', '');
         onAnswerChange(slotId, optionLabel);
     };
+
+    // Close menu when clicking outside
+    React.useEffect(() => {
+        const handleClickOutside = () => setOpenMenuId(null);
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
 
     return (
         <div className="mb-10 flex flex-col xl:flex-row gap-8 xl:gap-12 items-start">
@@ -207,6 +245,14 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                                                 isCorrect={isCorrect}
                                                 correctAnswer={q.answer || q.correct_answer || q.correctAnswer}
                                                 onClear={() => onAnswerChange(q.id, "")}
+                                                onSelect={(label) => {
+                                                    onAnswerChange(q.id, label);
+                                                    setOpenMenuId(null);
+                                                }}
+                                                isMenuOpen={openMenuId === q.id}
+                                                onToggleMenu={() => setOpenMenuId(openMenuId === q.id ? null : q.id)}
+                                                allowReuse={allowReuse}
+                                                userAnswers={userAnswers}
                                             />
                                         </div>
                                     );
