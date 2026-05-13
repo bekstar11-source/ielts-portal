@@ -184,3 +184,31 @@ export const checkDuplicateTest = async (testData, existingTests) => {
 
     return { isDuplicate, duplicateTitle };
 };
+export const getQuestionTypesFromQuestions = (questions) => {
+    if (!questions || !Array.isArray(questions)) return [];
+    
+    const types = new Set();
+    const mapType = (t) => {
+        if (!t) return null;
+        const lower = t.toLowerCase();
+        if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection') || lower.includes('pick_')) return 'Multiple Choice';
+        if (lower.includes('matching_headings')) return 'Matching Headings';
+        if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
+        if (lower.includes('matching')) return 'Matching';
+        if (lower.includes('table')) return 'Table Completion';
+        if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
+        if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
+        if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
+        if (lower.includes('short_answer')) return 'Short Answer';
+        return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
+    questions.forEach(q => {
+        if (q.type) { const m = mapType(q.type); if (m) types.add(m); }
+        if (q.items) q.items.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
+        if (q.questions) q.questions.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
+        if (q.groups) q.groups.forEach(g => { if (g.type) { const m = mapType(g.type); if (m) types.add(m); } });
+    });
+
+    return Array.from(types);
+};

@@ -11,7 +11,7 @@ import { useAuth } from "../../context/AuthContext";
 import WaveformEditor from "../../components/PodcastInterface/admin/WaveformEditor";
 import VocabAIHelper from "../../components/PodcastInterface/admin/VocabAIHelper";
 import MCQEditor from "../../components/PodcastInterface/admin/MCQEditor";
-import "../components/PodcastInterface/shared/PodcastStyles.css";
+import "../../components/PodcastInterface/shared/PodcastStyles.css";
 
 const DIFFICULTIES = [
     { value: "easy", label: "🟢 Easy" },

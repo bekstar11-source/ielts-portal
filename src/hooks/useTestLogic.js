@@ -44,8 +44,8 @@ export function useTestLogic() {
         if (!test) return;
         const type = test.type?.toLowerCase();
         const draftKey = `draft_${user.uid}_${test.id}`;
-        const savedDraft = sessionStorage.getItem(draftKey);
-        const savedMode = sessionStorage.getItem(`mode_${user.uid}_${test.id}`);
+        const savedDraft = localStorage.getItem(draftKey);
+        const savedMode = localStorage.getItem(`mode_${user.uid}_${test.id}`);
 
         if (savedDraft) {
             try { setUserAnswers(JSON.parse(savedDraft)); } catch { setWritingEssay(savedDraft); }
@@ -66,8 +66,8 @@ export function useTestLogic() {
     useEffect(() => {
         if (!test || showResult) return;
         const draftKey = `draft_${user.uid}_${test.id}`;
-        sessionStorage.setItem(draftKey, JSON.stringify(userAnswers));
-        if (testMode) sessionStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
+        localStorage.setItem(draftKey, JSON.stringify(userAnswers));
+        if (testMode) localStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
     }, [userAnswers, test, testMode, showResult]);
 
     // Anti-Cheat
@@ -102,17 +102,10 @@ export function useTestLogic() {
             setScore(correctCount);
             setBandScore(band);
             setShowResult(true);
-            sessionStorage.removeItem(`draft_${user.uid}_${test.id}`);
-            sessionStorage.removeItem(`timer_${user.uid}_${test.id}`);
-            sessionStorage.removeItem(`ielts_reading_session_${test.id}`);
-            sessionStorage.removeItem(`ielts_listening_session_${test.id}`);
-            sessionStorage.removeItem(`ielts_writing_session_${test.id}`);
-            sessionStorage.removeItem(`ielts_speaking_session_${test.id}`);
-            sessionStorage.removeItem(`ielts_hl_${test.id}`);
-            sessionStorage.removeItem(`ielts_listening_hl_${test.id}`);
-            for (let i = 0; i < 5; i++) {
-                sessionStorage.removeItem(`reading_session_${test.id}_passage_${i}`);
-            }
+            localStorage.removeItem(`draft_${user.uid}_${test.id}`);
+            localStorage.removeItem(`timer_${user.uid}_${test.id}`);
+            // Note: We don't remove reading highlights here so they are available in Review mode.
+            // They will be cleared if the user explicitly restarts the test.
         }
     };
 

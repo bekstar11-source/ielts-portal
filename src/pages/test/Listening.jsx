@@ -301,7 +301,7 @@ export default function Listening() {
         </div>
         <div className="w-full max-w-[800px] h-full flex items-center justify-center">
             <DotLottieReact
-                src="https://lottie.host/880c85c0-4389-4e78-9844-3151475c4040/XoN8hOPr6z.lottie"
+                src="https://lottie.host/6ad39563-0f5a-4648-9646-778f6920f01b/kL3xT7j8tG.lottie"
                 loop
                 autoplay
                 className="w-full h-full object-contain"

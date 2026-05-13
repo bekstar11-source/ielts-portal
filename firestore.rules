@@ -70,6 +70,18 @@ service cloud.firestore {
         allow write: if isAdmin();
     }
 
+    // TEST COLLECTIONS
+    match /test_collections/{collectionId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // PODCAST COLLECTIONS
+    match /podcast_collections/{collectionId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
     // ARTICLES
     match /articles/{articleId} {
       allow read: if isAuth();
@@ -136,7 +148,5 @@ service cloud.firestore {
     match /{path=**} {
       allow read, write: if isAdmin();
     }
-  }
-}
   }
 }

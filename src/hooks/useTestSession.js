@@ -7,7 +7,7 @@ export function useTestSession(storageKey) {
 
   // 1. Initial Load: Session xotirasini tekshirish
   useEffect(() => {
-    const savedData = sessionStorage.getItem(storageKey);
+    const savedData = localStorage.getItem(storageKey);
     if (savedData) {
       try {
         setAnswers(JSON.parse(savedData));
@@ -32,7 +32,7 @@ export function useTestSession(storageKey) {
   // 3. Javoblar o'zgarganda saqlash
   useEffect(() => {
     if (isDataLoaded && Object.keys(answers).length > 0) {
-      sessionStorage.setItem(storageKey, JSON.stringify(answers));
+      localStorage.setItem(storageKey, JSON.stringify(answers));
     }
   }, [answers, isDataLoaded, storageKey]);
 
@@ -52,7 +52,7 @@ export function useTestSession(storageKey) {
     showResumeModal: false,
     confirmResume: () => {},
     confirmRestart: () => {
-      sessionStorage.removeItem(storageKey);
+      localStorage.removeItem(storageKey);
       setAnswers({});
     }
   };

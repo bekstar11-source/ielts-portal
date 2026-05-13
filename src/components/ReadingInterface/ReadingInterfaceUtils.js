@@ -7,7 +7,7 @@ export const NOTES_STORAGE_PREFIX = "reading_notes_";
 
 export const loadFromStorage = (key, defaultValue = {}) => {
   try {
-    const raw = sessionStorage.getItem(key);
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : defaultValue;
   } catch {
     return defaultValue;
@@ -16,7 +16,7 @@ export const loadFromStorage = (key, defaultValue = {}) => {
 
 export const saveToStorage = (key, data) => {
   try {
-    sessionStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
     console.warn("Storage is full or inaccessible", e);
   }

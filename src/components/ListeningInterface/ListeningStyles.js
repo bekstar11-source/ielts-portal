@@ -96,4 +96,29 @@ export const styles = `
   .floating-menu { position: absolute; background: #1f2937; padding: 4px; border-radius: 6px; display: flex; gap: 6px; z-index: 999999; transform: translateX(-50%); box-shadow: 0 4px 6px rgba(0,0,0,0.3); pointer-events: auto; user-select: none; }
   .float-btn { background: none; border: none; color: white; cursor: pointer; font-size: 11px; font-weight: 600; padding: 4px 8px; display: inline-block; }
   .float-btn:hover { background-color: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  /* Mobile Responsive Overrides */
+  @media (max-width: 768px) {
+    .test-wrapper, .review-wrapper { padding: 15px !important; }
+    .layout-review { flex-direction: column; }
+    .review-left { width: 100% !important; border-right: none; border-bottom: 1px solid #e5e7eb; height: 50% !important; }
+    .review-right { height: 50% !important; }
+    .resizer { display: none !important; }
+    
+    input.ielts-input { width: 100px; height: 32px; margin: 2px 4px; font-size: 14px; }
+    .q-num-inline { width: 24px; height: 24px; font-size: 12px; }
+    
+    .part-btn { padding: 5px 8px; font-size: 11px; }
+    .nav-btn { width: 32px; height: 32px; font-size: 12px; }
+    
+    .map-image { max-height: 250px; }
+    .ielts-table { min-width: 450px; }
+    .ielts-table th, .ielts-table td { padding: 8px 10px; font-size: 13px; }
+  }
+
+  /* Compact Scrollbar for mobile */
+  @media (max-width: 640px) {
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  }
 `;

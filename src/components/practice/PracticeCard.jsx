@@ -14,12 +14,39 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
   const isReadingFull = test.type === 'reading' && test.title?.toLowerCase().includes('full');
 
   // Prioritize totalQuestions from test object (calculated in useStudentData hook)
-  const questionCount = test.totalQuestions || 
-    (test.questions?.length) || 
-    (test.sections?.reduce((acc, s) => acc + (s.questions?.length || 0), 0)) ||
-    (isListeningFull || isReadingFull ? 40 : 
-     isListeningPart ? 10 : 
-     isReadingPassage ? 13 : 13);
+  const questionCount = test.totalQuestions || (() => {
+    const countUniqueIds = (items) => {
+      if (!items || !Array.isArray(items)) return 0;
+      const ids = new Set();
+      const extract = (obj) => {
+        if (!obj) return;
+        // Check if it's an individual question item
+        if (obj.id && !isNaN(parseInt(obj.id))) {
+          ids.add(parseInt(obj.id));
+        }
+        // Recurse into common nested structures
+        if (Array.isArray(obj.items)) obj.items.forEach(extract);
+        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
+        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
+      };
+      items.forEach(extract);
+      return ids.size;
+    };
+
+    if (test.type === 'listening' && test.questions) {
+      const count = countUniqueIds(test.questions);
+      if (count > 0) return count;
+    }
+    if (test.type === 'reading' && test.sections) {
+      const count = countUniqueIds(test.sections);
+      if (count > 0) return count;
+    }
+    
+    return (test.questions?.length) || 
+      (isListeningFull || isReadingFull ? 40 : 
+       isListeningPart ? 10 : 
+       isReadingPassage ? 13 : 13);
+  })();
 
   const duration = test.duration || 
     (test.type === 'reading' ? (isReadingFull ? 60 : 20) : 
@@ -55,6 +82,44 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
   };
 
   const showGetAccess = !canAccess && isPremium && !isCompleted && !test.isSet;
+
+  const derivedQuestionTypes = test.questionTypes && test.questionTypes.length > 0 
+    ? test.questionTypes 
+    : (() => {
+        const types = new Set();
+        const mapType = (t) => {
+          if (!t) return null;
+          const lower = t.toLowerCase();
+          if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection') || lower.includes('pick_')) return 'Multiple Choice';
+          if (lower.includes('matching_headings')) return 'Matching Headings';
+          if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
+          if (lower.includes('matching')) return 'Matching';
+          if (lower.includes('table')) return 'Table Completion';
+          if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
+          if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
+          if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
+          if (lower.includes('short_answer')) return 'Short Answer';
+          return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        };
+
+        const qArray = test.questions || [];
+        qArray.forEach(q => {
+          if (q.type) { const m = mapType(q.type); if (m) types.add(m); }
+          if (q.items) q.items.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
+          if (q.questions) q.questions.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
+          if (q.groups) q.groups.forEach(g => { if (g.type) { const m = mapType(g.type); if (m) types.add(m); } });
+        });
+
+        // Also check sections for reading
+        const sArray = test.sections || [];
+        sArray.forEach(s => {
+          (s.questions || []).forEach(q => {
+            if (q.type) { const m = mapType(q.type); if (m) types.add(m); }
+          });
+        });
+
+        return Array.from(types);
+      })();
 
   return (
     <motion.div 
@@ -101,9 +166,9 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
 
         <h2 className="text-[20px] font-extrabold text-[#1d1d1f] leading-[1.2] tracking-tight mb-4 line-clamp-2">{test.title}</h2>
 
-        {test.questionTypes && test.questionTypes.length > 0 && (
+        {derivedQuestionTypes && derivedQuestionTypes.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-4">
-            {test.questionTypes.slice(0, 4).map((qType, idx) => (
+            {derivedQuestionTypes.slice(0, 4).map((qType, idx) => (
               <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-md text-[10.5px] font-bold text-[#424245] bg-white/50 border border-black/[0.04] tracking-wide capitalize">
                 {qType}
               </span>

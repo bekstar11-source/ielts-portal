@@ -60,11 +60,11 @@ export default function ReadingInterface({
 
   const handleRestart = () => {
     if (currentTestId) {
-      sessionStorage.removeItem(`${HL_STORAGE_PREFIX}${currentTestId}`);
+      localStorage.removeItem(`${HL_STORAGE_PREFIX}${currentTestId}`);
       setAllHighlights({});
       const passagesCount = testData.passages?.length || 3;
       for (let i = 0; i < passagesCount; i++) {
-        sessionStorage.removeItem(`reading_session_${currentTestId}_passage_${i}`);
+        localStorage.removeItem(`reading_session_${currentTestId}_passage_${i}`);
       }
     }
     confirmRestart();
@@ -106,7 +106,7 @@ export default function ReadingInterface({
         const passageStorageKey = `reading_session_${currentTestId}_passage_${passageIndex}`;
         const contentDiv = document.getElementById('reading-content-display');
         if (contentDiv && !isReviewMode) {
-            sessionStorage.setItem(passageStorageKey, JSON.stringify({
+            localStorage.setItem(passageStorageKey, JSON.stringify({
                 html: contentDiv.innerHTML,
                 timestamp: Date.now()
             }));
@@ -194,7 +194,7 @@ export default function ReadingInterface({
     if (isReviewMode && currentTestId) {
       const storageKey = `reading_session_${currentTestId}_passage_${activePassage}`;
       try {
-        const saved = sessionStorage.getItem(storageKey);
+        const saved = localStorage.getItem(storageKey);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Date.now() - parsed.timestamp < 30 * 24 * 60 * 60 * 1000) baseContent = parsed.html;

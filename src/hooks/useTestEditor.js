@@ -5,6 +5,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
 import { 
     detectSectionFromQuestions, 
+    getQuestionTypesFromQuestions,
     processTime, 
     sanitizePayload, 
     toMMSS 
@@ -179,6 +180,7 @@ export const useTestEditor = (id) => {
                 questions: finalQuestions,
                 introDuration: Number(testData.introDuration) || 0,
                 isExclusive: isMockMode || false,
+                questionTypes: getQuestionTypesFromQuestions(finalQuestions),
                 updatedAt: new Date().toISOString()
             };
 

@@ -173,8 +173,8 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                             const qText = (typeof q.text === 'object' ? q.text.text : q.text) || "";
                             const cleanText = String(qText).replace('[DROP]', '').trim();
                             return (
-                                <div key={q.id} className={`flex items-center gap-3 py-1.5 transition-all ${isReviewMode ? 'pr-24' : ''}`}>
-                                    <div className="font-normal text-black text-[1.1em] shrink-0" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
+                                <div key={q.id} className={`flex flex-wrap items-center gap-3 py-1.5 transition-all w-full ${isReviewMode ? 'pr-0 md:pr-24' : ''}`}>
+                                    <div className="font-normal text-black text-[1.1em] shrink-0 max-w-full" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
                                     <DroppableSlot
                                         id={q.id} value={userAnswers[q.id]} options={options} isReviewMode={isReviewMode} isCorrect={isCorrect}
                                         correctAnswer={q.answer || q.correct_answer || q.correctAnswer} onClear={() => onAnswerChange(q.id, "")}

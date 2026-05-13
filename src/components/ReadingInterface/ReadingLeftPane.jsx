@@ -25,7 +25,7 @@ const ReadingLeftPane = memo(({
     const [displayContent, setDisplayContent] = useState(() => {
         // Initial load from storage if available
         if (storageKey) {
-            const saved = sessionStorage.getItem(storageKey);
+            const saved = localStorage.getItem(storageKey);
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -45,7 +45,7 @@ const ReadingLeftPane = memo(({
         let base = isReviewMode ? content : stripReviewHighlights(content);
         
         if (storageKey) {
-            const saved = sessionStorage.getItem(storageKey);
+            const saved = localStorage.getItem(storageKey);
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -66,7 +66,7 @@ const ReadingLeftPane = memo(({
     // This second effect is now redundant for initial load but kept for sync if needed
     useEffect(() => {
         if (!storageKey) return;
-        const saved = sessionStorage.getItem(storageKey);
+        const saved = localStorage.getItem(storageKey);
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
@@ -127,14 +127,14 @@ const ReadingLeftPane = memo(({
                 const finalHtml = cleanHtml.trim() || temp.innerHTML;
                 
                 setDisplayContent(finalHtml);
-                sessionStorage.setItem(storageKey, JSON.stringify({
+                localStorage.setItem(storageKey, JSON.stringify({
                     html: finalHtml,
                     timestamp: Date.now()
                 }));
             } else {
                 const html = contentDiv.innerHTML;
                 setDisplayContent(html);
-                sessionStorage.setItem(storageKey, JSON.stringify({
+                localStorage.setItem(storageKey, JSON.stringify({
                     html: html,
                     timestamp: Date.now()
                 }));

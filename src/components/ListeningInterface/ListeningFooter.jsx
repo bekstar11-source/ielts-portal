@@ -114,7 +114,7 @@ export default function ListeningFooter({
 
     return (
         <div className="h-full w-full flex bg-white z-[2000]">
-            <div className="flex-1 h-full flex">
+            <div className="flex-1 h-full flex overflow-x-auto hide-scrollbar">
                 {testData.passages.map((passage, idx) => {
                     const isActive = activePart === idx;
                     const isAudioPlaying = playingPartIndex === idx && isPlaying;
@@ -135,12 +135,6 @@ export default function ListeningFooter({
                         userAnswers[q.id] && String(userAnswers[q.id]).trim() !== ""
                     ).length;
 
-                    const partMinId = partQuestions.length > 0 
-                        ? Math.min(...partQuestions.map(q => parseInt(q.id)).filter(id => !isNaN(id))) 
-                        : Infinity;
-                        
-                    // partNumber merge vaqtida passage ob'ektiga qo'shilган.
-                    // Eski testlarda bo'lmasa idx + 1 fallback sifatida ishlatiladi.
                     const partNum = passage.partNumber ?? (idx + 1);
 
                     return (
@@ -148,7 +142,7 @@ export default function ListeningFooter({
                             key={passage.id || idx}
                             onClick={() => setActivePart(idx)}
                             className={`
-                                flex-1 h-full flex items-center px-3 cursor-pointer border-r border-gray-200
+                                flex-1 min-w-[100px] md:min-w-0 h-full flex items-center px-2 md:px-3 cursor-pointer border-r border-gray-200
                                 transition-all duration-200 select-none overflow-hidden
                                 ${isActive
                                     ? 'bg-white border-t-[3px] border-t-blue-600 -mt-[1px]'
@@ -157,8 +151,8 @@ export default function ListeningFooter({
                             `}
                         >
                             {/* Part nomi + indikator */}
-                            <div className="flex items-center gap-1.5 shrink-0 mr-2">
-                                <span className={`font-bold text-xs whitespace-nowrap ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                            <div className="flex items-center gap-1 md:gap-1.5 shrink-0 mr-1 md:mr-2">
+                                <span className={`font-bold text-[10px] md:text-xs whitespace-nowrap ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                                     Part {partNum}
                                 </span>
                                 {isAudioPlaying && (
@@ -180,8 +174,8 @@ export default function ListeningFooter({
                                                         scrollToQuestionDiv(q.id);
                                                     }}
                                                     className={`
-                                                        w-[22px] h-[22px] flex items-center justify-center rounded
-                                                        text-[10px] font-bold shrink-0 transition-all border shadow-sm
+                                                        w-[22px] h-[22px] md:w-[24px] md:h-[24px] flex items-center justify-center rounded
+                                                        text-[9px] md:text-[10px] font-bold shrink-0 transition-all border shadow-sm
                                                         ${isAnswered
                                                             ? 'bg-blue-600 text-white border-blue-600'
                                                             : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-600'
@@ -195,8 +189,8 @@ export default function ListeningFooter({
                                     </div>
                                 )
                             ) : (
-                                <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
-                                    {answeredCount} of {qCount}
+                                <span className="text-[9px] md:text-[10px] text-gray-400 font-medium whitespace-nowrap">
+                                    {answeredCount}/{qCount}
                                 </span>
                             )}
                         </div>
@@ -204,31 +198,31 @@ export default function ListeningFooter({
                 })}
             </div>
 
-            {/* O'ng pastki burchakdagi Next/Prev tugmalari */}
-            <div className="fixed bottom-[70px] right-6 flex gap-2 z-[2100]">
+            {/* O'ng pastki burchakdagi Next/Prev tugmalari - Adjusted for mobile */}
+            <div className="fixed bottom-[48px] md:bottom-[70px] right-4 md:right-6 flex gap-1.5 md:gap-2 z-[2100]">
                 <button
                     onClick={() => activePart > 0 && setActivePart(activePart - 1)}
                     disabled={activePart === 0}
-                    className={`w-11 h-11 flex items-center justify-center rounded-[12px] transition-all shadow-md ${
+                    className={`w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-[10px] md:rounded-[12px] transition-all shadow-lg border border-white/20 ${
                         activePart === 0 
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5'
+                            : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
                     }`}
                 >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                     </svg>
                 </button>
                 <button
                     onClick={() => activePart < testData.passages.length - 1 && setActivePart(activePart + 1)}
                     disabled={activePart === testData.passages.length - 1}
-                    className={`w-11 h-11 flex items-center justify-center rounded-[12px] transition-all shadow-md ${
+                    className={`w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-[10px] md:rounded-[12px] transition-all shadow-lg border border-white/20 ${
                         activePart === testData.passages.length - 1 
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5'
+                            : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
                     }`}
                 >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                     </svg>
                 </button>

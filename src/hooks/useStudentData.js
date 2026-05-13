@@ -22,12 +22,19 @@ const getActualQuestionCount = (questions) => {
     const cacheKey = `${questions.length}-${questions[0]?.id || 'no-id'}`;
     if (questionCountCache.has(cacheKey)) return questionCountCache.get(cacheKey);
 
-    const count = questions.reduce((sum, q) => {
-        if (q.questions && Array.isArray(q.questions)) return sum + q.questions.length;
-        if (q.items && Array.isArray(q.items)) return sum + q.items.length;
-        if (q.groups && Array.isArray(q.groups)) return sum + q.groups.length;
-        return sum + 1;
-    }, 0);
+    const ids = new Set();
+    const extract = (obj) => {
+        if (!obj) return;
+        if (obj.id && !isNaN(parseInt(obj.id))) {
+            ids.add(parseInt(obj.id));
+        }
+        if (Array.isArray(obj.items)) obj.items.forEach(extract);
+        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
+        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
+    };
+    
+    questions.forEach(extract);
+    const count = ids.size || questions.length; // Fallback to length if no IDs found
 
     questionCountCache.set(cacheKey, count);
     return count;

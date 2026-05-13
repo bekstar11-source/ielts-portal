@@ -45,9 +45,9 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
                                                             const item = lookupItems.find(it => String(it.id) === String(refinedPart.id));
                                                             return (
                                                                 <div key={`input-${refinedPart.id}`} className="inline-flex items-baseline mb-1">
-                                                                    <ListeningTextInput 
-                                                                        id={refinedPart.id} answer={refinedPart.answer || item?.answer} locationId={refinedPart.locationId || item?.locationId} 
-                                                                        userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} 
+                                                                    <ListeningTextInput
+                                                                        id={refinedPart.id} answer={refinedPart.answer || item?.answer} locationId={refinedPart.locationId || item?.locationId}
+                                                                        userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode}
                                                                         handleLocationClick={handleLocationClick} onSeekTo={onSeekTo}
                                                                         timestamp={item?.timestamp || item?.timeStep} activePart={activePart}
                                                                     />
@@ -135,16 +135,16 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                             {mergedItems.map((entry, entryIdx) => {
                                 const rawText = entry.rawText;
                                 const hasNativeBullet = /^[•\-\*]/.test(rawText.trim());
-                                
+
                                 const isNoteCompletion = group.type === 'note_completion';
                                 const isBlockCompletion = isNoteCompletion || group.type === 'sentence_completion' || group.type === 'form_completion';
-                                
+
                                 // Only show bullet dot if the JSON explicitly had one (e.g., starts with •, -, *)
                                 const showBullet = hasNativeBullet;
-                                
+
                                 // Force new line if it's supposed to be a block or if the user explicitly requested based on hyphens
                                 const forceBlock = showBullet || isBlockCompletion || rawText.includes('-');
-                                
+
                                 const firstItem = entry.isMerged ? entry.siblings[0] : entry.item;
                                 const isHeading = firstItem.type === 'heading';
                                 const breakEl = ((isHeading || forceBlock) && entryIdx > 0) ? <div className="w-full h-0" /> : null;
@@ -184,7 +184,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                                         let textContent = segIdx === 0
                                             ? seg.replace(/^[•\-\*]\s*/, '').trim()
                                             : seg;
-                                        
+
                                         // Remove question ID from the text segment (either at the start or end)
                                         const currentQ = questions[Math.floor(segIdx / 2)];
                                         if (currentQ && currentQ.id) {

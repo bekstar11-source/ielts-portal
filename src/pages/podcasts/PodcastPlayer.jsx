@@ -17,7 +17,7 @@ import SpeakingStage from "../../components/PodcastInterface/stage5_speaking/Spe
 import PodcastReportCard from "../../components/PodcastInterface/results/PodcastReportCard";
 import InteractiveTranscript from "../../components/PodcastInterface/shared/InteractiveTranscript";
 import PodcastVocabList from "../../components/PodcastInterface/shared/PodcastVocabList";
-import "../components/PodcastInterface/shared/PodcastStyles.css";
+import "../../components/PodcastInterface/shared/PodcastStyles.css";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 
 const STAGE_TITLES = [

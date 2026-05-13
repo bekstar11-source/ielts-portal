@@ -148,11 +148,11 @@ function AudioPreloader({ passages, test, onReady }) {
 }
 
 const IELTSLogo = () => (
-    <div className="flex items-start select-none relative pt-0.5">
-        <span className="text-[24px] md:text-[34px] font-[850] text-[#E31837] tracking-[-0.05em] leading-[0.8]" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="flex items-start select-none relative pt-0.5 shrink-0">
+        <span className="text-[20px] md:text-[34px] font-[850] text-[#E31837] tracking-[-0.05em] leading-[0.8]" style={{ fontFamily: 'Inter, sans-serif' }}>
             IELTS
         </span>
-        <span className="text-[#E31837] text-[8px] md:text-[10px] font-black absolute -top-0.5 -right-1 md:-top-1 md:-right-1.5">®</span>
+        <span className="text-[#E31837] text-[7px] md:text-[10px] font-black absolute -top-0.5 -right-1 md:-top-1 md:-right-1.5">®</span>
     </div>
 );
 
@@ -281,22 +281,22 @@ const TestHeader = ({
             <header className="h-[52px] md:h-[58px] bg-white border-b border-gray-200 flex items-center justify-between px-3 md:px-6 shrink-0 z-50 relative">
 
                 {/* LEFT: Logo + Test ID + Time */}
-                <div className="flex items-center gap-3 md:gap-10 flex-1 min-w-0">
+                <div className="flex items-center gap-2 md:gap-10 flex-1 min-w-0 z-10">
                     <IELTSLogo />
                     <div className="flex flex-col justify-center min-w-0">
-                        <span className="text-[13px] md:text-[15px] font-bold text-black leading-tight truncate max-w-[120px] md:max-w-[400px]" title={test?.title || test?.name}>
+                        <span className="text-[12px] md:text-[15px] font-bold text-black leading-tight truncate max-w-[80px] sm:max-w-[120px] md:max-w-[400px]" title={test?.title || test?.name}>
                             {test?.title || test?.name || "IELTS Official Test"}
                         </span>
                         {!showResult && !showModeSelection && (
-                            <span className="text-[10px] md:text-[11px] font-medium text-gray-500 leading-none mt-0.5 tabular-nums">
+                            <span className="text-[9px] md:text-[11px] font-medium text-gray-500 leading-none mt-0.5 tabular-nums whitespace-nowrap">
                                 {testMode === 'practice' 
-                                    ? <span className="flex gap-1"><span>{Math.floor(timeLeft / 60)}</span><span className="hidden md:inline">minutes past</span><span className="md:hidden">min</span></span>
-                                    : <span className="flex gap-1"><span>{Math.ceil(timeLeft / 60)}</span><span className="hidden md:inline">minutes remaining</span><span className="md:hidden">min left</span></span>
+                                    ? <span className="flex gap-1"><span>{Math.floor(timeLeft / 60)}</span><span className="hidden sm:inline">minutes past</span><span className="sm:hidden">min</span></span>
+                                    : <span className="flex gap-1"><span>{Math.ceil(timeLeft / 60)}</span><span className="hidden sm:inline">minutes remaining</span><span className="sm:hidden">min left</span></span>
                                 }
                             </span>
                         )}
                         {(showResult || isReviewing) && (
-                            <span className="text-[8px] md:text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm uppercase tracking-wider self-start mt-0.5">
+                            <span className="text-[7px] md:text-[9px] font-bold text-blue-600 bg-blue-50 px-1 md:px-1.5 py-0.5 rounded-sm uppercase tracking-wider self-start mt-0.5">
                                 Review
                             </span>
                         )}
@@ -305,7 +305,13 @@ const TestHeader = ({
 
                 {/* CENTER: Audio Player */}
                 {isListening && !showModeSelection && (!showResult || isReviewing) && (
-                    <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] z-[100] ${(testMode === 'exam' && !isReviewing) ? 'pointer-events-none select-none opacity-90' : ''}`}>
+                    <div className={`
+                        fixed md:absolute left-1/2 bottom-4 md:top-1/2 
+                        -translate-x-1/2 md:-translate-y-1/2 
+                        w-[calc(100%-24px)] md:w-[600px] 
+                        z-[100] 
+                        ${(testMode === 'exam' && !isReviewing) ? 'pointer-events-none select-none opacity-90' : ''}
+                    `}>
                         {test?.passages?.map((passage, index) => {
                             const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
                             if (!src) return null;
@@ -328,12 +334,12 @@ const TestHeader = ({
                 )}
 
                 {/* RIGHT: Official IELTS Controls */}
-                <div className="flex items-center gap-2 md:gap-6 justify-end flex-1 z-20">
+                <div className="flex items-center gap-1.5 md:gap-6 justify-end flex-1 z-20">
                     
-                    <div className="flex items-center gap-2 md:gap-6 text-gray-700">
+                    <div className="flex items-center gap-1.5 md:gap-6 text-gray-700">
                         <button 
                             onClick={toggleFullScreen}
-                            className="hover:text-black transition-colors" 
+                            className="hover:text-black transition-colors hidden sm:block" 
                             title={isFullScreen ? "Exit Full Screen" : "Full Screen"}
                         >
                             {isFullScreen ? (
@@ -429,7 +435,7 @@ const TestHeader = ({
                             <Menu size={20} strokeWidth={1.5} />
                         </button>
                         <button 
-                            className="hover:text-black transition-colors" 
+                            className="hover:text-black transition-colors hidden sm:block" 
                             title="Notes"
                             onClick={onOpenNotes}
                         >

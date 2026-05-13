@@ -46,13 +46,22 @@ export default function ListeningInterface({
 
   const [highlightedLoc, setHighlightedLoc] = useState(null); // Review paytida bosilganda highlight qilish
 
-  // --- HIGHLIGHT STATE (RightPane uchun) ---
   const {
     isHighlighterActive,
     setIsHighlighterActive,
   } = useListeningHighlight(testData?.id, effectiveActivePart, userAnswers, true);
 
   const rootRef = useRef(null);
+
+  // --- MOBILE DETECTION ---
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showTranscriptOnMobile, setShowTranscriptOnMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // --- 3. DATA GUARD ---
   // JSON strukturasi bo'yicha "passages" ishlatamiz
@@ -125,40 +134,69 @@ export default function ListeningInterface({
               onAddDictionary={() => addToDictionary({ sectionTitle: currentPassage?.title, testTitle: "Listening Test" })}
             />
 
-            <div
-              className="bg-white flex flex-col border-r border-gray-200 h-full overflow-y-auto"
-              style={{ width: `${leftWidth}%` }}
-              onMouseUp={handleTextSelection}
-            >
-              <ListeningLeftPane
-                content={passages[effectiveActivePart]?.content} // Transkript
-                textSize={textSize}
-                highlightedId={highlightedLoc}
-                title={currentPassage.title}
-                isReviewMode={isReviewMode}
-              />
-            </div>
-
-            <div 
-              className="w-4 -mx-2 flex items-center justify-center cursor-col-resize z-30 group relative" 
-              onMouseDown={startResizing}
-            >
-              {/* Vertical Line - visible like in image */}
-              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-gray-400 group-hover:bg-blue-500 transition-colors" />
-              
-              {/* Drag Handle - Square matching the image */}
-              <div className="z-10 w-7 h-7 bg-[#f9f9f9] border border-gray-500 flex items-center justify-center shadow-sm group-hover:border-blue-500 group-hover:text-blue-600 transition-all">
-                <ArrowsLeftRight size={18} weight="bold" className="text-gray-700" />
+            {(!isMobile || showTranscriptOnMobile) && (
+              <div
+                className={`${isMobile ? 'absolute inset-0 z-40' : ''} bg-white flex flex-col border-r border-gray-200 h-full overflow-y-auto transition-all duration-300`}
+                style={{ width: isMobile ? '100%' : `${leftWidth}%` }}
+                onMouseUp={handleTextSelection}
+              >
+                {isMobile && (
+                  <div className="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <span className="font-bold text-sm text-blue-600 uppercase tracking-wider">Transcript</span>
+                    <button 
+                      onClick={() => setShowTranscriptOnMobile(false)}
+                      className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold text-gray-700 active:bg-gray-100 shadow-sm"
+                    >
+                      Back to Questions
+                    </button>
+                  </div>
+                )}
+                <ListeningLeftPane
+                  content={passages[effectiveActivePart]?.content} // Transkript
+                  textSize={textSize}
+                  highlightedId={highlightedLoc}
+                  title={currentPassage.title}
+                  isReviewMode={isReviewMode}
+                />
               </div>
-            </div>
+            )}
+
+            {!isMobile && (
+              <div 
+                className="w-4 -mx-2 flex items-center justify-center cursor-col-resize z-30 group relative" 
+                onMouseDown={startResizing}
+              >
+                {/* Vertical Line - visible like in image */}
+                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-gray-400 group-hover:bg-blue-500 transition-colors" />
+                
+                {/* Drag Handle - Square matching the image */}
+                <div className="z-10 w-7 h-7 bg-[#f9f9f9] border border-gray-500 flex items-center justify-center shadow-sm group-hover:border-blue-500 group-hover:text-blue-600 transition-all">
+                  <ArrowsLeftRight size={18} weight="bold" className="text-gray-700" />
+                </div>
+              </div>
+            )}
           </>
         )}
 
         {/* 3-muammo yechimi: O'ng taraf Test paytida 100% width bo'ladi */}
         <div
-          className="flex-1 bg-white flex flex-col overflow-y-auto h-full relative"
-          style={{ width: isReviewMode ? `${100 - leftWidth}%` : '100%' }}
+          className={`flex-1 bg-white flex flex-col overflow-y-auto h-full relative ${isMobile && isReviewMode && showTranscriptOnMobile ? 'hidden' : ''}`}
+          style={{ width: isReviewMode && !isMobile ? `${100 - leftWidth}%` : '100%' }}
         >
+          {isMobile && isReviewMode && !showTranscriptOnMobile && (
+            <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 flex justify-between items-center sticky top-0 z-20">
+              <span className="text-xs font-bold text-blue-700">Reviewing Part {effectiveActivePart + 1}</span>
+              <button 
+                onClick={() => setShowTranscriptOnMobile(true)}
+                className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded text-xs font-bold shadow-sm active:bg-blue-700"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Transcript
+              </button>
+            </div>
+          )}
           <ListeningRightPane
             testData={testData}
             activePart={effectiveActivePart} // Hozirgi bo'lim indeksi
