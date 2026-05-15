@@ -2,7 +2,7 @@ import React from 'react';
 
 const MockExamSectionIntro = ({ title, duration, format, questions, onStart, color = "orange" }) => {
     return (
-        <div className={`min-h-screen bg-gradient-to-br from-white via-${color}-50/50 to-white flex items-center justify-center p-4`}>
+        <div className={`min-h-screen bg-gradient-to-br from-white via-${color}-50/50 to-white flex items-center justify-center p-4 font-['Plus_Jakarta_Sans']`}>
             <div className={`bg-white/90 backdrop-blur-md max-w-lg w-full p-8 rounded-[32px] text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-${color}-100/60`}>
                 <h1 className="text-3xl font-black mb-4 text-gray-900 tracking-tight">{title}</h1>
                 <div className={`text-left bg-${color}-50/50 p-6 rounded-2xl mb-8 space-y-3 text-sm text-gray-700 border border-${color}-100 shadow-sm shadow-${color}-100/20`}>

@@ -35,7 +35,32 @@ export function useTestLogic() {
     // Modularized Logic
     const { test, loading } = useTestFetch(testId, user, userData, navigate);
     const { userAnswers, setUserAnswers, writingEssay, setWritingEssay, flaggedQuestions, handleSelectAnswer, toggleFlag } = useTestAnswers();
-    const { timeLeft, setTimeLeft } = useTestTimer(testId, user?.uid, testMode, 3600, !!test && !showModeSelection && !showResult);
+    const initialDuration = useMemo(() => {
+        if (test?.duration) return Number(test.duration) * 60;
+        
+        const type = test?.type?.toLowerCase();
+        const difficulty = test?.difficulty?.toLowerCase() || '';
+        
+        // Reading defaults
+        if (type === 'reading') {
+            // If difficulty is easy/medium/hard it's usually a single passage (20 mins)
+            if (['easy', 'medium', 'hard'].includes(difficulty)) return 20 * 60;
+            // Full reading tests usually have 3 passages
+            if (test.passages?.length === 1) return 20 * 60;
+            return 60 * 60;
+        }
+        
+        // Listening defaults
+        if (type === 'listening') {
+            // Single parts are ~10 mins
+            if (difficulty.includes('part')) return 10 * 60;
+            return 30 * 60;
+        }
+
+        return 60 * 60;
+    }, [test]);
+
+    const { timeLeft, setTimeLeft } = useTestTimer(testId, user?.uid, testMode, initialDuration, !!test && !showModeSelection && !showResult);
     const { calculateScore } = useTestScoring();
     const { saving, submitTest } = useTestSubmission(user, userData);
 
@@ -79,8 +104,8 @@ export function useTestLogic() {
         if (!test) return;
         const { correctCount, totalQ, band, mistakes } = calculateScore(test, userAnswers);
         
-        const totalTime = (test.duration || 60) * 60;
-        const timeSpent = totalTime - timeLeft;
+        const totalTime = initialDuration;
+        const timeSpent = testMode === 'practice' ? timeLeft : Math.max(0, totalTime - timeLeft);
         const resultData = {
             testId: test.id,
             testTitle: test.title,
@@ -103,7 +128,7 @@ export function useTestLogic() {
             setBandScore(band);
             setShowResult(true);
             localStorage.removeItem(`draft_${user.uid}_${test.id}`);
-            localStorage.removeItem(`timer_${user.uid}_${test.id}`);
+            sessionStorage.removeItem(`timer_${user.uid}_${test.id}`);
             // Note: We don't remove reading highlights here so they are available in Review mode.
             // They will be cleared if the user explicitly restarts the test.
         }
@@ -124,6 +149,7 @@ export function useTestLogic() {
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
-        activePart, setActivePart, audioTime, setAudioTime, navigate
+        activePart, setActivePart, audioTime, setAudioTime, navigate,
+        initialDuration
     };
 }

@@ -71,9 +71,11 @@ export const usePodcastCollections = () => {
         setLoading(true);
         setError(null);
         try {
-            const q = query(collection(db, "podcast_collections"), orderBy("createdAt", "asc"));
+            const q = query(collection(db, "podcast_collections"));
             const snap = await getDocs(q);
-            const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const data = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
             podcastCache.collections = data;
             setCollections(data);
         } catch (err) {
@@ -129,7 +131,9 @@ export const useAlbumData = (albumId) => {
                 where("collectionId", "==", albumId)
             );
             const snap = await getDocs(q);
-            const podcastData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const podcastData = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
             
             podcastCache.albums[albumId] = { album: albumData, podcasts: podcastData };
             setPodcasts(podcastData);

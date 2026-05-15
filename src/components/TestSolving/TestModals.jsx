@@ -1,6 +1,7 @@
 // src/components/TestSolving/TestModals.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { calculateBandScore, formatTime } from '../../utils/ieltsScoring';
+import { Icons } from '../Icons';
 
 // ──────────────────────────────────────────────
 // AUDIO PRELOADER HOOK
@@ -172,17 +173,20 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
 // ──────────────────────────────────────────────
 // RESULT MODAL
 // ──────────────────────────────────────────────
-export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, isReviewing, setIsReviewing, onExit }) => {
+export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, initialDuration, isReviewing, setIsReviewing, onExit }) => {
     if (!show || isReviewing) return null;
+
+    const timeSpent = testMode === 'practice' ? timeLeft : Math.max(0, (initialDuration || (test.duration || 60) * 60) - timeLeft);
 
     return (
         <div className="absolute inset-0 bg-white/90 z-50 flex items-center justify-center backdrop-blur-md animate-in fade-in">
             <div className="bg-white p-10 rounded-3xl shadow-2xl border border-gray-100 max-w-md w-full text-center">
                 <h3 className="font-bold text-3xl text-gray-900 mb-2">Test Completed 🎉</h3>
 
-                {testMode === 'practice' && (
-                    <p className="text-gray-500 mb-4">Time Spent: <span className="font-bold text-gray-800">{formatTime(timeLeft)}</span></p>
-                )}
+                <p className="text-gray-500 mb-4 flex items-center justify-center gap-2">
+                    <Icons.Clock className="w-4 h-4 opacity-50" />
+                    Time Spent: <span className="font-bold text-gray-800">{formatTime(timeSpent)}</span>
+                </p>
 
                 {test.type !== 'speaking' && test.type !== 'writing' ? (
                     <div className="my-8">

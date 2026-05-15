@@ -1,47 +1,89 @@
 import React from 'react';
+import { ChevronRight } from 'lucide-react';
 
 const MockExamResult = ({ results, onDashboard, onResults }) => {
+    // Calculate overall band (average of available scores)
+    const listeningBand = results?.listening?.band || 0;
+    const readingBand = results?.reading?.band || 0;
+    const writingBand = results?.writing?.band || 0; // Usually pending, but use 0 if not set
+    
+    // For overall, we often just average the graded parts if some are pending
+    const overallBand = ((listeningBand + readingBand) / 2).toFixed(1);
+
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans select-text">
-            <div className="bg-white p-8 md:p-12 rounded-[32px] shadow-2xl text-center max-w-3xl w-full border border-gray-100 animate-in fade-in zoom-in duration-500">
-                <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                     <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                </div>
-                
-                <h2 className="text-3xl md:text-5xl font-black text-gray-900 mb-2 tracking-tight">Exam Completed!</h2>
-                <p className="text-gray-500 mb-10 font-medium text-lg">Your responses have been submitted for evaluation.</p>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
-                    <ScoreCard title="Listening" score={results?.listening.band} correct={results?.listening.correct} total={results?.listening.total} color="blue" />
-                    <ScoreCard title="Reading" score={results?.reading.band} correct={results?.reading.correct} total={results?.reading.total} color="emerald" />
-                    <div className="bg-purple-50/50 border border-purple-100/50 rounded-[28px] p-6 flex flex-col items-center gap-3">
-                        <span className="text-purple-600 font-black uppercase tracking-widest text-[10px]">Writing</span>
-                        <div className="animate-pulse flex items-center gap-1.5 mb-1">
-                            <div className="w-2 h-2 rounded-full bg-purple-400"></div>
-                            <div className="w-2 h-2 rounded-full bg-purple-400 animation-delay-200"></div>
-                            <div className="w-2 h-2 rounded-full bg-purple-400 animation-delay-400"></div>
-                        </div>
-                        <span className="text-[11px] text-purple-400 font-bold tracking-tight uppercase">Pending Grade</span>
-                    </div>
+        <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 font-['Plus_Jakarta_Sans'] select-text">
+            <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold text-zinc-900 tracking-tight mb-2">Exam Completed!</h2>
+                    <p className="text-zinc-500 text-[15px] font-medium leading-relaxed">
+                        Your responses have been submitted for evaluation.
+                        <br />
+                        <span className="text-zinc-400 text-sm font-normal relative inline-block">
+                            Note: Your overall score will be updated after the Writing section is graded.
+                            <span className="absolute bottom-0 left-0 w-full h-[1px] bg-red-500/30"></span>
+                        </span>
+                    </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <button onClick={onDashboard} className="flex-1 bg-gray-900 text-white px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95">Return to Dashboard</button>
-                    <button onClick={onResults} className="flex-1 bg-white text-gray-900 border border-gray-200 px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:border-gray-400 transition-all active:scale-95">View All Results</button>
+                <div className="space-y-3 mb-10">
+                    <ResultRow 
+                        title="Listening" 
+                        score={listeningBand.toFixed(1)} 
+                        rawScore={`${results?.listening?.correct || 0} / ${results?.listening?.total || 40}`} 
+                    />
+                    <ResultRow 
+                        title="Reading" 
+                        score={readingBand.toFixed(1)} 
+                        rawScore={`${results?.reading?.correct || 0} / ${results?.reading?.total || 40}`} 
+                    />
+                    <ResultRow 
+                        title="Writing" 
+                        score={writingBand > 0 ? writingBand.toFixed(1) : "—"} 
+                        rawScore={writingBand > 0 ? "" : "Pending Grade"}
+                        isPending={writingBand === 0}
+                    />
+                    <ResultRow 
+                        title="Overall" 
+                        score={overallBand} 
+                        rawScore="Average Score"
+                        isOverall={true}
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button 
+                        onClick={onDashboard} 
+                        className="w-full bg-zinc-900 text-white px-6 py-4 rounded-xl font-bold text-sm hover:bg-black transition-all active:scale-[0.98] shadow-lg shadow-zinc-900/10"
+                    >
+                        Return to Dashboard
+                    </button>
+                    <button 
+                        onClick={onResults} 
+                        className="w-full bg-white text-zinc-900 border border-zinc-200 px-6 py-4 rounded-xl font-bold text-sm hover:bg-zinc-50 transition-all active:scale-[0.98]"
+                    >
+                        View All Results
+                    </button>
                 </div>
             </div>
         </div>
     );
 };
 
-const ScoreCard = ({ title, score, correct, total, color }) => (
-    <div className={`bg-${color}-50/50 border border-${color}-100/50 rounded-[28px] p-6 flex flex-col items-center gap-3`}>
-        <span className={`text-${color}-600 font-black uppercase tracking-widest text-[10px]`}>{title}</span>
-        <div className="flex flex-col items-center">
-            <span className={`text-5xl font-black text-${color}-900 leading-none mb-1`}>{score?.toFixed(1) || "0.0"}</span>
-            <span className={`text-xs text-${color}-400 font-bold tracking-tight`}>BAND SCORE</span>
+const ResultRow = ({ title, score, rawScore, isPending, isOverall }) => (
+    <div className="bg-white p-5 rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-zinc-100 flex items-center justify-between group hover:border-zinc-200 transition-colors">
+        <div className="space-y-1">
+            <h3 className="text-lg font-semibold text-zinc-900 tracking-[0.01em]">{title}</h3>
+            <span className="text-3xl font-black text-[#e31b23] block leading-none tracking-[-0.05em]">
+                {score}
+            </span>
         </div>
-        <div className={`mt-2 text-${color}-700/60 font-bold bg-${color}-100/40 py-1.5 px-4 rounded-full text-xs`}>{correct} / {total} correct</div>
+        
+        <div className="flex items-center gap-6">
+            <span className={`text-[13px] font-semibold ${isPending ? 'text-amber-500' : 'text-zinc-400'}`}>
+                {rawScore}
+            </span>
+            <ChevronRight className="text-zinc-300 group-hover:text-zinc-500 transition-colors" size={20} />
+        </div>
     </div>
 );
 

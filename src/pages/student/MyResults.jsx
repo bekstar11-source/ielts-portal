@@ -419,8 +419,13 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
               const theme = getTestTheme(res.type);
               const bandScore = (res.type === 'reading' || res.type === 'listening')
                 ? (res.bestBandScore || res.bandScore || calculateBandScore(res.score, res.type, res.totalQuestions))
-                : (res.type === 'writing' ? (res.writingBand || res.bandScore) : res.score);
-              const isGraded = res.status === 'graded' || res.writingBand != null || res.bandScore != null || (res.score !== null && res.type !== 'mock_full');
+                : (res.type === 'writing' || res.type === 'speaking')
+                  ? (res.writingBand || res.speakingBand || res.bandScore)
+                  : (res.type === 'mock_full' 
+                    ? (res.overallBand || res.bandScore || (res.scores && (res.scores.overallBand || res.scores.bandScore)) || 0)
+                    : res.score);
+
+              const isGraded = res.status === 'graded' || res.writingBand != null || res.speakingBand != null || res.bandScore != null || res.overallBand != null || (res.score !== null && res.type !== 'mock_full');
               
               const dateObj = new Date(res.lastAttemptDate || res.date);
               const day = dateObj.getDate();
@@ -457,9 +462,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                         <div className="font-bold text-xl md:text-[28px] text-ink leading-none flex items-baseline">
                           {isGraded ? (
                             <>
-                              {res.type === 'mock_full' 
-                                ? Number(res.scores?.overallBand || res.overallBand || 0).toFixed(1)
-                                : Number(bandScore || 0).toFixed(1)}
+                              {Number(bandScore || 0).toFixed(1)}
                               <span className="text-[10px] md:text-sm font-black text-ink-muted-48 uppercase ml-1">Best Band</span>
                             </>
                           ) : (
@@ -486,6 +489,9 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                           const attemptDateObj = new Date(attempt.date);
                           const attemptDateStr = attemptDateObj.toLocaleDateString('uz-UZ', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
                           const minsSpent = Math.max(1, Math.floor((attempt.timeSpent || 0) / 60));
+                          const scoreVal = attempt.bandScore || attempt.overallBand || attempt.score || 0;
+                          const isBand = attempt.bandScore != null || attempt.overallBand != null || res.type === 'mock_full' || res.type === 'reading' || res.type === 'listening' || res.type === 'writing' || res.type === 'speaking';
+
                           return (
                             <div key={attempt.attemptId} className="flex justify-between items-center bg-stone-50 p-3 rounded-lg border border-hairline">
                               <div className="flex items-center gap-3">
@@ -494,7 +500,9 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                               </div>
                               <div className="flex items-center gap-4">
                                 <span className="text-xs text-ink-muted-48 hidden sm:inline">{minsSpent} min</span>
-                                <span className="text-sm font-bold text-action-blue">{attempt.bandScore || attempt.score} {attempt.bandScore ? 'band' : 'ball'}</span>
+                                <span className="text-sm font-bold text-action-blue">
+                                  {Number(scoreVal).toFixed(1)} {isBand ? 'band' : 'ball'}
+                                </span>
                                 <button 
                                   onClick={() => navigate(`/review/${res.id}?attempt=${attempt.attemptId}`)}
                                   className="text-xs bg-white border border-hairline hover:bg-pearl text-ink px-3 py-1.5 rounded-full font-medium transition-colors shadow-sm"
@@ -515,7 +523,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                             </span>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className="text-sm font-bold text-action-blue">{bandScore} band</span>
+                            <span className="text-sm font-bold text-action-blue">{Number(bandScore || 0).toFixed(1)} band</span>
                             <button 
                               onClick={() => navigate(`/review/${res.id}`)}
                               className="text-xs bg-white border border-hairline hover:bg-pearl text-ink px-3 py-1.5 rounded-full font-medium transition-colors shadow-sm"

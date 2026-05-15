@@ -4,8 +4,35 @@ import { User, Calendar, TextT } from '@phosphor-icons/react';
 const WritingReviewWorkspace = ({ activeWriting, studentName, isDark }) => {
     if (!activeWriting) return null;
 
-    const task1Content = activeWriting.userAnswers?.task1 || activeWriting.task1 || activeWriting.writingAnswer || "";
-    const task2Content = activeWriting.userAnswers?.task2 || activeWriting.task2 || "";
+    // Robust answer extraction
+    const getAnswers = (res) => {
+        // 1. Try top-level userAnswers or writingAnswers
+        let ans = res.userAnswers || res.writingAnswers || {};
+        
+        // 2. Try attempts array (newest structure)
+        if (res.attempts && Array.isArray(res.attempts) && res.attempts.length > 0) {
+            const lastAttempt = res.attempts[res.attempts.length - 1];
+            if (lastAttempt.userAnswers || lastAttempt.writingAnswers) {
+                ans = lastAttempt.userAnswers || lastAttempt.writingAnswers || ans;
+            }
+        }
+
+        // 3. Try details field (mock exams)
+        if (res.details?.writingAnswers) {
+            ans = res.details.writingAnswers || ans;
+        }
+
+        // 4. Try legacy task1/task2/writingAnswer top-level fields
+        if (!ans.task1 && res.task1) ans.task1 = res.task1;
+        if (!ans.task1 && res.writingAnswer) ans.task1 = res.writingAnswer;
+        if (!ans.task2 && res.task2) ans.task2 = res.task2;
+
+        return ans;
+    };
+
+    const answers = getAnswers(activeWriting);
+    const task1Content = answers.task1 || "";
+    const task2Content = answers.task2 || "";
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden">

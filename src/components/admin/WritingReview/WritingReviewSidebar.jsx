@@ -4,11 +4,11 @@ import { MagnifyingGlass } from '@phosphor-icons/react';
 const WritingReviewSidebar = ({ 
     writings, students, filter, setFilter, searchTerm, setSearchTerm, selectedId, setSelectedId, isDark 
 }) => {
-    const getStudentName = (userId) => students.find(s => s.id === userId)?.fullName || 'O\'quvchi';
+    const getStudentName = (w) => students.find(s => s.id === w.userId)?.fullName || w.userName || 'O\'quvchi';
 
     const filtered = writings.filter(w => {
         const matchesFilter = filter === 'all' ? true : filter === 'pending' ? (!w.writingBand) : (!!w.writingBand);
-        const name = getStudentName(w.userId);
+        const name = getStudentName(w);
         return matchesFilter && (name.toLowerCase().includes(searchTerm.toLowerCase()) || (w.testTitle || '').toLowerCase().includes(searchTerm.toLowerCase()));
     });
 
@@ -39,7 +39,7 @@ const WritingReviewSidebar = ({
             <div className="flex-1 overflow-y-auto custom-scrollbar p-3 pt-0 space-y-1.5">
                 {filtered.map((w) => {
                     const isSelected = selectedId === w.id;
-                    const initials = getStudentName(w.userId).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    const initials = getStudentName(w).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                     return (
                         <button key={w.id} onClick={() => setSelectedId(w.id)} className={`w-full text-left p-3 rounded-xl transition-all flex items-center gap-3 ${isSelected ? (isDark ? 'bg-[#333] text-white border border-white/10' : 'bg-[#FBFBFD] text-slate-900 border border-gray-200') : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}>
                             <div className={`w-9 h-9 rounded-full flex shrink-0 items-center justify-center font-medium text-xs relative ${isDark ? 'bg-white/5' : 'bg-gray-100 text-slate-500'}`}>
@@ -47,7 +47,7 @@ const WritingReviewSidebar = ({
                                 {!w.writingBand && <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h3 className="text-sm font-semibold truncate">{getStudentName(w.userId)}</h3>
+                                <h3 className="text-sm font-semibold truncate">{getStudentName(w)}</h3>
                                 <p className="text-[11px] text-gray-400 truncate">{w.testTitle || 'Untitled'}</p>
                             </div>
                             {w.writingBand && <div className="text-sm font-bold text-emerald-500">{w.writingBand}</div>}

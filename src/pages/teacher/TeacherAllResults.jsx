@@ -417,14 +417,20 @@ export default function TeacherAllResults() {
                         <td className="py-3 px-4 align-middle">
                           <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             <button
-                              onClick={() => navigate(`/review/${res.id}`)}
-                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-bold uppercase tracking-wide transition-all ${res.status !== 'graded' && res.status !== 'published' && (res.type === 'writing' || res.type === 'speaking')
+                              onClick={() => {
+                                if (res.type === 'writing' || res.type === 'mock_full') {
+                                  navigate('/teacher/writing-review', { state: { selectedId: res.id } });
+                                } else {
+                                  navigate(`/review/${res.id}`);
+                                }
+                              }}
+                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-bold uppercase tracking-wide transition-all ${res.status !== 'graded' && res.status !== 'published' && (res.type === 'writing' || res.type === 'mock_full')
                                   ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow'
                                   : (isDark ? 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
                                 }`}
                             >
                               <Icons.Eye className="w-3.5 h-3.5" />
-                              {(res.status === 'pending' && (res.type === 'writing' || res.type === 'speaking')) ? 'Baholash' : 'Ko\'rish'}
+                              {((res.status === 'pending' || res.status === 'pending_review') && (res.type === 'writing' || res.type === 'mock_full')) ? 'Baholash' : 'Ko\'rish'}
                             </button>
                           </div>
                         </td>

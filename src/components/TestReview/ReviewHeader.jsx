@@ -15,30 +15,28 @@ const ReviewHeader = ({
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
     return (
-        <header className="h-16 bg-zinc-950 text-white flex justify-between items-center px-4 sm:px-6 shrink-0 z-20 border-b border-white/5 relative">
+        <header className="h-16 bg-white text-gray-900 flex justify-between items-center px-4 sm:px-6 shrink-0 z-20 border-b border-gray-100 relative shadow-sm">
             {/* 1. LEFT: NAVIGATION & TITLES */}
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => navigate(userData?.role === 'admin' || userData?.role === 'teacher' ? '/admin/results' : '/my-results')}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-95 group"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-all active:scale-95 group"
                 >
-                    <svg className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-gray-400 group-hover:text-[#e31b23] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
 
                 <div className="flex flex-col min-w-0">
-                    <h1 className="text-[14px] font-bold text-white tracking-tight truncate max-w-[150px] sm:max-w-[280px]">
+                    <h1 className="text-[14px] font-bold text-gray-900 tracking-tight truncate max-w-[150px] sm:max-w-[280px]">
                         {testData.title}
                     </h1>
                     <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
+                        <span className="text-[10px] text-gray-500 font-semibold whitespace-nowrap">
                             {resultData.userName || 'Student'}
                         </span>
-                        <span className="w-1 h-1 bg-zinc-800 rounded-full" />
-                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${
-                            resultData.type === 'mock_full' ? 'text-indigo-400 bg-indigo-400/10' : 'text-blue-400 bg-blue-400/10'
-                        }`}>
+                        <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                        <span className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-100">
                             {resultData.type === 'mock_full' ? 'FULL MOCK' : 'PARTIAL'}
                         </span>
                     </div>
@@ -48,15 +46,15 @@ const ReviewHeader = ({
             {/* 2. CENTER: INTERACTIVE CONTROLS */}
             <div className="flex-1 flex justify-center items-center gap-6 px-4">
                 {resultData.type === 'mock_full' && (
-                    <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/5 shadow-inner">
+                    <div className="flex bg-gray-50/80 p-1 rounded-xl border border-gray-100 shadow-inner">
                         {['listening', 'reading', 'writing', 'speaking'].map(part => (
                             <button
                                 key={part}
                                 onClick={() => setActiveMockPart(part)}
-                                className={`w-9 h-9 flex items-center justify-center rounded-lg text-[11px] font-black transition-all relative ${
+                                className={`w-9 h-9 flex items-center justify-center rounded-lg text-[12px] font-black transition-all relative ${
                                     activeMockPart === part 
-                                        ? 'bg-white text-zinc-950 shadow-lg scale-105' 
-                                        : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'
+                                        ? 'bg-white text-gray-900 shadow-md border border-gray-100 scale-[1.02]' 
+                                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100/50'
                                 }`}
                                 title={part}
                             >
@@ -79,7 +77,7 @@ const ReviewHeader = ({
                                         ref={el => audioRefs.current[index] = el}
                                         src={src}
                                         index={index}
-                                        variant="dark"
+                                        variant="light"
                                         activePart={listeningActivePart}
                                         testMode="practice"
                                         setAudioTime={setAudioTime}
@@ -94,7 +92,7 @@ const ReviewHeader = ({
                                     ref={el => audioRefs.current[0] = el}
                                     src={testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file}
                                     index={0}
-                                    variant="dark"
+                                    variant="light"
                                     activePart={listeningActivePart}
                                     testMode="practice"
                                     setAudioTime={setAudioTime}
@@ -108,8 +106,8 @@ const ReviewHeader = ({
                         {/* Volume */}
                         <div className="relative">
                             <button
-                                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
-                                    showVolumeSlider ? 'bg-white text-black' : 'bg-white/5 text-gray-400 hover:text-white border border-white/5'
+                                className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all shadow-sm ${
+                                    showVolumeSlider ? 'bg-[#e31b23] text-white border-[#e31b23]' : 'bg-white text-gray-500 hover:text-gray-900 border border-gray-200'
                                 }`}
                                 onClick={() => setShowVolumeSlider(!showVolumeSlider)}
                             >
@@ -121,14 +119,14 @@ const ReviewHeader = ({
                                         <div className="fixed inset-0 z-[100]" onClick={() => setShowVolumeSlider(false)} />
                                         <motion.div
                                             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                                            className="absolute top-full right-0 mt-3 p-4 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl z-[101] min-w-[200px]"
+                                            className="absolute top-full right-0 mt-3 p-4 bg-white border border-gray-200 rounded-xl shadow-xl z-[101] min-w-[200px]"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <span className="text-[10px] font-bold text-gray-500 w-8">{Math.round(volume * 100)}%</span>
+                                                <span className="text-[10px] font-bold text-gray-400 w-8">{Math.round(volume * 100)}%</span>
                                                 <input
                                                     type="range" min="0" max="1" step="0.01" value={volume}
                                                     onChange={(e) => setVolume(parseFloat(e.target.value))}
-                                                    className="flex-1 accent-white h-1 bg-zinc-800 rounded-full appearance-none cursor-pointer"
+                                                    className="flex-1 accent-[#e31b23] h-1 bg-gray-100 rounded-full appearance-none cursor-pointer"
                                                 />
                                             </div>
                                         </motion.div>
@@ -143,22 +141,28 @@ const ReviewHeader = ({
             {/* 3. RIGHT: METRICS */}
             <div className="flex items-center gap-4">
                 {resultData.type === 'mock_full' && (
-                    <div className="hidden lg:flex items-center bg-zinc-900/80 rounded-2xl px-4 py-2 border border-white/5 divide-x divide-white/5">
+                    <div className="hidden lg:flex items-center bg-gray-50/50 rounded-xl px-4 py-2 border border-gray-100 divide-x divide-gray-200 shadow-sm">
                         {[
-                            { key: 'listeningBand', label: 'L', color: 'text-purple-400' },
-                            { key: 'readingBand', label: 'R', color: 'text-blue-400' },
-                            { key: 'writing', label: 'W', color: 'text-emerald-400' },
-                            { key: 'speaking', label: 'S', color: 'text-indigo-400' }
-                        ].map((item) => (
-                            <div key={item.key} className="px-3 flex flex-col items-center first:pl-0 last:pr-0">
-                                <span className="text-[9px] font-black text-white/30 tracking-tighter uppercase mb-0.5">{item.label}</span>
-                                <span className={`text-[14px] font-bold ${item.color}`}>
-                                    {Number(resultData.scores?.[item.key] || 0).toFixed(1)}
-                                </span>
-                            </div>
-                        ))}
+                            { key: 'listeningBand', label: 'L' },
+                            { key: 'readingBand', label: 'R' },
+                            { key: 'writingBand',   label: 'W' },
+                            { key: 'speakingBand',  label: 'S' }
+                        ].map((item) => {
+                            return (
+                                <div key={item.key} className="px-3.5 flex flex-col items-center first:pl-0 last:pr-0">
+                                    <span className="text-[9px] font-bold text-gray-400 tracking-tight uppercase mb-0.5">{item.label}</span>
+                                    <span className="text-[15px] font-black text-gray-900 leading-none">
+                                        {(() => {
+                                            const baseKey = item.key.replace('Band', '');
+                                            const val = resultData.scores?.[item.key] ?? resultData.scores?.[baseKey] ?? resultData[item.key] ?? resultData[baseKey];
+                                            return (val !== undefined && val !== null) ? Number(val).toFixed(1) : "---";
+                                        })()}
+                                    </span>
+                                </div>
+                            );
+                        })}
                         {(userData?.role === 'admin' || userData?.role === 'teacher') && (
-                            <button onClick={onSaveGrade} disabled={isSaving} className="pl-3 text-zinc-500 hover:text-white transition-colors">
+                            <button onClick={onSaveGrade} disabled={isSaving} className="pl-3.5 text-gray-400 hover:text-[#e31b23] transition-colors">
                                 <div className={isSaving ? 'animate-spin' : ''}>
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                 </div>
@@ -169,20 +173,23 @@ const ReviewHeader = ({
 
                 <button
                     onClick={() => setIsCommentsOpen(!isCommentsOpen)}
-                    className={`h-11 px-4 rounded-xl border flex items-center gap-2 transition-all ${
-                        isCommentsOpen ? 'bg-blue-600 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                    className={`h-11 px-5 rounded-xl border flex items-center gap-2.5 transition-all shadow-sm ${
+                        isCommentsOpen ? 'bg-[#e31b23] border-[#e31b23] text-white' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
                     }`}
                 >
                     <MessageSquare size={18} />
-                    <span className="text-[11px] font-black tracking-widest hidden sm:inline">Comments</span>
+                    <span className="text-[12px] font-black tracking-tight hidden sm:inline">Comments</span>
                 </button>
 
-                <div className={`h-11 px-5 rounded-xl border flex items-center gap-3 ${
-                    (resultData.status === 'graded' || resultData.overallBand) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                }`}>
-                    <div className="flex flex-col">
-                        <span className="text-[8px] font-black tracking-widest uppercase opacity-60">Overall</span>
-                        <span className="text-lg font-black leading-tight">{resultData.overallBand || resultData.writingBand || resultData.score || "---"}</span>
+                <div className="h-11 px-5 rounded-xl border border-gray-200 bg-white flex items-center gap-3 shadow-sm min-w-[85px]">
+                    <div className="flex flex-col items-center w-full">
+                        <span className="text-[8px] font-bold tracking-widest uppercase text-gray-400 mb-0.5">Overall</span>
+                        <span className="text-[18px] font-black leading-none text-[#e31b23]">
+                            {resultData.type === 'mock_full' 
+                                ? (resultData.overallBand || resultData.bandScore ? Number(resultData.overallBand || resultData.bandScore).toFixed(1) : "---")
+                                : (resultData.bandScore || resultData.writingBand || resultData.score ? Number(resultData.bandScore || resultData.writingBand || resultData.score).toFixed(1) : "---")
+                            }
+                        </span>
                     </div>
                 </div>
             </div>

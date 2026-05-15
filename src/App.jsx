@@ -45,6 +45,7 @@ const TestSolving = lazy(() => import('./pages/test/TestSolving'));
 const TestReview = lazy(() => import('./pages/test/TestReview'));
 const MockExam = lazy(() => import('./pages/test/MockExam'));
 const MyResults = lazy(() => import('./pages/student/MyResults'));
+const TestResults = lazy(() => import('./pages/student/TestResults'));
 const WordBank = lazy(() => import('./pages/student/WordBank'));
 const PodcastPlayer = lazy(() => import('./pages/podcasts/PodcastPlayer'));
 const AdminPodcasts = lazy(() => import('./pages/admin/AdminPodcasts'));
@@ -66,6 +67,7 @@ const Listening = lazy(() => import('./pages/test/Listening'));
 const Reading = lazy(() => import('./pages/test/Reading'));
 const Pricing = lazy(() => import('./pages/public/Pricing'));
 const Library = lazy(() => import('./pages/student/Library'));
+const MockEntry = lazy(() => import('./pages/student/MockEntry'));
 
 // LAYOUTS
 const TeacherLayout = lazy(() => import('./components/common/TeacherLayout'));
@@ -134,6 +136,8 @@ function App() {
             <Route path="/library" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Library /></ProtectedRoute>} />
             <Route path="/roadmap" element={<ProtectedRoute allowedRoles={['student', 'admin']}><RoadmapPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Settings /></ProtectedRoute>} />
+            <Route path="/mock" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockEntry /></ProtectedRoute>} />
+            <Route path="/test-results" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><TestResults /></ProtectedRoute>} />
             <Route path="/mock-exam" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockExam /></ProtectedRoute>} />
             
             {/* CONTENT ROUTES */}

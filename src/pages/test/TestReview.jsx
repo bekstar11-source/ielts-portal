@@ -40,7 +40,9 @@ export default function TestReview() {
         audioTime, setAudioTime,
         volume, setVolume,
         audioRefs,
-        handleSeekTo
+        handleSeekTo,
+        handleAICheck,
+        isAiLoading
     } = useTestReview(id, user, userData, navigate);
 
     useEffect(() => {
@@ -72,14 +74,6 @@ export default function TestReview() {
             />
 
             <div className="flex flex-col flex-1 overflow-hidden relative">
-                {(activeMockPart === 'listening' || activeMockPart === 'reading' || testData.type?.toLowerCase() === 'listening' || testData.type?.toLowerCase() === 'reading') && (
-                    <ReviewQuestionStrip 
-                        resultData={resultData}
-                        testData={testData}
-                        setIsCommentsOpen={setIsCommentsOpen}
-                    />
-                )}
-
                 <div className="flex-1 overflow-y-auto no-scrollbar relative bg-gray-50/30">
                     {testData.type?.toLowerCase() === 'reading' ? (
                         <ReadingInterface
@@ -120,6 +114,8 @@ export default function TestReview() {
                             currentAnswers={currentAnswers}
                             resultData={resultData}
                             isPremium={isPremium}
+                            onAICheck={handleAICheck}
+                            isAiLoading={isAiLoading}
                         />
                     ) : testData.type?.toLowerCase() === 'speaking' ? (
                         <SpeakingReview 

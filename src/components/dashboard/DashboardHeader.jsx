@@ -46,6 +46,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
+    { id: 'mock', label: 'Mock', path: '/mock' },
     { id: 'library', label: 'IELTS', path: '/library' },
     { id: 'podcasts', label: 'Podcasts', path: '/podcasts' },
     { id: 'articles', label: 'Articles', path: '/articles' },

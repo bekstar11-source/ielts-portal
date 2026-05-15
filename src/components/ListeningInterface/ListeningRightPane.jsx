@@ -161,7 +161,7 @@ const ListeningRightPane = memo(({
 
     return (
         <div
-            className={`p-6 pb-2 bg-white select-text w-full relative h-[100%] flex flex-col ielts-font`}
+            className={`pt-2 px-6 pb-2 bg-white select-text w-full relative h-[100%] flex flex-col ielts-font`}
             style={{
                 fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-xl' ? '20px' : '16.5px',
                 transition: 'font-size 0.3s ease-in-out'
@@ -179,70 +179,70 @@ const ListeningRightPane = memo(({
                 </div>
             )}
 
-            {/* STABLE HIGHLIGHT CONTENT CONTAINER */}
+            {/* HEADER (Sticky) */}
+            {(() => {
+                let partMinId = Infinity;
+                let partMaxId = -Infinity;
+                questionsForPart.forEach(group => {
+                    let items = [];
+                    if (Array.isArray(group.groups)) {
+                        group.groups.forEach(sub => { items = [...items, ...(sub.items || sub.questions || [])]; });
+                    } else {
+                        items = group.questions || group.items || [];
+                    }
+                    items.forEach(it => {
+                        const idNum = parseInt(it.id);
+                        if (!isNaN(idNum)) {
+                            if (idNum < partMinId) partMinId = idNum;
+                            if (idNum > partMaxId) partMaxId = idNum;
+                        }
+                    });
+                });
+
+                const rangeStr = partMinId !== Infinity ? `${partMinId}–${partMaxId}` : "";
+                const partNum = (() => {
+                    let minId = Infinity;
+                    questionsForPart.forEach(group => {
+                        const checkId = (idStr) => {
+                            if (!idStr) return;
+                            const matches = String(idStr).match(/\d+/g);
+                            if (matches) matches.forEach(m => {
+                                const num = parseInt(m);
+                                if (num < minId) minId = num;
+                            });
+                        };
+                        checkId(group.id);
+                        (group.items || group.questions || [])?.forEach(it => checkId(it.id));
+                        group.groups?.forEach(sub => (sub.items || sub.questions || [])?.forEach(it => checkId(it.id)));
+                    });
+
+                    if (minId !== Infinity) {
+                        if (minId <= 10) return 1;
+                        if (minId <= 20) return 2;
+                        if (minId <= 30) return 3;
+                        return 4;
+                    }
+                    return currentPassage?.partNumber ?? (activePart + 1);
+                })();
+
+                return (
+                    <div className="bg-[#f4f4f2] border border-[#e8e8e6] rounded-sm px-5 pt-4 pb-2 mb-4 shrink-0">
+                        <h2 className="text-[1.125em] font-bold text-black mb-1 leading-none">
+                            Part {partNum}
+                        </h2>
+                        <p className="text-[1.05em] text-black font-normal">
+                            Listen and answer questions {rangeStr}.
+                        </p>
+                    </div>
+                );
+            })()}
+
+            {/* STABLE HIGHLIGHT CONTENT CONTAINER (Scrollable) */}
             <div 
                 ref={containerRef} 
                 onMouseUp={handleTextSelection}
                 className="overflow-y-auto custom-scrollbar highlight-container-stable h-full flex-1"
             >
-                {/* HEADER */}
-                {(() => {
-                    let partMinId = Infinity;
-                    let partMaxId = -Infinity;
-                    questionsForPart.forEach(group => {
-                        let items = [];
-                        if (Array.isArray(group.groups)) {
-                            group.groups.forEach(sub => { items = [...items, ...(sub.items || sub.questions || [])]; });
-                        } else {
-                            items = group.questions || group.items || [];
-                        }
-                        items.forEach(it => {
-                            const idNum = parseInt(it.id);
-                            if (!isNaN(idNum)) {
-                                if (idNum < partMinId) partMinId = idNum;
-                                if (idNum > partMaxId) partMaxId = idNum;
-                            }
-                        });
-                    });
-
-                    const rangeStr = partMinId !== Infinity ? `${partMinId}–${partMaxId}` : "";
-                    // AUTO-DETECT PART NUMBER FROM QUESTIONS
-                    const partNum = (() => {
-                        let minId = Infinity;
-                        questionsForPart.forEach(group => {
-                            const checkId = (idStr) => {
-                                if (!idStr) return;
-                                const matches = String(idStr).match(/\d+/g);
-                                if (matches) matches.forEach(m => {
-                                    const num = parseInt(m);
-                                    if (num < minId) minId = num;
-                                });
-                            };
-                            checkId(group.id);
-                            (group.items || group.questions || [])?.forEach(it => checkId(it.id));
-                            group.groups?.forEach(sub => (sub.items || sub.questions || [])?.forEach(it => checkId(it.id)));
-                        });
-
-                        if (minId !== Infinity) {
-                            if (minId <= 10) return 1;
-                            if (minId <= 20) return 2;
-                            if (minId <= 30) return 3;
-                            return 4;
-                        }
-                        return currentPassage?.partNumber ?? (activePart + 1);
-                    })();
-
-                    return (
-                        <div className="bg-[#f4f4f2] border border-[#e8e8e6] rounded-sm px-5 py-4 mb-8">
-                            <h2 className="text-[1.125em] font-bold text-black mb-1 leading-none">
-                                Part {partNum}
-                            </h2>
-                            <p className="text-[1.05em] text-black font-normal">
-                                Listen and answer questions {rangeStr}.
-                            </p>
-                        </div>
-                    );
-                })()}
 
                 {/* QUESTIONS LOOP */}
                 {questionsForPart.map((group, gIdx) => {

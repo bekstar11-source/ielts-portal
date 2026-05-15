@@ -16,9 +16,14 @@ const CustomAudioPlayer = forwardRef(({
     startTime = 0, 
     endTime = 0,
     variant = 'light', // 'light' (default) or 'dark' (for dark headers)
-    volume = 1 // Added volume prop
+    isPlayingPart,
+    isBuffering = false,
+    shouldAutoPlay = false, // Only true when exam is fully ready to play
+    volume = 1,
+    resumeTime = 0,
 }, ref) => {
     const audioRef = useRef(null);
+    const hasResumed = useRef(false);
 
     // Allow parent to seek
     useImperativeHandle(ref, () => ({
@@ -115,7 +120,7 @@ const CustomAudioPlayer = forwardRef(({
             if (!isDragging) {
                 setCurrentTime(Math.max(0, relTime));
             }
-            if (isVisible) setAudioTime?.(audio.currentTime);
+            if (isPlayingPart) setAudioTime?.(audio.currentTime);
 
             if (endTime && endTime > startTime && audio.currentTime >= endTime) {
                 audio.pause();
@@ -124,8 +129,8 @@ const CustomAudioPlayer = forwardRef(({
         };
 
         const onPauseExam = (e) => {
-            // Only force-resume on the ACTIVE (visible) part to avoid all parts fighting each other
-            if (isExam && isVisible && !e.target.ended) e.target.play().catch(() => {});
+            // Only force-resume on the ACTIVE (playing) part
+            if (isExam && isPlayingPart && !e.target.ended) e.target.play().catch(() => {});
         };
 
         audio.addEventListener('play', onPlay);
@@ -152,53 +157,60 @@ const CustomAudioPlayer = forwardRef(({
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('timeupdate', onTimeUpdate);
         };
-    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate, volume]);
+    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate, volume, isPlayingPart]);
+
+    // Resume logic: Seek to saved time once on init
+    useEffect(() => {
+        if (!hasResumed.current && resumeTime > 0 && audioRef.current && isPlayingPart) {
+            console.log("[CustomAudioPlayer] Resuming audio to:", resumeTime);
+            audioRef.current.currentTime = resumeTime;
+            hasResumed.current = true;
+        }
+    }, [resumeTime, isPlayingPart]);
 
     // Exam auto-play logic
-    // Exam auto-play logic - very aggressive to overcome browser blocks
     useEffect(() => {
-        if (!isExam || !isVisible) return;
+        if (!isExam) return;
+        
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        if (!isPlayingPart || isBuffering || !shouldAutoPlay) {
+            // Pause if: wrong part, buffering, or not yet permitted to play
+            if (!audio.paused) {
+                audio.pause();
+            }
+            return;
+        }
 
         const attemptPlay = () => {
-            const audio = audioRef.current;
             if (audio && audio.paused && !audio.ended && audio.readyState >= 2) {
                 audio.play()
                     .then(() => {
                         console.log(`[CustomAudioPlayer] Part ${index} successfully started auto-play.`);
                     })
                     .catch(err => {
-                        // Still blocked by browser, wait for user interaction
                         console.warn(`[CustomAudioPlayer] Part ${index} play attempt failed:`, err.name);
                     });
             }
         };
 
-        // Attempt on mount/visibility
         attemptPlay();
-
-        // Also listen for 'canplay' which is a good trigger point
-        const audio = audioRef.current;
-        if (audio) {
-            audio.addEventListener('canplay', attemptPlay);
-        }
-
-        // Periodic check in case it gets paused or was blocked
         const interval = setInterval(attemptPlay, 1000);
         
-        // Also listen for any user interaction on the whole document to "unlock" audio
-        const unlock = () => {
-            attemptPlay();
+        const unlock = () => { 
+            console.log("[CustomAudioPlayer] Interaction detected, attempting to unlock audio...");
+            attemptPlay(); 
         };
-        document.addEventListener('click', unlock);
-        document.addEventListener('keydown', unlock);
+
+        const events = ['click', 'keydown', 'mousedown', 'pointerdown', 'touchstart'];
+        events.forEach(event => document.addEventListener(event, unlock));
 
         return () => {
             clearInterval(interval);
-            if (audio) audio.removeEventListener('canplay', attemptPlay);
-            document.removeEventListener('click', unlock);
-            document.removeEventListener('keydown', unlock);
+            events.forEach(event => document.removeEventListener(event, unlock));
         };
-    }, [isExam, isVisible, index, src]);
+    }, [isExam, isPlayingPart, isBuffering, shouldAutoPlay, index, src]);
 
     const togglePlay = () => {
         if (isExam) return;

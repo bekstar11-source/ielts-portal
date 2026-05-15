@@ -67,78 +67,90 @@ function AudioPreloader({ passages, test, onReady }) {
     const isDone = loadedCount === totalCount && totalCount > 0;
 
     return (
-        <div className="fixed inset-0 z-[9999] bg-slate-900 flex flex-col items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/90">
             <AnimatePresence mode="wait">
                 {!isDone ? (
                     <motion.div 
                         key="loading"
-                        initial={{ opacity: 0, scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.05 }}
-                        className="text-center max-w-md w-full"
+                        exit={{ opacity: 0, scale: 1.02 }}
+                        className="text-center max-w-md w-full space-y-8"
                     >
-                        <div className="w-24 h-24 mx-auto mb-8 relative">
-                            <svg className="animate-spin w-full h-full text-blue-500" viewBox="0 0 24 24" fill="none">
-                                <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
-                                <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        {/* Elegant Circular Loader */}
+                        <div className="relative w-32 h-32 mx-auto">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                <circle 
+                                    className="text-white/10" 
+                                    strokeWidth="6" 
+                                    stroke="currentColor" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50" 
+                                />
+                                <motion.circle 
+                                    className="text-[#e31837]" 
+                                    strokeWidth="6" 
+                                    strokeDasharray={2 * Math.PI * 40}
+                                    initial={{ strokeDashoffset: 2 * Math.PI * 40 }}
+                                    animate={{ strokeDashoffset: (2 * Math.PI * 40) * (1 - pct / 100) }}
+                                    strokeLinecap="round" 
+                                    stroke="currentColor" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50" 
+                                />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-white text-base font-bold tabular-nums">{pct}%</span>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-2xl font-black text-white tabular-nums tracking-tighter">{pct}%</span>
+                            </div>
                         </div>
                         
-                        <h2 className="text-white text-3xl font-black mb-4 tracking-tight uppercase italic underline underline-offset-8 decoration-blue-500/50">Audio keshlanmoqda</h2>
-                        <p className="text-slate-400 text-lg mb-10 leading-relaxed font-medium">
-                            Internet qotishlarini oldini olish uchun audio keshlanmoqda. Iltimos kuting...
-                        </p>
-                        
-                        <div className="w-full bg-slate-800/50 rounded-full h-4 overflow-hidden mb-5 border border-white/5 backdrop-blur-md">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${pct}%` }}
-                                transition={{ duration: 0.5, ease: "easeOut" }}
-                                className="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-400 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.4)]"
-                            />
+                        <div className="space-y-3">
+                            <h2 className="text-white text-3xl font-black tracking-tight uppercase leading-none">Audio Loading</h2>
+                            <p className="text-white/60 text-[15px] font-medium max-w-[280px] mx-auto leading-relaxed">
+                                To ensure a smooth experience, we are preparing your audio files.
+                            </p>
                         </div>
                         
-                        <div className="flex justify-between items-center text-slate-500 text-sm font-bold uppercase tracking-widest px-1">
-                            <span>Status: Yuklanmoqda</span>
-                            <span>{loadedCount} / {totalCount}</span>
+                        <div className="space-y-4">
+                            <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${pct}%` }}
+                                    className="h-full bg-[#e31837] rounded-full"
+                                />
+                            </div>
+                            
+                            <div className="flex justify-between items-center text-white/30 text-[10px] font-black uppercase tracking-[0.2em]">
+                                <span>Status: Buffering</span>
+                                <span>Part {loadedCount} of {totalCount}</span>
+                            </div>
                         </div>
                     </motion.div>
                 ) : (
                     <motion.div 
                         key="done"
-                        initial={{ opacity: 0, translateY: 20, scale: 0.9 }}
-                        animate={{ opacity: 1, translateY: 0, scale: 1 }}
-                        className="text-center max-w-md w-full"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-center max-w-sm w-full bg-white p-10 rounded-[32px] shadow-2xl shadow-black/50 border border-white/10"
                     >
-                        <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border-2 border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-                            <motion.svg 
-                                initial={{ pathLength: 0 }}
-                                animate={{ pathLength: 1 }}
-                                transition={{ duration: 0.6, delay: 0.2 }}
-                                className="w-12 h-12 text-emerald-500" 
-                                fill="none" 
-                                viewBox="0 0 24 24" 
-                                stroke="currentColor"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </motion.svg>
+                        <div className="w-20 h-20 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-8">
+                            <CheckIcon size={40} strokeWidth={3} />
                         </div>
                         
-                        <h2 className="text-white text-4xl font-black mb-4 tracking-tight uppercase">Tayyor!</h2>
-                        <p className="text-slate-300 text-xl mb-12 font-medium">
-                            Audio fayllar muvaffaqiyatli yuklandi. <br/>Testni boshlashga ruxsat berasizmi?
+                        <h2 className="text-zinc-900 text-3xl font-black mb-3 tracking-tight uppercase leading-none">Ready!</h2>
+                        <p className="text-zinc-500 text-base mb-10 font-medium leading-relaxed">
+                            Audio files have been loaded successfully. You can start the exam now.
                         </p>
                         
                         <button
                             onClick={onReady}
-                            className="group relative w-full inline-flex items-center justify-center px-10 py-6 overflow-hidden font-black text-white transition-all duration-300 bg-blue-600 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-600/50 hover:bg-blue-500 hover:shadow-[0_0_40px_rgba(37,99,235,0.4)] active:scale-[0.98] active:bg-blue-700"
+                            className="w-full py-5 bg-[#e31837] text-white rounded-2xl font-black text-lg hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 active:scale-[0.98] tracking-widest uppercase"
                         >
-                            <span className="relative z-10 text-xl tracking-widest">IMTIHONNI BOSHLASH</span>
-                            <svg className="relative z-10 w-7 h-7 ml-3 transition-transform duration-300 group-hover:translate-x-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
-                            <div className="absolute inset-0 z-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            Start Now
                         </button>
                     </motion.div>
                 )}
@@ -180,7 +192,11 @@ const TestHeader = ({
     isFullScreen,
     onToggleFullScreen,
     onOpenNotes,
-    buttonText = 'Finish'
+    hidePlayer = false,
+    skipBufferingOverlay = false,
+    buttonText = 'Finish',
+    volume: externalVolume,
+    resumeAudioTime = 0
 }) => {
     const { userData } = useAuth();
     const isListening = test?.type?.toLowerCase() === 'listening';
@@ -189,7 +205,15 @@ const TestHeader = ({
     const [contrastMode, setContrastMode] = useState('default'); // 'default' | 'white-on-black' | 'yellow-on-black'
     
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-    const [volume, setVolume] = useState(1);
+    const [volume, setVolume] = useState(externalVolume !== undefined ? externalVolume : 1);
+    const [playingPart, setPlayingPart] = useState(0);
+
+    // Sync external volume if provided
+    useEffect(() => {
+        if (externalVolume !== undefined) {
+            setVolume(externalVolume);
+        }
+    }, [externalVolume]);
     
     // RESTORED BUFFERING LOGIC
     const hasTriggered = useRef(false);
@@ -199,10 +223,10 @@ const TestHeader = ({
     useEffect(() => {
         if (!triggerPlay || testMode !== 'exam' || hasTriggered.current) return;
         if (!isListening) return;
+        if (skipBufferingOverlay) return; // Audio already preloaded externally
         hasTriggered.current = true;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsBuffering(true);
-    }, [triggerPlay, testMode, isListening]);
+    }, [triggerPlay, testMode, isListening, skipBufferingOverlay]);
 
     useEffect(() => {
         if (isListening) onAudioReady?.();
@@ -231,8 +255,15 @@ const TestHeader = ({
 
             setTimeout(() => {
                 const nextIdx = index + 1;
-                if (setActivePart) setActivePart(nextIdx);
-                if (onPartChange) onPartChange(nextIdx);
+                setPlayingPart(nextIdx);
+                // In exam mode, we don't force move the UI to the next part automatically 
+                // unless we want to, but usually in IELTS, navigation is free.
+                // However, the existing logic moves the UI:
+                if (testMode !== 'exam') {
+                    if (setActivePart) setActivePart(nextIdx);
+                    if (onPartChange) onPartChange(nextIdx);
+                }
+                
                 // Keyingi partga o'tgandan sal keyin audio'ni play qilamiz
                 setTimeout(() => {
                     const nextAudio = document.getElementById(`audio-part-${nextIdx}`);
@@ -312,6 +343,7 @@ const TestHeader = ({
                         px-2 md:px-0 py-1 md:py-0
                         z-[100] bg-white md:bg-transparent border-b md:border-b-0 border-gray-100
                         ${(testMode === 'exam' && !isReviewing) ? 'pointer-events-none select-none opacity-90' : ''}
+                        ${hidePlayer ? 'opacity-0 pointer-events-none invisible' : ''}
                     `}>
                         {test?.passages?.map((passage, index) => {
                             const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
@@ -322,12 +354,16 @@ const TestHeader = ({
                                     src={src}
                                     index={index}
                                     activePart={activePart}
-                                    testMode={isReviewing ? 'practice' : testMode} 
+                                    isPlayingPart={testMode === 'exam' ? playingPart === index : activePart === index}
+                                    testMode={isReviewing ? 'practice' : testMode}
+                                    isBuffering={isBuffering}
+                                    shouldAutoPlay={triggerPlay && !isBuffering}
                                     setAudioTime={setAudioTime}
                                     volume={volume}
                                     onEnded={() => handleEnded(index)}
                                     startTime={passage.startTime || 0}
                                     endTime={passage.endTime || 0}
+                                    resumeTime={resumeAudioTime}
                                 />
                             );
                         })}

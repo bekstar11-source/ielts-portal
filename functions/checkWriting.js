@@ -50,10 +50,44 @@ exports.checkWriting = async (data, context) => {
             prompt2 = testData.task2 || testData.passage || "";
         }
 
-        // Extract Answers
-        // Some legacy data might use 'essay' or 'task1' at root or 'userAnswers.task1'
-        let answer1 = resultData.userAnswers?.task1 || resultData.task1 || resultData.writingAnswers?.task1 || "";
-        let answer2 = resultData.userAnswers?.task2 || resultData.task2 || resultData.writingAnswers?.task2 || resultData.essay || "";
+        // Extract Answers (Robust extraction matching frontend)
+        const getAnswers = (res) => {
+            // Priority 1: Top-level writing specific fields
+            let ans = res.writingAnswers || res.userAnswers || res.answers || {};
+            
+            // Priority 2: Attempts array (New system)
+            if (res.attempts && Array.isArray(res.attempts) && res.attempts.length > 0) {
+                // Try to find the latest attempt with writing data
+                const attemptsWithWriting = [...res.attempts].reverse().find(a => 
+                    a.writingAnswers || a.userAnswers || a.answers || a.task1 || a.task2
+                );
+                
+                if (attemptsWithWriting) {
+                    ans = {
+                        ...ans,
+                        ...(attemptsWithWriting.writingAnswers || attemptsWithWriting.userAnswers || attemptsWithWriting.answers || {}),
+                        task1: attemptsWithWriting.task1 || (attemptsWithWriting.writingAnswers?.task1) || (attemptsWithWriting.userAnswers?.task1) || (attemptsWithWriting.answers?.task1),
+                        task2: attemptsWithWriting.task2 || (attemptsWithWriting.writingAnswers?.task2) || (attemptsWithWriting.userAnswers?.task2) || (attemptsWithWriting.answers?.task2)
+                    };
+                }
+            }
+
+            // Priority 3: Details (Mock Exams)
+            if (res.details) {
+                const detailsAns = res.details.writingAnswers || res.details.userAnswers || res.details.answers || {};
+                ans = { ...ans, ...detailsAns };
+            }
+
+            // Priority 4: Direct legacy fields at root
+            if (!ans.task1) ans.task1 = res.task1 || res.writingAnswer || res.answer1;
+            if (!ans.task2) ans.task2 = res.task2 || res.essay || res.answer2;
+
+            return ans;
+        };
+
+        const answers = getAnswers(resultData);
+        let answer1 = answers.task1 || "";
+        let answer2 = answers.task2 || "";
 
         if (!answer1 && !answer2) {
             throw new functions.https.HttpsError('failed-precondition', 'O\'quvchi javobi topilmadi.');

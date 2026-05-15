@@ -1,6 +1,6 @@
 // src/components/InteractivePlayer.jsx
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { motion, AnimatePresence, useDragControls } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { usePodcast } from "../context/PodcastContext";
 import { useAuth } from "../context/AuthContext";
@@ -19,7 +19,6 @@ import { useYouTubeBridge } from "./InteractivePlayer/useYouTubeBridge";
 export default function InteractivePlayer({ isOpen, onClose }) {
     const { playTrack, currentTrack: podcast, setCurrentTrack, isPlaying, setIsPlaying, currentTime, setCurrentTime, duration, setDuration, volume, isMuted, playbackRate, handleSeek, toggleMute, updateVolume, audioRef, youtubePlayerRef } = usePodcast();
     const { user, userData } = useAuth();
-    const dragControls = useDragControls();
     
     const [currentStep, setCurrentStep] = useState(1);
     const [answers, setAnswers] = useState({});
@@ -230,19 +229,9 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                 y: isOpen ? 0 : "100%",
                 opacity: isOpen ? 1 : 0
             }}
-            drag="y"
-            dragControls={dragControls}
-            dragListener={false}
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={0.7}
-            onDragEnd={(e, info) => {
-                if (info.offset.y > 150 || info.velocity.y > 500) {
-                    onClose();
-                }
-            }}
             transition={isOpen 
                 ? { type: "spring", damping: 20, stiffness: 250, mass: 0.5 } 
-                : { type: "spring", damping: 30, stiffness: 80, mass: 1 }
+                : { type: "spring", damping: 30, stiffness: 220, mass: 1 }
             }
             style={{ 
                 pointerEvents: isOpen ? 'auto' : 'none',
@@ -259,7 +248,6 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                     onClose={onClose}
                     currentStep={currentStep}
                     setCurrentStep={setCurrentStep}
-                    dragControls={dragControls}
                 />
             )}
 

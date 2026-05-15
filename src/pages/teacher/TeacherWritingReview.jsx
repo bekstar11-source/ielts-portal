@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useWritingReview } from '../../hooks/useWritingReview';
@@ -12,15 +13,23 @@ export default function TeacherWritingReview() {
     const { userData } = useAuth();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-
+    const location = useLocation();
     const { 
-        writings, students, loading, saving, handleSaveFeedback 
+        writings, students, loading, saving, aiLoading, handleSaveFeedback, handleAICheck 
     } = useWritingReview(userData);
 
     const [selectedId, setSelectedId] = useState(null);
     const [filter, setFilter] = useState('pending');
     const [searchTerm, setSearchTerm] = useState('');
     const [feedbackData, setFeedbackData] = useState({});
+
+    // Handle navigation from Results page
+    useEffect(() => {
+        if (location.state?.selectedId) {
+            setSelectedId(location.state.selectedId);
+            setFilter('all');
+        }
+    }, [location.state]);
 
     const activeWriting = writings.find(w => w.id === selectedId);
     const fd = feedbackData[selectedId] || {};
@@ -54,7 +63,7 @@ export default function TeacherWritingReview() {
                     <>
                         <WritingReviewWorkspace 
                             activeWriting={activeWriting} 
-                            studentName={students.find(s => s.id === activeWriting.userId)?.fullName || 'O\'quvchi'}
+                            studentName={students.find(s => s.id === activeWriting.userId)?.fullName || activeWriting.userName || 'O\'quvchi'}
                             isDark={isDark}
                         />
 
@@ -96,13 +105,25 @@ export default function TeacherWritingReview() {
                                     />
                                 </div>
 
-                                <button 
-                                    onClick={() => handleSaveFeedback(selectedId, fd)}
-                                    disabled={saving}
-                                    className="px-6 h-10 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-2"
-                                >
-                                    {saving ? "Saving..." : <><SendIcon size={14} /> Save Evaluation</>}
-                                </button>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => handleAICheck(selectedId)}
+                                        disabled={aiLoading || !activeWriting}
+                                        className={`px-6 h-10 border-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                                            isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-emerald-100 text-emerald-600 hover:bg-emerald-50'
+                                        }`}
+                                    >
+                                        {aiLoading ? "Checking..." : <><span className="text-emerald-500">✨</span> AI Check</>}
+                                    </button>
+
+                                    <button 
+                                        onClick={() => handleSaveFeedback(selectedId, fd)}
+                                        disabled={saving}
+                                        className="px-6 h-10 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-2"
+                                    >
+                                        {saving ? "Saving..." : <><SendIcon size={14} /> Save Evaluation</>}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </>

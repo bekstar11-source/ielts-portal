@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { db } from '../firebase/firebase';
+import { db, functions } from '../firebase/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { calculateSectionScore, calculateBandScore, calculateOverallBand } from '../utils/ieltsScoring';
 
 export const useTestReview = (id, user, userData, navigate) => {
@@ -15,6 +16,7 @@ export const useTestReview = (id, user, userData, navigate) => {
     const [task2Band, setTask2Band] = useState("");
     const [adminFeedback, setAdminFeedback] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const [isAiLoading, setIsAiLoading] = useState(false);
     
     const [listeningActivePart, setListeningActivePart] = useState(0);
     const [audioTime, setAudioTime] = useState(0);
@@ -156,17 +158,17 @@ export const useTestReview = (id, user, userData, navigate) => {
                     if (activeMockPart === 'reading') { newScores.reading = sectionResults.correct; newScores.readingBand = band; }
                     else { newScores.listening = sectionResults.correct; newScores.listeningBand = band; }
                 }
-                if (activeMockPart === 'writing') { newScores.writing = scoreVal; newScores.writingFeedback = adminFeedback; }
-                if (activeMockPart === 'speaking') { newScores.speaking = scoreVal; newScores.speakingFeedback = adminFeedback; }
+                if (activeMockPart === 'writing') { newScores.writingBand = scoreVal; newScores.writingFeedback = adminFeedback; }
+                if (activeMockPart === 'speaking') { newScores.speakingBand = scoreVal; newScores.speakingFeedback = adminFeedback; }
 
                 const sections = [];
-                if (newScores.listeningBand != null) sections.push(Number(newScores.listeningBand));
-                if (newScores.readingBand != null) sections.push(Number(newScores.readingBand));
-                if (newScores.writing != null) sections.push(Number(newScores.writing));
-                if (newScores.speaking != null) sections.push(Number(newScores.speaking));
+                if (Number(newScores.listeningBand) > 0) sections.push(Number(newScores.listeningBand));
+                if (Number(newScores.readingBand) > 0) sections.push(Number(newScores.readingBand));
+                if (Number(newScores.writingBand) > 0) sections.push(Number(newScores.writingBand));
+                if (Number(newScores.speakingBand) > 0) sections.push(Number(newScores.speakingBand));
 
                 if (sections.length > 0) {
-                    const roundedOverall = calculateOverallBand(...sections);
+                    const roundedOverall = calculateOverallBand(sections);
                     newScores.overallBand = roundedOverall;
                     updatePayload.score = roundedOverall;
                     updatePayload.bandScore = roundedOverall;
@@ -179,6 +181,20 @@ export const useTestReview = (id, user, userData, navigate) => {
             setResultData(prev => ({ ...prev, ...updatePayload }));
             alert("Baho saqlandi! ✅");
         } catch (err) { alert(err.message); } finally { setIsSaving(false); }
+    };
+
+    const handleAICheck = async () => {
+        setIsAiLoading(true);
+        try {
+            const checkWriting = httpsCallable(functions, 'checkWriting');
+            await checkWriting({ resultId: id });
+            await fetchData();
+            alert("AI Tekshiruv yakunlandi! ✨");
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setIsAiLoading(false);
+        }
     };
 
     const handleSeekTo = (partIndex, timestamp) => {
@@ -196,7 +212,9 @@ export const useTestReview = (id, user, userData, navigate) => {
         task2Band, setTask2Band,
         adminFeedback, setAdminFeedback,
         isSaving,
+        isAiLoading,
         handleSaveGrade,
+        handleAICheck,
         listeningActivePart, setListeningActivePart,
         audioTime, setAudioTime,
         volume, setVolume,

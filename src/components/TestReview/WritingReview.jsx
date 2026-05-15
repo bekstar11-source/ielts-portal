@@ -1,7 +1,7 @@
 import React from 'react';
 import { Lock, Zap, ArrowRight } from 'lucide-react';
 
-const WritingReview = ({ testData, currentAnswers, resultData, isPremium }) => {
+const WritingReview = ({ testData, currentAnswers, resultData, isPremium, onAICheck, isAiLoading }) => {
     return (
         <div className="w-full h-full flex flex-col bg-[#F5F5F7]">
             <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12">
@@ -36,8 +36,19 @@ const WritingReview = ({ testData, currentAnswers, resultData, isPremium }) => {
                                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 opacity-80"></div>
                                     <div className="flex justify-between items-center">
                                         <h3 className="font-semibold text-gray-800 text-[13px] uppercase tracking-widest text-[#1d1d1f]">Student Answer</h3>
-                                        <div className="text-[11px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
-                                            {((answer || "") + "").trim().split(/\s+/).filter(Boolean).length} WORDS
+                                        <div className="flex items-center gap-3">
+                                            {isPremium && !resultData.aiReview && (
+                                                <button 
+                                                    onClick={onAICheck}
+                                                    disabled={isAiLoading}
+                                                    className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-100 transition-colors"
+                                                >
+                                                    {isAiLoading ? "Checking..." : "✨ Run AI Check"}
+                                                </button>
+                                            )}
+                                            <div className="text-[11px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                                                {((answer || "") + "").trim().split(/\s+/).filter(Boolean).length} WORDS
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="whitespace-pre-wrap font-serif text-[#1d1d1f] text-[16px] leading-[1.8] min-h-[150px]">

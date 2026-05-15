@@ -15,7 +15,7 @@ export default function TestSolving() {
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
-        activePart, setActivePart, audioTime, setAudioTime, navigate
+        activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration
     } = useTestLogic();
 
     // Exam modeda intro countdown tugagach audio play bo'lishi uchun trigger
@@ -174,6 +174,7 @@ export default function TestSolving() {
                     score={score}
                     bandScore={bandScore}
                     timeLeft={timeLeft}
+                    initialDuration={initialDuration}
                     isReviewing={isReviewing}
                     setIsReviewing={setIsReviewing}
                     onExit={() => navigate('/my-results')}
