@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { db } from "../firebase/firebase";
-import { doc, getDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { calculateSectionScore, calculateBandScore } from "../utils/ieltsScoring";
+import { doc, getDoc, addDoc, collection, serverTimestamp, updateDoc } from "firebase/firestore";
+import { calculateSectionScore, calculateBandScore, calculateOverallBand } from "../utils/ieltsScoring";
 
 const STORAGE_KEY = 'ielts_mock_session';
 
@@ -36,7 +36,7 @@ export function useMockExam(mockData, user, userData, navigate) {
     // Auto-set deadline for test_ended stage only (intro is managed by MockExamIntro)
     useEffect(() => {
         if (stage === 'test_ended' && !autoStartDeadline) {
-            setAutoStartDeadline(Date.now() + 5 * 1000);
+            setAutoStartDeadline(Date.now() + 20 * 1000);
         }
     }, [stage, autoStartDeadline]);
 
@@ -61,7 +61,7 @@ export function useMockExam(mockData, user, userData, navigate) {
 
     // ─── Persist state to localStorage on every meaningful change ───
     useEffect(() => {
-        const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended'];
+        const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended', 'saving', 'result'];
         if (!activeStages.includes(stage) || stage === 'loading') return;
 
         saveSession(mockId, {
@@ -154,13 +154,17 @@ export function useMockExam(mockData, user, userData, navigate) {
                     }
 
                     // Finally set the stage to resume the test
-                    setStage(saved.stage);
+                    if (stageRef.current === 'loading') {
+                        setStage(saved.stage);
+                    }
                 } else {
-                    setStage('intro');
+                    if (stageRef.current === 'loading') {
+                        setStage('intro');
+                    }
                 }
             } catch (err) {
                 console.error(err);
-                navigate('/');
+                navigate('/mock');
             }
         };
         fetchTests();
@@ -220,20 +224,26 @@ export function useMockExam(mockData, user, userData, navigate) {
     };
 
     const finishExam = async (forcedAnswers, forcedTests, forcedCompleted) => {
+        if (stageRef.current === 'saving' || stageRef.current === 'result') return;
+        
         setStage('saving');
+        stageRef.current = 'saving'; // Immediate update for the guard
+
         try {
             const currentAnswers = forcedAnswers || answersRef.current;
             const currentTests = forcedTests || tests;
             
             const lResults = calculateSectionScore(currentTests.listening, currentAnswers.listening);
             const rResults = calculateSectionScore(currentTests.reading, currentAnswers.reading);
-            const lBand = calculateBandScore(lResults.correct, 'listening', lResults.total);
-            const rBand = calculateBandScore(rResults.correct, 'reading', rResults.total);
+            const lBand = calculateBandScore(lResults.correct, 'listening', lResults.total) || 0;
+            const rBand = calculateBandScore(rResults.correct, 'reading', rResults.total) || 0;
 
             setFinalResults({
                 listening: { ...lResults, band: lBand },
                 reading: { ...rResults, band: rBand }
             });
+
+            const interimOverall = calculateOverallBand([lBand, rBand].filter(b => b > 0));
 
             const resRef = await addDoc(collection(db, "results"), {
                 userId: user.uid,
@@ -244,7 +254,15 @@ export function useMockExam(mockData, user, userData, navigate) {
                 subTests: mockData.subTests, 
                 date: new Date().toISOString(),
                 createdAt: serverTimestamp(),
-                scores: { listening: lResults.correct, reading: rResults.correct, listeningBand: lBand, readingBand: rBand },
+                scores: { 
+                    listening: lResults.correct, 
+                    reading: rResults.correct, 
+                    listeningBand: lBand, 
+                    readingBand: rBand,
+                    overallBand: interimOverall
+                },
+                bandScore: interimOverall,
+                overallBand: interimOverall,
                 details: { listeningAnswers: currentAnswers.listening, readingAnswers: currentAnswers.reading, writingAnswers: currentAnswers.writing },
                 status: 'pending_review'
             });
@@ -260,18 +278,19 @@ export function useMockExam(mockData, user, userData, navigate) {
                     }
                     return m;
                 });
-                const { updateDoc } = await import("firebase/firestore");
                 await updateDoc(userRef, { mockTests: updated });
             }
         } catch (err) {
             console.error('finishExam error:', err);
         } finally {
-            // Always clear session — prevents infinite retry loop on Firebase errors
-            clearSession(mockId);
-            try { localStorage.removeItem('ielts_mock_active_data'); } catch(e) {}
             setStage('result');
         }
     };
+
+    const clearExamSession = useCallback(() => {
+        clearSession(mockId);
+        try { localStorage.removeItem('ielts_mock_active_data'); } catch(e) {}
+    }, [mockId]);
 
     // Callback for parent to report audioTime and activePart
     const updateAudioProgress = useCallback((time, part) => {
@@ -286,6 +305,7 @@ export function useMockExam(mockData, user, userData, navigate) {
         completedModules, autoStartDeadline, setAutoStartDeadline,
         resumeAudioTime, resumeActivePart, updateAudioProgress,
         tabSwitchCount,
-        mockId
+        mockId,
+        clearExamSession
     };
 }

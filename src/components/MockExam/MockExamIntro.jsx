@@ -8,29 +8,112 @@ const BigCheckmark = () => (
     </svg>
 );
 
+const ModuleCard = ({ 
+    title, 
+    timing, 
+    isCompleted, 
+    isLocked, 
+    isExpanded, 
+    onToggleExpand, 
+    isConfirmed, 
+    onConfirm, 
+    onStart, 
+    videoPath 
+}) => {
+    return (
+        <article className={`border rounded-md bg-white shadow-sm transition-all ${isCompleted ? 'border-green-200' : 'border-gray-300'}`}>
+            <div className="p-8">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">{title}</h2>
+                        {isCompleted ? (
+                            <p className="text-green-600 font-bold mb-2">Completed</p>
+                        ) : (
+                            <div className="flex items-center gap-3 mb-2">
+                                <p className={`font-bold ${isLocked ? 'text-gray-400' : 'text-[#e31b23]'}`}>
+                                    {isLocked ? 'Locked' : 'Not completed'}
+                                </p>
+                            </div>
+                        )}
+                        <p className="text-sm text-gray-600 mb-6">Timing: {timing}</p>
+                    </div>
+                    {isCompleted && <BigCheckmark />}
+                </div>
+
+                {!isCompleted && !isLocked && (
+                    <>
+                        <button
+                            onClick={onToggleExpand}
+                            className="w-full border border-gray-200 rounded bg-gray-50 p-4 flex items-center gap-3 hover:bg-gray-100 transition-colors text-left"
+                        >
+                            <svg 
+                                className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                                fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"
+                            >
+                                <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"></path>
+                            </svg>
+                            <p className="text-sm text-gray-700 font-medium">
+                                Test information. {isConfirmed 
+                                    ? <span className="text-green-600">Confirmed.</span> 
+                                    : <span className="text-[#e31b23]">Not confirmed.</span>
+                                }
+                            </p>
+                        </button>
+
+                        {isExpanded && (
+                            <div className="mt-4 border border-gray-200 rounded-md overflow-hidden bg-gray-50">
+                                <IELTSVideoPlayer storagePath={videoPath} onWatched={() => {}} />
+                                <div className="p-6 border-t border-gray-200 bg-white">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-2">Ready?</h3>
+                                    <p className="text-sm text-gray-600 mb-4">Please confirm that you have understood the instructions above.</p>
+                                    <div className="flex min-h-[44px]">
+                                        <AnimatePresence mode="wait">
+                                            {!isConfirmed ? (
+                                                <motion.button
+                                                    key="confirm"
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    exit={{ opacity: 0, x: 10 }}
+                                                    onClick={onConfirm}
+                                                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-zinc-900 text-white rounded font-bold text-sm hover:bg-black transition-all active:scale-[0.98] shadow-lg shadow-zinc-900/10"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                                                    I confirm
+                                                </motion.button>
+                                            ) : (
+                                                <motion.button
+                                                    key="start"
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    onClick={onStart}
+                                                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#e31b23] text-white rounded font-bold text-sm hover:bg-red-700 transition-all active:scale-[0.98] shadow-lg shadow-red-500/20"
+                                                >
+                                                    <span>→</span>
+                                                    Start {title}
+                                                </motion.button>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </article>
+    );
+};
+
 const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userName }) => {
-    const isAllCompleted = completedModules.length >= 3;
-    const isAnyCompleted = completedModules.length > 0;
+    const isAllCompleted = completedModules.includes('listening') && 
+                          completedModules.includes('reading') && 
+                          completedModules.includes('writing');
 
-    // Sequential lock: Reading requires Listening, Writing requires Reading
-    const isReadingLocked = !completedModules.includes('listening');
-    const isWritingLocked = !completedModules.includes('reading');
-
-    const [listeningExpanded, setListeningExpanded] = useState(false);
-    const [listeningConfirmed, setListeningConfirmed] = useState(false);
-    const [listeningWatched, setListeningWatched] = useState(false);
-    const [readingExpanded, setReadingExpanded] = useState(false);
-    const [readingConfirmed, setReadingConfirmed] = useState(false);
-    const [readingWatched, setReadingWatched] = useState(false);
-    const [writingExpanded, setWritingExpanded] = useState(false);
-    const [writingConfirmed, setWritingConfirmed] = useState(false);
-    const [writingWatched, setWritingWatched] = useState(false);
-
-
+    const [expanded, setExpanded] = useState({ listening: false, reading: false, writing: false });
+    const [confirmed, setConfirmed] = useState({ listening: false, reading: false, writing: false });
 
     return (
         <div className="min-h-screen bg-white font-sans text-gray-800 antialiased select-none">
-            {/* Header: Official style */}
             <header className="w-full border-b border-gray-300 px-6 py-3 bg-white sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto flex justify-between items-center">
                     <span className="font-bold text-sm text-zinc-900">{userName}</span>
@@ -38,291 +121,62 @@ const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userNam
                 </div>
             </header>
 
-            {/* Main Content */}
             <main className="max-w-4xl mx-auto px-8 py-12 pb-32">
-                {/* Page Title Section */}
                 <section className="mb-10">
-                    <h1 className="text-[28px] font-bold text-[#e31b23] mb-8 leading-tight">
-                        IELTS Familiarisation Test
-                    </h1>
+                    <h1 className="text-[28px] font-bold text-[#e31b23] mb-8 leading-tight">IELTS Familiarisation Test</h1>
                     <div className="flex items-center gap-4">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Today</span>
                         <div className="h-[2px] bg-[#e31b23] flex-grow"></div>
                     </div>
                 </section>
 
-                {/* Test Sections List */}
                 <div className="space-y-6">
-
-                    {/* ═══════════════ FINAL COMPLETION FOOTER (TOP) ═══════════════ */}
-                    {completedModules.includes('listening') && 
-                     completedModules.includes('reading') && 
-                     completedModules.includes('writing') && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-8 border border-green-200 rounded-xl bg-white text-center shadow-lg shadow-green-900/5 mb-8"
-                        >
+                    {isAllCompleted && (
+                        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="p-8 border border-green-200 rounded-xl bg-white text-center shadow-lg shadow-green-900/5 mb-8">
                             <h2 className="text-xl font-bold text-zinc-900 mb-2 tracking-tight">You have completed your main test.</h2>
-                            <p className="text-sm text-zinc-500 mb-8 max-w-md mx-auto leading-relaxed px-4">
-                                Congratulations! You have finished all three modules. 
-                                Click below to save your results.
-                            </p>
-                            <button 
-                                onClick={onFinish}
-                                className="px-12 py-3 bg-zinc-900 text-white rounded-lg font-bold text-base hover:bg-black transition-all active:scale-[0.98] shadow-xl shadow-zinc-900/20"
-                            >
-                                Finish Exam
-                            </button>
+                            <p className="text-sm text-zinc-500 mb-8 max-w-md mx-auto leading-relaxed px-4">Congratulations! You have finished all three modules. Click below to save your results.</p>
+                            <button onClick={onFinish} className="px-12 py-3 bg-zinc-900 text-white rounded-lg font-bold text-base hover:bg-black transition-all active:scale-[0.98] shadow-xl shadow-zinc-900/20">Finish Exam</button>
                         </motion.div>
                     )}
 
-                    {/* ═══════════════ LISTENING ═══════════════ */}
-                    <article className={`border rounded-md bg-white shadow-sm transition-all ${completedModules.includes('listening') ? 'border-green-200' : 'border-gray-300'}`}>
-                        <div className="p-8">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Listening</h2>
-                                    {completedModules.includes('listening') ? (
-                                        <p className="text-green-600 font-bold mb-2">Completed</p>
-                                    ) : (
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <p className="text-[#e31b23] font-bold">Not completed</p>
-                                        </div>
-                                    )}
-                                    <p className="text-sm text-gray-600 mb-6">Timing: 30 minutes</p>
-                                </div>
-                                {completedModules.includes('listening') && <BigCheckmark />}
-                            </div>
+                    <ModuleCard 
+                        title="Listening" 
+                        timing="30 minutes"
+                        isCompleted={completedModules.includes('listening')}
+                        isLocked={false}
+                        isExpanded={expanded.listening}
+                        onToggleExpand={() => setExpanded(p => ({ ...p, listening: !p.listening }))}
+                        isConfirmed={confirmed.listening}
+                        onConfirm={() => setConfirmed(p => ({ ...p, listening: true }))}
+                        onStart={() => onStartModule('listening')}
+                        videoPath="mock videos/listening.mp4"
+                    />
 
-                            {/* Accordion: Test Information */}
-                            {!completedModules.includes('listening') && (
-                                <>
-                                    <button
-                                        onClick={() => setListeningExpanded(prev => !prev)}
-                                        className="w-full border border-gray-200 rounded bg-gray-50 p-4 flex items-center gap-3 hover:bg-gray-100 transition-colors text-left"
-                                    >
-                                        <svg 
-                                            className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${listeningExpanded ? 'rotate-180' : ''}`} 
-                                            fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"
-                                        >
-                                            <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"></path>
-                                        </svg>
-                                        <p className="text-sm text-gray-700 font-medium">
-                                            Test information. {listeningConfirmed 
-                                                ? <span className="text-green-600">Confirmed.</span> 
-                                                : <span className="text-[#e31b23]">Not confirmed.</span>
-                                            }
-                                        </p>
-                                    </button>
+                    <ModuleCard 
+                        title="Reading" 
+                        timing="60 minutes"
+                        isCompleted={completedModules.includes('reading')}
+                        isLocked={!completedModules.includes('listening')}
+                        isExpanded={expanded.reading}
+                        onToggleExpand={() => setExpanded(p => ({ ...p, reading: !p.reading }))}
+                        isConfirmed={confirmed.reading}
+                        onConfirm={() => setConfirmed(p => ({ ...p, reading: true }))}
+                        onStart={() => onStartModule('reading')}
+                        videoPath="mock videos/reading.mp4"
+                    />
 
-                                    {listeningExpanded && (
-                                        <div className="mt-4 border border-gray-200 rounded-md overflow-hidden bg-gray-50">
-                                            <IELTSVideoPlayer storagePath="mock videos/listening.mp4" onWatched={() => setListeningWatched(true)} />
-                                            <div className="p-6 border-t border-gray-200 bg-white">
-                                                <h3 className="text-lg font-bold text-gray-800 mb-2">Ready?</h3>
-                                                <p className="text-sm text-gray-600 mb-4">Please confirm that you have understood the instructions above.</p>
-                                                <div className="flex min-h-[44px]">
-                                                    <AnimatePresence mode="wait">
-                                                        {!listeningConfirmed ? (
-                                                            <motion.button
-                                                                key="confirm"
-                                                                initial={{ opacity: 0, x: -10 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                exit={{ opacity: 0, x: 10 }}
-                                                                onClick={() => setListeningConfirmed(true)}
-                                                                disabled={!listeningWatched}
-                                                                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded font-bold text-sm transition-all active:scale-95 ${listeningWatched ? 'bg-zinc-900 text-white hover:bg-black' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
-                                                                {listeningWatched ? 'I confirm' : 'Watch video first'}
-                                                            </motion.button>
-                                                        ) : (
-                                                            <motion.button
-                                                                key="start"
-                                                                initial={{ opacity: 0, x: -10 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                onClick={() => onStartModule('listening')}
-                                                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#e31b23] text-white rounded font-bold text-sm hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-500/20"
-                                                            >
-                                                                <span>→</span>
-                                                                Start Listening
-                                                            </motion.button>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </article>
-
-                    {/* ═══════════════ READING ═══════════════ */}
-                    <article className={`border rounded-md bg-white shadow-sm transition-all ${completedModules.includes('reading') ? 'border-green-200' : 'border-gray-300'}`}>
-                        <div className="p-8">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Reading</h2>
-                                    {completedModules.includes('reading') ? (
-                                        <p className="text-green-600 font-bold mb-2">Completed</p>
-                                    ) : (
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <p className="text-[#e31b23] font-bold">Not completed</p>
-                                        </div>
-                                    )}
-                                    <p className="text-sm text-gray-600 mb-6">Timing: 60 minutes</p>
-                                </div>
-                                {completedModules.includes('reading') && <BigCheckmark />}
-                            </div>
-
-                            {/* Accordion: Test Information */}
-                            {!completedModules.includes('reading') && !isReadingLocked && (
-                                <>
-                                    <button
-                                        onClick={() => setReadingExpanded(prev => !prev)}
-                                        className="w-full border border-gray-200 rounded bg-gray-50 p-4 flex items-center gap-3 hover:bg-gray-100 transition-colors text-left"
-                                    >
-                                        <svg 
-                                            className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${readingExpanded ? 'rotate-180' : ''}`} 
-                                            fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"
-                                        >
-                                            <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"></path>
-                                        </svg>
-                                        <p className="text-sm text-gray-700 font-medium">
-                                            Test information. {readingConfirmed 
-                                                ? <span className="text-green-600">Confirmed.</span> 
-                                                : <span className="text-[#e31b23]">Not confirmed.</span>
-                                            }
-                                        </p>
-                                    </button>
-
-                                    {readingExpanded && (
-                                        <div className="mt-4 border border-gray-200 rounded-md overflow-hidden bg-gray-50">
-                                            <IELTSVideoPlayer storagePath="mock videos/reading.mp4" onWatched={() => setReadingWatched(true)} />
-                                            <div className="p-6 border-t border-gray-200 bg-white">
-                                                <h3 className="text-lg font-bold text-gray-800 mb-2">Ready?</h3>
-                                                <p className="text-sm text-gray-600 mb-4">Please confirm that you have understood the instructions above.</p>
-                                                <div className="flex min-h-[44px]">
-                                                    <AnimatePresence mode="wait">
-                                                        {!readingConfirmed ? (
-                                                            <motion.button
-                                                                key="confirm"
-                                                                initial={{ opacity: 0, x: -10 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                exit={{ opacity: 0, x: 10 }}
-                                                                onClick={() => setReadingConfirmed(true)}
-                                                                disabled={!readingWatched}
-                                                                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded font-bold text-sm transition-all active:scale-95 ${readingWatched ? 'bg-zinc-900 text-white hover:bg-black' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
-                                                                {readingWatched ? 'I confirm' : 'Watch video first'}
-                                                            </motion.button>
-                                                        ) : (
-                                                            <motion.button
-                                                                key="start"
-                                                                initial={{ opacity: 0, x: -10 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                onClick={() => onStartModule('reading')}
-                                                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#e31b23] text-white rounded font-bold text-sm hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-500/20"
-                                                            >
-                                                                <span>→</span>
-                                                                Start Reading
-                                                            </motion.button>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </article>
-
-                    {/* ═══════════════ WRITING ═══════════════ */}
-                    <article className={`border rounded-md bg-white shadow-sm transition-all ${completedModules.includes('writing') ? 'border-green-200' : 'border-gray-300'}`}>
-                        <div className="p-8">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Writing</h2>
-                                    {completedModules.includes('writing') ? (
-                                        <p className="text-green-600 font-bold mb-2">Completed</p>
-                                    ) : (
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <p className="text-[#e31b23] font-bold">Not completed</p>
-                                        </div>
-                                    )}
-                                    <p className="text-sm text-gray-600 mb-6">Timing: 60 minutes</p>
-                                </div>
-                                {completedModules.includes('writing') && <BigCheckmark />}
-                            </div>
-
-                            {/* Accordion: Test Information */}
-                            {!completedModules.includes('writing') && !isWritingLocked && (
-                                <>
-                                    <button
-                                        onClick={() => setWritingExpanded(prev => !prev)}
-                                        className="w-full border border-gray-200 rounded bg-gray-50 p-4 flex items-center gap-3 hover:bg-gray-100 transition-colors text-left"
-                                    >
-                                        <svg 
-                                            className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${writingExpanded ? 'rotate-180' : ''}`} 
-                                            fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"
-                                        >
-                                            <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"></path>
-                                        </svg>
-                                        <p className="text-sm text-gray-700 font-medium">
-                                            Test information. {writingConfirmed 
-                                                ? <span className="text-green-600">Confirmed.</span> 
-                                                : <span className="text-[#e31b23]">Not confirmed.</span>
-                                            }
-                                        </p>
-                                    </button>
-
-                                    {writingExpanded && (
-                                        <div className="mt-4 border border-gray-200 rounded-md overflow-hidden bg-gray-50">
-                                            <IELTSVideoPlayer storagePath="mock videos/writing.mp4" onWatched={() => setWritingWatched(true)} />
-                                            <div className="p-6 border-t border-gray-200 bg-white">
-                                                <h3 className="text-lg font-bold text-gray-800 mb-2">Ready?</h3>
-                                                <p className="text-sm text-gray-600 mb-4">Please confirm that you have understood the instructions above.</p>
-                                                <div className="flex min-h-[44px]">
-                                                    <AnimatePresence mode="wait">
-                                                        {!writingConfirmed ? (
-                                                            <motion.button
-                                                                key="confirm"
-                                                                initial={{ opacity: 0, x: -10 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                exit={{ opacity: 0, x: 10 }}
-                                                                onClick={() => setWritingConfirmed(true)}
-                                                                disabled={!writingWatched}
-                                                                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded font-bold text-sm transition-all active:scale-95 ${writingWatched ? 'bg-zinc-900 text-white hover:bg-black' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
-                                                                {writingWatched ? 'I confirm' : 'Watch video first'}
-                                                            </motion.button>
-                                                        ) : (
-                                                            <motion.button
-                                                                key="start"
-                                                                initial={{ opacity: 0, x: -10 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                onClick={() => onStartModule('writing')}
-                                                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#e31b23] text-white rounded font-bold text-sm hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-500/20"
-                                                                >
-                                                                <span>→</span>
-                                                                Start Writing
-                                                            </motion.button>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </article>
-
+                    <ModuleCard 
+                        title="Writing" 
+                        timing="60 minutes"
+                        isCompleted={completedModules.includes('writing')}
+                        isLocked={!completedModules.includes('reading')}
+                        isExpanded={expanded.writing}
+                        onToggleExpand={() => setExpanded(p => ({ ...p, writing: !p.writing }))}
+                        isConfirmed={confirmed.writing}
+                        onConfirm={() => setConfirmed(p => ({ ...p, writing: true }))}
+                        onStart={() => onStartModule('writing')}
+                        videoPath="mock videos/writing.mp4"
+                    />
                 </div>
             </main>
         </div>

@@ -162,10 +162,12 @@ export const useTestReview = (id, user, userData, navigate) => {
                 if (activeMockPart === 'speaking') { newScores.speakingBand = scoreVal; newScores.speakingFeedback = adminFeedback; }
 
                 const sections = [];
-                if (Number(newScores.listeningBand) > 0) sections.push(Number(newScores.listeningBand));
-                if (Number(newScores.readingBand) > 0) sections.push(Number(newScores.readingBand));
-                if (Number(newScores.writingBand) > 0) sections.push(Number(newScores.writingBand));
-                if (Number(newScores.speakingBand) > 0) sections.push(Number(newScores.speakingBand));
+                const check = (val) => val !== undefined && val !== null && !isNaN(Number(val));
+                
+                if (check(newScores.listeningBand)) sections.push(Number(newScores.listeningBand));
+                if (check(newScores.readingBand)) sections.push(Number(newScores.readingBand));
+                if (check(newScores.writingBand)) sections.push(Number(newScores.writingBand));
+                if (check(newScores.speakingBand)) sections.push(Number(newScores.speakingBand));
 
                 if (sections.length > 0) {
                     const roundedOverall = calculateOverallBand(sections);

@@ -102,10 +102,15 @@ export const useWritingReview = (userData) => {
                 const s = resData.scores || {};
                 
                 // Robust extraction of scores
-                const lBand = parseFloat(s.listeningBand ?? s.listening_band ?? resData.listeningBand ?? 0);
-                const rBand = parseFloat(s.readingBand ?? s.reading_band ?? resData.readingBand ?? 0);
+                const parseScore = (val) => {
+                    const n = parseFloat(val);
+                    return (val === undefined || val === null || isNaN(n)) ? 0 : n;
+                };
+
+                const lBand = parseScore(s.listeningBand ?? s.listening_band ?? resData.listeningBand);
+                const rBand = parseScore(s.readingBand ?? s.reading_band ?? resData.readingBand);
                 const wBand = writingOverall;
-                const sBand = parseFloat(s.speakingBand ?? s.speaking_band ?? resData.speakingBand ?? 0);
+                const sBand = parseScore(s.speakingBand ?? s.speaking_band ?? resData.speakingBand);
                 
                 // For a Mock Exam, we expect at least L, R, and W
                 const sections = [lBand, rBand, wBand];

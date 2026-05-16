@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 
 // Hooks & Components
 import { useMockExam } from "../../hooks/useMockExam";
+import { useExamSecurity } from "../../hooks/useExamSecurity";
 import MockExamIntro from "../../components/MockExam/MockExamIntro";
 import MockExamResult from "../../components/MockExam/MockExamResult";
 import MockExamSectionIntro from "../../components/MockExam/MockExamSectionIntro";
@@ -39,7 +40,7 @@ export default function MockExam() {
         timeLeft, setTimeLeft, handleNextStage, finishExam,
         finalResults, completedModules, autoStartDeadline, setAutoStartDeadline,
         resumeAudioTime, resumeActivePart, updateAudioProgress,
-        tabSwitchCount, mockId
+        tabSwitchCount, mockId, clearExamSession
     } = useMockExam(mockData, user, userData, navigate);
 
     // UI States
@@ -51,132 +52,20 @@ export default function MockExam() {
     const [redirectCountdown, setRedirectCountdown] = useState(15);
     const [showCheatWarning, setShowCheatWarning] = useState(false);
     const [showExitModal, setShowExitModal] = useState(false);
-    const finishExamRef = useRef(finishExam);
-    const stageRef = useRef(stage);
-    
-    useEffect(() => { finishExamRef.current = finishExam; });
-    useEffect(() => { stageRef.current = stage; }, [stage]);
 
-    // ─── Navigation Blocking (Aggressive Forward Trap) ───
-    useEffect(() => {
-        const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'reading_intro', 'writing_intro', 'test_ended'];
-        
-        // Ensure we always have a "forward" entry to go back to
-        if (!window.location.hash) {
-            window.history.pushState(null, '', window.location.pathname + '#exam-active');
+    // Security Hook Integration
+    const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check'];
+    useExamSecurity({
+        enabled: activeStages.includes(stage),
+        onSecurityViolation: (type) => {
+            if (type === 'tab_switch') setShowCheatWarning(true);
         }
+    });
 
-        const handlePopState = (event) => {
-            if (activeStages.includes(stageRef.current)) {
-                // If they tried to go back (hash is gone), IMMEDIATELY push them forward again
-                if (!window.location.hash) {
-                    window.history.go(1); 
-                    // This forces the browser to stay on the component even if React Router tried to move
-                    setShowExitModal(true);
-                }
-            }
-        };
-
-        const handleBeforeUnload = (e) => {
-            if (activeStages.includes(stageRef.current)) {
-                const msg = "Ogohlantirish! Imtihon yakunlanmagan. Chiqib ketsangiz urinishingiz kuyishi mumkin.";
-                e.preventDefault();
-                e.returnValue = msg;
-                return msg;
-            }
-        };
-
-        window.addEventListener('popstate', handlePopState);
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        
-        return () => {
-            window.removeEventListener('popstate', handlePopState);
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, []);
-
-    // ─── Tab Switch: Show warning overlay when user returns ───
+    // Auto-submit on 3rd tab switch
     useEffect(() => {
-        if (tabSwitchCount > 0) {
-            setShowCheatWarning(true);
-        }
-        // Auto-submit on 3rd tab switch
-        if (tabSwitchCount >= 3) {
-            finishExamRef.current();
-        }
-    }, [tabSwitchCount]);
-
-    // ─── Anti-Cheat: Copy/Paste, Context Menu, Keyboard Shortcuts, Fullscreen, DevTools ───
-    useEffect(() => {
-        const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check'];
-
-        const blockEvent = (e) => {
-            if (activeStages.includes(stage)) {
-                e.preventDefault();
-                if (e.type === 'paste') {
-                    alert("Copy/Paste bu imtihonda taqiqlangan!");
-                }
-                return false;
-            }
-        };
-
-        const handleKeyDown = (e) => {
-            if (!activeStages.includes(stage)) return;
-            // Block Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+P, F12
-            if ((e.ctrlKey || e.metaKey) && ['c','v','x','a','p'].includes(e.key.toLowerCase())) {
-                e.preventDefault();
-            }
-            if (e.key === 'F12') {
-                e.preventDefault();
-            }
-        };
-
-        const handleFullscreenChange = () => {
-            if (!document.fullscreenElement && activeStages.includes(stage)) {
-                setIsFullScreen(false);
-                try {
-                    document.documentElement.requestFullscreen?.();
-                } catch (e) { /* ignore */ }
-            } else {
-                setIsFullScreen(!!document.fullscreenElement);
-            }
-        };
-
-        // DevTools detection (simple threshold based on inner vs outer width)
-        const handleResize = () => {
-            if (!activeStages.includes(stage)) return;
-            const threshold = 160;
-            const isDevToolsOpen = 
-                window.outerWidth - window.innerWidth > threshold || 
-                window.outerHeight - window.innerHeight > threshold;
-            
-            if (isDevToolsOpen) {
-                // If devtools is opened, treat it like a tab switch
-                console.warn("DevTools detection triggered");
-                // We don't increment multiple times rapidly, so we could debounce this
-            }
-        };
-
-        document.addEventListener('copy', blockEvent);
-        document.addEventListener('cut', blockEvent);
-        document.addEventListener('paste', blockEvent);
-        document.addEventListener('contextmenu', blockEvent);
-        document.addEventListener('keydown', handleKeyDown);
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        window.addEventListener('resize', handleResize);
-
-        return () => {
-            document.removeEventListener('copy', blockEvent);
-            document.removeEventListener('cut', blockEvent);
-            document.removeEventListener('paste', blockEvent);
-            document.removeEventListener('contextmenu', blockEvent);
-            document.removeEventListener('keydown', handleKeyDown);
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            window.removeEventListener('resize', handleResize);
-        };
-    }, [stage]);
-
-
+        if (tabSwitchCount >= 3) finishExam();
+    }, [tabSwitchCount, finishExam]);
 
     // Report audio progress to hook for persistence
     const handleSetAudioTime = (time) => {
@@ -221,11 +110,12 @@ export default function MockExam() {
                 if (remaining <= 0) {
                     clearInterval(interval);
                     setAutoStartDeadline(null);
-                    const allDone = completedModules.includes('listening') && 
-                                    completedModules.includes('reading') && 
-                                    completedModules.includes('writing');
-                    if (allDone) finishExam();
-                    else setStage('intro');
+                    const allDone = (!mockData?.subTests?.listening || completedModules.includes('listening')) && 
+                                    (!mockData?.subTests?.reading || completedModules.includes('reading')) && 
+                                    (!mockData?.subTests?.writing || completedModules.includes('writing'));
+                    if (!allDone) setStage('intro');
+                    // If allDone is true, we do nothing and wait for manual submit
+                    // This prevents the "auto-submit" behavior the user complained about.
                 }
             }, 1000);
             return () => clearInterval(interval);
@@ -301,14 +191,22 @@ export default function MockExam() {
 
 
 
+    if (stage === 'result') {
+        return <MockExamResult 
+            results={finalResults} 
+            onDashboard={() => { clearExamSession(); navigate('/mock'); }} 
+            onResults={() => { clearExamSession(); navigate('/my-results'); }} 
+        />;
+    }
+
     if (stage === 'loading' || stage === 'saving') {
         return <div className="h-screen flex items-center justify-center text-xl font-bold bg-white text-zinc-900 font-sans">Yuklanmoqda...</div>;
     }
 
     if (stage === 'test_ended') {
-        const allModulesDone = completedModules.includes('listening') && 
-                               completedModules.includes('reading') && 
-                               completedModules.includes('writing');
+        const allModulesDone = (!mockData?.subTests?.listening || completedModules.includes('listening')) && 
+                               (!mockData?.subTests?.reading || completedModules.includes('reading')) && 
+                               (!mockData?.subTests?.writing || completedModules.includes('writing'));
 
         return (
             <div className="h-screen flex items-center justify-center bg-[#f1f2f4] font-['Plus_Jakarta_Sans'] p-4">
@@ -338,9 +236,10 @@ export default function MockExam() {
                             {allModulesDone ? (
                                 <button 
                                     onClick={() => finishExam()}
-                                    className="px-12 py-3 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all active:scale-[0.98] shadow-lg shadow-zinc-900/20"
+                                    disabled={stage === 'saving'}
+                                    className="px-12 py-3 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all active:scale-[0.98] shadow-lg shadow-zinc-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Submit Test
+                                    {stage === 'saving' ? 'Submitting...' : 'Submit Test'}
                                 </button>
                             ) : (
                                 <button 
@@ -352,11 +251,13 @@ export default function MockExam() {
                             )}
                         </div>
 
-                        <div className="pt-4 border-t border-gray-50 text-center">
-                            <p className="text-xs text-zinc-400 italic">
-                                Automatically redirecting in {redirectCountdown} seconds...
-                            </p>
-                        </div>
+                        {!allModulesDone && (
+                            <div className="pt-4 border-t border-gray-50 text-center">
+                                <p className="text-xs text-zinc-400 italic">
+                                    Automatically redirecting in {redirectCountdown} seconds...
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -372,13 +273,6 @@ export default function MockExam() {
         />;
     }
     
-    if (stage === 'result') {
-        return <MockExamResult 
-            results={finalResults} 
-            onDashboard={() => navigate('/mock')} 
-            onResults={() => navigate('/my-results')} 
-        />;
-    }
     
     if (stage === 'reading_intro') {
         return <MockExamSectionIntro title="Reading" duration="60 min" format="3 passages" questions="40" onStart={handleNextStage} />;

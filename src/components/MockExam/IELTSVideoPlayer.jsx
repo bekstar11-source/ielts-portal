@@ -118,9 +118,25 @@ const IELTSVideoPlayer = ({ storagePath, onWatched }) => {
                     onLoadedMetadata={handleLoadedMetadata}
                     onEnded={handleEnded}
                     preload="auto"
+                    playsInline
+                    crossOrigin="anonymous"
                 />
-                {/* Play overlay when paused */}
-                {!isPlaying && (
+                {/* Error fallback: Allow skip if video fails */}
+                {error && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 p-6 text-center">
+                        <div className="space-y-4">
+                            <p className="text-white/80 text-sm">{error}</p>
+                            <button 
+                                onClick={handleEnded}
+                                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-xs font-bold transition-all"
+                            >
+                                Skip & Continue
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {/* Play overlay when paused and no error */}
+                {!isPlaying && !error && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                             <svg className="w-7 h-7 text-zinc-900 ml-1" fill="currentColor" viewBox="0 0 24 24">
