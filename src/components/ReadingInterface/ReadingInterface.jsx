@@ -42,7 +42,7 @@ export default function ReadingInterface({
   setIsNotesVisible,
   isPremium
 }) {
-  const currentTestId = testData?.id || testId;
+  const currentTestId = testId || testData?.id;
 
   // --- 1. SESSION & ANSWERS ---
   const {

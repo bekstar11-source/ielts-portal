@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import IELTSVideoPlayer from './IELTSVideoPlayer';
 
@@ -8,7 +8,7 @@ const BigCheckmark = () => (
     </svg>
 );
 
-const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userName, autoStartDeadline, setAutoStartDeadline }) => {
+const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userName }) => {
     const isAllCompleted = completedModules.length >= 3;
     const isAnyCompleted = completedModules.length > 0;
 
@@ -26,59 +26,7 @@ const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userNam
     const [writingConfirmed, setWritingConfirmed] = useState(false);
     const [writingWatched, setWritingWatched] = useState(false);
 
-    // ─── Auto-Start Logic ───────────────────────────────────────────────────
-    const activeModule = !completedModules.includes('listening') ? 'listening' :
-                        (!completedModules.includes('reading') ? 'reading' :
-                        (!completedModules.includes('writing') ? 'writing' : null));
-    
-    const [autoStartTimer, setAutoStartTimer] = useState(180);
-    const prevWatchedRef = useRef(false);
 
-    // Determine if the currently active module's video has been watched
-    const isCurrentWatched = (activeModule === 'listening' && listeningWatched) ||
-                             (activeModule === 'reading' && readingWatched) ||
-                             (activeModule === 'writing' && writingWatched);
-
-    // 1. Manage the Deadline (Persistence)
-    useEffect(() => {
-        if (!activeModule && !isAllCompleted) return;
-
-        // If no deadline exists, create one (3 minutes from now)
-        if (!autoStartDeadline) {
-            const newDeadline = Date.now() + 180 * 1000;
-            setAutoStartDeadline(newDeadline);
-        }
-    }, [activeModule, isAllCompleted, autoStartDeadline, setAutoStartDeadline]);
-
-    // 2. Handle Video Watch (Reset deadline to 3 mins from NOW)
-    useEffect(() => {
-        if (isCurrentWatched && !prevWatchedRef.current) {
-            const newDeadline = Date.now() + 180 * 1000;
-            setAutoStartDeadline(newDeadline);
-        }
-        prevWatchedRef.current = isCurrentWatched;
-    }, [isCurrentWatched, setAutoStartDeadline]);
-
-    // 3. The countdown effect based on the Deadline
-    useEffect(() => {
-        if (!autoStartDeadline) return;
-
-        const interval = setInterval(() => {
-            const remaining = Math.max(0, Math.round((autoStartDeadline - Date.now()) / 1000));
-            setAutoStartTimer(remaining);
-
-            if (remaining <= 0) {
-                clearInterval(interval);
-                // Clear deadline before moving on
-                setAutoStartDeadline(null);
-                
-                if (isAllCompleted) onFinish();
-                else if (activeModule) onStartModule(activeModule);
-            }
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [autoStartDeadline, activeModule, isAllCompleted, onStartModule, onFinish, setAutoStartDeadline]);
 
     return (
         <div className="min-h-screen bg-white font-sans text-gray-800 antialiased select-none">
@@ -119,10 +67,6 @@ const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userNam
                             <p className="text-sm text-zinc-500 mb-8 max-w-md mx-auto leading-relaxed px-4">
                                 Congratulations! You have finished all three modules. 
                                 Click below to save your results.
-                                <br />
-                                <span className="text-[10px] text-zinc-400 uppercase tracking-widest mt-2 block animate-pulse">
-                                    Auto-finalizing in {autoStartTimer}s
-                                </span>
                             </p>
                             <button 
                                 onClick={onFinish}
@@ -144,11 +88,6 @@ const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userNam
                                     ) : (
                                         <div className="flex items-center gap-3 mb-2">
                                             <p className="text-[#e31b23] font-bold">Not completed</p>
-                                            {activeModule === 'listening' && (
-                                                <span className="text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider animate-pulse">
-                                                    Auto-start in {autoStartTimer}s
-                                                </span>
-                                            )}
                                         </div>
                                     )}
                                     <p className="text-sm text-gray-600 mb-6">Timing: 30 minutes</p>
@@ -231,11 +170,6 @@ const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userNam
                                     ) : (
                                         <div className="flex items-center gap-3 mb-2">
                                             <p className="text-[#e31b23] font-bold">Not completed</p>
-                                            {activeModule === 'reading' && !isReadingLocked && (
-                                                <span className="text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider animate-pulse">
-                                                    Auto-start in {autoStartTimer}s
-                                                </span>
-                                            )}
                                         </div>
                                     )}
                                     <p className="text-sm text-gray-600 mb-6">Timing: 60 minutes</p>
@@ -318,11 +252,6 @@ const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userNam
                                     ) : (
                                         <div className="flex items-center gap-3 mb-2">
                                             <p className="text-[#e31b23] font-bold">Not completed</p>
-                                            {activeModule === 'writing' && !isWritingLocked && (
-                                                <span className="text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider animate-pulse">
-                                                    Auto-start in {autoStartTimer}s
-                                                </span>
-                                            )}
                                         </div>
                                     )}
                                     <p className="text-sm text-gray-600 mb-6">Timing: 60 minutes</p>

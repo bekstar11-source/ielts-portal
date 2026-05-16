@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { AlertTriangle, LogOut, X } from "lucide-react";
 
 // Hooks & Components
 import { useMockExam } from "../../hooks/useMockExam";
@@ -14,13 +13,33 @@ export default function MockExam() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, userData } = useAuth();
-    const mockData = location.state?.mockData;
+
+    // Restore mockData: prefer location.state, fallback to localStorage backup
+    const mockData = location.state?.mockData || (() => {
+        try {
+            const backup = localStorage.getItem('ielts_mock_active_data');
+            return backup ? JSON.parse(backup) : null;
+        } catch (e) { return null; }
+    })();
+
+    // Save mockData to localStorage as backup (survives refresh even if pushState wipes state)
+    useEffect(() => {
+        if (mockData) {
+            try { localStorage.setItem('ielts_mock_active_data', JSON.stringify(mockData)); } catch(e) {}
+        }
+    }, [mockData]);
+
+    // If no mockData at all, redirect to entry
+    useEffect(() => {
+        if (!mockData) navigate('/mock-entry', { replace: true });
+    }, [mockData, navigate]);
 
     const {
         stage, setStage, tests, answers, handleAnswer, 
         timeLeft, setTimeLeft, handleNextStage, finishExam,
         finalResults, completedModules, autoStartDeadline, setAutoStartDeadline,
-        resumeAudioTime, resumeActivePart, updateAudioProgress
+        resumeAudioTime, resumeActivePart, updateAudioProgress,
+        tabSwitchCount, mockId
     } = useMockExam(mockData, user, userData, navigate);
 
     // UI States
@@ -30,57 +49,134 @@ export default function MockExam() {
     const [textSize, setTextSize] = useState('text-base');
     const [isFullScreen, setIsFullScreen] = useState(!!document.fullscreenElement);
     const [redirectCountdown, setRedirectCountdown] = useState(15);
-    const [showBlockModal, setShowBlockModal] = useState(false);
+    const [showCheatWarning, setShowCheatWarning] = useState(false);
+    const [showExitModal, setShowExitModal] = useState(false);
+    const finishExamRef = useRef(finishExam);
+    const stageRef = useRef(stage);
+    
+    useEffect(() => { finishExamRef.current = finishExam; });
+    useEffect(() => { stageRef.current = stage; }, [stage]);
 
-    // Navigation Blocking Logic (Manual popstate handler for BrowserRouter)
-    const isTestActive = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'reading_intro', 'writing_intro'].includes(stage);
-
+    // ─── Navigation Blocking (Aggressive Forward Trap) ───
     useEffect(() => {
-        if (!isTestActive) return;
+        const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'reading_intro', 'writing_intro', 'test_ended'];
+        
+        // Ensure we always have a "forward" entry to go back to
+        if (!window.location.hash) {
+            window.history.pushState(null, '', window.location.pathname + '#exam-active');
+        }
 
-        // Push multiple states to create a deeper "buffer"
-        const pushStates = () => {
-            window.history.pushState(null, "", window.location.href);
-            window.history.pushState(null, "", window.location.href);
-        };
-
-        pushStates();
-
-        const handlePopState = (e) => {
-            if (isTestActive) {
-                // Force stay
-                window.history.pushState(null, "", window.location.href);
-                // Show strict warning
-                setShowBlockModal(true);
+        const handlePopState = (event) => {
+            if (activeStages.includes(stageRef.current)) {
+                // If they tried to go back (hash is gone), IMMEDIATELY push them forward again
+                if (!window.location.hash) {
+                    window.history.go(1); 
+                    // This forces the browser to stay on the component even if React Router tried to move
+                    setShowExitModal(true);
+                }
             }
         };
 
-        window.addEventListener("popstate", handlePopState);
-        
-        // Also block the "BeforeUnload" specifically for these stages
         const handleBeforeUnload = (e) => {
-            if (isTestActive) {
-                const msg = "DIQQAT! Imtihondan chiqsangiz natijangiz saqlanadi va urinish kodingiz kuydi deb hisoblanadi.";
+            if (activeStages.includes(stageRef.current)) {
+                const msg = "Ogohlantirish! Imtihon yakunlanmagan. Chiqib ketsangiz urinishingiz kuyishi mumkin.";
                 e.preventDefault();
                 e.returnValue = msg;
                 return msg;
             }
         };
-        window.addEventListener('beforeunload', handleBeforeUnload);
 
+        window.addEventListener('popstate', handlePopState);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        
         return () => {
-            window.removeEventListener("popstate", handlePopState);
+            window.removeEventListener('popstate', handlePopState);
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, [isTestActive, stage]);
+    }, []);
 
-    const handleConfirmExit = () => {
-        setShowBlockModal(false);
-        if (window.confirm("Haqiqatan ham chiqib ketmoqchimisiz? Natijangiz saqlanadi va test yakunlanadi.")) {
-            finishExam();
-            navigate('/dashboard');
+    // ─── Tab Switch: Show warning overlay when user returns ───
+    useEffect(() => {
+        if (tabSwitchCount > 0) {
+            setShowCheatWarning(true);
         }
-    };
+        // Auto-submit on 3rd tab switch
+        if (tabSwitchCount >= 3) {
+            finishExamRef.current();
+        }
+    }, [tabSwitchCount]);
+
+    // ─── Anti-Cheat: Copy/Paste, Context Menu, Keyboard Shortcuts, Fullscreen, DevTools ───
+    useEffect(() => {
+        const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check'];
+
+        const blockEvent = (e) => {
+            if (activeStages.includes(stage)) {
+                e.preventDefault();
+                if (e.type === 'paste') {
+                    alert("Copy/Paste bu imtihonda taqiqlangan!");
+                }
+                return false;
+            }
+        };
+
+        const handleKeyDown = (e) => {
+            if (!activeStages.includes(stage)) return;
+            // Block Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+P, F12
+            if ((e.ctrlKey || e.metaKey) && ['c','v','x','a','p'].includes(e.key.toLowerCase())) {
+                e.preventDefault();
+            }
+            if (e.key === 'F12') {
+                e.preventDefault();
+            }
+        };
+
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement && activeStages.includes(stage)) {
+                setIsFullScreen(false);
+                try {
+                    document.documentElement.requestFullscreen?.();
+                } catch (e) { /* ignore */ }
+            } else {
+                setIsFullScreen(!!document.fullscreenElement);
+            }
+        };
+
+        // DevTools detection (simple threshold based on inner vs outer width)
+        const handleResize = () => {
+            if (!activeStages.includes(stage)) return;
+            const threshold = 160;
+            const isDevToolsOpen = 
+                window.outerWidth - window.innerWidth > threshold || 
+                window.outerHeight - window.innerHeight > threshold;
+            
+            if (isDevToolsOpen) {
+                // If devtools is opened, treat it like a tab switch
+                console.warn("DevTools detection triggered");
+                // We don't increment multiple times rapidly, so we could debounce this
+            }
+        };
+
+        document.addEventListener('copy', blockEvent);
+        document.addEventListener('cut', blockEvent);
+        document.addEventListener('paste', blockEvent);
+        document.addEventListener('contextmenu', blockEvent);
+        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            document.removeEventListener('copy', blockEvent);
+            document.removeEventListener('cut', blockEvent);
+            document.removeEventListener('paste', blockEvent);
+            document.removeEventListener('contextmenu', blockEvent);
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [stage]);
+
+
 
     // Report audio progress to hook for persistence
     const handleSetAudioTime = (time) => {
@@ -128,13 +224,82 @@ export default function MockExam() {
                     const allDone = completedModules.includes('listening') && 
                                     completedModules.includes('reading') && 
                                     completedModules.includes('writing');
-                    if (allDone) navigate('/');
+                    if (allDone) finishExam();
                     else setStage('intro');
                 }
             }, 1000);
             return () => clearInterval(interval);
         }
     }, [stage, autoStartDeadline, completedModules, navigate, setStage, setAutoStartDeadline]);
+
+    // ─── Cheat Warning Overlay ───
+    const cheatWarningOverlay = showCheatWarning && tabSwitchCount < 3 && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+                    <span className="text-3xl">⚠️</span>
+                </div>
+                <h2 className="text-xl font-bold text-zinc-900 mb-2">Ogohlantirish!</h2>
+                <p className="text-sm text-zinc-600 mb-4 leading-relaxed">
+                    Siz test vaqtida boshqa oynaga o'tdingiz. Bu qoidabuzarlik hisoblanadi.
+                </p>
+                <div className="bg-red-50 border border-red-100 rounded-lg p-3 mb-6">
+                    <p className="text-sm font-bold text-red-700">
+                        Ogohlantirish: <span className="text-red-600 text-lg">{tabSwitchCount}</span> / 3
+                    </p>
+                    <p className="text-xs text-red-500 mt-1">3-marta takrorlansa test avtomatik yakunlanadi</p>
+                </div>
+                <button 
+                    onClick={() => setShowCheatWarning(false)}
+                    className="w-full py-3 bg-zinc-900 text-white rounded-lg font-bold text-sm hover:bg-black transition-all active:scale-[0.98]"
+                >
+                    Davom etish
+                </button>
+            </div>
+        </div>
+    );
+    
+    // ─── Exit Confirmation Modal ───
+    const exitConfirmationModal = showExitModal && (
+        <div className="fixed inset-0 z-[500] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-10 max-w-md w-full text-center shadow-2xl overflow-hidden relative border border-white/20 animate-in fade-in zoom-in duration-300">
+                {/* Decorative background element */}
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-red-600" />
+                
+                <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-8">
+                    <span className="text-5xl">🚪</span>
+                </div>
+                
+                <h2 className="text-3xl font-extrabold text-zinc-900 mb-4 tracking-tight">Chiqib ketasizmi?</h2>
+                <p className="text-zinc-600 mb-10 leading-relaxed text-lg">
+                    Ogohlantirish! Agar hozir chiqib ketsangiz imtihon yakunlanadi va urinishingiz (key) <span className="text-red-600 font-bold underline">kuyadi</span>.
+                </p>
+                
+                <div className="flex flex-col gap-4">
+                    <button 
+                        onClick={() => {
+                            setShowExitModal(false);
+                            finishExamRef.current().finally(() => {
+                                // Hard redirect to break all history traps
+                                window.location.href = '/mock';
+                            });
+                        }}
+                        className="w-full py-5 bg-red-600 text-white rounded-2xl font-bold text-base hover:bg-red-700 transition-all shadow-xl shadow-red-900/20 active:scale-[0.98]"
+                    >
+                        Ha, imtihonni yakunlash
+                    </button>
+                    <button 
+                        onClick={() => setShowExitModal(false)}
+                        className="w-full py-5 bg-zinc-100 text-zinc-900 rounded-2xl font-bold text-base hover:bg-zinc-200 transition-all active:scale-[0.98]"
+                    >
+                        Yo'q, testda qolish
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
+
 
     if (stage === 'loading' || stage === 'saving') {
         return <div className="h-screen flex items-center justify-center text-xl font-bold bg-white text-zinc-900 font-sans">Yuklanmoqda...</div>;
@@ -172,10 +337,10 @@ export default function MockExam() {
                         <div className="flex justify-center pt-6">
                             {allModulesDone ? (
                                 <button 
-                                    onClick={() => navigate('/')}
+                                    onClick={() => finishExam()}
                                     className="px-12 py-3 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all active:scale-[0.98] shadow-lg shadow-zinc-900/20"
                                 >
-                                    Go to Dashboard
+                                    Submit Test
                                 </button>
                             ) : (
                                 <button 
@@ -204,15 +369,13 @@ export default function MockExam() {
             completedModules={completedModules}
             onFinish={finishExam}
             userName={userData?.fullName || user?.email || 'Candidate'}
-            autoStartDeadline={autoStartDeadline}
-            setAutoStartDeadline={setAutoStartDeadline}
         />;
     }
     
     if (stage === 'result') {
         return <MockExamResult 
             results={finalResults} 
-            onDashboard={() => navigate('/')} 
+            onDashboard={() => navigate('/mock')} 
             onResults={() => navigate('/my-results')} 
         />;
     }
@@ -227,75 +390,27 @@ export default function MockExam() {
 
     return (
         <>
-            <TestSolvingView 
-                stage={stage}
-                tests={tests}
-                answers={answers}
-                handleAnswer={handleAnswer}
-                timeLeft={timeLeft}
-                handleNextStage={handleNextStage}
-                textSize={textSize}
-                setTextSize={setTextSize}
-                activePart={activePart}
-                setActivePart={(part) => { setActivePart(part); updateAudioProgress(audioTime, part); }}
-                setAudioTime={handleSetAudioTime}
-                setIsAudioReady={setIsAudioReady}
-                isFullScreen={isFullScreen}
-                audioTime={audioTime}
-                userName={userData?.fullName || user?.email || 'Candidate'}
-                resumeAudioTime={resumeAudioTime}
-            />
-
-            {/* Strict Navigation Block Modal */}
-            {showBlockModal && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[440px] overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="bg-[#e31b23] p-6 flex flex-col items-center text-center text-white">
-                            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 scale-110">
-                                <AlertTriangle size={32} />
-                            </div>
-                            <h3 className="text-2xl font-black tracking-tight leading-tight uppercase">DIQQAT! IMTIHON TO'XTATILADI</h3>
-                        </div>
-                        
-                        <div className="p-8 space-y-6">
-                            <div className="space-y-4">
-                                <div className="flex gap-4 items-start">
-                                    <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0 mt-1">
-                                        <X className="text-[#e31b23]" size={18} />
-                                    </div>
-                                    <p className="text-[15px] font-bold text-gray-900 leading-snug">
-                                        Sahifani tark etsangiz, imtihon avtomatik yakunlanadi va urinish kodingiz (key) kuyadi.
-                                    </p>
-                                </div>
-                                <div className="flex gap-4 items-start">
-                                    <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0 mt-1">
-                                        <LogOut className="text-[#e31b23]" size={18} />
-                                    </div>
-                                    <p className="text-[15px] font-medium text-gray-600 leading-snug">
-                                        Hozircha saqlangan javoblaringiz bazaga yuboriladi va siz testni qayta davom ettira olmaysiz.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-3 pt-4">
-                                <button 
-                                    onClick={() => setShowBlockModal(false)}
-                                    className="w-full py-4 bg-zinc-900 text-white rounded-xl font-black text-sm uppercase tracking-wider hover:bg-black transition-all active:scale-[0.98] shadow-lg shadow-zinc-900/20"
-                                >
-                                    Imtihonda qolish
-                                </button>
-                                <button 
-                                    onClick={handleConfirmExit}
-                                    className="w-full py-3 text-red-600 font-bold text-xs uppercase tracking-widest hover:bg-red-50 rounded-xl transition-all"
-                                >
-                                    Ha, chiqish va testni yakunlash
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+        {cheatWarningOverlay}
+        {exitConfirmationModal}
+        <TestSolvingView 
+            stage={stage}
+            tests={tests}
+            answers={answers}
+            handleAnswer={handleAnswer}
+            timeLeft={timeLeft}
+            handleNextStage={handleNextStage}
+            textSize={textSize}
+            setTextSize={setTextSize}
+            activePart={activePart}
+            setActivePart={(part) => { setActivePart(part); updateAudioProgress(audioTime, part); }}
+            setAudioTime={handleSetAudioTime}
+            setIsAudioReady={setIsAudioReady}
+            isFullScreen={isFullScreen}
+            audioTime={audioTime}
+            userName={userData?.fullName || user?.email || 'Candidate'}
+            resumeAudioTime={resumeAudioTime}
+            mockId={mockId}
+        />
         </>
     );
 }

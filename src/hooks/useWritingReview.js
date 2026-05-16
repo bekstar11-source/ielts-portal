@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { db, functions } from '../firebase/firebase';
 import { collection, doc, getDoc, getDocs, query, where, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+import { calculateOverallBand } from '../utils/ieltsScoring';
 
 export const useWritingReview = (userData) => {
     const [writings, setWritings] = useState([]);
@@ -98,28 +99,26 @@ export const useWritingReview = (userData) => {
 
             // Calculate overall band for Mock Exam
             if (resData.type === 'mock_full') {
-                const lBand = parseFloat(resData.scores?.listeningBand || 0);
-                const rBand = parseFloat(resData.scores?.readingBand || 0);
+                const s = resData.scores || {};
+                
+                // Robust extraction of scores
+                const lBand = parseFloat(s.listeningBand ?? s.listening_band ?? resData.listeningBand ?? 0);
+                const rBand = parseFloat(s.readingBand ?? s.reading_band ?? resData.readingBand ?? 0);
                 const wBand = writingOverall;
-                const sBand = parseFloat(resData.scores?.speakingBand || 0);
+                const sBand = parseFloat(s.speakingBand ?? s.speaking_band ?? resData.speakingBand ?? 0);
                 
-                // IELTS Overall is (L+R+W+S)/4.
-                // We count how many sections are present
-                const sections = [];
-                if (lBand > 0) sections.push(lBand);
-                if (rBand > 0) sections.push(rBand);
-                if (wBand > 0) sections.push(wBand);
-                if (sBand > 0) sections.push(sBand);
+                // For a Mock Exam, we expect at least L, R, and W
+                const sections = [lBand, rBand, wBand];
                 
-                const avg = sections.length > 0 ? sections.reduce((a, b) => a + b, 0) / sections.length : 0;
-                let mockOverall = Math.floor(avg);
-                const oRem = avg - mockOverall;
-                if (oRem >= 0.75) mockOverall += 1;
-                else if (oRem >= 0.25) mockOverall += 0.5;
+                // Only include Speaking if it was actually attempted or has a score
+                if (sBand > 0 || s.speakingBand !== undefined || resData.speakingBand !== undefined) {
+                    sections.push(sBand);
+                }
+                
+                const mockOverall = calculateOverallBand(sections);
                 
                 updates.bandScore = mockOverall;
                 updates.overallBand = mockOverall;
-                // Also update nested scores object for consistency
                 updates['scores.writingBand'] = wBand;
                 updates['scores.overallBand'] = mockOverall;
             }

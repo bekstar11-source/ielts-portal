@@ -303,7 +303,7 @@ function VolumeCheckScreen({ test, onStart }) {
 export const TestSolvingView = ({
     stage, tests, answers, handleAnswer, timeLeft, handleNextStage,
     textSize, setTextSize, activePart, setActivePart, setAudioTime,
-    setIsAudioReady, isFullScreen, audioTime, userName, resumeAudioTime
+    setIsAudioReady, isFullScreen, audioTime, userName, resumeAudioTime, mockId
 }) => {
     const logicalStage = stage === 'listening_volume_check' ? 'listening' : stage;
     const [volume, setVolume] = useState(0.7);
@@ -329,7 +329,7 @@ export const TestSolvingView = ({
     };
 
     return (
-        <div className={`flex flex-col h-screen bg-gray-50 overflow-hidden font-sans ${textSize}`}>
+        <div className={`flex flex-col h-screen bg-gray-50 overflow-hidden font-sans ${textSize}`} style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
             {/* Resume Test Overlay for Autoplay Unlock */}
             <AnimatePresence>
                 {showResumeOverlay && (
@@ -569,16 +569,20 @@ export const TestSolvingView = ({
                         userAnswers={answers.reading}
                         onAnswerChange={handleAnswer}
                         textSize={textSize}
+                        testId={mockId}
                     />
                 )}
 
                 {stage === 'writing' && (
+                    <div style={{ userSelect: 'text', WebkitUserSelect: 'text' }}>
                     <WritingInterface
                         testData={tests.writing}
                         userAnswers={answers.writing}
                         onAnswerChange={handleAnswer}
                         textSize={textSize}
+                        testId={mockId}
                     />
+                    </div>
                 )}
             </div>
             {/* Finish Test Confirmation Modal */}

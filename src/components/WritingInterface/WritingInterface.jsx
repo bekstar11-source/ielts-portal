@@ -6,14 +6,17 @@ export default function WritingInterface({
     userAnswers: parentAnswers,
     onAnswerChange: setParentAnswer,
     isReviewMode,
-    textSize
+    textSize,
+    testId
 }) {
+    const currentTestId = testId || testData?.id;
+
     // Session hook for auto-save
     const {
         answers: sessionAnswers,
         handleAnswerChange: setSessionAnswer,
         isDataLoaded
-    } = useTestSession(`ielts_writing_session_${testData?.id || 'default'}`);
+    } = useTestSession(`ielts_writing_session_${currentTestId || 'default'}`);
 
     const [activeTask, setActiveTask] = useState(1);
 
@@ -141,7 +144,7 @@ export default function WritingInterface({
                         <div className="mb-4 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-gray-700">Your Answer</h3>
                             <div className={`text-xs font-bold px-4 py-1.5 rounded bg-zinc-100 text-zinc-900 border border-zinc-200 shadow-sm`}>
-                                {wordCount} / {minWords} words
+                                Word count: {wordCount}
                             </div>
                         </div>
 

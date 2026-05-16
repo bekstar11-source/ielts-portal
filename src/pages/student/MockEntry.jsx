@@ -309,7 +309,14 @@ export default function MockEntry() {
                                         <p className="text-gray-500 text-sm leading-relaxed">Your mock exam has been successfully activated. <br/>When would you like to begin?</p>
                                     </div>
                                     <div className="grid grid-cols-1 gap-3 pt-4">
-                                        <button onClick={() => navigate('/mock-exam', { state: { mockData: currentMock } })} className="w-full bg-[#e31b23] text-white py-4 rounded-xl font-bold text-sm hover:bg-[#c4151c] transition-all shadow-lg shadow-red-900/10">Start exam now</button>
+                                        <button onClick={() => {
+                                            try { 
+                                                const key = currentMock?.mockKey || currentMock?.id || 'default';
+                                                localStorage.removeItem(`ielts_mock_session_${key}`); 
+                                                localStorage.removeItem('ielts_mock_active_data');
+                                            } catch(e) {}
+                                            navigate('/mock-exam', { state: { mockData: currentMock } });
+                                        }} className="w-full bg-[#e31b23] text-white py-4 rounded-xl font-bold text-sm hover:bg-[#c4151c] transition-all shadow-lg shadow-red-900/10">Start exam now</button>
                                         <button onClick={() => setShowCalendar(true)} className="w-full bg-gray-50 text-gray-600 py-4 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all border border-gray-200">Schedule for later</button>
                                     </div>
                                 </div>
@@ -562,7 +569,14 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                 </div>
                 
                 <button 
-                    onClick={() => navigate('/mock-exam', { state: { mockData: test } })}
+                    onClick={() => {
+                        try { 
+                            const key = test?.mockKey || test?.id || 'default';
+                            localStorage.removeItem(`ielts_mock_session_${key}`); 
+                            localStorage.removeItem('ielts_mock_active_data');
+                        } catch(e) {}
+                        navigate('/mock-exam', { state: { mockData: test } });
+                    }}
                     className="w-full md:w-auto px-10 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 bg-[#e31b23] text-white hover:bg-[#c4151c] shadow-lg shadow-red-900/20"
                 >
                     Start exam
