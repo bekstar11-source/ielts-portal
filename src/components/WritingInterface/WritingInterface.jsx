@@ -7,23 +7,26 @@ export default function WritingInterface({
     onAnswerChange: setParentAnswer,
     isReviewMode,
     textSize,
-    testId
+    testId,
+    disableInternalSession = false
 }) {
     const currentTestId = testId || testData?.id;
 
-    // Session hook for auto-save
+    // Session hook for auto-save (Only if not disabled)
     const {
         answers: sessionAnswers,
         handleAnswerChange: setSessionAnswer,
         isDataLoaded
-    } = useTestSession(`ielts_writing_session_${currentTestId || 'default'}`);
+    } = useTestSession(disableInternalSession ? null : `ielts_writing_session_${currentTestId || 'default'}`);
 
     const [activeTask, setActiveTask] = useState(1);
 
     // Dual update: session + parent
     const handleDualAnswerChange = (taskId, value) => {
         const key = `task${taskId}`;
-        setSessionAnswer(key, value);
+        if (!disableInternalSession) {
+            setSessionAnswer(key, value);
+        }
         if (setParentAnswer) {
             setParentAnswer(key, value);
         }
@@ -31,16 +34,15 @@ export default function WritingInterface({
 
     // Resume sync
     useEffect(() => {
-        if (sessionAnswers && Object.keys(sessionAnswers).length > 0) {
+        if (!disableInternalSession && sessionAnswers && Object.keys(sessionAnswers).length > 0) {
             Object.entries(sessionAnswers).forEach(([key, val]) => {
-                // Only update if parent doesn't have it or it's different
                 if (parentAnswers && parentAnswers[key] !== val) {
                     setParentAnswer(key, val);
                 }
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isDataLoaded]); // reliance on isDataLoaded
+    }, [isDataLoaded]);
 
     const getWordCount = (text) => {
         if (!text) return 0;
@@ -84,88 +86,106 @@ export default function WritingInterface({
     const currentAnswer = parentAnswers?.[`task${activeTask}`] || "";
     const wordCount = getWordCount(currentAnswer);
     const minWords = currentTask?.minWords || 150;
-    const isUnderLimit = wordCount < minWords;
 
     return (
-        <div className={`flex flex-col h-full w-full bg-gray-50 overflow-hidden ${textSize || 'text-base'}`}>
+        <div className={`flex flex-col h-full w-full bg-white overflow-hidden ${textSize || 'text-base'}`}>
 
             {/* Task Tabs */}
-            <div className="bg-white border-b px-6 py-3 flex gap-3 shadow-sm">
-                {tasks.map(task => (
-                    <button
-                        key={task.id}
-                        onClick={() => setActiveTask(task.id)}
-                        disabled={isReviewMode}
-                        className={`px-6 py-2 text-sm font-bold rounded transition-all active:scale-95 ${activeTask === task.id
-                            ? 'bg-zinc-900 text-white shadow-lg'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            } ${isReviewMode ? 'cursor-not-allowed opacity-60' : ''}`}
-                    >
-                        {task.title}
-                    </button>
-                ))}
+            <div className="bg-[#f8f9fa] border-b px-6 py-2.5 flex justify-between items-center shadow-sm z-10">
+                <div className="flex gap-2">
+                    {tasks.map(task => (
+                        <button
+                            key={task.id}
+                            onClick={() => setActiveTask(task.id)}
+                            disabled={isReviewMode}
+                            className={`px-6 py-2 text-sm font-bold rounded-lg transition-all active:scale-[0.98] ${activeTask === task.id
+                                ? 'bg-zinc-900 text-white shadow-md'
+                                : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'
+                                } ${isReviewMode ? 'cursor-not-allowed opacity-60' : ''}`}
+                        >
+                            {task.title}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Writing Section</div>
+                </div>
             </div>
 
             {/* Main Content */}
             <div className="flex-1 flex overflow-hidden">
 
                 {/* Left: Task Prompt */}
-                <div className="w-1/2 bg-white border-r border-gray-200 overflow-y-auto p-8">
-                    <div className="max-w-2xl mx-auto">
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-2">{currentTask?.title}</h2>
-                            <div className="text-sm text-gray-500 space-y-1">
-                                <p>You should spend about {currentTask?.id === 1 ? '20' : '40'} minutes on this task.</p>
-                                <p>Write at least {minWords} words.</p>
+                <div className="w-1/2 bg-white border-r border-gray-100 overflow-y-auto p-10">
+                    <div className="max-w-2xl mx-auto h-full flex flex-col">
+                        <div className="mb-8">
+                            <h2 className="text-3xl font-black text-zinc-900 mb-3 tracking-tight">{currentTask?.title}</h2>
+                            <div className="flex flex-wrap gap-4 text-[13px] font-bold">
+                                <span className="text-zinc-400 uppercase tracking-wider">⏱️ Spend about {currentTask?.id === 1 ? '20' : '40'} mins</span>
+                                <span className="text-zinc-400 uppercase tracking-wider">✍️ Min {minWords} words</span>
                             </div>
                         </div>
 
-                        <div className="bg-zinc-50 border-l-4 border-zinc-900 p-8 rounded-r-lg mb-6 shadow-sm">
-                            <p className="text-gray-900 leading-relaxed whitespace-pre-wrap text-xl font-medium">
-                                {currentTask?.prompt}
-                            </p>
-                        </div>
-
-                        {currentTask?.image && (
-                            <div className="mb-6">
-                                <img
-                                    src={currentTask.image}
-                                    alt="Task visual"
-                                    className="w-full rounded-lg border border-gray-200 shadow-sm"
-                                />
+                        <div className="flex-1">
+                            <div className="bg-zinc-50 border-l-[6px] border-zinc-900 p-10 rounded-xl mb-8 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)]">
+                                <p className="text-zinc-800 leading-relaxed whitespace-pre-wrap text-xl font-semibold italic">
+                                    "{currentTask?.prompt}"
+                                </p>
                             </div>
-                        )}
+
+                            {currentTask?.image && (
+                                <div className="mb-8 group">
+                                    <img
+                                        src={currentTask.image}
+                                        alt="Task visual"
+                                        className="w-full rounded-2xl border border-gray-100 shadow-xl transition-all group-hover:shadow-2xl"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="mt-auto pt-8 border-t border-gray-50">
+                            <p className="text-[11px] text-gray-400 font-medium uppercase tracking-[0.2em]">End of prompt area</p>
+                        </div>
                     </div>
                 </div>
 
                 {/* Right: Answer Area */}
-                <div className="w-1/2 bg-gray-50 overflow-y-auto p-8 flex flex-col">
-                    <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
-                        <div className="mb-4 flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-gray-700">Your Answer</h3>
-                            <div className={`text-xs font-bold px-4 py-1.5 rounded bg-zinc-100 text-zinc-900 border border-zinc-200 shadow-sm`}>
-                                Word count: {wordCount}
+                <div className="w-1/2 bg-[#fdfdfd] overflow-hidden p-10 flex flex-col">
+                    <div className="max-w-2xl mx-auto w-full h-full flex flex-col">
+                        <div className="mb-5 flex justify-between items-end">
+                            <div className="flex flex-col">
+                                <h3 className="text-sm font-black text-zinc-900 uppercase tracking-widest mb-1">Response</h3>
+                                <div className="h-1 w-8 bg-zinc-900 rounded-full"></div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Word count</span>
+                                <div className="px-4 py-1.5 rounded-full bg-zinc-900 text-white text-xs font-black shadow-lg shadow-zinc-900/10">
+                                    {wordCount}
+                                </div>
                             </div>
                         </div>
 
-                        <textarea
-                            value={currentAnswer}
-                            onChange={(e) => handleDualAnswerChange(activeTask, e.target.value)}
-                            onPaste={(e) => !isReviewMode && e.preventDefault()}
-                            onContextMenu={(e) => !isReviewMode && e.preventDefault()}
-                            onCopy={(e) => !isReviewMode && e.preventDefault()}
-                            onCut={(e) => !isReviewMode && e.preventDefault()}
-                            spellCheck={false}
-                            data-gramm="false"
-                            data-enable-grammarly="false"
-                            disabled={isReviewMode}
-                            placeholder={`Start writing your ${currentTask?.title.toLowerCase()} here...`}
-                            className={`flex-1 w-full p-8 border-2 rounded-lg font-serif text-lg leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all ${isReviewMode
-                                ? 'bg-gray-100 cursor-not-allowed'
-                                : 'bg-white border-gray-300 shadow-inner'
-                                }`}
-                        />
-
+                        <div className="flex-1 relative group">
+                            <div className="absolute inset-0 bg-zinc-900/5 rounded-[32px] translate-x-1 translate-y-1 transition-transform group-focus-within:translate-x-1.5 group-focus-within:translate-y-1.5"></div>
+                            <textarea
+                                value={currentAnswer}
+                                onChange={(e) => handleDualAnswerChange(activeTask, e.target.value)}
+                                onPaste={(e) => !isReviewMode && e.preventDefault()}
+                                onContextMenu={(e) => !isReviewMode && e.preventDefault()}
+                                onCopy={(e) => !isReviewMode && e.preventDefault()}
+                                onCut={(e) => !isReviewMode && e.preventDefault()}
+                                spellCheck={false}
+                                data-gramm="false"
+                                data-enable-grammarly="false"
+                                disabled={isReviewMode}
+                                placeholder={`Type your response for ${currentTask?.title.toLowerCase()}...`}
+                                className={`relative h-full w-full p-10 border-2 rounded-[32px] font-serif text-xl leading-relaxed resize-none focus:outline-none focus:ring-0 transition-all ${isReviewMode
+                                    ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
+                                    : 'bg-white border-zinc-200 focus:border-zinc-900 shadow-sm'
+                                    } min-h-[500px]`}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

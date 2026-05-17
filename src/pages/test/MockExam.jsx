@@ -9,6 +9,8 @@ import MockExamIntro from "../../components/MockExam/MockExamIntro";
 import MockExamResult from "../../components/MockExam/MockExamResult";
 import MockExamSectionIntro from "../../components/MockExam/MockExamSectionIntro";
 import { TestSolvingView } from "../../components/MockExam/TestSolvingView";
+import { Maximize } from "lucide-react";
+const SECURITY_ACTIVE_STAGES = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended'];
 
 export default function MockExam() {
     const navigate = useNavigate();
@@ -52,25 +54,44 @@ export default function MockExam() {
     const [redirectCountdown, setRedirectCountdown] = useState(15);
     const [showCheatWarning, setShowCheatWarning] = useState(false);
     const [showExitModal, setShowExitModal] = useState(false);
+    const [showFullscreenOverlay, setShowFullscreenOverlay] = useState(false);
 
     // Security Hook Integration
-    const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check'];
     useExamSecurity({
-        enabled: activeStages.includes(stage),
+        enabled: SECURITY_ACTIVE_STAGES.includes(stage),
         onSecurityViolation: (type) => {
-            if (type === 'tab_switch') setShowCheatWarning(true);
+            if (type === 'fullscreen_exit') {
+                setShowFullscreenOverlay(true);
+            }
+            // Only count tab switches during actual test solving
+            const solvingStages = ['listening', 'reading', 'writing'];
+            if (type === 'tab_switch' && solvingStages.includes(stage)) {
+                setShowCheatWarning(true);
+            }
         }
     });
 
-    // Auto-submit on 3rd tab switch
+    // Enforcement on mount/stage change
     useEffect(() => {
-        if (tabSwitchCount >= 3) finishExam();
-    }, [tabSwitchCount, finishExam]);
+        if (SECURITY_ACTIVE_STAGES.includes(stage) && !document.fullscreenElement && stage !== 'loading' && stage !== 'saving') {
+            setShowFullscreenOverlay(true);
+        }
+    }, [stage]);
+
+    // Auto-terminate logic is now handled via a modal button to confirm result viewing
 
     // Report audio progress to hook for persistence
     const handleSetAudioTime = (time) => {
         setAudioTime(time);
         updateAudioProgress(time, activePart);
+    };
+
+    const enterFullScreen = () => {
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) docEl.requestFullscreen();
+        else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+        else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
+        setShowFullscreenOverlay(false);
     };
 
     const startModule = async (moduleType) => {
@@ -149,6 +170,27 @@ export default function MockExam() {
         </div>
     );
     
+    // ─── Cheat Termination Overlay (3 strikes) ───
+    const cheatTerminationOverlay = tabSwitchCount >= 3 && (
+        <div className="fixed inset-0 z-[300] bg-zinc-950/90 backdrop-blur-md flex items-center justify-center p-6 text-center font-sans">
+            <div className="bg-white rounded-xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in duration-300">
+                <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+                    <span className="text-2xl">🚫</span>
+                </div>
+                <h2 className="text-xl font-black text-zinc-900 mb-2 tracking-tight">Test Yakunlandi</h2>
+                <p className="text-xs text-zinc-500 mb-6 leading-relaxed">
+                    Siz 3 marta qoida buzganingiz (sahifani tark etganingiz) uchun test tizim tomonidan avtomatik ravishda to'xtatildi.
+                </p>
+                <button 
+                    onClick={() => finishExam()}
+                    className="w-full py-3 bg-[#e31b23] text-white rounded-lg font-bold text-sm hover:bg-red-700 transition-all active:scale-[0.98] shadow-lg shadow-red-900/20"
+                >
+                    OK (Natijalarni ko'rish)
+                </button>
+            </div>
+        </div>
+    );
+
     // ─── Exit Confirmation Modal ───
     const exitConfirmationModal = showExitModal && (
         <div className="fixed inset-0 z-[500] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -186,6 +228,25 @@ export default function MockExam() {
                     </button>
                 </div>
             </div>
+        </div>
+    );
+
+    // ─── Fullscreen Enforcement Overlay ───
+    const fullscreenOverlay = showFullscreenOverlay && (
+        <div className="fixed inset-0 z-[9999] bg-white/60 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300 font-sans">
+            <div className="w-16 h-16 bg-[#e31b23] rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-red-500/20">
+                <Maximize size={32} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-black text-zinc-900 mb-2 tracking-tight uppercase">Full Screen Required</h2>
+            <p className="text-zinc-600 max-w-[280px] text-sm font-medium leading-relaxed mb-8">
+                To maintain the integrity of the exam, please return to full-screen mode to continue.
+            </p>
+            <button 
+                onClick={enterFullScreen}
+                className="px-8 py-3.5 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all active:scale-[0.98] shadow-2xl shadow-zinc-900/30"
+            >
+                Return to Full Screen
+            </button>
         </div>
     );
 
@@ -285,7 +346,9 @@ export default function MockExam() {
     return (
         <>
         {cheatWarningOverlay}
+        {cheatTerminationOverlay}
         {exitConfirmationModal}
+        {fullscreenOverlay}
         <TestSolvingView 
             stage={stage}
             tests={tests}

@@ -10,6 +10,10 @@ const { generateVocab } = require("./generateVocab");
 const { translateWord } = require("./translateWord");
 const { checkWriting } = require("./checkWriting");
 const { telegramWebhook, verifyTelegramOTP } = require("./telegramBot");
+const { verifyAccessKey } = require("./verifyAccessKey");
+const { getSanitizedTest } = require("./getSanitizedTest");
+const { submitTestAnswers } = require("./submitTestAnswers");
+const { submitMockExam } = require("./submitMockExam");
 
 exports.transcribePodcast = functions
     .runWith({ timeoutSeconds: 300, memory: "512MB" })
@@ -30,6 +34,22 @@ exports.translateWord = functions
 exports.checkWriting = functions
     .runWith({ timeoutSeconds: 120, memory: "256MB" })
     .https.onCall(checkWriting);
+
+exports.verifyAccessKey = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onCall(verifyAccessKey);
+
+exports.getSanitizedTest = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onCall(getSanitizedTest);
+
+exports.submitTestAnswers = functions
+    .runWith({ timeoutSeconds: 90, memory: "256MB" })
+    .https.onCall(submitTestAnswers);
+
+exports.submitMockExam = functions
+    .runWith({ timeoutSeconds: 120, memory: "256MB" })
+    .https.onCall(submitMockExam);
 
 exports.telegramWebhook = telegramWebhook;
 exports.verifyTelegramOTP = verifyTelegramOTP;

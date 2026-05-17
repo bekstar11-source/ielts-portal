@@ -33,7 +33,20 @@ export default function DashboardListeningCarousel({ isListeningPaused, onStartT
                     const qTests = query(collection(db, "tests"), where("type", "==", "listening"), orderBy("createdAt", "desc"), limit(10));
                     const qPods = query(collection(db, "podcasts"), where("status", "==", "published"), orderBy("createdAt", "desc"), limit(10));
                     
-                    const [snapTests, snapPods] = await Promise.all([getDocs(qTests), getDocs(qPods)]);
+                    let snapTests = { docs: [] };
+                    let snapPods = { docs: [] };
+
+                    try {
+                        snapTests = await getDocs(qTests);
+                    } catch (err) {
+                        console.warn("Could not fetch fallback tests due to permissions:", err);
+                    }
+
+                    try {
+                        snapPods = await getDocs(qPods);
+                    } catch (err) {
+                        console.error("Error fetching podcasts:", err);
+                    }
                     
                     const getMs = (date) => {
                         if (!date) return 0;
@@ -65,7 +78,9 @@ export default function DashboardListeningCarousel({ isListeningPaused, onStartT
                         title: item.title || (isPod ? "New Podcast" : "Listening Practice"),
                         sub: item.description || item.tags?.[0] || "IELTS Listening ko'nikmalarini oshirish.",
                         questions: isPod ? "Interactive Podcast" : `${item.totalQuestions || 0} Questions`,
-                        link: isPod ? `/podcast/${item.id}` : `/test/${item.id}`,
+                        link: isPod 
+                            ? (item.mode === 'spotify' ? `/podcast/spotify/${item.id}` : `/podcast/${item.id}`) 
+                            : `/test/${item.id}`,
                         img: item.thumbnail || [
                             "/images/dashboard/listening_cover_1_vibrant_apple_music_style_1776972033954.png",
                             "/images/dashboard/listening_cover_2_vibrant_apple_music_style_1776972053148.png",

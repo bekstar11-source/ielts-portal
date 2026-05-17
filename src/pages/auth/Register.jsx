@@ -147,11 +147,14 @@ export default function Register() {
             className="w-full max-w-[300px]"
         >
 
-          <div className="text-center mb-10">
+          <div className="text-center mb-8 flex flex-col items-center">
+            <Link to="/" className="mb-6 block transition-transform hover:scale-105 active:scale-95">
+              <img src="/englev-logo.png" alt="englev." className="h-11 md:h-12 w-auto object-contain" />
+            </Link>
             <h1 className="text-2xl font-bold text-[#1a1a1a] tracking-tight mb-2">
-              ENGLEV ga xush kelibsiz
+              Ro'yxatdan o'tish
             </h1>
-            <p className="text-[#666] text-[15px] font-medium leading-relaxed">
+            <p className="text-[#666] text-[14px] font-medium leading-relaxed">
               O'rganishni boshlash uchun <br /> yangi hisob yarating.
             </p>
           </div>

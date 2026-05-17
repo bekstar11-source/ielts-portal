@@ -126,20 +126,37 @@ async function handleCallback(chatId, query) {
     const studentUserId = parts.slice(3).join("_");
     
     try {
+      // Get billing info from payment_sessions to determine duration
+      const sessionDoc = await admin.firestore().collection("payment_sessions").doc(studentChatId).get();
+      let billingDays = 30; // default 30 days (1 month)
+      if (sessionDoc.exists) {
+        const sessionData = sessionDoc.data();
+        if (sessionData && sessionData.billing === "tri") {
+          billingDays = 90; // 90 days (3 months)
+        }
+      }
+
+      const subscriptionStart = admin.firestore.FieldValue.serverTimestamp();
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + billingDays);
+      const subscriptionEnd = admin.firestore.Timestamp.fromDate(endDate);
+
       // Update User in Firestore
       await admin.firestore().collection("users").doc(studentUserId).update({
         tier: tier, // pro or standard
         accountType: tier, // for backward compatibility and header checks
         isPro: tier === "pro",
-        subscriptionStart: admin.firestore.FieldValue.serverTimestamp()
+        subscriptionStart: subscriptionStart,
+        subscriptionEnd: subscriptionEnd
       });
 
       // Notify Student
       const tierName = tier === "pro" ? "Pro 🔥" : "Standard ✅";
-      await sendMessage(studentChatId, `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\nSizda <b>${tierName}</b> tarifi faollashtirildi. Endi platformaning barcha imkoniyatlaridan foydalanishingiz mumkin.`);
+      const periodName = billingDays === 90 ? "3 oylik" : "1 oylik";
+      await sendMessage(studentChatId, `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\nSizda <b>${periodName} ${tierName}</b> tarifi faollashtirildi. Endi platformaning barcha imkoniyatlaridan foydalanishingiz mumkin.`);
       
       // Update Admin Message
-      await editMessageText(chatId, query.message.message_id, `✅ <b>TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nTarif: <b>${tierName}</b>\nStatus: Yakunlandi.`);
+      await editMessageText(chatId, query.message.message_id, `✅ <b>TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nTarif: <b>${tierName} (${periodName})</b>\nStatus: Yakunlandi.`);
     } catch (err) {
       console.error("Promotion Error:", err);
       await sendMessage(chatId, "❌ Xatolik yuz berdi: " + err.message);

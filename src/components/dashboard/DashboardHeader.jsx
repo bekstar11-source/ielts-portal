@@ -98,9 +98,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
 
             {/* Logo */}
             <div className="cursor-pointer flex items-center md:pr-6 transition-transform hover:scale-105 active:scale-95" onClick={() => navigate('/dashboard')}>
-               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center shadow-lg transform -rotate-6 group hover:rotate-0 transition-all duration-500">
-                 <Zap size={18} className="text-white fill-current" />
-               </div>
+               <img src="/englev-logo.png" alt="englev." className="h-9 md:h-10 w-auto object-contain" />
             </div>
         </div>
 

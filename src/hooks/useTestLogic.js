@@ -61,7 +61,6 @@ export function useTestLogic() {
     }, [test]);
 
     const { timeLeft, setTimeLeft } = useTestTimer(testId, user?.uid, testMode, initialDuration, !!test && !showModeSelection && !showResult);
-    const { calculateScore } = useTestScoring();
     const { saving, submitTest } = useTestSubmission(user, userData);
 
     // Initialize Mode & Settings
@@ -102,30 +101,22 @@ export function useTestLogic() {
 
     const handleSubmit = async (violationType = null) => {
         if (!test) return;
-        const { correctCount, totalQ, band, mistakes } = calculateScore(test, userAnswers);
         
         const totalTime = initialDuration;
         const timeSpent = testMode === 'practice' ? timeLeft : Math.max(0, totalTime - timeLeft);
         const resultData = {
-            testId: test.id,
-            testTitle: test.title,
-            type: test.type,
             mode: testMode,
-            date: new Date().toISOString(),
-            score: correctCount,
-            bandScore: band,
-            totalQuestions: totalQ,
             violation: typeof violationType === 'string' ? violationType : null,
             timeSpent,
             userAnswers
         };
 
-        const success = await submitTest(test, resultData, mistakes);
-        if (success) {
-            const xpAmount = Math.max(10, Math.round(band * 10));
+        const res = await submitTest(test, resultData);
+        if (res && res.success) {
+            const xpAmount = Math.max(10, Math.round(res.bandScore * 10));
             await awardXP('test', test.id, test.title, xpAmount);
-            setScore(correctCount);
-            setBandScore(band);
+            setScore(res.score);
+            setBandScore(res.bandScore);
             setShowResult(true);
             localStorage.removeItem(`draft_${user.uid}_${test.id}`);
             sessionStorage.removeItem(`timer_${user.uid}_${test.id}`);

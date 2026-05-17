@@ -67,12 +67,48 @@ export function AuthProvider({ children }) {
     setUserData((prev) => ({ ...prev, ...newFields }));
   };
 
+  // Helper function to check and handle subscription expiration
+  const processUserData = async (uid, data) => {
+    if (!data) return null;
+    const isGrouped = data.groupId && data.groupId !== 'none';
+    const hasPremium = data.accountType === 'pro' || data.accountType === 'standard' || data.isPro;
+    
+    if (!isGrouped && hasPremium && data.subscriptionEnd) {
+      const expiryDate = data.subscriptionEnd.seconds 
+        ? new Date(data.subscriptionEnd.seconds * 1000) 
+        : new Date(data.subscriptionEnd);
+        
+      if (new Date() > expiryDate) {
+        const updatedFields = {
+          accountType: 'public',
+          isPro: false,
+          tier: 'public'
+        };
+        try {
+          await updateDoc(doc(db, "users", uid), updatedFields);
+          try {
+            logAction(uid, 'SUBSCRIPTION_EXPIRED', { expiredAt: expiryDate.toISOString() });
+          } catch (logErr) {
+            console.error("Logger error:", logErr);
+          }
+          return { ...data, ...updatedFields };
+        } catch (err) {
+          console.error("Error auto-downgrading expired subscription:", err);
+        }
+      }
+    }
+    return data;
+  };
+
   // 5. User datasini qayta Firestore dan yuklash (manual refresh uchun)
   const refreshUserData = async () => {
     if (!user) return;
     try {
       const docSnap = await getDoc(doc(db, "users", user.uid));
-      if (docSnap.exists()) setUserData(docSnap.data());
+      if (docSnap.exists()) {
+        const processed = await processUserData(user.uid, docSnap.data());
+        setUserData(processed);
+      }
     } catch (e) {
       console.error("refreshUserData xatolik:", e);
     }
@@ -169,7 +205,8 @@ export function AuthProvider({ children }) {
       try {
         const docSnap = await getDoc(doc(db, "users", user.uid));
         if (docSnap.exists()) {
-          setUserData(docSnap.data());
+          const processed = await processUserData(user.uid, docSnap.data());
+          setUserData(processed);
         } else {
           setUserData(null);
         }

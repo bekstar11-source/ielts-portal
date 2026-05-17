@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'; // 🔥 ROUTING ULANDI
 import { motion, AnimatePresence } from 'framer-motion';
 import SiteFooter from '../../components/common/SiteFooter';
 import Navbar from '../../components/common/Navbar';
+import SchemaMarkup from '../../components/common/SchemaMarkup';
 import {
   CheckCircle2,
   BarChart3,
@@ -17,8 +18,10 @@ import {
   FileText,
   Headphones,
   Users,
-  Award
+  Award,
+  Star
 } from 'lucide-react';
+
 
 // --- Reusable Animation Components ---
 const fadeInUp = {
@@ -44,7 +47,7 @@ const staggerContainer = {
 
 // --- Social Proof Component ---
 const Stats = () => (
-  <div className="flex flex-wrap justify-center gap-8 md:gap-16 mt-12 py-6 border-y border-gray-200/50 bg-white/30 backdrop-blur-sm">
+  <div className="flex flex-wrap justify-center gap-8 md:gap-12 lg:gap-16 mt-12 py-6 border-y border-gray-200/50 bg-white/30 backdrop-blur-sm">
     <div className="flex items-center gap-3">
       <div className="p-2 bg-blue-100 rounded-full text-blue-600"><Users size={20} /></div>
       <div>
@@ -57,6 +60,13 @@ const Stats = () => (
       <div>
         <p className="text-2xl font-bold text-gray-900">7.5</p>
         <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">O'rtacha Ball</p>
+      </div>
+    </div>
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-amber-100 rounded-full text-amber-500"><Star size={20} fill="currentColor" /></div>
+      <div>
+        <p className="text-2xl font-bold text-gray-900">4.9 / 5</p>
+        <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">1,280+ Fikrlar</p>
       </div>
     </div>
     <div className="flex items-center gap-3">
@@ -523,6 +533,7 @@ const FooterCTA = () => (
 export default function IELTSPortalLanding() {
   return (
     <div className="min-h-screen font-sans bg-[#F5F5F7] selection:bg-black selection:text-white">
+      <SchemaMarkup />
       <Navbar />
       <Hero />
       <TestMockups />

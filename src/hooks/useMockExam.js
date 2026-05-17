@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { db } from "../firebase/firebase";
+import { db, functions } from "../firebase/firebase";
 import { doc, getDoc, addDoc, collection, serverTimestamp, updateDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { calculateSectionScore, calculateBandScore, calculateOverallBand } from "../utils/ieltsScoring";
 
 const STORAGE_KEY = 'ielts_mock_session';
@@ -117,17 +118,33 @@ export function useMockExam(mockData, user, userData, navigate) {
         if (!mockData) return;
         const fetchTests = async () => {
             try {
-                const [lSnap, rSnap, wSnap] = await Promise.all([
-                    getDoc(doc(db, "tests", mockData.subTests.listening)),
-                    getDoc(doc(db, "tests", mockData.subTests.reading)),
-                    getDoc(doc(db, "tests", mockData.subTests.writing))
-                ]);
-                
-                const loadedTests = {
-                    listening: { id: lSnap.id, ...lSnap.data() },
-                    reading: { id: rSnap.id, ...rSnap.data() },
-                    writing: { id: wSnap.id, ...wSnap.data() }
-                };
+                let loadedTests = null;
+                const isStaff = userData?.role === 'admin' || userData?.role === 'teacher';
+
+                if (isStaff) {
+                    const [lSnap, rSnap, wSnap] = await Promise.all([
+                        getDoc(doc(db, "tests", mockData.subTests.listening)),
+                        getDoc(doc(db, "tests", mockData.subTests.reading)),
+                        getDoc(doc(db, "tests", mockData.subTests.writing))
+                    ]);
+                    loadedTests = {
+                        listening: { id: lSnap.id, ...lSnap.data() },
+                        reading: { id: rSnap.id, ...rSnap.data() },
+                        writing: { id: wSnap.id, ...wSnap.data() }
+                    };
+                } else {
+                    const getSanitizedTestFn = httpsCallable(functions, 'getSanitizedTest');
+                    const [lRes, rRes, wRes] = await Promise.all([
+                        getSanitizedTestFn({ testId: mockData.subTests.listening }),
+                        getSanitizedTestFn({ testId: mockData.subTests.reading }),
+                        getSanitizedTestFn({ testId: mockData.subTests.writing })
+                    ]);
+                    loadedTests = {
+                        listening: lRes.data,
+                        reading: rRes.data,
+                        writing: wRes.data
+                    };
+                }
                 setTests(loadedTests);
 
                 // ─── Restore session if available ───
@@ -227,70 +244,55 @@ export function useMockExam(mockData, user, userData, navigate) {
         if (stageRef.current === 'saving' || stageRef.current === 'result') return;
         
         setStage('saving');
-        stageRef.current = 'saving'; // Immediate update for the guard
+        stageRef.current = 'saving'; 
 
         try {
             const currentAnswers = forcedAnswers || answersRef.current;
-            const currentTests = forcedTests || tests;
             
-            const lResults = calculateSectionScore(currentTests.listening, currentAnswers.listening);
-            const rResults = calculateSectionScore(currentTests.reading, currentAnswers.reading);
-            const lBand = calculateBandScore(lResults.correct, 'listening', lResults.total) || 0;
-            const rBand = calculateBandScore(rResults.correct, 'reading', rResults.total) || 0;
-
-            setFinalResults({
-                listening: { ...lResults, band: lBand },
-                reading: { ...rResults, band: rBand }
-            });
-
-            const interimOverall = calculateOverallBand([lBand, rBand].filter(b => b > 0));
-
-            const resRef = await addDoc(collection(db, "results"), {
-                userId: user.uid,
-                userName: userData?.fullName || "User",
-                testTitle: "FULL MOCK EXAM",
-                type: "mock_full",
+            const submitMockExamFn = httpsCallable(functions, 'submitMockExam');
+            const res = await submitMockExamFn({
                 mockKey: mockData.mockKey,
-                subTests: mockData.subTests, 
-                date: new Date().toISOString(),
-                createdAt: serverTimestamp(),
-                scores: { 
-                    listening: lResults.correct, 
-                    reading: rResults.correct, 
-                    listeningBand: lBand, 
-                    readingBand: rBand,
-                    overallBand: interimOverall
-                },
-                bandScore: interimOverall,
-                overallBand: interimOverall,
-                details: { listeningAnswers: currentAnswers.listening, readingAnswers: currentAnswers.reading, writingAnswers: currentAnswers.writing },
-                status: 'pending_review'
+                mockData: mockData,
+                answers: currentAnswers
             });
 
-            // Update user's mockTests status
-            const userRef = doc(db, "users", user.uid);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                const mocks = userSnap.data().mockTests || [];
-                const updated = mocks.map(m => {
-                    if (m.id === mockData.id || m.mockKey === mockData.mockKey) {
-                        return { ...m, status: 'completed', resultId: resRef.id };
+            if (res.data && res.data.success) {
+                setFinalResults({
+                    listening: { 
+                        correct: res.data.scores.listening, 
+                        total: 40, 
+                        band: res.data.scores.listeningBand 
+                    },
+                    reading: { 
+                        correct: res.data.scores.reading, 
+                        total: 40, 
+                        band: res.data.scores.readingBand 
                     }
-                    return m;
                 });
-                await updateDoc(userRef, { mockTests: updated });
+            } else {
+                throw new Error("Imtihon topshirishda backend xatoligi yuz berdi.");
             }
+
         } catch (err) {
-            console.error('finishExam error:', err);
+            console.error('CRITICAL: finishExam failed:', err);
+            alert("Natijalarni saqlashda xatolik yuz berdi. Iltimos administratorga murojaat qiling.");
         } finally {
             setStage('result');
         }
     };
 
     const clearExamSession = useCallback(() => {
-        clearSession(mockId);
-        try { localStorage.removeItem('ielts_mock_active_data'); } catch(e) {}
-    }, [mockId]);
+        try {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('ielts_mock_session_') || 
+                    key.startsWith('ielts_writing_session_') || 
+                    key.startsWith('ielts_reading_session_') || 
+                    key === 'ielts_mock_active_data') {
+                    localStorage.removeItem(key);
+                }
+            });
+        } catch(e) {}
+    }, []);
 
     // Callback for parent to report audioTime and activePart
     const updateAudioProgress = useCallback((time, part) => {

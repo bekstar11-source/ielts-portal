@@ -402,8 +402,13 @@ export default function Onboarding() {
                     />
                 </div>
 
+                {/* Logo - Top Left */}
+                <div className="absolute top-6 left-8 z-10">
+                    <img src="/englev-logo.png" alt="englev." className="h-8 md:h-9 w-auto object-contain" />
+                </div>
+
                 {/* Header - Absolute Positioned */}
-                <div className="absolute top-0 right-0 p-8 z-10">
+                <div className="absolute top-6 right-8 z-10">
                     <div className="text-[11px] font-bold text-[#aaa]">
                         Qadam {currentStep} / {steps.length}
                     </div>

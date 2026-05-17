@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { db } from '../../firebase/firebase';
+import { db, functions } from '../../firebase/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ChevronRight, 
@@ -98,54 +99,18 @@ export default function MockEntry() {
         setError("");
         
         try {
-            const q = query(
-                collection(db, "accessKeys"), 
-                where("key", "==", mockKey.trim().toUpperCase())
-            );
-            const querySnapshot = await getDocs(q);
-            
-            if (querySnapshot.empty) {
-                throw new Error("Kalit xato yoki topilmadi.");
+            const verifyAccessKeyFn = httpsCallable(functions, 'verifyAccessKey');
+            const res = await verifyAccessKeyFn({ key: mockKey });
+
+            if (res.data && res.data.success) {
+                setSuccess(true);
+                setCurrentMock(res.data.assignment);
+                setRefreshTrigger(prev => prev + 1);
+            } else {
+                throw new Error("Kalitni faollashtirishda kutilmagan xatolik yuz berdi.");
             }
-
-            const keyDoc = querySnapshot.docs[0];
-            const keyData = keyDoc.data();
-
-            if (keyData.isUsed) {
-                throw new Error("Ushbu kalit allaqachon ishlatilgan.");
-            }
-
-            const mockAssignment = {
-                id: 'MOCK_' + keyData.key,
-                type: 'mock_full',
-                title: 'Full Mock Exam (L+R+W)',
-                startDate: new Date().toISOString(),
-                status: 'unlocked_mock',
-                mockKey: keyData.key,
-                subTests: {
-                    reading: keyData.assignedTests.readingId,
-                    listening: keyData.assignedTests.listeningId,
-                    writing: keyData.assignedTests.writingId
-                }
-            };
-
-            await Promise.all([
-                updateDoc(doc(db, "users", user.uid), {
-                    mockTests: arrayUnion(mockAssignment)
-                }),
-                updateDoc(doc(db, "accessKeys", keyDoc.id), {
-                    isUsed: true,
-                    usedBy: user.uid,
-                    usedByName: userData?.fullName || user.email,
-                    usedAt: new Date().toISOString()
-                })
-            ]);
-
-            setSuccess(true);
-            setCurrentMock(mockAssignment);
-            setRefreshTrigger(prev => prev + 1);
         } catch (err) {
-            setError(err.message);
+            setError(err.message || "Kalit xato yoki ishlatilgan!");
         } finally {
             setLoading(false);
         }
@@ -571,9 +536,15 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                 <button 
                     onClick={() => {
                         try { 
-                            const key = test?.mockKey || test?.id || 'default';
-                            localStorage.removeItem(`ielts_mock_session_${key}`); 
-                            localStorage.removeItem('ielts_mock_active_data');
+                            // Deep clear all potentially stale sessions
+                            Object.keys(localStorage).forEach(key => {
+                                if (key.startsWith('ielts_mock_session_') || 
+                                    key.startsWith('ielts_writing_session_') || 
+                                    key.startsWith('ielts_reading_session_') || 
+                                    key === 'ielts_mock_active_data') {
+                                    localStorage.removeItem(key);
+                                }
+                            });
                         } catch(e) {}
                         navigate('/mock-exam', { state: { mockData: test } });
                     }}

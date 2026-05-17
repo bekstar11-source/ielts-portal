@@ -293,6 +293,7 @@ export const TestSolvingView = ({
                         onAnswerChange={handleAnswer}
                         textSize={textSize}
                         testId={mockId}
+                        disableInternalSession={true}
                     />
                     </div>
                 )}

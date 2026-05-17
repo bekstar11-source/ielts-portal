@@ -19,7 +19,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
         examDate: '',
         maxTestAttempts: 1,
         role: 'student',
-        accountType: 'public'
+        accountType: 'public',
+        subscriptionEnd: ''
     });
 
     const [recentResults, setRecentResults] = useState([]);
@@ -28,6 +29,18 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
 
     useEffect(() => {
         if (user) {
+            let subEndStr = '';
+            if (user.subscriptionEnd) {
+                try {
+                    const dateObj = user.subscriptionEnd.seconds 
+                        ? new Date(user.subscriptionEnd.seconds * 1000) 
+                        : new Date(user.subscriptionEnd);
+                    subEndStr = dateObj.toISOString().split('T')[0];
+                } catch (e) {
+                    console.error("Error formatting subscriptionEnd:", e);
+                }
+            }
+
             setFormData({
                 fullName: user.fullName || '',
                 phoneNumber: user.phoneNumber || '',
@@ -35,7 +48,8 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                 examDate: user.examDate || '',
                 maxTestAttempts: user.maxTestAttempts || 1,
                 role: user.role || 'student',
-                accountType: user.accountType || 'public'
+                accountType: user.accountType || 'public',
+                subscriptionEnd: subEndStr
             });
             fetchRecentResults(user.id);
         }
@@ -62,8 +76,21 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await updateDoc(doc(db, 'users', user.id), formData);
-            onUpdate(user.id, formData);
+            const dataToSave = { ...formData };
+            if (dataToSave.accountType === 'pro' || dataToSave.accountType === 'standard') {
+                if (dataToSave.subscriptionEnd) {
+                    dataToSave.subscriptionEnd = new Date(dataToSave.subscriptionEnd);
+                } else {
+                    const defaultEnd = new Date();
+                    defaultEnd.setDate(defaultEnd.getDate() + 30);
+                    dataToSave.subscriptionEnd = defaultEnd;
+                }
+            } else {
+                dataToSave.subscriptionEnd = null;
+            }
+
+            await updateDoc(doc(db, 'users', user.id), dataToSave);
+            onUpdate(user.id, dataToSave);
             alert("Saqlandi!");
         } catch (error) {
             alert("Xatolik: " + error.message);
@@ -179,6 +206,17 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                                             <option value="pro">Premium (PRO)</option>
                                         </select>
                                     </div>
+                                    {(formData.accountType === 'pro' || formData.accountType === 'standard') && (
+                                        <div className="space-y-1">
+                                            <label className={labelClass}>Obuna Tugash Sanasi</label>
+                                            <input
+                                                type="date"
+                                                value={formData.subscriptionEnd || ''}
+                                                onChange={e => setFormData({ ...formData, subscriptionEnd: e.target.value })}
+                                                className={inputClass}
+                                            />
+                                        </div>
+                                    )}
                                     <div className="space-y-1">
                                         <label className={labelClass}>Telefon raqam</label>
                                         <input

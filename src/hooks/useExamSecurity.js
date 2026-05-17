@@ -14,12 +14,10 @@ export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
     useEffect(() => {
         if (!enabled) return;
 
-        // 1. Hash trap to prevent back navigation
-        window.location.hash = "mock-active";
-        const handleHashChange = () => {
-            if (window.location.hash !== "#mock-active") {
-                window.location.hash = "mock-active";
-            }
+        // 1. History trap to prevent back navigation
+        window.history.pushState(null, null, window.location.pathname);
+        const handlePopState = (e) => {
+            window.history.pushState(null, null, window.location.pathname);
         };
 
         // 2. Beforeunload warning
@@ -41,14 +39,16 @@ export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
             }
         };
 
-        window.addEventListener('hashchange', handleHashChange);
+        window.addEventListener('popstate', handlePopState);
         window.addEventListener('beforeunload', handleBeforeUnload);
         window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('contextmenu', (e) => e.preventDefault());
 
         return () => {
-            window.removeEventListener('hashchange', handleHashChange);
+            window.removeEventListener('popstate', handlePopState);
             window.removeEventListener('beforeunload', handleBeforeUnload);
             window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('contextmenu', (e) => e.preventDefault());
         };
     }, [enabled]);
 
@@ -64,5 +64,28 @@ export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [enabled, onSecurityViolation]);
+
+    // 5. Fullscreen exit detection
+    useEffect(() => {
+        if (!enabled) return;
+
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement) {
+                onSecurityViolation?.('fullscreen_exit');
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+        };
     }, [enabled, onSecurityViolation]);
 };

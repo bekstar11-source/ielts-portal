@@ -24,7 +24,7 @@ service cloud.firestore {
 
     // USERS
     match /users/{userId} {
-      allow read: if isAuth();
+      allow read: if isAuth() && (request.auth.uid == userId || isAdmin() || isTeacher());
       allow write: if isAuth() && (request.auth.uid == userId || isAdmin());
 
       match /{allSubcollections=**} {
@@ -34,7 +34,16 @@ service cloud.firestore {
 
     // TESTS
     match /tests/{testId} {
-      allow read: if isAuth(); // Changed from 'true' to 'isAuth' for security
+      // Allow listing tests in the library (metadata queries)
+      allow list: if isAuth();
+      
+      // Secure direct reads of raw test documents containing answers
+      allow get: if isAuth() && (
+        isAdmin() || 
+        isTeacher() || 
+        exists(/databases/$(database)/documents/results/$(request.auth.uid + '_' + testId))
+      );
+      
       allow create: if isAdmin() || isTeacher();
       allow update, delete: if isAdmin() || (isTeacher() && resource.data.createdBy == request.auth.uid);
     }
@@ -101,8 +110,8 @@ service cloud.firestore {
     
     // ACCESS KEYS
     match /accessKeys/{keyId} {
-      allow read: if isAuth(); // Secured: only auth users can check keys
-      allow write: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isUsed', 'usedBy', 'usedByName', 'usedAt']));
+      allow read: if isAuth() && (isAdmin() || isTeacher());
+      allow write: if isAdmin();
     }
 
     // PODCASTS

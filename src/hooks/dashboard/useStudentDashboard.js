@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { db } from "../../firebase/firebase";
+import { db, functions } from "../../firebase/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, getCountFromServer } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { useNavigate } from "react-router-dom";
 import { hapticFeedback } from "../../utils/haptic";
 import { getRecommendations } from "../../utils/recommendations";
@@ -88,9 +89,13 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
 
         if (rawAssignments.length === 0) {
             const fetchFallback = async () => {
-                const q = query(collection(db, "tests"), where("type", "==", "reading"));
-                const snap = await getDocs(q);
-                setPublicTestsFallback(snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 5));
+                try {
+                    const q = query(collection(db, "tests"), where("type", "==", "reading"));
+                    const snap = await getDocs(q);
+                    setPublicTestsFallback(snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 5));
+                } catch (err) {
+                    console.warn("Could not fetch fallback tests in hook due to permissions:", err);
+                }
             };
             fetchFallback();
         }
@@ -128,35 +133,26 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
         setCheckingKey(true);
         setKeyError("");
         try {
-            const q = query(collection(db, "accessKeys"), where("key", "==", accessKeyInput.trim().toUpperCase()));
-            const querySnapshot = await getDocs(q);
-            if (querySnapshot.empty) throw new Error("Kalit xato!");
-            const keyDoc = querySnapshot.docs[0];
-            const keyData = keyDoc.data();
-            if (keyData.isUsed) throw new Error("Bu kalit ishlatilgan!");
+            const verifyAccessKeyFn = httpsCallable(functions, 'verifyAccessKey');
+            const res = await verifyAccessKeyFn({ key: accessKeyInput });
 
-            let mockAssignment = {};
-            if (keyData.type === 'mock_bundle') {
-                mockAssignment = {
-                    id: 'MOCK_' + keyData.key, type: 'mock_full', title: 'Full Mock Exam (L+R+W)',
-                    startDate: new Date().toISOString(), endDate: null, status: 'unlocked_mock',
-                    mockKey: keyData.key,
-                    subTests: { reading: keyData.assignedTests.readingId, listening: keyData.assignedTests.listeningId, writing: keyData.assignedTests.writingId }
-                };
+            if (res.data && res.data.success) {
+                alert("Test qo'shildi! 🚀");
+                sessionStorage.removeItem(`student_assignments_${user.uid}`);
+                sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
+                
+                setShowKeyModal(false); 
+                setAccessKeyInput("");
+                if (refresh) refresh();
+                else window.location.reload();
             } else {
-                mockAssignment = { id: keyData.targetId, type: 'test', startDate: new Date().toISOString(), endDate: null, status: 'unlocked_key', key: keyData.key };
+                throw new Error("Kalitni faollashtirishda kutilmagan xatolik yuz berdi.");
             }
-            await updateDoc(doc(db, "users", user.uid), { assignedTests: arrayUnion(mockAssignment) });
-            await updateDoc(doc(db, "accessKeys", keyDoc.id), { isUsed: true, usedBy: user.uid, usedByName: userData?.fullName, usedAt: new Date().toISOString() });
-
-            alert("Test qo'shildi! 🚀");
-            sessionStorage.removeItem(`student_assignments_${user.uid}`);
-            sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
-            
-            setShowKeyModal(false); setAccessKeyInput("");
-            if (refresh) refresh();
-            else window.location.reload();
-        } catch (error) { setKeyError(error.message); } finally { setCheckingKey(false); }
+        } catch (error) { 
+            setKeyError(error.message || "Kalit xato yoki ishlatilgan!"); 
+        } finally { 
+            setCheckingKey(false); 
+        }
     };
 
     // SKILL STATS LOGIC

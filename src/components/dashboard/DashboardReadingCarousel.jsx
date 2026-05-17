@@ -25,22 +25,26 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                 
                 // 2. If not enough (less than 6), fetch latest public reading tests from DB
                 if (readingTests.length < 6) {
-                    const q = query(
-                        collection(db, "tests"),
-                        where("type", "==", "reading"),
-                        orderBy("createdAt", "desc"),
-                        limit(10)
-                    );
-                    const snapshot = await getDocs(q);
-                    const dbTests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    
-                    // Merge and unique
-                    const existingIds = new Set(readingTests.map(t => t.id));
-                    dbTests.forEach(t => {
-                        if (!existingIds.has(t.id)) {
-                            readingTests.push(t);
-                        }
-                    });
+                    try {
+                        const q = query(
+                            collection(db, "tests"),
+                            where("type", "==", "reading"),
+                            orderBy("createdAt", "desc"),
+                            limit(10)
+                        );
+                        const snapshot = await getDocs(q);
+                        const dbTests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        
+                        // Merge and unique
+                        const existingIds = new Set(readingTests.map(t => t.id));
+                        dbTests.forEach(t => {
+                            if (!existingIds.has(t.id)) {
+                                readingTests.push(t);
+                            }
+                        });
+                    } catch (err) {
+                        console.warn("Could not fetch fallback reading tests due to permissions:", err);
+                    }
                 }
 
                 // 3. Map to carousel format

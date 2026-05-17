@@ -32,7 +32,9 @@ export default function CreateTest() {
     const editor = useTestEditor(id);
     const {
         testData, setTestData,
-        loading, uploading, uploadProgress,
+        loading, setLoading,
+        uploading, setUploading,
+        uploadProgress,
         isEditMode, isMockMode, setIsMockMode,
         jsonInput, setJsonInput, jsonError,
         partAudios, setPartAudios,
@@ -242,7 +244,7 @@ export default function CreateTest() {
                         className="h-10 px-6 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition flex items-center gap-2 active:scale-95 disabled:opacity-50"
                     >
                         {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Icons.Check className="w-4 h-4" />}
-                        Saqlash
+                        {isEditMode ? "Saqlash" : "Yaratish"}
                     </button>
                 </div>
             </div>
@@ -318,7 +320,7 @@ export default function CreateTest() {
                             <h3 className="text-[10px] font-black uppercase tracking-widest opacity-30">Real-time Preview</h3>
                             <div className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[9px] font-bold border border-blue-500/10">LIVE</div>
                         </div>
-                        <TestPreview testData={testData} />
+                        <TestPreview testData={testData} testType={testData.type} />
                     </div>
                 </div>
             </div>

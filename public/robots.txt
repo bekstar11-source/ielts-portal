@@ -1,0 +1,41 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+
+# Ommaviy sahifalarni indekslashga ruxsat berish
+Allow: /$
+Allow: /login
+Allow: /register
+Allow: /favicon.png
+
+# Yopiq dashboard va test tizimlarini indekslashdan himoya qilish
+Disallow: /dashboard
+Disallow: /test/
+Disallow: /review/
+Disallow: /statistics
+Disallow: /leaderboard
+Disallow: /my-results
+Disallow: /vocabulary
+Disallow: /onboarding
+Disallow: /practice
+Disallow: /reading
+Disallow: /listening
+Disallow: /library
+Disallow: /roadmap
+Disallow: /settings
+Disallow: /mock
+Disallow: /test-results
+Disallow: /mock-exam
+Disallow: /podcasts
+Disallow: /podcast/
+Disallow: /articles
+Disallow: /article/
+Disallow: /speaking-practice
+Disallow: /pricing
+Disallow: /diagnostic-intro
+Disallow: /diagnostic-test/
+Disallow: /diagnostic-result/
+Disallow: /teacher
+Disallow: /admin
+
+# Sitemap manzili
+Sitemap: https://englev.uz/sitemap.xml

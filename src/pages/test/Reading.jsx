@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStudentData } from "../../hooks/useStudentData";
-import { db } from "../../firebase/firebase";
+import { db, functions } from "../../firebase/firebase";
 import { collection, query, where, doc, updateDoc, arrayUnion, getDocs } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { 
   BookOpen, Headphones, PenTool, Mic, Crown, 
   RotateCw, ChevronLeft, ChevronRight, Search, Loader2 
@@ -302,22 +303,22 @@ export default function Reading() {
     setCheckingKey(true);
     setKeyError("");
     try {
-        const q = query(collection(db, "accessKeys"), where("key", "==", accessKeyInput.trim().toUpperCase()));
-        const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) throw new Error("Kalit xato!");
-        const keyDoc = querySnapshot.docs[0];
-        const keyData = keyDoc.data();
-        if (keyData.isUsed) throw new Error("Bu kalit ishlatilgan!");
+        const verifyAccessKeyFn = httpsCallable(functions, 'verifyAccessKey');
+        const res = await verifyAccessKeyFn({ key: accessKeyInput });
 
-        const mockAssignment = { id: keyData.targetId, type: 'test', startDate: new Date().toISOString(), endDate: null, status: 'unlocked_key', key: keyData.key };
-        await updateDoc(doc(db, "users", user.uid), { assignedTests: arrayUnion(mockAssignment) });
-        await updateDoc(doc(db, "accessKeys", keyDoc.id), { isUsed: true, usedBy: user.uid, usedByName: userData?.fullName, usedAt: new Date().toISOString() });
-
-        alert("Test qo'shildi! 🚀");
-        await refresh();
-        setShowKeyModal(false); 
-        setAccessKeyInput("");
-    } catch (error) { setKeyError(error.message); } finally { setCheckingKey(false); }
+        if (res.data && res.data.success) {
+            alert("Test qo'shildi! 🚀");
+            await refresh();
+            setShowKeyModal(false); 
+            setAccessKeyInput("");
+        } else {
+            throw new Error("Kalitni faollashtirishda kutilmagan xatolik yuz berdi.");
+        }
+    } catch (error) { 
+        setKeyError(error.message || "Kalit xato yoki ishlatilgan!"); 
+    } finally { 
+        setCheckingKey(false); 
+    }
   };
 
   return (

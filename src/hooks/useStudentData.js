@@ -71,12 +71,11 @@ const fetchDocumentsByIds = async (collectionName, ids) => {
 export function useStudentData(user) {
     const queryClient = useQueryClient();
     const queryKey = ['studentData', user?.uid];
-    const CACHE_KEY = `student_data_cache_${user?.uid}`;
 
-    const { data, isLoading, error, refetch } = useQuery({
+    const { data, isLoading, error, isFetching } = useQuery({
         queryKey,
         enabled: !!user?.uid,
-        staleTime: 1000 * 60 * 5, // 5 daqiqa
+        staleTime: 1000 * 60 * 2, // 2 daqiqa stale time
         queryFn: async () => {
             if (!user) return { assignments: [], userResults: [] };
 
@@ -154,7 +153,6 @@ export function useStudentData(user) {
                 const attempts = results.filter(r => String(r.testId).trim() === String(testId).trim());
                 if (attempts.length === 0) return null;
                 
-                // Optimized: Find max without full sort
                 return attempts.reduce((best, current) => {
                     const scoreCurr = getSafeBandScore(current);
                     const scoreBest = getSafeBandScore(best);
@@ -282,32 +280,19 @@ export function useStudentData(user) {
                 return (dB ? dB.getTime() : 0) - (dA ? dA.getTime() : 0);
             });
 
-            const result = { assignments: uniqueTests, userResults: myResults };
-            
-            // Cache save
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify(result));
-            
-            return result;
+            return { assignments: uniqueTests, userResults: myResults };
         }
     });
 
-    // Check cache on mount
-    const [cachedData, setCachedData] = useState(() => {
-        const saved = sessionStorage.getItem(`student_data_cache_${user?.uid}`);
-        return saved ? JSON.parse(saved) : null;
-    });
-
     const refresh = () => {
-        sessionStorage.removeItem(CACHE_KEY);
         return queryClient.invalidateQueries({ queryKey });
     };
 
-    const finalData = data || cachedData;
-
     return { 
-        assignments: finalData?.assignments || [], 
-        userResults: finalData?.userResults || [], 
-        loading: isLoading && !cachedData, 
+        assignments: data?.assignments || [], 
+        userResults: data?.userResults || [], 
+        loading: isLoading, 
+        isFetching,
         error: error?.message, 
         refresh 
     };
