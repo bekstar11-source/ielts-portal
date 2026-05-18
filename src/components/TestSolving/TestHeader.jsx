@@ -196,9 +196,12 @@ const TestHeader = ({
     skipBufferingOverlay = false,
     buttonText = 'Finish',
     volume: externalVolume,
-    resumeAudioTime = 0
+    resumeAudioTime = 0,
+    audioRefs
 }) => {
     const { userData } = useAuth();
+    const localAudioRefs = useRef([]);
+    const finalAudioRefs = audioRefs || localAudioRefs;
     const isListening = test?.type?.toLowerCase() === 'listening';
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
     const [currentView, setCurrentView] = useState('menu'); // 'menu' | 'contrast' | 'text-size' | 'instructions'
@@ -351,6 +354,7 @@ const TestHeader = ({
                             return (
                                 <CustomAudioPlayer
                                     key={index}
+                                    ref={el => finalAudioRefs.current[index] = el}
                                     src={src}
                                     index={index}
                                     activePart={activePart}

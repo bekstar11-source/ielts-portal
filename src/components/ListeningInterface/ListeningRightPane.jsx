@@ -48,7 +48,9 @@ const ListeningRightPane = memo(({
     isHighlighterActive: isHighlighterActiveProp,
     hideSecondaryIntro,
     isPremium,
-    onSeekTo
+    onSeekTo,
+    showTranscript,
+    setShowTranscript
 }) => {
     // --- HIGHLIGHT HOOK ---
     // isHighlighterActiveProp props orqali kelsa hookka uzatiladi (tashqaridan boshqariladi)
@@ -226,13 +228,30 @@ const ListeningRightPane = memo(({
                 })();
 
                 return (
-                    <div className="bg-[#f4f4f2] border border-[#e8e8e6] rounded-sm px-5 pt-4 pb-2 mb-4 shrink-0">
-                        <h2 className="text-[1.125em] font-bold text-black mb-1 leading-none">
-                            Part {partNum}
-                        </h2>
-                        <p className="text-[1.05em] text-black font-normal">
-                            Listen and answer questions {rangeStr}.
-                        </p>
+                    <div className="bg-[#f4f4f2] border border-[#e8e8e6] rounded-sm px-5 py-3.5 mb-4 shrink-0 flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                            <h2 className="text-[1.125em] font-bold text-black mb-1 leading-none">
+                                Part {partNum}
+                            </h2>
+                            <p className="text-[1.05em] text-black font-normal">
+                                Listen and answer questions {rangeStr}.
+                            </p>
+                        </div>
+                        {isReviewMode && (typeof window !== 'undefined' && window.innerWidth > 768) && (
+                            <button
+                                onClick={() => setShowTranscript(!showTranscript)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-bold shadow-sm transition-all select-none border whitespace-nowrap active:scale-95 ${
+                                    showTranscript 
+                                        ? 'bg-white border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50/50' 
+                                        : 'bg-blue-600 border-blue-600 hover:bg-blue-700 hover:border-blue-700 text-white'
+                                }`}
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                {showTranscript ? "Hide Script" : "Show Script"}
+                            </button>
+                        )}
                     </div>
                 );
             })()}
@@ -313,7 +332,8 @@ const ListeningRightPane = memo(({
     prev.textSize === next.textSize &&
     prev.testMode === next.testMode &&
     prev.testData === next.testData &&
-    prev.isHighlighterActive === next.isHighlighterActive
+    prev.isHighlighterActive === next.isHighlighterActive &&
+    prev.showTranscript === next.showTranscript
 );
 
 export default ListeningRightPane;

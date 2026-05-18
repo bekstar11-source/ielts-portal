@@ -36,7 +36,7 @@ export const QuestionBadge = ({ id, isReviewMode, onClick, onSeekTo, timestamp, 
 );
 
 export const CorrectAnswerTooltip = ({ answer }) => (
-    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-10 whitespace-nowrap bg-green-100 text-green-800 text-[0.625em] px-2 py-0.5 rounded border border-green-300 font-bold shadow-sm animate-in fade-in zoom-in-95">
+    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-10 whitespace-nowrap bg-emerald-50 text-emerald-700 text-[0.75em] px-2 py-0.5 rounded-[4px] border border-emerald-200 font-black shadow-sm select-none">
         ✓ {Array.isArray(answer) ? answer.join(' / ') : answer}
     </div>
 );
@@ -92,10 +92,10 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
                 spellCheck={false}
             />
             {isReviewMode && !isCorrect && (
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-10 hidden group-hover/input:block animate-in fade-in zoom-in-95 duration-200">
-                    <span className="text-[0.625em] font-bold text-white bg-green-600 px-2 py-1 rounded shadow-lg whitespace-nowrap">✓ {Array.isArray(answer) ? answer.join(' / ') : answer}</span>
-                    <div className="w-2 h-2 bg-green-600 rotate-45 absolute left-1/2 -translate-x-1/2 -bottom-1"></div>
-                </div>
+                <span className="ml-1.5 px-2 py-0.5 text-[0.75em] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[4px] whitespace-nowrap inline-flex items-center gap-1 shadow-sm select-none transition-all">
+                    <span className="text-emerald-500 font-black">✓</span>
+                    {Array.isArray(answer) ? answer.join(' / ') : answer}
+                </span>
             )}
         </span>
     );

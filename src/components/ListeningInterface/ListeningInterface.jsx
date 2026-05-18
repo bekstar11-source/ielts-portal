@@ -56,6 +56,7 @@ export default function ListeningInterface({
   // --- MOBILE DETECTION ---
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showTranscriptOnMobile, setShowTranscriptOnMobile] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(true);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -134,34 +135,52 @@ export default function ListeningInterface({
               onAddDictionary={() => addToDictionary({ sectionTitle: currentPassage?.title, testTitle: "Listening Test" })}
             />
 
-            {(!isMobile || showTranscriptOnMobile) && (
+            {((!isMobile && showTranscript) || (isMobile && showTranscriptOnMobile)) && (
               <div
-                className={`${isMobile ? 'absolute inset-0 z-40' : ''} bg-white flex flex-col border-r border-gray-200 h-full overflow-y-auto transition-all duration-300`}
+                className={`${isMobile ? 'absolute inset-0 z-40' : ''} bg-white flex flex-col border-r border-gray-200 h-full overflow-hidden transition-all duration-300`}
                 style={{ width: isMobile ? '100%' : `${leftWidth}%` }}
-                onMouseUp={handleTextSelection}
               >
-                {isMobile && (
-                  <div className="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <span className="font-bold text-sm text-blue-600 uppercase tracking-wider">Transcript</span>
+                {/* Transcript Header with Hide Action */}
+                <div className="px-5 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0 select-none">
+                  <span className="font-bold text-[11px] text-blue-600 uppercase tracking-widest">Transcript</span>
+                  {isMobile ? (
                     <button 
                       onClick={() => setShowTranscriptOnMobile(false)}
                       className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold text-gray-700 active:bg-gray-100 shadow-sm"
                     >
                       Back to Questions
                     </button>
-                  </div>
-                )}
-                <ListeningLeftPane
-                  content={passages[effectiveActivePart]?.content} // Transkript
-                  textSize={textSize}
-                  highlightedId={highlightedLoc}
-                  title={currentPassage.title}
-                  isReviewMode={isReviewMode}
-                />
+                  ) : (
+                    <button 
+                      onClick={() => setShowTranscript(false)}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 hover:border-gray-300 rounded-[6px] text-xs font-semibold text-gray-650 hover:text-gray-900 active:bg-gray-50 shadow-sm transition-all"
+                      title="Hide Transcript"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                      </svg>
+                      Hide Script
+                    </button>
+                  )}
+                </div>
+
+                {/* Transcript Content Container */}
+                <div 
+                  className="flex-1 overflow-y-auto h-full"
+                  onMouseUp={handleTextSelection}
+                >
+                  <ListeningLeftPane
+                    content={passages[effectiveActivePart]?.content} // Transkript
+                    textSize={textSize}
+                    highlightedId={highlightedLoc}
+                    title={currentPassage.title}
+                    isReviewMode={isReviewMode}
+                  />
+                </div>
               </div>
             )}
 
-            {!isMobile && (
+            {!isMobile && showTranscript && (
               <div 
                 className="w-4 -mx-2 flex items-center justify-center cursor-col-resize z-30 group relative" 
                 onMouseDown={startResizing}
@@ -181,7 +200,7 @@ export default function ListeningInterface({
         {/* 3-muammo yechimi: O'ng taraf Test paytida 100% width bo'ladi */}
         <div
           className={`flex-1 bg-white flex flex-col overflow-y-auto h-full relative ${isMobile && isReviewMode && showTranscriptOnMobile ? 'hidden' : ''}`}
-          style={{ width: isReviewMode && !isMobile ? `${100 - leftWidth}%` : '100%' }}
+          style={{ width: isReviewMode && !isMobile && showTranscript ? `${100 - leftWidth}%` : '100%' }}
         >
           {isMobile && isReviewMode && !showTranscriptOnMobile && (
             <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 flex justify-between items-center sticky top-0 z-20">
@@ -197,6 +216,7 @@ export default function ListeningInterface({
               </button>
             </div>
           )}
+
           <ListeningRightPane
             testData={testData}
             activePart={effectiveActivePart} // Hozirgi bo'lim indeksi
@@ -216,6 +236,8 @@ export default function ListeningInterface({
             hideSecondaryIntro={hideSecondaryIntro}
             isPremium={isPremium}
             onSeekTo={onSeekTo}
+            showTranscript={showTranscript}
+            setShowTranscript={setShowTranscript}
           />
         </div>
       </div>

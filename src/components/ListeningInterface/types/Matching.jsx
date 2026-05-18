@@ -122,8 +122,8 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
             )}
 
             {isReviewMode && !isCorrect && (
-                <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 bg-emerald-600 text-white text-[14px] px-3 py-1 rounded shadow-lg whitespace-nowrap z-50 font-bold animate-in fade-in slide-in-from-left-2 duration-300 ring-2 ring-emerald-600/30">
-                    {(() => {
+                <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap bg-emerald-50 text-emerald-700 text-[13px] px-2 py-0.5 rounded-[4px] border border-emerald-200 font-black shadow-sm select-none">
+                    ✓ {(() => {
                         if (!correctAnswer) return "N/A";
                         const answers = String(correctAnswer).split(/[\/|,]/).map(a => a.trim()).filter(Boolean);
                         return answers.map(ans => {
@@ -135,7 +135,6 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
                             return ans;
                         }).join(' / ');
                     })()}
-                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-emerald-600 rotate-45"></div>
                 </div>
             )}
         </div>

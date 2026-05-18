@@ -125,6 +125,15 @@ export function useTestLogic() {
         }
     };
 
+    const audioRefs = useRef([]);
+
+    const handleSeekTo = (partIndex, timestamp) => {
+        if (!timestamp && timestamp !== 0) return;
+        setActivePart(partIndex);
+        const playerRef = audioRefs.current[partIndex] || audioRefs.current[0];
+        if (playerRef) playerRef.seekTo(timestamp);
+    };
+
     const handleToggleFullScreen = () => {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen();
@@ -141,6 +150,6 @@ export function useTestLogic() {
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate,
-        initialDuration
+        initialDuration, audioRefs, handleSeekTo
     };
 }

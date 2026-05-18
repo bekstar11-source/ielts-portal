@@ -202,8 +202,10 @@ export const useTestReview = (id, user, userData, navigate) => {
     const handleSeekTo = (partIndex, timestamp) => {
         if (!timestamp && timestamp !== 0) return;
         setListeningActivePart(partIndex);
-        if (audioRefs.current[partIndex]) audioRefs.current[partIndex].seekTo(timestamp);
+        const playerRef = audioRefs.current[partIndex] || audioRefs.current[0];
+        if (playerRef) playerRef.seekTo(timestamp);
     };
+
 
     return {
         loading, testData, resultData, 

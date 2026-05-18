@@ -67,7 +67,7 @@ async function submitTestAnswers(data, context) {
             let bestScore = correctCount;
             let bestBandScore = band || 0;
 
-            if (resultSnap.exists()) {
+            if (resultSnap.exists) {
                 const existingData = resultSnap.data();
                 if (existingData.bestScore > bestScore) {
                     bestScore = existingData.bestScore;
@@ -93,7 +93,7 @@ async function submitTestAnswers(data, context) {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             };
 
-            if (resultSnap.exists()) {
+            if (resultSnap.exists) {
                 transaction.update(resultRef, resultDataToSave);
             } else {
                 transaction.set(resultRef, {

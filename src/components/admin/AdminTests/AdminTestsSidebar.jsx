@@ -42,7 +42,7 @@ const AdminTestsSidebar = ({
                                             {c.name}
                                         </span>
                                     </button>
-                                    <button onClick={() => onEditCollection(c)} className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 hover:text-blue-500 transition-all"><Edit2 size={12} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); onEditCollection(c); }} className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 hover:text-blue-500 transition-all"><Edit2 size={12} /></button>
                                 </div>
                             ))}
                         </nav>
