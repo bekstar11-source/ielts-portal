@@ -8,23 +8,26 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
         const pages = [];
         const maxVisiblePages = 5;
 
-        if (totalPages <= maxVisiblePages) {
+        if (totalPages <= 6) {
             for (let i = 1; i <= totalPages; i++) {
                 pages.push(i);
             }
         } else {
-            pages.push(1);
-            if (currentPage > 3) pages.push('ellipsis-start');
-
-            const start = Math.max(2, currentPage - 1);
-            const end = Math.min(totalPages - 1, currentPage + 1);
-
-            for (let i = start; i <= end; i++) {
-                pages.push(i);
+            if (currentPage <= 3) {
+                pages.push(1, 2, 3, 4);
+                pages.push('ellipsis-end');
+                pages.push(totalPages);
+            } else if (currentPage >= totalPages - 2) {
+                pages.push(1);
+                pages.push('ellipsis-start');
+                pages.push(totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(1);
+                pages.push('ellipsis-start');
+                pages.push(currentPage - 1, currentPage, currentPage + 1);
+                pages.push('ellipsis-end');
+                pages.push(totalPages);
             }
-
-            if (currentPage < totalPages - 2) pages.push('ellipsis-end');
-            pages.push(totalPages);
         }
 
         return pages.map((page, index) => {

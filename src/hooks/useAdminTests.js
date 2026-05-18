@@ -352,6 +352,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             const batch = writeBatch(db);
             testIds.forEach(id => {
                 batch.update(doc(db, "tests", id), { collectionId: collectionId === 'None' ? null : collectionId });
+                batch.update(doc(db, "tests_metadata", id), { collectionId: collectionId === 'None' ? null : collectionId });
             });
             await batch.commit();
             
@@ -366,11 +367,12 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    const addCollection = async (name, thumbnail = "") => {
+    const addCollection = async (name, thumbnail = "", type = "reading") => {
         try {
             await addDoc(collection(db, "test_collections"), {
                 name: name.trim(),
                 thumbnail: thumbnail.trim(),
+                type: type,
                 createdAt: serverTimestamp()
             });
             await fetchCollections();
@@ -381,11 +383,12 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    const updateCollection = async (id, name, thumbnail = "") => {
+    const updateCollection = async (id, name, thumbnail = "", type = "reading") => {
         try {
             await updateDoc(doc(db, "test_collections", id), {
                 name: name.trim(),
-                thumbnail: thumbnail.trim()
+                thumbnail: thumbnail.trim(),
+                type: type
             });
             await fetchCollections();
             return true;

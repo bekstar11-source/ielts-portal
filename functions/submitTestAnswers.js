@@ -13,7 +13,7 @@ async function submitTestAnswers(data, context) {
     }
 
     const userId = context.auth.uid;
-    const { testId, testMode, userAnswers, timeSpent, violationType } = data;
+    const { testId, testMode, userAnswers, timeSpent, violationType, partNumber = null } = data;
 
     if (!testId || typeof testId !== 'string') {
         throw new functions.https.HttpsError('invalid-argument', 'Test identifikatori kiritilishi shart.');
@@ -23,6 +23,7 @@ async function submitTestAnswers(data, context) {
     const cleanTestMode = testMode || 'practice';
     const cleanTimeSpent = timeSpent || 0;
     const cleanViolationType = violationType || null;
+    const parsedPartNumber = partNumber ? Number(partNumber) : null;
 
     try {
         const db = admin.firestore();
@@ -37,7 +38,7 @@ async function submitTestAnswers(data, context) {
         const testType = (testData.type || 'reading').toLowerCase().trim();
 
         // 2. Securely evaluate answers
-        const { correctCount, totalQ, band, mistakes } = evaluateTest(testData, cleanUserAnswers);
+        const { correctCount, totalQ, band, mistakes } = evaluateTest(testData, cleanUserAnswers, parsedPartNumber);
 
         // 3. Fetch user profile
         const userRef = db.collection("users").doc(userId);
@@ -48,7 +49,10 @@ async function submitTestAnswers(data, context) {
         const userData = userSnap.data();
 
         // 4. Save results atomically using a transaction
-        const resultDocId = `${userId}_${testId}`;
+        const resultDocId = parsedPartNumber 
+            ? `${userId}_${testId}_part_${parsedPartNumber}`
+            : `${userId}_${testId}`;
+            
         const resultRef = db.collection("results").doc(resultDocId);
         const now = new Date().toISOString();
 
@@ -59,7 +63,8 @@ async function submitTestAnswers(data, context) {
             bandScore: band || 0,
             timeSpent: cleanTimeSpent,
             mode: cleanTestMode,
-            userAnswers: cleanUserAnswers
+            userAnswers: cleanUserAnswers,
+            partNumber: parsedPartNumber
         };
 
         await db.runTransaction(async (transaction) => {
@@ -77,10 +82,11 @@ async function submitTestAnswers(data, context) {
 
             const resultDataToSave = {
                 userName: userData?.fullName || context.auth.token.email || 'Candidate',
-                testTitle: testData.title || 'Untitled Test',
+                testTitle: parsedPartNumber ? `${testData.title || 'Untitled Test'} (Part ${parsedPartNumber})` : (testData.title || 'Untitled Test'),
                 type: testType,
                 totalQuestions: totalQ,
                 status: testType === 'reading' || testType === 'listening' ? 'graded' : 'submitted',
+                partNumber: parsedPartNumber,
                 
                 bestScore: bestScore,
                 bestBandScore: bestBandScore,

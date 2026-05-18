@@ -185,13 +185,44 @@ const ListeningRightPane = memo(({
             {(() => {
                 let partMinId = Infinity;
                 let partMaxId = -Infinity;
+
+                const getInputsFromRows = (rows) => {
+                    const inputs = [];
+                    rows.forEach(row => {
+                        const cells = Array.isArray(row) ? row : (row.cells || []);
+                        cells.forEach(cell => {
+                            if (cell.id && !cell.isMixed && !cell.isMultiQuestion) {
+                                inputs.push(cell);
+                            }
+                            if (cell.isMultiQuestion && cell.content) {
+                                inputs.push(...cell.content);
+                            }
+                            if (cell.isMixed && cell.parts) {
+                                cell.parts.forEach(p => {
+                                    if (p.type === 'input') inputs.push(p);
+                                });
+                            }
+                        });
+                    });
+                    return inputs;
+                };
+
                 questionsForPart.forEach(group => {
                     let items = [];
                     if (Array.isArray(group.groups)) {
-                        group.groups.forEach(sub => { items = [...items, ...(sub.items || sub.questions || [])]; });
+                        group.groups.forEach(sub => {
+                            if (sub.rows) {
+                                items = [...items, ...getInputsFromRows(sub.rows)];
+                            } else {
+                                items = [...items, ...(sub.items || sub.questions || [])];
+                            }
+                        });
+                    } else if (group.rows) {
+                        items = getInputsFromRows(group.rows);
                     } else {
                         items = group.questions || group.items || [];
                     }
+
                     items.forEach(it => {
                         const idNum = parseInt(it.id);
                         if (!isNaN(idNum)) {
@@ -214,8 +245,23 @@ const ListeningRightPane = memo(({
                             });
                         };
                         checkId(group.id);
-                        (group.items || group.questions || [])?.forEach(it => checkId(it.id));
-                        group.groups?.forEach(sub => (sub.items || sub.questions || [])?.forEach(it => checkId(it.id)));
+                        
+                        let items = [];
+                        if (Array.isArray(group.groups)) {
+                            group.groups.forEach(sub => {
+                                if (sub.rows) {
+                                    items = [...items, ...getInputsFromRows(sub.rows)];
+                                } else {
+                                    items = [...items, ...(sub.items || sub.questions || [])];
+                                }
+                            });
+                        } else if (group.rows) {
+                            items = getInputsFromRows(group.rows);
+                        } else {
+                            items = group.questions || group.items || [];
+                        }
+
+                        items.forEach(it => checkId(it.id));
                     });
 
                     if (minId !== Infinity) {

@@ -5,13 +5,38 @@ import { ListeningTextInput } from '../ListeningComponents';
 // --- TABLE COMPLETION ---
 export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMode, handleLocationClick, onSeekTo, activePart }) => {
     const renderSingleTable = (tableData, key) => {
-        const headers = tableData.headers || [];
-        const rows = tableData.rows || [];
+        let headers = tableData.headers || [];
+        let rows = tableData.rows || [];
+
+        // If there are no explicit headers, but rows exist, check if rows[0] is a header row (all pure text cells)
+        if (headers.length === 0 && rows.length > 0) {
+            const firstRowCells = rows[0].cells || (Array.isArray(rows[0]) ? rows[0] : []);
+            const isAllText = firstRowCells.every(cell => {
+                if (!cell) return true;
+                return !cell.isMixed && !cell.parts && (cell.text || typeof cell !== 'object') && !String(cell.text || cell).includes('[INPUT]');
+            });
+            if (isAllText && rows.length > 1) {
+                headers = firstRowCells.map(cell => typeof cell === 'object' ? (cell.text || "") : String(cell));
+                rows = rows.slice(1);
+            }
+        }
+
         return (
             <div className="overflow-x-auto mb-8 bg-white px-2 md:px-12 lg:px-16" key={key}>
+                {tableData.header && (
+                    <h3 className="text-[1.15em] font-black text-gray-900 mb-4 mt-2 pt-3 uppercase tracking-wider text-center border-b border-gray-100 pb-2">
+                        {typeof tableData.header === 'object' ? tableData.header.text : tableData.header}
+                    </h3>
+                )}
                 <table className="w-full max-w-4xl mx-auto text-[1em] text-left border-collapse border border-black">
                     <thead className="bg-gray-100 text-gray-700 uppercase font-black text-[0.8em] tracking-wider">
-                        <tr>{headers.map((h, i) => <th key={i} className="px-4 py-3 border border-black">{typeof h === 'object' ? h.text : h}</th>)}</tr>
+                        <tr>
+                            {headers.map((h, i) => (
+                                <th key={i} className="px-4 py-3 border border-black">
+                                    {typeof h === 'object' ? h.text : h}
+                                </th>
+                            ))}
+                        </tr>
                     </thead>
                     <tbody>
                         {rows.map((row, rIdx) => (
@@ -46,10 +71,16 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
                                                             return (
                                                                 <div key={`input-${refinedPart.id}`} className="inline-flex items-baseline mb-1">
                                                                     <ListeningTextInput
-                                                                        id={refinedPart.id} answer={refinedPart.answer || item?.answer} locationId={refinedPart.locationId || item?.locationId}
-                                                                        userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode}
-                                                                        handleLocationClick={handleLocationClick} onSeekTo={onSeekTo}
-                                                                        timestamp={item?.timestamp || item?.timeStep} activePart={activePart}
+                                                                        id={refinedPart.id} 
+                                                                        answer={refinedPart.answer || item?.answer} 
+                                                                        locationId={refinedPart.locationId || item?.locationId}
+                                                                        userAnswers={userAnswers} 
+                                                                        onAnswerChange={onAnswerChange} 
+                                                                        isReviewMode={isReviewMode}
+                                                                        handleLocationClick={handleLocationClick} 
+                                                                        onSeekTo={onSeekTo}
+                                                                        timestamp={refinedPart.timestamp || refinedPart.timeStep || item?.timestamp || item?.timeStep} 
+                                                                        activePart={activePart}
                                                                     />
                                                                 </div>
                                                             );
@@ -69,7 +100,24 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
         );
     };
 
-    if (group.groups) return <div className="space-y-4">{group.groups.map((sub, sIdx) => (sub.items || []).map((item, iIdx) => (item.type === 'table' || item.headers) ? renderSingleTable(item, `${sIdx}-${iIdx}`) : null))}</div>;
+    if (group.groups) {
+        return (
+            <div className="space-y-4">
+                {group.groups.map((sub, sIdx) => {
+                    if (sub.rows) {
+                        return renderSingleTable(sub, `sub-${sIdx}`);
+                    }
+                    const items = sub.items || sub.questions || [];
+                    return items.map((item, iIdx) => {
+                        if (item.type === 'table' || item.headers || item.rows) {
+                            return renderSingleTable(item, `${sIdx}-${iIdx}`);
+                        }
+                        return null;
+                    });
+                })}
+            </div>
+        );
+    }
     return renderSingleTable(group, 'root');
 };
 

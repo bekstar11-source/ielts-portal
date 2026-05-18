@@ -48,6 +48,12 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isTeacher() && resource.data.createdBy == request.auth.uid);
     }
 
+    // TESTS METADATA
+    match /tests_metadata/{metaId} {
+      allow read: if isAuth();
+      allow write: if isAdmin() || isTeacher();
+    }
+
     // ANNOUNCEMENTS
     match /announcements/{announcementId} {
       allow read: if isAuth();

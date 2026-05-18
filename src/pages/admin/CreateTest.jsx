@@ -207,6 +207,40 @@ export default function CreateTest() {
         } catch (err) { alert(err.message); } finally { setUploading(false); setUploadingPart(null); }
     };
 
+    const handlePassageTimeChange = (index, field, value) => {
+        setTestData(prev => {
+            const newPassages = [...(prev.passages || [])];
+            if (!newPassages[index]) {
+                newPassages[index] = { 
+                    id: index + 1, 
+                    title: `Part ${index + 1}`, 
+                    content: "",
+                    audio: audioMode === 'single' ? singleAudioUrl : (partAudios[index] || "")
+                };
+            }
+            newPassages[index] = { ...newPassages[index], [field]: value };
+            return { ...prev, passages: newPassages };
+        });
+
+        try {
+            if (jsonInput) {
+                const parsed = JSON.parse(jsonInput);
+                if (parsed.passages) {
+                    if (!parsed.passages[index]) {
+                        parsed.passages[index] = {
+                            id: index + 1,
+                            title: `Part ${index + 1}`
+                        };
+                    }
+                    parsed.passages[index][field] = value;
+                    setJsonInput(JSON.stringify(parsed, null, 2));
+                }
+            }
+        } catch (e) {
+            console.warn("JSON sync skipped due to parsing error:", e.message);
+        }
+    };
+
     if (loading && !testData.title) return (
         <div className="flex h-screen items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -283,6 +317,7 @@ export default function CreateTest() {
                             uploading={uploading}
                             uploadingPart={uploadingPart}
                             isDark={isDark}
+                            onPassageTimeChange={handlePassageTimeChange}
                         />
 
                         {testData.type === 'writing' && (

@@ -9,7 +9,8 @@ const MediaManager = ({
     listeningPartCount,
     uploadedMaps, handleMapUpload, handleDeleteMap,
     uploading, uploadingPart, uploadProgress,
-    isDark 
+    isDark,
+    onPassageTimeChange
 }) => {
     return (
         <div className={`p-5 rounded-2xl border mb-6 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
@@ -109,7 +110,7 @@ const MediaManager = ({
             </div>
 
             {/* THUMBNAIL */}
-            <div>
+            <div className="mb-6">
                 <label className="text-xs font-bold mb-1.5 block opacity-60">Thumbnail URL</label>
                 <input
                     type="text"
@@ -119,6 +120,55 @@ const MediaManager = ({
                     placeholder="Test rasmi URL manzili..."
                 />
             </div>
+
+            {/* AUDIO TIMESTAMPS MANAGER */}
+            {testData.type === 'listening' && onPassageTimeChange && (
+                <div className="border-t border-gray-100 dark:border-white/5 pt-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <label className="text-xs font-bold opacity-60">Audio Segmentlari Vaqtlari (Passages Timestamps)</label>
+                        <span className="text-[9px] font-bold text-gray-400 bg-gray-500/5 px-2 py-0.5 rounded border border-gray-500/10">MM:SS format</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[...Array(listeningPartCount)].map((_, i) => {
+                            const passage = testData.passages?.[i] || {};
+                            return (
+                                <div key={i} className={`p-3 rounded-xl border ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-[10px] font-bold uppercase opacity-40">Part {i + 1} Vaqti</span>
+                                        {(passage.startTime || passage.endTime) && (
+                                            <span className="text-[9px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                                {passage.startTime || "0:00"} - {passage.endTime || "0:00"}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Start Time</span>
+                                            <input
+                                                type="text"
+                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
+                                                placeholder="0:00"
+                                                value={passage.startTime || ""}
+                                                onChange={e => onPassageTimeChange(i, 'startTime', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">End Time</span>
+                                            <input
+                                                type="text"
+                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
+                                                placeholder="7:30"
+                                                value={passage.endTime || ""}
+                                                onChange={e => onPassageTimeChange(i, 'endTime', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

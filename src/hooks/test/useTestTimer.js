@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
 
-export function useTestTimer(testId, userId, testMode, initialTime = 3600, isActive = false) {
+export function useTestTimer(testId, userId, testMode, initialTime = 3600, isActive = false, partNumber = null) {
     const [timeLeft, setTimeLeft] = useState(initialTime);
 
     useEffect(() => {
         if (!isActive || !testId || !userId) return;
 
         // Load saved time from sessionStorage
-        const savedTime = sessionStorage.getItem(`timer_${userId}_${testId}`);
+        const timerKey = `timer_${userId}_${testId}${partNumber ? `_part_${partNumber}` : ''}`;
+        const savedTime = sessionStorage.getItem(timerKey);
         if (savedTime) {
             setTimeLeft(parseInt(savedTime));
         } else {
             setTimeLeft(testMode === 'practice' ? 0 : initialTime);
         }
-    }, [testId, userId, initialTime, isActive, testMode]);
+    }, [testId, userId, initialTime, isActive, testMode, partNumber]);
 
     useEffect(() => {
         if (!isActive || !testMode) return;
@@ -22,13 +23,14 @@ export function useTestTimer(testId, userId, testMode, initialTime = 3600, isAct
         const timerId = setInterval(() => {
             setTimeLeft(prev => {
                 const newVal = testMode === 'practice' ? prev + 1 : prev - 1;
-                sessionStorage.setItem(`timer_${userId}_${testId}`, newVal);
+                const timerKey = `timer_${userId}_${testId}${partNumber ? `_part_${partNumber}` : ''}`;
+                sessionStorage.setItem(timerKey, newVal);
                 return newVal;
             });
         }, 1000);
 
         return () => clearInterval(timerId);
-    }, [timeLeft, isActive, userId, testId, testMode]);
+    }, [timeLeft, isActive, userId, testId, testMode, partNumber]);
 
     return { timeLeft, setTimeLeft };
 }

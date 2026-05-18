@@ -154,11 +154,16 @@ const isMultiAnswerType = (type) => {
 };
 
 // FULL EVALUATION ENGINE (Returns score, total, band, and mistake records)
-const evaluateTest = (testData, userAnswers) => {
+const evaluateTest = (testData, userAnswers, partNumber = null) => {
     let correctCount = 0;
     let totalQ = 0;
     let mistakes = [];
     const scoredIds = new Set();
+
+    let targetPassageId = null;
+    if (partNumber && testData.passages && testData.passages[partNumber - 1]) {
+        targetPassageId = testData.passages[partNumber - 1].id;
+    }
 
     const getWeight = (id) => {
         if (!id) return 1;
@@ -175,6 +180,14 @@ const evaluateTest = (testData, userAnswers) => {
 
     const walk = (obj, parentType) => {
         if (!obj || typeof obj !== 'object') return;
+
+        // Skip questions and passages not belonging to the targeted part in part practice
+        if (targetPassageId) {
+            if (obj.passageId && String(obj.passageId) !== String(targetPassageId)) return;
+            // Skip passage container if it doesn't match
+            if (obj.id && (obj.audio || obj.passageNumber) && String(obj.id) !== String(targetPassageId)) return;
+        }
+
         const currentType = String(obj.type || parentType || "").toLowerCase();
         const getAnswer = (o) => o?.answer || o?.correct_answer || o?.correctAnswer || o?.correct_answer_value;
 

@@ -7,9 +7,17 @@ import { Volume2, Volume1, VolumeX, Bell, Menu, PenLine, HelpCircle, EyeOff, X, 
 
 // ─── Audio Preloader (buffering screen) ─────────────────────────────────────
 // Polls each CustomAudioPlayer's <audio> DOM element until readyState >= 3
-function AudioPreloader({ passages, test, onReady }) {
+function AudioPreloader({ passages, test, onReady, partNumber = null }) {
     const [loadedCount, setLoadedCount] = useState(0);
-    const totalCount = passages?.filter(p => p.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file).length || 0;
+    const passagesToLoad = useMemo(() => {
+        if (!passages) return [];
+        if (partNumber) {
+            return passages.filter((_, idx) => idx === partNumber - 1);
+        }
+        return passages;
+    }, [passages, partNumber]);
+
+    const totalCount = passagesToLoad?.filter(p => p.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file).length || 0;
     const hasCalledReady = useRef(false);
 
     useEffect(() => {
@@ -31,12 +39,13 @@ function AudioPreloader({ passages, test, onReady }) {
             }
         };
 
-        passages.forEach((passage, idx) => {
+        passagesToLoad.forEach((passage, idx) => {
+            const actualIdx = partNumber ? (partNumber - 1) : idx;
             const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
             if (!src) { checkAllLoaded(); return; }
 
             const pollId = setInterval(() => {
-                const audioEl = document.getElementById(`audio-part-${idx}`);
+                const audioEl = document.getElementById(`audio-part-${actualIdx}`);
                 if (!audioEl) return;
                 if (audioEl.readyState >= 3 || audioEl.error) {
                     clearInterval(pollId);
@@ -61,7 +70,7 @@ function AudioPreloader({ passages, test, onReady }) {
             pollIntervals.forEach(id => clearInterval(id));
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [passagesToLoad, totalCount, partNumber]);
 
     const pct = totalCount > 0 ? Math.round((loadedCount / totalCount) * 100) : 100;
     const isDone = loadedCount === totalCount && totalCount > 0;
@@ -197,7 +206,8 @@ const TestHeader = ({
     buttonText = 'Finish',
     volume: externalVolume,
     resumeAudioTime = 0,
-    audioRefs
+    audioRefs,
+    partNumber = null
 }) => {
     const { userData } = useAuth();
     const localAudioRefs = useRef([]);
@@ -309,6 +319,7 @@ const TestHeader = ({
                         setIsBuffering(false);
                         onBufferingDone?.();
                     }}
+                    partNumber={partNumber}
                 />
             )}
 
@@ -351,6 +362,25 @@ const TestHeader = ({
                         {test?.passages?.map((passage, index) => {
                             const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
                             if (!src) return null;
+
+                            // If partNumber is active, only render the player for index === partNumber - 1
+                            if (partNumber && index !== partNumber - 1) return null;
+
+                            // Calculate overridden bounds
+                            const partKey = `part${index + 1}`;
+                            const partMeta = test?.parts?.[partKey];
+
+                            const defaultStart = index * 450;
+                            const defaultEnd = (index + 1) * 450;
+
+                            const startTime = (partMeta?.startSec !== undefined && partMeta?.startSec !== null)
+                                ? Number(partMeta.startSec)
+                                : (passage.startTime || defaultStart);
+
+                            const endTime = (partMeta?.endSec !== undefined && partMeta?.endSec !== null)
+                                ? Number(partMeta.endSec)
+                                : (passage.endTime || defaultEnd);
+
                             return (
                                 <CustomAudioPlayer
                                     key={index}
@@ -365,8 +395,8 @@ const TestHeader = ({
                                     setAudioTime={setAudioTime}
                                     volume={volume}
                                     onEnded={() => handleEnded(index)}
-                                    startTime={passage.startTime || 0}
-                                    endTime={passage.endTime || 0}
+                                    startTime={startTime}
+                                    endTime={endTime}
                                     resumeTime={resumeAudioTime}
                                 />
                             );

@@ -16,7 +16,7 @@ export default function TestSolving() {
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
-        audioRefs, handleSeekTo
+        audioRefs, handleSeekTo, partNumber
     } = useTestLogic();
 
     // Exam modeda intro countdown tugagach audio play bo'lishi uchun trigger
@@ -155,6 +155,7 @@ export default function TestSolving() {
                 onToggleFullScreen={handleToggleFullScreen}
                 onOpenNotes={() => setIsNotesVisible(true)}
                 audioRefs={audioRefs}
+                partNumber={partNumber}
             />
 
             {/* CONTENT AREA */}
@@ -181,6 +182,7 @@ export default function TestSolving() {
                     setIsReviewing={setIsReviewing}
                     onExit={() => navigate('/my-results')}
                     userAnswers={userAnswers}
+                    partNumber={partNumber}
                 />
 
                 {/* INTERFACE RENDERING */}
@@ -218,6 +220,7 @@ export default function TestSolving() {
                                     audioCurrentTime={audioTime}
                                     onIntroEnd={() => setTriggerPlay(true)}
                                     onSeekTo={handleSeekTo}
+                                    partNumber={partNumber}
                                 />
                             </div>
                         ) : isWriting ? (

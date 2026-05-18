@@ -175,7 +175,7 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
 // ──────────────────────────────────────────────
 // RESULT MODAL
 // ──────────────────────────────────────────────
-export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, initialDuration, isReviewing, setIsReviewing, onExit, userAnswers }) => {
+export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, initialDuration, isReviewing, setIsReviewing, onExit, userAnswers, partNumber = null }) => {
     const { userData } = useAuth();
     const [showPricingModal, setShowPricingModal] = useState(false);
 
@@ -205,7 +205,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
             return 1;
         };
 
-        return test.passages.map((passage, pIdx) => {
+        const stats = test.passages.map((passage, pIdx) => {
             let correctCount = 0;
             let totalQ = 0;
             const scoredIds = new Set();
@@ -294,16 +294,22 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                 name: passage.title || `Part ${pIdx + 1}`,
                 correct: correctCount,
                 total: totalQ,
-                mistakes: mistakes
+                mistakes: mistakes,
+                partIndex: pIdx
             };
         });
-    }, [test, userAnswers]);
+
+        if (partNumber) {
+            return stats.filter((_, idx) => idx === partNumber - 1);
+        }
+        return stats;
+    }, [test, userAnswers, partNumber]);
 
     if (!show || isReviewing) return null;
 
-    const totalQuestions = partStats.reduce((acc, curr) => acc + curr.total, 0) || 40;
+    const totalQuestions = partStats.reduce((acc, curr) => acc + curr.total, 0) || (partNumber ? 10 : 40);
     const totalMistakes = Math.max(0, totalQuestions - score);
-    const colsClass = partStats.length === 3 ? 'grid-cols-3' : 'grid-cols-4';
+    const colsClass = partStats.length === 1 ? 'grid-cols-1 max-w-[120px] mx-auto' : (partStats.length === 3 ? 'grid-cols-3' : 'grid-cols-4');
 
     return (
         <div className="absolute inset-0 bg-white/90 z-50 flex items-center justify-center backdrop-blur-md animate-in fade-in">
@@ -351,7 +357,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                                     {partStats.map((part, index) => (
                                         <div key={part.passageId || index} className="bg-zinc-50/50 border border-zinc-100 rounded-xl p-2 text-center">
                                             <span className="block text-[9px] font-black text-gray-400 uppercase leading-none mb-1">
-                                                Part {index + 1}
+                                                Part {part.partIndex !== undefined ? part.partIndex + 1 : index + 1}
                                             </span>
                                             <div className="flex items-center justify-center gap-0.5 mt-1">
                                                 <span className="text-xs font-black text-rose-500">{part.mistakes}</span>

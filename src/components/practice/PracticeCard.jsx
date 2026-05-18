@@ -83,43 +83,64 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
 
   const showGetAccess = !canAccess && isPremium && !isCompleted && !test.isSet;
 
-  const derivedQuestionTypes = test.questionTypes && test.questionTypes.length > 0 
-    ? test.questionTypes 
-    : (() => {
-        const types = new Set();
-        const mapType = (t) => {
-          if (!t) return null;
-          const lower = t.toLowerCase();
-          if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection') || lower.includes('pick_')) return 'Multiple Choice';
-          if (lower.includes('matching_headings')) return 'Matching Headings';
-          if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
-          if (lower.includes('matching')) return 'Matching';
-          if (lower.includes('table')) return 'Table Completion';
-          if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
-          if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
-          if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
-          if (lower.includes('short_answer')) return 'Short Answer';
-          return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-        };
+  const derivedQuestionTypes = (() => {
+    // 1. If it has parts (Listening virtual parts in metadata), aggregate them
+    const aggregated = new Set();
+    if (test.parts && typeof test.parts === 'object') {
+      Object.values(test.parts).forEach(p => {
+        if (p.qTypes && Array.isArray(p.qTypes)) {
+          p.qTypes.forEach(t => aggregated.add(t));
+        }
+      });
+    }
+    if (test.passages && typeof test.passages === 'object') {
+      Object.values(test.passages).forEach(p => {
+        if (p.qTypes && Array.isArray(p.qTypes)) {
+          p.qTypes.forEach(t => aggregated.add(t));
+        }
+      });
+    }
+    if (aggregated.size > 0) return Array.from(aggregated);
 
-        const qArray = test.questions || [];
-        qArray.forEach(q => {
-          if (q.type) { const m = mapType(q.type); if (m) types.add(m); }
-          if (q.items) q.items.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
-          if (q.questions) q.questions.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
-          if (q.groups) q.groups.forEach(g => { if (g.type) { const m = mapType(g.type); if (m) types.add(m); } });
-        });
+    // 2. Fallback to existing test.questionTypes
+    if (test.questionTypes && test.questionTypes.length > 0) {
+      return test.questionTypes;
+    }
 
-        // Also check sections for reading
-        const sArray = test.sections || [];
-        sArray.forEach(s => {
-          (s.questions || []).forEach(q => {
-            if (q.type) { const m = mapType(q.type); if (m) types.add(m); }
-          });
-        });
+    // 3. Fallback to parsing questions/sections (for full test object if loaded)
+    const types = new Set();
+    const mapType = (t) => {
+      if (!t) return null;
+      const lower = t.toLowerCase();
+      if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection') || lower.includes('pick_')) return 'Multiple Choice';
+      if (lower.includes('matching_headings')) return 'Matching Headings';
+      if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
+      if (lower.includes('matching')) return 'Matching';
+      if (lower.includes('table')) return 'Table Completion';
+      if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
+      if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
+      if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
+      if (lower.includes('short_answer')) return 'Short Answer';
+      return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
 
-        return Array.from(types);
-      })();
+    const qArray = test.questions || [];
+    qArray.forEach(q => {
+      if (q.type) { const m = mapType(q.type); if (m) types.add(m); }
+      if (q.items) q.items.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
+      if (q.questions) q.questions.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
+      if (q.groups) q.groups.forEach(g => { if (g.type) { const m = mapType(g.type); if (m) types.add(m); } });
+    });
+
+    const sArray = test.sections || [];
+    sArray.forEach(s => {
+      (s.questions || []).forEach(q => {
+        if (q.type) { const m = mapType(q.type); if (m) types.add(m); }
+      });
+    });
+
+    return Array.from(types);
+  })();
 
   return (
     <motion.div 

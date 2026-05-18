@@ -19,7 +19,7 @@ import LibrarySubHeader from "../../components/dashboard/LibrarySubHeader";
 import PricingModal from "../../components/dashboard/PricingModal";
 import SiteFooter from "../../components/common/SiteFooter";
 import { useDailyLimit } from "../../hooks/useDailyLimit";
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+
 import BottomNav from "../../components/dashboard/BottomNav";
 
 // REFACTORED COMPONENTS
@@ -45,8 +45,9 @@ export default function Listening() {
   const [selectedStatus, setSelectedStatus] = useState("all"); 
   const [selectedParts, setSelectedParts] = useState([]);
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
+  const [activePartFilter, setActivePartFilter] = useState('all');
   
-  const { assignments, loading, error: errorMsg, refresh } = useStudentData(user);
+  const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
   // Library Pagination State
   const [libraryTests, setLibraryTests] = useState([]);
@@ -68,7 +69,7 @@ export default function Listening() {
     setLoadingLibrary(true);
     try {
         let q = query(
-            collection(db, 'tests'),
+            collection(db, 'tests_metadata'),
             where('type', '==', 'listening'),
             limit(PAGE_SIZE)
         );
@@ -83,7 +84,7 @@ export default function Listening() {
         if (isFirstPage) {
             setLibraryTests(newTests);
             // Fetch Total Count for students library
-            const countSnap = await getCountFromServer(query(collection(db, 'tests'), where('type', '==', 'listening')));
+            const countSnap = await getCountFromServer(query(collection(db, 'tests_metadata'), where('type', '==', 'listening')));
             setTotalLibraryCount(countSnap.data().count);
         } else {
             setLibraryTests(prev => [...prev, ...newTests]);
@@ -122,13 +123,191 @@ export default function Listening() {
 
   const partsSectionRef = useRef(null);
   const fullTestSectionRef = useRef(null);
+  const collectionsSectionRef = useRef(null);
   const isManualScrollingRef = useRef(false);
 
   const listeningFilters = [
     { id: 'parts', label: 'Listening Parts', ref: partsSectionRef },
-    { id: 'full_test', label: 'Full Tests', ref: fullTestSectionRef }
+    { id: 'full_test', label: 'Full Tests', ref: fullTestSectionRef },
+    { id: 'collections', label: 'Collections', ref: collectionsSectionRef }
   ];
   const [activeSubTab, setActiveSubTab] = useState('parts');
+
+  // Collections state
+  const [collections, setCollections] = useState([]);
+  const [loadingCollections, setLoadingCollections] = useState(false);
+  const [selectedCollectionId, setSelectedCollectionId] = useState(null);
+  const [collectionTests, setCollectionTests] = useState([]);
+  const [loadingCollectionTests, setLoadingCollectionTests] = useState(false);
+  const [collectionCounts, setCollectionCounts] = useState({});
+
+  const fetchCollectionCounts = async (cols) => {
+    const counts = {};
+    for (const col of cols) {
+      try {
+        // Query tests directly (which is the source of truth) filtering by type and collectionId
+        const countSnap = await getCountFromServer(
+          query(
+            collection(db, "tests"), 
+            where("collectionId", "==", col.id),
+            where("type", "==", "listening")
+          )
+        );
+        counts[col.id] = countSnap.data().count;
+      } catch (e) {
+        try {
+          const countSnap = await getCountFromServer(
+            query(
+              collection(db, "tests_metadata"), 
+              where("collectionId", "==", col.id),
+              where("type", "==", "listening")
+            )
+          );
+          counts[col.id] = countSnap.data().count;
+        } catch (e2) {
+          counts[col.id] = 0;
+        }
+      }
+    }
+    setCollectionCounts(counts);
+  };
+
+  const fetchCollections = async () => {
+    setLoadingCollections(true);
+    try {
+      const { orderBy } = await import("firebase/firestore");
+      const snapCols = await getDocs(query(collection(db, "test_collections"), orderBy("createdAt", "asc")));
+      const fetchedCols = snapCols.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(c => c.type?.toLowerCase() !== 'reading');
+      setCollections(fetchedCols);
+      fetchCollectionCounts(fetchedCols);
+    } catch (e) {
+      try {
+        const snapCols = await getDocs(collection(db, "test_collections"));
+        const fetchedCols = snapCols.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(c => c.type?.toLowerCase() !== 'reading');
+        setCollections(fetchedCols);
+        fetchCollectionCounts(fetchedCols);
+      } catch (e2) {
+        console.error("Failed to load collections:", e2);
+      }
+    } finally {
+      setLoadingCollections(false);
+    }
+  };
+
+  const fetchCollectionTests = async (colId) => {
+    setLoadingCollectionTests(true);
+    try {
+      // 1. Fetch from tests_metadata
+      const qMeta = query(
+        collection(db, 'tests_metadata'),
+        where('collectionId', '==', colId)
+      );
+      const snapMeta = await getDocs(qMeta);
+      const metaDocs = snapMeta.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');
+
+      // 2. Fetch from tests
+      const qTests = query(
+        collection(db, 'tests'),
+        where('collectionId', '==', colId)
+      );
+      const snapTests = await getDocs(qTests);
+      const testDocs = snapTests.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');
+
+      // 3. Merge by ID to guarantee we capture all tests in the collection
+      const mergedMap = new Map();
+      testDocs.forEach(t => mergedMap.set(t.id, t));
+      metaDocs.forEach(t => {
+        if (mergedMap.has(t.id)) {
+          mergedMap.set(t.id, { ...mergedMap.get(t.id), ...t });
+        } else {
+          mergedMap.set(t.id, t);
+        }
+      });
+
+      const docs = Array.from(mergedMap.values());
+      setCollectionTests(docs);
+    } catch (e) {
+      console.error("Error fetching collection tests:", e);
+    } finally {
+      setLoadingCollectionTests(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCollections();
+  }, []);
+
+  const collectionProcessedTests = useMemo(() => {
+    const partTestsList = [];
+    const fullTestsList = [];
+
+    collectionTests.forEach(test => {
+      const fullAttempt = userResults?.find(
+        r => String(r.testId).trim() === String(test.id).trim() && !r.partNumber
+      );
+
+      fullTestsList.push({
+        ...test,
+        title: test.title?.toLowerCase().includes('full') ? test.title : `${test.title} (Full Mock)`,
+        isFullTest: true,
+        result: fullAttempt || null
+      });
+
+      if (test.parts && Object.keys(test.parts).length > 0) {
+        Object.entries(test.parts).forEach(([key, partData]) => {
+          const partNum = parseInt(key.replace('part', ''));
+          if (isNaN(partNum)) return;
+
+          const partAttempt = userResults?.find(
+            r => String(r.testId).trim() === String(test.id).trim() && Number(r.partNumber) === partNum
+          );
+
+          partTestsList.push({
+            id: `${test.id}_part_${partNum}`,
+            testId: test.id,
+            title: `${test.title} - Part ${partNum}`,
+            type: "listening",
+            difficulty: partData.difficulty || test.difficulty || "medium",
+            partNumber: partNum,
+            duration: 10,
+            audioUrl: partData.audioUrl || test.audioUrl || "",
+            startTime: partData.startSec || 0,
+            endTime: partData.endSec || 0,
+            questionTypes: partData.qTypes || [],
+            isVirtualPart: true,
+            result: partAttempt || null
+          });
+        });
+      } else {
+        for (let partNum = 1; partNum <= 4; partNum++) {
+          const partAttempt = userResults?.find(
+            r => String(r.testId).trim() === String(test.id).trim() && Number(r.partNumber) === partNum
+          );
+          partTestsList.push({
+            id: `${test.id}_part_${partNum}`,
+            testId: test.id,
+            title: `${test.title} - Part ${partNum}`,
+            type: "listening",
+            difficulty: test.difficulty || "medium",
+            partNumber: partNum,
+            duration: 10,
+            audioUrl: test.audioUrl || "",
+            startTime: 0,
+            endTime: 0,
+            questionTypes: [],
+            isVirtualPart: true,
+            result: partAttempt || null
+          });
+        }
+      }
+    });
+
+    return { partTestsList, fullTestsList };
+  }, [collectionTests, userResults]);
 
   const handleSubTabClick = (filter) => {
     if (activeSubTab === filter.id) return;
@@ -151,7 +330,8 @@ export default function Listening() {
       const scrollPosition = window.scrollY + 200; 
       const sections = [
         { id: 'parts', ref: partsSectionRef },
-        { id: 'full_test', ref: fullTestSectionRef }
+        { id: 'full_test', ref: fullTestSectionRef },
+        { id: 'collections', ref: collectionsSectionRef }
       ];
 
       let currentSection = sections[0].id;
@@ -178,43 +358,137 @@ export default function Listening() {
     return () => window.removeEventListener('scroll', handleScrollEvent);
   }, []);
 
+  const processedTests = useMemo(() => {
+    // 1. Get unique tests from rawAssignments (which has assignments + libraryTests)
+    const testMap = new Map();
+    rawAssignments.forEach(item => {
+      if (item.type === 'listening') {
+        testMap.set(item.id, item);
+      }
+    });
+    const allUniqueTests = Array.from(testMap.values());
+
+    const partTestsList = [];
+    const fullTestsList = [];
+
+    allUniqueTests.forEach(test => {
+      // Find full test attempt
+      const fullAttempt = userResults?.find(
+        r => String(r.testId).trim() === String(test.id).trim() && !r.partNumber
+      );
+
+      // Create full test object
+      const fullTestObj = {
+        ...test,
+        title: test.title?.toLowerCase().includes('full') ? test.title : `${test.title} (Full Mock)`,
+        isFullTest: true,
+        result: fullAttempt || null
+      };
+      fullTestsList.push(fullTestObj);
+
+      // Create virtual part tests
+      if (test.parts && Object.keys(test.parts).length > 0) {
+        Object.entries(test.parts).forEach(([key, partData]) => {
+          const partNum = parseInt(key.replace('part', ''));
+          if (isNaN(partNum)) return;
+
+          // Find part attempt
+          const partAttempt = userResults?.find(
+            r => String(r.testId).trim() === String(test.id).trim() && Number(r.partNumber) === partNum
+          );
+
+          partTestsList.push({
+            id: `${test.id}_part_${partNum}`,
+            testId: test.id,
+            title: `${test.title} - Part ${partNum}`,
+            type: "listening",
+            difficulty: partData.difficulty || test.difficulty || "medium",
+            partNumber: partNum,
+            duration: 10,
+            audioUrl: partData.audioUrl || test.audioUrl || "",
+            startTime: partData.startSec || 0,
+            endTime: partData.endSec || 0,
+            questionTypes: partData.qTypes || [],
+            isVirtualPart: true,
+            result: partAttempt || null
+          });
+        });
+      } else {
+        // Fallback for older tests that do not have parts in metadata
+        for (let partNum = 1; partNum <= 4; partNum++) {
+          const partAttempt = userResults?.find(
+            r => String(r.testId).trim() === String(test.id).trim() && Number(r.partNumber) === partNum
+          );
+          partTestsList.push({
+            id: `${test.id}_part_${partNum}`,
+            testId: test.id,
+            title: `${test.title} - Part ${partNum}`,
+            type: "listening",
+            difficulty: test.difficulty || "medium",
+            partNumber: partNum,
+            duration: 10,
+            audioUrl: test.audioUrl || "",
+            startTime: 0,
+            endTime: 0,
+            questionTypes: [],
+            isVirtualPart: true,
+            result: partAttempt || null
+          });
+        }
+      }
+    });
+
+    return { partTestsList, fullTestsList };
+  }, [rawAssignments, userResults]);
+
   const allQuestionTypes = useMemo(() => {
     const types = new Set();
-    rawAssignments.forEach(item => {
-      if (item.type === 'listening' && item.questionTypes) {
+    processedTests.fullTestsList.forEach(item => {
+      if (item.questionTypes) {
+        item.questionTypes.forEach(t => types.add(t));
+      }
+    });
+    processedTests.partTestsList.forEach(item => {
+      if (item.questionTypes) {
         item.questionTypes.forEach(t => types.add(t));
       }
     });
     return ["all", ...Array.from(types).sort()];
-  }, [rawAssignments]);
+  }, [processedTests]);
 
-  const filteredTests = useMemo(() => {
+  const filteredVirtualParts = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    const result = [];
-    
-    rawAssignments.forEach(item => {
-      let matchesTab = item.type === 'listening';
-      if (!matchesTab) return;
-
-      const matchesSearch = !q || item.title?.toLowerCase().includes(q);
-      const isDone = !!item.result;
+    return processedTests.partTestsList.filter(part => {
+      const matchesSearch = !q || part.title?.toLowerCase().includes(q);
+      const isDone = !!part.result;
       const matchesStatus = selectedStatus === 'all' || 
                            (selectedStatus === 'completed' && isDone) || 
                            (selectedStatus === 'not_completed' && !isDone);
       
       const matchesType = selectedQuestionTypes.length === 0 || 
-                         (item.questionTypes && item.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                         (part.questionTypes && part.questionTypes.some(t => selectedQuestionTypes.includes(t)));
       
-      const matchesPart = selectedParts.length === 0 || 
-                         (item.partNumber && selectedParts.includes(item.partNumber)) ||
-                         (item.title && selectedParts.some(p => item.title.toLowerCase().includes(`part ${p}`)));
+      const matchesPartTab = activePartFilter === 'all' || String(part.partNumber) === activePartFilter;
 
-      if (matchesSearch && matchesType && matchesStatus && matchesPart) {
-        result.push(item);
-      }
+      return matchesSearch && matchesStatus && matchesType && matchesPartTab;
     });
-    return result;
-  }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus, selectedParts]);
+  }, [processedTests.partTestsList, searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter]);
+
+  const filteredFullTests = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return processedTests.fullTestsList.filter(full => {
+      const matchesSearch = !q || full.title?.toLowerCase().includes(q);
+      const isDone = !!full.result;
+      const matchesStatus = selectedStatus === 'all' || 
+                           (selectedStatus === 'completed' && isDone) || 
+                           (selectedStatus === 'not_completed' && !isDone);
+      
+      const matchesType = selectedQuestionTypes.length === 0 || 
+                         (full.questionTypes && full.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [processedTests.fullTestsList, searchQuery, selectedStatus, selectedQuestionTypes]);
 
   const handleStartTest = (test) => { 
     if (!checkLimit('listening')) {
@@ -231,9 +505,14 @@ export default function Listening() {
     setShowStartConfirm(false);
     setSelectedSet(null);
     incrementUsage('listening').catch(err => console.error("Stats update failed:", err));
-    const targetId = test.id || test.testId || test.targetId;
-    if (targetId) navigate(`/test/${targetId}`);
-    else alert("Test ID topilmadi!");
+    
+    if (test.isVirtualPart) {
+      navigate(`/test/${test.testId}?part=${test.partNumber}`);
+    } else {
+      const targetId = test.id || test.testId || test.targetId;
+      if (targetId) navigate(`/test/${targetId}`);
+      else alert("Test ID topilmadi!");
+    }
   };
 
   const handleReview = (test) => {
@@ -300,13 +579,10 @@ export default function Listening() {
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-transparent to-purple-600/20" />
         </div>
-        <div className="w-full max-w-[800px] h-full flex items-center justify-center">
-            <DotLottieReact
-                src="https://lottie.host/6ad39563-0f5a-4648-9646-778f6920f01b/kL3xT7j8tG.lottie"
-                loop
-                autoplay
-                className="w-full h-full object-contain"
-            />
+        <div className="w-full max-w-[800px] h-full flex items-center justify-center gap-1.5 px-4 relative z-10">
+            {/* Smooth glowing background light */}
+            <div className="absolute w-[200px] h-[200px] bg-blue-500/10 rounded-full blur-[60px]" />
+            <div className="absolute w-[250px] h-[250px] bg-purple-500/5 rounded-full blur-[80px]" />
         </div>
 
         {/* BACKGROUND ANIMATED TEXT */}
@@ -348,8 +624,8 @@ export default function Listening() {
         <PracticeHero 
           activeTab="listening" 
           categories={categories} 
-          totalCount={loading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'listening').length)}
-          filteredCount={filteredTests.length}
+          totalCount={loading ? 0 : (totalLibraryCount * 4 || processedTests.partTestsList.length)}
+          filteredCount={filteredVirtualParts.length + filteredFullTests.length}
         />
 
         <PracticeFilters 
@@ -387,7 +663,7 @@ export default function Listening() {
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
         ) : (
             <AnimatePresence mode="wait">
-                {filteredTests.length === 0 ? (
+                {filteredVirtualParts.length === 0 && filteredFullTests.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <div className="w-16 h-16 bg-[#f5f5f7] rounded-full flex items-center justify-center mb-6">
                             <Search size={24} className="text-gray-300" />
@@ -402,38 +678,69 @@ export default function Listening() {
                         className="space-y-16 pb-20"
                     >
                         {(() => {
-                            const partTests = filteredTests.filter(t => t.title?.toLowerCase().includes('part') || t.partNumber);
-                            const fullTests = filteredTests.filter(t => t.title?.toLowerCase().includes('full') || !t.title?.toLowerCase().includes('part'));
-
                             return (
                                 <>
                                     {/* Parts Section */}
-                                    <div className="space-y-4" ref={partsSectionRef}>
-                                        <div className="space-y-1">
-                                            <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Listening Parts</h2>
-                                            <p className="text-[#86868b] text-[14px]">Displaying {partTests.length} part-based tests</p>
+                                    <div className="space-y-6" ref={partsSectionRef}>
+                                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-100 pb-4">
+                                            <div className="space-y-1">
+                                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Listening Parts</h2>
+                                                <p className="text-[#86868b] text-[14px]">Displaying {filteredVirtualParts.length} part practice tests</p>
+                                            </div>
+
+                                            {/* Beautiful Segmented Tab Filter */}
+                                            <div className="flex items-center gap-1 bg-[#f5f5f7] p-1 rounded-xl border border-black/5 self-start md:self-auto shadow-sm">
+                                                {[
+                                                    { id: 'all', label: 'All Parts' },
+                                                    { id: '1', label: 'Part 1' },
+                                                    { id: '2', label: 'Part 2' },
+                                                    { id: '3', label: 'Part 3' },
+                                                    { id: '4', label: 'Part 4' },
+                                                ].map((tab) => (
+                                                    <button
+                                                        key={tab.id}
+                                                        onClick={() => {
+                                                            setActivePartFilter(tab.id);
+                                                            setCurrentPage(1);
+                                                        }}
+                                                        className={`px-4 py-2 rounded-lg text-[12px] font-bold transition-all relative ${
+                                                            activePartFilter === tab.id
+                                                                ? 'bg-white text-black shadow-sm border border-black/5'
+                                                                : 'text-black/50 hover:text-black hover:bg-black/5'
+                                                        }`}
+                                                    >
+                                                        {tab.label}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                         
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
-                                            {partTests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
-                                                <PracticeCard 
-                                                    key={test.id} 
-                                                    test={test} 
-                                                    isCompleted={!!test.result}
-                                                    onReview={handleReview}
-                                                    onStart={handleStartTest}
-                                                    onSelectSet={setSelectedSet}
-                                                    isPro={isPro}
-                                                    isStandard={isStandard}
-                                                />
-                                            ))}
-                                        </div>
+                                        {filteredVirtualParts.length === 0 ? (
+                                            <div className="text-center py-20 text-gray-400 text-sm">
+                                                Ushbu bo'limga mos part practice testlari topilmadi.
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
+                                                {filteredVirtualParts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
+                                                    <PracticeCard 
+                                                        key={test.id} 
+                                                        test={test} 
+                                                        isCompleted={!!test.result}
+                                                        onReview={handleReview}
+                                                        onStart={handleStartTest}
+                                                        onSelectSet={setSelectedSet}
+                                                        isPro={isPro}
+                                                        isStandard={isStandard}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
 
                                         {/* Pagination for Parts */}
-                                        {partTests.length > itemsPerPage && (
+                                        {filteredVirtualParts.length > itemsPerPage && (
                                             <div className="flex justify-center items-center gap-1.5 pt-10 pb-8">
                                                 {(() => {
-                                                    const totalPages = Math.ceil(partTests.length / itemsPerPage);
+                                                    const totalPages = Math.ceil(filteredVirtualParts.length / itemsPerPage);
                                                     const pages = [];
                                                     const delta = 1; 
                                                     
@@ -476,15 +783,15 @@ export default function Listening() {
                                     </div>
 
                                     {/* Full Tests Section */}
-                                    {fullTests.length > 0 && (
+                                    {filteredFullTests.length > 0 && (
                                         <div className="space-y-4 pt-10 border-t border-zinc-100" ref={fullTestSectionRef}>
                                             <div className="space-y-1">
                                                 <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Full Tests</h2>
-                                                <p className="text-[#86868b] text-[14px]">Displaying {fullTests.length} full length tests</p>
+                                                <p className="text-[#86868b] text-[14px]">Displaying {filteredFullTests.length} full length mock tests</p>
                                             </div>
                                             
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
-                                                {fullTests.map((test) => (
+                                                {filteredFullTests.map((test) => (
                                                     <PracticeCard 
                                                         key={test.id} 
                                                         test={test} 
@@ -499,6 +806,162 @@ export default function Listening() {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Collections Section */}
+                                    <div className="space-y-6 pt-12 border-t border-zinc-100" ref={collectionsSectionRef}>
+                                        <div className="space-y-1">
+                                            <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Collections</h2>
+                                            <p className="text-[#86868b] text-[14px]">
+                                                {selectedCollectionId 
+                                                    ? "Kolleksiya tarkibidagi listening testlari" 
+                                                    : "Admin tomonidan jamlangan maxsus test to'plamlari"}
+                                            </p>
+                                        </div>
+
+                                        {selectedCollectionId ? (
+                                            /* Active Collection View */
+                                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                {/* Back button and Collection Info */}
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-zinc-50 p-4 rounded-2xl border border-zinc-100 gap-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <button 
+                                                            onClick={() => {
+                                                                setSelectedCollectionId(null);
+                                                                setCollectionTests([]);
+                                                            }}
+                                                            className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-xl font-bold text-sm hover:bg-zinc-50 transition-colors shadow-sm text-zinc-700 active:scale-95"
+                                                        >
+                                                            <ChevronLeft size={16} />
+                                                            Kolleksiyalarga Qaytish
+                                                        </button>
+                                                        <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
+                                                        <h3 className="text-lg font-bold text-zinc-900">
+                                                            {collections.find(c => c.id === selectedCollectionId)?.name}
+                                                        </h3>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-[#0066cc] bg-[#0066cc]/5 border border-[#0066cc]/10 px-3 py-1.5 rounded-full self-start sm:self-auto">
+                                                        {collectionTests.length} ta test
+                                                    </span>
+                                                </div>
+
+                                                {loadingCollectionTests ? (
+                                                    <div className="flex justify-center py-20">
+                                                        <Loader2 className="w-8 h-8 text-[#0066cc] animate-spin" />
+                                                    </div>
+                                                ) : collectionTests.length === 0 ? (
+                                                    <div className="text-center py-20 text-zinc-400 text-sm bg-zinc-50/50 rounded-2xl border border-dashed border-zinc-200">
+                                                        Ushbu kolleksiyada hozircha listening testlari mavjud emas.
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-10">
+                                                        {/* Parts in Collection */}
+                                                        {collectionProcessedTests.partTestsList.length > 0 && (
+                                                            <div className="space-y-4">
+                                                                <h4 className="text-xl font-bold text-zinc-800 tracking-tight flex items-center gap-2">
+                                                                    <Headphones size={20} className="text-[#0066cc]" />
+                                                                    Listening Parts ({collectionProcessedTests.partTestsList.length})
+                                                                </h4>
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                                                                    {collectionProcessedTests.partTestsList.map(test => (
+                                                                        <PracticeCard 
+                                                                            key={test.id} 
+                                                                            test={test} 
+                                                                            isCompleted={!!test.result}
+                                                                            onReview={handleReview}
+                                                                            onStart={handleStartTest}
+                                                                            onSelectSet={setSelectedSet}
+                                                                            isPro={isPro}
+                                                                            isStandard={isStandard}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Full Tests in Collection */}
+                                                        {collectionProcessedTests.fullTestsList.length > 0 && (
+                                                            <div className="space-y-4 pt-8 border-t border-zinc-100">
+                                                                <h4 className="text-xl font-bold text-zinc-800 tracking-tight flex items-center gap-2">
+                                                                    <BookOpen size={20} className="text-[#0066cc]" />
+                                                                    Full Mock Tests ({collectionProcessedTests.fullTestsList.length})
+                                                                </h4>
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                                                                    {collectionProcessedTests.fullTestsList.map(test => (
+                                                                        <PracticeCard 
+                                                                            key={test.id} 
+                                                                            test={test} 
+                                                                            isCompleted={!!test.result}
+                                                                            onReview={handleReview}
+                                                                            onStart={handleStartTest}
+                                                                            onSelectSet={setSelectedSet}
+                                                                            isPro={isPro}
+                                                                            isStandard={isStandard}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            /* Collections Grid View */
+                                            loadingCollections ? (
+                                                <div className="flex justify-center py-20">
+                                                    <Loader2 className="w-8 h-8 text-[#0066cc] animate-spin" />
+                                                </div>
+                                            ) : collections.length === 0 ? (
+                                                <div className="text-center py-20 text-zinc-400 text-sm bg-zinc-50/50 rounded-2xl border border-dashed border-zinc-200">
+                                                    Hozircha hech qanday kolleksiya yaratilmagan.
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-4">
+                                                    {collections.map(col => {
+                                                        const testCount = collectionCounts[col.id] || 0;
+                                                        return (
+                                                            <div 
+                                                                key={col.id}
+                                                                onClick={() => {
+                                                                    setSelectedCollectionId(col.id);
+                                                                    fetchCollectionTests(col.id);
+                                                                }}
+                                                                className="group relative bg-white border border-zinc-100 rounded-3xl p-6 hover:border-[#0066cc]/30 hover:shadow-2xl hover:shadow-[#0066cc]/5 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden h-[200px]"
+                                                            >
+                                                                {/* Background glow overlay */}
+                                                                <div className="absolute top-0 right-0 w-24 h-24 bg-[#0066cc]/5 rounded-full blur-2xl group-hover:bg-[#0066cc]/10 transition-colors duration-300" />
+                                                                
+                                                                <div className="space-y-4">
+                                                                    {/* Thumbnail or Folder Icon */}
+                                                                    <div className="w-12 h-12 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300">
+                                                                        {col.thumbnail ? (
+                                                                            <img src={col.thumbnail} className="w-full h-full object-cover" alt="" />
+                                                                        ) : (
+                                                                            <BookOpen className="w-6 h-6 text-zinc-400 group-hover:text-[#0066cc] transition-colors" />
+                                                                        )}
+                                                                    </div>
+                                                                    
+                                                                    {/* Collection Title */}
+                                                                    <h3 className="font-bold text-zinc-800 text-base line-clamp-2 leading-snug group-hover:text-[#0066cc] transition-colors">
+                                                                        {col.name}
+                                                                    </h3>
+                                                                </div>
+
+                                                                {/* Bottom Info Row */}
+                                                                <div className="flex items-center justify-between pt-4 border-t border-zinc-100/50">
+                                                                    <span className="text-xs font-semibold text-zinc-400">
+                                                                        {testCount} ta test
+                                                                    </span>
+                                                                    <span className="text-xs font-bold text-[#0066cc] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                                                        Ochish <ChevronRight size={14} />
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
                                 </>
                             );
                         })()}

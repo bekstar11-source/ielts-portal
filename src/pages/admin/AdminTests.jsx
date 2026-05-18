@@ -30,6 +30,7 @@ export default function AdminTests() {
     const [editingCol, setEditingCol] = useState(null); // If null, we are adding. If object, we are editing.
     const [colName, setColName] = useState("");
     const [colThumbnail, setColThumbnail] = useState("");
+    const [colType, setColType] = useState("reading");
     const [uploadingImage, setUploadingImage] = useState(false);
     const [isSavingCol, setIsSavingCol] = useState(false);
 
@@ -49,6 +50,7 @@ export default function AdminTests() {
         setEditingCol(null);
         setColName("");
         setColThumbnail("");
+        setColType("reading");
         setCollectionModalOpen(true);
     };
 
@@ -56,6 +58,7 @@ export default function AdminTests() {
         setEditingCol(col);
         setColName(col.name);
         setColThumbnail(col.thumbnail || "");
+        setColType(col.type || "reading");
         setCollectionModalOpen(true);
     };
 
@@ -64,16 +67,17 @@ export default function AdminTests() {
         setIsSavingCol(true);
         try {
             if (editingCol) {
-                const ok = await updateCollection(editingCol.id, colName.trim(), colThumbnail.trim());
+                const ok = await updateCollection(editingCol.id, colName.trim(), colThumbnail.trim(), colType);
                 if (!ok) throw new Error("Database update failed");
             } else {
-                const ok = await addCollection(colName.trim(), colThumbnail.trim());
+                const ok = await addCollection(colName.trim(), colThumbnail.trim(), colType);
                 if (!ok) throw new Error("Database insert failed");
             }
             setCollectionModalOpen(false);
             setEditingCol(null);
             setColName("");
             setColThumbnail("");
+            setColType("reading");
         } catch (err) {
             alert("To'plamni saqlashda xatolik yuz berdi: " + err.message);
         } finally {
@@ -177,6 +181,127 @@ export default function AdminTests() {
         fetchPage(page, filterType, filterCollection);
     };
 
+    const [isMigrating, setIsMigrating] = useState(false);
+
+    const handleMigrateMetadata = async () => {
+        if (!window.confirm("Haqiqatan ham barcha mavjud testlar uchun yengil metadatalarni yaratmoqchimisiz? Bu offline kesh va part filterlarining ishlashi uchun zarur.")) return;
+        setIsMigrating(true);
+        try {
+            const { db } = await import("../../firebase/firebase");
+            const { collection, getDocs, doc, setDoc } = await import("firebase/firestore");
+            const { getQuestionTypesFromQuestions } = await import("../../components/admin/CreateTest/CreateTestUtils");
+
+            const snap = await getDocs(collection(db, "tests"));
+            const total = snap.docs.length;
+            let successCount = 0;
+
+            for (const d of snap.docs) {
+                const payload = d.data();
+                const testId = d.id;
+
+                let duration = Number(payload.duration) || 30;
+                if (payload.type === 'listening') {
+                    duration = 30;
+                } else if (payload.type === 'reading') {
+                    duration = 60;
+                }
+
+                const metadata = {
+                    id: testId,
+                    title: payload.title || "",
+                    type: payload.type || "reading",
+                    difficulty: payload.difficulty || "medium",
+                    duration: duration,
+                    audioUrl: payload.audio_url || "",
+                    isExclusive: payload.isExclusive || false,
+                    createdAt: payload.createdAt || new Date().toISOString(),
+                    updatedAt: payload.updatedAt || new Date().toISOString(),
+                    questionTypes: payload.questionTypes || getQuestionTypesFromQuestions(payload.questions || []),
+                };
+
+                if (payload.type === 'listening') {
+                    const parts = {};
+                    (payload.passages || []).forEach((passage, idx) => {
+                        const partNum = idx + 1;
+                        const partKey = `part${partNum}`;
+                        
+                        const passageQuestions = (payload.questions || []).filter(
+                            q => String(q.passageId) === String(passage.id)
+                        );
+                        
+                        const qTypes = Array.from(new Set(
+                            passageQuestions.map(q => q.type).filter(Boolean)
+                        ));
+
+                        const formattedQTypes = qTypes.map(t => {
+                            const lower = t.toLowerCase();
+                            if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
+                            if (lower.includes('table')) return 'Table Completion';
+                            if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
+                            if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
+                            if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
+                            if (lower.includes('short_answer')) return 'Short Answer';
+                            return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                        });
+
+                        parts[partKey] = {
+                            id: passage.id !== undefined ? String(passage.id) : `part-${partNum}`,
+                            title: passage.title || `Part ${partNum}`,
+                            difficulty: passage.difficulty || payload.difficulty || "medium",
+                            qTypes: Array.from(new Set(formattedQTypes)),
+                            startSec: passage.startTime !== undefined && passage.startTime !== null ? Number(passage.startTime) : 0,
+                            endSec: passage.endTime !== undefined && passage.endTime !== null ? Number(passage.endTime) : 0,
+                            audioUrl: passage.audio || payload.audio_url || ""
+                        };
+                    });
+                    metadata.parts = parts;
+                } else if (payload.type === 'reading') {
+                    const passages = {};
+                    (payload.passages || []).forEach((passage, idx) => {
+                        const passNum = idx + 1;
+                        const passKey = `passage${passNum}`;
+                        
+                        const passageQuestions = (payload.questions || []).filter(
+                            q => String(q.passageId) === String(passage.id)
+                        );
+                        
+                        const qTypes = Array.from(new Set(
+                            passageQuestions.map(q => q.type).filter(Boolean)
+                        ));
+
+                        const formattedQTypes = qTypes.map(t => {
+                            const lower = t.toLowerCase();
+                            if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
+                            if (lower.includes('matching_headings')) return 'Matching Headings';
+                            if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
+                            if (lower.includes('matching')) return 'Matching';
+                            if (lower.includes('table')) return 'Table Completion';
+                            if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary')) return 'Completion';
+                            return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                        });
+
+                        passages[passKey] = {
+                            id: passage.id !== undefined ? String(passage.id) : `passage-${passNum}`,
+                            title: passage.title || `Passage ${passNum}`,
+                            difficulty: passage.difficulty || payload.difficulty || "medium",
+                            qTypes: Array.from(new Set(formattedQTypes))
+                        };
+                    });
+                    metadata.passages = passages;
+                }
+
+                await setDoc(doc(db, "tests_metadata", testId), metadata);
+                successCount++;
+            }
+            alert(`Metadata migratsiyasi muvaffaqiyatli bajarildi! ${successCount} ta test yangilandi.`);
+        } catch (error) {
+            console.error("Migration error:", error);
+            alert("Xatolik: " + error.message);
+        } finally {
+            setIsMigrating(false);
+        }
+    };
+
     const handleToggleSelect = (id) => {
         setSelectedTests(prev => prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]);
     };
@@ -192,6 +317,8 @@ export default function AdminTests() {
                 totalTestCount={totalTestCount}
                 onAddCollection={handleOpenAddCollection} 
                 onEditCollection={handleOpenEditCollection}
+                onMigrate={handleMigrateMetadata}
+                isMigrating={isMigrating}
                 isDark={isDark}
             />
 
@@ -232,15 +359,15 @@ export default function AdminTests() {
                                     onView={(id) => navigate(`/test/${id}`)}
                                     isDark={isDark}
                                 />
-                            </div>
 
-                            {/* Fixed Pagination UI at the bottom */}
-                            <div className={`shrink-0 p-4 border-t ${isDark ? 'border-white/5 bg-[#1A1A1A]' : 'border-zinc-100 bg-zinc-50/50'}`}>
-                                <Pagination 
-                                    currentPage={currentPage}
-                                    totalPages={totalPages}
-                                    onPageChange={handlePageChange}
-                                />
+                                {/* Scrollable Pagination at the bottom of content */}
+                                <div className="mt-8 border-t pt-6 border-zinc-100 dark:border-white/5">
+                                    <Pagination 
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        onPageChange={handlePageChange}
+                                    />
+                                </div>
                             </div>
                         </>
                     )}
@@ -270,6 +397,37 @@ export default function AdminTests() {
                                     value={colName}
                                     onChange={e => setColName(e.target.value)}
                                 />
+                            </div>
+                            <div>
+                                <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>To'plam Turi (Collection Type)</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setColType("reading")}
+                                        className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold text-sm transition-all ${
+                                            colType === "reading"
+                                                ? 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/10'
+                                                : isDark 
+                                                    ? 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
+                                                    : 'bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100'
+                                        }`}
+                                    >
+                                        📖 Reading
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setColType("listening")}
+                                        className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold text-sm transition-all ${
+                                            colType === "listening"
+                                                ? 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/10'
+                                                : isDark 
+                                                    ? 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
+                                                    : 'bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100'
+                                        }`}
+                                    >
+                                        🎧 Listening
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Cover Image (URL or Upload)</label>

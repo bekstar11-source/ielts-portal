@@ -24,6 +24,7 @@ const CustomAudioPlayer = forwardRef(({
 }, ref) => {
     const audioRef = useRef(null);
     const hasResumed = useRef(false);
+    const hasPlayed = useRef(false);
 
     // Allow parent to seek
     useImperativeHandle(ref, () => ({
@@ -99,9 +100,17 @@ const CustomAudioPlayer = forwardRef(({
         const audio = audioRef.current;
         if (!audio) return;
 
-        const onPlay = () => setIsPlaying(true);
+        const onPlay = () => {
+            setIsPlaying(true);
+            hasPlayed.current = true;
+        };
         const onPause = () => setIsPlaying(false);
-        const onEnded_ = () => { setIsPlaying(false); onEnded?.(); };
+        const onEnded_ = () => {
+            setIsPlaying(false);
+            if (hasPlayed.current) {
+                onEnded?.();
+            }
+        };
         
         const onLoaded = () => {
             if (endTime && endTime > startTime) {
@@ -123,8 +132,11 @@ const CustomAudioPlayer = forwardRef(({
             if (isPlayingPart) setAudioTime?.(audio.currentTime);
 
             if (endTime && endTime > startTime && audio.currentTime >= endTime) {
+                const wasPlaying = isPlaying || !audio.paused;
                 audio.pause();
-                onEnded_();
+                if (wasPlaying) {
+                    onEnded_();
+                }
             }
         };
 

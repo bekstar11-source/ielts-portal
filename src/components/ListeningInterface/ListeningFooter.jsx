@@ -7,7 +7,8 @@ export default function ListeningFooter({
     userAnswers,
     scrollToQuestionDiv,
     playingPartIndex,
-    isPlaying
+    isPlaying,
+    partNumber = null
 }) {
     if (!testData || !testData.passages) return null;
     
@@ -76,23 +77,36 @@ export default function ListeningFooter({
 
         if (group.groups && Array.isArray(group.groups)) {
             group.groups.forEach(subGroup => {
-                const items = subGroup.items || subGroup.questions || [];
-                items.forEach(it => {
-                    if (it.type === 'table' || it.rows) {
-                        it.rows.forEach(row => {
-                            let cells = Array.isArray(row) ? row : (row.cells || []);
-                            cells.forEach(cell => {
-                                if (cell.id && !cell.isMultiQuestion && !cell.isMixed) questions.push(cell);
-                                if (cell.isMultiQuestion && cell.content) questions.push(...cell.content);
-                                if (cell.isMixed && cell.parts) {
-                                    cell.parts.forEach(p => { if (p.type === 'input') questions.push(p); });
-                                }
-                            });
+                if (subGroup.rows) {
+                    subGroup.rows.forEach(row => {
+                        let cells = Array.isArray(row) ? row : (row.cells || []);
+                        cells.forEach(cell => {
+                            if (cell.id && !cell.isMultiQuestion && !cell.isMixed) questions.push(cell);
+                            if (cell.isMultiQuestion && cell.content) questions.push(...cell.content);
+                            if (cell.isMixed && cell.parts) {
+                                cell.parts.forEach(p => { if (p.type === 'input') questions.push(p); });
+                            }
                         });
-                    } else {
-                        questions.push(it);
-                    }
-                });
+                    });
+                } else {
+                    const items = subGroup.items || subGroup.questions || [];
+                    items.forEach(it => {
+                        if (it.type === 'table' || it.rows) {
+                            it.rows.forEach(row => {
+                                let cells = Array.isArray(row) ? row : (row.cells || []);
+                                cells.forEach(cell => {
+                                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) questions.push(cell);
+                                    if (cell.isMultiQuestion && cell.content) questions.push(...cell.content);
+                                    if (cell.isMixed && cell.parts) {
+                                        cell.parts.forEach(p => { if (p.type === 'input') questions.push(p); });
+                                    }
+                                });
+                            });
+                        } else {
+                            questions.push(it);
+                        }
+                    });
+                }
             });
         }
         if ((group.type === 'table_completion' || group.type === 'table') && group.rows) {
@@ -116,6 +130,7 @@ export default function ListeningFooter({
         <div className="h-full w-full flex bg-white z-[2000]">
             <div className="flex-1 h-full flex overflow-x-auto hide-scrollbar">
                 {testData.passages.map((passage, idx) => {
+                    if (partNumber && idx !== partNumber - 1) return null;
                     const isActive = activePart === idx;
                     const isAudioPlaying = playingPartIndex === idx && isPlaying;
 
@@ -199,34 +214,36 @@ export default function ListeningFooter({
             </div>
 
             {/* O'ng pastki burchakdagi Next/Prev tugmalari - Adjusted for mobile */}
-            <div className="fixed bottom-[48px] md:bottom-[70px] right-4 md:right-6 flex gap-1.5 md:gap-2 z-[2100]">
-                <button
-                    onClick={() => activePart > 0 && setActivePart(activePart - 1)}
-                    disabled={activePart === 0}
-                    className={`w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-[10px] md:rounded-[12px] transition-all shadow-lg border border-white/20 ${
-                        activePart === 0 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-                    }`}
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                    </svg>
-                </button>
-                <button
-                    onClick={() => activePart < testData.passages.length - 1 && setActivePart(activePart + 1)}
-                    disabled={activePart === testData.passages.length - 1}
-                    className={`w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-[10px] md:rounded-[12px] transition-all shadow-lg border border-white/20 ${
-                        activePart === testData.passages.length - 1 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-                    }`}
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                    </svg>
-                </button>
-            </div>
+            {!partNumber && (
+                <div className="fixed bottom-[48px] md:bottom-[70px] right-4 md:right-6 flex gap-1.5 md:gap-2 z-[2100]">
+                    <button
+                        onClick={() => activePart > 0 && setActivePart(activePart - 1)}
+                        disabled={activePart === 0}
+                        className={`w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-[10px] md:rounded-[12px] transition-all shadow-lg border border-white/20 ${
+                            activePart === 0 
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+                        }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={() => activePart < testData.passages.length - 1 && setActivePart(activePart + 1)}
+                        disabled={activePart === testData.passages.length - 1}
+                        className={`w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-[10px] md:rounded-[12px] transition-all shadow-lg border border-white/20 ${
+                            activePart === testData.passages.length - 1 
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+                        }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

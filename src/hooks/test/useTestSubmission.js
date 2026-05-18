@@ -16,7 +16,8 @@ export function useTestSubmission(user, userData) {
                 testMode: resultData.mode || 'practice',
                 userAnswers: resultData.userAnswers || {},
                 timeSpent: resultData.timeSpent || 0,
-                violationType: resultData.violation || null
+                violationType: resultData.violation || null,
+                partNumber: resultData.partNumber || null
             });
 
             if (res.data && res.data.success) {

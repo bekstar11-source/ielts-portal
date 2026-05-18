@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 // Modular Hooks
@@ -13,9 +13,17 @@ import { useGamification } from "./useGamification";
 export function useTestLogic() {
     const { testId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, userData } = useAuth();
     const stateRef = useRef({});
     const { awardXP } = useGamification();
+
+    // Extract partNumber from query param (e.g. ?part=2)
+    const partNumber = useMemo(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const p = queryParams.get('part');
+        return p ? parseInt(p) : null;
+    }, [location.search]);
 
     // UI & Navigation States
     const [testMode, setTestMode] = useState(null);
@@ -29,13 +37,16 @@ export function useTestLogic() {
     const [startedAt] = useState(new Date());
 
     // Audio States
-    const [activePart, setActivePart] = useState(0);
+    const [activePartState, setActivePartState] = useState(0);
+    const activePart = partNumber ? (partNumber - 1) : activePartState;
+    const setActivePart = partNumber ? () => {} : setActivePartState;
     const [audioTime, setAudioTime] = useState(0);
 
     // Modularized Logic
     const { test, loading } = useTestFetch(testId, user, userData, navigate);
     const { userAnswers, setUserAnswers, writingEssay, setWritingEssay, flaggedQuestions, handleSelectAnswer, toggleFlag } = useTestAnswers();
     const initialDuration = useMemo(() => {
+        if (partNumber) return 10 * 60; // 10 minutes per part practice
         if (test?.duration) return Number(test.duration) * 60;
         
         const type = test?.type?.toLowerCase();
@@ -58,18 +69,18 @@ export function useTestLogic() {
         }
 
         return 60 * 60;
-    }, [test]);
+    }, [test, partNumber]);
 
-    const { timeLeft, setTimeLeft } = useTestTimer(testId, user?.uid, testMode, initialDuration, !!test && !showModeSelection && !showResult);
+    const { timeLeft, setTimeLeft } = useTestTimer(testId, user?.uid, testMode, initialDuration, !!test && !showModeSelection && !showResult, partNumber);
     const { saving, submitTest } = useTestSubmission(user, userData);
 
     // Initialize Mode & Settings
     useEffect(() => {
         if (!test) return;
         const type = test.type?.toLowerCase();
-        const draftKey = `draft_${user.uid}_${test.id}`;
+        const draftKey = `draft_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`;
         const savedDraft = localStorage.getItem(draftKey);
-        const savedMode = localStorage.getItem(`mode_${user.uid}_${test.id}`);
+        const savedMode = localStorage.getItem(`mode_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`);
 
         if (savedDraft) {
             try { setUserAnswers(JSON.parse(savedDraft)); } catch { setWritingEssay(savedDraft); }
@@ -84,15 +95,15 @@ export function useTestLogic() {
             setTestMode('exam');
             setShowModeSelection(false);
         }
-    }, [test]);
+    }, [test, partNumber]);
 
     // Auto Save
     useEffect(() => {
         if (!test || showResult) return;
-        const draftKey = `draft_${user.uid}_${test.id}`;
+        const draftKey = `draft_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`;
         localStorage.setItem(draftKey, JSON.stringify(userAnswers));
-        if (testMode) localStorage.setItem(`mode_${user.uid}_${test.id}`, testMode);
-    }, [userAnswers, test, testMode, showResult]);
+        if (testMode) localStorage.setItem(`mode_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`, testMode);
+    }, [userAnswers, test, testMode, showResult, partNumber]);
 
     // Anti-Cheat
     useEffect(() => {
@@ -108,7 +119,8 @@ export function useTestLogic() {
             mode: testMode,
             violation: typeof violationType === 'string' ? violationType : null,
             timeSpent,
-            userAnswers
+            userAnswers,
+            partNumber: partNumber || null
         };
 
         const res = await submitTest(test, resultData);
@@ -118,8 +130,8 @@ export function useTestLogic() {
             setScore(res.score);
             setBandScore(res.bandScore);
             setShowResult(true);
-            localStorage.removeItem(`draft_${user.uid}_${test.id}`);
-            sessionStorage.removeItem(`timer_${user.uid}_${test.id}`);
+            localStorage.removeItem(`draft_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`);
+            sessionStorage.removeItem(`timer_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`);
             // Note: We don't remove reading highlights here so they are available in Review mode.
             // They will be cleared if the user explicitly restarts the test.
         }
@@ -150,6 +162,6 @@ export function useTestLogic() {
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate,
-        initialDuration, audioRefs, handleSeekTo
+        initialDuration, audioRefs, handleSeekTo, partNumber
     };
 }
