@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
-import { ChevronRight, Crown, Zap, BookOpen, FileText, Diamond, Share2 } from 'lucide-react';
+import React from 'react';
+import { ChevronRight, Crown, Zap, BookOpen, FileText, Diamond } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import ShareModal from '../common/ShareModal';
 
 export default function ReadingSetCard({ set, index, isCompleted, onReview, onSelectSet, isPro, isStandard }) {
   const navigate = useNavigate();
-  const [isShareOpen, setIsShareOpen] = useState(false);
   const accentColors = ['bg-[#0a84ff]', 'bg-[#bf5af2]', 'bg-[#30d158]', 'bg-[#ff9f0a]'];
   const subCount = set.subTests?.length || 3;
   const glowColor = accentColors[index % accentColors.length];
@@ -111,16 +109,6 @@ export default function ReadingSetCard({ set, index, isCompleted, onReview, onSe
               
               <div className="flex gap-2">
                 <button 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setIsShareOpen(true); 
-                  }}
-                  className="text-gray-500 bg-gray-100 hover:bg-gray-200 p-2.5 rounded-lg transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center"
-                  title="Share"
-                >
-                  <Share2 size={16} />
-                </button>
-                <button 
                   onClick={(e) => { e.stopPropagation(); handleClick(); }}
                   className="text-white text-[14px] font-bold px-6 py-2.5 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2"
                 >
@@ -131,16 +119,6 @@ export default function ReadingSetCard({ set, index, isCompleted, onReview, onSe
           )}
         </div>
       </div>
-
-      <ShareModal
-        isOpen={isShareOpen}
-        onClose={() => setIsShareOpen(false)}
-        testId={set.id || set.testId}
-        testTitle={set.title}
-        testType={set.type || 'reading'}
-        score={isCompleted ? (set.result?.score ?? set.result?.bestScore ?? set.result?.latestScore ?? 0) : null}
-        bandScore={isCompleted ? (set.result?.bandScore ?? set.result?.bestBandScore ?? set.result?.latestBandScore) : null}
-      />
     </div>
   );
 }

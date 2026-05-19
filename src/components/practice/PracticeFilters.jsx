@@ -25,7 +25,7 @@ export default function PracticeFilters({
   showQuestionFilters,
   setShowQuestionFilters
 }) {
-  const [isScrolled, setIsScrolled] = React.useState(false);
+  const [isScrolled, setIsScrolled] = React.useState(() => typeof window !== 'undefined' ? window.scrollY > 380 : false);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -44,7 +44,7 @@ export default function PracticeFilters({
       <div className="max-w-[1440px] mx-auto px-6 relative">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="bg-[#f5f5f7] p-1.5 rounded-full flex items-center overflow-x-auto no-scrollbar">
-            <LayoutGroup id="practice-filters">
+            <LayoutGroup id={`practice-filters-${activeTab}`}>
               {activeTab === 'reading' ? (
                 readingFilters.map((filter) => {
                   const isActive = activeSubTab === filter.id;

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function LibrarySubHeader({ activeTab, scrolledContent }) {
   const navigate = useNavigate();
-  const [isScrolled, setIsScrolled] = React.useState(false);
+  const [isScrolled, setIsScrolled] = React.useState(() => typeof window !== 'undefined' ? window.scrollY > 380 : false);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -70,7 +70,8 @@ export default function LibrarySubHeader({ activeTab, scrolledContent }) {
                 {tab.label}
                 {activeTab === tab.id && (
                   <motion.div 
-                    layoutId="activeLibraryTab"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     className="absolute -bottom-[16px] left-0 right-0 h-[1px] bg-black/10"
                   />
                 )}

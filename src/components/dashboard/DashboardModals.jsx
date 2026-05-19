@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Icons } from './Icons';
-import { Clock, HelpCircle, Zap, Diamond } from 'lucide-react';
+import { Clock, HelpCircle, Zap, Diamond, Share2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import ShareModal from '../common/ShareModal';
 
 // --- STYLES FOR SET ITEMS ---
 const getCardStyle = (type, isDark) => {
@@ -48,6 +49,7 @@ export default function DashboardModals({
     const navigate = useNavigate();
     const isDark = theme === 'dark';
     const [setSearch, setSetSearch] = useState('');
+    const [shareTest, setShareTest] = useState(null);
 
     return (
         <>
@@ -222,6 +224,16 @@ export default function DashboardModals({
                                                         </div>
 
                                                         <div className="flex items-center gap-2">
+                                                            <button 
+                                                                onClick={(e) => { 
+                                                                    e.stopPropagation(); 
+                                                                    setShareTest(sub); 
+                                                                }}
+                                                                className="w-9 h-9 flex items-center justify-center rounded-xl transition bg-white border border-[#E4E2E3] shadow-sm hover:bg-gray-50 text-zinc-600 active:scale-95"
+                                                                title="Share"
+                                                            >
+                                                                <Share2 className="w-4 h-4" />
+                                                            </button>
                                                             <button
                                                                 onClick={() => handleReview(sub)}
                                                                 className="px-3 py-2 text-xs font-bold rounded-xl transition bg-[#161616]/5 hover:bg-[#161616]/10 text-[#161616]"
@@ -244,9 +256,21 @@ export default function DashboardModals({
                                                             <Diamond size={16} fill="currentColor" /> Go Pro
                                                         </button>
                                                     ) : canRetake ? (
-                                                        <button onClick={() => handleStartTest(sub)} className="w-full py-3 rounded-xl text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 bg-[#F44A22] text-white hover:bg-[#D93D1B] shadow-[#F44A22]/20">
-                                                            Start Test
-                                                        </button>
+                                                        <div className="flex gap-2 w-full">
+                                                            <button 
+                                                                onClick={(e) => { 
+                                                                    e.stopPropagation(); 
+                                                                    setShareTest(sub); 
+                                                                }}
+                                                                className="w-12 py-3 rounded-xl flex items-center justify-center border border-[#E4E2E3] shadow-sm hover:bg-gray-50 text-zinc-650 active:scale-95 transition-all shrink-0"
+                                                                title="Share"
+                                                            >
+                                                                <Share2 className="w-4 h-4" />
+                                                            </button>
+                                                            <button onClick={() => handleStartTest(sub)} className="flex-1 py-3 rounded-xl text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 bg-[#F44A22] text-white hover:bg-[#D93D1B] shadow-[#F44A22]/20">
+                                                                Start Test
+                                                            </button>
+                                                        </div>
                                                     ) : (
                                                         <div className="w-full py-3 rounded-xl text-sm font-bold text-center border border-dashed bg-[#E4E2E3]/20 border-[#E4E2E3] text-[#A8AAAC]">
                                                             Urinishlar tugagan
@@ -262,6 +286,16 @@ export default function DashboardModals({
                     </div>
                 </div>
             )}
+
+            <ShareModal
+                isOpen={!!shareTest}
+                onClose={() => setShareTest(null)}
+                testId={shareTest?.id}
+                testTitle={shareTest?.title}
+                testType={shareTest?.type}
+                score={shareTest?.result?.score ?? shareTest?.result?.bestScore ?? shareTest?.result?.latestScore ?? 0}
+                bandScore={shareTest?.result?.bandScore ?? shareTest?.result?.bestBandScore ?? shareTest?.result?.latestBandScore}
+            />
         </>
     );
 }

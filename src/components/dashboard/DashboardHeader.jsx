@@ -8,7 +8,7 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(() => typeof window !== 'undefined' ? window.scrollY > 20 : false);
   const [hoveredTab, setHoveredTab] = useState(null);
   const dropdownRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
@@ -147,9 +147,10 @@ export default function DashboardHeader({ user, userData, onKeyClick, onLogoutCl
                   {item.label}
                   {(isTabActive || hoveredTab === item.id) && (
                     <motion.div 
-                      layoutId="activeTab"
-                      className="absolute -bottom-[21px] left-0 right-0 h-[2px] bg-black"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      initial={{ scaleX: 0, opacity: 0 }}
+                      animate={{ scaleX: 1, opacity: 1 }}
+                      className="absolute -bottom-[21px] left-0 right-0 h-[2px] bg-black origin-center"
+                      transition={{ duration: 0.2, ease: "easeOut" }}
                     />
                   )}
                 </button>
