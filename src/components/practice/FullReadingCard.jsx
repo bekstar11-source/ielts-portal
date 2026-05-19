@@ -1,9 +1,11 @@
-import React from 'react';
-import { Play, ArrowRight, Crown, Zap, BookOpen, FileText, Clock, Diamond } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, ArrowRight, Crown, Zap, BookOpen, FileText, Clock, Diamond, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ShareModal from '../common/ShareModal';
 
 export default function FullReadingCard({ test, isCompleted, onReview, onStart, isPro, isStandard }) {
   const navigate = useNavigate();
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const passages = test.title?.split('/').map(s => s.trim()) || [test.title];
 
   const canAccess = isPro || isStandard;
@@ -93,6 +95,16 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
                   </button>
               ) : (
                 <div className="flex gap-3 items-center">
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setIsShareOpen(true); 
+                    }}
+                    className="bg-white/20 text-white p-3 rounded-full hover:bg-white/30 backdrop-blur-md transition-all duration-300 flex items-center justify-center z-10 active:scale-95 shadow-sm"
+                    title="Share"
+                  >
+                    <Share2 size={16} />
+                  </button>
                   {isCompleted && (
                     <button
                       onClick={(e) => { e.stopPropagation(); onReview(test); }}
@@ -120,6 +132,16 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
 
         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
+
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        testId={test.id || test.testId}
+        testTitle={test.title}
+        testType={test.type}
+        score={isCompleted ? (test.result?.score ?? test.result?.bestScore ?? test.result?.latestScore ?? 0) : null}
+        bandScore={isCompleted ? (test.result?.bandScore ?? test.result?.bestBandScore ?? test.result?.latestBandScore) : null}
+      />
     </div>
   );
 }

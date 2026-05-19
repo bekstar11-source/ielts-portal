@@ -88,6 +88,7 @@ export default function TestReview() {
                             testName={testData.title}
                             userId={user?.uid}
                             isPremium={isPremium}
+                            partNumber={resultData.partNumber}
                         />
                     ) : testData.type?.toLowerCase() === 'listening' ? (
                         <div className="flex flex-col w-full h-full bg-gray-50">
@@ -106,6 +107,7 @@ export default function TestReview() {
                                 audioCurrentTime={audioTime}
                                 isPremium={isPremium}
                                 onSeekTo={handleSeekTo}
+                                partNumber={resultData.partNumber}
                             />
                         </div>
                     ) : testData.type?.toLowerCase() === 'writing' ? (

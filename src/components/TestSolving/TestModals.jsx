@@ -175,7 +175,7 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
 // ──────────────────────────────────────────────
 // RESULT MODAL
 // ──────────────────────────────────────────────
-export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, initialDuration, isReviewing, setIsReviewing, onExit, userAnswers, partNumber = null }) => {
+export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, initialDuration, isReviewing, setIsReviewing, onExit, userAnswers, partNumber = null, resultId = null, navigate = null }) => {
     const { userData } = useAuth();
     const [showPricingModal, setShowPricingModal] = useState(false);
 
@@ -286,6 +286,9 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
 
             const filteredQuestions = (test.questions || []).filter(q => q.passageId === passage.id);
             filteredQuestions.forEach(q => walk(q, q.type));
+            
+            // Shuningdek passage ning o'zini ham walk qilamiz, agar savollar passage ichida (masalan, groups) bo'lsa
+            walk(passage, null);
 
             const mistakes = Math.max(0, totalQ - correctCount);
 
@@ -377,7 +380,11 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                     <button 
                         onClick={() => {
                             if (canReview) {
-                                setIsReviewing(true);
+                                if (resultId && navigate) {
+                                    navigate(`/review/${resultId}`);
+                                } else {
+                                    setIsReviewing(true);
+                                }
                             } else {
                                 setShowPricingModal(true);
                             }

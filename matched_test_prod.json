@@ -1,0 +1,704 @@
+{
+  "questionTypes": [
+    "Completion",
+    "Multiple Choice",
+    "Matching"
+  ],
+  "type": "listening",
+  "title": "Cambridge 15 Test 3",
+  "thumbnail": "",
+  "difficulty": "full",
+  "writingTasks": [
+    {
+      "id": 1,
+      "prompt": "",
+      "minWords": 150,
+      "title": "Task 1",
+      "image": ""
+    },
+    {
+      "minWords": 250,
+      "title": "Task 2",
+      "image": "",
+      "id": 2,
+      "prompt": ""
+    }
+  ],
+  "tags": [
+    "cam"
+  ],
+  "passage": "",
+  "passages": [
+    {
+      "extraSilentTime": 0,
+      "title": "Part 1",
+      "id": "part_1",
+      "content": "<p>SALLY: Good morning. Thanks for coming in to see us here at the agency, Joe. I’m one of the agency representatives, and my name’s Sally Baker.</p><p>JOE: Hi Sally. I think we spoke on the phone, didn’t we?</p><p>SALLY: That’s right, we did. So thank you for sending in your CV. We’ve had quite a careful look at it and I think we have two jobs that might be suitable for you.</p><p>JOE: OK.</p><p>SALLY: The first one is in a company based in North London. They’re looking for an administrative assistant.</p><p>JOE: OK. What sort of company is it?</p><p>SALLY: They’re called Home Solutions and they design and make <span id='loc_1'>furniture</span>.</p><p>JOE: Oh, I don’t know much about that, but it sounds interesting.</p><p>SALLY: Yes, well as I said, they want someone in their office, and looking at your past experience it does look as if you fit quite a few of the requirements. So on your CV it appears you’ve done some data entry?</p><p>JOE: Yes.</p><p>SALLY: So that’s one skill they want. Then they expect the person they appoint to attend <span id='loc_2'>meetings</span> and take notes there …</p><p>JOE: OK. I’ve done that before, yes.</p><p>SALLY: And you’d need to be able to cope with general admin.</p><p>JOE: Filling, and keeping records and so on? That should be OK. And in my last job I also had to manage the <span id='loc_3'>diary</span>.</p><p>SALLY: Excellent. That’s something they want here too. I’d suggest you add it to your CV – I don’t think you mentioned that, did you?</p><p>JOE: No.</p><p>SALLY: So as far as the requirements go, they want good computer skills, of course, and they particularly mention spreadsheets.</p><p>JOE: That should be fine.</p><p>SALLY: And interpersonal skills – which would be something they’d check with your references.</p><p>JOE: I think that should be OK, yes.</p><p>SALLY: Then they mention that they want someone who is careful and takes care with <span id='loc_4'>details</span> – just looking at your CV, I’d say you’re probably alright there.</p><p>JOE: I think so, yes. Do they want any special experience?</p><p>SALLY: I think they wanted some experience of teleconferencing.</p><p>JOE: I’ve got three years’ experience of that.</p><p>SALLY: let’s see, yes, good. In fact they’re only asking for at least <span id='loc_5'>one year</span>, so that’s great. So is that something that might interest you?</p><p>JOE: It is, yes. The only thing is, you said they were in North London so it would be quite a long commute for me.</p><p>SALLY: OK.</p><p>SALLY: So the second position might suit you better as far as the location goes; that’s for a warehouse assistant and that’s in South London.</p><p>JOE: Yes, that would be a lot closer.</p><p>SALLY: And you’ve worked in a warehouse before, haven’t you?</p><p>JOE: Yes.</p><p>SALLY: So as far as the responsibilities for this position go, they want someone who can manage the stock, obviously, and also <span id='loc_6'>deliveries</span>.</p><p>JOE: That should be OK. You’ve got to keep track of stuff, but I’ve always been quite good with numbers.</p><p>SALLY: Good, that’s their first requirement. And they want someone who’s computer literate, which we know you are.</p><p>JOE: Sure.</p><p>SALLY: Then they mention organisational skills. They want someone who’s well organised.</p><p>JOE: Yes, I think I am.</p><p>SALLY: And <span id='loc_7'>tidy</span>?</p><p>JOE: Yes, they go together really, don’t they?</p><p>SALLY: Sure. Then the usual stuff; they want someone who can communicate well both orally and in writing.</p><p>JOE: OK. And for the last warehouse job I had, one of the things I enjoyed most was being part of a <span id='loc_8'>team</span>. I found that was really essential for the job.</p><p>SALLY: Excellent. Yes, they do mention that they want someone who’s used to that, yes. Now when you were working in a warehouse last time, what sorts of items were you dealing with?</p><p>JOE: It was mostly bathroom and kitchen equipment, sinks and stoves and fridges.</p><p>SALLY: So you’re OK moving <span id='loc_9'>heavy</span> things?</p><p>JOE: Sure. I’m quite strong, and I’ve had the training.</p><p>SALLY: Good. Now as far as experience goes, they mention they want someone with a licence, and that you have experience of driving in London – so you can cope with the traffic and so on.</p><p>JOE: Yes, no problem.</p><p>SALLY: And you’ve got experience of warehouse work … and the final thing they mention is <span id='loc_10'>customer</span> service. I think looking at your CV you’ve OK there.</p><p>JOE: Right. So what about pay? Can you tell me a bit more about that, please …</p>",
+      "audio": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1779091355945_IELTS15_test3_audio1-compressed.mp3?alt=media&token=47da9585-8218-41d1-b351-f5b2e8c34ef3"
+    },
+    {
+      "id": "part_2",
+      "audio": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1779091359324_IELTS15_test3_audio2-compressed.mp3?alt=media&token=3b0602f7-6d35-4eee-96df-066408575ab2",
+      "content": "<p>PRESENTER: My guest on the show today is Alice Riches who started the Street Play Scheme where she lives in Beechwood Road. For those of you that don’t already know – Street Play involves local residents closing off their street for a few hours so that children have a chance to play in the street safely. She started it in her own street, Beechwood Road, and the idea caught on, and there are now Street Play Schemes all over the city. So when did you actually start the scheme, Alice?</p><p>ALICE: Well, I first had the idea when my oldest child was still a toddler, so that’s about six years ago now – but it took at least two years of campaigning before we were actually able to make it happen. So the <span id='loc_11'>scheme’s been up and running for three years now</span>. We’d love to be able to close our road for longer – for the whole weekend, from Saturday morning until Sunday evening, for example. At the moment it’s just <span id='loc_12'>once a week</span>. But when we started it was only once a month. But we’re working on it.</p><p>PRESENTER: So what actually happens when Beechwood Road is closed?</p><p>ALICE: We have <span id='loc_13'>volunteer wardens</span>, mostly parents but some elderly residents too, who block off our road at either end. The council have provided special signs but there’s always a volunteer there to explain what’s happening to any motorists. Generally, they’re fine about it – we’ve only had to get the police involved once or twice.</p><p>Now I should explain that the road isn’t completely closed to cars. But only residents’ cars are allowed. If people really need to get in or out of Beechwood Road, it’s not a problem – as long as they <span id='loc_14'>drive at under 20 kilometres per hour</span>. But most people just decide not to use their cars during this time, or they park in another street. The wardens are only there to stop through traffic.</p><p>PRESENTER: So can anyone apply to get involved in Street Play?</p><p>ALICE: Absolutely – we want to include all kids in the city – especially those who <span id='loc_15'>live on busy roads</span>. It’s here that demand is greatest. Obviously, there isn’t such demand in wealthier areas where the children have access to parks or large gardens – or in the suburbs where there are usually more places for children to play outside.</p><p>I’d recommend that anyone listening who likes the idea should just give it a go. We’ve been surprised by the positive reaction of residents all over the city. And that’s not just parents. There are always a few who complain but they’re a tiny minority. On the whole everyone is very supportive and say they’re <span id='loc_16'>very happy to see children out on the street</span> – even if it does get quite noisy.</p><p>ALICE: There have been so many benefits of Street Play for the kids. Parents really like the fact that the kids are getting fresh air instead of sitting staring at a computer screen, even if they’re not doing anything particularly energetic. And of course it’s great that kids can play with their friends outside without being supervised by their parents – but for me the biggest advantage is that kids <span id='loc_17'>develop confidence in themselves</span> to be outside without their parents. The other really fantastic thing is that children <span id='loc_18'>get to know the adults in the street</span> – it’s like having a big extended family.</p><p>PRESENTER: It certainly does have a lot of benefits. I want to move on now and ask you about a related project in King Street.</p><p>ALICE: Right. Well this was an experiment I was involved in where local residents decided to try and reduce the traffic along King Street, which is the busiest main road in our area, by persuading people not to use their cars for one day. We thought about making people pay more for parking – but we decided that would be really unpopular – so instead we just stopped people from parking on King Street but left the other car parks open.</p><p>It was surprising how much of a difference all this made. As we’d predicted, air quality was significantly better but what I hadn’t expected was <span id='loc_19'>how much quieter it would be</span> – even with the buses still running. Of course everyone said they felt safer but we were actually amazed that <span id='loc_20'>sales in the shops went up considerably</span> that day – we thought there’d be fewer people out shopping – not more.</p><p>PRESENTER: That’s really interesting so the fact that …</p>",
+      "extraSilentTime": 0,
+      "title": "Part 2"
+    },
+    {
+      "title": "Part 3",
+      "extraSilentTime": 0,
+      "audio": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1779091362828_IELTS15_test3_audio3-compressed.mp3?alt=media&token=4d716548-206b-47d3-a5de-a8318feec11c",
+      "content": "<p>HAZEL: Tom, could I ask you for some advice, please?</p><p>TOM: Yes of course, if you think I can help. What’s it about?</p><p>HAZEL: It’s my first media studies assignment, and I’m not sure how to go about it. You must have done it last year.</p><p>TOM: Is that the one comparing the coverage of a particular story in a range of newspapers?</p><p>HAZEL: That’s right.</p><p>TOM: Oh yes, I really enjoyed writing it.</p><p>HAZEL: So what sort of things do I need to compare?</p><p>TOM: Well, there are several things. For example, there’s the question of which <span id='loc_21'>page</span> of the newspaper the item appears on.</p><p>HAZEL: You mean, because there’s a big difference between having it on the front page and the bottom of page ten, for instance?</p><p>TOM: Exactly. And that shows how important the editor thinks the story is. Then there’s the <span id='loc_22'>size</span> – how many column inches the story is given, how many columns it spreads over.</p><p>HAZEL: And I suppose that includes the headline.</p><p>TOM: It certainly does. It’s all part of attracting the reader’s attention.</p><p>HAZEL: What about <span id='loc_23'>graphics</span> – whether there’s anything visual in addition to the text?</p><p>TOM: Yes, you need to consider those, too, because they can have a big effect on the reader’s understanding of the story – sometimes a bigger effect than the text itself. Then you’ll need to look at how the item is put together: what <span id='loc_24'>structure</span> is it given? Bear in mind that not many people read beyond the first paragraph, so what has the journalist put at the beginning? And if, say, three are conflicting opinions about something, does one appear near the end, where people probably won’t read it?</p><p>HAZEL: And newspapers sometimes give wrong or misleading information, don’t they? Either deliberately or by accident. Should I be looking at that, too?</p><p>TOM: Yes, if you can. Compare what’s in different versions, and as far as possible, try and work out what’s true and what isn’t. And that relates to a very important point: what’s the writer’s <span id='loc_25'>purpose</span>, or at least the most important one, if they have several. It may seem to be to inform the public, but often it’s that they want to create fear, or controversy, or to make somebody look ridiculous.</p><p>HAZEL: Gosh, I see what you mean. And I suppose the writer may make <span id='loc_26'>assumptions</span> about the reader.</p><p>TOM: That’s right – about their knowledge of the subject, their attitudes, and their level of education, which means writing so that the readers understand without feeling patronised. All of that will make a difference to how story is presented.</p><p>HAZEL: Does it matter what type of story I write about?</p><p>TOM: No – national or international politics, the arts … Anything, as long as it’s covered in two or three newspaper. Though of course it’ll be easier and more fun if it’s something you’re interested in and know something about.</p><p>HAZEL: And on that basis a national news item would be worth analysing – I’m quite keen on politics, so I’ll try and <span id='loc_27'>find a suitable topic</span>. What did you choose for your analysis, Tom?</p><p>TOM: I was interested in how newspapers express their opinions explicitly, so I wanted to compare editorials in different papers, but when I started looking. I couldn’t find two on the same topic that I felt like analysing.</p><p>HAZEL: In that case, I <span id='loc_28'>won’t even bother to look</span>.</p><p>TOM: So in the end I chose a human interest story – a terribly emotional story about a young girl who was very ill, and lots of other people – mostly strangers – raised money so she could go abroad for treatment. Actually, I was surprised – some papers just wrote about how wonderful everyone was, but others considered the broader picture, like why treatment wasn’t available here.</p><p>HAZEL: Hmm, I usually find stories like that raise quite strong feelings in me! I’ll <span id='loc_29'>avoid that</span>. Perhaps I’ll choose an arts topic, like different reviews of a film, or something about funding for the arts – I’ll <span id='loc_30'>think about that</span>.</p><p>TOM: Yes, that might be interesting.</p><p>HAZEL: OK, well thanks a lot for your help, Tom. It’s been really useful.</p><p>TOM: You’re welcome. Good luck with the assignment, Hazel.</p>",
+      "id": "part_3"
+    },
+    {
+      "audio": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1779091366037_IELTS15_test3_audio4-compressed.mp3?alt=media&token=7f85ddec-e559-467c-97fd-718f3f46a880",
+      "content": "<p>Nowadays, we use different products for personal cleanliness, laundry, dishwashing and household cleaning, but this is very much a 20th-century development.</p><p>The origins of cleanliness date back to prehistoric times. Since water is essential for life, the earliest people lived near water and knew something about its cleansing properties – at least that it rinsed <span id='loc_31'>mud</span> off their hands.</p><p>During the excavation of ancient Babylon, evidence was found that soapmaking was known as early as 2800 BC. Archaeologists discovered cylinders made of <span id='loc_32'>clay</span>, with inscriptions on them saying that fats were boiled with askes. This is a method of making soap, though there’s no reference to the purpose of this material.</p><p>The early Greeks bathed for aesthetic reasons and apparently didn’t use soap. Instead, they cleaned their bodies with blocks of sand, pumice and ashes, then anointed themselves with oil, and scraped off the oil and dirt with a metal instrument known as a strigil. They also used oil mixed with ashes. Clothes were washed without soap in streams. The ancient Germans and Gauls are also credited with discovering how to make a substance called ‘soap’, made of melted animal fat and ashes. They used this mixture to tint their <span id='loc_34'>hair</span> red.</p><p>Soap got its name, according to an ancient Roman legend, from Mount Sapo, where animals were sacrificed, leaving deposits of animal fat. Rain washed these deposits, along with wood ashes, down into the clay soil along the River Tiber. Women found that this mixture greatly reduced the effort required to wash their clothes.</p><p>As Roman civilisation advance, so did bathing. The first of the famous Roman <span id='loc_35'>baths</span>, supplied with water from their aqueducts, was built around 312 BC. The baths were luxurious, and bathing became very popular. And by the second century AD, the Greek physician Galen recommended soap for both medicinal and cleaning purposes.</p><p>After the fall of Rome in 467 AD and the resulting decline in bathing habits, much of Europe felt the impact of filth on public health. This lack of personal cleanliness and related unsanitary living conditions were major factors in the outbreaks of <span id='loc_36'>disease</span> in the Middle Ages, and especially the Black Death of the 14th century.</p><p>Nevertheless, soapmaking became an established craft in Europe, and associations of soapmakers guarded their trade secrets closely. Vegetable and animal oils were used with ashes of plants, along with <span id='loc_37'>perfume</span>, apparently for the first time. Gradually more varieties of soap became available for shaving and shampooing, as well as bathing and laundering.</p><p>A major step toward large-scale commercial soapmaking occurred in 1791, when a French chemist, Nicholas Leblanc, patented a process for turning <span id='loc_38'>salt</span> into soda ash, or sodium carbonate. Soda ash is the alkali obtained from ashes that combines with fat to form soap. The Leblanc process yielded quantities of good-quality, inexpensive soda ash.</p><p>Modern soapmaking was born some 20 years later, in the early 19th century, with the discovery by Michel Eugène Chevreul, another French chemist, of the chemical nature and relationship of fats, glycerine and fatty acids. His studies established the basis for both fat and soap chemistry, and soapmaking became a <span id='loc_39'>science</span>. Further developments during the 19th century made it easier and cheaper to manufacture soap.</p><p>Until the 19th century, soap was regarded as a luxury item, and was heavily taxed in several countries. As it became more readily available, it became an everyday necessity, a development that was reinforced when the high <span id='loc_40'>tax</span> was removed. Soap was then something ordinary people could afford, and cleanliness standards improved. With this widespread use came the development of milder soaps for bathing and soaps for use in the washing machines that were available to consumers by the turn of the 20th century.</p>",
+      "id": "part_4",
+      "title": "Part 4",
+      "extraSilentTime": 0
+    }
+  ],
+  "createdAt": "2026-05-18T08:10:40.018Z",
+  "introDuration": 10,
+  "collectionId": "qYEDQRrDSRMTaUOvoXyO",
+  "keywordTable": [],
+  "updatedAt": "2026-05-18T08:10:40.018Z",
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.",
+      "groups": [
+        {
+          "header": "Employment Agency: Possible Jobs",
+          "items": [
+            {
+              "type": "heading",
+              "text": "First Job"
+            },
+            {
+              "timestamp": 15,
+              "type": "question",
+              "id": 1,
+              "answer": "furniture",
+              "text": "Administrative assistant in a company that produces 1 [INPUT] (North London)",
+              "locationId": "loc_1"
+            },
+            {
+              "type": "heading",
+              "text": "Responsibilities"
+            },
+            {
+              "type": "text",
+              "text": "• data entry"
+            },
+            {
+              "locationId": "loc_2",
+              "text": "• go to 2 [INPUT] and take notes",
+              "answer": "meetings",
+              "id": 2,
+              "type": "question",
+              "timestamp": 35
+            },
+            {
+              "type": "text",
+              "text": "• general admin"
+            },
+            {
+              "type": "question",
+              "answer": "diary",
+              "id": 3,
+              "text": "• management of 3 [INPUT]",
+              "locationId": "loc_3",
+              "timestamp": 45
+            },
+            {
+              "type": "heading",
+              "text": "Requirements"
+            },
+            {
+              "type": "text",
+              "text": "• good computer skills including spreadsheets"
+            },
+            {
+              "type": "text",
+              "text": "• good interpersonal skills"
+            },
+            {
+              "locationId": "loc_4",
+              "text": "• attention to 4 [INPUT]",
+              "id": 4,
+              "answer": "details",
+              "type": "question",
+              "timestamp": 70
+            },
+            {
+              "type": "heading",
+              "text": "Experience"
+            },
+            {
+              "answer": "1 year / one year",
+              "id": 5,
+              "type": "question",
+              "locationId": "loc_5",
+              "text": "• need a minimum of 5 [INPUT] of experience of teleconferencing",
+              "timestamp": 90
+            }
+          ]
+        },
+        {
+          "header": "Second Job",
+          "items": [
+            {
+              "type": "text",
+              "text": "Warehouse assistant in South London"
+            },
+            {
+              "type": "heading",
+              "text": "Responsibilities"
+            },
+            {
+              "type": "text",
+              "text": "• stock management"
+            },
+            {
+              "timestamp": 125,
+              "answer": "deliveries",
+              "id": 6,
+              "type": "question",
+              "locationId": "loc_6",
+              "text": "• managing 6 [INPUT]"
+            },
+            {
+              "type": "heading",
+              "text": "Requirements"
+            },
+            {
+              "type": "text",
+              "text": "• ability to work with numbers"
+            },
+            {
+              "type": "text",
+              "text": "• good computer skills"
+            },
+            {
+              "timestamp": 150,
+              "text": "• very organised and 7 [INPUT]",
+              "locationId": "loc_7",
+              "type": "question",
+              "answer": "tidy",
+              "id": 7
+            },
+            {
+              "type": "text",
+              "text": "• good communication skills"
+            },
+            {
+              "text": "• used to working in a 8 [INPUT]",
+              "locationId": "loc_8",
+              "type": "question",
+              "answer": "team",
+              "id": 8,
+              "timestamp": 165
+            },
+            {
+              "locationId": "loc_9",
+              "text": "• able to cope with items that are 9 [INPUT]",
+              "id": 9,
+              "answer": "heavy",
+              "type": "question",
+              "timestamp": 185
+            },
+            {
+              "type": "heading",
+              "text": "Need experience of"
+            },
+            {
+              "type": "text",
+              "text": "• driving in London"
+            },
+            {
+              "type": "text",
+              "text": "• warehouse work"
+            },
+            {
+              "answer": "customer",
+              "id": 10,
+              "type": "question",
+              "locationId": "loc_10",
+              "text": "• 10 [INPUT] service",
+              "timestamp": 210
+            }
+          ]
+        }
+      ],
+      "type": "note_completion",
+      "passageId": "part_1"
+    },
+    {
+      "questions": [
+        {
+          "answer": "B",
+          "id": 11,
+          "locationId": "loc_11",
+          "text": "When did the Street Play Scheme first take place?",
+          "options": [
+            {
+              "text": "two years ago",
+              "label": "A"
+            },
+            {
+              "text": "three years ago",
+              "label": "B"
+            },
+            {
+              "text": "six years ago",
+              "label": "C"
+            }
+          ],
+          "timestamp": 15
+        },
+        {
+          "locationId": "loc_12",
+          "text": "How often is Beechwood Road closed to traffic now?",
+          "id": 12,
+          "answer": "A",
+          "options": [
+            {
+              "text": "once a week",
+              "label": "A"
+            },
+            {
+              "text": "on Saturdays and Sundays",
+              "label": "B"
+            },
+            {
+              "label": "C",
+              "text": "once a month"
+            }
+          ],
+          "timestamp": 25
+        },
+        {
+          "options": [
+            {
+              "label": "A",
+              "text": "a council official"
+            },
+            {
+              "text": "the police",
+              "label": "B"
+            },
+            {
+              "label": "C",
+              "text": "local wardens"
+            }
+          ],
+          "timestamp": 40,
+          "locationId": "loc_13",
+          "text": "Who is responsible for closing the road?",
+          "id": 13,
+          "answer": "C"
+        },
+        {
+          "options": [
+            {
+              "label": "A",
+              "text": "have to park in another street."
+            },
+            {
+              "label": "B",
+              "text": "must drive very slowly."
+            },
+            {
+              "label": "C",
+              "text": "need permission from a warden."
+            }
+          ],
+          "timestamp": 65,
+          "text": "Residents who want to use their cars",
+          "locationId": "loc_14",
+          "id": 14,
+          "answer": "B"
+        },
+        {
+          "locationId": "loc_15",
+          "text": "Alice says that Street Play Schemes are most needed in",
+          "id": 15,
+          "answer": "C",
+          "options": [
+            {
+              "text": "wealthy areas.",
+              "label": "A"
+            },
+            {
+              "text": "quiet suburban areas.",
+              "label": "B"
+            },
+            {
+              "label": "C",
+              "text": "areas with heavy traffic."
+            }
+          ],
+          "timestamp": 90
+        },
+        {
+          "id": 16,
+          "answer": "B",
+          "locationId": "loc_16",
+          "text": "What has been the reaction of residents who are not parents?",
+          "options": [
+            {
+              "label": "A",
+              "text": "Many of them were unhappy at first."
+            },
+            {
+              "label": "B",
+              "text": "They like seeing children play in the street."
+            },
+            {
+              "label": "C",
+              "text": "They are surprised by the lack of noise."
+            }
+          ],
+          "timestamp": 120
+        }
+      ],
+      "passageId": "part_2",
+      "instruction": "Choose the correct letter, A, B or C.",
+      "type": "multiple_choice",
+      "text": "Street Play Scheme"
+    },
+    {
+      "text": "Which TWO benefits for children does Alice think are the most important?",
+      "type": "pick_two",
+      "instruction": "Choose TWO letters, A-E.",
+      "options": [
+        {
+          "text": "increased physical activity",
+          "label": "A"
+        },
+        {
+          "label": "B",
+          "text": "increased sense of independence"
+        },
+        {
+          "text": "opportunity to learn new games",
+          "label": "C"
+        },
+        {
+          "label": "D",
+          "text": "opportunity to be part of a community"
+        },
+        {
+          "label": "E",
+          "text": "opportunity to make new friends"
+        }
+      ],
+      "questions": [
+        {
+          "id": 17,
+          "answer": "B",
+          "timestamp": 155,
+          "locationId": "loc_17"
+        },
+        {
+          "locationId": "loc_18",
+          "id": 18,
+          "answer": "D",
+          "timestamp": 160
+        }
+      ],
+      "passageId": "part_2"
+    },
+    {
+      "passageId": "part_2",
+      "options": [
+        {
+          "label": "A",
+          "text": "more shoppers"
+        },
+        {
+          "text": "improved safety",
+          "label": "B"
+        },
+        {
+          "text": "less air pollution",
+          "label": "C"
+        },
+        {
+          "label": "D",
+          "text": "more relaxed atmosphere"
+        },
+        {
+          "label": "E",
+          "text": "less noise pollution"
+        }
+      ],
+      "questions": [
+        {
+          "locationId": "loc_19",
+          "id": 19,
+          "answer": "E",
+          "timestamp": 210
+        },
+        {
+          "locationId": "loc_20",
+          "id": 20,
+          "answer": "A",
+          "timestamp": 215
+        }
+      ],
+      "instruction": "Choose TWO letters, A-E.",
+      "type": "pick_two",
+      "text": "Which TWO results of the King Street experiment surprised Alice?"
+    },
+    {
+      "groups": [
+        {
+          "header": "What Hazel should analyse about items in newspapers:",
+          "items": [
+            {
+              "timestamp": 20,
+              "answer": "page",
+              "id": 21,
+              "type": "question",
+              "locationId": "loc_21",
+              "text": "• what 21 [INPUT] the item is on"
+            },
+            {
+              "timestamp": 30,
+              "text": "• the 22 [INPUT] of the item, including the headline",
+              "locationId": "loc_22",
+              "type": "question",
+              "answer": "size",
+              "id": 22
+            },
+            {
+              "text": "• any 23 [INPUT] accompanying the item",
+              "locationId": "loc_23",
+              "type": "question",
+              "answer": "graphics",
+              "id": 23,
+              "timestamp": 45
+            },
+            {
+              "text": "• the 24 [INPUT] of the item, e.g. what's made prominent",
+              "locationId": "loc_24",
+              "type": "question",
+              "answer": "structure",
+              "id": 24,
+              "timestamp": 60
+            },
+            {
+              "locationId": "loc_25",
+              "text": "• the writer's main 25 [INPUT]",
+              "id": 25,
+              "answer": "purpose",
+              "type": "question",
+              "timestamp": 95
+            },
+            {
+              "timestamp": 115,
+              "locationId": "loc_26",
+              "text": "• the 26 [INPUT] the writer may make about the reader",
+              "id": 26,
+              "answer": "assumptions",
+              "type": "question"
+            }
+          ]
+        }
+      ],
+      "passageId": "part_3",
+      "type": "note_completion",
+      "instruction": "Complete the notes below. Write ONE WORD ONLY for each answer."
+    },
+    {
+      "items": [
+        {
+          "timestamp": 155,
+          "text": "national news item",
+          "locationId": "loc_27",
+          "answer": "A",
+          "id": 27
+        },
+        {
+          "timestamp": 175,
+          "id": 28,
+          "answer": "C",
+          "text": "editorial",
+          "locationId": "loc_28"
+        },
+        {
+          "timestamp": 205,
+          "id": 29,
+          "answer": "C",
+          "locationId": "loc_29",
+          "text": "human interest"
+        },
+        {
+          "timestamp": 215,
+          "answer": "B",
+          "id": 30,
+          "locationId": "loc_30",
+          "text": "arts"
+        }
+      ],
+      "type": "matching",
+      "questionHeader": "Types of articles",
+      "optionHeader": "Actions",
+      "options": [
+        {
+          "text": "She will definitely look for a suitable article.",
+          "label": "A"
+        },
+        {
+          "text": "She may look for a suitable article.",
+          "label": "B"
+        },
+        {
+          "label": "C",
+          "text": "She definitely won't look for an article."
+        }
+      ],
+      "passageId": "part_3",
+      "instruction": "What does Hazel decide to do about each of the following types of articles? Write the correct letter, A, B or C, next to Questions 27-30."
+    },
+    {
+      "passageId": "part_4",
+      "type": "note_completion",
+      "groups": [
+        {
+          "header": "Early history of keeping clean",
+          "items": [
+            {
+              "type": "heading",
+              "text": "Prehistoric times:"
+            },
+            {
+              "timestamp": 10,
+              "text": "• water was used to wash off 31 [INPUT]",
+              "locationId": "loc_31",
+              "type": "question",
+              "answer": "mud",
+              "id": 31
+            },
+            {
+              "type": "heading",
+              "text": "Ancient Babylon:"
+            },
+            {
+              "text": "• soap-like material found in 32 [INPUT] cylinders",
+              "locationId": "loc_32",
+              "type": "question",
+              "answer": "clay",
+              "id": 32,
+              "timestamp": 25
+            },
+            {
+              "type": "heading",
+              "text": "Ancient Greece:"
+            },
+            {
+              "type": "text",
+              "text": "• people cleaned themselves with sand and other substances"
+            },
+            {
+              "timestamp": 50,
+              "locationId": "loc_33",
+              "text": "• used a strigil – scraper made of 33 [INPUT]",
+              "id": 33,
+              "answer": "metal",
+              "type": "question"
+            },
+            {
+              "type": "text",
+              "text": "• washed clothes in streams"
+            },
+            {
+              "type": "heading",
+              "text": "Ancient Germany and Gaul:"
+            },
+            {
+              "timestamp": 70,
+              "type": "question",
+              "id": 34,
+              "answer": "hair",
+              "text": "• used soap to colour their 34 [INPUT]",
+              "locationId": "loc_34"
+            },
+            {
+              "type": "heading",
+              "text": "Ancient Rome:"
+            },
+            {
+              "type": "text",
+              "text": "• animal fat, ashes and clay mixed through action of rain, used for washing clothes"
+            },
+            {
+              "text": "• from about 312 BC, water carried to Roman 35 [INPUT] by aqueducts",
+              "locationId": "loc_35",
+              "type": "question",
+              "id": 35,
+              "answer": "baths",
+              "timestamp": 95
+            },
+            {
+              "type": "heading",
+              "text": "Europe in Middle Ages:"
+            },
+            {
+              "text": "• decline in bathing contributed to occurrence of 36 [INPUT]",
+              "locationId": "loc_36",
+              "type": "question",
+              "answer": "disease / diseases",
+              "id": 36,
+              "timestamp": 125
+            },
+            {
+              "timestamp": 145,
+              "text": "• 37 [INPUT] began to be added to soap",
+              "locationId": "loc_37",
+              "type": "question",
+              "answer": "perfume / perfumes",
+              "id": 37
+            },
+            {
+              "type": "heading",
+              "text": "Europe from 17th century:"
+            },
+            {
+              "type": "text",
+              "text": "• 1600s: cleanliness and bathing started becoming usual"
+            },
+            {
+              "timestamp": 175,
+              "type": "question",
+              "answer": "salt",
+              "id": 38,
+              "text": "• 1791: Leblanc invented a way of making soda ash from 38 [INPUT]",
+              "locationId": "loc_38"
+            },
+            {
+              "timestamp": 200,
+              "type": "question",
+              "answer": "science",
+              "id": 39,
+              "text": "• early 1800s: Chevreul turned soapmaking into a 39 [INPUT]",
+              "locationId": "loc_39"
+            },
+            {
+              "timestamp": 230,
+              "type": "question",
+              "id": 40,
+              "answer": "tax",
+              "text": "• from 1800s, there was no longer a 40 [INPUT] on soap",
+              "locationId": "loc_40"
+            }
+          ]
+        }
+      ],
+      "instruction": "Complete the notes below. Write ONE WORD ONLY for each answer."
+    }
+  ],
+  "audio_url": "",
+  "isExclusive": false
+}

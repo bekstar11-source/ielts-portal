@@ -41,7 +41,11 @@ service cloud.firestore {
       allow get: if isAuth() && (
         isAdmin() || 
         isTeacher() || 
-        exists(/databases/$(database)/documents/results/$(request.auth.uid + '_' + testId))
+        exists(/databases/$(database)/documents/results/$(request.auth.uid + '_' + testId)) ||
+        exists(/databases/$(database)/documents/results/$(request.auth.uid + '_' + testId + '_part_1')) ||
+        exists(/databases/$(database)/documents/results/$(request.auth.uid + '_' + testId + '_part_2')) ||
+        exists(/databases/$(database)/documents/results/$(request.auth.uid + '_' + testId + '_part_3')) ||
+        exists(/databases/$(database)/documents/results/$(request.auth.uid + '_' + testId + '_part_4'))
       );
       
       allow create: if isAdmin() || isTeacher();

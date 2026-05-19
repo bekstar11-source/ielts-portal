@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatTime } from '../../utils/ieltsScoring';
 import CustomAudioPlayer from './CustomAudioPlayer';
 import { useAuth } from '../../context/AuthContext';
-import { Volume2, Volume1, VolumeX, Bell, Menu, PenLine, HelpCircle, EyeOff, X, ChevronRight, Contrast as ContrastIcon, Type, Info, Check as CheckIcon, Maximize, Minimize, ArrowLeft } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Bell, Menu, PenLine, HelpCircle, EyeOff, X, ChevronRight, Contrast as ContrastIcon, Type, Info, Check as CheckIcon, Maximize, Minimize, ArrowLeft, Share2 } from 'lucide-react';
+import ShareModal from '../common/ShareModal';
 
 // ─── Audio Preloader (buffering screen) ─────────────────────────────────────
 // Polls each CustomAudioPlayer's <audio> DOM element until readyState >= 3
@@ -210,6 +211,7 @@ const TestHeader = ({
     partNumber = null
 }) => {
     const { userData } = useAuth();
+    const [isShareOpen, setIsShareOpen] = useState(false);
     const localAudioRefs = useRef([]);
     const finalAudioRefs = audioRefs || localAudioRefs;
     const isListening = test?.type?.toLowerCase() === 'listening';
@@ -370,8 +372,8 @@ const TestHeader = ({
                             const partKey = `part${index + 1}`;
                             const partMeta = test?.parts?.[partKey];
 
-                            const defaultStart = index * 450;
-                            const defaultEnd = (index + 1) * 450;
+                            const defaultStart = passage.audio ? 0 : (index * 450);
+                            const defaultEnd = passage.audio ? 0 : ((index + 1) * 450);
 
                             const startTime = (partMeta?.startSec !== undefined && partMeta?.startSec !== null)
                                 ? Number(partMeta.startSec)
@@ -504,6 +506,13 @@ const TestHeader = ({
                             }}
                         >
                             <Menu size={20} strokeWidth={1.5} />
+                        </button>
+                        <button 
+                            className="hover:text-black transition-colors" 
+                            title="Share"
+                            onClick={() => setIsShareOpen(true)}
+                        >
+                            <Share2 size={20} strokeWidth={1.5} />
                         </button>
                         <button 
                             className="hover:text-black transition-colors hidden sm:block" 
@@ -652,6 +661,15 @@ const TestHeader = ({
                     </div>
                 )}
             </AnimatePresence>
+
+            <ShareModal
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                testId={test?.id}
+                testTitle={test?.title}
+                testType={test?.type}
+                currentPart={activePart !== undefined ? activePart + 1 : null}
+            />
         </>
     );
 };

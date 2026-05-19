@@ -1,0 +1,1828 @@
+{
+  "name": "projects/ielts-portal-v1/databases/(default)/documents/tests/cLQsQziJn3Lbq1KT5TRQ",
+  "fields": {
+    "type": {
+      "stringValue": "listening"
+    },
+    "updatedAt": {
+      "stringValue": "2026-02-27T06:55:23.667Z"
+    },
+    "writingTasks": {
+      "arrayValue": {
+        "values": [
+          {
+            "mapValue": {
+              "fields": {
+                "prompt": {
+                  "stringValue": ""
+                },
+                "id": {
+                  "integerValue": "1"
+                },
+                "minWords": {
+                  "integerValue": "150"
+                },
+                "title": {
+                  "stringValue": "Task 1"
+                },
+                "image": {
+                  "stringValue": ""
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "title": {
+                  "stringValue": "Task 2"
+                },
+                "image": {
+                  "stringValue": ""
+                },
+                "id": {
+                  "integerValue": "2"
+                },
+                "prompt": {
+                  "stringValue": ""
+                },
+                "minWords": {
+                  "integerValue": "250"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "passage": {
+      "stringValue": ""
+    },
+    "isExclusive": {
+      "booleanValue": false
+    },
+    "audio_url": {
+      "stringValue": ""
+    },
+    "difficulty": {
+      "stringValue": "medium"
+    },
+    "keywordTable": {
+      "arrayValue": {}
+    },
+    "title": {
+      "stringValue": "IELTS Listening Practice Test"
+    },
+    "createdAt": {
+      "stringValue": "2026-02-27T06:39:47.486Z"
+    },
+    "introDuration": {
+      "integerValue": "5"
+    },
+    "questions": {
+      "arrayValue": {
+        "values": [
+          {
+            "mapValue": {
+              "fields": {
+                "instruction": {
+                  "stringValue": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer."
+                },
+                "groups": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "items": {
+                              "arrayValue": {
+                                "values": [
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "General Information and facilities"
+                                        },
+                                        "type": {
+                                          "stringValue": "heading"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "• Two departments: Lower school, Middle school"
+                                        },
+                                        "type": {
+                                          "stringValue": "text"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "answer": {
+                                          "stringValue": "golf course"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "text": {
+                                          "stringValue": "• Location of school opposite the 1 [INPUT]"
+                                        },
+                                        "id": {
+                                          "integerValue": "1"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_1"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "text"
+                                        },
+                                        "text": {
+                                          "stringValue": "• School address: Meadows Drive, Dubai"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "answer": {
+                                          "stringValue": "blue"
+                                        },
+                                        "id": {
+                                          "integerValue": "2"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_2"
+                                        },
+                                        "text": {
+                                          "stringValue": "• Uniform: a 2 [INPUT] shirt, black trousers or shorts"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "integerValue": "3"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_3"
+                                        },
+                                        "text": {
+                                          "stringValue": "• Lessons from 7:20 until 3 [INPUT], Sunday – Thursday"
+                                        },
+                                        "answer": {
+                                          "stringValue": "12.40"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "answer": {
+                                          "stringValue": "breakfast"
+                                        },
+                                        "id": {
+                                          "integerValue": "4"
+                                        },
+                                        "text": {
+                                          "stringValue": "• Children on Early Start programme are given 4 [INPUT] before school starts"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_4"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "• Late Stay activities: playtime, help with homework, current term's special activity is 5 [INPUT]"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_5"
+                                        },
+                                        "id": {
+                                          "integerValue": "5"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "answer": {
+                                          "stringValue": "swimming"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "• Music: 6 [INPUT] lessons held on Tuesdays"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_6"
+                                        },
+                                        "id": {
+                                          "integerValue": "6"
+                                        },
+                                        "answer": {
+                                          "stringValue": "piano"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "locationId": {
+                                          "stringValue": "loc_7"
+                                        },
+                                        "id": {
+                                          "integerValue": "7"
+                                        },
+                                        "text": {
+                                          "stringValue": "• Languages: 7 [INPUT] from age 7"
+                                        },
+                                        "answer": {
+                                          "stringValue": "Spanish"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "heading"
+                                        },
+                                        "text": {
+                                          "stringValue": "Meeting with Head Teacher"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "• Name of Head Teacher: Elizabeth Rose"
+                                        },
+                                        "type": {
+                                          "stringValue": "text"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "answer": {
+                                          "stringValue": "Wednesday"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "text": {
+                                          "stringValue": "• Day: 8 [INPUT]"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_8"
+                                        },
+                                        "id": {
+                                          "integerValue": "8"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "locationId": {
+                                          "stringValue": "loc_9"
+                                        },
+                                        "text": {
+                                          "stringValue": "• Time: 9 [INPUT]"
+                                        },
+                                        "id": {
+                                          "integerValue": "9"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "answer": {
+                                          "stringValue": "10.15"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "integerValue": "10"
+                                        },
+                                        "text": {
+                                          "stringValue": "• Can talk to the 10 [INPUT] teacher in coffee break"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_10"
+                                        },
+                                        "answer": {
+                                          "stringValue": "science"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            "header": {
+                              "stringValue": "The International School, Dubai"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "type": {
+                  "stringValue": "note_completion"
+                },
+                "passageId": {
+                  "stringValue": "part_1"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "options": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "A"
+                            },
+                            "text": {
+                              "stringValue": "improve the road surface"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "add flowering plants"
+                            },
+                            "label": {
+                              "stringValue": "B"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "C"
+                            },
+                            "text": {
+                              "stringValue": "provide more bus stops"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "plant native trees"
+                            },
+                            "label": {
+                              "stringValue": "D"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "create new grassy areas"
+                            },
+                            "label": {
+                              "stringValue": "E"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "F"
+                            },
+                            "text": {
+                              "stringValue": "build a noise barrier"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "install traffic lights"
+                            },
+                            "label": {
+                              "stringValue": "G"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "type": {
+                  "stringValue": "matching"
+                },
+                "items": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "locationId": {
+                              "stringValue": "loc_11"
+                            },
+                            "text": {
+                              "stringValue": "Shared access paths"
+                            },
+                            "id": {
+                              "integerValue": "11"
+                            },
+                            "answer": {
+                              "stringValue": "E"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "answer": {
+                              "stringValue": "D"
+                            },
+                            "id": {
+                              "integerValue": "12"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_12"
+                            },
+                            "text": {
+                              "stringValue": "Highway"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "answer": {
+                              "stringValue": "F"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_13"
+                            },
+                            "id": {
+                              "integerValue": "13"
+                            },
+                            "text": {
+                              "stringValue": "Housing estate"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "answer": {
+                              "stringValue": "C"
+                            },
+                            "text": {
+                              "stringValue": "Local roads"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_14"
+                            },
+                            "id": {
+                              "integerValue": "14"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "Picnic area"
+                            },
+                            "id": {
+                              "integerValue": "15"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_15"
+                            },
+                            "answer": {
+                              "stringValue": "B"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "passageId": {
+                  "stringValue": "part_2"
+                },
+                "instruction": {
+                  "stringValue": "Which change is proposed for each of the following problem areas? Choose FIVE answers from the box and write the correct letter, A–G, next to questions 11–15."
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "options": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "A"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "B"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "C"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "D"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "E"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "F"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "G"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "H"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "type": {
+                  "stringValue": "map_labeling"
+                },
+                "image": {
+                  "stringValue": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/map_images%2F1772175314518_Screenshot%202026-02-27%20at%2011.24.06.png?alt=media&token=79e2a184-4201-41ff-9c77-d2eb189a316a"
+                },
+                "items": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "id": {
+                              "integerValue": "16"
+                            },
+                            "text": {
+                              "stringValue": "Park 'n' ride car park"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_16"
+                            },
+                            "answer": {
+                              "stringValue": "A"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "answer": {
+                              "stringValue": "G"
+                            },
+                            "id": {
+                              "integerValue": "17"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_17"
+                            },
+                            "text": {
+                              "stringValue": "Bus interchange"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "Bicycle lockers"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_18"
+                            },
+                            "id": {
+                              "integerValue": "18"
+                            },
+                            "answer": {
+                              "stringValue": "C"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "locationId": {
+                              "stringValue": "loc_19"
+                            },
+                            "text": {
+                              "stringValue": "Showers"
+                            },
+                            "id": {
+                              "integerValue": "19"
+                            },
+                            "answer": {
+                              "stringValue": "D"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "answer": {
+                              "stringValue": "F"
+                            },
+                            "text": {
+                              "stringValue": "Lift"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_20"
+                            },
+                            "id": {
+                              "integerValue": "20"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "passageId": {
+                  "stringValue": "part_2"
+                },
+                "instruction": {
+                  "stringValue": "Label the plan below. Write the correct letter, A–H, next to the questions 16–20."
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "text": {
+                  "stringValue": "Why is Beth unconvinced that allergies are linked to vitamin D deficiency?"
+                },
+                "id": {
+                  "integerValue": "21"
+                },
+                "instruction": {
+                  "stringValue": "Choose the correct letter, A, B or C."
+                },
+                "locationId": {
+                  "stringValue": "loc_21"
+                },
+                "passageId": {
+                  "stringValue": "part_3"
+                },
+                "type": {
+                  "stringValue": "multiple_choice"
+                },
+                "options": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "A"
+                            },
+                            "text": {
+                              "stringValue": "because people's diets have improved since the 1950s"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "B"
+                            },
+                            "text": {
+                              "stringValue": "because most people get enough vitamin D"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "because the evidence only applies in Britain"
+                            },
+                            "label": {
+                              "stringValue": "C"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "answer": {
+                  "stringValue": "C"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "options": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "A"
+                            },
+                            "text": {
+                              "stringValue": "will mean distribution of pollen over a wider area."
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "are having less impact on pollen than milder winters."
+                            },
+                            "label": {
+                              "stringValue": "B"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "C"
+                            },
+                            "text": {
+                              "stringValue": "are responsible for higher quantities of pollen."
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "answer": {
+                  "stringValue": "C"
+                },
+                "type": {
+                  "stringValue": "multiple_choice"
+                },
+                "locationId": {
+                  "stringValue": "loc_22"
+                },
+                "id": {
+                  "integerValue": "22"
+                },
+                "passageId": {
+                  "stringValue": "part_3"
+                },
+                "text": {
+                  "stringValue": "Eliot explains that rising CO2 levels"
+                },
+                "instruction": {
+                  "stringValue": "Choose the correct letter, A, B or C."
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "type": {
+                  "stringValue": "multiple_choice"
+                },
+                "options": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "There is no clear short-term trend for the arrival of spring."
+                            },
+                            "label": {
+                              "stringValue": "A"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "In general, spring is likely to continue arriving early."
+                            },
+                            "label": {
+                              "stringValue": "B"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "Springs are becoming milder and longer."
+                            },
+                            "label": {
+                              "stringValue": "C"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "answer": {
+                  "stringValue": "B"
+                },
+                "instruction": {
+                  "stringValue": "Choose the correct letter, A, B or C."
+                },
+                "id": {
+                  "integerValue": "23"
+                },
+                "passageId": {
+                  "stringValue": "part_3"
+                },
+                "text": {
+                  "stringValue": "What does Beth say about seasonal changes?"
+                },
+                "locationId": {
+                  "stringValue": "loc_23"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "instruction": {
+                  "stringValue": "Choose the correct letter, A, B or C."
+                },
+                "passageId": {
+                  "stringValue": "part_3"
+                },
+                "text": {
+                  "stringValue": "What point is made about the plant ragweed?"
+                },
+                "id": {
+                  "integerValue": "24"
+                },
+                "locationId": {
+                  "stringValue": "loc_24"
+                },
+                "type": {
+                  "stringValue": "multiple_choice"
+                },
+                "options": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "It is spreading to more countries."
+                            },
+                            "label": {
+                              "stringValue": "A"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "B"
+                            },
+                            "text": {
+                              "stringValue": "It is the most widespread cause of allergies globally."
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "It causes the most severe type of allergy."
+                            },
+                            "label": {
+                              "stringValue": "C"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "answer": {
+                  "stringValue": "A"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "text": {
+                  "stringValue": "Why is tree pollen a more serious problem in cities?"
+                },
+                "id": {
+                  "integerValue": "25"
+                },
+                "passageId": {
+                  "stringValue": "part_3"
+                },
+                "locationId": {
+                  "stringValue": "loc_25"
+                },
+                "instruction": {
+                  "stringValue": "Choose the correct letter, A, B or C."
+                },
+                "options": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "A"
+                            },
+                            "text": {
+                              "stringValue": "Trees produce more pollen there."
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "B"
+                            },
+                            "text": {
+                              "stringValue": "There is less to absorb the tree pollen."
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "There is not enough control over tree-planting."
+                            },
+                            "label": {
+                              "stringValue": "C"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "answer": {
+                  "stringValue": "B"
+                },
+                "type": {
+                  "stringValue": "multiple_choice"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "passageId": {
+                  "stringValue": "part_3"
+                },
+                "instruction": {
+                  "stringValue": "What comment is made about the seasonal changes in pollen in each of the following European countries? Choose FIVE answers from the box and write the correct letter, A–G, next to questions 26–30."
+                },
+                "type": {
+                  "stringValue": "matching"
+                },
+                "options": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "A"
+                            },
+                            "text": {
+                              "stringValue": "greatest change recorded for oak pollen"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "B"
+                            },
+                            "text": {
+                              "stringValue": "changes identified for two pollen types only"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "a longer season for grass pollen"
+                            },
+                            "label": {
+                              "stringValue": "C"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "D"
+                            },
+                            "text": {
+                              "stringValue": "earlier start dates for all pollen types"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "E"
+                            },
+                            "text": {
+                              "stringValue": "significant change in start date of birch pollen"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "little difference in start dates"
+                            },
+                            "label": {
+                              "stringValue": "F"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "label": {
+                              "stringValue": "G"
+                            },
+                            "text": {
+                              "stringValue": "information only available for birch pollen"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "items": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "text": {
+                              "stringValue": "Austria"
+                            },
+                            "id": {
+                              "integerValue": "26"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_26"
+                            },
+                            "answer": {
+                              "stringValue": "G"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "answer": {
+                              "stringValue": "B"
+                            },
+                            "text": {
+                              "stringValue": "France"
+                            },
+                            "id": {
+                              "integerValue": "27"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_27"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "answer": {
+                              "stringValue": "A"
+                            },
+                            "id": {
+                              "integerValue": "28"
+                            },
+                            "text": {
+                              "stringValue": "The Netherlands"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_28"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "answer": {
+                              "stringValue": "D"
+                            },
+                            "text": {
+                              "stringValue": "Switzerland"
+                            },
+                            "id": {
+                              "integerValue": "29"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_29"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "answer": {
+                              "stringValue": "C"
+                            },
+                            "text": {
+                              "stringValue": "UK"
+                            },
+                            "locationId": {
+                              "stringValue": "loc_30"
+                            },
+                            "id": {
+                              "integerValue": "30"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "type": {
+                  "stringValue": "note_completion"
+                },
+                "passageId": {
+                  "stringValue": "part_4"
+                },
+                "instruction": {
+                  "stringValue": "Complete the notes below. Write NO MORE THAN TWO WORDS for each answer."
+                },
+                "groups": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "items": {
+                              "arrayValue": {
+                                "values": [
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "heading"
+                                        },
+                                        "text": {
+                                          "stringValue": "New development"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": ". Now possible to work with the 31 [INPUT] Faculty to widen learning opportunities"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_31"
+                                        },
+                                        "id": {
+                                          "integerValue": "31"
+                                        },
+                                        "answer": {
+                                          "stringValue": "Engineering"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "heading"
+                                        },
+                                        "text": {
+                                          "stringValue": "Aims of course"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "• To cover three areas of textiles -knitted"
+                                        },
+                                        "type": {
+                                          "stringValue": "text"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": " - 32 [INPUT]"
+                                        },
+                                        "id": {
+                                          "integerValue": "32"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_32"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "answer": {
+                                          "stringValue": "printed"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": " - woven"
+                                        },
+                                        "type": {
+                                          "stringValue": "text"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "• To focus on related business operations"
+                                        },
+                                        "type": {
+                                          "stringValue": "text"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "integerValue": "33"
+                                        },
+                                        "text": {
+                                          "stringValue": "• Work placement: focus on studio work in the context of the 33 [INPUT]"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_33"
+                                        },
+                                        "answer": {
+                                          "stringValue": "global market"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "heading"
+                                        },
+                                        "text": {
+                                          "stringValue": "Course content"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "heading"
+                                        },
+                                        "text": {
+                                          "stringValue": "Year One: experimentation"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "locationId": {
+                                          "stringValue": "loc_34"
+                                        },
+                                        "text": {
+                                          "stringValue": "Visual research with 34 [INPUT] and suggestions for its application"
+                                        },
+                                        "id": {
+                                          "integerValue": "34"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "answer": {
+                                          "stringValue": "documentation"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "Year Two: relating skills to the real world"
+                                        },
+                                        "type": {
+                                          "stringValue": "heading"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "answer": {
+                                          "stringValue": "traditional"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_35"
+                                        },
+                                        "id": {
+                                          "integerValue": "35"
+                                        },
+                                        "text": {
+                                          "stringValue": "Optional course: 35 [INPUT] design processes"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "Three- or four-year course? Students are offered 36 [INPUT] to help them make their decision."
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_36"
+                                        },
+                                        "id": {
+                                          "integerValue": "36"
+                                        },
+                                        "answer": {
+                                          "stringValue": "tutorials"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "Year Three: consolidation"
+                                        },
+                                        "type": {
+                                          "stringValue": "heading"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "integerValue": "37"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_37"
+                                        },
+                                        "text": {
+                                          "stringValue": "Learning style: 37 [INPUT] practice"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "answer": {
+                                          "stringValue": "Reflective"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "text"
+                                        },
+                                        "text": {
+                                          "stringValue": "Students produce:"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": " -a dissertation"
+                                        },
+                                        "type": {
+                                          "stringValue": "text"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": " -a portfolio"
+                                        },
+                                        "type": {
+                                          "stringValue": "text"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "locationId": {
+                                          "stringValue": "loc_38"
+                                        },
+                                        "text": {
+                                          "stringValue": " -a 38 [INPUT]"
+                                        },
+                                        "id": {
+                                          "integerValue": "38"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "answer": {
+                                          "stringValue": "business plan"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "heading"
+                                        },
+                                        "text": {
+                                          "stringValue": "Career opportunities"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "type": {
+                                          "stringValue": "text"
+                                        },
+                                        "text": {
+                                          "stringValue": "Within textile business-e.g. stylists, retail managers"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "text": {
+                                          "stringValue": "Further opportunities-jobs in 39 [INPUT] and trend forecasting"
+                                        },
+                                        "id": {
+                                          "integerValue": "39"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_39"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        },
+                                        "answer": {
+                                          "stringValue": "journalism"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "integerValue": "40"
+                                        },
+                                        "locationId": {
+                                          "stringValue": "loc_40"
+                                        },
+                                        "text": {
+                                          "stringValue": "If interested - come back tomorrow for a short 40 [INPUT]"
+                                        },
+                                        "answer": {
+                                          "stringValue": "interview"
+                                        },
+                                        "type": {
+                                          "stringValue": "question"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            "header": {
+                              "stringValue": "Textiles with Business Studies"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "passages": {
+      "arrayValue": {
+        "values": [
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "part_1"
+                },
+                "title": {
+                  "stringValue": "Part 1"
+                },
+                "content": {
+                  "stringValue": "\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e The International School, how can I help you?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Good morning. I was wondering if you could give me some information. I've just moved to Dubai and I have a boy of eight. I'm looking for a school for him. Could you give me some details about your school?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Yes, of course. The lower school takes children aged 4 to 7 and the middle school is for those aged 7 to 13. Children then go on to one of the senior schools in the area until they're 18.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e My neighbour told me you're near a \u003cspan id='loc_1'\u003egolf course\u003c/span\u003e, is that right?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Yes, that's right. There's one just across from us.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Right. Could you give me the address?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Of course. We're in Meadows Drive. That's M-E-A-D-O-W-S Drive. You can't miss us.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Okay, got that. Can I ask you a few more questions?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Go right ahead.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Does the school have a uniform at all? My son didn't have to wear one at his last school.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Yes, and it's actually quite smart. We've just changed the color from a dark green shirt to a \u003cspan id='loc_2'\u003eblue\u003c/span\u003e one. That's with black trousers or shorts.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e What's the school timetable like?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Well, lessons begin at 7.20 Sunday to Thursday, although we do open at seven o'clock. Lessons finish at \u003cspan id='loc_3'\u003e12.40\u003c/span\u003e and the school closes at 2.30.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e That's interesting because I leave here very early to get to work. Do you provide \u003cspan id='loc_4'\u003ebreakfast\u003c/span\u003e or does my son need to have this at home?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e No, we have an early start programme and we provide that for all the children who arrive early.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Excellent. And after school?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e We have a range of activities on what we call our \"late stay\" program. There's some play time and help with homework, but we offer sport activities as well. For example, last term we had basketball after school and now it's \u003cspan id='loc_5'\u003eswimming\u003c/span\u003e.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Good. And what sort of music lessons are there?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e We have an orchestra and a rock band for the older children and a junior band for the younger ones.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e My son plays the \u003cspan id='loc_6'\u003epiano\u003c/span\u003e. Could he have lessons at the school?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Yes, we have lessons on Tuesdays after school. We also have flute on Thursdays and clarinet on Mondays.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e That's great. What about languages? My son would like to do \u003cspan id='loc_7'\u003eSpanish\u003c/span\u003e because his grandparents are from Mexico.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e No problem. He's eight, isn't he? Well, he can do that now as classes start from when the children are seven. When he's ten, we offer French or German as well.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Now, what about enrolment? Could I come along sometime and see the head teacher?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Yes indeed. Her name's Elizabeth Rose. She's usually free to speak to parents most days.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Well, I could come in on \u003cspan id='loc_8'\u003eWednesday\u003c/span\u003e next week. I usually have a free day on a Tuesday, but that's been changed for next week.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e OK. Would around 9.30 suit you?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Could we make it a bit later, say \u003cspan id='loc_9'\u003e10.15\u003c/span\u003e? I have a dentist appointment at 9.40.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Great. Now the head will give you a guided tour of course, but is there anything special you're interested in? For example, some parents are interested in speaking to the sports teacher.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCaller (Mother):\u003c/strong\u003e Oh, I think it would be great to have a word with the \u003cspan id='loc_10'\u003escience\u003c/span\u003e teacher. I think that's a subject my son will be very good at.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eReceptionist:\u003c/strong\u003e Okay, we have a break for coffee at 12 so you can do that then. I'll make a note of that. I should also tell you that on that day you'll be able to see some of the...\u003c/p\u003e"
+                },
+                "audio": {
+                  "stringValue": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1772174299113_pa1.mp3?alt=media&token=518f5e04-765b-4533-bd61-e8baf5a19bbd"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "title": {
+                  "stringValue": "Part 2"
+                },
+                "content": {
+                  "stringValue": "\u003cp\u003e\u003cstrong\u003eProject Manager:\u003c/strong\u003e Welcome everyone, thanks for coming to this information evening. The purpose of this meeting is to give you a chance to learn more about the Road and Rail Improvement Project. We've identified several problem areas and we've come up with some changes that we think will improve the local environment. For the shared access paths, by those I mean the paths shared by both bikes and pedestrians, we plan to turn these into \u003cspan id='loc_11'\u003eopen areas with grass\u003c/span\u003e around them. Cyclists and pedestrians need to be able to see each other clearly to avoid any accidents. So we've decided to remove the large native trees from the area for that reason. Now along the highway we want to \u003cspan id='loc_12'\u003eput trees that are native\u003c/span\u003e to this area to add shade and make it more attractive. We thought possibly the spotted gum which grows naturally here.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eProject Manager:\u003c/strong\u003e Now, I know those of you who live in the housing estate are disturbed by the sound of traffic nearby. We are aiming to solve this problem by \u003cspan id='loc_13'\u003econstructing a wall\u003c/span\u003e between the estate and the road, and possibly in the future we might consider adding some artwork to it. We think this will be quite an effective solution. Moving on now to the local roads, we want to encourage more public transport use and solve some of our traffic problems, so we're going to \u003cspan id='loc_14'\u003eadd a considerable number of stops\u003c/span\u003e to the bus routes that run along those roads. Just finally, as a way of thanking the community for their cooperation, we plan to make the picnic area in the park near the bus terminal more attractive. So we're adding some \u003cspan id='loc_15'\u003ecolourful new rose beds\u003c/span\u003e that our gardeners will be putting in at the completion of the project.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eProject Manager:\u003c/strong\u003e Now I'd like to give you more information about the renovations to Richlands train station. Can you all see a copy of the plan? We envisage Richlands station as more than just a train station. It'll be a transport hub, linking all forms of transport in the area. To this end, we're building an underground park and ride car park, so commuters can drive to the station, park and then ride to work on the train.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eProject Manager:\u003c/strong\u003e That's the entrance to it on the \u003cspan id='loc_16'\u003ecorner of Progress and Garden Road\u003c/span\u003e. You can drive into it from Progress Road. Now on the Progress Road side of the site, on the \u003cspan id='loc_17'\u003etop left of your map\u003c/span\u003e is where we plan to put the bus interchange. It will have direct access to the platform from the bus interchange via a covered walkway. Cycling is an important part of our city's transport plan, so cyclists will also be fully catered for with 80 new bicycle lockers. You can see where they are on the plan in the \u003cspan id='loc_18'\u003ebottom left hand corner\u003c/span\u003e next to the bike path. Cyclists can ride to the station, store their bikes in the lockers and board the train. Oh, and I forgot the most important thing. You'll even be able to shower at the station after your bike ride, as we're installing showers \u003cspan id='loc_19'\u003ebetween the toilets and the platform\u003c/span\u003e. We'll also install a fountain at the station to make the area more attractive. You can see it in the centre of the plan. And \u003cspan id='loc_20'\u003ebetween the fountain and the ticket machine\u003c/span\u003e, we're putting in a lift for our elderly and disabled passengers. They will be able to buy their ticket then pass directly to the platform via the lift. So I hope that gives you a much better idea of the new facilities that will be available at Richland's station. Now we would like your feedback about the project so...\u003c/p\u003e"
+                },
+                "id": {
+                  "stringValue": "part_2"
+                },
+                "audio": {
+                  "stringValue": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1772174326886_pa2.mp3?alt=media&token=a0a6cb2c-540d-4c2d-bc98-c5616a100a0f"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "audio": {
+                  "stringValue": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1772174346144_pa3.mp3?alt=media&token=bdfe3e40-1001-4242-8d35-c0758e8d9aeb"
+                },
+                "id": {
+                  "stringValue": "part_3"
+                },
+                "content": {
+                  "stringValue": "\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Have you had a chance to look at the information for our project yet, Beth?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e I've had a look at most of the stuff on the relationship between climate change and allergies, and the role played by pollen from flowering plants and trees.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Yeah, me too. The main message is that seasonal allergies seem to be getting worse.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e In just the last twenty years, the amount of pollen that's produced by the flowers on birch trees has tripled and one in four people suffers from either hay fever or asthma which is triggered by pollen. I read something about allergy sufferers being more likely to have a vitamin D deficiency because we no longer take cod liver oil as a vitamin supplement, like many people used to do in the 1950s in Britain. And since then, allergies have quadrupled in most European countries.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e But it was \u003cspan id='loc_21'\u003eonly in Britain that cod liver oil was so popular\u003c/span\u003e, so that argument doesn't really make sense.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e No, it doesn't seem that relevant. What seems to be happening now is that an increasing number of people are getting their first attack in their 40s and 50s.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e That must be because of the link with climate change causing rising temperatures.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e But CO2 levels are seriously affecting pollen counts too. As much as milder winters.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Definitely. CO2 helps stimulate plant growth and several recent studies have shown that when plants are exposed to more CO2, they \u003cspan id='loc_22'\u003eproduce more pollen\u003c/span\u003e.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e Really? So people might experience more severe allergic symptoms in future?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e That's right. Hmm. And another factor is that the pollen season is changing.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e Yes. Scientists are \u003cspan id='loc_23'\u003epredicting spring will come five weeks earlier\u003c/span\u003e by 2130.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e That's in the long term. But that doesn't mean that spring will come earlier every year. Look at last winter. That was really cold until March. And the pollen season was delayed. Whereas this year, spring came earlier and lasted longer.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e Right. And another thing we should mention is ragweed. As an example of a plant species moving into new areas as a result of climate change.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Yes. In the US it's already the major allergen affecting millions of people in August and September. But we're starting to see it \u003cspan id='loc_24'\u003egrow in Europe for the first time\u003c/span\u003e, which is really worrying because it's so allergenic.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e The problem with tree pollen is also worse in cities because there are so many hard surfaces around and the \u003cspan id='loc_25'\u003epollen doesn't get absorbed so much\u003c/span\u003e, just stays in the air.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Yeah. Wasn't the pollen shown to be three times higher in one city?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e I think so. So because of this, many cities have started to ban the planting of certain types of trees.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e So shall we look at the different data tables for seasonal changes for pollen in Europe?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e OK, but I think we should just focus on the trees and plants which we have the most data for. So that's oak trees and birch trees and grass.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Yes, that makes it more manageable. Shall we go through the data for each country in detail and pick out anything interesting?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e All right. So, starting with Austria. Well, here we've \u003cspan id='loc_26'\u003eonly got data for birch pollen\u003c/span\u003e. I wonder why there's no data for oak or grass?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Hmm, it would be interesting to compare with neighbouring countries.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e True. The picture in France is unusual.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Yes, the pollen season \u003cspan id='loc_27'\u003estarts earlier for both oak and birch, but it doesn't start any earlier for grass\u003c/span\u003e. I wonder why that is?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e In the Netherlands, we've got complete data for all three plants. So, what does it show?\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Grass and birch pollen are only starting a few days earlier, but \u003cspan id='loc_28'\u003eoak pollen is starting much earlier. 18 days in fact\u003c/span\u003e.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e That's unusual. There's not such a big difference in other countries.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e No. Switzerland's an interesting case. The pollen season starts here \u003cspan id='loc_29'\u003eearlier than in the past for oak, birch and grass\u003c/span\u003e.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e Yeah, from 21 days to 14 days earlier.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Yeah. The UK shows a different picture again.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eBeth:\u003c/strong\u003e Yeah. Here the problem is that wet summers have \u003cspan id='loc_30'\u003eextended the grass pollen season\u003c/span\u003e from five weeks to eight weeks, which is bad news for allergy sufferers.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eElliot:\u003c/strong\u003e Right. Well, I think we should have another...\u003c/p\u003e"
+                },
+                "title": {
+                  "stringValue": "Part 3"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "id": {
+                  "stringValue": "part_4"
+                },
+                "content": {
+                  "stringValue": "\u003cp\u003e\u003cstrong\u003eLecturer:\u003c/strong\u003e Thank you first of all for coming along to the university's open day and in particular for coming to this talk to find out about our course in Textiles with Business Studies. The cooperation between the Faculty of Arts and Architecture and the Business Faculty enables us to offer this undergraduate and integrated Masters course. In the five years this course has been running, we've learned a lot and it's become very popular. Now, thanks to the Faculty of \u003cspan id='loc_31'\u003eEngineering\u003c/span\u003e, we're also able to offer a really exciting opportunity to those who would like to further diversify and would like to carry their learning through into new disciplines. Now, the aims of this course are firstly to create innovative and highly motivated textile practitioners within the disciplines of knitted textiles, an increasingly popular area, as you will have seen on the catwalks, \u003cspan id='loc_32'\u003eprinted\u003c/span\u003e, and of course woven textiles. Secondly, we also ensure that our students gain an in-depth knowledge and understanding of related business operations. We make sure that our students have sufficient hands-on experience by arranging interesting and relevant work placements. The focus of the integrated component of the work placement is the \u003cspan id='loc_33'\u003eglobal market\u003c/span\u003e. Our aim is to locate studio work in this increasingly important context. Moving on to what we do in each year. In the first year, students explore the three subject areas of textiles in rotation. The emphasis for the first year is experimentation and we ask for evidence of visual research which must be supported by \u003cspan id='loc_34'\u003edocumentation\u003c/span\u003e and proposals application. In year two, design and technical skills are related to the real world. Unlike many other university textile courses these days, we give our students the opportunity to choose an extra module on the \u003cspan id='loc_35'\u003etraditional\u003c/span\u003e processes of design, which gives a historical perspective on their work. This can be done before introducing students to computer-aided design.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eLecturer:\u003c/strong\u003e Students at this point, Year 2, decide if they intend to complete the course at Year 3 with a BA ONS or progress to Year 4 and conclude with a Masters in Design. Students can also have \u003cspan id='loc_36'\u003etutorials\u003c/span\u003e if they feel they need help making this important decision. This reflects our commitment to student support at all times. Year 3 consolidates the knowledge gained using a particular learning style. It's called \u003cspan id='loc_37'\u003eReflective\u003c/span\u003e Practice. That means you look back on what you've done and analyse and evaluate your subject in both academic and professional contexts. This helps and encourages deeper understanding. Students produce a dissertation on a topic of their own choosing and a portfolio of their textile collection. Also to help underpin the commercial aspect of the course, we ask for a \u003cspan id='loc_38'\u003ebusiness plan\u003c/span\u003e. On the subject of career opportunities, many graduates work directly within the textile business, with careers commonly found as stylists and retail managers. However, it shouldn't be forgotten that there are many other exciting opportunities out there, for example, careers in \u003cspan id='loc_39'\u003ejournalism\u003c/span\u003e, for those with a flair for words, or trend forecasting, for those with their eye on the future. We are certain that we shall see broader and more varied opportunities for our graduates. If you like what you've heard today and are thinking of applying for the program and you'd like to talk to us further, please come back tomorrow. You'll have the opportunity to do a brief \u003cspan id='loc_40'\u003einterview\u003c/span\u003e where we'll be able to assess your aptitude for this subject area. Many students who haven't studied related subjects may be surprised to find that they're quite well suited to our program. After that, of course, you'll need to go through the usual application procedures.\u003c/p\u003e"
+                },
+                "title": {
+                  "stringValue": "Section 4"
+                },
+                "audio": {
+                  "stringValue": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1772174369602_pa4.mp3?alt=media&token=db19ea74-dfc4-4245-9a56-5c2cb263fb5d"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "createTime": "2026-02-27T06:39:49.077331Z",
+  "updateTime": "2026-02-27T06:55:24.036419Z"
+}

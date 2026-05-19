@@ -40,7 +40,10 @@ export default function ReadingInterface({
   userId,
   isNotesVisible,
   setIsNotesVisible,
-  isPremium
+  isPremium,
+  partNumber = null,
+  activePart = null,
+  setActivePart = null
 }) {
   const currentTestId = testId || testData?.id;
 
@@ -117,7 +120,16 @@ export default function ReadingInterface({
 
   // --- 3. UI STATE & NAVIGATION ---
   const { leftWidth, startResizing } = useResizablePane(50);
-  const [activePassage, setActivePassage] = useState(0);
+  
+  const [localActivePassage, setLocalActivePassage] = useState(partNumber ? partNumber - 1 : 0);
+  const activePassage = (activePart !== undefined && activePart !== null) ? activePart : localActivePassage;
+  const setActivePassage = setActivePart ? setActivePart : setLocalActivePassage;
+
+  useEffect(() => {
+    if (partNumber) {
+      setActivePassage(partNumber - 1);
+    }
+  }, [partNumber, setActivePassage]);
   const [highlightedLoc, setHighlightedLoc] = useState(null);
   const [highlightTrigger, setHighlightTrigger] = useState(0); 
   const rootRef = useRef(null);
@@ -418,6 +430,7 @@ export default function ReadingInterface({
           scrollToQuestionDiv={handleScrollToQuestion}
           isMobile={isMobile}
           setMobileActiveTab={setMobileActiveTab}
+          partNumber={partNumber}
         />
       </div>
 

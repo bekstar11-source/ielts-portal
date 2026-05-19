@@ -62,9 +62,18 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
                                                             return { type: 'text', content: p };
                                                         }).filter(p => p.type === 'input' || p.content);
                                                     }
-
+ 
+                                                    // Extract all input IDs present in this cell's parts to strip them from text parts
+                                                    const inputIds = (parts || []).filter(p => p.type === 'input').map(p => p.id);
+ 
                                                     return (parts || []).map((refinedPart, index) => {
-                                                        if (refinedPart.type === 'text') return <span key={index} className="pr-1" dangerouslySetInnerHTML={{ __html: refinedPart.content }} />;
+                                                        if (refinedPart.type === 'text') {
+                                                            let textContent = refinedPart.content || "";
+                                                            inputIds.forEach(id => {
+                                                                textContent = stripLeadingId(textContent, id);
+                                                            });
+                                                            return <span key={index} className="pr-1" dangerouslySetInnerHTML={{ __html: textContent }} />;
+                                                        }
                                                         if (refinedPart.type === 'input') {
                                                             const lookupItems = (group.items || group.questions || []);
                                                             const item = lookupItems.find(it => String(it.id) === String(refinedPart.id));
@@ -72,7 +81,7 @@ export const TableCompletion = ({ group, userAnswers, onAnswerChange, isReviewMo
                                                                 <div key={`input-${refinedPart.id}`} className="inline-flex items-baseline mb-1">
                                                                     <ListeningTextInput
                                                                         id={refinedPart.id} 
-                                                                        answer={refinedPart.answer || item?.answer} 
+                                                                        answer={refinedPart.answer || item?.answer || item?.correct_answer || item?.correctAnswer || item?.correct_answer_value} 
                                                                         locationId={refinedPart.locationId || item?.locationId}
                                                                         userAnswers={userAnswers} 
                                                                         onAnswerChange={onAnswerChange} 
@@ -216,7 +225,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
                                                 <ListeningTextInput
                                                     key={`input-${segIdx}-${q.id}`}
                                                     id={q.id}
-                                                    answer={q.answer}
+                                                    answer={q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value}
                                                     locationId={q.locationId}
                                                     userAnswers={userAnswers}
                                                     onAnswerChange={onAnswerChange}

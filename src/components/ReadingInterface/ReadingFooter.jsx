@@ -8,7 +8,8 @@ export default function ReadingFooter({
     userAnswers, 
     scrollToQuestionDiv,
     isMobile,
-    setMobileActiveTab
+    setMobileActiveTab,
+    partNumber = null
 }) {
     if (!testData || !testData.passages) return null;
 
@@ -111,6 +112,7 @@ export default function ReadingFooter({
         <div className="h-full w-full flex bg-white z-[2000]">
             <div className="flex w-full h-full">
                 {testData.passages.map((passage, idx) => {
+                    if (partNumber && idx !== partNumber - 1) return null;
                     const isActive = activePassage === idx;
                     
                     const passageGroups = testData.questions 

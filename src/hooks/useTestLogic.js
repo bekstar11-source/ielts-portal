@@ -18,10 +18,10 @@ export function useTestLogic() {
     const stateRef = useRef({});
     const { awardXP } = useGamification();
 
-    // Extract partNumber from query param (e.g. ?part=2)
+    // Extract partNumber from query param (e.g. ?part=2 or ?passage=2)
     const partNumber = useMemo(() => {
         const queryParams = new URLSearchParams(location.search);
-        const p = queryParams.get('part');
+        const p = queryParams.get('part') || queryParams.get('passage') || queryParams.get('section');
         return p ? parseInt(p) : null;
     }, [location.search]);
 
@@ -31,6 +31,7 @@ export function useTestLogic() {
     const [showResult, setShowResult] = useState(false);
     const [score, setScore] = useState(0);
     const [bandScore, setBandScore] = useState(0);
+    const [resultId, setResultId] = useState(null);
     const [textSize, setTextSize] = useState('text-base');
     const [isReviewing, setIsReviewing] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
@@ -129,6 +130,7 @@ export function useTestLogic() {
             await awardXP('test', test.id, test.title, xpAmount);
             setScore(res.score);
             setBandScore(res.bandScore);
+            setResultId(res.resultId);
             setShowResult(true);
             localStorage.removeItem(`draft_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`);
             sessionStorage.removeItem(`timer_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`);
@@ -162,6 +164,6 @@ export function useTestLogic() {
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate,
-        initialDuration, audioRefs, handleSeekTo, partNumber
+        initialDuration, audioRefs, handleSeekTo, partNumber, resultId
     };
 }

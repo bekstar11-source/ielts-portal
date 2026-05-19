@@ -128,7 +128,7 @@ export const FlowChartQuestion = ({
                 return (
                     <div key={sIdx} className="w-full flex flex-col items-center mb-8 last:mb-0">
                         {sub.header && (
-                            <h4 className="text-[14px] font-black text-gray-900 mb-4 text-center w-full uppercase tracking-[0.15em] border-b border-gray-200 pb-2">
+                             <h4 className="text-[14px] font-black text-gray-900 mb-4 text-center w-full tracking-[0.15em] border-b border-gray-200 pb-2">
                                 {typeof sub.header === 'object' ? sub.header.text : sub.header}
                             </h4>
                         )}

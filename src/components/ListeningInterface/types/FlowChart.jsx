@@ -43,7 +43,7 @@ const FlowDraggableOption = ({ label, text, isReviewMode }) => {
     );
 };
 
-const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear }) => {
+const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear, onSelect, isMenuOpen, onToggleMenu, allowReuse, userAnswers, questions }) => {
     const { setNodeRef, isOver } = useDroppable({ id: `flow-slot-${id}` });
     const selectedOption = options?.find((opt, idx) => {
         const resLabel = opt.label || String.fromCharCode(65 + idx);
@@ -53,8 +53,12 @@ const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correc
     return (
         <div
             ref={setNodeRef}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (!isReviewMode) onToggleMenu();
+            }}
             className={`
-                relative min-h-[30px] w-[160px] mx-1 inline-flex items-center justify-center border transition-all rounded-none group
+                relative min-h-[30px] w-[160px] mx-1 inline-flex items-center justify-center border transition-all rounded-none group cursor-pointer
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')
@@ -68,7 +72,7 @@ const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correc
             `}
         >
             {value ? (
-                <div className="flex items-center w-full px-2 overflow-hidden">
+                <div className="flex items-center w-full px-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <span className="text-[14px] font-normal text-gray-900 line-clamp-1 flex-1 leading-tight text-center">{stripLeadingOptionLabel(selectedOption?.text || value)}</span>
                     {!isReviewMode && (
                         <button
@@ -81,6 +85,35 @@ const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correc
                 </div>
             ) : (
                 <span className="text-[12px] font-medium text-gray-600 uppercase tracking-wider">{id} Drop</span>
+            )}
+
+            {isMenuOpen && !isReviewMode && (
+                <div className="absolute top-full left-0 mt-1 w-max min-w-full max-w-[280px] xs:max-w-[320px] sm:max-w-[400px] bg-white border border-gray-200 rounded-md shadow-lg z-[2000] overflow-hidden">
+                    <div className="max-h-60 overflow-y-auto py-1">
+                        {options.map((opt, idx) => {
+                            const label = opt.label || String.fromCharCode(65 + idx);
+                            const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : "");
+                            const isUsed = !allowReuse && questions.some(q => userAnswers[q.id] === label);
+                            
+                            if (isUsed) return null;
+                            
+                            return (
+                                <button
+                                    key={label}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelect(label);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-[14px] hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-start whitespace-normal break-words"
+                                >
+                                    <span className="font-bold mr-2 shrink-0">{label}.</span>
+                                    <span className="flex-1 min-w-0">{stripLeadingOptionLabel(text)}</span>
+                                </button>
+                            );
+                        })}
+                        {options.length === 0 && <div className="px-4 py-2 text-gray-400 text-xs">No options available</div>}
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -102,6 +135,7 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
     const options = group.options || [];
     const hasOptions = options.length > 0;
     const [activeId, setActiveId] = React.useState(null);
+    const [openMenuId, setOpenMenuId] = React.useState(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 3 } }),
@@ -133,6 +167,13 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
         onAnswerChange(slotId, optionLabel);
     };
 
+    // Close menu when clicking outside
+    React.useEffect(() => {
+        const handleClickOutside = () => setOpenMenuId(null);
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
+
     const renderFlowItem = (item, index, subItems) => {
         const itemText = (typeof item.text === 'object' ? item.text.text : item.text) || "";
         const hasInput = itemText && String(itemText).includes('[INPUT]');
@@ -150,6 +191,15 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
                         <DroppableFlowSlot 
                             id={item.id} value={userAnswers[item.id] || ""} options={options} isReviewMode={isReviewMode} 
                             isCorrect={isReviewMode ? checkAnswer(userAnswers[item.id], correctVal) : false} correctAnswer={correctVal} onClear={() => onAnswerChange(item.id, "")}
+                            onSelect={(label) => {
+                                onAnswerChange(item.id, label);
+                                setOpenMenuId(null);
+                            }}
+                            isMenuOpen={openMenuId === item.id}
+                            onToggleMenu={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                            allowReuse={allowReuse}
+                            userAnswers={userAnswers}
+                            questions={allQuestionItems}
                         />
                     ) : (
                         <ListeningTextInput 

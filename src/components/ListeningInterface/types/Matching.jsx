@@ -44,7 +44,7 @@ const DraggableOption = ({ label, text, isReviewMode }) => {
     );
 };
 
-const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear, onSelect, isMenuOpen, onToggleMenu, allowReuse, userAnswers }) => {
+const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear, onSelect, isMenuOpen, onToggleMenu, allowReuse, userAnswers, questions }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: `slot-${id}`,
         disabled: isReviewMode
@@ -58,7 +58,10 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
     return (
         <div
             ref={setNodeRef}
-            onClick={() => !isReviewMode && onToggleMenu()}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (!isReviewMode) onToggleMenu();
+            }}
             className={`
                 min-w-[150px] w-fit max-w-[400px] h-[26px] border rounded-[4px] flex items-center justify-center relative
                 px-3 py-0 group/slot cursor-pointer
@@ -93,12 +96,12 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
             )}
 
             {isMenuOpen && !isReviewMode && (
-                <div className="absolute top-full left-0 mt-1 w-max min-w-full bg-white border border-gray-200 rounded-md shadow-lg z-[2000] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute top-full left-0 mt-1 w-max min-w-full max-w-[280px] xs:max-w-[320px] sm:max-w-[400px] bg-white border border-gray-200 rounded-md shadow-lg z-[2000] overflow-hidden">
                     <div className="max-h-60 overflow-y-auto py-1">
                         {options.map((opt, idx) => {
                             const label = opt.label || String.fromCharCode(65 + idx);
                             const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : "");
-                            const isUsed = !allowReuse && Object.values(userAnswers).includes(label);
+                            const isUsed = !allowReuse && questions.some(q => userAnswers[q.id] === label);
                             
                             if (isUsed) return null;
                             
@@ -109,10 +112,10 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
                                         e.stopPropagation();
                                         onSelect(label);
                                     }}
-                                    className="w-full text-left px-4 py-2 text-[14px] hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                    className="w-full text-left px-4 py-2 text-[14px] hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-start whitespace-normal break-words"
                                 >
-                                    <span className="font-bold mr-2">{label}.</span>
-                                    {stripLeadingOptionLabel(text)}
+                                    <span className="font-bold mr-2 shrink-0">{label}.</span>
+                                    <span className="flex-1 min-w-0">{stripLeadingOptionLabel(text)}</span>
                                 </button>
                             );
                         })}
@@ -206,7 +209,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                     <h4 className="text-[1.2em] font-bold text-black mb-1 px-1">{questionTitle}</h4>
                     <div className="flex flex-col gap-2">
                         {questions.map((q) => {
-                            const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer) : false;
+                            const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value) : false;
                             const qText = (typeof q.text === 'object' ? q.text.text : q.text) || "";
                             const cleanText = String(qText).replace('[DROP]', '').trim();
                             return (
@@ -214,7 +217,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                                     <div className="font-normal text-black text-[1.1em] shrink-0 max-w-full" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
                                     <DroppableSlot
                                         id={q.id} value={userAnswers[q.id]} options={options} isReviewMode={isReviewMode} isCorrect={isCorrect}
-                                        correctAnswer={q.answer || q.correct_answer || q.correctAnswer} 
+                                        correctAnswer={q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value} 
                                         onClear={() => onAnswerChange(q.id, "")}
                                         onSelect={(label) => {
                                             onAnswerChange(q.id, label);
@@ -224,6 +227,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                                         onToggleMenu={() => setOpenMenuId(openMenuId === q.id ? null : q.id)}
                                         allowReuse={allowReuse}
                                         userAnswers={userAnswers}
+                                        questions={questions}
                                     />
                                 </div>
                             );

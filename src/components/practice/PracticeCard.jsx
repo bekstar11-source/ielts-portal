@@ -1,11 +1,13 @@
-import React from 'react';
-import { Crown, Zap, FileText, Clock, BookOpen, Diamond } from 'lucide-react';
+import React, { useState } from 'react';
+import { Crown, Zap, FileText, Clock, BookOpen, Diamond, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { hapticFeedback } from '../../utils/haptic';
+import ShareModal from '../common/ShareModal';
 
 export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard }) {
   const navigate = useNavigate();
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const isPremium = test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening';
   
   const isListeningPart = test.type === 'listening' && (test.title?.toLowerCase().includes('part') || test.partNumber || !test.title?.toLowerCase().includes('full'));
@@ -210,7 +212,7 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   {isCompleted ? (
-                    <span className="text-[14px] font-bold text-[#34c759]">Result: {test.result.score}/{test.result.totalQuestions || test.totalQuestions || 40}</span>
+                    <span className="text-[14px] font-bold text-[#34c759]">Result: {test.result.score ?? test.result.bestScore ?? test.result.latestScore ?? 0}/{test.result.totalQuestions || test.totalQuestions || 40}</span>
                   ) : (
                     <div className="flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#0066cc]" />
@@ -220,6 +222,17 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
                 </div>
               </div>
               <div className="flex gap-2">
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    hapticFeedback('light'); 
+                    setIsShareOpen(true); 
+                  }}
+                  className="text-gray-500 bg-gray-100 hover:bg-gray-200 p-2.5 rounded-lg transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center"
+                  title="Share"
+                >
+                  <Share2 size={16} />
+                </button>
                 {isCompleted && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); hapticFeedback('light'); onReview(test); }}
@@ -239,6 +252,16 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
           )}
         </div>
       </div>
+      
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        testId={test.id || test.testId}
+        testTitle={test.title}
+        testType={test.type}
+        score={isCompleted ? (test.result?.score ?? test.result?.bestScore ?? test.result?.latestScore ?? 0) : null}
+        bandScore={isCompleted ? (test.result?.bandScore ?? test.result?.bestBandScore ?? test.result?.latestBandScore) : null}
+      />
     </motion.div>
   );
 }

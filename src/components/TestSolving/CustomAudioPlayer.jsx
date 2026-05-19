@@ -118,6 +118,10 @@ const CustomAudioPlayer = forwardRef(({
             } else {
                 setDuration(audio.duration || 0);
             }
+            // Ensure we start at startTime safely when metadata loads
+            if (audio.currentTime < startTime) {
+                audio.currentTime = startTime;
+            }
             // Apply current playback rate on load
             audio.playbackRate = playbackRate;
             // Apply current volume on load
@@ -156,9 +160,11 @@ const CustomAudioPlayer = forwardRef(({
         audio.playbackRate = playbackRate;
         audio.volume = volume;
 
-        // Ensure we start at startTime
-        if (audio.currentTime < startTime) {
-            audio.currentTime = startTime;
+        // Ensure we start at startTime safely if metadata is already loaded
+        if (audio.readyState >= 1) {
+            if (audio.currentTime < startTime) {
+                audio.currentTime = startTime;
+            }
         }
 
         return () => {
@@ -169,7 +175,7 @@ const CustomAudioPlayer = forwardRef(({
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('timeupdate', onTimeUpdate);
         };
-    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate, volume, isPlayingPart]);
+    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate, volume, isPlayingPart, src, index]);
 
     // Resume logic: Seek to saved time once on init
     useEffect(() => {

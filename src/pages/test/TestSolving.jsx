@@ -16,7 +16,7 @@ export default function TestSolving() {
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
-        audioRefs, handleSeekTo, partNumber
+        audioRefs, handleSeekTo, partNumber, resultId
     } = useTestLogic();
 
     // Exam modeda intro countdown tugagach audio play bo'lishi uchun trigger
@@ -183,6 +183,8 @@ export default function TestSolving() {
                     onExit={() => navigate('/my-results')}
                     userAnswers={userAnswers}
                     partNumber={partNumber}
+                    resultId={resultId}
+                    navigate={navigate}
                 />
 
                 {/* INTERFACE RENDERING */}
@@ -200,6 +202,9 @@ export default function TestSolving() {
                                     textSize={textSize}
                                     isNotesVisible={isNotesVisible}
                                     setIsNotesVisible={setIsNotesVisible}
+                                    activePart={activePart}
+                                    setActivePart={setActivePart}
+                                    partNumber={partNumber}
                                 />
                             </div>
                         ) : isListening ? (

@@ -44,7 +44,7 @@ const MapDraggableOption = ({ label, text, isReviewMode }) => {
     );
 };
 
-const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear, onSelect, isMenuOpen, onToggleMenu, allowReuse, userAnswers }) => {
+const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAnswer, onClear, onSelect, isMenuOpen, onToggleMenu, allowReuse, userAnswers, questions }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: `map-slot-${id}`,
         disabled: isReviewMode
@@ -58,7 +58,10 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
     return (
         <div
             ref={setNodeRef}
-            onClick={() => !isReviewMode && onToggleMenu()}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (!isReviewMode) onToggleMenu();
+            }}
             className={`
                 min-w-[140px] md:min-w-[180px] min-h-[32px] border rounded-none flex items-center justify-center relative
                 transition-all duration-300 px-3 py-1 group/slot cursor-pointer
@@ -93,12 +96,12 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
             )}
 
             {isMenuOpen && !isReviewMode && (
-                <div className="absolute top-full left-0 mt-1 w-max min-w-full bg-white border border-gray-200 rounded-md shadow-lg z-[2000] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute top-full left-0 mt-1 w-max min-w-full max-w-[280px] xs:max-w-[320px] sm:max-w-[400px] bg-white border border-gray-200 rounded-md shadow-lg z-[2000] overflow-hidden">
                     <div className="max-h-60 overflow-y-auto py-1">
                         {options.map((opt, idx) => {
                             const label = opt.label || String.fromCharCode(65 + idx);
                             const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : "");
-                            const isUsed = !allowReuse && Object.values(userAnswers).includes(label);
+                            const isUsed = !allowReuse && questions.some(q => userAnswers[q.id] === label);
                             
                             if (isUsed) return null;
                             
@@ -109,10 +112,10 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
                                         e.stopPropagation();
                                         onSelect(label);
                                     }}
-                                    className="w-full text-left px-4 py-2 text-[14px] hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                    className="w-full text-left px-4 py-2 text-[14px] hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-start whitespace-normal break-words"
                                 >
-                                    <span className="font-bold mr-2">{label}.</span>
-                                    {stripLeadingOptionLabel(text)}
+                                    <span className="font-bold mr-2 shrink-0">{label}.</span>
+                                    <span className="flex-1 min-w-0">{stripLeadingOptionLabel(text)}</span>
                                 </button>
                             );
                         })}
@@ -222,7 +225,7 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                             <h4 className="text-[18px] font-bold text-black uppercase tracking-wide mb-1 px-1 text-center border-b border-gray-100 pb-2">{questionTitle}</h4>
                             <div className="flex flex-col gap-1">
                                 {questions.map((q) => {
-                                    const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer) : false;
+                                    const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value) : false;
                                     return (
                                         <div key={q.id} className={`flex items-center justify-between gap-4 py-0.5 px-3 rounded-xl transition-all hover:bg-gray-50/50 ${isReviewMode ? 'pr-20' : ''}`}>
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -242,7 +245,7 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                                                 options={options}
                                                 isReviewMode={isReviewMode}
                                                 isCorrect={isCorrect}
-                                                correctAnswer={q.answer || q.correct_answer || q.correctAnswer}
+                                                correctAnswer={q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value}
                                                 onClear={() => onAnswerChange(q.id, "")}
                                                 onSelect={(label) => {
                                                     onAnswerChange(q.id, label);
@@ -252,6 +255,7 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                                                 onToggleMenu={() => setOpenMenuId(openMenuId === q.id ? null : q.id)}
                                                 allowReuse={allowReuse}
                                                 userAnswers={userAnswers}
+                                                questions={questions}
                                             />
                                         </div>
                                     );

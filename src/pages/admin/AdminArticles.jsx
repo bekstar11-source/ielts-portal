@@ -80,10 +80,8 @@ export default function AdminArticles() {
                     isOpen={showModal}
                     onClose={() => setShowModal(false)}
                     onSave={handleSave}
-                    onUpload={async (file, field) => {
-                        const url = await uploadFile(file);
-                        // This callback needs a way to update the editor's inner state
-                        // For now we'll handle it inside the editor or via a specific prop
+                    onUpload={async (file) => {
+                        return await uploadFile(file);
                     }}
                     processing={processing}
                     isDark={isDark}

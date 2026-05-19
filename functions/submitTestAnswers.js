@@ -92,6 +92,8 @@ async function submitTestAnswers(data, context) {
                 bestBandScore: bestBandScore,
                 latestScore: correctCount,
                 latestBandScore: band || 0,
+                score: bestScore,
+                bandScore: bestBandScore,
                 lastAttemptDate: now,
                 date: now,
                 

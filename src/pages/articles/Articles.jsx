@@ -11,6 +11,15 @@ import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import { useAuth } from "../../context/AuthContext";
 import SiteFooter from "../../components/common/SiteFooter";
 
+const stripHtml = (html) => {
+    if (!html) return "";
+    return html
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\u00A0/g, ' ')
+        .trim();
+};
+
 export default function Articles() {
     const { user, userData } = useAuth();
     const navigate = useNavigate();
@@ -164,9 +173,16 @@ export default function Articles() {
                                             <h3 className="text-xl md:text-2xl font-bold text-[#242424] leading-tight group-hover:text-gray-600 transition-colors line-clamp-2">
                                                 {article.title}
                                             </h3>
-                                            <p className="text-[15px] md:text-[16px] text-gray-500 leading-snug line-clamp-2">
-                                                {article.subtitle || article.content?.find(b => b.type === 'paragraph')?.text}
-                                            </p>
+                                             <p className="text-[15px] md:text-[16px] text-gray-500 leading-snug line-clamp-2">
+                                                 {article.subtitle 
+                                                     ? stripHtml(article.subtitle) 
+                                                     : (() => {
+                                                         const cleanParagraph = stripHtml(article.content?.find(b => b.type === 'paragraph')?.text || '');
+                                                         return cleanParagraph.length > 120 
+                                                             ? cleanParagraph.substring(0, 120) + '...' 
+                                                             : cleanParagraph;
+                                                     })()}
+                                             </p>
                                         </div>
 
                                         {/* Meta Row */}

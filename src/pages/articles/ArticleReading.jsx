@@ -16,6 +16,15 @@ import { useAuth } from '../../context/AuthContext';
 import SiteFooter from '../../components/common/SiteFooter';
 import { useGamification } from '../../hooks/useGamification';
 
+const stripHtml = (html) => {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\u00A0/g, ' ')
+    .trim();
+};
+
 export default function ArticleReading() {
   const { user, userData } = useAuth();
   const { id } = useParams();
@@ -266,7 +275,7 @@ export default function ArticleReading() {
             </motion.h1>
             {article.subtitle && (
               <p className="text-xl md:text-2xl text-[#6B6B6B] leading-snug">
-                {article.subtitle}
+                {stripHtml(article.subtitle)}
               </p>
             )}
           </div>

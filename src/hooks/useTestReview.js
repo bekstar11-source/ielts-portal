@@ -65,7 +65,14 @@ export const useTestReview = (id, user, userData, navigate) => {
                     rData.score = targetAttempt.score;
                     rData.bandScore = targetAttempt.bandScore;
                     rData.userAnswers = partAnswers;
+                    if (targetAttempt.partNumber !== undefined) {
+                        rData.partNumber = targetAttempt.partNumber;
+                    }
                 }
+            }
+
+            if (rData.partNumber) {
+                setListeningActivePart(rData.partNumber - 1);
             }
 
             if (rData.type === 'mock_full') {
