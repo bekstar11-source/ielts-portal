@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Copy, Check, Sparkles, Send } from 'lucide-react';
+import { X, Copy, Check, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ShareModal({
@@ -45,20 +45,6 @@ export default function ShareModal({
     } catch (err) {
       toast.error("Nusxalashda xatolik yuz berdi");
     }
-  };
-
-  const handleTelegramShare = () => {
-    const url = getShareUrl();
-    const text = getShareText();
-    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
-    window.open(telegramUrl, '_blank');
-  };
-
-  const handleWhatsappShare = () => {
-    const url = getShareUrl();
-    const text = getShareText();
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`;
-    window.open(whatsappUrl, '_blank');
   };
 
   if (typeof document === 'undefined') return null;
@@ -144,7 +130,7 @@ export default function ShareModal({
           )}
 
           {/* Input field and copy link button */}
-          <div className="flex items-center bg-[#f5f5f7] dark:bg-[#2d2d30] border border-[#d2d2d7] dark:border-[#424245] rounded-xl p-2.5 mb-6">
+          <div className="flex items-center bg-[#f5f5f7] dark:bg-[#2d2d30] border border-[#d2d2d7] dark:border-[#424245] rounded-xl p-2.5">
             <input
               type="text"
               readOnly
@@ -157,34 +143,6 @@ export default function ShareModal({
             >
               {copied ? "Nusxalandi" : "Nusxa olish"}
             </button>
-          </div>
-
-          {/* Social buttons (Apple website pill-button style) */}
-          <div className="flex flex-col gap-2.5">
-            <span className="text-[10px] font-semibold text-[#86868b] uppercase tracking-wider">
-              Tezkor yuborish
-            </span>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Telegram */}
-              <button
-                onClick={handleTelegramShare}
-                className="flex items-center justify-center gap-1.5 py-2.5 bg-[#f5f5f7] hover:bg-[#e8e8ed] dark:bg-[#323236] dark:hover:bg-[#424245] text-[#0071e3] dark:text-[#2997ff] rounded-full text-xs font-semibold transition-colors active:scale-95"
-              >
-                <Send size={12} className="transform rotate-[315deg] -translate-y-[1px]" />
-                Telegram
-              </button>
-
-              {/* WhatsApp */}
-              <button
-                onClick={handleWhatsappShare}
-                className="flex items-center justify-center gap-1.5 py-2.5 bg-[#f5f5f7] hover:bg-[#e8e8ed] dark:bg-[#323236] dark:hover:bg-[#424245] text-[#0071e3] dark:text-[#2997ff] rounded-full text-xs font-semibold transition-colors active:scale-95"
-              >
-                <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
-                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.5-5.729-1.45L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.965C16.588 2.051 14.11 1.05 11.48 1.05c-5.442 0-9.866 4.372-9.87 9.802 0 1.672.45 3.302 1.308 4.73L1.933 21.05l5.705-1.497c-.001 0-.001-.001 0 0z" />
-                </svg>
-                WhatsApp
-              </button>
-            </div>
           </div>
         </motion.div>
         </div>

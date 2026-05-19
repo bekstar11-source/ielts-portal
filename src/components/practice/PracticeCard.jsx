@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, Zap, FileText, Clock, BookOpen, Diamond, Share2 } from 'lucide-react';
+import { Crown, Zap, FileText, Clock, BookOpen, Diamond, Share2, Headphones, PenTool, Mic, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { hapticFeedback } from '../../utils/haptic';
@@ -35,11 +35,11 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
       return ids.size;
     };
 
-    if (test.type === 'listening' && test.questions) {
+    if (test.questions) {
       const count = countUniqueIds(test.questions);
       if (count > 0) return count;
     }
-    if (test.type === 'reading' && test.sections) {
+    if (test.sections) {
       const count = countUniqueIds(test.sections);
       if (count > 0) return count;
     }
@@ -144,6 +144,55 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
     return Array.from(types);
   })();
 
+  const getGradient = (id, title) => {
+    let hash = 0;
+    const str = (id || '') + (title || '');
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % 5;
+    const gradients = [
+      'from-[#6366f1] via-[#8b5cf6] to-[#ec4899]', // Indigo to Pink
+      'from-[#3b82f6] to-[#8b5cf6]',               // Blue to Purple
+      'from-[#ec4899] to-[#f43f5e]',               // Pink to Rose
+      'from-[#f59e0b] to-[#ef4444]',               // Amber to Red
+      'from-[#10b981] to-[#3b82f6]',               // Emerald to Blue
+    ];
+    return gradients[index];
+  };
+
+  const getBadgeStyles = () => {
+    switch (test.type) {
+      case 'reading':
+        return 'bg-blue-500/10 text-[#0066cc] dark:text-[#3894ff] border-blue-500/20';
+      case 'listening':
+        return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20';
+      case 'writing':
+        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+      case 'speaking':
+        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+      default:
+        return 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20';
+    }
+  };
+
+  const getSkillIcon = () => {
+    switch (test.type) {
+      case 'reading':
+        return <BookOpen size={16} strokeWidth={2.5} />;
+      case 'listening':
+        return <Headphones size={16} strokeWidth={2.5} />;
+      case 'writing':
+        return <PenTool size={16} strokeWidth={2.5} />;
+      case 'speaking':
+        return <Mic size={16} strokeWidth={2.5} />;
+      default:
+        return <FileText size={16} strokeWidth={2.5} />;
+    }
+  };
+
+  const hasThumbnail = test.thumbnail && !test.thumbnail.includes('reading_passage_yellow') && !test.thumbnail.includes('dashboard/reading_passage');
+
   return (
     <motion.div 
       whileTap={{ scale: 0.98 }}
@@ -151,105 +200,146 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
         hapticFeedback('light');
         handleClick();
       }}
-      className="group w-full bg-[#F6F6FA] rounded-xl overflow-hidden transition-all duration-[600ms] [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] hover:shadow-lg hover:border-black/10 flex flex-col h-full cursor-pointer shadow-sm border border-black/5"
+      className="group w-full bg-white dark:bg-zinc-950 rounded-2xl overflow-hidden transition-all duration-[400ms] hover:shadow-lg flex flex-col h-full cursor-pointer border border-zinc-200/80 dark:border-zinc-800/80"
     >
-      <div className="w-full aspect-[4/3] bg-[#f5f5f7] relative overflow-hidden">
-        <img src={cardImage} alt={test.title} className="w-full h-full object-cover transition-transform duration-700" />
-        {isPremium && (
-          <div className="absolute top-4 left-4">
-            <div className="bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm border border-black/5">
-              {test.type === 'reading' || test.type === 'listening' ? (
-                <Zap size={10} className="text-blue-500" />
-              ) : (
-                <Crown size={10} className="text-[#bf953f]" />
+      {/* Top Visual Section */}
+      <div className="relative aspect-[1.5/1] w-full overflow-hidden rounded-t-2xl bg-[#f5f5f7] dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-900">
+        {hasThumbnail ? (
+          <img src={test.thumbnail} alt={test.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+        ) : (
+          <>
+            {/* Gradient Background */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(test.id || '', test.title)} opacity-90 transition-transform duration-700 group-hover:scale-105`} />
+            
+            {/* Decorative Grid Pattern */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent)]" />
+          </>
+        )}
+        
+        {/* Inner Content of Visual Section */}
+        <div className="absolute inset-0 p-4 flex flex-col justify-between text-white select-none">
+          {/* Top Row with Badges */}
+          <div className="flex justify-between items-center">
+            <span className="px-2.5 py-0.5 rounded bg-black/25 backdrop-blur-md text-white/90 text-[10px] font-bold tracking-wide uppercase border border-white/10">
+              {passageLabel}
+            </span>
+            <div className="flex gap-1.5">
+              {isPremium && (
+                <span className="px-2.5 py-0.5 rounded bg-amber-500 text-white text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 shadow-sm">
+                  <Crown size={9} fill="currentColor" /> PRO
+                </span>
               )}
-              <span className="text-[9px] font-bold text-[#1d1d1f] uppercase tracking-wide">
-                {test.type === 'reading' || test.type === 'listening' ? 'Standard' : 'Premium'}
-              </span>
+              {isCompleted && (
+                <span className="px-2.5 py-0.5 rounded bg-[#34c759] text-white text-[10px] font-bold tracking-wide uppercase shadow-sm">
+                  Done
+                </span>
+              )}
             </div>
           </div>
-        )}
-      </div>
-
-      <div className="p-5 flex flex-col flex-1">
-        <div className="flex items-center justify-between mb-4 opacity-50">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#1d1d1f] uppercase tracking-wider">
-            <BookOpen size={11} strokeWidth={2.5} />
-            {passageLabel}
+          
+          {/* Big Typography inside mockup */}
+          <div className="my-auto z-10 pr-2">
+            <h3 className="text-[17px] md:text-[19px] font-extrabold leading-tight tracking-tight text-white line-clamp-2 drop-shadow-lg">
+              {test.title}
+            </h3>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#1d1d1f] uppercase tracking-wider">
-            <FileText size={11} strokeWidth={2.5} />
-            {questionCount} savol
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#1d1d1f] uppercase tracking-wider">
-            <Clock size={11} strokeWidth={2.5} />
-            {duration} min
-          </div>
-        </div>
-
-        <h2 className="text-[20px] font-extrabold text-[#1d1d1f] leading-[1.2] tracking-tight mb-4 line-clamp-2">{test.title}</h2>
-
-        {derivedQuestionTypes && derivedQuestionTypes.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {derivedQuestionTypes.slice(0, 4).map((qType, idx) => (
-              <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-md text-[10.5px] font-bold text-[#424245] bg-white/50 border border-black/[0.04] tracking-wide capitalize">
-                {qType}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-auto pt-4 border-t border-black/[0.04]">
-          {showGetAccess ? (
-            <button 
-              onClick={(e) => { e.stopPropagation(); hapticFeedback('medium'); handleClick(); }}
-              className="w-full py-2 rounded-lg bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white font-bold text-[15px] flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20"
-            >
-              <Zap size={16} fill="currentColor" className="animate-pulse" /> Go Pro
-            </button>
-          ) : (
-            <div className="flex items-end justify-between">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  {isCompleted ? (
-                    <span className="text-[14px] font-bold text-[#34c759]">Result: {test.result.score ?? test.result.bestScore ?? test.result.latestScore ?? 0}/{test.result.totalQuestions || test.totalQuestions || 40}</span>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#0066cc]" />
-                      <span className="text-[13px] font-bold text-[#0066cc]">Available</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    hapticFeedback('light'); 
-                    setIsShareOpen(true); 
-                  }}
-                  className="text-gray-500 bg-gray-100 hover:bg-gray-200 p-2.5 rounded-lg transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center"
-                  title="Share"
-                >
-                  <Share2 size={16} />
-                </button>
-                {isCompleted && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); hapticFeedback('light'); onReview(test); }}
-                    className="text-[#0071e3] bg-blue-50 text-[14px] font-bold px-4 py-2 rounded-lg hover:bg-blue-100 transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    Review
-                  </button>
-                )}
-                <button 
-                  onClick={(e) => { e.stopPropagation(); hapticFeedback('light'); isCompleted ? onStart(test) : handleClick(); }}
-                  className="text-white text-[14px] font-bold px-6 py-2 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {isCompleted ? 'Retake' : 'Start'}
-                </button>
-              </div>
+          
+          {/* Tags */}
+          {derivedQuestionTypes && derivedQuestionTypes.length > 0 && (
+            <div className="flex flex-wrap gap-1 opacity-90 transition-opacity">
+              {derivedQuestionTypes.slice(0, 2).map((qType, idx) => (
+                <span key={idx} className="px-2 py-0.5 rounded bg-white/15 backdrop-blur-md text-white text-[9px] font-semibold tracking-wide border border-white/5 uppercase">
+                  {qType}
+                </span>
+              ))}
             </div>
           )}
+        </div>
+
+        {/* Hover Action Overlay */}
+        <div className="absolute inset-0 bg-black/45 backdrop-blur-[3px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-2.5">
+          <button 
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              hapticFeedback('light'); 
+              setIsShareOpen(true); 
+            }}
+            className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/20 active:scale-95 transition-all flex items-center justify-center"
+            title="Share"
+          >
+            <Share2 size={15} />
+          </button>
+          
+          {showGetAccess ? (
+            <button 
+              onClick={(e) => { e.stopPropagation(); navigate('/pricing'); }}
+              className="px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-[12.5px] flex items-center gap-1 shadow-md active:scale-95 transition-all"
+            >
+              <Zap size={12} fill="currentColor" /> Go Pro
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              {isCompleted && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onReview(test); }}
+                  className="px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-[12px] border border-white/20 active:scale-95 transition-all"
+                >
+                  Review
+                </button>
+              )}
+              <button 
+                onClick={(e) => { e.stopPropagation(); isCompleted ? onStart(test) : handleClick(); }}
+                className="px-4 py-1.5 rounded-full bg-white text-zinc-900 hover:bg-zinc-100 font-bold text-[12px] shadow-md active:scale-95 transition-all flex items-center gap-1"
+              >
+                {isCompleted ? 'Retake' : 'Start'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer Info Section (Figma Community Style) */}
+      <div className="p-4 bg-white dark:bg-zinc-950 flex-1">
+        {/* Text Content */}
+        <div className="w-full">
+          <h4 className="text-[13.5px] font-bold text-zinc-900 dark:text-zinc-150 group-hover:text-[#0066cc] dark:group-hover:text-[#3894ff] transition-colors line-clamp-1 leading-snug">
+            {test.title}
+          </h4>
+          <div className="text-[11px] text-zinc-450 dark:text-zinc-500 mt-1 flex items-center flex-wrap gap-1.5 font-medium">
+            <span>by ENGLEV</span>
+            <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
+            <span className="flex items-center gap-0.5">
+              <FileText size={11} className="text-zinc-450 dark:text-zinc-500" />
+              {questionCount} Savol
+            </span>
+            <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
+            <span className="flex items-center gap-0.5">
+              <Clock size={11} className="text-zinc-450 dark:text-zinc-500" />
+              {duration}m
+            </span>
+            {isCompleted && (
+              <>
+                <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
+                <span className="text-[#34c759] font-bold">
+                  Result: {test.result.score}/{test.result.totalQuestions || test.totalQuestions || 40}
+                </span>
+                <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onReview(test); }} 
+                  className="text-[#0071e3] hover:underline font-bold"
+                >
+                  Review
+                </button>
+                <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onStart(test); }} 
+                  className="text-zinc-500 hover:text-zinc-700 font-bold"
+                >
+                  Retake
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
       

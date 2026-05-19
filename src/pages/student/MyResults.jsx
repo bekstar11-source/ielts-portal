@@ -12,6 +12,7 @@ import {
 import { getSynonymPairCounts } from "../../utils/wordbankUtils";
 import { calculateBandScore, calculateOverallBand } from "../../utils/ieltsScoring";
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
+import DashboardModals from "../../components/dashboard/DashboardModals";
 import SiteFooter from "../../components/common/SiteFooter";
 import TestCommentSection from "../../components/TestReview/TestCommentSection";
 import { motion, AnimatePresence } from "framer-motion";
@@ -98,6 +99,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState(null);
   const [userRatings, setUserRatings] = useState({});
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     const fetchUserRatings = async () => {
@@ -294,14 +296,6 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
     return base;
   }, [results, searchTerm, filterType]);
 
-  if (loading && results.length === 0) {
-    return (
-      <div className={`flex items-center justify-center ${isComponent ? 'py-20' : 'h-screen bg-[#f8f9fb]'}`}>
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
   return (
     <div className={`min-h-screen bg-parchment text-ink selection:bg-action-blue selection:text-white ${isComponent ? 'min-h-0 bg-transparent' : ''}`}>
       {!isComponent && (
@@ -311,11 +305,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
               userData={userData}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
-              onLogoutClick={() => {
-                  if (window.confirm("Haqiqatan ham hisobdan chiqmoqchimisiz?")) {
-                      logout();
-                  }
-              }}
+              onLogoutClick={() => setShowLogoutConfirm(true)}
           />
           <nav className="w-full h-[52px] bg-stone-50/80 backdrop-blur-xl flex items-center border-b border-divider-soft">
               <div className="w-full px-8 h-full flex items-center justify-between">
@@ -402,7 +392,12 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
         )}
 
         <div className="flex flex-col gap-4 max-w-[1200px]">
-          {filteredResults.length === 0 && !loading ? (
+          {loading && results.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-32 bg-white rounded-xl border border-hairline text-center px-6">
+              <div className="w-8 h-8 border-2 border-zinc-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+              <p className="text-zinc-550 text-sm">Natijalaringiz yuklanmoqda...</p>
+            </div>
+          ) : filteredResults.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 bg-white rounded-xl border border-hairline text-center px-6">
               <span className="material-symbols-outlined text-[48px] text-ink-muted-48 mb-4">search_off</span>
               <h3 className="text-xl font-bold mb-2">Natijalar topilmadi</h3>
@@ -645,6 +640,11 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
           }} 
         />
       )}
+      <DashboardModals
+        showLogoutConfirm={showLogoutConfirm}
+        setShowLogoutConfirm={setShowLogoutConfirm}
+        confirmLogout={logout}
+      />
     </div>
   );
 }

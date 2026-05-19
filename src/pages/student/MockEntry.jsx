@@ -23,9 +23,11 @@ import {
     Download
 } from 'lucide-react';
 import SiteFooter from '../../components/common/SiteFooter';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
+import DashboardModals from '../../components/dashboard/DashboardModals';
 
 export default function MockEntry() {
-    const { user, userData } = useAuth();
+    const { user, userData, logout } = useAuth();
     const navigate = useNavigate();
     
     const [mockKey, setMockKey] = useState("");
@@ -36,6 +38,7 @@ export default function MockEntry() {
     const [showCalendar, setShowCalendar] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [viewDate, setViewDate] = useState(new Date());
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     
     const [activeTab, setActiveTab] = useState('upcoming');
     const [mockTests, setMockTests] = useState([]);
@@ -152,8 +155,15 @@ export default function MockEntry() {
 
     return (
         <div className="min-h-screen bg-white font-['Plus_Jakarta_Sans'] text-gray-800 antialiased flex flex-col select-none">
+            <DashboardHeader
+                user={user}
+                userData={userData}
+                activeTab="mock"
+                onLogoutClick={() => setShowLogoutConfirm(true)}
+            />
+
             {/* Official Header */}
-            <header className="w-full border-b border-gray-300 px-6 py-3 bg-white sticky top-0 z-50">
+            <header className="w-full border-b border-gray-300 px-6 py-3 bg-white sticky top-0 z-50 md:hidden">
                 <div className="max-w-6xl mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900">
@@ -346,6 +356,11 @@ export default function MockEntry() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <DashboardModals
+                showLogoutConfirm={showLogoutConfirm}
+                setShowLogoutConfirm={setShowLogoutConfirm}
+                confirmLogout={logout}
+            />
         </div>
     );
 }

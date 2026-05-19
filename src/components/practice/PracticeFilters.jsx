@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, SlidersHorizontal, ChevronDown, Check, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, ChevronDown, Check, X, Bookmark, Layers, HelpCircle, RotateCcw } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 
 export default function PracticeFilters({ 
@@ -14,20 +14,22 @@ export default function PracticeFilters({
   setSearchQuery,
   handleTabClick,
   allQuestionTypes = [],
-  selectedQuestionTypes,
+  selectedQuestionTypes = [],
   setSelectedQuestionTypes,
-  selectedStatus,
+  selectedStatus = "all",
   setSelectedStatus,
   selectedPassages = [],
   setSelectedPassages,
   selectedParts = [],
   setSelectedParts,
-  showQuestionFilters,
-  setShowQuestionFilters
+  isStandalonePage = false
 }) {
-  const [isScrolled, setIsScrolled] = React.useState(() => typeof window !== 'undefined' ? window.scrollY > 380 : false);
+  const [isScrolled, setIsScrolled] = useState(() => typeof window !== 'undefined' ? window.scrollY > 380 : false);
+  const [openDropdown, setOpenDropdown] = useState(null); // 'status' | 'passages' | 'parts' | 'types' | null
+  
+  const containerRef = useRef(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 380);
     };
@@ -35,298 +37,365 @@ export default function PracticeFilters({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleDropdown = (dropdownName) => {
+    setOpenDropdown(openDropdown === dropdownName ? null : dropdownName);
+  };
+
+  const clearFilters = () => {
+    setSelectedQuestionTypes([]);
+    setSelectedStatus("all");
+    if (setSelectedPassages) setSelectedPassages([]);
+    if (setSelectedParts) setSelectedParts([]);
+    setOpenDropdown(null);
+  };
+
+  // Status mapping
+  const statusOptions = [
+    { id: 'all', label: 'Barchasi' },
+    { id: 'completed', label: 'Yechilgan' },
+    { id: 'not_completed', label: 'Yechilmagan' }
+  ];
+
+  const getStatusLabel = () => {
+    const found = statusOptions.find(o => o.id === selectedStatus);
+    return found ? found.label : 'Barchasi';
+  };
+
+  // Question Types mapping based on tab
+  const questionTypeOptions = activeTab === 'reading' ? [
+    { id: 'GAP FILL', label: 'Gap Fill' },
+    { id: 'SUMMARY', label: 'Summary' },
+    { id: 'DIAGRAM', label: 'Diagram' },
+    { id: 'NOTES', label: 'Notes' },
+    { id: 'TABLE', label: 'Table' },
+    { id: 'FLOW CHART', label: 'Flow Chart' },
+    { id: 'SENTENCE', label: 'Sentence' },
+    { id: 'MCQ', label: 'MCQ' },
+    { id: 'TRUE/FALSE/NG', label: 'True / False / NG' },
+    { id: 'YES/NO/NG', label: 'Yes / No / NG' },
+    { id: 'HEADINGS', label: 'Headings' },
+    { id: 'MATCHING', label: 'Information Matching' },
+    { id: 'PARA MATCH', label: 'Features Matching' },
+  ] : [
+    { id: 'FORM', label: 'Form Completion' },
+    { id: 'NOTES', label: 'Note Completion' },
+    { id: 'TABLE', label: 'Table Completion' },
+    { id: 'FLOW CHART', label: 'Flow-chart' },
+    { id: 'SUMMARY', label: 'Summary' },
+    { id: 'SENTENCE', label: 'Sentence' },
+    { id: 'MCQ', label: 'MCQ' },
+    { id: 'MULTI CHOICE', label: 'Multiple Choice' },
+    { id: 'SHORT ANSWER', label: 'Short Answer' },
+    { id: 'MAP', label: 'Map Labelling' },
+    { id: 'PLAN', label: 'Plan Labelling' },
+    { id: 'DIAGRAM', label: 'Diagram Labelling' },
+    { id: 'MATCHING', label: 'Matching' }
+  ];
+
+  const hasAnyFilterActive = selectedStatus !== 'all' || 
+                            selectedQuestionTypes.length > 0 || 
+                            (selectedPassages && selectedPassages.length > 0) || 
+                            (selectedParts && selectedParts.length > 0);
+
   return (
     <div 
-      className={`sticky top-[44px] z-40 w-full bg-white/40 backdrop-blur-xl mb-6 py-3 transition-all duration-300 ${
+      ref={containerRef}
+      className={`sticky top-[44px] z-45 w-full bg-white dark:bg-zinc-900 border-b border-black/[0.04] dark:border-white/[0.05] mb-6 py-3 transition-all duration-300 ${
         isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      <div className="max-w-[1440px] mx-auto px-6 relative">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="bg-[#f5f5f7] p-1.5 rounded-full flex items-center overflow-x-auto no-scrollbar">
-            <LayoutGroup id={`practice-filters-${activeTab}`}>
-              {activeTab === 'reading' ? (
-                readingFilters.map((filter) => {
-                  const isActive = activeSubTab === filter.id;
-                  return (
-                    <button 
-                      key={filter.id}
-                      onClick={() => handleSubTabClick(filter)}
-                      className="relative px-6 py-2 rounded-full text-[14px] font-medium transition-colors duration-300 outline-none whitespace-nowrap"
-                    >
-                      {isActive && (
-                        <motion.div 
-                          layoutId="active-sub-pill"
-                          className="absolute inset-0 bg-[#1d1d1f] rounded-full"
-                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                        />
-                      )}
-                      <span className={`relative z-10 ${isActive ? 'text-white' : 'text-[#1d1d1f] hover:text-black/50'}`}>
-                        {filter.label}
-                      </span>
-                    </button>
-                  );
-                })
-              ) : activeTab === 'listening' ? (
-                listeningFilters?.map((filter) => {
-                  const isActive = activeSubTab === filter.id;
-                  return (
-                    <button 
-                      key={filter.id}
-                      onClick={() => handleSubTabClick(filter)}
-                      className="relative px-6 py-2 rounded-full text-[14px] font-medium transition-colors duration-300 outline-none whitespace-nowrap"
-                    >
-                      {isActive && (
-                        <motion.div 
-                          layoutId="active-sub-pill"
-                          className="absolute inset-0 bg-[#1d1d1f] rounded-full"
-                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                        />
-                      )}
-                      <span className={`relative z-10 ${isActive ? 'text-white' : 'text-[#1d1d1f] hover:text-black/50'}`}>
-                        {filter.label}
-                      </span>
-                    </button>
-                  );
-                })
-              ) : (
-                categories.map((cat) => {
-                  const isActive = activeTab === cat.id;
-                  return (
-                    <button 
-                      key={cat.id}
-                      onClick={() => handleTabClick(cat.id)}
-                      className="relative px-6 py-2 rounded-full text-[14px] font-medium transition-colors duration-300 outline-none whitespace-nowrap"
-                    >
-                      {isActive && (
-                        <motion.div 
-                          layoutId="active-pill"
-                          className="absolute inset-0 bg-[#1d1d1f] rounded-full"
-                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                        />
-                      )}
-                      <span className={`relative z-10 ${isActive ? 'text-white' : 'text-[#1d1d1f] hover:text-black/50'}`}>
-                        {cat.label}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </LayoutGroup>
-          </div>
+      <div className="max-w-[1440px] mx-auto px-6">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+          
+          {/* LEFT: Subtabs & Figma Dropdowns */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Main Subtabs Pills (Full Test / Sets) */}
+            {((activeTab === 'reading' && readingFilters && readingFilters.length > 0) ||
+              (activeTab === 'listening' && listeningFilters && listeningFilters.length > 0)) && (
+              <div className="bg-[#f5f5f7] dark:bg-zinc-800/80 p-1 rounded-full flex items-center shrink-0">
+                <LayoutGroup id={`practice-filters-${activeTab}`}>
+                  {activeTab === 'reading' && readingFilters.map((filter) => {
+                    const isActive = activeSubTab === filter.id;
+                    return (
+                      <button 
+                        key={filter.id}
+                        onClick={() => handleSubTabClick(filter)}
+                        className="relative px-5 py-1.5 rounded-full text-[12px] font-bold transition-colors duration-300 outline-none whitespace-nowrap"
+                      >
+                        {isActive && (
+                          <motion.div 
+                            layoutId="active-sub-pill"
+                            className="absolute inset-0 bg-[#1d1d1f] dark:bg-white rounded-full"
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                          />
+                        )}
+                        <span className={`relative z-10 ${isActive ? 'text-white dark:text-zinc-900' : 'text-[#1d1d1f] dark:text-zinc-400 hover:text-black/50 dark:hover:text-white/50'}`}>
+                          {filter.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {activeTab === 'listening' && listeningFilters.map((filter) => {
+                    const isActive = activeSubTab === filter.id;
+                    return (
+                      <button 
+                        key={filter.id}
+                        onClick={() => handleSubTabClick(filter)}
+                        className="relative px-5 py-1.5 rounded-full text-[12px] font-bold transition-colors duration-300 outline-none whitespace-nowrap"
+                      >
+                        {isActive && (
+                          <motion.div 
+                            layoutId="active-sub-pill"
+                            className="absolute inset-0 bg-[#1d1d1f] dark:bg-white rounded-full"
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                          />
+                        )}
+                        <span className={`relative z-10 ${isActive ? 'text-white dark:text-zinc-900' : 'text-[#1d1d1f] dark:text-zinc-400 hover:text-black/50 dark:hover:text-white/50'}`}>
+                          {filter.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </LayoutGroup>
+              </div>
+            )}
 
-          <div className="flex items-center justify-end w-full lg:w-auto ml-auto gap-3">
-            {/* Search Input - Always Visible & Elegant */}
-            <div className="flex items-center bg-[#f5f5f7] hover:bg-[#e8e8ed] focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 border border-transparent rounded-full px-3.5 py-1.5 transition-all duration-300 w-full lg:w-[240px]">
-              <Search size={16} className="text-gray-400 mr-2 shrink-0" />
-              <input 
-                type="text" 
-                placeholder="Qidirish..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none outline-none w-full text-[14px] text-[#1d1d1f] placeholder-gray-400 py-0.5"
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery("")}
-                  className="text-gray-400 hover:text-black p-0.5 rounded-full"
-                >
-                  <X size={14} />
-                </button>
-              )}
+            {/* Separator if subtabs are present */}
+            {((activeTab === 'reading' && readingFilters && readingFilters.length > 0) ||
+              (activeTab === 'listening' && listeningFilters && listeningFilters.length > 0)) && (
+              <div className="hidden lg:block w-[1px] h-6 bg-zinc-200 dark:bg-zinc-800 mx-1" />
+            )}
+
+            {/* DROPDOWN 1: Status */}
+            <div className="relative">
+              <button
+                onClick={() => toggleDropdown('status')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none ${
+                  selectedStatus !== 'all'
+                    ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
+                    : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                }`}
+              >
+                <Bookmark size={14} className="opacity-75" />
+                <span>Status: {getStatusLabel()}</span>
+                <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'status' ? 'rotate-180' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {openDropdown === 'status' && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="absolute left-0 mt-1.5 w-[180px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-50 p-1"
+                  >
+                    {statusOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => {
+                          setSelectedStatus(opt.id);
+                          setOpenDropdown(null);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+                      >
+                        <span>{opt.label}</span>
+                        {selectedStatus === opt.id && <Check size={14} className="text-blue-500" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Dedicated Filters Toggle Button */}
-            <button
-              onClick={() => setShowQuestionFilters(!showQuestionFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 font-semibold text-[14px] shrink-0 ${
-                showQuestionFilters 
-                  ? 'bg-[#0066cc] border-transparent text-white shadow-md shadow-blue-500/10' 
-                  : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
-              }`}
-            >
-              <SlidersHorizontal size={15} />
-              <span>Filtrlar</span>
-              <ChevronDown size={14} className={`transition-transform duration-300 ${showQuestionFilters ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-        </div>
+            {/* DROPDOWN 2: Passages (Reading only) */}
+            {activeTab === 'reading' && setSelectedPassages && (
+              <div className="relative">
+                <button
+                  onClick={() => toggleDropdown('passages')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none ${
+                    selectedPassages.length > 0
+                      ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
+                      : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                  }`}
+                >
+                  <Layers size={14} className="opacity-75" />
+                  <span>Matnlar: {selectedPassages.length > 0 ? selectedPassages.join(', ') : 'Barchasi'}</span>
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'passages' ? 'rotate-180' : ''}`} />
+                </button>
 
-        {/* Question Type Filters Dropdown */}
-        <AnimatePresence>
-          {showQuestionFilters && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0, marginTop: 0 }}
-              animate={{ height: 'auto', opacity: 1, marginTop: 10 }}
-              exit={{ height: 0, opacity: 0, marginTop: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 28, mass: 0.5 }}
-              className="relative w-full overflow-hidden rounded-2xl z-30"
-            >
-              <div className="bg-[#f5f5f7]/80 backdrop-blur-md p-5 rounded-2xl mt-3 border border-black/[0.05] shadow-sm">
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2">
-                    <SlidersHorizontal size={15} className="text-[#0066cc]" />
-                    <h3 className="text-[15px] font-bold text-[#1d1d1f] tracking-tight">Qidiruv filtrlari</h3>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setSelectedQuestionTypes([]);
-                      setSelectedStatus("all");
-                      if (setSelectedPassages) setSelectedPassages([]);
-                      if (setSelectedParts) setSelectedParts([]);
-                    }}
-                    className="text-[12px] font-bold text-[#0066cc] hover:bg-[#0066cc]/5 px-3 py-1 rounded-full transition-all"
-                  >
-                    Filtrlarni tozalash
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-5">
-                  {/* Status & Parts/Passages Grid */}
-                  <div className="flex flex-wrap gap-6 items-start">
-                    {/* Status Section */}
-                    <div className="space-y-1.5">
-                      <h4 className="text-[10px] font-bold text-[#86868b] tracking-[0.12em] uppercase ml-1 opacity-80">Holati</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          { id: 'all', label: 'Barchasi' },
-                          { id: 'completed', label: 'Yechilgan' },
-                          { id: 'not_completed', label: 'Yechilmagan' }
-                        ].map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => setSelectedStatus(s.id)}
-                            className={`text-[12px] px-3.5 py-1.5 rounded-full transition-all font-semibold border ${
-                              selectedStatus === s.id 
-                                ? 'bg-[#0066cc] text-white border-transparent shadow-sm' 
-                                : 'bg-white text-[#1d1d1f] hover:bg-gray-100 border-black/[0.04]'
-                            }`}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Parts Section - Listening */}
-                    {activeTab === 'listening' && (
-                      <div className="space-y-1.5">
-                        <h4 className="text-[10px] font-bold text-[#86868b] tracking-[0.12em] uppercase ml-1 opacity-80">Partlar</h4>
-                        <div className="flex flex-wrap gap-1.5">
-                          {[1, 2, 3, 4].map((p) => {
-                            const isSelected = selectedParts.includes(p);
-                            return (
-                              <button
-                                key={p}
-                                onClick={() => {
-                                  if (setSelectedParts) {
-                                    if (isSelected) setSelectedParts(selectedParts.filter(x => x !== p));
-                                    else setSelectedParts([...selectedParts, p]);
-                                  }
-                                }}
-                                className={`text-[12px] px-3.5 py-1.5 rounded-full transition-all font-semibold border ${
-                                  isSelected 
-                                    ? 'bg-[#0066cc] text-white border-transparent shadow-sm' 
-                                    : 'bg-white text-[#1d1d1f] hover:bg-gray-100 border-black/[0.04]'
-                                }`}
-                              >
-                                Part {p}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Passage Section - Reading */}
-                    {activeTab === 'reading' && (
-                      <div className="space-y-1.5">
-                        <h4 className="text-[10px] font-bold text-[#86868b] tracking-[0.12em] uppercase ml-1 opacity-80">Matnlar (Passages)</h4>
-                        <div className="flex flex-wrap gap-1.5">
-                          {[1, 2, 3].map((p) => {
-                            const isSelected = selectedPassages?.includes(p);
-                            return (
-                              <button
-                                key={p}
-                                onClick={() => {
-                                  if (setSelectedPassages) {
-                                    if (isSelected) setSelectedPassages(selectedPassages.filter(x => x !== p));
-                                    else setSelectedPassages([...selectedPassages, p]);
-                                  }
-                                }}
-                                className={`text-[12px] px-3.5 py-1.5 rounded-full transition-all font-semibold border ${
-                                  isSelected 
-                                    ? 'bg-[#0066cc] text-white border-transparent shadow-sm' 
-                                    : 'bg-white text-[#1d1d1f] hover:bg-gray-100 border-black/[0.04]'
-                                }`}
-                              >
-                                Passage {p}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Question Types Section */}
-                  <div className="space-y-1.5">
-                    <h4 className="text-[10px] font-bold text-[#86868b] tracking-[0.12em] uppercase ml-1 opacity-80">Savol Turlari</h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(activeTab === 'reading' ? [
-                        { id: 'GAP FILL', label: 'Gap Fill' },
-                        { id: 'SUMMARY', label: 'Summary' },
-                        { id: 'DIAGRAM', label: 'Diagram' },
-                        { id: 'NOTES', label: 'Notes' },
-                        { id: 'TABLE', label: 'Table' },
-                        { id: 'FLOW CHART', label: 'Flow Chart' },
-                        { id: 'SENTENCE', label: 'Sentence' },
-                        { id: 'MCQ', label: 'MCQ' },
-                        { id: 'TRUE/FALSE/NG', label: 'True / False / NG' },
-                        { id: 'YES/NO/NG', label: 'Yes / No / NG' },
-                        { id: 'HEADINGS', label: 'Headings' },
-                        { id: 'MATCHING', label: 'Information Matching' },
-                        { id: 'PARA MATCH', label: 'Features Matching' },
-                      ] : [
-                        { id: 'FORM', label: 'Form Completion' },
-                        { id: 'NOTES', label: 'Note Completion' },
-                        { id: 'TABLE', label: 'Table Completion' },
-                        { id: 'FLOW CHART', label: 'Flow-chart' },
-                        { id: 'SUMMARY', label: 'Summary' },
-                        { id: 'SENTENCE', label: 'Sentence' },
-                        { id: 'MCQ', label: 'MCQ' },
-                        { id: 'MULTI CHOICE', label: 'Multiple Choice' },
-                        { id: 'SHORT ANSWER', label: 'Short Answer' },
-                        { id: 'MAP', label: 'Map Labelling' },
-                        { id: 'PLAN', label: 'Plan Labelling' },
-                        { id: 'DIAGRAM', label: 'Diagram Labelling' },
-                        { id: 'MATCHING', label: 'Matching' }
-                      ]).map((type) => {
-                        const isSelected = selectedQuestionTypes.includes(type.id);
+                <AnimatePresence>
+                  {openDropdown === 'passages' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      className="absolute left-0 mt-1.5 w-[160px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-50 p-1"
+                    >
+                      {[1, 2, 3].map((num) => {
+                        const isSel = selectedPassages.includes(num);
                         return (
                           <button
-                            key={type.id}
+                            key={num}
                             onClick={() => {
-                              if (isSelected) setSelectedQuestionTypes(selectedQuestionTypes.filter(t => t !== type.id));
-                              else setSelectedQuestionTypes([...selectedQuestionTypes, type.id]);
+                              if (isSel) {
+                                setSelectedPassages(selectedPassages.filter(x => x !== num));
+                              } else {
+                                setSelectedPassages([...selectedPassages, num]);
+                              }
                             }}
-                            className={`text-[12px] px-3.5 py-1.5 rounded-full transition-all font-semibold border ${
-                              isSelected 
-                                ? 'bg-[#0066cc] text-white border-transparent shadow-sm' 
-                                : 'bg-white text-[#1d1d1f] hover:bg-gray-100 border-black/[0.04]'
-                            }`}
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
                           >
-                            {type.label}
+                            <span>Passage {num}</span>
+                            {isSel && <Check size={14} className="text-blue-500" />}
                           </button>
                         );
                       })}
-                    </div>
-                  </div>
-                </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+
+            {/* DROPDOWN 2b: Parts (Listening only) */}
+            {activeTab === 'listening' && setSelectedParts && (
+              <div className="relative">
+                <button
+                  onClick={() => toggleDropdown('parts')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none ${
+                    selectedParts.length > 0
+                      ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
+                      : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                  }`}
+                >
+                  <Layers size={14} className="opacity-75" />
+                  <span>Partlar: {selectedParts.length > 0 ? selectedParts.map(p => `Part ${p}`).join(', ') : 'Barchasi'}</span>
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'parts' ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {openDropdown === 'parts' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      className="absolute left-0 mt-1.5 w-[160px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-50 p-1"
+                    >
+                      {[1, 2, 3, 4].map((num) => {
+                        const isSel = selectedParts.includes(num);
+                        return (
+                          <button
+                            key={num}
+                            onClick={() => {
+                              if (isSel) {
+                                setSelectedParts(selectedParts.filter(x => x !== num));
+                              } else {
+                                setSelectedParts([...selectedParts, num]);
+                              }
+                            }}
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+                          >
+                            <span>Part {num}</span>
+                            {isSel && <Check size={14} className="text-blue-500" />}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* DROPDOWN 3: Question Types */}
+            <div className="relative">
+              <button
+                onClick={() => toggleDropdown('types')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none ${
+                  selectedQuestionTypes.length > 0
+                    ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
+                    : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                }`}
+              >
+                <HelpCircle size={14} className="opacity-75" />
+                <span>Savol Turlari: {selectedQuestionTypes.length > 0 ? `${selectedQuestionTypes.length} ta` : 'Barchasi'}</span>
+                <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'types' ? 'rotate-180' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {openDropdown === 'types' && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="absolute left-0 mt-1.5 w-[250px] max-h-[300px] overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-50 p-1 scrollbar-thin"
+                  >
+                    {questionTypeOptions.map((opt) => {
+                      const isSel = selectedQuestionTypes.includes(opt.id);
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => {
+                            if (isSel) {
+                              setSelectedQuestionTypes(selectedQuestionTypes.filter(x => x !== opt.id));
+                            } else {
+                              setSelectedQuestionTypes([...selectedQuestionTypes, opt.id]);
+                            }
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+                        >
+                          <span>{opt.label}</span>
+                          {isSel && <Check size={14} className="text-blue-500" />}
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Clear Filters Button (If any filter is active) */}
+            {hasAnyFilterActive && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-400 text-[12px] font-bold transition-all duration-200"
+              >
+                <RotateCcw size={12} />
+                <span>Tozalash</span>
+              </button>
+            )}
+          </div>
+
+          {/* RIGHT: Search Input */}
+          <div className="flex items-center bg-[#f5f5f7] dark:bg-zinc-800/70 hover:bg-[#e8e8ed] dark:hover:bg-zinc-800 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 border border-transparent rounded-lg px-3 py-1.5 transition-all duration-350 w-full lg:w-[240px] shrink-0">
+            <Search size={14} className="text-gray-400 mr-2 shrink-0" />
+            <input 
+              type="text" 
+              placeholder="Qidirish..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent border-none outline-none w-full text-[13px] text-[#1d1d1f] dark:text-white placeholder-gray-450 dark:placeholder-gray-500 py-0"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")}
+                className="text-gray-450 hover:text-black dark:hover:text-white p-0.5 rounded-full"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+        </div>
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ import {
 // COMPONENTS
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import DashboardModals from "../../components/dashboard/DashboardModals";
-import LibrarySubHeader from "../../components/dashboard/LibrarySubHeader";
+
 import SiteFooter from "../../components/common/SiteFooter";
 import BottomNav from "../../components/dashboard/BottomNav";
 
@@ -32,7 +32,7 @@ export default function Library() {
         onLogoutClick={() => setShowLogoutConfirm(true)}
       />
 
-      <LibrarySubHeader activeTab={activeTab} />
+
 
       <main className="w-full pb-24 md:pb-0">
         <AnimatePresence mode="wait">
