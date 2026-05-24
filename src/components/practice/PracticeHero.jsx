@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, CheckCircle, HelpCircle, FileText, Clipboard } from 'lucide-react';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function PracticeHero({ activeTab, totalCount, filteredCount }) {
+  const { t } = useTranslation();
+
   // We only display the banner for reading
   if (activeTab !== 'reading') return null;
 
@@ -76,7 +79,7 @@ export default function PracticeHero({ activeTab, totalCount, filteredCount }) {
         >
           <BookOpen className="text-blue-500 dark:text-blue-400" size={18} />
           <h1 className="text-[20px] md:text-[24px] font-bold text-zinc-950 dark:text-white tracking-tight">
-            IELTS Reading Practice
+            {t('practice.heroTitle')}
           </h1>
         </motion.div>
         <motion.p 
@@ -85,7 +88,7 @@ export default function PracticeHero({ activeTab, totalCount, filteredCount }) {
           transition={{ delay: 0.1 }}
           className="text-zinc-550 dark:text-zinc-400 text-xs md:text-[13px] font-medium leading-relaxed"
         >
-          Improve your reading speed and comprehension with our curated library of single passages and full-length exams.
+          {t('practice.heroSubtitle')}
         </motion.p>
       </div>
     </div>

@@ -15,10 +15,12 @@ import {
     ArrowLeft
 } from 'lucide-react';
 import SiteFooter from '../../components/common/SiteFooter';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function TestResults() {
     const { user, userData } = useAuth();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('upcoming'); // Default to upcoming
     const [allTests, setAllTests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -58,7 +60,7 @@ export default function TestResults() {
                         className="flex items-center gap-2 text-zinc-500 hover:text-[#e31837] transition-colors font-bold text-sm group"
                     >
                         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="hidden md:inline">Back</span>
+                        <span className="hidden md:inline">{t('testResults.back')}</span>
                     </button>
                 </div>
                 <div className="flex-1 flex justify-center">
@@ -81,20 +83,20 @@ export default function TestResults() {
                     className="flex items-center gap-1 text-[#0066cc] hover:underline text-sm font-medium"
                 >
                     <ChevronLeft size={16} />
-                    Back to account dashboard
+                    {t('testResults.backToDashboard')}
                 </button>
 
                 {/* Title Section */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                     <div className="space-y-2">
-                        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">My tests and results</h1>
-                        <p className="text-zinc-500 text-[15px] font-medium">Check your IELTS test results and manage any upcoming bookings.</p>
+                        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">{t('testResults.title')}</h1>
+                        <p className="text-zinc-500 text-[15px] font-medium">{t('testResults.subtitle')}</p>
                     </div>
                     <button 
                         onClick={() => navigate('/mock')}
                         className="bg-[#e31837] text-white px-8 py-3 rounded-full font-bold text-sm hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20"
                     >
-                        Buy Mock
+                        {t('mock.buyMock')}
                     </button>
                 </div>
 
@@ -106,7 +108,7 @@ export default function TestResults() {
                             activeTab === 'upcoming' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
                         }`}
                     >
-                        Upcoming tests
+                        {t('testResults.upcomingTests')}
                         {activeTab === 'upcoming' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#e31837]" />}
                     </button>
                     <button 
@@ -115,7 +117,7 @@ export default function TestResults() {
                             activeTab === 'past' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
                         }`}
                     >
-                        Past tests
+                        {t('testResults.pastTests')}
                         {activeTab === 'past' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#e31837]" />}
                     </button>
                 </div>
@@ -123,19 +125,24 @@ export default function TestResults() {
                 {/* Results List */}
                 <div className="space-y-6 pb-12">
                     <h3 className="text-lg font-bold text-zinc-900">
-                        Showing <span className="text-[#e31837]">{filteredTests.length}</span> {activeTab === 'past' ? 'past' : 'upcoming'} {filteredTests.length === 1 ? 'test' : 'tests'}
+                        {t('testResults.showingTestsCount')
+                            .replace('{count}', filteredTests.length)
+                            .replace('{status}', activeTab === 'past' ? t('testResults.past') : t('testResults.upcoming'))
+                        }
                     </h3>
 
                     {filteredTests.length > 0 ? (
                         filteredTests.map((test, index) => (
-                            <TestResultCard key={index} test={test} tab={activeTab} navigate={navigate} />
+                            <TestResultCard key={index} test={test} tab={activeTab} navigate={navigate} t={t} />
                         ))
                     ) : (
                         <div className="bg-white rounded-xl border border-zinc-200 p-12 text-center space-y-4">
                             <div className="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mx-auto text-zinc-300">
                                 <FileText size={32} />
                             </div>
-                            <p className="text-zinc-500 font-medium">Hozircha {activeTab === 'past' ? 'natijalar' : 'rejalashtirilgan testlar'} mavjud emas.</p>
+                            <p className="text-zinc-500 font-medium">
+                                {t('testResults.noTests').replace('{type}', activeTab === 'past' ? t('testResults.results') : t('testResults.scheduledTests'))}
+                            </p>
                         </div>
                     )}
                 </div>
@@ -146,7 +153,7 @@ export default function TestResults() {
     );
 }
 
-const TestResultCard = ({ test, tab, navigate }) => (
+const TestResultCard = ({ test, tab, navigate, t }) => (
     <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between gap-4">
@@ -154,12 +161,12 @@ const TestResultCard = ({ test, tab, navigate }) => (
                 {tab === 'past' ? (
                     <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-md border border-green-100">
                         <CheckCircle2 size={14} />
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Results Available</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider">{t('testResults.resultsAvailable')}</span>
                     </div>
                 ) : (
                     <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-md border border-blue-100">
                         <Calendar size={14} />
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Scheduled</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider">{t('testResults.scheduled')}</span>
                     </div>
                 )}
             </div>
@@ -175,7 +182,7 @@ const TestResultCard = ({ test, tab, navigate }) => (
                     </div>
                 </div>
                 <div className="p-5 space-y-2">
-                    <p className="text-[15px] font-bold text-zinc-900">Speaking test</p>
+                    <p className="text-[15px] font-bold text-zinc-900">{t('testResults.speakingTest')}</p>
                     <div className="flex items-center gap-3 text-zinc-500 text-[13px] font-medium">
                         <span className="flex items-center gap-1.5"><Calendar size={14} /> 
                             {test.scheduledDate ? new Date(test.scheduledDate).toLocaleDateString('uz-UZ') : test.startDate ? new Date(test.startDate).toLocaleDateString('uz-UZ') : 'N/A'}
@@ -190,7 +197,7 @@ const TestResultCard = ({ test, tab, navigate }) => (
             <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2 text-zinc-500 text-[13px] font-medium">
                     <Monitor size={16} />
-                    <span>On Computer</span>
+                    <span>{t('testResults.onComputer')}</span>
                 </div>
                 <div className="flex items-center gap-2 text-zinc-500 text-[13px] font-medium">
                     <MapPin size={16} />
@@ -207,12 +214,12 @@ const TestResultCard = ({ test, tab, navigate }) => (
                     }}
                     className="flex items-center gap-2 bg-[#e31837] text-white px-6 py-2 rounded-full text-[13px] font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-500/10 active:scale-95"
                 >
-                    Take now
+                    {t('testResults.takeNow')}
                     <ChevronRight size={16} />
                 </button>
             ) : (
                 <button className="flex items-center gap-1 text-[#1d1d1f] hover:text-[#e31837] transition-colors text-[13px] font-bold group">
-                    View Results
+                    {t('testResults.viewResults')}
                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </button>
             )}

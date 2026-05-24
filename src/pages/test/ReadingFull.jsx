@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStudentData } from "../../hooks/useStudentData";
+import { useTranslation } from "../../context/LanguageContext";
 import { db, functions } from "../../firebase/firebase";
 import { collection, query, where, doc, updateDoc, arrayUnion, getDocs } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -24,7 +25,8 @@ import BottomNav from "../../components/dashboard/BottomNav";
 import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
 import FullReadingCard from "../../components/practice/FullReadingCard";
-import ReadingSetCard from "../../components/practice/ReadingSetCard";
+import ReadingCollectionsSection from "../../components/practice/ReadingCollectionsSection";
+import { useReadingCollections } from "../../hooks/useReadingCollections";
 import { usePracticeScroll } from "../../hooks/usePracticeScroll";
 
 const categories = [
@@ -36,6 +38,7 @@ const categories = [
 
 export default function ReadingFull() {
   const { user, logout, userData } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -48,7 +51,11 @@ export default function ReadingFull() {
   const isStandard = userData?.accountType === 'standard';
   const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
   
-  const { assignments, loading, error: errorMsg, refresh } = useStudentData(user);
+  const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
+  
+  // Custom hook to manage collections logic
+  const collectionsData = useReadingCollections(userResults);
+  const { allCollectionsTests = [] } = collectionsData;
   
   // Library Pagination State
   const [libraryTests, setLibraryTests] = useState([]);
@@ -59,11 +66,17 @@ export default function ReadingFull() {
   const PAGE_SIZE = 12;
 
   const rawAssignments = useMemo(() => {
-    // Deduplicate between assignments and library tests
+    // Deduplicate between assignments, library tests, and all collections tests
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
-    return [...assignments, ...uniqueLibrary];
-  }, [assignments, libraryTests]);
+    const uniqueColTests = allCollectionsTests.filter(t => !assignedIds.has(t.id));
+    
+    // Deduplicate between library and colTests
+    const libraryIds = new Set(uniqueLibrary.map(t => t.id));
+    const uniqueColTestsFiltered = uniqueColTests.filter(t => !libraryIds.has(t.id));
+
+    return [...assignments, ...uniqueLibrary, ...uniqueColTestsFiltered];
+  }, [assignments, libraryTests, allCollectionsTests]);
 
   const fetchLibraryPage = async (isFirstPage = false) => {
     if (loadingLibrary || (!hasMore && !isFirstPage)) return;
@@ -121,30 +134,9 @@ export default function ReadingFull() {
   const fullTestSectionRef = useRef(null);
   const setSectionRef = useRef(null);
 
-  const readingFilters = [
-    { id: 'full_test', label: 'Full Tests', ref: fullTestSectionRef },
-    { id: 'set', label: 'Sets', ref: setSectionRef }
-  ];
+  const readingFilters = [];
 
-  const [activeSubTab, setActiveSubTab] = useState(() => {
-    const params = new URLSearchParams(location.search);
-    const sec = params.get('section');
-    return (sec === 'set' || sec === 'full_test') ? sec : 'full_test';
-  });
-
-  const handleSubTabClick = (filter) => {
-    if (activeSubTab === filter.id) return;
-    setActiveSubTab(filter.id);
-    navigate(`/reading/full?section=${filter.id}`, { replace: true });
-  };
-
-  useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const sectionFromUrl = queryParams.get('section');
-    if ((sectionFromUrl === 'full_test' || sectionFromUrl === 'set') && sectionFromUrl !== activeSubTab) {
-      setActiveSubTab(sectionFromUrl);
-    }
-  }, [location.search, activeSubTab]);
+  const [activeSubTab] = useState('set');
 
   const allQuestionTypes = useMemo(() => {
     const types = new Set();
@@ -152,60 +144,73 @@ export default function ReadingFull() {
       if (item.type === 'reading' && item.questionTypes) {
         item.questionTypes.forEach(t => types.add(t));
       }
-      if (item.isSet && item.subTests) {
-          item.subTests.forEach(sub => {
-              if (sub.type === 'reading' && sub.questionTypes) {
-                  sub.questionTypes.forEach(t => types.add(t));
-              }
-          });
-      }
     });
     return ["all", ...Array.from(types).sort()];
   }, [rawAssignments]);
 
+  const getQuestionCount = (test) => {
+    if (test.totalQuestions) return test.totalQuestions;
+    
+    const countUniqueIds = (items) => {
+      if (!items || !Array.isArray(items)) return 0;
+      const ids = new Set();
+      const extract = (obj) => {
+        if (!obj) return;
+        if (obj.id && !isNaN(parseInt(obj.id))) {
+          ids.add(parseInt(obj.id));
+        }
+        if (Array.isArray(obj.items)) obj.items.forEach(extract);
+        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
+        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
+      };
+      items.forEach(extract);
+      return ids.size;
+    };
+
+    if (test.questions) {
+      const count = countUniqueIds(test.questions);
+      if (count > 0) return count;
+    }
+    if (test.sections) {
+      const count = countUniqueIds(test.sections);
+      if (count > 0) return count;
+    }
+    
+    const titleLower = test.title?.toLowerCase() || '';
+    const isReadingFull = titleLower.includes('full') || titleLower.includes('/');
+    
+    return (test.questions?.length) || (isReadingFull ? 40 : 13);
+  };
+
   const filteredTests = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    const result = [];
-    
-    rawAssignments.forEach(item => {
-      let matchesTab = item.type === 'reading' || item.isSet;
-      if (!matchesTab) return;
-
+    return rawAssignments.filter(item => {
+      if (item.type !== 'reading') return false;
       const matchesSearch = !q || item.title?.toLowerCase().includes(q);
       const isDone = !!item.result;
       const matchesStatus = selectedStatus === 'all' || 
                            (selectedStatus === 'completed' && isDone) || 
                            (selectedStatus === 'not_completed' && !isDone);
-
-      if (item.isSet) {
-        const matchingSubTests = item.subTests?.filter((s, idx) => {
-            const mSearch = s.title?.toLowerCase().includes(q);
-            const mType = selectedQuestionTypes.length === 0 || 
-                         (s.questionTypes && s.questionTypes.some(t => selectedQuestionTypes.includes(t)));
-            const subIsDone = !!s.result;
-            const mStatus = selectedStatus === 'all' || 
-                           (selectedStatus === 'completed' && subIsDone) || 
-                           (selectedStatus === 'not_completed' && !subIsDone);
-            return s.type === 'reading' && mSearch && mType && mStatus;
-        }) || [];
-
-        if (!q && selectedQuestionTypes.length === 0 && selectedStatus === 'all') {
-            result.push(item);
-        } else if (matchingSubTests.length > 0) {
-            matchingSubTests.forEach(sub => result.push({ ...sub, _fromSet: item.title }));
-        }
-        return;
-      }
-
       const matchesType = selectedQuestionTypes.length === 0 || 
                          (item.questionTypes && item.questionTypes.some(t => selectedQuestionTypes.includes(t)));
-      
-      if (matchesSearch && matchesType && matchesStatus) {
-        result.push(item);
-      }
+      return matchesSearch && matchesStatus && matchesType;
     });
-    return result;
   }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus]);
+
+  const filteredCollectionProcessedTests = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    const fullTestsList = (collectionsData.collectionProcessedTests.fullTestsList || []).filter(test => {
+      const matchesSearch = !q || test.title?.toLowerCase().includes(q);
+      const isDone = !!test.result;
+      const matchesStatus = selectedStatus === 'all' || 
+                           (selectedStatus === 'completed' && isDone) || 
+                           (selectedStatus === 'not_completed' && !isDone);
+      const matchesType = selectedQuestionTypes.length === 0 || 
+                         (test.questionTypes && test.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+      return matchesSearch && matchesStatus && matchesType;
+    });
+    return { fullTestsList };
+  }, [collectionsData.collectionProcessedTests, searchQuery, selectedStatus, selectedQuestionTypes]);
 
   const handleStartTest = (test) => { 
     if (!checkLimit('reading')) {
@@ -279,7 +284,7 @@ export default function ReadingFull() {
           activeTab="reading" 
           setActiveTab={() => {}}
           activeSubTab={activeSubTab}
-          handleSubTabClick={handleSubTabClick}
+          handleSubTabClick={() => {}}
           readingFilters={readingFilters}
           categories={categories}
           searchQuery={searchQuery}
@@ -310,7 +315,7 @@ export default function ReadingFull() {
             <AnimatePresence mode="wait">
                 {(() => {
                     if (activeSubTab === 'full_test') {
-                        const fullTests = filteredTests.filter(t => t.title?.includes('/') && !t.isSet);
+                        const fullTests = filteredTests.filter(t => !t.isSet && getQuestionCount(t) > 14);
                         if (fullTests.length === 0) {
                             return (
                                 <div className="flex flex-col items-center justify-center py-40 text-center" key="no-fulltests">
@@ -353,39 +358,24 @@ export default function ReadingFull() {
                     }
 
                     if (activeSubTab === 'set') {
-                        const sets = filteredTests.filter(t => t.isSet);
-                        if (sets.length === 0) {
-                            return (
-                                <div className="flex flex-col items-center justify-center py-40 text-center" key="no-sets">
-                                    <Search size={24} className="text-gray-300 mb-6" />
-                                    <h3 className="text-[24px] font-semibold text-[#1d1d1f]">Hech narsa topilmadi</h3>
-                                </div>
-                            );
-                        }
                         return (
-                            <motion.div
-                                key="set"
+                            <motion.div 
+                                key="collections"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                className="space-y-4 pb-20"
-                                ref={setSectionRef}
+                                className="space-y-16 pb-20"
                             >
-                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Sets</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-                                    {sets.map((set, i) => (
-                                      <ReadingSetCard 
-                                        key={set.id}
-                                        set={set}
-                                        index={i}
-                                        isCompleted={!!set.result}
-                                        onReview={handleReview}
-                                        onSelectSet={setSelectedSet}
-                                        isPro={isPro}
-                                        isStandard={isStandard}
-                                      />
-                                    ))}
-                                </div>
+                                <ReadingCollectionsSection
+                                    collectionsSectionRef={setSectionRef}
+                                    {...collectionsData}
+                                    collectionProcessedTests={filteredCollectionProcessedTests}
+                                    handleReview={handleReview}
+                                    handleStartTest={handleStartTest}
+                                    setSelectedSet={setSelectedSet}
+                                    isPro={isPro}
+                                    isStandard={isStandard}
+                                />
                             </motion.div>
                         );
                     }

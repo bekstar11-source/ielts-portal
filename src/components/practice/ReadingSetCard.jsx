@@ -1,9 +1,12 @@
 import React from 'react';
 import { ChevronRight, Crown, Zap, BookOpen, FileText, Diamond } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../context/LanguageContext';
+import QuestionTypeTags from './QuestionTypeTags';
 
 export default function ReadingSetCard({ set, index, isCompleted, onReview, onSelectSet, isPro, isStandard }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const accentColors = ['bg-[#0a84ff]', 'bg-[#bf5af2]', 'bg-[#30d158]', 'bg-[#ff9f0a]'];
   const subCount = set.subTests?.length || 3;
   const glowColor = accentColors[index % accentColors.length];
@@ -36,7 +39,7 @@ export default function ReadingSetCard({ set, index, isCompleted, onReview, onSe
         <div className="absolute top-6 right-6">
           <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border border-black/5">
             <Crown size={12} className="text-[#bf953f]" />
-            <span className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-wide">Premium Set</span>
+            <span className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-wide">{t('practice.premiumSet')}</span>
           </div>
         </div>
         
@@ -45,13 +48,12 @@ export default function ReadingSetCard({ set, index, isCompleted, onReview, onSe
         </h3>
         
         {set.questionTypes?.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-5">
-            {set.questionTypes.slice(0, 3).map((qt, idx) => (
-              <span key={idx} className="px-3 py-1.5 rounded-md text-[10px] font-semibold text-[#1d1d1f] bg-black/5 backdrop-blur-md border border-black/5 tracking-wider capitalize">
-                {qt}
-              </span>
-            ))}
-          </div>
+          <QuestionTypeTags
+            types={set.questionTypes}
+            className="flex flex-wrap gap-2 mb-5"
+            tagClassName="px-3 py-1.5 rounded-md text-[10px] font-semibold text-[#1d1d1f] bg-black/5 backdrop-blur-md border border-black/5 tracking-wider capitalize"
+            moreButtonClassName="px-3 py-1.5 rounded-md text-[10px] font-semibold text-[#0066cc] bg-[#0066cc]/5 border border-[#0066cc]/15 tracking-wider capitalize hover:bg-[#0066cc]/10 transition-colors"
+          />
         )}
         
         {/* Sub-tests List */}
@@ -69,7 +71,7 @@ export default function ReadingSetCard({ set, index, isCompleted, onReview, onSe
             ))}
             {set.subTests.length > 6 && (
               <div className="text-[12px] font-medium text-[#86868b] mt-1 pl-[32px]">
-                + yana {set.subTests.length - 6} ta passage
+                {t('practice.morePassages').replace('{count}', set.subTests.length - 6)}
               </div>
             )}
           </div>
@@ -89,20 +91,20 @@ export default function ReadingSetCard({ set, index, isCompleted, onReview, onSe
                 <div className="flex items-center justify-between opacity-60 mb-2">
                   <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#1d1d1f]">
                     <BookOpen size={12} strokeWidth={2.5} />
-                    {set.subTests?.length || 0} Passages
+                    {set.subTests?.length || 0} {t('practice.passages')}
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#1d1d1f]">
                     <FileText size={12} strokeWidth={2.5} />
-                    {set.totalQuestions || (set.subTests?.length * 13) || 40} Questions
+                    {set.totalQuestions || (set.subTests?.length * 13) || 40} {t('practice.questions')}
                   </div>
                 </div>
                 {isCompleted ? (
                   <span className="text-[#30d158] text-[15px] font-medium">
-                    Score: {set.result?.score ?? set.result?.bestScore ?? set.result?.latestScore ?? 0}/{set.totalQuestions || 40}
+                    {t('practice.result')}: {set.result?.score ?? set.result?.bestScore ?? set.result?.latestScore ?? 0}/{set.totalQuestions || 40}
                   </span>
                 ) : (
                   <span className="text-[15px] font-medium text-[#86868b]">
-                    Not started
+                    {t('practice.notStarted')}
                   </span>
                 )}
               </div>
@@ -112,7 +114,7 @@ export default function ReadingSetCard({ set, index, isCompleted, onReview, onSe
                   onClick={(e) => { e.stopPropagation(); handleClick(); }}
                   className="text-white text-[14px] font-bold px-6 py-2.5 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2"
                 >
-                  View Set
+                  {t('practice.viewSet')}
                 </button>
               </div>
             </div>

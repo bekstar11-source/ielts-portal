@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookMarked, ChevronDown, ChevronUp, Volume2, Trash2, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from '../../context/LanguageContext';
 
 const VocabularyList = ({ 
     words, searchTerm, filterTab, 
@@ -10,6 +11,7 @@ const VocabularyList = ({
 }) => {
     const [expandedGroup, setExpandedGroup] = useState(null);
     const [expandedWord, setExpandedWord] = useState(null);
+    const { t } = useTranslation();
 
     const filteredWords = useMemo(() => {
         return words.filter(w => {
@@ -32,19 +34,19 @@ const VocabularyList = ({
         return filteredWords.reduce((acc, word) => {
             const key = word.sectionTitle && word.sectionTitle !== "Noma'lum Qism"
                 ? word.sectionTitle
-                : (word.testTitle || "Umumiy so'zlar");
+                : (word.testTitle || t('wordbank.generalWords'));
             if (!acc[key]) acc[key] = [];
             acc[key].push(word);
             return acc;
         }, {});
-    }, [filteredWords]);
+    }, [filteredWords, t]);
 
     if (filteredWords.length === 0) {
         return (
             <div className="text-center py-20 border-2 border-dashed border-gray-100 dark:border-white/5 rounded-2xl">
                 <BookMarked className="w-8 h-8 text-gray-300 mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-1">Word Bank is empty</h3>
-                <p className="text-sm text-gray-500">Words you add from tests or reading will be listed here.</p>
+                <h3 className="font-semibold text-lg mb-1">{t('wordbank.emptyWordbank')}</h3>
+                <p className="text-sm text-gray-500">{t('wordbank.emptyWordbankDesc')}</p>
             </div>
         );
     }
@@ -65,7 +67,7 @@ const VocabularyList = ({
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-sm">{testTitle}</h3>
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{testWords.length} new words</p>
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{t('wordbank.newWordsCount').replace('{count}', testWords.length)}</p>
                                 </div>
                             </div>
                             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isTestExpanded ? 'rotate-180' : ''}`} />
@@ -91,13 +93,13 @@ const VocabularyList = ({
                                                                 <h3 className="font-bold text-base truncate">{item.word}</h3>
                                                                 {item.learningStatus === 'mastered' && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
                                                             </div>
-                                                            <p className="text-xs text-gray-500 truncate">{item.translation || "No translation yet"}</p>
+                                                            <p className="text-xs text-gray-500 truncate">{item.translation || t('wordbank.noTranslation')}</p>
                                                         </div>
                                                         <div className="flex items-center gap-1 shrink-0">
                                                             <button onClick={() => playPronunciation(item.id, item.word)} className={`p-2 rounded-lg transition-all ${playingAudioId === item.id ? 'bg-[#FB5102]/10 text-[#FB5102]' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
                                                                 <Volume2 className="w-4 h-4" />
                                                             </button>
-                                                            <button onClick={() => { if(window.confirm("O'chirilsinmi?")) onDelete(item.id); }} className="p-2 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100">
+                                                            <button onClick={() => { if(window.confirm(t('wordbank.confirmDelete'))) onDelete(item.id); }} className="p-2 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100">
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
                                                             <button 
@@ -119,13 +121,13 @@ const VocabularyList = ({
                                                                     <div className="space-y-3">
                                                                         <button onClick={() => onGenerateAI(item)} disabled={generatingId === item.id} className="w-full flex items-center justify-center gap-2 py-2 bg-[#FB5102]/10 text-[#FB5102] hover:bg-[#FB5102] hover:text-white transition-all rounded-lg text-xs font-bold">
                                                                             {generatingId === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                                                            <span>{generatingId === item.id ? "Analyzing..." : "Get AI Insights"}</span>
+                                                                            <span>{generatingId === item.id ? t('wordbank.analyzing') : t('wordbank.getAIInsights')}</span>
                                                                         </button>
                                                                     </div>
                                                                 ) : (
                                                                     <div className="space-y-3">
                                                                         <div>
-                                                                            <span className="text-[9px] uppercase font-bold text-[#FB5102] tracking-wider">Definition</span>
+                                                                            <span className="text-[9px] uppercase font-bold text-[#FB5102] tracking-wider">{t('wordbank.definition')}</span>
                                                                             <p className="text-xs mt-1 leading-relaxed text-gray-600 dark:text-gray-300">{item.definition}</p>
                                                                         </div>
                                                                         {item.example && (

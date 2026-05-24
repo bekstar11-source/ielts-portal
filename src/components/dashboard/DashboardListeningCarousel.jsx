@@ -30,7 +30,7 @@ export default function DashboardListeningCarousel({ isListeningPaused, onStartT
 
                 // 2. Fallback to DB (Include both 'listening' tests and 'podcast' types)
                 if (listeningTests.length < 10) {
-                    const qTests = query(collection(db, "tests"), where("type", "==", "listening"), orderBy("createdAt", "desc"), limit(10));
+                    const qTests = query(collection(db, "tests_metadata"), where("type", "==", "listening"), orderBy("createdAt", "desc"), limit(10));
                     const qPods = query(collection(db, "podcasts"), where("status", "==", "published"), orderBy("createdAt", "desc"), limit(10));
                     
                     let snapTests = { docs: [] };

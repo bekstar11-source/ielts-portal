@@ -27,7 +27,7 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                 if (readingTests.length < 6) {
                     try {
                         const q = query(
-                            collection(db, "tests"),
+                            collection(db, "tests_metadata"),
                             where("type", "==", "reading"),
                             orderBy("createdAt", "desc"),
                             limit(10)

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SiteFooter from '../../components/common/SiteFooter';
 import Navbar from '../../components/common/Navbar';
 import SchemaMarkup from '../../components/common/SchemaMarkup';
+import { useTranslation } from '../../context/LanguageContext';
 import {
   CheckCircle2,
   BarChart3,
@@ -46,40 +47,44 @@ const staggerContainer = {
 
 
 // --- Social Proof Component ---
-const Stats = () => (
-  <div className="flex flex-wrap justify-center gap-8 md:gap-12 lg:gap-16 mt-12 py-6 border-y border-gray-200/50 bg-white/30 backdrop-blur-sm">
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-blue-100 rounded-full text-blue-600"><Users size={20} /></div>
-      <div>
-        <p className="text-2xl font-bold text-gray-900">10,000+</p>
-        <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">Faol O'quvchilar</p>
+const Stats = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-wrap justify-center gap-8 md:gap-12 lg:gap-16 mt-12 py-6 border-y border-gray-200/50 bg-white/30 backdrop-blur-sm">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-blue-100 rounded-full text-blue-600"><Users size={20} /></div>
+        <div>
+          <p className="text-2xl font-bold text-gray-900">10,000+</p>
+          <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">{t('landing.activeStudents')}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-yellow-100 rounded-full text-yellow-600"><Award size={20} /></div>
+        <div>
+          <p className="text-2xl font-bold text-gray-900">7.5</p>
+          <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">{t('landing.averageBand')}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-amber-100 rounded-full text-amber-500"><Star size={20} fill="currentColor" /></div>
+        <div>
+          <p className="text-2xl font-bold text-gray-900">4.9 / 5</p>
+          <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">{t('landing.reviews')}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-green-100 rounded-full text-green-600"><CheckCircle2 size={20} /></div>
+        <div>
+          <p className="text-2xl font-bold text-gray-900">98%</p>
+          <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">{t('landing.recommends')}</p>
+        </div>
       </div>
     </div>
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-yellow-100 rounded-full text-yellow-600"><Award size={20} /></div>
-      <div>
-        <p className="text-2xl font-bold text-gray-900">7.5</p>
-        <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">O'rtacha Ball</p>
-      </div>
-    </div>
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-amber-100 rounded-full text-amber-500"><Star size={20} fill="currentColor" /></div>
-      <div>
-        <p className="text-2xl font-bold text-gray-900">4.9 / 5</p>
-        <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">1,280+ Fikrlar</p>
-      </div>
-    </div>
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-green-100 rounded-full text-green-600"><CheckCircle2 size={20} /></div>
-      <div>
-        <p className="text-2xl font-bold text-gray-900">98%</p>
-        <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">Tavsiya qiladi</p>
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 const Hero = () => {
+  const { t } = useTranslation();
   return (
     <section className="relative flex flex-col items-center justify-center min-h-screen pt-32 pb-16 overflow-hidden md:pt-40">
 
@@ -107,14 +112,14 @@ const Hero = () => {
           variants={fadeInUp}
           className="text-5xl md:text-7xl font-bold tracking-tighter text-[#1D1D1F] leading-[1.1] mb-6 relative"
         >
-          <span className="relative z-10">IELTS dan yuqori ball olishning eng zamonaviy usuli.</span>
+          <span className="relative z-10">{t('landing.title')}</span>
         </motion.h1>
 
         <motion.p
           variants={fadeInUp}
           className="max-w-2xl mx-auto mb-10 text-xl font-medium text-gray-600 md:text-2xl leading-relaxed relative z-10"
         >
-          Real imtihon muhiti, sun'iy intellekt yordamida chuqur tahlil va aniq natijalar.
+          {t('landing.description')}
         </motion.p>
 
         <motion.div
@@ -123,14 +128,14 @@ const Hero = () => {
         >
           {/* 🔥 Boshlash Linki */}
           <Link to="/login" className="flex items-center gap-2 px-8 py-4 text-lg font-medium text-white transition-all bg-black rounded-full hover:bg-gray-800 hover:scale-105 shadow-xl shadow-black/20 w-full sm:w-auto justify-center">
-            Boshlash <ArrowRight size={18} />
+            {t('landing.start')} <ArrowRight size={18} />
           </Link>
 
           <button
             onClick={() => document.getElementById('mockups').scrollIntoView({ behavior: 'smooth' })}
             className="flex items-center gap-2 px-8 py-4 text-lg font-medium text-black transition-all bg-white border border-gray-200 rounded-full hover:bg-gray-50 hover:border-gray-300 backdrop-blur-sm bg-white/80 w-full sm:w-auto justify-center"
           >
-            Namuna ko'rish
+            {t('landing.seeSample')}
           </button>
         </motion.div>
       </motion.div>
@@ -149,12 +154,13 @@ const Hero = () => {
 
 // --- New Section: Interactive Test Mockups ---
 const TestMockups = () => {
+  const { t } = useTranslation();
   return (
     <section id="mockups" className="py-24 px-6 md:px-12 bg-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4">Haqiqiy Imtihon Muhiti</h2>
-          <p className="text-xl text-gray-500 max-w-2xl mx-auto">Reading va Listening bo'limlari xuddi rasmiy imtihondagidek ko'rinishda.</p>
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4">{t('landing.examEnvironment')}</h2>
+          <p className="text-xl text-gray-500 max-w-2xl mx-auto">{t('landing.envDescription')}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -225,8 +231,8 @@ const TestMockups = () => {
               </div>
             </div>
             <div className="mt-6 text-center">
-              <h3 className="text-xl font-bold text-gray-900 flex items-center justify-center gap-2"><FileText className="text-blue-600" /> Reading Practice</h3>
-              <p className="text-gray-500 text-sm mt-2">Split-screen interfeysi, matnni belgilash (highlight) imkoniyati.</p>
+              <h3 className="text-xl font-bold text-gray-900 flex items-center justify-center gap-2"><FileText className="text-blue-600" /> {t('landing.readingPractice')}</h3>
+              <p className="text-gray-500 text-sm mt-2">{t('landing.readingPracticeDesc')}</p>
             </div>
           </motion.div>
 
@@ -316,8 +322,8 @@ const TestMockups = () => {
               </div>
             </div>
             <div className="mt-6 text-center">
-              <h3 className="text-xl font-bold text-gray-900 flex items-center justify-center gap-2"><Headphones className="text-purple-600" /> Listening Practice</h3>
-              <p className="text-gray-500 text-sm mt-2">Yuqori sifatli audio va real vaqt rejimidagi savollar.</p>
+              <h3 className="text-xl font-bold text-gray-900 flex items-center justify-center gap-2"><Headphones className="text-purple-600" /> {t('landing.listeningPractice')}</h3>
+              <p className="text-gray-500 text-sm mt-2">{t('landing.listeningPracticeDesc')}</p>
             </div>
           </motion.div>
 
@@ -328,6 +334,7 @@ const TestMockups = () => {
 };
 
 const BentoGrid = () => {
+  const { t } = useTranslation();
   return (
     <section id="features" className="px-6 py-24 bg-[#F5F5F7] md:px-12 relative z-10 border-t border-gray-200">
       <div className="max-w-6xl mx-auto">
@@ -338,7 +345,7 @@ const BentoGrid = () => {
           transition={{ duration: 0.6 }}
           className="mb-16 text-center"
         >
-          <h2 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">Nega aynan biz?</h2>
+          <h2 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">{t('landing.whyUs')}</h2>
         </motion.div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:auto-rows-[300px]">
@@ -359,13 +366,13 @@ const BentoGrid = () => {
               <div className="flex items-center justify-center w-12 h-12 mb-4 text-white bg-blue-600 rounded-full shadow-lg shadow-blue-500/30">
                 <CheckCircle2 size={24} />
               </div>
-              <h3 className="mb-2 text-2xl font-bold text-gray-900">Full Mock Exams</h3>
-              <p className="text-lg font-medium text-gray-600">Reading, Listening va Writing bo'limlari xuddi real imtihondagidek.</p>
+              <h3 className="mb-2 text-2xl font-bold text-gray-900">{t('landing.fullMockExams')}</h3>
+              <p className="text-lg font-medium text-gray-600">{t('landing.fullMockExamsDesc')}</p>
             </div>
             <div className="mt-8 bg-gray-50 backdrop-blur-md rounded-xl p-4 w-full max-w-xs border border-gray-200 shadow-sm z-10">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-semibold text-gray-700">Simulyatsiya faol</span>
+                <span className="text-sm font-semibold text-gray-700">{t('landing.simulationActive')}</span>
               </div>
             </div>
           </motion.div>
@@ -383,8 +390,8 @@ const BentoGrid = () => {
               <div className="flex items-center justify-center w-12 h-12 mb-4 text-white bg-indigo-600 rounded-full shadow-lg shadow-indigo-500/30">
                 <BarChart3 size={24} />
               </div>
-              <h3 className="mb-2 text-2xl font-bold text-gray-900">Chuqur Tahlil</h3>
-              <p className="font-medium text-gray-600">Har bir testdan so'ng xatolaringizni ko'rib chiqing.</p>
+              <h3 className="mb-2 text-2xl font-bold text-gray-900">{t('landing.inDepthAnalysis')}</h3>
+              <p className="font-medium text-gray-600">{t('landing.inDepthAnalysisDesc')}</p>
             </div>
             {/* Visual Abstract Graph */}
             <div className="flex items-end gap-2 h-24 mt-4 opacity-80">
@@ -428,8 +435,8 @@ const BentoGrid = () => {
               <div className="flex items-center justify-center w-12 h-12 mb-4 text-white bg-orange-500 rounded-full shadow-lg shadow-orange-500/30">
                 <Key size={24} />
               </div>
-              <h3 className="mb-2 text-2xl font-bold text-gray-900">Maxsus Kodlar</h3>
-              <p className="font-medium text-gray-600">O'qituvchingiz bergan kalit (Access Key) orqali yopiq testlarga kiring.</p>
+              <h3 className="mb-2 text-2xl font-bold text-gray-900">{t('landing.accessKeys')}</h3>
+              <p className="font-medium text-gray-600">{t('landing.accessKeysDesc')}</p>
             </div>
             <div className="flex justify-end mt-4">
               <div className="bg-gray-50 px-4 py-2 rounded-lg font-mono text-xs text-gray-400 border border-gray-200 group-hover:border-orange-200 transition-colors">
@@ -451,8 +458,8 @@ const BentoGrid = () => {
               <div className="flex items-center justify-center w-12 h-12 mb-4 text-black bg-yellow-400 rounded-full shadow-lg shadow-yellow-400/20">
                 <Zap size={24} />
               </div>
-              <h3 className="mb-2 text-2xl font-bold">Tez va Qulay</h3>
-              <p className="text-lg font-medium text-gray-400">Hech qanday qotishlarsiz, yuqori tezlikdagi interfeys.</p>
+              <h3 className="mb-2 text-2xl font-bold">{t('landing.fastAndConvenient')}</h3>
+              <p className="text-lg font-medium text-gray-400">{t('landing.fastAndConvenientDesc')}</p>
             </div>
             {/* Speed lines effect */}
             <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-yellow-500/10 to-transparent skew-x-12 transform origin-bottom-right"></div>
@@ -465,10 +472,11 @@ const BentoGrid = () => {
 };
 
 const Workflow = () => {
+  const { t } = useTranslation();
   const steps = [
-    { title: "Ro'yxatdan o'ting", desc: "Shaxsiy kabinet yarating" },
-    { title: "Testni tanlang", desc: "Yoki Access Key kiriting" },
-    { title: "Natijani oling", desc: "Avtomatik tekshirish va tahlil" }
+    { title: t('landing.step1Title'), desc: t('landing.step1Desc') },
+    { title: t('landing.step2Title'), desc: t('landing.step2Desc') },
+    { title: t('landing.step3Title'), desc: t('landing.step3Desc') }
   ];
 
   return (
@@ -479,7 +487,7 @@ const Workflow = () => {
           whileInView={{ opacity: 1 }}
           className="mb-20 text-3xl font-bold text-center text-gray-900 md:text-4xl"
         >
-          Bu qanday ishlaydi?
+          {t('landing.howItWorks')}
         </motion.h2>
 
         <div className="relative flex flex-col justify-between gap-12 md:gap-8 md:flex-row">
@@ -508,25 +516,28 @@ const Workflow = () => {
   );
 };
 
-const FooterCTA = () => (
-  <section className="px-6 py-32 text-center bg-black">
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
-      className="max-w-3xl mx-auto"
-    >
-      <h2 className="mb-8 text-4xl font-bold tracking-tight text-white md:text-6xl">
-        Tayyorgarlikni bugun boshlang.
-      </h2>
-      {/* 🔥 Hisob ochish Linki */}
-      <Link to="/login" className="px-8 py-4 text-lg font-medium text-black transition-transform bg-white rounded-full hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.3)] inline-block">
-        Hisob ochish
-      </Link>
-    </motion.div>
-  </section>
-)
+const FooterCTA = () => {
+  const { t } = useTranslation();
+  return (
+    <section className="px-6 py-32 text-center bg-black">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="max-w-3xl mx-auto"
+      >
+        <h2 className="mb-8 text-4xl font-bold tracking-tight text-white md:text-6xl">
+          {t('landing.startCTA')}
+        </h2>
+        {/* 🔥 Hisob ochish Linki */}
+        <Link to="/login" className="px-8 py-4 text-lg font-medium text-black transition-transform bg-white rounded-full hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.3)] inline-block">
+          {t('landing.createAccount')}
+        </Link>
+      </motion.div>
+    </section>
+  );
+};
 
 // --- Main Layout Component ---
 

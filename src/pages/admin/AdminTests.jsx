@@ -39,6 +39,11 @@ export default function AdminTests() {
     const [targetCollectionId, setTargetCollectionId] = useState("");
     const [isAssigning, setIsAssigning] = useState(false);
 
+    // Merge State
+    const [mergeModalOpen, setMergeModalOpen] = useState(false);
+    const [mergeTitle, setMergeTitle] = useState("");
+    const [isMerging, setIsMerging] = useState(false);
+
     const {
         tests, collections, loading, totalTestCount, currentPage,
         handleDelete, bulkAssignToCollection, fetchPage, searchTests, fetchInitial,
@@ -149,25 +154,157 @@ export default function AdminTests() {
         }
     };
 
-    // Handle Search - debounced, also passes active filters
+    const handleOpenMerge = () => {
+        if (selectedTests.length < 2) {
+            alert("Birlashtirish uchun kamida 2 ta test tanlanishi kerak.");
+            return;
+        }
+        const selectedObjects = tests.filter(t => selectedTests.includes(t.id));
+        const firstType = selectedObjects[0]?.type || "reading";
+        const allSameType = selectedObjects.every(t => (t.type || "reading") === firstType);
+        if (!allSameType) {
+            alert("Faqat bir xil turdagi testlarni birlashtirish mumkin (masalan, faqat Reading yoki faqat Listening).");
+            return;
+        }
+        
+        // Generate a default title: "Merged: [Test 1 Title] + [Test 2 Title]..."
+        const defaultTitle = "Merged: " + selectedObjects.map(t => t.title || "Untitled").join(" + ");
+        setMergeTitle(defaultTitle);
+        setMergeModalOpen(true);
+    };
+
+    const handleMergeConfirm = async () => {
+        if (!mergeTitle.trim()) {
+            alert("Birlashtirilgan test nomini kiriting!");
+            return;
+        }
+        setIsMerging(true);
+        try {
+            const selectedObjects = tests.filter(t => selectedTests.includes(t.id));
+            const { mergeTestsLogic } = await import("../../utils/TestUtils");
+            const mergedPayload = mergeTestsLogic(selectedObjects, mergeTitle.trim());
+
+            const { db } = await import("../../firebase/firebase");
+            const { collection, addDoc, setDoc, doc } = await import("firebase/firestore");
+            const { getQuestionTypesFromQuestions } = await import("../../components/admin/CreateTest/CreateTestUtils");
+
+            // Save new merged test to firestore 'tests' collection
+            const docRef = await addDoc(collection(db, "tests"), mergedPayload);
+            const newTestId = docRef.id;
+
+            // Compile metadata (matching compileMetadata in useTestEditor.js)
+            let duration = Number(mergedPayload.duration) || 30;
+            if (mergedPayload.type === 'listening') {
+                duration = 30;
+            } else if (mergedPayload.type === 'reading') {
+                duration = 60;
+            }
+
+            const metadata = {
+                id: newTestId,
+                title: mergedPayload.title || "",
+                type: mergedPayload.type || "reading",
+                difficulty: mergedPayload.difficulty || "medium",
+                duration: duration,
+                audioUrl: mergedPayload.audioUrl || mergedPayload.audio_url || "",
+                isExclusive: mergedPayload.isExclusive || false,
+                createdAt: mergedPayload.createdAt,
+                updatedAt: mergedPayload.updatedAt,
+                questionTypes: getQuestionTypesFromQuestions(mergedPayload.questions || []),
+            };
+
+            if (mergedPayload.type === 'listening') {
+                const parts = {};
+                (mergedPayload.passages || []).forEach((passage, idx) => {
+                    const partNum = idx + 1;
+                    const partKey = `part${partNum}`;
+                    const passageQuestions = (mergedPayload.questions || []).filter(
+                        q => String(q.passageId) === String(passage.id)
+                    );
+                    const qTypes = Array.from(new Set(
+                        passageQuestions.map(q => q.type).filter(Boolean)
+                    ));
+                    const formattedQTypes = qTypes.map(t => {
+                        const lower = t.toLowerCase();
+                        if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
+                        if (lower.includes('table')) return 'Table Completion';
+                        if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
+                        if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
+                        if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
+                        if (lower.includes('short_answer')) return 'Short Answer';
+                        return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    });
+                    parts[partKey] = {
+                        id: passage.id !== undefined ? String(passage.id) : `part-${partNum}`,
+                        title: passage.title || `Part ${partNum}`,
+                        difficulty: passage.difficulty || mergedPayload.difficulty || "medium",
+                        qTypes: Array.from(new Set(formattedQTypes)),
+                        startSec: passage.startTime !== undefined && passage.startTime !== null ? Number(passage.startTime) : 0,
+                        endSec: passage.endTime !== undefined && passage.endTime !== null ? Number(passage.endTime) : 0,
+                        audioUrl: passage.audio || mergedPayload.audio_url || ""
+                    };
+                });
+                metadata.parts = parts;
+            } else if (mergedPayload.type === 'reading') {
+                const passages = {};
+                (mergedPayload.passages || []).forEach((passage, idx) => {
+                    const passNum = idx + 1;
+                    const passKey = `passage${passNum}`;
+                    const passageQuestions = (mergedPayload.questions || []).filter(
+                        q => String(q.passageId) === String(passage.id)
+                    );
+                    const qTypes = Array.from(new Set(
+                        passageQuestions.map(q => q.type).filter(Boolean)
+                    ));
+                    const formattedQTypes = qTypes.map(t => {
+                        const lower = t.toLowerCase();
+                        if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
+                        if (lower.includes('matching_headings')) return 'Matching Headings';
+                        if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
+                        if (lower.includes('matching')) return 'Matching';
+                        if (lower.includes('table')) return 'Table Completion';
+                        if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary')) return 'Completion';
+                        return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    });
+                    passages[passKey] = {
+                        id: passage.id !== undefined ? String(passage.id) : `passage-${passNum}`,
+                        title: passage.title || `Passage ${passNum}`,
+                        difficulty: passage.difficulty || mergedPayload.difficulty || "medium",
+                        qTypes: Array.from(new Set(formattedQTypes))
+                    };
+                });
+                metadata.passages = passages;
+            }
+
+            // Save metadata
+            await setDoc(doc(db, "tests_metadata", newTestId), metadata);
+
+            alert("Testlar muvaffaqiyatli birlashtirildi!");
+            setSelectedTests([]);
+            setMergeModalOpen(false);
+            
+            // Reload page to reflect new tests
+            fetchInitial(filterType, filterCollection);
+        } catch (err) {
+            console.error("Merge error:", err);
+            alert("Birlashtirishda xatolik yuz berdi: " + err.message);
+        } finally {
+            setIsMerging(false);
+        }
+    };
+
+    // Search (debounced) or filter/collection change — single effect avoids double-fetch races
     useEffect(() => {
+        setSelectedTests([]);
         const timer = setTimeout(() => {
             if (searchTerm.trim().length >= 2) {
                 searchTests(searchTerm, filterType, filterCollection);
-            } else if (searchTerm.trim().length === 0) {
-                // If search is cleared, re-fetch with current filters
+            } else {
                 fetchInitial(filterType, filterCollection);
             }
-        }, 400);
+        }, searchTerm.trim().length >= 2 ? 400 : 0);
         return () => clearTimeout(timer);
     }, [searchTerm, filterType, filterCollection]);
-
-    // Handle Filter change (only when no active search)
-    useEffect(() => {
-        if (searchTerm.trim().length === 0) {
-            fetchInitial(filterType, filterCollection);
-        }
-    }, [filterType, filterCollection]);
 
     const filteredTests = useMemo(() => {
         // Now tests are already filtered by server for type and collection
@@ -330,7 +467,7 @@ export default function AdminTests() {
                     setViewMode={setViewMode}
                     selectedCount={selectedTests.length}
                     onBulkAssign={() => setBulkAssignModalOpen(true)} 
-                    onMerge={() => {}} 
+                    onMerge={handleOpenMerge} 
                     onCreate={() => navigate("/admin/create-test")}
                     isDark={isDark}
                 />
@@ -532,6 +669,51 @@ export default function AdminTests() {
                             >
                                 {isAssigning && <Loader2 size={16} className="animate-spin" />}
                                 Move Tests
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MERGE MODAL */}
+            {mergeModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMergeModalOpen(false)} />
+                    <div className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border ${isDark ? 'bg-[#1e1e1e] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'}`}>
+                        <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50/50'}`}>
+                            <h2 className="font-bold text-lg flex items-center gap-2">
+                                <span className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>🔗</span>
+                                Merge {selectedTests.length} tests
+                            </h2>
+                            <button onClick={() => setMergeModalOpen(false)} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-zinc-200'}`}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Merged Test Title</label>
+                                <input 
+                                    className={`w-full border p-3 rounded-xl outline-none transition-all font-bold text-sm ${isDark ? 'bg-white/5 border-white/10 focus:border-blue-500 text-white' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500 text-zinc-900'}`}
+                                    placeholder="Enter title for the merged test..."
+                                    value={mergeTitle}
+                                    onChange={e => setMergeTitle(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className={`p-6 pt-0 flex gap-3 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
+                            <button 
+                                onClick={() => setMergeModalOpen(false)} 
+                                className={`px-4 py-3 font-bold text-sm rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-zinc-400' : 'hover:bg-zinc-100 text-zinc-500'}`}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleMergeConfirm} 
+                                disabled={isMerging || !mergeTitle.trim()}
+                                className={`flex-1 font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${isMerging ? 'opacity-70 cursor-not-allowed' : ''} ${isDark ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/10' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'}`}
+                            >
+                                {isMerging && <Loader2 size={16} className="animate-spin" />}
+                                Merge Tests
                             </button>
                         </div>
                     </div>

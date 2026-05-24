@@ -21,7 +21,7 @@ export const useAdminUsers = () => {
             const [teacherSnap, g, t, s] = await Promise.all([
                 getDocs(query(collection(db, 'users'), where('role', '==', 'teacher'))),
                 getDocs(query(collection(db, 'groups'), orderBy('createdAt', 'desc'))),
-                getDocs(query(collection(db, 'tests'), orderBy('createdAt', 'desc'))),
+                getDocs(query(collection(db, 'tests_metadata'), orderBy('createdAt', 'desc'))),
                 getDocs(query(collection(db, 'testSets'), orderBy('createdAt', 'desc'))),
             ]);
 

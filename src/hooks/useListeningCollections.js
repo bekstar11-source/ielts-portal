@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { deriveQuestionTypesForCard } from '../utils/TestUtils';
 import { db } from '../firebase/firebase';
 import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 
@@ -9,6 +10,7 @@ export function useListeningCollections(userResults) {
   const [collectionTests, setCollectionTests] = useState([]);
   const [loadingCollectionTests, setLoadingCollectionTests] = useState(false);
   const [collectionCounts, setCollectionCounts] = useState({});
+  const [allCollectionsTests, setAllCollectionsTests] = useState([]);
 
   const fetchCollectionCounts = async (cols) => {
     const counts = {};
@@ -43,13 +45,25 @@ export function useListeningCollections(userResults) {
   const fetchCollections = async () => {
     setLoadingCollections(true);
     try {
-      const { orderBy } = await import("firebase/firestore");
-      const snapCols = await getDocs(query(collection(db, "test_collections"), orderBy("createdAt", "asc")));
+      const { orderBy, where: firestoreWhere } = await import("firebase/firestore");
+      const snapCols = await getDocs(query(collection(db, "test_collections"), firestoreWhere("type", "==", "listening"), orderBy("createdAt", "asc")));
       const fetchedCols = snapCols.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(c => c.type?.toLowerCase() !== 'reading');
+        .map(d => ({ id: d.id, ...d.data() }));
       setCollections(fetchedCols);
       fetchCollectionCounts(fetchedCols);
+      
+      const colIds = fetchedCols.map(c => c.id).filter(Boolean);
+      if (colIds.length > 0) {
+        const qAllTests = query(
+          collection(db, 'tests_metadata'),
+          where('collectionId', 'in', colIds)
+        );
+        const snapAllTests = await getDocs(qAllTests);
+        const fetchedAllTests = snapAllTests.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(t => t.type === 'listening');
+        setAllCollectionsTests(fetchedAllTests);
+      }
     } catch (e) {
       try {
         const snapCols = await getDocs(collection(db, "test_collections"));
@@ -58,6 +72,19 @@ export function useListeningCollections(userResults) {
           .filter(c => c.type?.toLowerCase() !== 'reading');
         setCollections(fetchedCols);
         fetchCollectionCounts(fetchedCols);
+
+        const colIds = fetchedCols.map(c => c.id).filter(Boolean);
+        if (colIds.length > 0) {
+          const qAllTests = query(
+            collection(db, 'tests_metadata'),
+            where('collectionId', 'in', colIds)
+          );
+          const snapAllTests = await getDocs(qAllTests);
+          const fetchedAllTests = snapAllTests.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(t => t.type === 'listening');
+          setAllCollectionsTests(fetchedAllTests);
+        }
       } catch (e2) {
         console.error("Failed to load collections:", e2);
       }
@@ -122,6 +149,7 @@ export function useListeningCollections(userResults) {
         ...test,
         title: test.title?.toLowerCase().includes('full') ? test.title : `${test.title} (Full Mock)`,
         isFullTest: true,
+        questionTypes: deriveQuestionTypesForCard(test),
         result: fullAttempt || null
       });
 
@@ -145,7 +173,9 @@ export function useListeningCollections(userResults) {
             audioUrl: partData.audioUrl || test.audioUrl || "",
             startTime: partData.startSec || 0,
             endTime: partData.endSec || 0,
-            questionTypes: partData.qTypes || [],
+            parts: test.parts,
+            questions: test.questions,
+            questionTypes: deriveQuestionTypesForCard({ ...test, partNumber: partNum }),
             isVirtualPart: true,
             result: partAttempt || null
           });
@@ -166,7 +196,9 @@ export function useListeningCollections(userResults) {
             audioUrl: test.audioUrl || "",
             startTime: 0,
             endTime: 0,
-            questionTypes: [],
+            parts: test.parts,
+            questions: test.questions,
+            questionTypes: deriveQuestionTypesForCard({ ...test, partNumber: partNum }),
             isVirtualPart: true,
             result: partAttempt || null
           });
@@ -187,6 +219,7 @@ export function useListeningCollections(userResults) {
     loadingCollectionTests,
     collectionCounts,
     fetchCollectionTests,
-    collectionProcessedTests
+    collectionProcessedTests,
+    allCollectionsTests
   };
 }

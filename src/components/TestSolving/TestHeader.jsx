@@ -187,6 +187,7 @@ const TestHeader = ({
     saving,
     testMode,
     onFinish,
+    onBack,
     textSize,
     setTextSize,
     showResult,
@@ -329,6 +330,15 @@ const TestHeader = ({
 
                 {/* LEFT: Logo + Test ID + Time */}
                 <div className="flex items-center gap-2 md:gap-10 flex-1 min-w-0 z-10">
+                    {onBack && (
+                        <button
+                            onClick={onBack}
+                            className="p-1 md:p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors shrink-0"
+                            title="Back"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
+                    )}
                     <IELTSLogo />
                     <div className="flex flex-col justify-center min-w-0">
                         <span className="text-[12px] md:text-[15px] font-bold text-black leading-tight truncate max-w-[80px] sm:max-w-[120px] md:max-w-[400px]" title={test?.title || test?.name}>
@@ -645,7 +655,7 @@ const TestHeader = ({
 
                                 {/* LEAVE SECTION */}
                                 <button
-                                    onClick={onFinish}
+                                    onClick={onBack || onFinish}
                                     className="w-full flex items-center gap-3 px-4 py-3.5 bg-red-50/50 hover:bg-red-50 text-red-600 rounded-xl border border-red-100/50 transition-all group"
                                 >
                                     <div className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">

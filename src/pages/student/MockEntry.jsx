@@ -25,9 +25,11 @@ import {
 import SiteFooter from '../../components/common/SiteFooter';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardModals from '../../components/dashboard/DashboardModals';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function MockEntry() {
     const { user, userData, logout } = useAuth();
+    const { t, lang } = useTranslation();
     const navigate = useNavigate();
     
     const [mockKey, setMockKey] = useState("");
@@ -110,10 +112,10 @@ export default function MockEntry() {
                 setCurrentMock(res.data.assignment);
                 setRefreshTrigger(prev => prev + 1);
             } else {
-                throw new Error("Kalitni faollashtirishda kutilmagan xatolik yuz berdi.");
+                throw new Error(t('mock.unexpectedError'));
             }
         } catch (err) {
-            setError(err.message || "Kalit xato yoki ishlatilgan!");
+            setError(err.message || t('mock.invalidKey'));
         } finally {
             setLoading(false);
         }
@@ -169,7 +171,7 @@ export default function MockEntry() {
                         <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900">
                             <ArrowLeft size={20} />
                         </button>
-                        <span className="font-bold text-sm text-gray-900">Go to Dashboard</span>
+                        <span className="font-bold text-sm text-gray-900">{t('roadmap.backToDashboard')}</span>
                     </div>
                     <div className="flex items-baseline">
                         <span className="text-[#e31b23] font-black text-[32px] tracking-normal" style={{ textShadow: '0.5px 0 0 #e31b23, -0.5px 0 0 #e31b23' }}>IELTS</span>
@@ -181,7 +183,7 @@ export default function MockEntry() {
             <main className="flex-1 w-full max-w-6xl mx-auto px-8 py-12 space-y-12 pb-24">
                 {/* Hero Section */}
                 <section>
-                    <h1 className="text-3xl font-bold text-[#e31b23] mb-2">Welcome, {userData?.fullName?.split(' ')[0] || "Candidate"}</h1>
+                    <h1 className="text-3xl font-bold text-[#e31b23] mb-2">{t('mock.welcome')}, {userData?.fullName?.split(' ')[0] || t('mock.candidate')}</h1>
                     <p className="text-gray-500 font-medium">{user?.email}</p>
                     <div className="h-[1px] bg-gray-200 w-full mt-8"></div>
                 </section>
@@ -191,8 +193,8 @@ export default function MockEntry() {
                     <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e31b23]"></div>
                     <div className="space-y-6">
                         <div className="space-y-1">
-                            <h2 className="text-xl font-bold text-gray-800">Mock Examination Access</h2>
-                            <p className="text-gray-500 text-sm">Please enter your unique access key to unlock your mock exam.</p>
+                            <h2 className="text-xl font-bold text-gray-800">{t('mock.accessTitle')}</h2>
+                            <p className="text-gray-500 text-sm">{t('mock.accessSubtitle')}</p>
                         </div>
 
                         <form onSubmit={handleVerifyKey} className="flex flex-col md:flex-row gap-3">
@@ -217,9 +219,65 @@ export default function MockEntry() {
                                     success ? 'bg-green-600 text-white' : 'bg-[#e31b23] text-white hover:bg-[#c4151c]'
                                 }`}
                             >
-                                {loading ? <Loader2 size={18} className="animate-spin" /> : success ? <Sparkles size={18} /> : "Unlock exam"}
+                                {loading ? <Loader2 size={18} className="animate-spin" /> : success ? <Sparkles size={18} /> : t('mock.unlockExam')}
                             </button>
                         </form>
+                    </div>
+                </section>
+
+                {/* Buy Mock Test Premium Banner */}
+                <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-gray-950 via-red-950 to-gray-950 text-white p-6 md:p-8 shadow-md border border-red-900/30">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-10 left-10 w-60 h-60 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="space-y-4">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-200">
+                                <Sparkles size={12} className="text-yellow-400 animate-pulse" />
+                                {lang === 'uz' ? "Maxsus taklif" : "Special Offer"}
+                            </div>
+                            
+                            <div className="space-y-1.5">
+                                <h3 className="text-2xl font-black tracking-tight leading-tight">
+                                    {lang === 'uz' ? (
+                                        <>
+                                            Mock Test Sotib Olish — <span className="text-yellow-400 font-extrabold">20 000 so'm</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            Buy Mock Test — <span className="text-yellow-400 font-extrabold">20,000 UZS</span>
+                                        </>
+                                    )}
+                                </h3>
+                                <p className="text-gray-300 text-sm font-medium">
+                                    {lang === 'uz' 
+                                        ? "Reading, Listening va Writing bo'limlarini o'z ichiga olgan to'liq imtihon simulyatsiyasi."
+                                        : "Full exam simulation containing Reading, Listening and Writing modules."
+                                    }
+                                </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {['Reading', 'Listening', 'Writing'].map((skill) => (
+                                    <span key={skill} className="px-3.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-gray-200 shadow-sm">
+                                        {skill}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="shrink-0 flex flex-col items-stretch md:items-end gap-2.5">
+                            <button 
+                                onClick={() => navigate('/pricing')}
+                                className="px-8 py-3.5 rounded-xl font-bold text-sm bg-[#e31b23] hover:bg-[#c4151c] text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-950/40 active:scale-95 group"
+                            >
+                                {lang === 'uz' ? "Sotib olish" : "Buy Now"}
+                                <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                            </button>
+                            <p className="text-gray-400 text-[10px] text-center md:text-right font-semibold uppercase tracking-wider">
+                                {lang === 'uz' ? "Tezkor faollashuv" : "Instant Activation"}
+                            </p>
+                        </div>
                     </div>
                 </section>
 
@@ -230,21 +288,29 @@ export default function MockEntry() {
                             onClick={() => setActiveTab('upcoming')}
                             className={`pb-4 text-[17px] font-bold transition-all relative ${activeTab === 'upcoming' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                         >
-                            Upcoming tests
+                            {t('mock.upcomingTests')}
                             {activeTab === 'upcoming' && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#e31b23]" />}
                         </button>
                         <button 
                             onClick={() => setActiveTab('past')}
                             className={`pb-4 text-[17px] font-bold transition-all relative ${activeTab === 'past' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                         >
-                            Past tests
+                            {t('mock.pastTests')}
                             {activeTab === 'past' && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#e31b23]" />}
                         </button>
                     </div>
                     
                     {activeTab === 'past' && filteredMocks.length > 0 && (
                         <p className="text-sm font-bold text-gray-900 mb-6 mt-8">
-                            Showing <span className="text-[#e31b23]">{filteredMocks.length}</span> past test
+                            {lang === 'uz' ? (
+                                <>
+                                    Sizda <span className="text-[#e31b23]">{filteredMocks.length}</span> ta o'tgan test mavjud
+                                </>
+                            ) : (
+                                <>
+                                    Showing <span className="text-[#e31b23]">{filteredMocks.length}</span> past test{filteredMocks.length > 1 ? 's' : ''}
+                                </>
+                            )}
                         </p>
                     )}
 
@@ -252,7 +318,7 @@ export default function MockEntry() {
                         {fetchingMocks ? (
                             <div className="py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">
                                 <Loader2 className="animate-spin mx-auto mb-4 opacity-30" size={32} /> 
-                                Authenticating data...
+                                {t('mock.authenticating')}
                             </div>
                         ) : filteredMocks.length > 0 ? (
                             filteredMocks.map((test, index) => (
@@ -261,7 +327,9 @@ export default function MockEntry() {
                         ) : (
                             <div className="border border-dashed border-gray-300 rounded-md py-20 text-center bg-gray-50/50">
                                 <FileText size={40} className="mx-auto mb-4 text-gray-200" />
-                                <p className="text-gray-400 text-sm font-medium italic">No {activeTab === 'upcoming' ? 'scheduled' : 'completed'} mock exams found.</p>
+                                <p className="text-gray-400 text-sm font-medium italic">
+                                    {activeTab === 'upcoming' ? t('mock.noUpcoming') : t('mock.noPast')}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -280,8 +348,8 @@ export default function MockEntry() {
                                         <Sparkles size={32} />
                                     </div>
                                     <div className="space-y-2">
-                                        <h2 className="text-2xl font-bold text-gray-900">Access Key Verified</h2>
-                                        <p className="text-gray-500 text-sm leading-relaxed">Your mock exam has been successfully activated. <br/>When would you like to begin?</p>
+                                        <h2 className="text-2xl font-bold text-gray-900">{t('mock.keyVerified')}</h2>
+                                        <p className="text-gray-500 text-sm leading-relaxed">{t('mock.verifiedPrompt')}</p>
                                     </div>
                                     <div className="grid grid-cols-1 gap-3 pt-4">
                                         <button onClick={() => {
@@ -291,8 +359,8 @@ export default function MockEntry() {
                                                 localStorage.removeItem('ielts_mock_active_data');
                                             } catch(e) {}
                                             navigate('/mock-exam', { state: { mockData: currentMock } });
-                                        }} className="w-full bg-[#e31b23] text-white py-4 rounded-xl font-bold text-sm hover:bg-[#c4151c] transition-all shadow-lg shadow-red-900/10">Start exam now</button>
-                                        <button onClick={() => setShowCalendar(true)} className="w-full bg-gray-50 text-gray-600 py-4 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all border border-gray-200">Schedule for later</button>
+                                        }} className="w-full bg-[#e31b23] text-white py-4 rounded-xl font-bold text-sm hover:bg-[#c4151c] transition-all shadow-lg shadow-red-900/10">{t('mock.startNow')}</button>
+                                        <button onClick={() => setShowCalendar(true)} className="w-full bg-gray-50 text-gray-600 py-4 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all border border-gray-200">{t('mock.scheduleLater')}</button>
                                     </div>
                                 </div>
                             </motion.div>
@@ -301,13 +369,17 @@ export default function MockEntry() {
                                 {/* Calendar logic remains the same but with simplified Official IELTS styling */}
                                 <div className="bg-white border border-gray-300 rounded-md p-10 shadow-2xl space-y-8">
                                     <div className="text-center">
-                                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Schedule your exam</h2>
+                                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">{t('mock.scheduleTitle')}</h2>
                                     </div>
                                     
                                     <div className="border border-gray-200 rounded-md p-6">
                                         <div className="flex items-center justify-between mb-8">
                                             <h3 className="font-bold text-[#e31b23]">
-                                                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][viewDate.getMonth()]} {viewDate.getFullYear()}
+                                                {lang === 'uz' ? (
+                                                    `${viewDate.getFullYear()}-yil ${['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'][viewDate.getMonth()]}`
+                                                ) : (
+                                                    `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][viewDate.getMonth()]} ${viewDate.getFullYear()}`
+                                                )}
                                             </h3>
                                             <div className="flex gap-2">
                                                 <button onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))} className="p-2 hover:bg-gray-50 rounded border border-gray-100"><ChevronRight className="rotate-180" size={16} /></button>
@@ -315,9 +387,15 @@ export default function MockEntry() {
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-7 gap-1">
-                                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                                                <div key={day} className="text-[10px] font-black text-gray-300 uppercase text-center py-2">{day}</div>
-                                            ))}
+                                            {lang === 'uz' ? (
+                                                ['Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan', 'Yak'].map(day => (
+                                                    <div key={day} className="text-[10px] font-black text-gray-300 uppercase text-center py-2">{day}</div>
+                                                ))
+                                            ) : (
+                                                ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                                                    <div key={day} className="text-[10px] font-black text-gray-300 uppercase text-center py-2">{day}</div>
+                                                ))
+                                            )}
 
                                             {(() => {
                                                 const days = [];
@@ -345,9 +423,9 @@ export default function MockEntry() {
                                     </div>
 
                                     <div className="flex gap-3">
-                                        <button onClick={() => setShowCalendar(false)} className="flex-1 py-4 border border-gray-200 rounded-xl font-bold text-sm text-gray-400 hover:bg-gray-50">Back</button>
+                                        <button onClick={() => setShowCalendar(false)} className="flex-1 py-4 border border-gray-200 rounded-xl font-bold text-sm text-gray-400 hover:bg-gray-50">{t('common.back')}</button>
                                         <button onClick={handleScheduleTest} disabled={loading} className="flex-[2] bg-[#e31b23] text-white py-4 rounded-xl font-bold text-sm hover:bg-[#c4151c] flex items-center justify-center gap-2">
-                                            {loading ? <Loader2 className="animate-spin" size={16} /> : "Confirm schedule"}
+                                            {loading ? <Loader2 className="animate-spin" size={16} /> : t('mock.confirmSchedule')}
                                         </button>
                                     </div>
                                 </div>
@@ -366,6 +444,8 @@ export default function MockEntry() {
 }
 
 const MockTestCard = ({ test, tab, navigate, userData }) => {
+    const { t, lang } = useTranslation();
+
     if (tab === 'past') {
         const isGraded = test.resultStatus === 'graded';
         const s = test.scores || {};
@@ -376,7 +456,9 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
             return Number(v).toFixed(1);
         };
 
-        const testDate = test.startDate ? new Date(test.startDate).toLocaleDateString('en-GB') : '---';
+        const testDate = test.startDate 
+            ? new Date(test.startDate).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) 
+            : '---';
         const trfNumber = `26UZ${Math.random().toString(36).substring(2, 8).toUpperCase()}${userData?.fullName?.slice(0, 3).toUpperCase() || 'CAN'}004A`; // Random TRF
 
         return (
@@ -391,35 +473,35 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                     <div className="space-y-3">
                         <User size={22} className="text-[#e31b23]" />
                         <div className="space-y-1">
-                            <p className="text-[15px] font-black text-gray-900 leading-tight">Test taker name</p>
-                            <p className="text-[13px] font-medium text-gray-600 truncate">{userData?.fullName || "Candidate"}</p>
+                            <p className="text-[15px] font-black text-gray-900 leading-tight">{t('mock.testTakerName')}</p>
+                            <p className="text-[13px] font-medium text-gray-600 truncate">{userData?.fullName || t('mock.candidate')}</p>
                         </div>
                     </div>
                     <div className="space-y-3">
                         <Fingerprint size={22} className="text-gray-400" />
                         <div className="space-y-1">
-                            <p className="text-[15px] font-black text-gray-900 leading-tight">Test taker ID</p>
+                            <p className="text-[15px] font-black text-gray-900 leading-tight">{t('mock.testTakerId')}</p>
                             <p className="text-[13px] font-medium text-gray-600">501235</p>
                         </div>
                     </div>
                     <div className="space-y-3">
                         <Building2 size={22} className="text-gray-400" />
                         <div className="space-y-1">
-                            <p className="text-[15px] font-black text-gray-900 leading-tight">Centre name</p>
+                            <p className="text-[15px] font-black text-gray-900 leading-tight">{t('mock.centreName')}</p>
                             <p className="text-[13px] font-medium text-gray-600">Englev</p>
                         </div>
                     </div>
                     <div className="space-y-3">
                         <Calendar size={22} className="text-gray-400" />
                         <div className="space-y-1">
-                            <p className="text-[15px] font-black text-gray-900 leading-tight">Test date</p>
+                            <p className="text-[15px] font-black text-gray-900 leading-tight">{t('mock.testDate')}</p>
                             <p className="text-[13px] font-medium text-gray-600">{testDate}</p>
                         </div>
                     </div>
                     <div className="space-y-3">
                         <FileText size={22} className="text-gray-400" />
                         <div className="space-y-1">
-                            <p className="text-[15px] font-black text-gray-900 leading-tight">TRF number</p>
+                            <p className="text-[15px] font-black text-gray-900 leading-tight">{t('mock.trfNumber')}</p>
                             <p className="text-[13px] font-medium text-gray-600 truncate">{trfNumber}</p>
                         </div>
                     </div>
@@ -430,21 +512,21 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-[#e31b23] rounded-none"></div>
-                            <h2 className="text-2xl font-bold text-gray-900">Your test result</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">{t('mock.yourResult')}</h2>
                         </div>
                         <button 
                             onClick={() => navigate('/mock-exam')}
                             className="flex items-center gap-2 text-sm font-bold text-[#e31b23] hover:underline"
                         >
-                            <span>Buy Mock Test</span>
+                            <span>{t('mock.buyMockTest')}</span>
                         </button>
                     </div>
 
                     {!isGraded ? (
                         <div className="bg-orange-50 border border-orange-100 rounded-xl p-8 text-center space-y-3">
                             <Clock className="mx-auto text-orange-400 animate-pulse" size={32} />
-                            <h3 className="font-bold text-orange-800 text-lg">Results are being processed</h3>
-                            <p className="text-orange-600 text-sm max-w-md mx-auto">Your Writing and Speaking sections are currently being reviewed by our examiners. Usually this takes 1-3 days.</p>
+                            <h3 className="font-bold text-orange-800 text-lg">{t('mock.processingResults')}</h3>
+                            <p className="text-orange-600 text-sm max-w-md mx-auto">{t('mock.processingDesc')}</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -454,7 +536,7 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                                 className="w-full bg-white hover:bg-gray-50 transition-all rounded-xl p-5 flex justify-between items-center group shadow-sm border border-gray-200"
                             >
                                 <div className="text-left space-y-1">
-                                    <span className="text-[18px] font-black text-gray-900">Overall</span>
+                                    <span className="text-[18px] font-black text-gray-900">{t('mock.overall')}</span>
                                     <p className="text-[38px] font-black text-[#e31b23] leading-none tracking-tighter">{fmt(test.bandScore)}</p>
                                 </div>
                                 <ChevronRight size={24} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
@@ -463,10 +545,10 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                             {/* Skills Grid */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {[
-                                    { label: 'Listening', key: 'listeningBand' },
-                                    { label: 'Reading', key: 'readingBand' },
-                                    { label: 'Writing', key: 'writingBand' },
-                                    { label: 'Speaking', key: 'speakingBand' }
+                                    { label: t('myResults.categories.listening'), key: 'listeningBand' },
+                                    { label: t('myResults.categories.reading'), key: 'readingBand' },
+                                    { label: t('myResults.categories.writing'), key: 'writingBand' },
+                                    { label: t('myResults.categories.speaking'), key: 'speakingBand' }
                                 ].map((skill) => {
                                     const baseKey = skill.key.replace('Band', '');
                                     const val = s[skill.key] ?? s[baseKey] ?? test[skill.key] ?? test[baseKey];
@@ -495,18 +577,18 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                     <div className="flex items-center gap-4 text-gray-400">
                         <div className="flex items-center gap-2">
                             <Monitor size={14} />
-                            <span className="text-[11px] font-bold uppercase tracking-wider">Computer</span>
+                            <span className="text-[11px] font-bold uppercase tracking-wider">{t('mock.computer')}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <MapPin size={14} />
-                            <span className="text-[11px] font-bold uppercase tracking-wider">Official Center</span>
+                            <span className="text-[11px] font-bold uppercase tracking-wider">{t('mock.officialCenter')}</span>
                         </div>
                     </div>
                     <button 
                         onClick={() => navigate(`/review/${test.resultId || test.id}`)}
                         className="text-[#e31b23] text-sm font-bold hover:underline flex items-center gap-1 group"
                     >
-                        View full report
+                        {t('mock.viewFullReport')}
                         <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                     </button>
                 </div>
@@ -520,29 +602,29 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                 <div className="space-y-4 flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
                         <h4 className="text-xl font-bold text-gray-800">IELTS CD Academic Full Mock</h4>
-                        <span className="text-[11px] font-bold text-[#e31b23] bg-red-50 px-2.5 py-1 rounded-full border border-red-100">Unlocked</span>
+                        <span className="text-[11px] font-bold text-[#e31b23] bg-red-50 px-2.5 py-1 rounded-full border border-red-100">{t('mock.unlocked')}</span>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <div className="flex items-center gap-3 text-gray-400">
                             <Calendar size={16} className="shrink-0" />
                             <div className="flex flex-col">
-                                <span className="text-[11px] font-medium text-gray-400">Scheduled date</span>
-                                <span className="text-sm font-semibold text-gray-700">{test.scheduledDate ? new Date(test.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Flexible'}</span>
+                                <span className="text-[11px] font-medium text-gray-400">{t('mock.scheduledDate')}</span>
+                                <span className="text-sm font-semibold text-gray-700">{test.scheduledDate ? new Date(test.scheduledDate).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : t('mock.flexible')}</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 text-gray-400">
                             <Monitor size={16} className="shrink-0" />
                             <div className="flex flex-col">
-                                <span className="text-[11px] font-medium text-gray-400">Test format</span>
-                                <span className="text-sm font-semibold text-gray-700">Official computer-delivered</span>
+                                <span className="text-[11px] font-medium text-gray-400">{t('mock.testFormat')}</span>
+                                <span className="text-sm font-semibold text-gray-700">{t('mock.officialComputer')}</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 text-gray-400">
                             <MapPin size={16} className="shrink-0" />
                             <div className="flex flex-col">
-                                <span className="text-[11px] font-medium text-gray-400">Location</span>
-                                <span className="text-sm font-semibold text-gray-700">Online exam center</span>
+                                <span className="text-[11px] font-medium text-gray-400">{t('mock.location')}</span>
+                                <span className="text-sm font-semibold text-gray-700">{t('mock.onlineExamCenter')}</span>
                             </div>
                         </div>
                     </div>
@@ -565,7 +647,7 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                     }}
                     className="w-full md:w-auto px-10 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 bg-[#e31b23] text-white hover:bg-[#c4151c] shadow-lg shadow-red-900/20"
                 >
-                    Start exam
+                    {t('mock.startExam')}
                     <ChevronRight size={16} />
                 </button>
             </div>

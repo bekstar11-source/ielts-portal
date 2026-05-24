@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { clearTestStorage } from "../utils/TestUtils";
 
 // Modular Hooks
 import { useTestFetch } from "./test/useTestFetch";
@@ -132,8 +133,7 @@ export function useTestLogic() {
             setBandScore(res.bandScore);
             setResultId(res.resultId);
             setShowResult(true);
-            localStorage.removeItem(`draft_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`);
-            sessionStorage.removeItem(`timer_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`);
+            clearTestStorage(user.uid, test.id, partNumber);
             // Note: We don't remove reading highlights here so they are available in Review mode.
             // They will be cleared if the user explicitly restarts the test.
         }

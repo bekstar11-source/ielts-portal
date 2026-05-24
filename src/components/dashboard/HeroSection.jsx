@@ -58,6 +58,7 @@ export default function HeroSection({
                 finalDays={finalDays}
                 animatedCurrent={animatedCurrent}
                 animatedDays={animatedDays}
+                skillStats={skillStats}
             />
 
             <DashboardAnalytics skillStats={skillStats} onToggleSkill={onToggleSkill} />

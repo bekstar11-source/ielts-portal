@@ -19,6 +19,7 @@ import Pagination from "../../components/common/Pagination";
 import SiteFooter from "../../components/common/SiteFooter";
 import LimitReachedSheet from "../../components/dashboard/LimitReachedSheet";
 import { useDailyLimit } from "../../hooks/useDailyLimit";
+import { useTranslation } from "../../context/LanguageContext";
 
 // REFACTORED COMPONENTS
 import PracticeHero from "../../components/practice/PracticeHero";
@@ -40,6 +41,7 @@ const categories = [
 
 export default function Practice() {
   const { user, logout, userData } = useAuth();
+  const { t, lang } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -91,9 +93,9 @@ export default function Practice() {
 
   // Sub filters for reading
   const readingFilters = [
-    { id: 'passages', label: 'Passages', ref: passagesSectionRef },
-    { id: 'full_test', label: 'Full Tests', ref: fullTestSectionRef },
-    { id: 'set', label: 'Sets', ref: setSectionRef }
+    { id: 'passages', label: t('practice.readingPassages'), ref: passagesSectionRef },
+    { id: 'full_test', label: t('practice.fullReading'), ref: fullTestSectionRef },
+    { id: 'set', label: t('practice.sets'), ref: setSectionRef }
   ];
   const [activeSubTab, setActiveSubTab] = useState('passages');
 
@@ -353,14 +355,14 @@ export default function Practice() {
     if (targetId) {
         navigate(`/test/${targetId}`);
     } else {
-        alert("Test ID topilmadi! Iltimos, sahifani yangilab qayta urinib ko'ring.");
+        alert(t('practice.testIdNotFound'));
     }
   };
 
   const handleReview = (test) => {
     const resultId = test.result?.id;
     if (!resultId) {
-      alert("Natija topilmadi!");
+      alert(t('practice.resultNotFound'));
       return;
     }
     navigate(`/review/${resultId}`);
@@ -375,15 +377,15 @@ export default function Practice() {
         const res = await verifyAccessKeyFn({ key: accessKeyInput });
 
         if (res.data && res.data.success) {
-            alert("Test qo'shildi! 🚀");
+            alert(t('practice.testAdded'));
             await refresh();
             setShowKeyModal(false); 
             setAccessKeyInput("");
         } else {
-            throw new Error("Kalitni faollashtirishda kutilmagan xatolik yuz berdi.");
+            throw new Error(t('mock.unexpectedError'));
         }
     } catch (error) { 
-        setKeyError(error.message || "Kalit xato yoki ishlatilgan!"); 
+        setKeyError(error.message || t('mock.invalidKey')); 
     } finally { 
         setCheckingKey(false); 
     }
@@ -442,8 +444,8 @@ export default function Practice() {
                    <div className="w-16 h-16 bg-[#f5f5f7] rounded-full flex items-center justify-center mb-6">
                       <Search size={24} className="text-gray-300" />
                    </div>
-                   <h3 className="text-[24px] font-semibold text-[#1d1d1f]">Hech narsa topilmadi</h3>
-                   <p className="text-[#86868b] mt-2 max-w-[300px]">Qidiruv mezonlariga mos keladigan testlar mavjud emas.</p>
+                   <h3 className="text-[24px] font-semibold text-[#1d1d1f]">{t('practice.notFound')}</h3>
+                   <p className="text-[#86868b] mt-2 max-w-[300px]">{t('practice.notFoundDesc')}</p>
                 </div>
               ) : (
                   <motion.div 
@@ -468,12 +470,12 @@ export default function Practice() {
                                     <div className="space-y-4" ref={passagesSectionRef}>
                                         {isReading && (
                                             <div className="space-y-1">
-                                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Reading Passages</h2>
-                                                <p className="text-[#86868b] text-[14px]">Displaying {filteredTests.length} out of a total {rawAssignments.length} tests</p>
+                                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">{t('practice.readingPassages')}</h2>
+                                                <p className="text-[#86868b] text-[14px]">{t('practice.displayingTests').replace('{count}', filteredTests.length).replace('{total}', rawAssignments.length)}</p>
                                             </div>
                                         )}
                                         
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-5 pt-4">
                                             {standardTests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
                                                 <PracticeCard 
                                                     key={test.id} 
@@ -553,7 +555,7 @@ export default function Practice() {
                                             className="space-y-4"
                                             ref={fullTestSectionRef}
                                         >
-                                            <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Full Reading</h2>
+                                            <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">{t('practice.fullReading')}</h2>
                                             <div 
                                                 ref={fullReadingScroll.scrollRef}
                                                 onScroll={(e) => fullReadingScroll.updateScrollState(e.currentTarget)}
@@ -612,9 +614,9 @@ export default function Practice() {
                                                 className="space-y-4"
                                                 ref={setSectionRef}
                                             >
-                                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Sets</h2>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-                                                    {readingSets.slice(0, 2).map((set, i) => (
+                                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">{t('practice.sets')}</h2>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-6">
+                                                    {readingSets.slice(0, 3).map((set, i) => (
                                                       <ReadingSetCard 
                                                         key={set.id}
                                                         set={set}

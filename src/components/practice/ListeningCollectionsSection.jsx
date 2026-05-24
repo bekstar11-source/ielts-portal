@@ -1,6 +1,18 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Loader2, Headphones, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Headphones, BookOpen, Crown, List } from 'lucide-react';
 import PracticeCard from './PracticeCard';
+
+const getColDescription = (name) => {
+  if (!name) return "Curated collection of high-yield IELTS listening exams.";
+  const lower = name.toLowerCase();
+  if (lower.includes('cambridge')) {
+    return "Official Cambridge practice tests for academic preparation.";
+  }
+  if (lower.includes('real') || lower.includes('actual') || lower.includes('past')) {
+    return "Real past exam papers gathered from actual test sessions.";
+  }
+  return "Specialized exam sets structured for band score improvement.";
+};
 
 export default function ListeningCollectionsSection({
   collectionsSectionRef,
@@ -33,7 +45,7 @@ export default function ListeningCollectionsSection({
 
         {selectedCollectionId ? (
             /* Active Collection View */
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="space-y-8">
                 {/* Back button and Collection Info */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-zinc-50 p-4 rounded-2xl border border-zinc-100 gap-4">
                     <div className="flex items-center gap-4">
@@ -67,38 +79,14 @@ export default function ListeningCollectionsSection({
                     </div>
                 ) : (
                     <div className="space-y-10">
-                        {/* Parts in Collection */}
-                        {collectionProcessedTests.partTestsList.length > 0 && (
-                            <div className="space-y-4">
-                                <h4 className="text-xl font-bold text-zinc-800 tracking-tight flex items-center gap-2">
-                                    <Headphones size={20} className="text-[#0066cc]" />
-                                    Listening Parts ({collectionProcessedTests.partTestsList.length})
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                                    {collectionProcessedTests.partTestsList.map(test => (
-                                        <PracticeCard 
-                                            key={test.id} 
-                                            test={test} 
-                                            isCompleted={!!test.result}
-                                            onReview={handleReview}
-                                            onStart={handleStartTest}
-                                            onSelectSet={setSelectedSet}
-                                            isPro={isPro}
-                                            isStandard={isStandard}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         {/* Full Tests in Collection */}
                         {collectionProcessedTests.fullTestsList.length > 0 && (
-                            <div className="space-y-4 pt-8 border-t border-zinc-100">
+                            <div className="space-y-4">
                                 <h4 className="text-xl font-bold text-zinc-800 tracking-tight flex items-center gap-2">
                                     <BookOpen size={20} className="text-[#0066cc]" />
                                     Full Mock Tests ({collectionProcessedTests.fullTestsList.length})
                                 </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                                     {collectionProcessedTests.fullTestsList.map(test => (
                                         <PracticeCard 
                                             key={test.id} 
@@ -128,9 +116,10 @@ export default function ListeningCollectionsSection({
                     Hozircha hech qanday kolleksiya yaratilmagan.
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
                     {collections.map(col => {
                         const testCount = collectionCounts[col.id] || 0;
+                        const colIdString = col.id ? `COL-${col.id.slice(0, 4).toUpperCase()}` : 'COL-0000';
                         return (
                             <div 
                                 key={col.id}
@@ -138,35 +127,37 @@ export default function ListeningCollectionsSection({
                                     setSelectedCollectionId(col.id);
                                     fetchCollectionTests(col.id);
                                 }}
-                                className="group relative bg-white border border-zinc-100 rounded-3xl p-6 hover:border-[#0066cc]/30 hover:shadow-2xl hover:shadow-[#0066cc]/5 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden h-[200px]"
+                                className="group bg-white border border-zinc-200/80 rounded-2xl p-6 hover:border-zinc-300 hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[175px] font-sans relative shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                             >
-                                {/* Background glow overlay */}
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-[#0066cc]/5 rounded-full blur-2xl group-hover:bg-[#0066cc]/10 transition-colors duration-300" />
-                                
-                                <div className="space-y-4">
-                                    {/* Thumbnail or Folder Icon */}
-                                    <div className="w-12 h-12 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300">
-                                        {col.thumbnail ? (
-                                            <img src={col.thumbnail} className="w-full h-full object-cover" alt="" />
-                                        ) : (
-                                            <BookOpen className="w-6 h-6 text-zinc-400 group-hover:text-[#0066cc] transition-colors" />
-                                        )}
+                                {/* Top Header Block: Title + Pro Badge */}
+                                <div className="flex justify-between items-start gap-4">
+                                    <div className="space-y-0.5">
+                                        <h3 className="font-bold text-zinc-900 text-lg leading-tight tracking-tight group-hover:text-[#0066cc] transition-colors line-clamp-1">
+                                            {col.name}
+                                        </h3>
+                                        <span className="text-[13px] font-medium text-zinc-400 block mt-1">
+                                            Listening
+                                        </span>
                                     </div>
                                     
-                                    {/* Collection Title */}
-                                    <h3 className="font-bold text-zinc-800 text-base line-clamp-2 leading-snug group-hover:text-[#0066cc] transition-colors">
-                                        {col.name}
-                                    </h3>
+                                    {/* PRO Badge */}
+                                    <div className="flex items-center gap-1 bg-[#ffd43b] text-[#1d1d1f] font-bold text-[10.5px] px-2.5 py-1.5 rounded-[6px] select-none shrink-0 shadow-sm">
+                                        <Crown size={12} className="fill-current text-[#1d1d1f]" />
+                                        PRO
+                                    </div>
                                 </div>
 
-                                {/* Bottom Info Row */}
-                                <div className="flex items-center justify-between pt-4 border-t border-zinc-100/50">
-                                    <span className="text-xs font-semibold text-zinc-400">
-                                        {testCount} ta test
-                                    </span>
-                                    <span className="text-xs font-bold text-[#0066cc] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                        Ochish <ChevronRight size={14} />
-                                    </span>
+                                {/* Description Block */}
+                                <p className="text-zinc-500 text-[14.5px] leading-snug my-3 line-clamp-2">
+                                    {col.description || getColDescription(col.name)}
+                                </p>
+
+                                {/* Footer Block: Tests Count Badge */}
+                                <div className="flex items-center mt-auto">
+                                    <div className="flex items-center gap-1.5 bg-[#f1f3f5] text-zinc-800 font-semibold text-[12.5px] px-3 py-1.5 rounded-lg select-none">
+                                        <List size={14} className="text-zinc-500" />
+                                        {testCount} tests
+                                    </div>
                                 </div>
                             </div>
                         );

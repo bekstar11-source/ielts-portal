@@ -34,6 +34,12 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
 
     // Race-Condition Counter
     const latestRequestIdRef = useRef(0);
+    // Client-side pagination fallback when compound queries lack indexes
+    const fallbackDocsRef = useRef(null);
+
+    const normalizeType = (type) => (type === 'All' ? 'All' : (type || '').toLowerCase());
+    const cacheKeyFor = (type, collectionId, page) =>
+        `${normalizeType(type)}_${collectionId || 'All'}_${page}`;
 
     const fetchCollections = async () => {
         try {
@@ -53,10 +59,11 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
 
     // Helper to get total count via high-speed, lightweight Firestore counting
     const getFilterCount = async (type, collectionId) => {
+        const normalizedType = normalizeType(type);
         try {
             let countConstraints = [];
-            if (type !== "All") {
-                countConstraints.push(where("type", "==", type.toLowerCase()));
+            if (normalizedType !== "All") {
+                countConstraints.push(where("type", "==", normalizedType));
             }
             if (collectionId !== "All") {
                 if (collectionId === "None") {
@@ -65,7 +72,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     countConstraints.push(where("collectionId", "==", collectionId));
                 }
             }
-            const qCount = query(collection(db, "tests"), ...countConstraints);
+            const qCount = query(collection(db, "tests_metadata"), ...countConstraints);
             const countSnap = await getCountFromServer(qCount);
             return countSnap.data().count;
         } catch (e) {
@@ -78,7 +85,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
     useEffect(() => {
         const warmCache = async () => {
             try {
-                const snapAll = await getDocs(query(collection(db, "tests"), limit(1500)));
+                const snapAll = await getDocs(query(collection(db, "tests_metadata"), limit(1500)));
                 const allDocs = snapAll.docs.map(d => ({ id: d.id, ...d.data() }));
                 setAllTestsCache(allDocs);
             } catch (err) {
@@ -90,9 +97,11 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
 
     const fetchInitial = async (type = "All", collectionId = "All") => {
         const requestId = ++latestRequestIdRef.current;
+        const normalizedType = normalizeType(type);
         setIsSearching(false);
+        fallbackDocsRef.current = null;
 
-        const cacheKey = `${type}_${collectionId}_1`;
+        const cacheKey = cacheKeyFor(type, collectionId, 1);
         const cached = swrCache[cacheKey];
 
         if (cached) {
@@ -113,8 +122,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
 
             // 2. Fetch page documents ordered by creation date
             let constraints = [];
-            if (type !== "All") {
-                constraints.push(where("type", "==", type.toLowerCase()));
+            if (normalizedType !== "All") {
+                constraints.push(where("type", "==", normalizedType));
             }
             if (collectionId !== "All") {
                 if (collectionId === "None") {
@@ -126,7 +135,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             constraints.push(orderBy("createdAt", "desc"));
             constraints.push(limit(PAGE_SIZE));
 
-            const qTests = query(collection(db, "tests"), ...constraints);
+            const qTests = query(collection(db, "tests_metadata"), ...constraints);
             const snapTests = await getDocs(qTests);
             
             const total = await totalPromise;
@@ -147,17 +156,19 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             setTests(testsData);
             setTotalTestCount(total);
             setCurrentPage(1);
-            if (snapTests.docs.length > 0) {
-                setPageLastVisible({ 1: snapTests.docs[snapTests.docs.length - 1] });
-            }
+            setPageLastVisible(
+                snapTests.docs.length > 0
+                    ? { 1: snapTests.docs[snapTests.docs.length - 1] }
+                    : {}
+            );
             setHasMore(testsData.length === PAGE_SIZE && testsData.length < total);
         } catch (err) {
             console.error("Fetch Initial Error:", err);
             // Fallback for missing compound indexes: fetch unordered and sort client-side
             try {
                 let constraints = [];
-                if (type !== "All") {
-                    constraints.push(where("type", "==", type.toLowerCase()));
+                if (normalizedType !== "All") {
+                    constraints.push(where("type", "==", normalizedType));
                 }
                 if (collectionId !== "All" && collectionId !== "None") {
                     constraints.push(where("collectionId", "==", collectionId));
@@ -165,9 +176,9 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                 if (collectionId === "None") {
                     constraints.push(where("collectionId", "==", null));
                 }
-                constraints.push(limit(200));
+                constraints.push(limit(500));
 
-                const qTests = query(collection(db, "tests"), ...constraints);
+                const qTests = query(collection(db, "tests_metadata"), ...constraints);
                 const snapTests = await getDocs(qTests);
                 
                 if (requestId !== latestRequestIdRef.current) return;
@@ -181,6 +192,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     return bTime - aTime;
                 });
 
+                fallbackDocsRef.current = docs;
                 const total = docs.length;
                 const pageItems = docs.slice(0, PAGE_SIZE);
 
@@ -192,6 +204,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                 setTests(pageItems);
                 setTotalTestCount(total);
                 setCurrentPage(1);
+                setPageLastVisible({});
                 setHasMore(total > PAGE_SIZE);
             } catch (e2) {
                 console.error("Index fallback failed:", e2);
@@ -212,8 +225,23 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         if (page === currentPage && !isSearching) return;
 
         const requestId = ++latestRequestIdRef.current;
-        const cacheKey = `${type}_${collectionId}_${page}`;
+        const normalizedType = normalizeType(type);
+        const cacheKey = cacheKeyFor(type, collectionId, page);
         const cached = swrCache[cacheKey];
+
+        // Client-side pagination when server-side cursor pagination is unavailable
+        if (fallbackDocsRef.current) {
+            const total = fallbackDocsRef.current.length;
+            const start = (page - 1) * PAGE_SIZE;
+            const pageItems = fallbackDocsRef.current.slice(start, start + PAGE_SIZE);
+            setTests(pageItems);
+            setCurrentPage(page);
+            setHasMore(page * PAGE_SIZE < total);
+            setSwrCache(prev => ({ ...prev, [cacheKey]: { tests: pageItems, total } }));
+            setLoading(false);
+            setIsBackgroundRefreshing(false);
+            return;
+        }
 
         if (cached) {
             // SWR instant page navigation
@@ -230,8 +258,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             const prevPageLastDoc = page > 1 ? pageLastVisible[page - 1] : null;
             
             let constraints = [];
-            if (type !== "All") {
-                constraints.push(where("type", "==", type.toLowerCase()));
+            if (normalizedType !== "All") {
+                constraints.push(where("type", "==", normalizedType));
             }
             if (collectionId !== "All") {
                 if (collectionId === "None") {
@@ -247,7 +275,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             }
             constraints.push(limit(PAGE_SIZE));
 
-            const qTests = query(collection(db, "tests"), ...constraints);
+            const qTests = query(collection(db, "tests_metadata"), ...constraints);
             const snapTests = await getDocs(qTests);
             
             if (requestId !== latestRequestIdRef.current) return;
@@ -271,6 +299,40 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             setHasMore(page * PAGE_SIZE < total);
         } catch (err) {
             console.error("Fetch Page Error:", err);
+            // Re-fetch full filtered set for client-side page slice
+            try {
+                let constraints = [];
+                if (normalizedType !== "All") {
+                    constraints.push(where("type", "==", normalizedType));
+                }
+                if (collectionId !== "All" && collectionId !== "None") {
+                    constraints.push(where("collectionId", "==", collectionId));
+                }
+                if (collectionId === "None") {
+                    constraints.push(where("collectionId", "==", null));
+                }
+                constraints.push(limit(500));
+                const snapTests = await getDocs(query(collection(db, "tests_metadata"), ...constraints));
+                if (requestId !== latestRequestIdRef.current) return;
+
+                let docs = snapTests.docs.map(d => ({ id: d.id, ...d.data() }))
+                    .filter(t => !t.id.startsWith("_tag") && t.id !== "tag_metadata");
+                docs.sort((a, b) => {
+                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    return bTime - aTime;
+                });
+                fallbackDocsRef.current = docs;
+                const total = docs.length;
+                const start = (page - 1) * PAGE_SIZE;
+                const pageItems = docs.slice(start, start + PAGE_SIZE);
+                setSwrCache(prev => ({ ...prev, [cacheKey]: { tests: pageItems, total } }));
+                setTests(pageItems);
+                setCurrentPage(page);
+                setHasMore(page * PAGE_SIZE < total);
+            } catch (e2) {
+                console.error("Fetch Page fallback failed:", e2);
+            }
         } finally {
             if (requestId === latestRequestIdRef.current) {
                 setLoading(false);
@@ -286,6 +348,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
 
         const requestId = ++latestRequestIdRef.current;
+        const normalizedType = normalizeType(type);
+        fallbackDocsRef.current = null;
         setLoading(true);
         setIsSearching(true);
 
@@ -295,7 +359,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             let allDocs = allTestsCache;
             if (allDocs.length === 0) {
                 // Fetch on demand if background warm hasn't completed yet
-                const snapAll = await getDocs(query(collection(db, "tests"), limit(1500)));
+                const snapAll = await getDocs(query(collection(db, "tests_metadata"), limit(1500)));
                 allDocs = snapAll.docs.map(d => ({ id: d.id, ...d.data() }));
                 setAllTestsCache(allDocs);
             }
@@ -306,7 +370,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                 if (t.id.startsWith("_tag") || t.id === "tag_metadata") return false;
                 const titleMatch = (t.title || "").toLowerCase().includes(termLower);
                 if (!titleMatch) return false;
-                if (type !== "All" && t.type?.toLowerCase() !== type.toLowerCase()) return false;
+                if (normalizedType !== "All" && t.type?.toLowerCase() !== normalizedType) return false;
                 if (collectionId !== "All" && collectionId !== "None" && t.collectionId !== collectionId) return false;
                 if (collectionId === "None" && t.collectionId) return false;
                 return true;
@@ -335,7 +399,10 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
 
     const handleDelete = async (id) => {
         try {
-            await deleteDoc(doc(db, "tests", id));
+            await Promise.all([
+                deleteDoc(doc(db, "tests", id)),
+                deleteDoc(doc(db, "tests_metadata", id)).catch(() => {})
+            ]);
             setTests(prev => prev.filter(t => t.id !== id));
             setAllTestsCache(prev => prev.filter(t => t.id !== id));
             setTotalTestCount(prev => prev - 1);

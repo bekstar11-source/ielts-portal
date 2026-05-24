@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, ChevronDown, Trash2 } from 'lucide-react';
+import { useTranslation } from '../../context/LanguageContext';
 
 const KeywordList = ({ keywords, searchTerm, onDelete, isDark }) => {
     const [expandedGroup, setExpandedGroup] = useState(null);
+    const { t } = useTranslation();
 
     const filteredKeywords = useMemo(() => {
         return keywords.filter(k => {
@@ -15,19 +17,19 @@ const KeywordList = ({ keywords, searchTerm, onDelete, isDark }) => {
 
     const groupedKeywords = useMemo(() => {
         return filteredKeywords.reduce((acc, kw) => {
-            const key = kw.testName || "Unknown Test";
+            const key = kw.testName || t('wordbank.unknownTest');
             if (!acc[key]) acc[key] = [];
             acc[key].push(kw);
             return acc;
         }, {});
-    }, [filteredKeywords]);
+    }, [filteredKeywords, t]);
 
     if (filteredKeywords.length === 0) {
         return (
             <div className="text-center py-20 border-2 border-dashed border-gray-100 dark:border-white/5 rounded-2xl">
                 <BookOpen className="w-8 h-8 text-gray-300 mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-1">No keywords yet</h3>
-                <p className="text-sm text-gray-500">Keywords you highlight in reading tests will appear here.</p>
+                <h3 className="font-semibold text-lg mb-1">{t('wordbank.noKeywords')}</h3>
+                <p className="text-sm text-gray-500">{t('wordbank.noKeywordsDesc')}</p>
             </div>
         );
     }
@@ -48,7 +50,7 @@ const KeywordList = ({ keywords, searchTerm, onDelete, isDark }) => {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-sm">{testName}</h3>
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{kwList.length} keywords</p>
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{t('wordbank.keywordsCount').replace('{count}', kwList.length)}</p>
                                 </div>
                             </div>
                             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -61,9 +63,9 @@ const KeywordList = ({ keywords, searchTerm, onDelete, isDark }) => {
                                             <table className="w-full text-sm">
                                                 <thead>
                                                     <tr className={`text-[10px] font-bold uppercase tracking-wider text-gray-400 ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
-                                                        <th className="text-left py-3 px-5">Passage Word</th>
-                                                        <th className="text-center py-3 px-5">Type</th>
-                                                        <th className="text-left py-3 px-5">Question Word</th>
+                                                        <th className="text-left py-3 px-5">{t('wordbank.passageWord')}</th>
+                                                        <th className="text-center py-3 px-5">{t('wordbank.type')}</th>
+                                                        <th className="text-left py-3 px-5">{t('wordbank.questionWord')}</th>
                                                         <th className="text-right py-3 px-5"></th>
                                                     </tr>
                                                 </thead>

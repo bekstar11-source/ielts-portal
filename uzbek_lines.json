@@ -1,0 +1,6120 @@
+{
+  "context/AuthContext.jsx": [
+    {
+      "line": 74,
+      "content": "const hasPremium = data.accountType === 'pro' || data.accountType === 'standard' || data.isPro;"
+    },
+    {
+      "line": 113,
+      "content": "console.error(\"refreshUserData xatolik:\", e);"
+    },
+    {
+      "line": 214,
+      "content": "console.error(\"Firestore user data xatolik:\", error);"
+    }
+  ],
+  "context/PodcastContext.jsx": [
+    {
+      "line": 177,
+      "content": "currentTrack.mediaType === 'video' ? ("
+    }
+  ],
+  "utils/recommendations.js": [
+    {
+      "line": 11,
+      "content": "if (averages.reading > 0 && averages.reading < 7.0) focusSkills.push('reading');"
+    },
+    {
+      "line": 12,
+      "content": "if (averages.listening > 0 && averages.listening < 7.0) focusSkills.push('listening');"
+    },
+    {
+      "line": 13,
+      "content": "if (averages.writing > 0 && averages.writing < 6.5) focusSkills.push('writing');"
+    },
+    {
+      "line": 14,
+      "content": "if (averages.speaking > 0 && averages.speaking < 6.5) focusSkills.push('speaking');"
+    }
+  ],
+  "utils/ieltsScoring.js": [
+    {
+      "line": 7,
+      "content": "if (t === 'listening' || t === 'reading') {"
+    },
+    {
+      "line": 174,
+      "content": "t.includes('pick two') ||"
+    },
+    {
+      "line": 246,
+      "content": "else if (t.includes('two')) weight = 2;"
+    }
+  ],
+  "utils/podcastGrading.js": [
+    {
+      "line": 28,
+      "content": "* 4 ta IELTS bandini o'rtachalab yakuniy ballni hisoblaydi."
+    },
+    {
+      "line": 39,
+      "content": "* Dictation stage uchun: nechta so'z to'g'ri yozilganini hisoblaydi."
+    },
+    {
+      "line": 64,
+      "content": "* MCQ va Gap-fill uchun: to'g'ri javoblar sonini foizga aylantiradi."
+    },
+    {
+      "line": 72,
+      "content": "* MCQ + GapFill o'rtacha → Listening Comprehension IELTS bali."
+    }
+  ],
+  "utils/wordbankUtils.js": [
+    {
+      "line": 16,
+      "content": "* Bitta so'z juftligini WordBank'ga qo'shish"
+    },
+    {
+      "line": 32,
+      "content": "* Foydalanuvchining barcha WordBank so'zlarini olish"
+    },
+    {
+      "line": 42,
+      "content": "* WordBank'dan bitta so'zni o'chirish"
+    },
+    {
+      "line": 50,
+      "content": "* Bir nechta so'zni bir vaqtda batch yozish (Review tugagach)"
+    },
+    {
+      "line": 76,
+      "content": "* Barcha juftlarni Firestore ga saqlash."
+    },
+    {
+      "line": 77,
+      "content": "* Har bir juft uchun doc ID = pair.id (lokal state dagi)"
+    },
+    {
+      "line": 78,
+      "content": "* Bu funksiya har gal Canvas \"Saqlash\" bosilganda chaqiriladi."
+    },
+    {
+      "line": 100,
+      "content": "* Bitta test uchun barcha juftlarni yuklash."
+    },
+    {
+      "line": 110,
+      "content": "* Bir nechta testId uchun juftlar sonini parallel olish."
+    },
+    {
+      "line": 131,
+      "content": "* Bitta juftni o'chirish."
+    }
+  ],
+  "utils/highlightUtils.js": [
+    {
+      "line": 6,
+      "content": "* HTML matn ichidagi so'zlarni xavfsiz highlight qilish."
+    },
+    {
+      "line": 7,
+      "content": "* Bu funksiya to'g'ridan-to'g'ri stringni qirqmaydi, balki DOM Tree bo'ylab yuradi."
+    },
+    {
+      "line": 57,
+      "content": "console.warn(\"Highlight teglarni kesib o'tdi, o'tkazib yuborildi.\");"
+    },
+    {
+      "line": 69,
+      "content": "* Butun matn (container) bo'yicha global offset (masalan, 150-harf)"
+    },
+    {
+      "line": 70,
+      "content": "* qaysi TextNode ichida va uning ichidagi qaysi indeksda ekanini topadi."
+    },
+    {
+      "line": 125,
+      "content": "* @param {string|null} questionId - (isQuestion=true paytida) faqat shu savolga oid so'zlarni ol"
+    },
+    {
+      "line": 126,
+      "content": "* @returns {string} - O'zgartirilgan HTML string"
+    }
+  ],
+  "utils/gapParser.js": [
+    {
+      "line": 38,
+      "content": "* O'quvchi javobini to'g'ri javob bilan case-insensitive va punctuation-insensitive taqqoslaydi."
+    }
+  ],
+  "components/InteractivePlayer.jsx": [
+    {
+      "line": 222,
+      "content": "const isVideoMode = (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') && podcast.showVideo !== false && String(podcast.showVideo) !== 'false';"
+    },
+    {
+      "line": 237,
+      "content": "pointerEvents: isOpen ? 'auto' : 'none',"
+    },
+    {
+      "line": 255,
+      "content": "<div className={`flex-none lg:col-span-6 ${!isVideoMode ? 'h-[25vh]' : 'h-auto'} lg:h-full flex flex-col lg:border-r z-20 ${isDark ? 'border-neutral-800 shadow-none' : 'border-zinc-100 shadow-sm'}`}>"
+    }
+  ],
+  "components/ui/TagSelector.jsx": [
+    {
+      "line": 56,
+      "content": "placeholder=\"Hashtag qo'shing...\""
+    },
+    {
+      "line": 62,
+      "content": "Enter yoki vergul bosib hashtagni tasdiqlang. Masalan: cambridge18, reading, passage1"
+    }
+  ],
+  "components/ListeningInterface/ListeningQuestionTypes.jsx": [
+    {
+      "line": 4,
+      "content": "import { MapLabeling } from './types/MapLabeling';"
+    },
+    {
+      "line": 5,
+      "content": "import { Matching } from './types/Matching';"
+    },
+    {
+      "line": 30,
+      "content": "case 'map-labeling':"
+    },
+    {
+      "line": 31,
+      "content": "case 'map_labeling':"
+    },
+    {
+      "line": 34,
+      "content": "case 'matching':"
+    },
+    {
+      "line": 71,
+      "content": "Noma'lum savol turi: {type || 'aniqlanmadi'}"
+    }
+  ],
+  "components/ListeningInterface/ListeningRightPane.jsx": [
+    {
+      "line": 108,
+      "content": "if (group.type === 'map_labeling') return <MapLabeling group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;"
+    },
+    {
+      "line": 109,
+      "content": "if (group.type === 'matching') return <Matching group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;"
+    },
+    {
+      "line": 110,
+      "content": "if (['selection', 'pick_two', 'pick_three', 'pick_four', 'pick_five', 'multi_three', 'multi_choice_box', 'multiple_choice_multiple_answer'].includes(group.type)) return <SelectionBox group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;"
+    },
+    {
+      "line": 340,
+      "content": "const normalizeHTML = (html) => (typeof html === 'string') ? html.replace(/<[^>]*>/g, '').trim().toLowerCase() : '';"
+    }
+  ],
+  "components/ListeningInterface/ListeningUtils.js": [
+    {
+      "line": 42,
+      "content": "* Matn oxiridagi savol raqamini olib tashlaydi."
+    }
+  ],
+  "components/ListeningInterface/ListeningLeftPane.jsx": [
+    {
+      "line": 47,
+      "content": "console.error(\"⚠️ Selector xatosi (ID noto'g'ri formatda bo'lishi mumkin):\", error);"
+    }
+  ],
+  "components/ListeningInterface/ListeningFooter.jsx": [
+    {
+      "line": 26,
+      "content": "const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');"
+    }
+  ],
+  "components/ListeningInterface/types/FlowChart.jsx": [
+    {
+      "line": 95,
+      "content": "const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : \"\");"
+    }
+  ],
+  "components/ListeningInterface/types/Matching.jsx": [
+    {
+      "line": 103,
+      "content": "const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : \"\");"
+    },
+    {
+      "line": 243,
+      "content": "const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : \"\");"
+    }
+  ],
+  "components/ListeningInterface/types/Completion.jsx": [
+    {
+      "line": 206,
+      "content": "const isHeading = firstItem.type === 'heading';"
+    }
+  ],
+  "components/ListeningInterface/types/MapLabeling.jsx": [
+    {
+      "line": 103,
+      "content": "const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : \"\");"
+    },
+    {
+      "line": 271,
+      "content": "const text = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : \"\");"
+    }
+  ],
+  "components/InteractivePlayer/MediaSection.jsx": [
+    {
+      "line": 28,
+      "content": "if (podcast.mediaType !== 'video' || !videoRef.current) return;"
+    },
+    {
+      "line": 38,
+      "content": "if (podcast.mediaType !== 'video' || !videoRef.current) return;"
+    },
+    {
+      "line": 48,
+      "content": "if (podcast.mediaType === 'video' && audioRef.current) {"
+    },
+    {
+      "line": 95,
+      "content": "const isVideoMode = (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') && podcast.showVideo !== false && String(podcast.showVideo) !== 'false';"
+    },
+    {
+      "line": 110,
+      "content": "${isVideoMode && isFullscreen ? 'border-none shadow-none md:rounded-none' : (isDark ? 'border-white/5 md:shadow-2xl' : 'border-zinc-100 md:shadow-lg')}"
+    },
+    {
+      "line": 152,
+      "content": "{podcast.mediaType === 'video' && isVideoMode && ("
+    },
+    {
+      "line": 154,
+      "content": "<div className={`w-full aspect-video md:rounded-lg overflow-hidden transition-all duration-500 group relative ${isFullscreen ? 'border-none shadow-none md:rounded-none' : (isDark ? 'border-white/5 md:shadow-2xl' : 'border-zinc-100 md:shadow-lg')}`}>"
+    },
+    {
+      "line": 193,
+      "content": "key={activeTimelineIdx === -1 ? 'intro' : `${combinedTimeline[activeTimelineIdx]?.time}-${combinedTimeline[activeTimelineIdx]?.text}`}"
+    }
+  ],
+  "components/InteractivePlayer/PlayerHeader.jsx": [
+    {
+      "line": 43,
+      "content": "? 'bg-emerald-600 text-white shadow-lg'"
+    }
+  ],
+  "components/InteractivePlayer/TaskSection.jsx": [
+    {
+      "line": 243,
+      "content": "Ba'zi javoblaringiz xato. Ularni tuzatish uchun sizda yana <span className=\"text-amber-500 font-bold underline underline-offset-4 decoration-amber-500/30\">oxirgi imkoniyat</span> qoldi."
+    }
+  ],
+  "components/TestSolving/TestHeader.jsx": [
+    {
+      "line": 3,
+      "content": "import { formatTime } from '../../utils/ieltsScoring';"
+    },
+    {
+      "line": 217,
+      "content": "const isListening = test?.type?.toLowerCase() === 'listening';"
+    }
+  ],
+  "components/TestSolving/CustomAudioPlayer.jsx": [
+    {
+      "line": 6,
+      "content": "* Multi-part listening tests uchun maxsus audio player."
+    },
+    {
+      "line": 7,
+      "content": "* Har bir 'part' uchun alohida audio element bo'ladi, lekin faqat active part UI ko'rinadi."
+    },
+    {
+      "line": 37,
+      "content": "if (typeof time === 'string' && time.includes(':')) {"
+    }
+  ],
+  "components/TestSolving/TestModals.jsx": [
+    {
+      "line": 3,
+      "content": "import { calculateBandScore, formatTime, checkAnswer, scoreMultiAnswer, isMultiAnswerType } from '../../utils/ieltsScoring';"
+    },
+    {
+      "line": 72,
+      "content": "const { progress, done } = useAudioPreloader(phase === 'preloading' ? allAudioUrls : []);"
+    },
+    {
+      "line": 76,
+      "content": "if (phase === 'preloading' && done) {"
+    },
+    {
+      "line": 97,
+      "content": "onClick={() => setPhase('preloading')}"
+    },
+    {
+      "line": 183,
+      "content": "const isPro = userData?.accountType === 'pro' || userData?.isPro;"
+    },
+    {
+      "line": 242,
+      "content": "else if (t.includes('two')) weight = 2;"
+    },
+    {
+      "line": 315,
+      "content": "const colsClass = partStats.length === 1 ? 'grid-cols-1 max-w-[120px] mx-auto' : (partStats.length === 3 ? 'grid-cols-3' : 'grid-cols-4');"
+    },
+    {
+      "line": 327,
+      "content": "{test.type !== 'speaking' && test.type !== 'writing' ? ("
+    },
+    {
+      "line": 340,
+      "content": "<span className=\"text-emerald-700\">✓ To'g'ri</span>"
+    }
+  ],
+  "components/MockExam/TestSolvingView.jsx": [
+    {
+      "line": 20,
+      "content": "const logicalStage = stage === 'listening_volume_check' ? 'listening' : stage;"
+    },
+    {
+      "line": 26,
+      "content": "const [showResumeOverlay, setShowResumeOverlay] = useState(resumeAudioTime > 0 && logicalStage === 'listening');"
+    },
+    {
+      "line": 101,
+      "content": "{stage === 'listening' && ("
+    },
+    {
+      "line": 121,
+      "content": "{logicalStage === 'listening' && ("
+    },
+    {
+      "line": 227,
+      "content": "saving={stage === 'saving'}"
+    },
+    {
+      "line": 237,
+      "content": "triggerPlay={stage === 'listening'}"
+    },
+    {
+      "line": 251,
+      "content": "{(stage === 'listening' || stage === 'listening_volume_check') && ("
+    },
+    {
+      "line": 278,
+      "content": "{stage === 'reading' && ("
+    },
+    {
+      "line": 288,
+      "content": "{stage === 'writing' && ("
+    }
+  ],
+  "components/MockExam/MockExamIntro.jsx": [
+    {
+      "line": 108,
+      "content": "const isAllCompleted = completedModules.includes('listening') &&"
+    },
+    {
+      "line": 109,
+      "content": "completedModules.includes('reading') &&"
+    },
+    {
+      "line": 110,
+      "content": "completedModules.includes('writing');"
+    },
+    {
+      "line": 145,
+      "content": "isCompleted={completedModules.includes('listening')}"
+    },
+    {
+      "line": 151,
+      "content": "onStart={() => onStartModule('listening')}"
+    },
+    {
+      "line": 158,
+      "content": "isCompleted={completedModules.includes('reading')}"
+    },
+    {
+      "line": 159,
+      "content": "isLocked={!completedModules.includes('listening')}"
+    },
+    {
+      "line": 164,
+      "content": "onStart={() => onStartModule('reading')}"
+    },
+    {
+      "line": 171,
+      "content": "isCompleted={completedModules.includes('writing')}"
+    },
+    {
+      "line": 172,
+      "content": "isLocked={!completedModules.includes('reading')}"
+    },
+    {
+      "line": 177,
+      "content": "onStart={() => onStartModule('writing')}"
+    }
+  ],
+  "components/PodcastInterface/stage1_dictation/DictationStage.jsx": [
+    {
+      "line": 103,
+      "content": "alert(`Xatcho'p saqlandi!`);"
+    },
+    {
+      "line": 413,
+      "content": "<span style={{ fontSize: 14, color: \"#10b981\", fontWeight: 600 }}>✓ To'g'ri!</span>"
+    },
+    {
+      "line": 480,
+      "content": "Tekshirish <kbd style={{ fontSize: 11, opacity: 0.6, background: \"var(--pod-muted)\", padding: \"2px 7px\", borderRadius: 4, fontFamily: \"monospace\" }}>Enter</kbd>"
+    },
+    {
+      "line": 519,
+      "content": "✓ To'g'ri!"
+    },
+    {
+      "line": 555,
+      "content": "<span style={{ fontSize: 13, color: \"var(--pod-text-2)\" }}>To'g'ri javobni ko'rsat (xato bo'lganda)</span>"
+    },
+    {
+      "line": 561,
+      "content": "{[[\"Space\", \"Ijro/Pauza\"], [\"Esc\", \"Yozish\"], [\"Enter\", \"Tekshirish\"]].map(([k, l]) => ("
+    }
+  ],
+  "components/PodcastInterface/stage2_mcq/MCQStage.jsx": [
+    {
+      "line": 42,
+      "content": "console.error(\"MCQ savollarni yuklashda xatolik:\", err);"
+    },
+    {
+      "line": 160,
+      "content": "Hali savollar qo'shilmagan"
+    },
+    {
+      "line": 163,
+      "content": "Admin panel orqali MCQ savollarini qo'shing"
+    },
+    {
+      "line": 166,
+      "content": "Keyingi bosqichga o'tish →"
+    },
+    {
+      "line": 186,
+      "content": "Tuzatish: MCQ'ni tez o'tkazib yuborish (Skip to Stage 3)"
+    },
+    {
+      "line": 221,
+      "content": "Savol {current + 1}"
+    },
+    {
+      "line": 239,
+      "content": "title=\"Javob aytilgan joydan eshitish (H)\""
+    },
+    {
+      "line": 335,
+      "content": "{selected === currentQ.correctIndex ? \"To'g'ri!\" : \"Noto'g'ri\"}"
+    },
+    {
+      "line": 344,
+      "content": "To'g'ri javob: <strong style={{ color: \"var(--pod-success)\" }}>"
+    },
+    {
+      "line": 362,
+      "content": "Tasdiqlash{\" \"}"
+    },
+    {
+      "line": 373,
+      "content": "{isLastQuestion ? \"✅ Yakunlash\" : \"Keyingi savol →\"}"
+    },
+    {
+      "line": 383,
+      "content": "A B C D tugmalari bilan tanlang"
+    }
+  ],
+  "components/PodcastInterface/stage4_vocab/VocabPracticeStage.jsx": [
+    {
+      "line": 61,
+      "content": "<p style={{ color: \"var(--pod-text-2)\" }}>Lug'at so'zlari topilmadi.</p>"
+    },
+    {
+      "line": 71,
+      "content": "← Oldingi"
+    },
+    {
+      "line": 81,
+      "content": "Keyingi →"
+    },
+    {
+      "line": 90,
+      "content": "🚀 Men tayyorman — Imtihon boshlash"
+    },
+    {
+      "line": 94,
+      "content": "Karta yuzini bosing — ta'rif va misol ko'ring. Vaqt tugaganda imtihon avtomatik boshlanadi."
+    }
+  ],
+  "components/PodcastInterface/stage4_vocab/VocabExamStage.jsx": [
+    {
+      "line": 87,
+      "content": "Tekshirish"
+    },
+    {
+      "line": 140,
+      "content": "🔗 So'zni uning ta'rifiga sürükle"
+    },
+    {
+      "line": 194,
+      "content": "Tekshirish"
+    },
+    {
+      "line": 199,
+      "content": "✓ {dragScore?.correct}/{dragScore?.total} to'g'ri"
+    },
+    {
+      "line": 212,
+      "content": "📝 Yangi gaplardagi bo'shliqlarni to'ldiring"
+    }
+  ],
+  "components/PodcastInterface/stage4_vocab/VocabFlashcard.jsx": [
+    {
+      "line": 36,
+      "content": "<span style={{ fontSize: 12, color: \"var(--pod-muted)\" }}>Karta bosing — ta'rifni ko'ring</span>"
+    }
+  ],
+  "components/PodcastInterface/admin/VocabAIHelper.jsx": [
+    {
+      "line": 51,
+      "content": "alert(\"✅ Lug'at saqlandi!\");"
+    },
+    {
+      "line": 53,
+      "content": "alert(\"Saqlash xatosi: \" + e.message);"
+    },
+    {
+      "line": 70,
+      "content": "<label style={{ fontSize: 11, color: \"var(--pod-text-2)\" }}>So'zlar soni</label>"
+    },
+    {
+      "line": 85,
+      "content": "{loading ? \"⏳ Generatsiya...\" : \"✨ AI bilan Generatsiya\"}"
+    },
+    {
+      "line": 94,
+      "content": "💾 Hammasini Saqlash ({vocab.length} so'z)"
+    },
+    {
+      "line": 102,
+      "content": "Hali so'z yo'q. \"AI bilan Generatsiya\" tugmasini bosing."
+    },
+    {
+      "line": 122,
+      "content": "onClick={() => setEditIdx(null)}>Yopish</button>"
+    }
+  ],
+  "components/PodcastInterface/admin/MCQEditor.jsx": [
+    {
+      "line": 52,
+      "content": "setBulkText(\"[\\n  {\\n    \\\"question\\\": \\\"Savol matni\\\",\\n    \\\"options\\\": [\\\"A javob\\\", \\\"B javob\\\", \\\"C javob\\\", \\\"D javob\\\"],\\n    \\\"correctIndex\\\": 0,\\n    \\\"audioHintTime\\\": 12.5,\\n    \\\"explanation\\\": \\\"Izoh (ixtiyoriy)\\\"\\n  }\\n]\");"
+    },
+    {
+      "line": 79,
+      "content": "if (!form.question.trim()) return alert(\"Savol matnini kiriting\");"
+    },
+    {
+      "line": 80,
+      "content": "if (form.options.some((o) => !o.trim())) return alert(\"Barcha 4 ta variantni to'ldiring\");"
+    },
+    {
+      "line": 112,
+      "content": "if (!Array.isArray(arr)) throw new Error(\"JSON ma'lumot eng tashqarida array [] bo'lishi kerak\");"
+    },
+    {
+      "line": 134,
+      "content": "alert(`${arr.length} ta savol json orqali muvaffaqiyatli qo'shildi!`);"
+    },
+    {
+      "line": 144,
+      "content": "if (!window.confirm(\"Savolni o'chirmoqchimisiz?\")) return;"
+    },
+    {
+      "line": 159,
+      "content": "alert(\"O'chirishda xato: \" + e.message);"
+    },
+    {
+      "line": 207,
+      "content": "{questions.length} ta savol"
+    },
+    {
+      "line": 211,
+      "content": "+ JSON orqali qo'shish"
+    },
+    {
+      "line": 214,
+      "content": "+ Yangi savol"
+    },
+    {
+      "line": 222,
+      "content": "<p style={{ margin: 0, fontSize: 14 }}>Hali savol qo'shilmagan</p>"
+    },
+    {
+      "line": 271,
+      "content": "title=\"Yuqoriga ko'chirish\">▲</button>"
+    },
+    {
+      "line": 275,
+      "content": "title=\"Pastga ko'chirish\">▼</button>"
+    },
+    {
+      "line": 279,
+      "content": "title=\"O'chirish\">🗑</button>"
+    },
+    {
+      "line": 306,
+      "content": "ChatGPT yoki Claude dan huddi quyidagi formatdagi <strong>JSON array</strong> shaklida savollarni tayyorlashini so'rang va shuyerga tashlang:"
+    },
+    {
+      "line": 330,
+      "content": "{saving ? \"⏳ Yuklanmoqda...\" : \"🚀 Barchasini saqlash\"}"
+    },
+    {
+      "line": 333,
+      "content": "Bekor"
+    },
+    {
+      "line": 350,
+      "content": "{editIdx === \"new\" ? \"Yangi savol\" : `#${editIdx + 1} Tahrirlash`}"
+    },
+    {
+      "line": 357,
+      "content": "<label style={{ fontSize: 12, color: \"var(--pod-text-2)\", fontWeight: 600 }}>Savol matni *</label>"
+    },
+    {
+      "line": 362,
+      "content": "placeholder=\"Savol matnini kiriting...\""
+    },
+    {
+      "line": 376,
+      "content": "<label style={{ fontSize: 12, color: \"var(--pod-text-2)\", fontWeight: 600 }}>Variantlar (to'g'risini tanlang) *</label>"
+    },
+    {
+      "line": 386,
+      "content": "title=\"To'g'ri javob sifatida belgilash\""
+    },
+    {
+      "line": 416,
+      "content": "🎧 Audio ko'mak – sekund (ixtiyoriy)"
+    },
+    {
+      "line": 445,
+      "content": "O'quvchi shu sekunddan audio eshitadi (javob aytilgan joydan)"
+    },
+    {
+      "line": 452,
+      "content": "💡 Izoh (xato javob uchun, ixtiyoriy)"
+    },
+    {
+      "line": 458,
+      "content": "placeholder=\"Nega bu javob to'g'ri yoki noto'g'ri...\""
+    },
+    {
+      "line": 478,
+      "content": "{saving ? \"⏳ Saqlanmoqda...\" : \"💾 Saqlash\"}"
+    },
+    {
+      "line": 481,
+      "content": "Bekor"
+    }
+  ],
+  "components/PodcastInterface/admin/WaveformEditor.jsx": [
+    {
+      "line": 283,
+      "content": "`#${selectedIdx + 1} segmentni o'chirishni tasdiqlaysizmi?\\n\"${seg.text.slice(0, 80)}\"`"
+    },
+    {
+      "line": 364,
+      "content": "alert(\"O'chirishda xato: \" + e.message);"
+    },
+    {
+      "line": 423,
+      "content": "<button onClick={() => selectedIdx !== null && jumpToSegment(Math.max(0, selectedIdx - 1))} title=\"Oldingi segment (↑)\" style={tbtn} disabled={selectedIdx === null || selectedIdx === 0}>"
+    },
+    {
+      "line": 442,
+      "content": "<button onClick={() => selectedIdx !== null && jumpToSegment(Math.min(segments.length - 1, selectedIdx + 1))} title=\"Keyingi segment (↓)\" style={tbtn} disabled={selectedIdx === null || selectedIdx === segments.length - 1}>"
+    },
+    {
+      "line": 488,
+      "content": "{[[\"Space\", \"Play/Pause\"], [\"←/→\", \"±5s\"], [\"↑/↓\", \"Seg nav\"], [\"P\", \"Seg play\"], [\"Click\", \"Tanlash\"]].map(([k, v]) => ("
+    },
+    {
+      "line": 558,
+      "content": "<button onClick={() => jumpToSegment(Math.max(0, selectedIdx - 1))} style={{ ...tbtn, fontSize: 12 }} disabled={selectedIdx === 0}>‹ Oldingi</button>"
+    },
+    {
+      "line": 559,
+      "content": "<button onClick={() => jumpToSegment(Math.min(segments.length - 1, selectedIdx + 1))} style={{ ...tbtn, fontSize: 12 }} disabled={selectedIdx === segments.length - 1}>Keyingi ›</button>"
+    },
+    {
+      "line": 579,
+      "content": "title=\"Boshlash vaqti (sekund)\""
+    },
+    {
+      "line": 647,
+      "content": "{saving ? \"⏳ Saqlanmoqda...\" : \"💾 Saqlash\"}"
+    },
+    {
+      "line": 652,
+      "content": "title=\"O'zgarishlarni bekor qilish\""
+    },
+    {
+      "line": 666,
+      "content": "title=\"Segmentni o'chirish\""
+    },
+    {
+      "line": 674,
+      "content": "{editText.trim().split(/\\s+/).filter(Boolean).length} so'z"
+    },
+    {
+      "line": 682,
+      "content": "<span style={{ fontSize: 11, color: \"var(--pod-text-2)\" }}>ro'yxatdan yoki waveformdan</span>"
+    }
+  ],
+  "components/PodcastInterface/shared/AudioPlayerBar.jsx": [
+    {
+      "line": 19,
+      "content": "*  onRewind        - fn  (3s orqaga, lekin segmentdan chiqmaydi)"
+    },
+    {
+      "line": 175,
+      "content": "title=\"Xatcho'p qo'shish\""
+    },
+    {
+      "line": 211,
+      "content": "title=\"Vaqtni o'zgartirish uchun bosing\""
+    }
+  ],
+  "components/PodcastInterface/stage5_speaking/SpeakingScoreCard.jsx": [
+    {
+      "line": 7,
+      "content": "{ key: \"lexical\", label: \"Lug'at boyligi (Lexical)\", icon: \"📚\" },"
+    }
+  ],
+  "components/PodcastInterface/stage5_speaking/SpeakingStage.jsx": [
+    {
+      "line": 15,
+      "content": "\"Matnga o'girilmoqda (Whisper)...\","
+    },
+    {
+      "line": 16,
+      "content": "\"IELTS mezonlari bo'yicha baholanmoqda...\","
+    },
+    {
+      "line": 17,
+      "content": "\"Natija tayyorlanmoqda...\","
+    },
+    {
+      "line": 91,
+      "content": "🎤 Podcast haqida 2-3 daqiqalik xulosa gapiring. Asosiy g'oyalar, qiziq faktlar yoki o'rganganlaringiz haqida so'zlang."
+    },
+    {
+      "line": 93,
+      "content": "<button className=\"pod-mic-btn\" onClick={startRecording} title=\"Yozib olishni boshlash\">"
+    },
+    {
+      "line": 101,
+      "content": "<p style={{ color: \"var(--pod-text-2)\" }}>Mikrofon ruxsati so'ralmoqda...</p>"
+    },
+    {
+      "line": 107,
+      "content": "<button className=\"pod-mic-btn recording\" onClick={stopAndAnalyze} title=\"To'xtatish\">"
+    },
+    {
+      "line": 110,
+      "content": "<span style={{ fontSize: 13, color: \"var(--pod-error)\" }}>Yozib olinmoqda... To'xtatish uchun bosing</span>"
+    },
+    {
+      "line": 124,
+      "content": "Yakunlash — Natijalar →"
+    }
+  ],
+  "components/PodcastInterface/results/PodcastReportCard.jsx": [
+    {
+      "line": 60,
+      "content": "<h2 style={{ color: \"var(--pod-text)\", margin: \"0 0 4px\" }}>Yakuniy Natija</h2>"
+    },
+    {
+      "line": 111,
+      "content": "? \"🌟 Ajoyib natija! Siz ajoyib taraqqiyot qilmoqdasiz.\""
+    },
+    {
+      "line": 113,
+      "content": "? \"💪 Yaxshi natija! Davom eting, siz oldinga bormoqdasiz.\""
+    },
+    {
+      "line": 114,
+      "content": ": \"🚀 Boshlang'ich daraja. Har kuni mashq qilib, natijangizni yaxshilang!\"}"
+    }
+  ],
+  "components/PodcastInterface/stage3_gapfill/GapFillStage.jsx": [
+    {
+      "line": 128,
+      "content": "🎧 Audio eshitib, bo'sh joylarga to'g'ri so'zlarni kiriting."
+    },
+    {
+      "line": 164,
+      "content": "Yakunlash"
+    }
+  ],
+  "components/admin/GroupDetailPanel.jsx": [
+    {
+      "line": 63,
+      "content": "alert(\"Guruh nomi saqlandi!\");"
+    },
+    {
+      "line": 65,
+      "content": "alert(\"Xatolik: \" + error.message);"
+    },
+    {
+      "line": 72,
+      "content": "if (!window.confirm(\"O'quvchini guruhdan o'chirasizmi?\")) return;"
+    },
+    {
+      "line": 79,
+      "content": "alert(\"Xatolik: \" + error.message);"
+    },
+    {
+      "line": 90,
+      "content": "alert(\"Xatolik: \" + error.message);"
+    },
+    {
+      "line": 95,
+      "content": "if (!window.confirm(\"Ushbu tayinlovni o'chirasizmi?\")) return;"
+    },
+    {
+      "line": 102,
+      "content": "alert(\"Xatolik: \" + error.message);"
+    },
+    {
+      "line": 139,
+      "content": "<h4 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Asosiy so'zlamalar</h4>"
+    },
+    {
+      "line": 146,
+      "content": "placeholder=\"Guruh nomi...\""
+    },
+    {
+      "line": 161,
+      "content": "<Users size={14} /> O'quvchilar ({currentStudentIds.length})"
+    },
+    {
+      "line": 183,
+      "content": "<p className=\"text-xs opacity-50 p-4 text-center\">Guruhda o'quvchi yo'q</p>"
+    },
+    {
+      "line": 189,
+      "content": "<p className={`text-xs mb-2 font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>O'quvchi qo'shish:</p>"
+    },
+    {
+      "line": 198,
+      "content": "placeholder=\"O'quvchini qidirish...\""
+    },
+    {
+      "line": 242,
+      "content": "<p className=\"text-xs opacity-50 p-4 text-center\">Tayinlovlar yo'q</p>"
+    }
+  ],
+  "components/admin/UserDetailPanel.jsx": [
+    {
+      "line": 80,
+      "content": "if (dataToSave.accountType === 'pro' || dataToSave.accountType === 'standard') {"
+    },
+    {
+      "line": 96,
+      "content": "alert(\"Xatolik: \" + error.message);"
+    },
+    {
+      "line": 110,
+      "content": "alert(\"Xatolik: \" + error.message);"
+    },
+    {
+      "line": 120,
+      "content": "if (type === 'reading') point.reading = score;"
+    },
+    {
+      "line": 121,
+      "content": "else if (type === 'listening') point.listening = score;"
+    },
+    {
+      "line": 122,
+      "content": "else if (type === 'writing') point.writing = score;"
+    },
+    {
+      "line": 123,
+      "content": "else if (type === 'speaking') point.speaking = score;"
+    },
+    {
+      "line": 200,
+      "content": "formData.accountType === 'pro' ? 'text-blue-500 border-blue-500/30 bg-blue-500/5' :"
+    },
+    {
+      "line": 209,
+      "content": "{(formData.accountType === 'pro' || formData.accountType === 'standard') && ("
+    },
+    {
+      "line": 221,
+      "content": "<label className={labelClass}>Telefon raqam</label>"
+    },
+    {
+      "line": 268,
+      "content": "Saqlash"
+    },
+    {
+      "line": 274,
+      "content": "<h4 className={sectionTitle}>So'nggi Natijalar</h4>"
+    },
+    {
+      "line": 299,
+      "content": "<p className=\"text-sm text-gray-500 italic\">Natijalar yo'q</p>"
+    },
+    {
+      "line": 320,
+      "content": "<h4 className={sectionTitle}>O'sish Dinamikasi — Band Scores</h4>"
+    },
+    {
+      "line": 351,
+      "content": "<Line type=\"monotone\" dataKey=\"other\" stroke=\"#94a3b8\" strokeWidth={2} dot={{ r: 3 }} name=\"Boshqa\" connectNulls />"
+    },
+    {
+      "line": 358,
+      "content": "<p className=\"text-sm italic\">Hali natijalar mavjud emas</p>"
+    },
+    {
+      "line": 366,
+      "content": "{['reading', 'listening', 'writing', 'speaking'].map(type => {"
+    },
+    {
+      "line": 377,
+      "content": "<p className=\"text-[10px] opacity-60 mt-0.5\">{typeResults.length} ta natija</p>"
+    }
+  ],
+  "components/admin/TestPreview.jsx": [
+    {
+      "line": 47,
+      "content": "<p className=\"text-sm font-medium\">JSON tashlab ko'ring</p>"
+    },
+    {
+      "line": 193,
+      "content": "<p className=\"text-sm font-medium\">JSON tashlab ko'ring</p>"
+    },
+    {
+      "line": 279,
+      "content": "{actualType === \"writing\" ? \"Writing preview bu yerda ko'rsatilmaydi\" : \"Preview mavjud emas\"}"
+    }
+  ],
+  "components/admin/WritingReview/WritingReviewSidebar.jsx": [
+    {
+      "line": 10,
+      "content": "const matchesFilter = filter === 'all' ? true : filter === 'pending' ? (!w.writingBand) : (!!w.writingBand);"
+    },
+    {
+      "line": 26,
+      "content": "{['pending', 'reviewed', 'all'].map(f => ("
+    }
+  ],
+  "components/admin/WritingReview/WritingReviewWorkspace.jsx": [
+    {
+      "line": 49,
+      "content": "<span className=\"flex items-center gap-1\"><TextT size={11} /> {activeWriting.testTitle || 'General Training'}</span>"
+    }
+  ],
+  "components/admin/CreateTest/TestBasicInfo.jsx": [
+    {
+      "line": 11,
+      "content": "<h3 className=\"text-sm font-bold uppercase tracking-wider mb-4 opacity-50\">Asosiy Ma'lumotlar</h3>"
+    },
+    {
+      "line": 37,
+      "content": "<label className=\"text-xs font-bold mb-1.5 block opacity-60\">Qiyinchilik / Bo'lim</label>"
+    },
+    {
+      "line": 43,
+      "content": "{testData.type === 'listening' ? ("
+    }
+  ],
+  "components/admin/CreateTest/DuplicateModal.jsx": [
+    {
+      "line": 28,
+      "content": "<h3 className=\"text-2xl font-black mb-2 tracking-tight\">O'xshash test topildi!</h3>"
+    },
+    {
+      "line": 30,
+      "content": "Tizimda allaqachon <span className=\"font-bold text-amber-500\">\"{duplicateInfo}\"</span> nomli yoki shunga juda o'xshash kontentli test mavjud."
+    },
+    {
+      "line": 39,
+      "content": "Bekor qilish"
+    },
+    {
+      "line": 45,
+      "content": "Ha, Saqlash"
+    }
+  ],
+  "components/admin/CreateTest/WritingSection.jsx": [
+    {
+      "line": 20,
+      "content": "className={`flex-1 h-10 rounded-lg text-xs font-bold transition-all ${activeWritingTask === idx ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}"
+    },
+    {
+      "line": 39,
+      "content": "<label className=\"text-xs font-bold mb-1.5 block opacity-60\">Savol Matni (Prompt)</label>"
+    },
+    {
+      "line": 49,
+      "content": "<label className=\"text-xs font-bold mb-1.5 block opacity-60\">Minimal So'zlar</label>"
+    },
+    {
+      "line": 69,
+      "content": "{uploading && uploadingPart === 'writing' ? ("
+    }
+  ],
+  "components/admin/CreateTest/JsonEditor.jsx": [
+    {
+      "line": 34,
+      "content": "<span className=\"font-bold text-blue-500\">Maslahat:</span> JSON o'zgarganda test ma'lumotlari avtomatik yangilanadi."
+    },
+    {
+      "line": 35,
+      "content": "Structure xato bo'lsa, yuqorida qizil ogohlantirish chiqadi."
+    }
+  ],
+  "components/admin/CreateTest/CreateTestUtils.js": [
+    {
+      "line": 27,
+      "content": "if (typeof val === 'string' && val.includes(':')) {"
+    },
+    {
+      "line": 59,
+      "content": "if (testType === 'reading') {"
+    },
+    {
+      "line": 64,
+      "content": "} else if (testType === 'listening') {"
+    },
+    {
+      "line": 112,
+      "content": "if ((testData.type === 'reading' || testData.type === 'listening') &&"
+    },
+    {
+      "line": 144,
+      "content": "duplicateTitle = existing.title || \"o'xshash kontent\";"
+    },
+    {
+      "line": 172,
+      "content": "duplicateTitle = existing.title || \"o'xshash savollar\";"
+    },
+    {
+      "line": 177,
+      "content": "duplicateTitle = existing.title || \"o'xshash IDlar\";"
+    },
+    {
+      "line": 196,
+      "content": "if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';"
+    },
+    {
+      "line": 197,
+      "content": "if (lower.includes('matching')) return 'Matching';"
+    },
+    {
+      "line": 201,
+      "content": "if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';"
+    }
+  ],
+  "components/admin/CreateTest/MediaManager.jsx": [
+    {
+      "line": 19,
+      "content": "{testData.type === 'listening' && ("
+    },
+    {
+      "line": 34,
+      "content": "Bo'laklangan"
+    },
+    {
+      "line": 54,
+      "content": "<span className=\"text-[10px] font-bold\">Yuklash</span>"
+    },
+    {
+      "line": 97,
+      "content": "<span className=\"text-[10px] font-bold\">Rasm qo'shish</span>"
+    },
+    {
+      "line": 125,
+      "content": "{testData.type === 'listening' && onPassageTimeChange && ("
+    }
+  ],
+  "components/admin/AdminTests/AdminTestsSidebar.jsx": [
+    {
+      "line": 34,
+      "content": "const isListening = c.type === 'listening';"
+    },
+    {
+      "line": 35,
+      "content": "const isReading = c.type === 'reading';"
+    },
+    {
+      "line": 75,
+      "content": "{type === 'Reading' ? <BookOpen size={16} /> :"
+    },
+    {
+      "line": 76,
+      "content": "type === 'Listening' ? <Headphones size={16} /> :"
+    },
+    {
+      "line": 77,
+      "content": "type === 'Writing' ? <PenTool size={16} /> :"
+    },
+    {
+      "line": 78,
+      "content": "type === 'Speaking' ? <Mic2 size={16} /> : <Layers size={16} />}"
+    }
+  ],
+  "components/admin/AdminTests/AdminTestsList.jsx": [
+    {
+      "line": 30,
+      "content": "const passageCount = test.passages?.length || (test.type === 'listening' ? 4 : (test.type === 'reading' ? 3 : 0));"
+    },
+    {
+      "line": 45,
+      "content": "{test.type === 'reading' ? <BookOpen size={16} /> :"
+    },
+    {
+      "line": 46,
+      "content": "test.type === 'listening' ? <Headphones size={16} /> :"
+    },
+    {
+      "line": 47,
+      "content": "test.type === 'writing' ? <PenTool size={16} /> : <Mic2 size={16} />}"
+    },
+    {
+      "line": 68,
+      "content": "{passageCount} {test.type === 'listening' ? 'Parts' : 'Passages'}"
+    }
+  ],
+  "components/admin/AdminTests/AdminTestsToolbar.jsx": [
+    {
+      "line": 30,
+      "content": "<button onClick={onBulkAssign} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isDark ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-50 text-blue-600'}`}>"
+    },
+    {
+      "line": 34,
+      "content": "<button onClick={onMerge} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isDark ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600'}`}>"
+    }
+  ],
+  "components/admin/AdminUsers/SetsTab.jsx": [
+    {
+      "line": 40,
+      "content": "if (!window.confirm(\"To'plamni o'chirmoqchimisiz?\")) return;"
+    },
+    {
+      "line": 54,
+      "content": "placeholder=\"To'plamlarni qidirish...\""
+    },
+    {
+      "line": 64,
+      "content": "<Plus size={18} /> To'plam Yaratish"
+    },
+    {
+      "line": 107,
+      "content": "<h2 className=\"text-3xl font-black tracking-tighter\">Yangi To'plam</h2>"
+    },
+    {
+      "line": 114,
+      "content": "<label className=\"text-[10px] font-black uppercase tracking-widest opacity-40 mb-2 block\">To'plam Nomi</label>"
+    },
+    {
+      "line": 172,
+      "content": "To'plamni Saqlash"
+    }
+  ],
+  "components/admin/AdminUsers/StudentsTab.jsx": [
+    {
+      "line": 47,
+      "content": "<option value=\"all\">Barcha Bandlar</option>"
+    },
+    {
+      "line": 63,
+      "content": "<th className={`py-3 px-4 md:px-6 text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>O'quvchi</th>"
+    },
+    {
+      "line": 95,
+      "content": "{student.accountType === 'pro' && ("
+    },
+    {
+      "line": 127,
+      "content": "<div className=\"p-12 text-center opacity-30 text-sm\">O'quvchi topilmadi</div>"
+    },
+    {
+      "line": 142,
+      "content": "Yanada ko'proq yuklash"
+    }
+  ],
+  "components/admin/AdminUsers/GroupsTab.jsx": [
+    {
+      "line": 39,
+      "content": "if (!window.confirm(\"Guruhni o'chirmoqchimisiz?\")) return;"
+    },
+    {
+      "line": 63,
+      "content": "<Plus size={18} /> Guruh Qo'shish"
+    },
+    {
+      "line": 92,
+      "content": "<span className=\"text-[9px] font-black uppercase tracking-tighter opacity-40\">O'quvchilar</span>"
+    },
+    {
+      "line": 124,
+      "content": "<h2 className=\"text-2xl font-black mb-6 tracking-tight\">Yangi Guruh</h2>"
+    },
+    {
+      "line": 127,
+      "content": "<label className=\"text-xs font-bold uppercase tracking-widest opacity-40 mb-1.5 block\">Guruh Nomi</label>"
+    },
+    {
+      "line": 137,
+      "content": "<label className=\"text-xs font-bold uppercase tracking-widest opacity-40 mb-1.5 block\">O'qituvchi</label>"
+    },
+    {
+      "line": 149,
+      "content": "<button onClick={() => setShowCreateModal(false)} className={`flex-1 h-12 rounded-xl font-bold text-sm ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>Bekor qilish</button>"
+    },
+    {
+      "line": 156,
+      "content": "Yaratish"
+    }
+  ],
+  "components/admin/AdminUsers/AssignTab.jsx": [
+    {
+      "line": 36,
+      "content": "status: 'pending'"
+    },
+    {
+      "line": 49,
+      "content": "alert(\"Test muvaffaqiyatli topshirildi!\");"
+    },
+    {
+      "line": 75,
+      "content": "placeholder=\"Guruh yoki o'quvchi...\""
+    }
+  ],
+  "components/admin/AdminArticles/AdminArticlesTable.jsx": [
+    {
+      "line": 23,
+      "content": "<p className=\"text-gray-500 max-w-xs mx-auto\">Yangi maqola yaratish uchun yuqoridagi tugmani bosing.</p>"
+    }
+  ],
+  "components/admin/AdminArticles/AdminArticlesEditor.jsx": [
+    {
+      "line": 53,
+      "content": "const defaultStyle = type === 'heading'"
+    },
+    {
+      "line": 89,
+      "content": "alert(\"Rasm yuklashda xatolik yuz berdi: \" + err.message);"
+    },
+    {
+      "line": 114,
+      "content": "{article ? \"Maqolani tahrirlash\" : \"Yangi maqola yaratish\"}"
+    },
+    {
+      "line": 160,
+      "content": "placeholder=\"Maqola ro'yxatida ko'rinadigan qisqa izoh (maksimal 150 ta belgi)...\""
+    },
+    {
+      "line": 168,
+      "content": "<label className=\"text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1\">Asosiy rasm (Cover Image)</label>"
+    },
+    {
+      "line": 181,
+      "content": "placeholder=\"Rasm manzili (URL) yoki yuklang...\""
+    },
+    {
+      "line": 191,
+      "content": "<span>{uploading ? \"Yuklanmoqda...\" : \"Yuklash\"}</span>"
+    },
+    {
+      "line": 206,
+      "content": "<label className=\"text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1\">O'qish vaqti</label>"
+    },
+    {
+      "line": 252,
+      "content": "onClick={() => addContentBlock('heading')}"
+    },
+    {
+      "line": 273,
+      "content": "{block.type === 'heading' ? ("
+    },
+    {
+      "line": 307,
+      "content": "title=\"Blockni o'chirish\""
+    },
+    {
+      "line": 324,
+      "content": "Bekor qilish"
+    },
+    {
+      "line": 332,
+      "content": "<span>{article ? \"Maqolani yangilash\" : \"Maqolani yaratish\"}</span>"
+    }
+  ],
+  "components/admin/AdminDashboard/AdminDashboardUsers.jsx": [
+    {
+      "line": 14,
+      "content": "O'quvchilar Boshqaruvi"
+    },
+    {
+      "line": 26,
+      "content": "<button onClick={() => setSortOption(\"fullName\")} className=\"w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5\">Alifbo bo'yicha</button>"
+    },
+    {
+      "line": 27,
+      "content": "<button onClick={() => setSortOption(\"createdAt\")} className=\"w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5\">Ro'yxat sanasi</button>"
+    },
+    {
+      "line": 35,
+      "content": "placeholder=\"Ism bo'yicha qidirish...\""
+    }
+  ],
+  "components/admin/AdminDashboard/AdminDashboardStats.jsx": [
+    {
+      "line": 32,
+      "content": "title=\"O'quvchilar\""
+    },
+    {
+      "line": 40,
+      "content": "title=\"Testlar\""
+    },
+    {
+      "line": 48,
+      "content": "title=\"Natijalar\""
+    }
+  ],
+  "components/admin/AdminDashboard/AdminDashboardActions.jsx": [
+    {
+      "line": 22,
+      "content": "{ title: \"Test Yaratish\", desc: \"Yangi Reading/Listening\", icon: Plus, bg: \"bg-blue-600 shadow-lg shadow-blue-600/20\", path: \"/admin/create-test\" },"
+    },
+    {
+      "line": 23,
+      "content": "{ title: \"Analitika\", desc: \"Statistika va tahlillar\", icon: BarChart, bg: \"bg-purple-600 shadow-lg shadow-purple-600/20\", path: \"/admin/analytics\" },"
+    },
+    {
+      "line": 24,
+      "content": "{ title: \"O'quvchilar\", desc: \"Tahrirlash va ko'rish\", icon: Users, bg: isDark ? \"bg-[#353535]\" : \"bg-white border-gray-100 border shadow-sm\", path: \"/admin/users\" },"
+    },
+    {
+      "line": 25,
+      "content": "{ title: \"Baholash\", desc: \"Natijalarni tekshirish\", icon: ClipboardCheck, bg: isDark ? \"bg-[#353535]\" : \"bg-white border-gray-100 border shadow-sm\", path: \"/admin/results\" },"
+    },
+    {
+      "line": 26,
+      "content": "{ title: \"E'lonlar\", desc: \"Yangiliklar yuborish\", icon: Megaphone, bg: isDark ? \"bg-[#353535]\" : \"bg-white border-gray-100 border shadow-sm\", path: \"/admin/announcements\" },"
+    },
+    {
+      "line": 27,
+      "content": "{ title: \"Maqolalar\", desc: \"Maqolalar yaratish\", icon: Newspaper, bg: isDark ? \"bg-[#353535]\" : \"bg-white border-gray-100 border shadow-sm\", path: \"/admin/articles\" }"
+    }
+  ],
+  "components/admin/AdminDashboard/AdminDashboardModals.jsx": [
+    {
+      "line": 11,
+      "content": "<h2 className=\"text-xl font-bold\">O'quvchi Profili</h2>"
+    },
+    {
+      "line": 28,
+      "content": "<button onClick={() => {}} className=\"p-4 rounded-2xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-600/20\">Xabar yuborish</button>"
+    },
+    {
+      "line": 43,
+      "content": "<h2 className=\"text-xl font-bold\">Guruhga Qo'shish</h2>"
+    }
+  ],
+  "components/admin/AdminResults/ResultsFilters.jsx": [
+    {
+      "line": 31,
+      "content": "<option value=\"all\">Barcha Turlar</option>"
+    },
+    {
+      "line": 48,
+      "content": "<option value=\"all\">Barcha Statuslar</option>"
+    },
+    {
+      "line": 57,
+      "content": "<h1 className={`text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Natijalar</h1>"
+    }
+  ],
+  "components/admin/AdminResults/ResultsTable.jsx": [
+    {
+      "line": 15,
+      "content": "<th className=\"py-3 px-4 text-[13px] font-semibold text-gray-600\">O'quvchi</th>"
+    }
+  ],
+  "components/ReviewInterface/VocabSynonymCanvas.jsx": [
+    {
+      "line": 13,
+      "content": "*   testTitle      – string  (WordBank da nom uchun)"
+    },
+    {
+      "line": 87,
+      "content": "alert('userId yoki testId topilmadi!');"
+    },
+    {
+      "line": 128,
+      "content": "alert('Saqlashda xatolik: ' + (err?.message || err));"
+    },
+    {
+      "line": 145,
+      "content": "console.error(\"O'chirishda xato:\", err);"
+    },
+    {
+      "line": 294,
+      "content": "<p className=\"text-[10px] text-center uppercase tracking-wider mb-2.5 font-semibold\" style={{ color: '#64748b' }}>Bog'lanishni tanlang</p>"
+    },
+    {
+      "line": 324,
+      "content": "<p className=\"text-sm font-medium\" style={{ color: '#64748b' }}>So'z belgilang</p>"
+    },
+    {
+      "line": 325,
+      "content": "<p className=\"text-[11px] mt-1\" style={{ color: '#475569' }}>Matndan so'z qulflang, keyin<br />savoldagi sinonimini tanlang</p>"
+    },
+    {
+      "line": 385,
+      "content": ": <><Save className=\"w-4 h-4\" /> Saqlash ({unsavedIds.size} ta yangi)</>"
+    },
+    {
+      "line": 394,
+      "content": "<CheckCircle2 className=\"w-4 h-4\" /> Wordbank'ga ham saqlandi!"
+    }
+  ],
+  "components/ReviewInterface/VocabularyCanvas.jsx": [
+    {
+      "line": 169,
+      "content": "<p className=\"text-xs text-center text-slate-400 mb-3 uppercase tracking-wider font-semibold\">Bog'lanishni tanlang</p>"
+    },
+    {
+      "line": 189,
+      "content": "<p className=\"text-sm text-slate-300 font-medium\">Matndan so'z belgilang</p>"
+    },
+    {
+      "line": 190,
+      "content": "<p className=\"text-xs text-slate-400 mt-1\">Paraphraselarni topish uchun matndagi so'zni tanlab \"[+ Paraphrase]\" tugmasini bosing</p>"
+    },
+    {
+      "line": 270,
+      "content": "{isSaving ? \"Saqlanmoqda...\" : `WordBank'ga saqlash (${wordPairs.length})`}"
+    }
+  ],
+  "components/podcasts/PodcastSidebar.jsx": [
+    {
+      "line": 102,
+      "content": "const isVideoDisplay = (p.mediaType === 'youtube' || p.mediaType === 'video') && p.showVideo !== false && String(p.showVideo) !== 'false';"
+    }
+  ],
+  "components/podcasts/AlbumGridItem.jsx": [
+    {
+      "line": 12,
+      "content": "className={`p-4 rounded-xl transition duration-300 cursor-pointer group flex flex-col h-full ${isDark ? 'bg-[#181818] hover:bg-[#282828]' : 'bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-lg'}`}"
+    }
+  ],
+  "components/dashboard/DashboardAnalytics.jsx": [
+    {
+      "line": 24,
+      "content": "Barcha to'rt ko'nikmani bitta joyda jamlang va yuqori ballga erishing."
+    },
+    {
+      "line": 32,
+      "content": "Mashqni boshlash"
+    },
+    {
+      "line": 38,
+      "content": "Batafsil statistika"
+    },
+    {
+      "line": 46,
+      "content": "{ name: 'Reading', score: '0.0', color: 'text-[#fa243c]', isActive: true },"
+    },
+    {
+      "line": 47,
+      "content": "{ name: 'Listening', score: '0.0', color: 'text-[#65c400]', isActive: true },"
+    },
+    {
+      "line": 48,
+      "content": "{ name: 'Writing', score: '0.0', color: 'text-[#ff8400]', isActive: true },"
+    },
+    {
+      "line": 49,
+      "content": "{ name: 'Speaking', score: '0.0', color: 'text-[#2a7ff6]', isActive: true },"
+    },
+    {
+      "line": 65,
+      "content": "title={onToggleSkill ? \"Ushbu bo'limni umumiy balldan chiqarib tashlash/qo'shish uchun bosing\" : \"\"}"
+    }
+  ],
+  "components/dashboard/HeroSection.jsx": [
+    {
+      "line": 13,
+      "content": "userName = \"O'quvchi\","
+    }
+  ],
+  "components/dashboard/DashboardHeader.jsx": [
+    {
+      "line": 53,
+      "content": "(location.pathname === '/listening' && location.search.includes('section=full_test')) ||"
+    },
+    {
+      "line": 61,
+      "content": "(location.pathname === '/listening' && !location.search.includes('section=full_test')) ||"
+    },
+    {
+      "line": 90,
+      "content": "{ id: 'leaderboard', label: 'Reyting', path: '/leaderboard', icon: TrendingUp },"
+    },
+    {
+      "line": 96,
+      "content": "{ id: 'speaking', label: 'Speaking', path: '/practice?tab=speaking', icon: Mic },"
+    },
+    {
+      "line": 103,
+      "content": "{ id: 'pricing', label: 'Pricing', path: '/pricing', icon: CreditCard, iconColor: 'text-amber-500' },"
+    },
+    {
+      "line": 119,
+      "content": "? (location.pathname === '/listening' && location.search.includes('section=full_test'))"
+    },
+    {
+      "line": 120,
+      "content": ": (location.pathname === '/listening' && !location.search.includes('section=full_test'));"
+    },
+    {
+      "line": 123,
+      "content": "? (location.pathname === '/practice' && location.search.includes('writing') && location.search.includes('type=full'))"
+    },
+    {
+      "line": 124,
+      "content": ": (location.pathname === '/practice' && location.search.includes('writing') && location.search.includes('type=part'));"
+    },
+    {
+      "line": 150,
+      "content": "animate={{ opacity: 1, height: 'auto' }}"
+    },
+    {
+      "line": 213,
+      "content": "} else if (item.id === 'pricing') {"
+    },
+    {
+      "line": 247,
+      "content": "? (location.pathname === '/listening' && location.search.includes('section=full_test'))"
+    },
+    {
+      "line": 248,
+      "content": ": (location.pathname === '/listening' && !location.search.includes('section=full_test'));"
+    },
+    {
+      "line": 251,
+      "content": "? (location.pathname === '/practice' && location.search.includes('writing') && location.search.includes('type=full'))"
+    },
+    {
+      "line": 252,
+      "content": ": (location.pathname === '/practice' && location.search.includes('writing') && location.search.includes('type=part'));"
+    },
+    {
+      "line": 278,
+      "content": "animate={{ opacity: 1, height: 'auto' }}"
+    },
+    {
+      "line": 341,
+      "content": "} else if (item.id === 'pricing') {"
+    },
+    {
+      "line": 362,
+      "content": "const isPro = userData?.accountType === 'pro' || userData?.isPro;"
+    },
+    {
+      "line": 371,
+      "content": "return !location.search.includes('tab=speaking') && ("
+    },
+    {
+      "line": 373,
+      "content": "(location.pathname === '/listening' && location.search.includes('section=full_test')) ||"
+    },
+    {
+      "line": 378,
+      "content": "return !location.search.includes('tab=speaking') && ("
+    },
+    {
+      "line": 380,
+      "content": "(location.pathname === '/listening' && !location.search.includes('section=full_test')) ||"
+    },
+    {
+      "line": 385,
+      "content": "if (item.id === 'speaking') {"
+    },
+    {
+      "line": 386,
+      "content": "return location.pathname === '/practice' && location.search.includes('tab=speaking');"
+    },
+    {
+      "line": 415,
+      "content": "if (path === '/reading' || path === '/reading/full' || path === '/reading/parts') return { parent: 'Practice', child: 'Reading' };"
+    },
+    {
+      "line": 416,
+      "content": "if (path === '/listening') return { parent: 'Practice', child: 'Listening' };"
+    },
+    {
+      "line": 422,
+      "content": "if (path === '/leaderboard') return { parent: 'Reyting', child: 'Leaderboard' };"
+    },
+    {
+      "line": 424,
+      "content": "if (path === '/pricing') return { parent: 'Pricing', child: 'Subscriptions' };"
+    },
+    {
+      "line": 487,
+      "content": "{isPremium ? 'PRO' : 'Free'}"
+    },
+    {
+      "line": 527,
+      "content": "Sozlamalar"
+    },
+    {
+      "line": 534,
+      "content": "Chiqish"
+    },
+    {
+      "line": 568,
+      "content": "animate={{ opacity: 1, height: 'auto' }}"
+    },
+    {
+      "line": 592,
+      "content": "animate={{ opacity: 1, height: 'auto' }}"
+    },
+    {
+      "line": 604,
+      "content": "onClick={onPremiumClick || (() => navigate('/pricing'))}"
+    },
+    {
+      "line": 631,
+      "content": "animate={{ opacity: 1, height: 'auto' }}"
+    },
+    {
+      "line": 636,
+      "content": "onClick={() => navigate('/practice?tab=speaking')}"
+    },
+    {
+      "line": 672,
+      "content": "onClick={onPremiumClick || (() => navigate('/pricing'))}"
+    },
+    {
+      "line": 730,
+      "content": "transition={{ type: 'spring', damping: 25, stiffness: 200 }}"
+    },
+    {
+      "line": 764,
+      "content": "{isPremium ? 'PRO' : 'Free'}"
+    },
+    {
+      "line": 787,
+      "content": "Sozlamalar"
+    },
+    {
+      "line": 794,
+      "content": "Chiqish"
+    },
+    {
+      "line": 827,
+      "content": "animate={{ opacity: 1, height: 'auto' }}"
+    },
+    {
+      "line": 851,
+      "content": "animate={{ opacity: 1, height: 'auto' }}"
+    },
+    {
+      "line": 863,
+      "content": "onClick={() => { navigate('/pricing'); setIsMobileMenuOpen(false); }}"
+    },
+    {
+      "line": 890,
+      "content": "animate={{ opacity: 1, height: 'auto' }}"
+    },
+    {
+      "line": 895,
+      "content": "onClick={() => { navigate('/practice?tab=speaking'); setIsMobileMenuOpen(false); }}"
+    },
+    {
+      "line": 931,
+      "content": "onClick={() => { navigate('/pricing'); setIsMobileMenuOpen(false); }}"
+    }
+  ],
+  "components/dashboard/DashboardWelcome.jsx": [
+    {
+      "line": 28,
+      "content": "Mo'jiza kutma,<br />"
+    },
+    {
+      "line": 29,
+      "content": "o'zing mo'jiza yarat."
+    },
+    {
+      "line": 34,
+      "content": "Hech qanday \"maxfiy strategiya\" yo'q. Bor narsa — shu ekran, matnlar, audiyolar va sening vaqting. Diqqatingni jamla."
+    },
+    {
+      "line": 49,
+      "content": "Natijalarni ko'rish"
+    },
+    {
+      "line": 73,
+      "content": "label=\"Maqsad ball\""
+    },
+    {
+      "line": 75,
+      "content": "subLabel=\"Siz erishmoqchi bo'lgan IELTS bali\""
+    },
+    {
+      "line": 89,
+      "content": "label=\"Umumiy Ball\""
+    },
+    {
+      "line": 91,
+      "content": "subLabel=\"Sizning joriy IELTS ko'rsatkichingiz\""
+    },
+    {
+      "line": 107,
+      "content": "unit={finalDays > 0 ? 'kun' : ''}"
+    },
+    {
+      "line": 108,
+      "content": "subLabel=\"Imtihon sanasigacha qolgan kun\""
+    }
+  ],
+  "components/dashboard/PricingModal.jsx": [
+    {
+      "line": 8,
+      "content": "export default function PricingModal({ isOpen, onClose, userName = \"O'quvchi\" }) {"
+    },
+    {
+      "line": 22,
+      "content": "buttonText: \"Tanlash\","
+    },
+    {
+      "line": 32,
+      "content": "features: [\"Barcha Standard\", \"3 oy cheksiz\", \"Arzonroq (26k/oy)\"],"
+    },
+    {
+      "line": 33,
+      "content": "buttonText: \"Tanlash\","
+    },
+    {
+      "line": 44,
+      "content": "buttonText: \"Pro'ga o'tish\","
+    },
+    {
+      "line": 54,
+      "content": "features: [\"Barcha Pro + Mock\", \"Personal Roadmap\", \"Support 24/7\"],"
+    },
+    {
+      "line": 99,
+      "content": "{userName}, Pro tarif bilan IELTS ga tayyorgarlikni yangi darajaga ko'taring."
+    },
+    {
+      "line": 166,
+      "content": "<CreditCard size={12} /> To'lov xavfsiz"
+    },
+    {
+      "line": 175,
+      "content": "navigate('/pricing');"
+    },
+    {
+      "line": 183,
+      "content": "<span>To'lovdan so'ng barcha funksiyalar ochiladi.</span>"
+    }
+  ],
+  "components/dashboard/ModuleBanner.jsx": [
+    {
+      "line": 5,
+      "content": "userName = \"O'quvchi\","
+    },
+    {
+      "line": 28,
+      "content": "Jarayonni ko'rish"
+    }
+  ],
+  "components/dashboard/TestGrid.jsx": [
+    {
+      "line": 30,
+      "content": "case 'reading': return <BookOpen size={20} />;"
+    },
+    {
+      "line": 31,
+      "content": "case 'listening': return <Headphones size={20} />;"
+    },
+    {
+      "line": 32,
+      "content": "case 'writing': return <PenTool size={20} />;"
+    },
+    {
+      "line": 33,
+      "content": "case 'speaking': return <Mic size={20} />;"
+    },
+    {
+      "line": 40,
+      "content": "case 'reading': return 'blue';"
+    },
+    {
+      "line": 41,
+      "content": "case 'listening': return 'purple';"
+    },
+    {
+      "line": 42,
+      "content": "case 'writing': return 'orange';"
+    },
+    {
+      "line": 43,
+      "content": "case 'speaking': return 'emerald';"
+    },
+    {
+      "line": 65,
+      "content": "const isUpcoming = status === 'upcoming';"
+    },
+    {
+      "line": 92,
+      "content": "'map_labeling': 'MAP',"
+    },
+    {
+      "line": 93,
+      "content": "'matching': 'MATCHING',"
+    },
+    {
+      "line": 94,
+      "content": "'true_false_not_given': 'TRUE/FALSE/NG',"
+    },
+    {
+      "line": 95,
+      "content": "'true_false': 'TRUE/FALSE/NG',"
+    },
+    {
+      "line": 96,
+      "content": "'tfng': 'TRUE/FALSE/NG',"
+    },
+    {
+      "line": 97,
+      "content": "'yes_no_not_given': 'YES/NO/NG',"
+    },
+    {
+      "line": 98,
+      "content": "'yes_no': 'YES/NO/NG',"
+    },
+    {
+      "line": 99,
+      "content": "'ynng': 'YES/NO/NG',"
+    },
+    {
+      "line": 102,
+      "content": "'diagram_labeling': 'DIAGRAM',"
+    },
+    {
+      "line": 103,
+      "content": "'heading_matching': 'HEADINGS',"
+    },
+    {
+      "line": 104,
+      "content": "'paragraph_matching': 'PARA MATCH',"
+    },
+    {
+      "line": 207,
+      "content": "{(type === 'reading' || type === 'listening') && ("
+    },
+    {
+      "line": 222,
+      "content": "<span>{questionsCount || 40} savol</span>"
+    },
+    {
+      "line": 251,
+      "content": "<span>Natija</span>"
+    },
+    {
+      "line": 252,
+      "content": "<span className=\"text-white font-bold\">{result?.bandScore || result?.score} Ball</span>"
+    },
+    {
+      "line": 276,
+      "content": "Premiumga o'tish"
+    },
+    {
+      "line": 298,
+      "content": "{isCompleted ? 'Qayta' : (hasDraft ? 'Davom' : 'Boshlash')}"
+    },
+    {
+      "line": 303,
+      "content": "{isCompleted && !canRetake ? \"Tugallangan\" : (isExpired && isStrict ? \"Muddati o'tgan\" : (isUpcoming ? \"Kutilmoqda\" : \"Urinishlar tugagan\"))}"
+    },
+    {
+      "line": 389,
+      "content": "<span>{test.status === 'completed' ? \"Natijani Ko'rish\" : \"Imtihonni Boshlash\"}</span>"
+    },
+    {
+      "line": 430,
+      "content": "<span>{isPremium ? \"Premium To'plam\" : \"To'plamni Ochish\"}</span>"
+    }
+  ],
+  "components/dashboard/RoadmapTimeline.jsx": [
+    {
+      "line": 22,
+      "content": "{ id: 'd1_1', title: \"Reading: Scanning\", desc: \"Matnlarni tezkor skanerlash texnikasi\", icon: BookOpen, type: 'reading' },"
+    },
+    {
+      "line": 23,
+      "content": "{ id: 'd1_2', title: \"Reading: Analysis\", desc: \"Xatolarni tahlil qilish va lug'at ustida ishlash\", icon: PlayCircle, type: 'reading' }"
+    },
+    {
+      "line": 26,
+      "content": "{ id: 'd2_1', title: \"Listening: Keywords\", desc: \"Kalit so'zlarni tutib olish amaliyoti\", icon: Headphones, type: 'listening' },"
+    },
+    {
+      "line": 27,
+      "content": "{ id: 'd2_2', title: \"Listening: Accents\", desc: \"Turli aksentlar va Section 4 tahlili\", icon: PlayCircle, type: 'listening' }"
+    },
+    {
+      "line": 30,
+      "content": "{ id: 'd3_1', title: \"Reading Practice\", desc: \"Full Reading passage amaliyoti\", icon: BookOpen, type: 'reading' },"
+    },
+    {
+      "line": 31,
+      "content": "{ id: 'd3_2', title: \"Writing AI\", desc: \"Writing Task tahlili va AI feedback\", icon: PenTool, type: 'writing' }"
+    },
+    {
+      "line": 34,
+      "content": "{ id: 'd4_1', title: \"Listening Practice\", desc: \"Full Listening test amaliyoti\", icon: Headphones, type: 'listening' },"
+    },
+    {
+      "line": 35,
+      "content": "{ id: 'd4_2', title: \"Speaking AI\", desc: \"AI bilan Speaking simulyatsiyasi\", icon: MessageCircle, type: 'speaking' }"
+    },
+    {
+      "line": 46,
+      "content": "{ id: 'd7_1', title: \"Full Mock Exam\", desc: \"To'liq imtihon simulyatsiyasi\", icon: BarChart, type: 'mock' },"
+    },
+    {
+      "line": 47,
+      "content": "{ id: 'd7_2', title: \"Final Strategy\", desc: \"Imtihon oldidan so'nggi ko'rsatmalar\", icon: Zap, type: 'review' }"
+    },
+    {
+      "line": 86,
+      "content": "icon: tasks[0]?.type === 'reading' ? BookOpen : tasks[0]?.type === 'listening' ? Headphones : Zap"
+    },
+    {
+      "line": 102,
+      "content": "if (task.type === 'speaking') {"
+    },
+    {
+      "line": 108,
+      "content": "navigate('/article-reading');"
+    },
+    {
+      "line": 196,
+      "content": "7 kun ichida platformamiz imkoniyatlari bo'ylab bepul sayohat qiling."
+    },
+    {
+      "line": 202,
+      "content": "To'liq marshrutni ko'rish"
+    },
+    {
+      "line": 234,
+      "content": "Boshlash"
+    }
+  ],
+  "components/dashboard/LimitReachedSheet.jsx": [
+    {
+      "line": 5,
+      "content": "const LimitReachedSheet = ({ isOpen, onClose, onUpgrade, type = 'reading' }) => {"
+    },
+    {
+      "line": 27,
+      "content": "transition={{ type: 'spring', damping: 25, stiffness: 300 }}"
+    },
+    {
+      "line": 48,
+      "content": "Pro Tarif Kerak"
+    },
+    {
+      "line": 52,
+      "content": "Barcha {type === 'reading' ? 'Reading' : 'Listening'} testlarini yechish va tahlil qilish uchun Pro tarifiga o'ting."
+    },
+    {
+      "line": 61,
+      "content": "Pro — 39,000 so'm"
+    },
+    {
+      "line": 72,
+      "content": "<div className=\"text-[11px] text-[#86868b]\">Eng yaxshi tanlov (99,000 so'm)</div>"
+    }
+  ],
+  "components/dashboard/DashboardListeningBanner.jsx": [
+    {
+      "line": 37,
+      "content": "Barcha listening materiallari. <br className=\"hidden md:block\" />"
+    },
+    {
+      "line": 38,
+      "content": "Oliy sifat va reklamasiz."
+    },
+    {
+      "line": 44,
+      "content": "onClick={() => navigate('/listening')}"
+    },
+    {
+      "line": 47,
+      "content": "Bepul o'rganing"
+    },
+    {
+      "line": 51,
+      "content": "Ko'proq ma'lumot"
+    }
+  ],
+  "components/dashboard/DashboardReadingCarousel.jsx": [
+    {
+      "line": 24,
+      "content": "let readingTests = assignments.filter(t => (t.type || '').toLowerCase() === 'reading');"
+    },
+    {
+      "line": 57,
+      "content": "sub = `Ushbu test ${test.tags.join(', ')} mavzularini o'z ichiga oladi.`;"
+    },
+    {
+      "line": 59,
+      "content": "sub = \"IELTS Reading ko'nikmalarini oshirish uchun ajoyib matn.\";"
+    },
+    {
+      "line": 109,
+      "content": "onClick={() => navigate('/reading')}"
+    },
+    {
+      "line": 112,
+      "content": "Barchasini ko'rish"
+    }
+  ],
+  "components/dashboard/FiltersBar.jsx": [
+    {
+      "line": 18,
+      "content": "{['all', 'reading', 'listening', 'writing', 'mock', 'set'].map(type => ("
+    }
+  ],
+  "components/dashboard/UpgradeBanner.jsx": [
+    {
+      "line": 34,
+      "content": "Ballingizni <span className=\"text-[#FFD700] underline decoration-wavy decoration-yellow-500/50 underline-offset-4\">{targetBand}</span> ga olib chiqish uchun individual o'quv rejasini oching"
+    },
+    {
+      "line": 41,
+      "content": "Rejani ochish"
+    }
+  ],
+  "components/dashboard/QuickAnalytics.jsx": [
+    {
+      "line": 94,
+      "content": "<h2 className=\"text-xl font-bold text-vetra-midnight\">Statistika</h2>"
+    },
+    {
+      "line": 98,
+      "content": "Haftalik O'sish"
+    },
+    {
+      "line": 120,
+      "content": "<p className=\"text-sm text-[#A8AAAC]\">Zaif tomonlaringiz va rivojlanish kerak bo'lgan yo'nalishlar</p>"
+    },
+    {
+      "line": 132,
+      "content": "<h4 className=\"text-sm font-bold text-[#161616] uppercase tracking-widest\">Eng zaif savol turlari</h4>"
+    },
+    {
+      "line": 156,
+      "content": "Zaif tomonlaringizni bilib olish uchun Premiumga ulaning"
+    },
+    {
+      "line": 159,
+      "content": "Siz qaysi savol turlarida (masalan, TFNG) ko'p xato qilayotganingizni AI aniqlaydi."
+    },
+    {
+      "line": 165,
+      "content": "Tahlilni ochish"
+    }
+  ],
+  "components/dashboard/SettingsTab.jsx": [
+    {
+      "line": 97,
+      "content": "setMessage(\"Muvaffaqiyatli saqlandi! ✅\");"
+    },
+    {
+      "line": 101,
+      "content": "console.error(\"Xatolik:\", error);"
+    },
+    {
+      "line": 102,
+      "content": "setMessage(\"Xatolik: \" + error.message + \" ❌\");"
+    },
+    {
+      "line": 110,
+      "content": "<h2 className={`text-xl font-bold mb-6 tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>Profil Sozlamalari</h2>"
+    },
+    {
+      "line": 128,
+      "content": "<h3 className=\"text-lg font-bold leading-tight\">{fullName || \"Ism Familiya\"}</h3>"
+    },
+    {
+      "line": 146,
+      "content": "<label className=\"text-[12px] font-bold text-zinc-500 ml-1\">To'liq Ism</label>"
+    },
+    {
+      "line": 160,
+      "content": "<label className=\"text-[12px] font-bold text-zinc-500 ml-1\">Telefon Raqam</label>"
+    },
+    {
+      "line": 226,
+      "content": "Saqlash"
+    }
+  ],
+  "components/dashboard/Leaderboard.jsx": [
+    {
+      "line": 73,
+      "content": "Top O'quvchilar"
+    },
+    {
+      "line": 110,
+      "content": "{leader.fullName || \"Foydalanuvchi\"}"
+    },
+    {
+      "line": 136,
+      "content": "Hozircha ma'lumot yo'q."
+    }
+  ],
+  "components/dashboard/DashboardListeningCarousel.jsx": [
+    {
+      "line": 29,
+      "content": "let listeningTests = assignments.filter(t => (t.type || '').toLowerCase() === 'listening');"
+    },
+    {
+      "line": 79,
+      "content": "sub: item.description || item.tags?.[0] || \"IELTS Listening ko'nikmalarini oshirish.\","
+    }
+  ],
+  "components/dashboard/TestShowcase.jsx": [
+    {
+      "line": 26,
+      "content": "const isUpcoming = status === 'upcoming';"
+    },
+    {
+      "line": 92,
+      "content": "{isCompleted ? 'Qayta' : (hasDraft ? 'Davom' : 'Boshlash')} <ArrowRight size={14} />"
+    },
+    {
+      "line": 96,
+      "content": "{isCompleted && !canRetake ? \"Tugallangan\" : (isExpired && isStrict ? \"Muddati o'tgan\" : (isUpcoming ? \"Kutilmoqda\" : \"Urinishlar tugagan\"))}"
+    },
+    {
+      "line": 128,
+      "content": "<h2 className=\"text-2xl font-bold text-vetra-midnight mb-1\">Siz uchun tavsiyalar</h2>"
+    },
+    {
+      "line": 129,
+      "content": "<p className=\"text-vetra-stone text-sm\">Sun'iy intellekt tanlagan testlar</p>"
+    },
+    {
+      "line": 161,
+      "content": "Hozircha tavsiyalar yo'q."
+    }
+  ],
+  "components/dashboard/LibrarySubHeader.jsx": [
+    {
+      "line": 19,
+      "content": "{ id: 'reading', label: 'Reading', path: '/reading' },"
+    },
+    {
+      "line": 20,
+      "content": "{ id: 'listening', label: 'Listening', path: '/listening' },"
+    },
+    {
+      "line": 21,
+      "content": "{ id: 'writing', label: 'Writing', path: '/practice?tab=writing' },"
+    },
+    {
+      "line": 22,
+      "content": "{ id: 'speaking', label: 'Speaking', path: '/practice?tab=speaking' },"
+    }
+  ],
+  "components/dashboard/DashboardModals.jsx": [
+    {
+      "line": 16,
+      "content": "case 'reading': colorStyle += \"hover:border-blue-300 hover:shadow-blue-100\"; break;"
+    },
+    {
+      "line": 17,
+      "content": "case 'listening': colorStyle += \"hover:border-purple-300 hover:shadow-purple-100\"; break;"
+    },
+    {
+      "line": 18,
+      "content": "case 'writing': colorStyle += \"hover:border-[#F44A22]/30 hover:shadow-orange-100\"; break;"
+    },
+    {
+      "line": 26,
+      "content": "case 'reading': return \"text-blue-600 bg-blue-50 border-blue-200\";"
+    },
+    {
+      "line": 27,
+      "content": "case 'listening': return \"text-purple-600 bg-purple-50 border-purple-200\";"
+    },
+    {
+      "line": 28,
+      "content": "case 'writing': return \"text-[#F44A22] bg-orange-50 border-orange-200\";"
+    },
+    {
+      "line": 35,
+      "content": "case 'reading': return \"bg-blue-500\";"
+    },
+    {
+      "line": 36,
+      "content": "case 'listening': return \"bg-purple-500\";"
+    },
+    {
+      "line": 37,
+      "content": "case 'writing': return \"bg-[#F44A22]\";"
+    },
+    {
+      "line": 64,
+      "content": "<p className=\"text-xs font-medium text-[#A8AAAC] mb-6 px-4\">O'qituvchi bergan maxsus kodni kiriting</p>"
+    },
+    {
+      "line": 78,
+      "content": "Bekor qilish"
+    },
+    {
+      "line": 96,
+      "content": "<h3 className=\"text-xl font-bold mb-2 text-[#161616] tracking-tight\">Testni Boshlash</h3>"
+    },
+    {
+      "line": 105,
+      "content": "Yo'q"
+    },
+    {
+      "line": 122,
+      "content": "<h3 className=\"text-xl font-bold mb-2 text-[#161616] tracking-tight\">Chiqish</h3>"
+    },
+    {
+      "line": 129,
+      "content": "Yo'q"
+    },
+    {
+      "line": 173,
+      "content": "const isPremiumType = sub.type === 'reading' || sub.type === 'listening';"
+    },
+    {
+      "line": 187,
+      "content": "{sub.type === 'reading' ? <Icons.Book className=\"w-5 h-5 text-white\" /> :"
+    },
+    {
+      "line": 188,
+      "content": "sub.type === 'listening' ? <Icons.Headphones className=\"w-5 h-5 text-white\" /> :"
+    },
+    {
+      "line": 253,
+      "content": "onClick={() => navigate('/pricing')}"
+    }
+  ],
+  "components/dashboard/PracticeTrack.jsx": [
+    {
+      "line": 43,
+      "content": "{ number: '01', title: 'Listening', subtitle: 'Practice', color: 'white' },"
+    },
+    {
+      "line": 44,
+      "content": "{ number: '02', title: 'Reading', subtitle: 'Practice', color: 'orange' },"
+    },
+    {
+      "line": 45,
+      "content": "{ number: '03', title: 'Writing', subtitle: 'Practice', color: 'white' },"
+    }
+  ],
+  "components/dashboard/AnnouncementsBoard.jsx": [
+    {
+      "line": 58,
+      "content": "case 'warning': return <FaExclamationTriangle className=\"text-orange-500\" />;"
+    },
+    {
+      "line": 67,
+      "content": "case 'warning': return 'bg-orange-50 border-orange-200';"
+    }
+  ],
+  "components/dashboard/BottomNav.jsx": [
+    {
+      "line": 14,
+      "content": "{ id: 'podcasts', label: 'Audio', icon: Headphones },"
+    },
+    {
+      "line": 21,
+      "content": "{ id: 'pricing', label: 'Premium Plan', icon: CreditCard, path: '/pricing' },"
+    },
+    {
+      "line": 127,
+      "content": "animate={{ opacity: 1, width: 'auto' }}"
+    }
+  ],
+  "components/dashboard/SearchOverlay.jsx": [
+    {
+      "line": 31,
+      "content": "{ label: 'Find a Test', path: '/reading' },"
+    },
+    {
+      "line": 89,
+      "content": "{['Reading Tips', 'Writing Task 2', 'Speaking', 'Mock Exam', 'Band 9'].map((topic, i) => ("
+    }
+  ],
+  "components/dashboard/StatsCards.jsx": [
+    {
+      "line": 7,
+      "content": "<span className=\"text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1\">Jami Testlar</span>"
+    },
+    {
+      "line": 16,
+      "content": "<span className=\"text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1 block\">O'rtacha Natija</span>"
+    }
+  ],
+  "components/dashboard/DashboardArticles.jsx": [
+    {
+      "line": 94,
+      "content": "Eng sara maqolalar va nashrlar. <br className=\"hidden md:block\" />"
+    },
+    {
+      "line": 101,
+      "content": "Bepul o'qish"
+    },
+    {
+      "line": 105,
+      "content": "Barchasini ko'rish"
+    },
+    {
+      "line": 145,
+      "content": "O'qish"
+    }
+  ],
+  "components/common/AdvancedAnalyticsChart.jsx": [
+    {
+      "line": 13,
+      "content": "{ key: 'tests', label: 'Testlar', color: '#3B82F6', type: 'count' },"
+    },
+    {
+      "line": 14,
+      "content": "{ key: 'score', label: 'O\\'rtacha Ball', color: '#F59E0B', type: 'decimal' },"
+    },
+    {
+      "line": 168,
+      "content": "<span className={`text-[10px] font-medium transition-colors ${isDark ? 'text-white/30' : 'text-gray-400'}`}>{isAvg ? 'avg' : 'total'}</span>"
+    }
+  ],
+  "components/common/TeacherLayout.jsx": [
+    {
+      "line": 25,
+      "content": "{ name: 'Testlar',  path: '/teacher/tests'                    },"
+    },
+    {
+      "line": 26,
+      "content": "{ name: 'Natijalar',path: '/teacher/results'                  },"
+    },
+    {
+      "line": 32,
+      "content": "{ name: 'Testlar',            path: '/teacher/tests',             icon: BookOpen         },"
+    },
+    {
+      "line": 33,
+      "content": "{ name: 'Writing Yaratish',   path: '/teacher/create-writing',    icon: FilePlus         },"
+    },
+    {
+      "line": 34,
+      "content": "{ name: 'Writing Tekshirish', path: '/teacher/writing-review',    icon: PenLine          },"
+    },
+    {
+      "line": 35,
+      "content": "{ name: 'Guruh Statistikasi', path: '/teacher/group-stats',       icon: BarChart2        },"
+    },
+    {
+      "line": 36,
+      "content": "{ name: 'Barcha Natijalar',   path: '/teacher/results',           icon: ClipboardText    },"
+    },
+    {
+      "line": 116,
+      "content": "Chiqish"
+    },
+    {
+      "line": 223,
+      "content": "title=\"Chiqish\""
+    },
+    {
+      "line": 261,
+      "content": "<div className={`h-full flex flex-col ${isWritingReview ? 'overflow-hidden' : 'overflow-y-auto'} custom-scrollbar`}>"
+    }
+  ],
+  "components/common/AnalyticsChart.jsx": [
+    {
+      "line": 33,
+      "content": "<option>Bu oy</option>"
+    },
+    {
+      "line": 34,
+      "content": "<option>Bu yil</option>"
+    }
+  ],
+  "components/common/AdminHeader.jsx": [
+    {
+      "line": 122,
+      "content": "title=\"Chiqish\""
+    },
+    {
+      "line": 135,
+      "content": "Haqiqatan ham tizimdan chiqmoqchimisiz?"
+    },
+    {
+      "line": 142,
+      "content": "Yo'q, qolish"
+    },
+    {
+      "line": 148,
+      "content": "Ha, chiqish"
+    }
+  ],
+  "components/common/ErrorBoundary.jsx": [
+    {
+      "line": 21,
+      "content": "<h2 className=\"text-2xl font-bold mb-4\">Kechirasiz, nimadir noto'g'ri bajarildi.</h2>"
+    },
+    {
+      "line": 23,
+      "content": "Ilovada kutilmagan xatolik yuz berdi. Sahifani yangilab ko'ring yoki birozdan so'ng qayta urinib ko'ring."
+    }
+  ],
+  "components/common/ShareModal.jsx": [
+    {
+      "line": 33,
+      "content": "return `🚀 Men ENGLEV platformasida ushbu ${capitalizedType} testdan (${testTitle}) ${bandScore} ball oldim! Siz ham o'z kuchingizni sinab ko'ring:`;"
+    },
+    {
+      "line": 35,
+      "content": "return `📚 ENGLEV platformasidagi ushbu ajoyib ${capitalizedType} testni (${testTitle}) bajaring va IELTS ballingizni oshiring:`;"
+    },
+    {
+      "line": 46,
+      "content": "toast.error(\"Nusxalashda xatolik yuz berdi\");"
+    },
+    {
+      "line": 87,
+      "content": "title=\"Yopish\""
+    },
+    {
+      "line": 107,
+      "content": "Sizning natijangiz: {bandScore} Band Score ({score} ta to'g'ri)"
+    },
+    {
+      "line": 117,
+      "content": "Hozirgi bo'limdan boshlash"
+    },
+    {
+      "line": 120,
+      "content": "Havola {testType === 'reading' ? `${currentPart}-matndan` : `${currentPart}-bo'limdan`} ochiladi"
+    }
+  ],
+  "components/common/SchemaMarkup.jsx": [
+    {
+      "line": 28,
+      "content": "\"description\": \"IELTS dan yuqori ball olishning eng zamonaviy o'quv portali. Real imtihon muhiti, sun'iy intellekt yordamida chuqur tahlil va aniq natijalar.\","
+    },
+    {
+      "line": 54,
+      "content": "\"description\": \"Haqiqiy imtihon muhitida IELTS testlarini topshirish va sun'iy intellekt (AI) yordamida tezkor Speaking hamda Writing baholash xizmati.\","
+    }
+  ],
+  "components/common/Navbar.jsx": [
+    {
+      "line": 28,
+      "content": "Kirish"
+    },
+    {
+      "line": 31,
+      "content": "Ro'yxatdan o'tish"
+    },
+    {
+      "line": 59,
+      "content": "<Link to=\"/\" className=\"text-2xl font-medium text-gray-900\" onClick={() => setIsOpen(false)}>Asosiy</Link>"
+    },
+    {
+      "line": 60,
+      "content": "<Link to=\"/#features\" className=\"text-2xl font-medium text-gray-900\" onClick={() => setIsOpen(false)}>Xususiyatlar</Link>"
+    },
+    {
+      "line": 66,
+      "content": "Kirish"
+    },
+    {
+      "line": 69,
+      "content": "Ro'yxatdan o'tish"
+    }
+  ],
+  "components/common/SiteFooter.jsx": [
+    {
+      "line": 12,
+      "content": "Englev Premium obunasi orqali siz barcha Mock testlar va ilg'or tahlillarga ega bo'lasiz. Narxlar va shartlar o'zgarishi mumkin."
+    },
+    {
+      "line": 20,
+      "content": "<h3 className=\"text-[#1d1d1f] font-semibold mb-2\">O'rganish va Mashq</h3>"
+    },
+    {
+      "line": 36,
+      "content": "<li><Link to=\"/settings\" className=\"hover:text-[#1d1d1f] hover:underline\">Sozlamalar</Link></li>"
+    },
+    {
+      "line": 56,
+      "content": "<li><span className=\"cursor-pointer hover:text-[#1d1d1f] hover:underline\">O'qish bo'yicha maslahatlar</span></li>"
+    },
+    {
+      "line": 64,
+      "content": "<h3 className=\"text-[#1d1d1f] font-semibold mb-2\">O'qituvchilar uchun</h3>"
+    },
+    {
+      "line": 66,
+      "content": "<li><Link to=\"/teacher\" className=\"hover:text-[#1d1d1f] hover:underline\">O'qituvchi portali</Link></li>"
+    },
+    {
+      "line": 67,
+      "content": "<li><span className=\"cursor-pointer hover:text-[#1d1d1f] hover:underline\">Guruh statistikasi</span></li>"
+    },
+    {
+      "line": 68,
+      "content": "<li><span className=\"cursor-pointer hover:text-[#1d1d1f] hover:underline\">Vazifalar yaratish</span></li>"
+    },
+    {
+      "line": 71,
+      "content": "<h3 className=\"text-[#1d1d1f] font-semibold mb-2\">Muassasalar uchun</h3>"
+    },
+    {
+      "line": 73,
+      "content": "<li><span className=\"cursor-pointer hover:text-[#1d1d1f] hover:underline\">Maktablar uchun Englev</span></li>"
+    },
+    {
+      "line": 83,
+      "content": "<li><span className=\"cursor-pointer hover:text-[#1d1d1f] hover:underline\">Ta'lim birinchi o'rinda</span></li>"
+    },
+    {
+      "line": 87,
+      "content": "<h3 className=\"text-[#1d1d1f] font-semibold mb-2\">Englev Haqida</h3>"
+    },
+    {
+      "line": 92,
+      "content": "<li><span className=\"cursor-pointer hover:text-[#1d1d1f] hover:underline\">Bog'lanish</span></li>"
+    },
+    {
+      "line": 103,
+      "content": "<Link to=\"/my-results\" className=\"hover:underline\">Natijalar</Link>"
+    },
+    {
+      "line": 105,
+      "content": "<Link to=\"/settings\" className=\"hover:underline\">Sozlamalar</Link>"
+    },
+    {
+      "line": 112,
+      "content": "Biz bilan bog'lanish uchun: <span className=\"text-[#0066cc] cursor-pointer hover:underline\">O'quv markaz topish</span> yoki qo'ng'iroq qiling <span className=\"text-[#1d1d1f]\">+998 91 518 18 44</span>."
+    },
+    {
+      "line": 117,
+      "content": "<p>Copyright © 2026 Englev Inc. Barcha huquqlar himoyalangan.</p>"
+    },
+    {
+      "line": 121,
+      "content": "<span className=\"border-l border-[#d2d2d7] pl-3 hover:text-[#1d1d1f] cursor-pointer hover:underline\">Savdo va to'lovlar</span>"
+    },
+    {
+      "line": 125,
+      "content": "<p className=\"hover:text-[#1d1d1f] cursor-pointer hover:underline\">O'zbekiston</p>"
+    }
+  ],
+  "components/ReadingInterface/ReadingFooter.jsx": [
+    {
+      "line": 39,
+      "content": "const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');"
+    }
+  ],
+  "components/ReadingInterface/ReadingInterfaceUtils.js": [
+    {
+      "line": 66,
+      "content": "return gt.includes('matching') && ("
+    },
+    {
+      "line": 67,
+      "content": "gi.includes('heading') || gt.includes('heading') ||"
+    }
+  ],
+  "components/ReadingInterface/HighlightMenu.jsx": [
+    {
+      "line": 110,
+      "content": "title=\"Note qo'shish\""
+    },
+    {
+      "line": 120,
+      "content": "title=\"Lug'atga qo'shish\""
+    },
+    {
+      "line": 139,
+      "content": "title=\"Paraphrase Map'ga qo'shish\""
+    },
+    {
+      "line": 158,
+      "content": "title=\"Menyuni yopish\""
+    }
+  ],
+  "components/ReadingInterface/ReadingQuestionTypes.jsx": [
+    {
+      "line": 9,
+      "content": "export * from './QuestionTypes/DiagramLabeling';"
+    }
+  ],
+  "components/ReadingInterface/ReadingInterface.jsx": [
+    {
+      "line": 415,
+      "content": "{typeof activeDragData.text === 'string'"
+    }
+  ],
+  "components/ReadingInterface/ReadingLeftPane.jsx": [
+    {
+      "line": 206,
+      "content": "fontSize: textSize === 'text-sm' ? '13px' : textSize === 'text-lg' ? '17px' : textSize === 'text-xl' ? '19px' : '15px',"
+    }
+  ],
+  "components/ReadingInterface/ReadingRightPane.jsx": [
+    {
+      "line": 146,
+      "content": "fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',"
+    }
+  ],
+  "components/ReadingInterface/QuestionTypes/Choice.jsx": [
+    {
+      "line": 17,
+      "content": "const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];"
+    },
+    {
+      "line": 21,
+      "content": "const isTFNG = type.includes('tfng') || type.includes('true_false');"
+    },
+    {
+      "line": 22,
+      "content": "const isYNNG = type.includes('yesno') || type.includes('yes_no');"
+    },
+    {
+      "line": 61,
+      "content": "if (typeof q.locationId === 'string' && q.locationId.includes(',')) {"
+    }
+  ],
+  "components/ReadingInterface/QuestionTypes/MatchingGrid.jsx": [
+    {
+      "line": 15,
+      "content": "if (listMatch && listMatch[1] && !['the', 'following', 'options'].includes(listMatch[1])) {"
+    },
+    {
+      "line": 37,
+      "content": "<div className={group.type === 'matching' ? \"flex flex-col gap-y-1.5\" : \"grid grid-cols-2 gap-x-4 gap-y-1.5\"}>"
+    }
+  ],
+  "components/ReadingInterface/QuestionTypes/CommonComponents.jsx": [
+    {
+      "line": 6,
+      "content": "if (!text || typeof text !== 'string') return text;"
+    },
+    {
+      "line": 111,
+      "content": "onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}"
+    },
+    {
+      "line": 172,
+      "content": "<span className=\"text-[10px] font-bold text-sky-400 tracking-wide uppercase\">O'zbekcha</span>"
+    }
+  ],
+  "components/ReadingInterface/RightPane/QuestionGroup.jsx": [
+    {
+      "line": 33,
+      "content": "const isChoiceType = ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => type.includes(t));"
+    },
+    {
+      "line": 34,
+      "content": "const isMultiSelect = type.includes('pick_two') || type.includes('pick_three') || type.includes('multi');"
+    },
+    {
+      "line": 35,
+      "content": "const isMatching = type.includes('matching') || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));"
+    },
+    {
+      "line": 39,
+      "content": "const isDiagram = type.includes('diagram') || type.includes('labeling');"
+    },
+    {
+      "line": 40,
+      "content": "const isTFNG = type.includes('tfng') || type.includes('yesno') || type.includes('true_false') || type.includes('yes_no');"
+    },
+    {
+      "line": 50,
+      "content": "const isMatchingParagraph = (type.includes('matching') && (type.includes('paragraph') || instr.includes('paragraph') || instr.includes('contain') || instr.includes('mention')));"
+    },
+    {
+      "line": 51,
+      "content": "const showStaticOptions = ((type.includes('matching') && !isMatchingParagraph) || type === 'summary_box') && group.options && group.options.length > 0 && !isJustLetters;"
+    },
+    {
+      "line": 68,
+      "content": "const isMatchingHeading = type.includes('matching') && ("
+    },
+    {
+      "line": 69,
+      "content": "instr.includes('heading') ||"
+    },
+    {
+      "line": 70,
+      "content": "type.includes('heading') ||"
+    },
+    {
+      "line": 77,
+      "content": "const isMatchingGrid = type.includes('matching') && !isMatchingHeading && !isMatchingParagraph && group.options && group.options.length > 0;"
+    }
+  ],
+  "components/practice/PracticeCard.jsx": [
+    {
+      "line": 11,
+      "content": "const isPremium = test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening';"
+    },
+    {
+      "line": 13,
+      "content": "const isListeningPart = test.type === 'listening' && (test.title?.toLowerCase().includes('part') || test.partNumber || !test.title?.toLowerCase().includes('full'));"
+    },
+    {
+      "line": 14,
+      "content": "const isListeningFull = test.type === 'listening' && test.title?.toLowerCase().includes('full');"
+    },
+    {
+      "line": 15,
+      "content": "const isReadingPassage = test.type === 'reading' && (test.title?.toLowerCase().includes('passage') || !test.title?.toLowerCase().includes('full'));"
+    },
+    {
+      "line": 16,
+      "content": "const isReadingFull = test.type === 'reading' && test.title?.toLowerCase().includes('full');"
+    },
+    {
+      "line": 54,
+      "content": "(test.type === 'reading' ? (isReadingFull ? 60 : 20) :"
+    },
+    {
+      "line": 55,
+      "content": "test.type === 'listening' ? (isListeningFull ? 40 : 10) :"
+    },
+    {
+      "line": 56,
+      "content": "test.type === 'writing' ? 60 : 60);"
+    },
+    {
+      "line": 58,
+      "content": "const cardImage = test.type === 'listening'"
+    },
+    {
+      "line": 59,
+      "content": "? '/images/dashboard/listening_orange_headphones.jpg'"
+    },
+    {
+      "line": 61,
+      "content": "test.type === 'reading' ? '/images/dashboard/reading_passage_yellow_card.png' :"
+    },
+    {
+      "line": 62,
+      "content": "test.type === 'writing' ? 'https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=800' :"
+    },
+    {
+      "line": 63,
+      "content": "test.type === 'speaking' ? 'https://images.unsplash.com/photo-1506784926709-22f1ec395907?q=80&w=800' :"
+    },
+    {
+      "line": 67,
+      "content": "const passageLabel = test.type === 'reading'"
+    },
+    {
+      "line": 69,
+      "content": ": test.type === 'listening'"
+    },
+    {
+      "line": 73,
+      "content": "const canAccess = isPro || (isStandard && (test.type === 'reading' || test.type === 'listening' || test.type === 'podcasts'));"
+    },
+    {
+      "line": 81,
+      "content": "navigate('/pricing');"
+    },
+    {
+      "line": 120,
+      "content": "if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';"
+    },
+    {
+      "line": 121,
+      "content": "if (lower.includes('matching')) return 'Matching';"
+    },
+    {
+      "line": 125,
+      "content": "if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';"
+    },
+    {
+      "line": 167,
+      "content": "case 'reading':"
+    },
+    {
+      "line": 169,
+      "content": "case 'listening':"
+    },
+    {
+      "line": 171,
+      "content": "case 'writing':"
+    },
+    {
+      "line": 173,
+      "content": "case 'speaking':"
+    },
+    {
+      "line": 182,
+      "content": "case 'reading':"
+    },
+    {
+      "line": 184,
+      "content": "case 'listening':"
+    },
+    {
+      "line": 186,
+      "content": "case 'writing':"
+    },
+    {
+      "line": 188,
+      "content": "case 'speaking':"
+    },
+    {
+      "line": 195,
+      "content": "const hasVisual = test.type === 'listening' || ("
+    },
+    {
+      "line": 275,
+      "content": "onClick={(e) => { e.stopPropagation(); navigate('/pricing'); }}"
+    },
+    {
+      "line": 311,
+      "content": "{questionCount} Savol"
+    }
+  ],
+  "components/practice/PracticeHero.jsx": [
+    {
+      "line": 7,
+      "content": "if (activeTab !== 'reading') return null;"
+    }
+  ],
+  "components/practice/ReadingSetCard.jsx": [
+    {
+      "line": 18,
+      "content": "navigate('/pricing');"
+    }
+  ],
+  "components/practice/ListeningPartsSection.jsx": [
+    {
+      "line": 36,
+      "content": "Ushbu bo'limga mos part practice testlari topilmadi."
+    }
+  ],
+  "components/practice/PracticeFilters.jsx": [
+    {
+      "line": 91,
+      "content": "title: 'MATCHING',"
+    },
+    {
+      "line": 93,
+      "content": "{ id: 'matching_names', label: 'Matching Names', dbTypes: ['PARA MATCH', 'MATCHING'] },"
+    },
+    {
+      "line": 94,
+      "content": "{ id: 'matching_features', label: 'Matching Features', dbTypes: ['MATCHING'] },"
+    },
+    {
+      "line": 96,
+      "content": "{ id: 'flow_chart_matching', label: 'Flow Chart Matching', dbTypes: ['FLOW CHART'] }"
+    },
+    {
+      "line": 102,
+      "content": "{ id: 'true_false_ng', label: 'True / False / Not Given', dbTypes: ['TRUE/FALSE/NG'] },"
+    },
+    {
+      "line": 103,
+      "content": "{ id: 'yes_no_ng', label: 'Yes / No / Not Given', dbTypes: ['YES/NO/NG'] },"
+    },
+    {
+      "line": 139,
+      "content": "{((activeTab === 'reading' && readingFilters && readingFilters.length > 0) ||"
+    },
+    {
+      "line": 140,
+      "content": "(activeTab === 'listening' && listeningFilters && listeningFilters.length > 0)) && ("
+    },
+    {
+      "line": 143,
+      "content": "{activeTab === 'reading' && readingFilters.map((filter) => {"
+    },
+    {
+      "line": 164,
+      "content": "{activeTab === 'listening' && listeningFilters.map((filter) => {"
+    },
+    {
+      "line": 190,
+      "content": "{((activeTab === 'reading' && readingFilters && readingFilters.length > 0) ||"
+    },
+    {
+      "line": 191,
+      "content": "(activeTab === 'listening' && listeningFilters && listeningFilters.length > 0)) && ("
+    },
+    {
+      "line": 237,
+      "content": "{activeTab === 'reading' && setSelectedPassages && ("
+    },
+    {
+      "line": 286,
+      "content": "{activeTab === 'listening' && setSelectedParts && ("
+    },
+    {
+      "line": 345,
+      "content": "<span>Savol Turlari: {getSelectedOptionsCount() > 0 ? `${getSelectedOptionsCount()} ta` : 'Barchasi'}</span>"
+    }
+  ],
+  "components/practice/FullReadingCard.jsx": [
+    {
+      "line": 17,
+      "content": "navigate('/pricing');"
+    },
+    {
+      "line": 90,
+      "content": "onClick={(e) => { e.stopPropagation(); navigate('/pricing'); }}"
+    }
+  ],
+  "components/practice/ListeningCollectionsSection.jsx": [
+    {
+      "line": 42,
+      "content": ": \"Admin tomonidan jamlangan maxsus test to'plamlari\"}"
+    }
+  ],
+  "components/TestReview/TestCommentSection.jsx": [
+    {
+      "line": 47,
+      "content": "status: isReport ? 'pending' : 'normal',"
+    },
+    {
+      "line": 61,
+      "content": "alert(\"Xato yuz berdi. Qayta urinib ko'ring.\");"
+    }
+  ],
+  "components/TestReview/SpeakingReview.jsx": [
+    {
+      "line": 6,
+      "content": "const audioUrl = typeof currentAnswers === 'string' ? currentAnswers : currentAnswers?.audio || currentAnswers?.url;"
+    }
+  ],
+  "components/TestReview/WritingReview.jsx": [
+    {
+      "line": 76,
+      "content": "<button onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))} className=\"bg-[#0071E3] text-white px-6 py-3 rounded-full font-bold text-sm shadow-lg flex items-center gap-2\">"
+    },
+    {
+      "line": 77,
+      "content": "<Zap size={16} fill=\"currentColor\" /> Premiumga o'tish <ArrowRight size={16} />"
+    },
+    {
+      "line": 91,
+      "content": "<td className={`px-6 py-4 font-bold ${key === 'overall' ? 'text-rose-500 text-lg' : 'text-gray-900'}`}>{val.band || '-'}</td>"
+    }
+  ],
+  "components/TestReview/ReviewHeader.jsx": [
+    {
+      "line": 50,
+      "content": "{['listening', 'reading', 'writing', 'speaking'].map(part => ("
+    },
+    {
+      "line": 68,
+      "content": "{(testData.type?.toLowerCase() === 'listening' || (resultData.type === 'mock_full' && activeMockPart === 'listening')) && ("
+    }
+  ],
+  "components/WordBank/VocabularyList.jsx": [
+    {
+      "line": 35,
+      "content": ": (word.testTitle || \"Umumiy so'zlar\");"
+    },
+    {
+      "line": 76,
+      "content": "<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className=\"overflow-hidden\">"
+    },
+    {
+      "line": 100,
+      "content": "<button onClick={() => { if(window.confirm(\"O'chirilsinmi?\")) onDelete(item.id); }} className=\"p-2 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100\">"
+    },
+    {
+      "line": 117,
+      "content": "<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className=\"overflow-hidden mt-3 pt-3 border-t border-gray-50 dark:border-white/5\">"
+    }
+  ],
+  "components/WordBank/WordBankMatchGame.jsx": [
+    {
+      "line": 20,
+      "content": "const [gameState, setGameState] = useState('playing'); // playing, won"
+    },
+    {
+      "line": 36,
+      "content": "if (gameState === 'playing') {"
+    },
+    {
+      "line": 82,
+      "content": "setGameState('playing');"
+    },
+    {
+      "line": 134,
+      "content": "<h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>So'zlar yetarli emas</h3>"
+    },
+    {
+      "line": 135,
+      "content": "<p className=\"text-gray-400 mb-6 font-light\">Match o'yinini o'ynash uchun kamida 3 ta tarjimasi yoki izohi bloklangan so'zingiz bo'lishi kerak.</p>"
+    },
+    {
+      "line": 149,
+      "content": "<h2 className={`text-4xl font-bold mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>O'yin yakunlandi!</h2>"
+    },
+    {
+      "line": 150,
+      "content": "<p className=\"text-gray-400 mb-8 text-lg font-light\">Siz barcha so'zlarni <span className={isDark ? 'text-white font-bold' : 'text-slate-900 font-bold'}>{formatTime(timeElapsed)}</span> daqiqa ichida <span className={isDark ? 'text-white font-bold' : 'text-slate-900 font-bold'}>{moves}</span> ta urunishda topdingiz.</p>"
+    },
+    {
+      "line": 153,
+      "content": "Lug'atga qaytish"
+    },
+    {
+      "line": 157,
+      "content": "setTimeout(() => setGameState('playing'), 50);"
+    },
+    {
+      "line": 159,
+      "content": "Yana o'ynash"
+    },
+    {
+      "line": 224,
+      "content": "<h3 className={`text-sm font-bold uppercase tracking-widest mb-2 px-2 ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>So'zlar</h3>"
+    }
+  ],
+  "components/WordBank/KeywordList.jsx": [
+    {
+      "line": 58,
+      "content": "<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className=\"overflow-hidden\">"
+    }
+  ],
+  "components/WordBank/WordBankFlashcards.jsx": [
+    {
+      "line": 15,
+      "content": "<h3 className=\"text-xl font-semibold text-white mb-2\">So'zlar topilmadi</h3>"
+    },
+    {
+      "line": 16,
+      "content": "<p className=\"text-gray-400 mb-6\">Flashcard o'ynash uchun kamida 1 ta so'z bo'lishi kerak.</p>"
+    },
+    {
+      "line": 33,
+      "content": "alert(\"Afsuski, brauzeringizda ovozli o'qish imkoniyati yo'q.\");"
+    },
+    {
+      "line": 88,
+      "content": "let learningStatus = currentWord.learningStatus || 'learning';"
+    },
+    {
+      "line": 97,
+      "content": "learningStatus = 'learning';"
+    },
+    {
+      "line": 209,
+      "content": "O'girish uchun bosing"
+    },
+    {
+      "line": 246,
+      "content": "<h3 className=\"text-2xl font-bold text-white leading-tight mb-2\">Tarjima yo'q</h3>"
+    },
+    {
+      "line": 310,
+      "content": "<div className=\"text-sm text-gray-500 italic\">Javobni ko'rish uchh karta ustiga bosing</div>"
+    }
+  ],
+  "hooks/useWritingReview.js": [
+    {
+      "line": 5,
+      "content": "import { calculateOverallBand } from '../utils/ieltsScoring';"
+    },
+    {
+      "line": 22,
+      "content": "const resultsSnap = await getDocs(query(collection(db, 'results'), where('type', 'in', ['writing', 'mock_full'])));"
+    },
+    {
+      "line": 60,
+      "content": "const rSnaps = await Promise.all(sChunks.map(chunk => getDocs(query(collection(db, 'results'), where('userId', 'in', chunk), where('type', 'in', ['writing', 'mock_full'])))));"
+    },
+    {
+      "line": 145,
+      "content": "const checkWriting = httpsCallable(functions, 'checkWriting');"
+    },
+    {
+      "line": 151,
+      "content": "alert(\"AI Tekshiruvda xatolik: \" + e.message);"
+    }
+  ],
+  "hooks/useAdminGamification.js": [
+    {
+      "line": 38,
+      "content": "toast.error(\"Ma'lumotlarni yuklashda xatolik!\");"
+    },
+    {
+      "line": 60,
+      "content": "toast.success(`${amount > 0 ? '+' : ''}${amount} ball yangilandi`);"
+    },
+    {
+      "line": 62,
+      "content": "toast.error(\"Ballni yangilab bo'lmadi\");"
+    },
+    {
+      "line": 77,
+      "content": "toast.success(\"Mavsum muvaffaqiyatli yangilandi!\", { id: resetToast });"
+    },
+    {
+      "line": 80,
+      "content": "toast.error(\"Xatolik yuz berdi\", { id: resetToast });"
+    }
+  ],
+  "hooks/useDailyLimit.js": [
+    {
+      "line": 15,
+      "content": "* @param {string} type - 'reading' or 'listening'"
+    },
+    {
+      "line": 20,
+      "content": "if (type === 'reading' || type === 'listening') {"
+    },
+    {
+      "line": 21,
+      "content": "if (userData.isPro || userData.isPremium || userData.accountType === 'premium' || userData.accountType === 'pro' || userData.accountType === 'standard') return true;"
+    },
+    {
+      "line": 31,
+      "content": "* @param {string} type - 'reading' or 'listening'"
+    },
+    {
+      "line": 35,
+      "content": "if (userData.isPremium || userData.isPro || userData.accountType === 'pro' || userData.accountType === 'standard') return;"
+    },
+    {
+      "line": 51,
+      "content": "updates['usageStats.dailyReadingCount'] = type === 'reading' ? 1 : 0;"
+    },
+    {
+      "line": 52,
+      "content": "updates['usageStats.dailyListeningCount'] = type === 'listening' ? 1 : 0;"
+    },
+    {
+      "line": 55,
+      "content": "if (type === 'reading') updates['usageStats.dailyReadingCount'] = increment(1);"
+    },
+    {
+      "line": 56,
+      "content": "if (type === 'listening') updates['usageStats.dailyListeningCount'] = increment(1);"
+    }
+  ],
+  "hooks/useMockExam.js": [
+    {
+      "line": 27,
+      "content": "const [stage, setStage] = useState('loading');"
+    },
+    {
+      "line": 65,
+      "content": "const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended', 'saving', 'result'];"
+    },
+    {
+      "line": 66,
+      "content": "if (!activeStages.includes(stage) || stage === 'loading') return;"
+    },
+    {
+      "line": 78,
+      "content": "deadline: ['listening', 'reading', 'writing'].includes(stage) && timeLeft > 0"
+    },
+    {
+      "line": 87,
+      "content": "const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro'];"
+    },
+    {
+      "line": 91,
+      "content": "const msg = \"Ogohlantirish! Agar sahifani yopsangiz yoki yangilasangiz (refresh), imtihon yakunlanadi va urinishingiz kuyadi.\";"
+    },
+    {
+      "line": 104,
+      "content": "const activeTestStages = ['listening', 'reading', 'writing', 'listening_volume_check'];"
+    },
+    {
+      "line": 152,
+      "content": "const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check'];"
+    },
+    {
+      "line": 154,
+      "content": "if (saved && saved.stage && saved.stage !== 'loading') {"
+    },
+    {
+      "line": 174,
+      "content": "if (stageRef.current === 'loading') {"
+    },
+    {
+      "line": 178,
+      "content": "if (stageRef.current === 'loading') {"
+    },
+    {
+      "line": 179,
+      "content": "setStage('intro');"
+    },
+    {
+      "line": 192,
+      "content": "const activeStages = ['listening', 'reading', 'writing'];"
+    },
+    {
+      "line": 211,
+      "content": "setStage('listening');"
+    },
+    {
+      "line": 214,
+      "content": "else if (currentStage === 'listening') {"
+    },
+    {
+      "line": 215,
+      "content": "setCompletedModules(prev => [...new Set([...prev, 'listening'])]);"
+    },
+    {
+      "line": 218,
+      "content": "else if (currentStage === 'reading_intro') {"
+    },
+    {
+      "line": 219,
+      "content": "setStage('reading');"
+    },
+    {
+      "line": 222,
+      "content": "else if (currentStage === 'reading') {"
+    },
+    {
+      "line": 223,
+      "content": "setCompletedModules(prev => [...new Set([...prev, 'reading'])]);"
+    },
+    {
+      "line": 226,
+      "content": "else if (currentStage === 'writing_intro') {"
+    },
+    {
+      "line": 227,
+      "content": "setStage('writing');"
+    },
+    {
+      "line": 230,
+      "content": "else if (currentStage === 'writing') {"
+    },
+    {
+      "line": 231,
+      "content": "setCompletedModules(prev => [...new Set([...prev, 'writing'])]);"
+    },
+    {
+      "line": 244,
+      "content": "if (stageRef.current === 'saving' || stageRef.current === 'result') return;"
+    },
+    {
+      "line": 246,
+      "content": "setStage('saving');"
+    },
+    {
+      "line": 247,
+      "content": "stageRef.current = 'saving';"
+    },
+    {
+      "line": 278,
+      "content": "alert(\"Natijalarni saqlashda xatolik yuz berdi. Iltimos administratorga murojaat qiling.\");"
+    }
+  ],
+  "hooks/useTestReview.js": [
+    {
+      "line": 5,
+      "content": "import { calculateSectionScore, calculateBandScore, calculateOverallBand } from '../utils/ieltsScoring';"
+    },
+    {
+      "line": 11,
+      "content": "const [activeMockPart, setActiveMockPart] = useState('listening');"
+    },
+    {
+      "line": 34,
+      "content": "alert(\"Natija topilmadi!\");"
+    },
+    {
+      "line": 93,
+      "content": "if (activeMockPart === 'writing') {"
+    },
+    {
+      "line": 96,
+      "content": "} else if (activeMockPart === 'speaking') {"
+    },
+    {
+      "line": 112,
+      "content": "setTestData({ title: \"O'chirilgan Test\", type: activeMockPart });"
+    },
+    {
+      "line": 116,
+      "content": "if ((rawTestData.type?.toLowerCase() === 'writing' || activeMockPart === 'writing') && !rawTestData.writingTasks) {"
+    },
+    {
+      "line": 139,
+      "content": "if (activeMockPart === 'writing' && (!task1Band || !task2Band)) return alert(\"T1 va T2 ballarini kiriting!\");"
+    },
+    {
+      "line": 140,
+      "content": "if (activeMockPart === 'speaking' && adminScore === \"\") return alert(\"Iltimos, ball qo'ying!\");"
+    },
+    {
+      "line": 149,
+      "content": "if (activeMockPart === 'writing') scoreVal = calculateOverallBand(t1, t2, t2);"
+    },
+    {
+      "line": 162,
+      "content": "if (activeMockPart === 'reading' || activeMockPart === 'listening') {"
+    },
+    {
+      "line": 165,
+      "content": "if (activeMockPart === 'reading') { newScores.reading = sectionResults.correct; newScores.readingBand = band; }"
+    },
+    {
+      "line": 168,
+      "content": "if (activeMockPart === 'writing') { newScores.writingBand = scoreVal; newScores.writingFeedback = adminFeedback; }"
+    },
+    {
+      "line": 169,
+      "content": "if (activeMockPart === 'speaking') { newScores.speakingBand = scoreVal; newScores.speakingFeedback = adminFeedback; }"
+    },
+    {
+      "line": 198,
+      "content": "const checkWriting = httpsCallable(functions, 'checkWriting');"
+    }
+  ],
+  "hooks/useTestLogic.js": [
+    {
+      "line": 57,
+      "content": "if (type === 'reading') {"
+    },
+    {
+      "line": 66,
+      "content": "if (type === 'listening') {"
+    },
+    {
+      "line": 90,
+      "content": "if (['reading', 'listening', 'writing'].includes(type)) {"
+    },
+    {
+      "line": 121,
+      "content": "violation: typeof violationType === 'string' ? violationType : null,"
+    }
+  ],
+  "hooks/useAnalytics.js": [
+    {
+      "line": 5,
+      "content": "import { calculateBandScore } from '../utils/ieltsScoring';"
+    },
+    {
+      "line": 41,
+      "content": "if (exactType.includes('reading') || title.includes('reading') || title.includes('passage')) exactType = 'reading';"
+    },
+    {
+      "line": 42,
+      "content": "else if (exactType.includes('listening') || title.includes('listening')) exactType = 'listening';"
+    },
+    {
+      "line": 43,
+      "content": "else if (exactType.includes('writing') || title.includes('writing')) exactType = 'writing';"
+    },
+    {
+      "line": 44,
+      "content": "else if (exactType.includes('speaking') || title.includes('speaking')) exactType = 'speaking';"
+    },
+    {
+      "line": 48,
+      "content": "if (exactType === 'reading' || exactType === 'listening') {"
+    },
+    {
+      "line": 56,
+      "content": "if (exactType === 'reading') skillScores.reading.push(bScore);"
+    },
+    {
+      "line": 57,
+      "content": "else if (exactType === 'listening') skillScores.listening.push(bScore);"
+    },
+    {
+      "line": 58,
+      "content": "else if (exactType === 'writing') skillScores.writing.push(bScore);"
+    },
+    {
+      "line": 59,
+      "content": "else if (exactType === 'speaking') skillScores.speaking.push(bScore);"
+    },
+    {
+      "line": 78,
+      "content": "if (t.includes('reading') || t.includes('listening')) {"
+    },
+    {
+      "line": 79,
+      "content": "b = calculateBandScore(raw, t.includes('reading') ? 'reading' : 'listening', r.totalQuestions || 40) || 0;"
+    },
+    {
+      "line": 109,
+      "content": "if (stdDev > 1.5) consistencyLabel = \"O'zgaruvchan\";"
+    }
+  ],
+  "hooks/useTextSelection.js": [
+    {
+      "line": 242,
+      "content": "learningStatus: 'learning', // learning, review, mastered"
+    }
+  ],
+  "hooks/useDiagnosticLogic.js": [
+    {
+      "line": 43,
+      "content": "if (data.type === 'listening') setTimeLeft(1200);"
+    },
+    {
+      "line": 50,
+      "content": "console.error(\"Xatolik:\", error);"
+    },
+    {
+      "line": 122,
+      "content": "const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');"
+    },
+    {
+      "line": 220,
+      "content": "alert(`Saqlashda xatolik yuz berdi: ${error.message}`);"
+    }
+  ],
+  "hooks/useAdminArticles.js": [
+    {
+      "line": 59,
+      "content": "if (!window.confirm(\"Haqiqatan ham ushbu maqolani o'chirmoqchimisiz?\")) return false;"
+    }
+  ],
+  "hooks/useTestEditor.js": [
+    {
+      "line": 16,
+      "content": "if (payload.type === 'listening') {"
+    },
+    {
+      "line": 18,
+      "content": "} else if (payload.type === 'reading') {"
+    },
+    {
+      "line": 36,
+      "content": "if (payload.type === 'listening') {"
+    },
+    {
+      "line": 56,
+      "content": "if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';"
+    },
+    {
+      "line": 72,
+      "content": "} else if (payload.type === 'reading') {"
+    },
+    {
+      "line": 90,
+      "content": "if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';"
+    },
+    {
+      "line": 91,
+      "content": "if (lower.includes('matching')) return 'Matching';"
+    },
+    {
+      "line": 175,
+      "content": "if (data.type === 'listening') {"
+    },
+    {
+      "line": 267,
+      "content": "if (testData.type === 'listening') {"
+    }
+  ],
+  "hooks/useWordBank.js": [
+    {
+      "line": 52,
+      "content": "if (!window.confirm(\"Bu keyword o'chirilsinmi?\")) return;"
+    },
+    {
+      "line": 88,
+      "content": "alert(\"AI tarjimada xatolik: \" + error.message);"
+    }
+  ],
+  "hooks/useCreatePodcast.js": [
+    {
+      "line": 82,
+      "content": "toast.error(\"Ma'lumotlarni yuklashda xatolik!\");"
+    },
+    {
+      "line": 101,
+      "content": "const isAudio = type === 'audio';"
+    },
+    {
+      "line": 116,
+      "content": "toast.success(`${isAudio ? 'Audio' : 'Rasm'} yuklandi!`);"
+    },
+    {
+      "line": 127,
+      "content": "data: type === 'mcq' ? { question: \"Yangi savol?\", options: [\"Variant 1\", \"Variant 2\"], correctIndex: 0 } :"
+    },
+    {
+      "line": 128,
+      "content": "type === 'gapfill' ? { text: \"Gapni {{gap}} to'ldiring.\", answer: \"answer\" } :"
+    },
+    {
+      "line": 144,
+      "content": "if (form.mediaType === 'audio' && !form.audioUrl) return toast.error(\"Audio manbasi majburiy!\");"
+    },
+    {
+      "line": 185,
+      "content": "toast.error(\"Xatolik: \" + err.message, { id: savingToast });"
+    }
+  ],
+  "hooks/usePodcastAttempt.js": [
+    {
+      "line": 115,
+      "content": "alert(\"Baza bilan xato: \" + err.message);"
+    }
+  ],
+  "hooks/useListeningCollections.js": [
+    {
+      "line": 51,
+      "content": ".filter(c => c.type?.toLowerCase() !== 'reading');"
+    },
+    {
+      "line": 64,
+      "content": ".filter(t => t.type === 'listening');"
+    },
+    {
+      "line": 72,
+      "content": ".filter(c => c.type?.toLowerCase() !== 'reading');"
+    },
+    {
+      "line": 85,
+      "content": ".filter(t => t.type === 'listening');"
+    },
+    {
+      "line": 105,
+      "content": "const metaDocs = snapMeta.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');"
+    },
+    {
+      "line": 113,
+      "content": "const testDocs = snapTests.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');"
+    }
+  ],
+  "hooks/useListeningHighlight.js": [
+    {
+      "line": 6,
+      "content": "* Listening interfeysi uchun barqaror highlight hook."
+    },
+    {
+      "line": 8,
+      "content": "* - Part o'zgarganda (activePart) saqlangan highlightlar DOM ga qayta qo'llaniladi."
+    }
+  ],
+  "hooks/useStudentData.js": [
+    {
+      "line": 66,
+      "content": "console.warn(`fetchDocumentsByIds xatolik (${collectionName}):`, e);"
+    },
+    {
+      "line": 110,
+      "content": "if (typeof assign === 'string') return { id: assign.trim(), type: 'test' };"
+    },
+    {
+      "line": 229,
+      "content": "'map_labeling': 'MAP', 'matching': 'MATCHING',"
+    },
+    {
+      "line": 230,
+      "content": "'true_false_not_given': 'TRUE/FALSE/NG', 'true_false': 'TRUE/FALSE/NG',"
+    },
+    {
+      "line": 231,
+      "content": "'tfng': 'TRUE/FALSE/NG', 'yes_no_not_given': 'YES/NO/NG',"
+    },
+    {
+      "line": 232,
+      "content": "'yes_no': 'YES/NO/NG', 'ynng': 'YES/NO/NG',"
+    },
+    {
+      "line": 234,
+      "content": "'diagram_labeling': 'DIAGRAM', 'heading_matching': 'HEADINGS',"
+    },
+    {
+      "line": 235,
+      "content": "'paragraph_matching': 'PARA MATCH',"
+    },
+    {
+      "line": 268,
+      "content": "else if (start && now < start) status = 'upcoming';"
+    }
+  ],
+  "hooks/useReadingDnd.js": [
+    {
+      "line": 40,
+      "content": "return gt.includes('matching') && (gi.includes('heading') || gt.includes('heading'));"
+    }
+  ],
+  "hooks/useAdminResults.js": [
+    {
+      "line": 91,
+      "content": "if (!window.confirm(\"O'chirishni tasdiqlaysizmi?\")) return;"
+    }
+  ],
+  "hooks/test/useTestFetch.js": [
+    {
+      "line": 54,
+      "content": "alert(\"Testni yuklashda xatolik yuz berdi.\");"
+    }
+  ],
+  "hooks/test/useTestScoring.js": [
+    {
+      "line": 46,
+      "content": "else if (currentType.includes('two')) weight = 2;"
+    }
+  ],
+  "hooks/dashboard/useStudentDashboard.js": [
+    {
+      "line": 116,
+      "content": "const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');"
+    },
+    {
+      "line": 117,
+      "content": "const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');"
+    },
+    {
+      "line": 118,
+      "content": "const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;"
+    },
+    {
+      "line": 140,
+      "content": "alert(\"Test qo'shildi! 🚀\");"
+    },
+    {
+      "line": 149,
+      "content": "throw new Error(\"Kalitni faollashtirishda kutilmagan xatolik yuz berdi.\");"
+    },
+    {
+      "line": 152,
+      "content": "setKeyError(error.message || \"Kalit xato yoki ishlatilgan!\");"
+    }
+  ],
+  "pages/test/MockExam.jsx": [
+    {
+      "line": 13,
+      "content": "const SECURITY_ACTIVE_STAGES = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended'];"
+    },
+    {
+      "line": 67,
+      "content": "const solvingStages = ['listening', 'reading', 'writing'];"
+    },
+    {
+      "line": 76,
+      "content": "if (SECURITY_ACTIVE_STAGES.includes(stage) && !document.fullscreenElement && stage !== 'loading' && stage !== 'saving') {"
+    },
+    {
+      "line": 108,
+      "content": "if (moduleType === 'listening') {"
+    },
+    {
+      "line": 110,
+      "content": "setStage(waitTime > 0 ? 'listening_volume_check' : 'listening');"
+    },
+    {
+      "line": 112,
+      "content": "} else if (moduleType === 'reading') {"
+    },
+    {
+      "line": 113,
+      "content": "setStage('reading');"
+    },
+    {
+      "line": 115,
+      "content": "} else if (moduleType === 'writing') {"
+    },
+    {
+      "line": 116,
+      "content": "setStage('writing');"
+    },
+    {
+      "line": 134,
+      "content": "const allDone = (!mockData?.subTests?.listening || completedModules.includes('listening')) &&"
+    },
+    {
+      "line": 135,
+      "content": "(!mockData?.subTests?.reading || completedModules.includes('reading')) &&"
+    },
+    {
+      "line": 136,
+      "content": "(!mockData?.subTests?.writing || completedModules.includes('writing'));"
+    },
+    {
+      "line": 137,
+      "content": "if (!allDone) setStage('intro');"
+    },
+    {
+      "line": 155,
+      "content": "Siz test vaqtida boshqa oynaga o'tdingiz. Bu qoidabuzarlik hisoblanadi."
+    },
+    {
+      "line": 182,
+      "content": "Siz 3 marta qoida buzganingiz (sahifani tark etganingiz) uchun test tizim tomonidan avtomatik ravishda to'xtatildi."
+    },
+    {
+      "line": 188,
+      "content": "OK (Natijalarni ko'rish)"
+    },
+    {
+      "line": 207,
+      "content": "Ogohlantirish! Agar hozir chiqib ketsangiz imtihon yakunlanadi va urinishingiz (key) <span className=\"text-red-600 font-bold underline\">kuyadi</span>."
+    },
+    {
+      "line": 221,
+      "content": "Ha, imtihonni yakunlash"
+    },
+    {
+      "line": 227,
+      "content": "Yo'q, testda qolish"
+    },
+    {
+      "line": 263,
+      "content": "if (stage === 'loading' || stage === 'saving') {"
+    },
+    {
+      "line": 268,
+      "content": "const allModulesDone = (!mockData?.subTests?.listening || completedModules.includes('listening')) &&"
+    },
+    {
+      "line": 269,
+      "content": "(!mockData?.subTests?.reading || completedModules.includes('reading')) &&"
+    },
+    {
+      "line": 270,
+      "content": "(!mockData?.subTests?.writing || completedModules.includes('writing'));"
+    },
+    {
+      "line": 300,
+      "content": "disabled={stage === 'saving'}"
+    },
+    {
+      "line": 303,
+      "content": "{stage === 'saving' ? 'Submitting...' : 'Submit Test'}"
+    },
+    {
+      "line": 307,
+      "content": "onClick={() => setStage('intro')}"
+    },
+    {
+      "line": 328,
+      "content": "if (stage === 'intro') {"
+    },
+    {
+      "line": 338,
+      "content": "if (stage === 'reading_intro') {"
+    },
+    {
+      "line": 342,
+      "content": "if (stage === 'writing_intro') {"
+    }
+  ],
+  "pages/test/ReviewTest.jsx": [
+    {
+      "line": 31,
+      "content": "alert(\"Natija topilmadi!\");"
+    },
+    {
+      "line": 42,
+      "content": "alert(\"Test bazadan o'chirilgan bo'lishi mumkin.\");"
+    },
+    {
+      "line": 49,
+      "content": "console.error(\"Xatolik:\", error);"
+    },
+    {
+      "line": 99,
+      "content": "{testData?.type === 'reading' ? ("
+    },
+    {
+      "line": 109,
+      "content": ") : testData?.type === 'listening' ? ("
+    },
+    {
+      "line": 119,
+      "content": ") : testData?.type === 'writing' ? ("
+    },
+    {
+      "line": 129,
+      "content": "<h3 className=\"font-bold text-blue-800 text-sm uppercase mb-1\">O'qituvchi Izohi:</h3>"
+    },
+    {
+      "line": 201,
+      "content": "{answer || <span className=\"text-gray-400 italic\">Javob yozilmagan...</span>}"
+    },
+    {
+      "line": 323,
+      "content": "{resultData.essay || \"Javob topilmadi\"}"
+    },
+    {
+      "line": 340,
+      "content": "<h3 className=\"font-bold text-blue-800 uppercase text-sm mb-2\">O'qituvchi Izohi:</h3>"
+    },
+    {
+      "line": 358,
+      "content": "<p className=\"text-red-500\">Audio yozilmagan yoki topilmadi.</p>"
+    }
+  ],
+  "pages/test/TestReview.jsx": [
+    {
+      "line": 78,
+      "content": "{testData.type?.toLowerCase() === 'reading' ? ("
+    },
+    {
+      "line": 93,
+      "content": ") : testData.type?.toLowerCase() === 'listening' ? ("
+    },
+    {
+      "line": 113,
+      "content": ") : testData.type?.toLowerCase() === 'writing' ? ("
+    },
+    {
+      "line": 122,
+      "content": ") : testData.type?.toLowerCase() === 'speaking' ? ("
+    }
+  ],
+  "pages/test/TestSolving.jsx": [
+    {
+      "line": 31,
+      "content": "const isReadingTest = test?.type?.toLowerCase() === 'reading';"
+    },
+    {
+      "line": 86,
+      "content": "const isListening = testType === 'listening';"
+    },
+    {
+      "line": 87,
+      "content": "const isWriting = testType === 'writing';"
+    },
+    {
+      "line": 88,
+      "content": "const isSpeaking = testType === 'speaking';"
+    },
+    {
+      "line": 193,
+      "content": "{test.type === 'reading' ? ("
+    }
+  ],
+  "pages/test/ReadingParts.jsx": [
+    {
+      "line": 29,
+      "content": "{ id: 'reading', label: 'Reading', icon: BookOpen },"
+    },
+    {
+      "line": 30,
+      "content": "{ id: 'listening', label: 'Listening', icon: Headphones },"
+    },
+    {
+      "line": 31,
+      "content": "{ id: 'writing', label: 'Writing', icon: PenTool },"
+    },
+    {
+      "line": 32,
+      "content": "{ id: 'speaking', label: 'Speaking', icon: Mic },"
+    },
+    {
+      "line": 46,
+      "content": "const isPro = userData?.accountType === 'pro' || userData?.isPro;"
+    },
+    {
+      "line": 73,
+      "content": "where('type', '==', 'reading'),"
+    },
+    {
+      "line": 87,
+      "content": "const countSnap = await getCountFromServer(query(collection(db, 'tests'), where('type', '==', 'reading')));"
+    },
+    {
+      "line": 124,
+      "content": "if (item.type === 'reading' && item.questionTypes) {"
+    },
+    {
+      "line": 170,
+      "content": "let matchesTab = item.type === 'reading' && !item.isSet;"
+    },
+    {
+      "line": 207,
+      "content": "if (!checkLimit('reading')) {"
+    },
+    {
+      "line": 219,
+      "content": "incrementUsage('reading').catch(err => console.error(\"Stats update failed:\", err));"
+    },
+    {
+      "line": 227,
+      "content": "if (!resultId) return alert(\"Natija topilmadi!\");"
+    },
+    {
+      "line": 240,
+      "content": "alert(\"Test qo'shildi! 🚀\");"
+    },
+    {
+      "line": 245,
+      "content": "throw new Error(\"Kalitni faollashtirishda kutilmagan xatolik yuz berdi.\");"
+    },
+    {
+      "line": 248,
+      "content": "setKeyError(error.message || \"Kalit xato yoki ishlatilgan!\");"
+    },
+    {
+      "line": 269,
+      "content": "totalCount={loading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading' && !t.title?.includes('/') && !t.isSet).length)}"
+    },
+    {
+      "line": 283,
+      "content": "if (tabId === 'listening') navigate('/listening?section=parts');"
+    },
+    {
+      "line": 285,
+      "content": "else if (tabId !== 'reading') navigate(`/practice?tab=${tabId}`);"
+    }
+  ],
+  "pages/test/ReadingFull.jsx": [
+    {
+      "line": 31,
+      "content": "{ id: 'reading', label: 'Reading', icon: BookOpen },"
+    },
+    {
+      "line": 32,
+      "content": "{ id: 'listening', label: 'Listening', icon: Headphones },"
+    },
+    {
+      "line": 33,
+      "content": "{ id: 'writing', label: 'Writing', icon: PenTool },"
+    },
+    {
+      "line": 34,
+      "content": "{ id: 'speaking', label: 'Speaking', icon: Mic },"
+    },
+    {
+      "line": 47,
+      "content": "const isPro = userData?.accountType === 'pro' || userData?.isPro;"
+    },
+    {
+      "line": 74,
+      "content": "where('type', '==', 'reading'),"
+    },
+    {
+      "line": 88,
+      "content": "const countSnap = await getCountFromServer(query(collection(db, 'tests'), where('type', '==', 'reading')));"
+    },
+    {
+      "line": 152,
+      "content": "if (item.type === 'reading' && item.questionTypes) {"
+    },
+    {
+      "line": 157,
+      "content": "if (sub.type === 'reading' && sub.questionTypes) {"
+    },
+    {
+      "line": 205,
+      "content": "let matchesTab = item.type === 'reading' || item.isSet;"
+    },
+    {
+      "line": 223,
+      "content": "return s.type === 'reading' && mSearch && mType && mStatus;"
+    },
+    {
+      "line": 245,
+      "content": "if (!checkLimit('reading')) {"
+    },
+    {
+      "line": 258,
+      "content": "incrementUsage('reading').catch(err => console.error(\"Stats update failed:\", err));"
+    },
+    {
+      "line": 266,
+      "content": "if (!resultId) return alert(\"Natija topilmadi!\");"
+    },
+    {
+      "line": 279,
+      "content": "alert(\"Test qo'shildi! 🚀\");"
+    },
+    {
+      "line": 284,
+      "content": "throw new Error(\"Kalitni faollashtirishda kutilmagan xatolik yuz berdi.\");"
+    },
+    {
+      "line": 287,
+      "content": "setKeyError(error.message || \"Kalit xato yoki ishlatilgan!\");"
+    },
+    {
+      "line": 308,
+      "content": "totalCount={loading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading').length)}"
+    },
+    {
+      "line": 322,
+      "content": "if (tabId === 'listening') navigate('/listening?section=full_test');"
+    },
+    {
+      "line": 324,
+      "content": "else if (tabId !== 'reading') navigate(`/practice?tab=${tabId}`);"
+    }
+  ],
+  "pages/test/Listening.jsx": [
+    {
+      "line": 32,
+      "content": "{ id: 'reading', label: 'Reading', icon: BookOpen },"
+    },
+    {
+      "line": 33,
+      "content": "{ id: 'listening', label: 'Listening', icon: Headphones },"
+    },
+    {
+      "line": 34,
+      "content": "{ id: 'writing', label: 'Writing', icon: PenTool },"
+    },
+    {
+      "line": 35,
+      "content": "{ id: 'speaking', label: 'Speaking', icon: Mic },"
+    },
+    {
+      "line": 43,
+      "content": "const [activeTab] = useState('listening');"
+    },
+    {
+      "line": 84,
+      "content": "where('type', '==', 'listening'),"
+    },
+    {
+      "line": 98,
+      "content": "const countSnap = await getCountFromServer(query(collection(db, 'tests_metadata'), where('type', '==', 'listening')));"
+    },
+    {
+      "line": 128,
+      "content": "const isPro = userData?.accountType === 'pro' || userData?.isPro;"
+    },
+    {
+      "line": 169,
+      "content": "if (item.type === 'listening') {"
+    },
+    {
+      "line": 298,
+      "content": "if (!checkLimit('listening')) {"
+    },
+    {
+      "line": 311,
+      "content": "incrementUsage('listening').catch(err => console.error(\"Stats update failed:\", err));"
+    },
+    {
+      "line": 324,
+      "content": "if (!resultId) return alert(\"Natija topilmadi!\");"
+    },
+    {
+      "line": 337,
+      "content": "alert(\"Test qo'shildi! 🚀\");"
+    },
+    {
+      "line": 342,
+      "content": "throw new Error(\"Kalitni faollashtirishda kutilmagan xatolik yuz berdi.\");"
+    },
+    {
+      "line": 345,
+      "content": "setKeyError(error.message || \"Kalit xato yoki ishlatilgan!\");"
+    },
+    {
+      "line": 384,
+      "content": "if (tabId === 'reading') navigate('/reading');"
+    },
+    {
+      "line": 418,
+      "content": "<p className=\"text-[#86868b] mt-2 max-w-[300px]\">Qidiruv mezonlariga mos keladigan testlar mavjud emas.</p>"
+    }
+  ],
+  "pages/test/SpeakingPractice.jsx": [
+    {
+      "line": 35,
+      "content": "if (status === 'recording') {"
+    },
+    {
+      "line": 63,
+      "content": "setStatus('recording');"
+    },
+    {
+      "line": 71,
+      "content": "if (mediaRecorderRef.current && status === 'recording') {"
+    },
+    {
+      "line": 73,
+      "content": "setStatus('analyzing');"
+    },
+    {
+      "line": 148,
+      "content": "<p className=\"text-[#86868B] mb-8\">Tayyor bo'lganingizda \"Boshlash\" tugmasini bosing.</p>"
+    },
+    {
+      "line": 153,
+      "content": "Boshlash"
+    },
+    {
+      "line": 158,
+      "content": "{status === 'recording' && ("
+    },
+    {
+      "line": 195,
+      "content": "{status === 'analyzing' && ("
+    },
+    {
+      "line": 204,
+      "content": "<p className=\"text-[#86868B]\">Sizning nutqingiz o'rganilmoqda, bir necha soniya kuting.</p>"
+    },
+    {
+      "line": 219,
+      "content": "<p className=\"text-[#86868B] mb-8\">Natijalarni o'ng tomonda ko'rishingiz mumkin.</p>"
+    },
+    {
+      "line": 231,
+      "content": "Keyingi vazifa"
+    },
+    {
+      "line": 302,
+      "content": "<p className=\"text-[#86868B] text-sm\">Nutqingizni yozib bo'lganingizdan so'ng, AI sizga ball va maslahatlar beradi.</p>"
+    }
+  ],
+  "pages/auth/Onboarding.jsx": [
+    {
+      "line": 112,
+      "content": "<span>{value ? new Date(value).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }) : \"Sanani tanlang\"}</span>"
+    },
+    {
+      "line": 256,
+      "content": "subtitle=\"Sizga mos o'quv rejasini tuzish uchun ma'lumotlaringiz kerak.\""
+    },
+    {
+      "line": 264,
+      "content": "placeholder=\"Ism\""
+    },
+    {
+      "line": 271,
+      "content": "placeholder=\"Familiya\""
+    },
+    {
+      "line": 347,
+      "content": "title=\"O'quv rejasi\""
+    },
+    {
+      "line": 348,
+      "content": "subtitle=\"Zaif tomonlaringiz va bo'sh vaqtingizni belgilang.\""
+    },
+    {
+      "line": 352,
+      "content": "{['Reading', 'Listening', 'Writing', 'Speaking'].map(skill => ("
+    },
+    {
+      "line": 380,
+      "content": "? 'bg-[#1a1a1a] text-white shadow-lg'"
+    },
+    {
+      "line": 459,
+      "content": "ko'rishingiz mumkin."
+    },
+    {
+      "line": 470,
+      "content": "{loading ? <Loader2 className=\"animate-spin\" /> : \"Platformaga kirish\"}"
+    },
+    {
+      "line": 491,
+      "content": "Keyingi <ChevronRight size={16} />"
+    },
+    {
+      "line": 521,
+      "content": "Muvaffaqiyat — bu har kungi kichik g'alabalar yig'indisidir."
+    },
+    {
+      "line": 524,
+      "content": "IELTS natijangizni sun'iy intellektga asoslangan platforma orqali keyingi bosqichga olib chiqing."
+    }
+  ],
+  "pages/auth/Login.jsx": [
+    {
+      "line": 14,
+      "content": "{ name: \"Dilshodbek T.\", score: \"7.0\", text: \"Readingda vaqtni to'g'ri taqsimlashni o'rgandim, natijam kutilganidek chiqdi.\" },"
+    },
+    {
+      "line": 16,
+      "content": "{ name: \"Bekzod S.\", score: \"6.5\", text: \"Speakingda AI bilan gaplashish imtihon oldidan qo'rquvni yengishga yordam berdi.\" },"
+    },
+    {
+      "line": 17,
+      "content": "{ name: \"Maftuna R.\", score: \"7.0\", text: \"Writing Task 2 bo'yicha berilgan feedbacklar xatolarimni tushunishga yordam berdi.\" },"
+    },
+    {
+      "line": 18,
+      "content": "{ name: \"Azizbek M.\", score: \"8.0\", text: \"Mock testlar haqiqiy imtihon darajasida ekan, hamma savollar o'ta aniq.\" },"
+    },
+    {
+      "line": 19,
+      "content": "{ name: \"Nigora K.\", score: \"7.5\", text: \"Vocabulary banki orqali akademik so'zlarni tez va oson o'rgandim.\" },"
+    },
+    {
+      "line": 20,
+      "content": "{ name: \"Jamshid H.\", score: \"6.0\", text: \"Boshida darajam 4.5 edi, 2 oylik tayyorgarlikdan keyin 6.0 ball oldim.\" },"
+    },
+    {
+      "line": 107,
+      "content": "setError(\"Google orqali kirishda xatolik!\");"
+    },
+    {
+      "line": 118,
+      "content": "else setError(\"Iltimos, to'g'ri email kiriting\");"
+    },
+    {
+      "line": 140,
+      "content": "setError(\"Email yoki parol noto'g'ri!\");"
+    },
+    {
+      "line": 165,
+      "content": "navigate(isNewUser ? '/onboarding' : '/dashboard');"
+    },
+    {
+      "line": 167,
+      "content": "setError(err.message || \"Kod noto'g'ri yoki muddati o'tgan\");"
+    },
+    {
+      "line": 192,
+      "content": "O'qishni davom ettirish uchun <br /> hisobingizga kiring."
+    },
+    {
+      "line": 222,
+      "content": "Google bilan kirish"
+    },
+    {
+      "line": 231,
+      "content": "Telegram bilan kirish"
+    },
+    {
+      "line": 236,
+      "content": "<div className=\"text-[11px] font-bold text-[#666]\">YOKI</div>"
+    },
+    {
+      "line": 279,
+      "content": "placeholder=\"Parol\""
+    },
+    {
+      "line": 291,
+      "content": "{showPassword ? \"Yashirish\" : \"Ko'rsatish\"}"
+    },
+    {
+      "line": 299,
+      "content": "{loading ? <Loader2 className=\"animate-spin w-4 h-4\" /> : \"Kirish\"}"
+    },
+    {
+      "line": 319,
+      "content": "Telegram botdan kod olish uchun raqamingizni kiriting:"
+    },
+    {
+      "line": 357,
+      "content": "{telegramLoading ? <Loader2 className=\"animate-spin w-4 h-4\" /> : \"Tasdiqlash\"}"
+    },
+    {
+      "line": 375,
+      "content": "Hisobingiz yo'qmi?{\" \"}"
+    },
+    {
+      "line": 377,
+      "content": "Ro'yxatdan o'ting"
+    },
+    {
+      "line": 406,
+      "content": "O'quvchilarimizdan <br />"
+    }
+  ],
+  "pages/auth/Register.jsx": [
+    {
+      "line": 10,
+      "content": "{ name: \"Dilshodbek T.\", score: \"7.0\", text: \"Readingda vaqtni to'g'ri taqsimlashni o'rgandim, natijam kutilganidek chiqdi.\" },"
+    },
+    {
+      "line": 12,
+      "content": "{ name: \"Bekzod S.\", score: \"6.5\", text: \"Speakingda AI bilan gaplashish imtihon oldidan qo'rquvni yengishga yordam berdi.\" },"
+    },
+    {
+      "line": 13,
+      "content": "{ name: \"Maftuna R.\", score: \"7.0\", text: \"Writing Task 2 bo'yicha berilgan feedbacklar xatolarimni tushunishga yordam berdi.\" },"
+    },
+    {
+      "line": 14,
+      "content": "{ name: \"Azizbek M.\", score: \"8.0\", text: \"Mock testlar haqiqiy imtihon darajasida ekan, hamma savollar o'ta aniq.\" },"
+    },
+    {
+      "line": 15,
+      "content": "{ name: \"Nigora K.\", score: \"7.5\", text: \"Vocabulary banki orqali akademik so'zlarni tez va oson o'rgandim.\" },"
+    },
+    {
+      "line": 16,
+      "content": "{ name: \"Jamshid H.\", score: \"6.0\", text: \"Boshida darajam 4.5 edi, 2 oylik tayyorgarlikdan keyin 6.0 ball oldim.\" },"
+    },
+    {
+      "line": 101,
+      "content": "setError(\"Google orqali kirishda xatolik!\");"
+    },
+    {
+      "line": 111,
+      "content": "if (fullName.length < 3) return setError(\"To'liq ism kiritilishi kerak\");"
+    },
+    {
+      "line": 112,
+      "content": "if (!email.includes('@')) return setError(\"Email noto'g'ri\");"
+    },
+    {
+      "line": 119,
+      "content": "return setError(\"Parol kamida 6 ta belgidan iborat bo'lishi kerak.\");"
+    },
+    {
+      "line": 130,
+      "content": "setError(\"Bu email allaqachon ro'yxatdan o'tgan.\");"
+    },
+    {
+      "line": 132,
+      "content": "setError(\"Xatolik yuz berdi. Qayta urinib ko'ring.\");"
+    },
+    {
+      "line": 155,
+      "content": "Ro'yxatdan o'tish"
+    },
+    {
+      "line": 158,
+      "content": "O'rganishni boshlash uchun <br /> yangi hisob yarating."
+    },
+    {
+      "line": 188,
+      "content": "Google orqali boshlash"
+    },
+    {
+      "line": 193,
+      "content": "<div className=\"text-[11px] font-bold text-[#666]\">YOKI</div>"
+    },
+    {
+      "line": 211,
+      "content": "placeholder=\"To'liq ismingiz\""
+    },
+    {
+      "line": 244,
+      "content": "placeholder=\"Xavfsiz parol yarating\""
+    },
+    {
+      "line": 256,
+      "content": "{showPassword ? \"Yashirish\" : \"Ko'rsatish\"}"
+    },
+    {
+      "line": 264,
+      "content": "{loading ? <Loader2 className=\"animate-spin w-4 h-4\" /> : \"Hisob yaratish\"}"
+    },
+    {
+      "line": 311,
+      "content": "O'quvchilarimizdan <br />"
+    }
+  ],
+  "pages/diagnostic/DiagnosticResult.jsx": [
+    {
+      "line": 201,
+      "content": "Biz sizning zaif tomonlaringizni tahlil qildik. Endi maqsadga erishish uchun kunlik vazifalarni bajarish orqali reytingni ko'tarishingiz mumkin."
+    },
+    {
+      "line": 209,
+      "content": "Dashboardga O'tish"
+    }
+  ],
+  "pages/diagnostic/DiagnosticTestSolving.jsx": [
+    {
+      "line": 18,
+      "content": "const isListening = testType === 'listening';"
+    },
+    {
+      "line": 19,
+      "content": "const isReading = testType === 'reading';"
+    },
+    {
+      "line": 55,
+      "content": "<button onClick={() => setTextSize(prev => prev === 'text-lg' ? 'text-lg' : prev === 'text-base' ? 'text-lg' : 'text-base')} className=\"p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors\">"
+    },
+    {
+      "line": 71,
+      "content": "{saving ? <Loader2 className=\"animate-spin w-5 h-5\" /> : <><CheckCircle size={18} /> Yakunlash</>}"
+    },
+    {
+      "line": 122,
+      "content": "Diagnostic faqat Reading yoki Listening testlardan iborat bo'lishi kerak."
+    }
+  ],
+  "pages/articles/ArticleReading.jsx": [
+    {
+      "line": 34,
+      "content": "const [textSize, setTextSize] = useState('text-lg'); // text-base, text-lg, text-xl"
+    },
+    {
+      "line": 96,
+      "content": "alert(`Tabriklaymiz! Siz ushbu maqolani o'qib ${result.amount} XP yig'dingiz.`);"
+    },
+    {
+      "line": 99,
+      "content": "alert(\"Siz allaqachon bu maqola uchun XP olgansiz!\");"
+    },
+    {
+      "line": 102,
+      "content": "alert(\"Xatolik: \" + result.error);"
+    },
+    {
+      "line": 132,
+      "content": "alert(\"Izohni saqlashda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.\");"
+    },
+    {
+      "line": 152,
+      "content": "const isPro = userData?.accountType === 'pro' || userData?.isPro;"
+    },
+    {
+      "line": 237,
+      "content": "onClick={() => setTextSize(prev => prev === 'text-base' ? 'text-lg' : prev === 'text-lg' ? 'text-xl' : 'text-base')}"
+    },
+    {
+      "line": 373,
+      "content": "const isPro = userData?.accountType === 'pro' || userData?.isPro;"
+    },
+    {
+      "line": 389,
+      "content": "return block.type === 'heading' ? ("
+    },
+    {
+      "line": 489,
+      "content": "onClick={() => navigate('/pricing')}"
+    },
+    {
+      "line": 507,
+      "content": "<h3 className=\"text-xl font-bold text-[#242424] mb-2\">Maqolani o'qib chiqdingizmi?</h3>"
+    },
+    {
+      "line": 508,
+      "content": "<p className=\"text-[#6B6B6B] mb-6 text-center\">XP yig'ing va reytingda ko'tariling.</p>"
+    },
+    {
+      "line": 641,
+      "content": "transition={{ type: 'spring', damping: 25, stiffness: 200 }}"
+    }
+  ],
+  "pages/student/MockEntry.jsx": [
+    {
+      "line": 43,
+      "content": "const [activeTab, setActiveTab] = useState('upcoming');"
+    },
+    {
+      "line": 113,
+      "content": "throw new Error(\"Kalitni faollashtirishda kutilmagan xatolik yuz berdi.\");"
+    },
+    {
+      "line": 116,
+      "content": "setError(err.message || \"Kalit xato yoki ishlatilgan!\");"
+    },
+    {
+      "line": 141,
+      "content": "setActiveTab('upcoming');"
+    },
+    {
+      "line": 152,
+      "content": "if (activeTab === 'upcoming') return test.status !== 'completed';"
+    },
+    {
+      "line": 230,
+      "content": "onClick={() => setActiveTab('upcoming')}"
+    },
+    {
+      "line": 231,
+      "content": "className={`pb-4 text-[17px] font-bold transition-all relative ${activeTab === 'upcoming' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}"
+    },
+    {
+      "line": 234,
+      "content": "{activeTab === 'upcoming' && <div className=\"absolute bottom-0 left-0 right-0 h-[3px] bg-[#e31b23]\" />}"
+    },
+    {
+      "line": 264,
+      "content": "<p className=\"text-gray-400 text-sm font-medium italic\">No {activeTab === 'upcoming' ? 'scheduled' : 'completed'} mock exams found.</p>"
+    },
+    {
+      "line": 466,
+      "content": "{ label: 'Listening', key: 'listeningBand' },"
+    },
+    {
+      "line": 467,
+      "content": "{ label: 'Reading', key: 'readingBand' },"
+    },
+    {
+      "line": 468,
+      "content": "{ label: 'Writing', key: 'writingBand' },"
+    },
+    {
+      "line": 469,
+      "content": "{ label: 'Speaking', key: 'speakingBand' }"
+    }
+  ],
+  "pages/student/StudentLeaderboard.jsx": [
+    {
+      "line": 76,
+      "content": "if (!window.confirm(\"Barcha top 10 o'quvchilarning Band natijalarini natijalar bazasidan qayta hisoblab chiqishni xohlaysizmi?\")) return;"
+    },
+    {
+      "line": 84,
+      "content": "const rScores = userResults.filter(r => r.type?.toLowerCase() === 'reading').map(r => parseFloat(r.bandScore || r.score || 0)).filter(s => s > 0);"
+    },
+    {
+      "line": 85,
+      "content": "const lScores = userResults.filter(r => r.type?.toLowerCase() === 'listening').map(r => parseFloat(r.bandScore || r.score || 0)).filter(s => s > 0);"
+    },
+    {
+      "line": 98,
+      "content": "alert(\"Ma'lumotlar muvaffaqiyatli yangilandi!\");"
+    },
+    {
+      "line": 102,
+      "content": "alert(\"Xatolik: \" + e.message);"
+    },
+    {
+      "line": 123,
+      "content": "Reyting va XP"
+    },
+    {
+      "line": 126,
+      "content": "Testlarni yeching, maqolalar o'qing va podcast eshitib o'z reytingingizni oshiring!"
+    },
+    {
+      "line": 154,
+      "content": "<p className=\"text-[10px] font-bold text-black/40 uppercase tracking-widest mb-0.5\">Sizning o'rningiz</p>"
+    },
+    {
+      "line": 165,
+      "content": "<h3 className=\"text-lg font-bold text-[#1D1D1F] mb-5\">Qanday qilib XP yig'ish mumkin?</h3>"
+    },
+    {
+      "line": 175,
+      "content": "<p className=\"text-xs text-black/50 font-medium leading-relaxed\">+20 XP har bir epizod uchun</p>"
+    },
+    {
+      "line": 179,
+      "content": "<h4 className=\"font-bold text-[#1D1D1F] text-sm mb-1\">Maqola o'qish</h4>"
+    },
+    {
+      "line": 180,
+      "content": "<p className=\"text-xs text-black/50 font-medium leading-relaxed\">+10 XP har bir maqola uchun</p>"
+    },
+    {
+      "line": 190,
+      "content": "<p className=\"text-xs text-black/40 font-medium mt-0.5\">Platformadagi eng faol o'quvchilar ro'yxati</p>"
+    },
+    {
+      "line": 207,
+      "content": "<th className=\"px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40\">O'rin</th>"
+    },
+    {
+      "line": 208,
+      "content": "<th className=\"px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40\">O'quvchi</th>"
+    },
+    {
+      "line": 241,
+      "content": "{u.fullName || \"Noma'lum foydalanuvchi\"}"
+    },
+    {
+      "line": 320,
+      "content": "Hali hech kim XP yig'magan"
+    }
+  ],
+  "pages/student/MyResults.jsx": [
+    {
+      "line": 24,
+      "content": "case 'listening':"
+    },
+    {
+      "line": 34,
+      "content": "case 'reading':"
+    },
+    {
+      "line": 44,
+      "content": "case 'writing':"
+    },
+    {
+      "line": 54,
+      "content": "case 'speaking':"
+    },
+    {
+      "line": 189,
+      "content": "{ id: 'reading', label: 'Reading', icon: 'menu_book' },"
+    },
+    {
+      "line": 190,
+      "content": "{ id: 'listening', label: 'Listening', icon: 'headphones' },"
+    },
+    {
+      "line": 191,
+      "content": "{ id: 'writing', label: 'Writing', icon: 'edit' },"
+    },
+    {
+      "line": 192,
+      "content": "{ id: 'speaking', label: 'Speaking', icon: 'mic' },"
+    },
+    {
+      "line": 352,
+      "content": "<p className=\"font-body text-body text-ink-muted-48 mt-2\">Barcha topshirilgan imtihonlaringizning batafsil statistikasi.</p>"
+    },
+    {
+      "line": 403,
+      "content": "<h3 className=\"text-xl font-bold mb-2\">Natijalar topilmadi</h3>"
+    },
+    {
+      "line": 404,
+      "content": "<p className=\"text-ink-muted-48 mb-8 text-sm\">Tanlangan filtr bo'yicha hech qanday natija mavjud emas.</p>"
+    },
+    {
+      "line": 415,
+      "content": "const bandScore = (res.type === 'reading' || res.type === 'listening')"
+    },
+    {
+      "line": 417,
+      "content": ": (res.type === 'writing' || res.type === 'speaking')"
+    },
+    {
+      "line": 485,
+      "content": "const attemptDateStr = attemptDateObj.toLocaleDateString('uz-UZ', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });"
+    },
+    {
+      "line": 488,
+      "content": "const isBand = attempt.bandScore != null || attempt.overallBand != null || res.type === 'mock_full' || res.type === 'reading' || res.type === 'listening' || res.type === 'writing' || res.type === 'speaking';"
+    },
+    {
+      "line": 499,
+      "content": "{Number(scoreVal).toFixed(1)} {isBand ? 'band' : 'ball'}"
+    }
+  ],
+  "pages/student/StudentStatistics.jsx": [
+    {
+      "line": 43,
+      "content": "const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];"
+    },
+    {
+      "line": 71,
+      "content": "if (type === 'reading') point.reading = score;"
+    },
+    {
+      "line": 72,
+      "content": "else if (type === 'listening') point.listening = score;"
+    },
+    {
+      "line": 73,
+      "content": "else if (type === 'writing') point.writing = score;"
+    },
+    {
+      "line": 74,
+      "content": "else if (type === 'speaking') point.speaking = score;"
+    },
+    {
+      "line": 107,
+      "content": "{ name: 'Reading', value: stats.skillAverages.reading, color: '#007AFF' },"
+    },
+    {
+      "line": 108,
+      "content": "{ name: 'Listening', value: stats.skillAverages.listening, color: '#34C759' },"
+    },
+    {
+      "line": 109,
+      "content": "{ name: 'Writing', value: stats.skillAverages.writing, color: '#FF9500' },"
+    },
+    {
+      "line": 110,
+      "content": "{ name: 'Speaking', value: stats.skillAverages.speaking, color: '#AF52DE' },"
+    },
+    {
+      "line": 161,
+      "content": "Barcha testlar va ko'rsatkichlar tahlili."
+    },
+    {
+      "line": 184,
+      "content": "title=\"Jami testlar\""
+    },
+    {
+      "line": 190,
+      "content": "title=\"O'rtacha ball\""
+    },
+    {
+      "line": 247,
+      "content": "onToggle={() => toggleLine('reading')}"
+    },
+    {
+      "line": 254,
+      "content": "onToggle={() => toggleLine('listening')}"
+    },
+    {
+      "line": 261,
+      "content": "onToggle={() => toggleLine('writing')}"
+    },
+    {
+      "line": 268,
+      "content": "onToggle={() => toggleLine('speaking')}"
+    },
+    {
+      "line": 307,
+      "content": "<p className=\"absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-black/30 uppercase tracking-widest\">Analitika (Vaqt o'qida)</p>"
+    },
+    {
+      "line": 316,
+      "content": "<h3 className=\"text-xl font-bold text-[#1D1D1F]\">Ko'nikmalar</h3>"
+    },
+    {
+      "line": 317,
+      "content": "<p className=\"text-sm text-black/40 font-medium\">Har bir bo'lim bo'yicha o'rtacha ball</p>"
+    },
+    {
+      "line": 337,
+      "content": "formatter={(value) => [Number(value).toFixed(1), \"O'rtacha ball\"]}"
+    },
+    {
+      "line": 372,
+      "content": "<p className=\"text-black/40 font-medium italic\">Sizda barcha ko'rsatkichlar a'lo darajada!</p>"
+    },
+    {
+      "line": 376,
+      "content": "Ushbu yo'nalishlar bo'yicha ko'proq mashq bajarish umumiy ballingizni sezilarli darajada oshiradi."
+    },
+    {
+      "line": 390,
+      "content": "<p className=\"text-sm text-black/70 font-medium\">Haftada kamida 2 ta to'liq Listening testini ishlang.</p>"
+    },
+    {
+      "line": 396,
+      "content": "<p className=\"text-sm text-black/70 font-medium\">Vocabulary bo'limidan har kuni 10 ta yangi so'z o'rganing.</p>"
+    }
+  ],
+  "pages/student/Practice.jsx": [
+    {
+      "line": 33,
+      "content": "{ id: 'reading', label: 'Reading', icon: BookOpen },"
+    },
+    {
+      "line": 34,
+      "content": "{ id: 'listening', label: 'Listening', icon: Headphones },"
+    },
+    {
+      "line": 35,
+      "content": "{ id: 'writing', label: 'Writing', icon: PenTool },"
+    },
+    {
+      "line": 36,
+      "content": "{ id: 'speaking', label: 'Speaking', icon: Mic },"
+    },
+    {
+      "line": 50,
+      "content": "const [activeTab, setActiveTab] = useState(tabFromUrl || 'reading');"
+    },
+    {
+      "line": 53,
+      "content": "const isPro = userData?.accountType === 'pro' || userData?.isPro;"
+    },
+    {
+      "line": 75,
+      "content": "const [limitType, setLimitType] = useState('reading');"
+    },
+    {
+      "line": 101,
+      "content": "if (activeTab === 'reading') {"
+    },
+    {
+      "line": 102,
+      "content": "navigate('/reading', { replace: true });"
+    },
+    {
+      "line": 103,
+      "content": "} else if (activeTab === 'listening') {"
+    },
+    {
+      "line": 104,
+      "content": "navigate('/listening', { replace: true });"
+    },
+    {
+      "line": 115,
+      "content": "if (tabId === 'reading') {"
+    },
+    {
+      "line": 116,
+      "content": "navigate('/reading');"
+    },
+    {
+      "line": 119,
+      "content": "if (tabId === 'listening') {"
+    },
+    {
+      "line": 120,
+      "content": "navigate('/listening');"
+    },
+    {
+      "line": 150,
+      "content": "if (activeTab !== 'reading') return;"
+    },
+    {
+      "line": 188,
+      "content": "if (activeTab === 'reading' && sectionFromUrl) {"
+    },
+    {
+      "line": 193,
+      "content": "navigate('/reading', { replace: true });"
+    },
+    {
+      "line": 314,
+      "content": "const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');"
+    },
+    {
+      "line": 315,
+      "content": "const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');"
+    },
+    {
+      "line": 317,
+      "content": "const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;"
+    },
+    {
+      "line": 338,
+      "content": "const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');"
+    },
+    {
+      "line": 339,
+      "content": "const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');"
+    },
+    {
+      "line": 340,
+      "content": "const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;"
+    },
+    {
+      "line": 356,
+      "content": "alert(\"Test ID topilmadi! Iltimos, sahifani yangilab qayta urinib ko'ring.\");"
+    },
+    {
+      "line": 363,
+      "content": "alert(\"Natija topilmadi!\");"
+    },
+    {
+      "line": 378,
+      "content": "alert(\"Test qo'shildi! 🚀\");"
+    },
+    {
+      "line": 383,
+      "content": "throw new Error(\"Kalitni faollashtirishda kutilmagan xatolik yuz berdi.\");"
+    },
+    {
+      "line": 386,
+      "content": "setKeyError(error.message || \"Kalit xato yoki ishlatilgan!\");"
+    },
+    {
+      "line": 446,
+      "content": "<p className=\"text-[#86868b] mt-2 max-w-[300px]\">Qidiruv mezonlariga mos keladigan testlar mavjud emas.</p>"
+    },
+    {
+      "line": 458,
+      "content": "const isReading = activeTab.toLowerCase() === 'reading';"
+    },
+    {
+      "line": 600,
+      "content": "t.subTests?.some(s => s.type === 'reading') ||"
+    }
+  ],
+  "pages/student/TestResults.jsx": [
+    {
+      "line": 22,
+      "content": "const [activeTab, setActiveTab] = useState('upcoming'); // Default to upcoming"
+    },
+    {
+      "line": 47,
+      "content": "if (activeTab === 'upcoming') return test.status !== 'completed' && test.scheduledDate;"
+    },
+    {
+      "line": 104,
+      "content": "onClick={() => setActiveTab('upcoming')}"
+    },
+    {
+      "line": 106,
+      "content": "activeTab === 'upcoming' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'"
+    },
+    {
+      "line": 110,
+      "content": "{activeTab === 'upcoming' && <div className=\"absolute bottom-0 left-0 right-0 h-1 bg-[#e31837]\" />}"
+    },
+    {
+      "line": 126,
+      "content": "Showing <span className=\"text-[#e31837]\">{filteredTests.length}</span> {activeTab === 'past' ? 'past' : 'upcoming'} {filteredTests.length === 1 ? 'test' : 'tests'}"
+    },
+    {
+      "line": 138,
+      "content": "<p className=\"text-zinc-500 font-medium\">Hozircha {activeTab === 'past' ? 'natijalar' : 'rejalashtirilgan testlar'} mavjud emas.</p>"
+    },
+    {
+      "line": 200,
+      "content": "{tab === 'upcoming' ? ("
+    }
+  ],
+  "pages/student/RoadmapPage.jsx": [
+    {
+      "line": 31,
+      "content": "1: [{ title: \"Reading Focus\", desc: \"Akademik matnlarni tahlil qilish\", type: 'reading' }, { title: \"Error Analysis\", desc: \"Xatolar ustida ishlash\", type: 'reading' }],"
+    },
+    {
+      "line": 32,
+      "content": "2: [{ title: \"Listening Mastery\", desc: \"Turli aksentlarni tushunish\", type: 'listening' }, { title: \"Section 4 deep dive\", desc: \"Murakkab qismlar\", type: 'listening' }],"
+    },
+    {
+      "line": 33,
+      "content": "3: [{ title: \"Full Reading\", desc: \"To'liq Reading passage\", type: 'reading' }, { title: \"Writing AI\", desc: \"AI Writing feedback\", type: 'writing' }],"
+    },
+    {
+      "line": 34,
+      "content": "4: [{ title: \"Full Listening\", desc: \"To'liq Listening test\", type: 'listening' }, { title: \"Speaking AI\", desc: \"AI Speaking partner\", type: 'speaking' }],"
+    },
+    {
+      "line": 35,
+      "content": "5: [{ title: \"Reading Mock\", desc: \"Vaqtga doir test\", type: 'reading' }, { title: \"Article Analysis\", desc: \"Ilmiy maqolalar\", type: 'article' }],"
+    },
+    {
+      "line": 36,
+      "content": "6: [{ title: \"Listening Mock\", desc: \"Vaqtga doir test\", type: 'listening' }, { title: \"Podcast Session\", desc: \"Podkastlar\", type: 'podcast' }],"
+    },
+    {
+      "line": 37,
+      "content": "7: [{ title: \"Full Mock Test\", desc: \"Imtihon simulyatsiyasi\", type: 'mock' }, { title: \"Final Strategy\", desc: \"So'nggi maslahatlar\", type: 'mock' }]"
+    },
+    {
+      "line": 127,
+      "content": "<span className=\"text-[#86868B]\">Muvaffaqiyat yo'li.</span>"
+    },
+    {
+      "line": 146,
+      "content": "<p className=\"text-lg font-bold\">{currentDay} / {totalDays} kun</p>"
+    },
+    {
+      "line": 234,
+      "content": "if (task.type === 'speaking') { navigate('/speaking-practice'); return; }"
+    },
+    {
+      "line": 235,
+      "content": "if (task.type === 'article') { navigate('/article-reading'); return; }"
+    },
+    {
+      "line": 253,
+      "content": "${task.type === 'reading' ? 'bg-blue-50 text-blue-600' :"
+    },
+    {
+      "line": 254,
+      "content": "task.type === 'listening' ? 'bg-purple-50 text-purple-600' :"
+    },
+    {
+      "line": 257,
+      "content": "{task.type === 'reading' ? <BookOpen size={24} /> :"
+    },
+    {
+      "line": 258,
+      "content": "task.type === 'listening' ? <Headphones size={24} /> :"
+    },
+    {
+      "line": 259,
+      "content": "task.type === 'writing' ? <PenTool size={24} /> :"
+    },
+    {
+      "line": 260,
+      "content": "task.type === 'speaking' ? <MessageCircle size={24} /> :"
+    },
+    {
+      "line": 273,
+      "content": "Boshlash <ArrowRight size={13} className=\"group-hover:translate-x-0.5 transition-transform\" />"
+    },
+    {
+      "line": 287,
+      "content": "Keyingi kun vazifalarini hoziroq oching va tayyorgarlikni tezlashtiring."
+    },
+    {
+      "line": 294,
+      "content": "Upgrade Pro — 19,000 so'm"
+    }
+  ],
+  "pages/student/Settings.jsx": [
+    {
+      "line": 113,
+      "content": "setMessage('Ma\\'lumotlar muvaffaqiyatli saqlandi! ✅');"
+    },
+    {
+      "line": 116,
+      "content": "setMessage('Xatolik yuz berdi. ❌');"
+    },
+    {
+      "line": 155,
+      "content": "Sozlamalar"
+    },
+    {
+      "line": 159,
+      "content": "{ id: 'profile', label: 'Profil ma\\'lumotlari', icon: User },"
+    },
+    {
+      "line": 184,
+      "content": "Chiqish"
+    },
+    {
+      "line": 224,
+      "content": "<h3 className=\"text-base font-bold\">{formData.fullName || 'Foydalanuvchi'}</h3>"
+    },
+    {
+      "line": 225,
+      "content": "<p className=\"text-zinc-500 text-sm mt-1\">Profil rasmingizni yangilash uchun kamerani bosing</p>"
+    },
+    {
+      "line": 231,
+      "content": "<label className=\"text-xs font-bold text-zinc-500 ml-1\">Ism Familiya</label>"
+    },
+    {
+      "line": 246,
+      "content": "<label className=\"text-xs font-bold text-zinc-500 ml-1\">Telefon Raqam</label>"
+    },
+    {
+      "line": 367,
+      "content": "Saqlash"
+    }
+  ],
+  "pages/student/WordBank.jsx": [
+    {
+      "line": 17,
+      "content": "import WordBankHero from '../../components/WordBank/WordBankHero';"
+    }
+  ],
+  "pages/student/StudentDashboard.jsx": [
+    {
+      "line": 37,
+      "content": "navigate('/onboarding', { replace: true });"
+    },
+    {
+      "line": 51,
+      "content": "const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');"
+    },
+    {
+      "line": 52,
+      "content": "const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');"
+    },
+    {
+      "line": 53,
+      "content": "const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;"
+    },
+    {
+      "line": 103,
+      "content": "userName={userData?.fullName?.split(' ')[0] || \"O'quvchi\"}"
+    }
+  ],
+  "pages/admin/AdminRoadmap.jsx": [
+    {
+      "line": 24,
+      "content": "{ id: `d${i}_1`, title: \"\", desc: \"\", type: 'reading', testId: '' },"
+    },
+    {
+      "line": 25,
+      "content": "{ id: `d${i}_2`, title: \"\", desc: \"\", type: 'reading', testId: '' }"
+    },
+    {
+      "line": 73,
+      "content": "alert(\"Roadmap muvaffaqiyatli saqlandi!\");"
+    },
+    {
+      "line": 76,
+      "content": "alert(\"Saqlashda xatolik yuz berdi\");"
+    },
+    {
+      "line": 102,
+      "content": "<p className=\"text-sm opacity-60\">Talabalar uchun 8 kunlik o'quv rejasini boshqarish</p>"
+    },
+    {
+      "line": 110,
+      "content": "Saqlash"
+    },
+    {
+      "line": 183,
+      "content": "placeholder=\"Vazifa haqida ma'lumot...\""
+    },
+    {
+      "line": 187,
+      "content": "{['reading', 'listening', 'mock'].includes(task.type) && ("
+    },
+    {
+      "line": 196,
+      "content": "{tests.filter(t => t.type === (task.type === 'mock' ? 'reading' : task.type)).map(t => ("
+    },
+    {
+      "line": 216,
+      "content": "Har bir kunga biriktirilgan testlar talabaning dashboard'ida avtomatik ravishda ko'rinadi."
+    },
+    {
+      "line": 217,
+      "content": "Writing va Speaking AI uchun alohida test tanlash shart emas, ular avtomatik ravishda AI modullarini ochadi."
+    }
+  ],
+  "pages/admin/AdminPodcasts.jsx": [
+    {
+      "line": 61,
+      "content": "if (!window.confirm(\"Podcast'ni o'chirishni tasdiqlaysizmi?\")) return;"
+    },
+    {
+      "line": 122,
+      "content": "if (!window.confirm(\"To'plamni o'chirishni tasdiqlaysizmi?\")) return;"
+    }
+  ],
+  "pages/admin/ManageTests.jsx": [
+    {
+      "line": 20,
+      "content": "console.error(\"Xatolik:\", error);"
+    },
+    {
+      "line": 32,
+      "content": "if (!window.confirm(`DIQQAT! \"${testTitle}\" testini o'chirmoqchimisiz?\\nBu amalni ortga qaytarib bo'lmaydi!`)) return;"
+    },
+    {
+      "line": 38,
+      "content": "alert(\"Test o'chirildi! 🗑️\");"
+    },
+    {
+      "line": 41,
+      "content": "console.error(\"O'chirishda xatolik:\", error);"
+    },
+    {
+      "line": 42,
+      "content": "alert(\"Xatolik yuz berdi.\");"
+    },
+    {
+      "line": 52,
+      "content": "<h1 className=\"text-2xl font-bold text-gray-800\">📚 Barcha Testlar Boshqaruvi</h1>"
+    },
+    {
+      "line": 53,
+      "content": "<p className=\"text-gray-500\">Jami testlar soni: {tests.length}</p>"
+    },
+    {
+      "line": 80,
+      "content": "<tr><td colSpan=\"5\" className=\"p-8 text-center text-gray-400\">Testlar mavjud emas.</td></tr>"
+    },
+    {
+      "line": 87,
+      "content": "test.type === 'listening' ? 'bg-purple-100 text-purple-700' :"
+    },
+    {
+      "line": 88,
+      "content": "test.type === 'writing' ? 'bg-yellow-100 text-yellow-700' :"
+    },
+    {
+      "line": 95,
+      "content": "{test.type === 'listening' ?"
+    },
+    {
+      "line": 110,
+      "content": "O'chirish 🗑️"
+    }
+  ],
+  "pages/admin/AdminResults.jsx": [
+    {
+      "line": 76,
+      "content": "if (res.type === 'writing' || res.type === 'mock_full') navigate('/admin/writing-review', { state: { selectedId: res.id } });"
+    },
+    {
+      "line": 86,
+      "content": "{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)} of {filteredResults.length} natijalar"
+    }
+  ],
+  "pages/admin/AdminDashboard.jsx": [
+    {
+      "line": 75,
+      "content": "{ key: 'tests', label: 'Bajarilgan Testlar', color: '#3B82F6', type: 'count' },"
+    },
+    {
+      "line": 76,
+      "content": "{ key: 'score', label: 'O\\'rtacha Ball', color: '#F59E0B', type: 'decimal' },"
+    }
+  ],
+  "pages/admin/AdminArticles.jsx": [
+    {
+      "line": 46,
+      "content": "<p className=\"text-gray-500 dark:text-gray-400 text-sm\">O'quvchilar uchun qiziqarli maqolalar yarating va boshqaring.</p>"
+    }
+  ],
+  "pages/admin/AdminAnnouncements.jsx": [
+    {
+      "line": 19,
+      "content": "const [formData, setFormData] = useState({ title: '', message: '', type: 'info' });"
+    },
+    {
+      "line": 41,
+      "content": "if (!formData.title || !formData.message) return alert(\"Sarlavha va matn kiritilishi shart!\");"
+    },
+    {
+      "line": 51,
+      "content": "setFormData({ title: '', message: '', type: 'info' });"
+    },
+    {
+      "line": 55,
+      "content": "alert(\"Xatolik: \" + error.message);"
+    },
+    {
+      "line": 62,
+      "content": "if (window.confirm(\"Haqiqatan ham bu e'lonni o'chirmoqchimisiz?\")) {"
+    },
+    {
+      "line": 67,
+      "content": "alert(\"Xatolik: \" + error.message);"
+    },
+    {
+      "line": 74,
+      "content": "case 'warning': return <FaExclamationTriangle className=\"text-orange-500\" />;"
+    },
+    {
+      "line": 83,
+      "content": "case 'warning': return { text: 'Ogohlantirish', bg: 'bg-orange-500/10 text-orange-500 border-orange-500/20' };"
+    },
+    {
+      "line": 107,
+      "content": "<p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-sm`}>O'quvchilar uchun yangiliklar va xabarlar</p>"
+    },
+    {
+      "line": 170,
+      "content": "<h2 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>Yangi E'lon Yaratish</h2>"
+    },
+    {
+      "line": 186,
+      "content": "<label className={`block text-xs font-bold uppercase mb-1 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>Xabar Matni</label>"
+    },
+    {
+      "line": 199,
+      "content": "{['info', 'success', 'warning', 'danger'].map(type => ("
+    }
+  ],
+  "pages/admin/KeyManager.jsx": [
+    {
+      "line": 40,
+      "content": "reading: allTests.filter(t => t.type === 'reading'),"
+    },
+    {
+      "line": 41,
+      "content": "listening: allTests.filter(t => t.type === 'listening'),"
+    },
+    {
+      "line": 42,
+      "content": "writing: allTests.filter(t => t.type === 'writing'),"
+    },
+    {
+      "line": 44,
+      "content": "} catch (error) { console.error(\"Xatolik:\", error); }"
+    },
+    {
+      "line": 59,
+      "content": "toast.error(\"Iltimos, 3 ta fanni ham tanlang!\");"
+    },
+    {
+      "line": 64,
+      "content": "if (bulkCount > 50) return toast.error(\"Maksimal 50 ta kalit yaratish mumkin.\");"
+    },
+    {
+      "line": 94,
+      "content": "toast.success(`${bulkCount} ta kalit muvaffaqiyatli yaratildi! 🎉`);"
+    },
+    {
+      "line": 99,
+      "content": "toast.error(\"Xatolik yuz berdi\");"
+    },
+    {
+      "line": 105,
+      "content": "if(!window.confirm(\"O'chirasizmi?\")) return;"
+    },
+    {
+      "line": 182,
+      "content": "{loading ? \"Yaratilmoqda...\" : `YARATISH (${bulkCount})`}"
+    },
+    {
+      "line": 212,
+      "content": "<button onClick={() => handleDelete(item.id)} className=\"p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition\" title=\"O'chirish\"><Icons.Trash className=\"w-5 h-5\"/></button>"
+    },
+    {
+      "line": 216,
+      "content": "{keys.length === 0 && <div className=\"text-center text-gray-400 mt-10\">Kalitlar yo'q.</div>}"
+    }
+  ],
+  "pages/admin/ManageUsers.jsx": [
+    {
+      "line": 23,
+      "content": "console.error(\"Xatolik:\", error);"
+    },
+    {
+      "line": 35,
+      "content": "if (!window.confirm(`Siz rostaan ham ${userName} ni tizimdan o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi!`)) return;"
+    },
+    {
+      "line": 42,
+      "content": "alert(\"Foydalanuvchi o'chirildi 🗑️\");"
+    },
+    {
+      "line": 45,
+      "content": "console.error(\"O'chirishda xatolik:\", error);"
+    },
+    {
+      "line": 46,
+      "content": "alert(\"Xatolik yuz berdi.\");"
+    },
+    {
+      "line": 64,
+      "content": "<p className=\"text-gray-500\">Tizimdagi barcha o'quvchilar va adminlar</p>"
+    },
+    {
+      "line": 77,
+      "content": "placeholder=\"Ism yoki Email orqali qidirish...\""
+    },
+    {
+      "line": 94,
+      "content": "<th className=\"p-4 text-sm font-medium text-gray-500\">Ro'yxatdan o'tgan sana</th>"
+    },
+    {
+      "line": 129,
+      "content": "title=\"O'chirish\""
+    }
+  ],
+  "pages/admin/CreateTest.jsx": [
+    {
+      "line": 172,
+      "content": "if (q.type === 'map_labeling') { found = true; return { ...q, image: url }; }"
+    },
+    {
+      "line": 203,
+      "content": "setUploadingPart('writing');"
+    },
+    {
+      "line": 259,
+      "content": "<h1 className=\"text-lg font-black tracking-tight\">{isEditMode ? \"Testni Tahrirlash\" : \"Yangi Test\"}</h1>"
+    },
+    {
+      "line": 281,
+      "content": "{isEditMode ? \"Saqlash\" : \"Yaratish\"}"
+    },
+    {
+      "line": 323,
+      "content": "{testData.type === 'writing' && ("
+    }
+  ],
+  "pages/admin/AdminAnalytics.jsx": [
+    {
+      "line": 10,
+      "content": "import { ChartsRowTwo } from './analytics/ChartsRowTwo';"
+    }
+  ],
+  "pages/admin/AdminTests.jsx": [
+    {
+      "line": 82,
+      "content": "alert(\"To'plamni saqlashda xatolik yuz berdi: \" + err.message);"
+    },
+    {
+      "line": 90,
+      "content": "if (!window.confirm(\"Haqiqatan ham ushbu to'plamni o'chirmoqchimisiz?\")) return;"
+    },
+    {
+      "line": 104,
+      "content": "alert(\"To'plamni o'chirishda xatolik yuz berdi: \" + err.message);"
+    },
+    {
+      "line": 122,
+      "content": "alert(\"Rasm yuklashda xatolik: \" + err.message);"
+    },
+    {
+      "line": 132,
+      "content": "alert(\"Rasm yuklashda xatolik: \" + err.message);"
+    },
+    {
+      "line": 146,
+      "content": "alert(\"Xatolik yuz berdi: \" + err.message);"
+    },
+    {
+      "line": 187,
+      "content": "if (!window.confirm(\"Haqiqatan ham barcha mavjud testlar uchun yengil metadatalarni yaratmoqchimisiz? Bu offline kesh va part filterlarining ishlashi uchun zarur.\")) return;"
+    },
+    {
+      "line": 203,
+      "content": "if (payload.type === 'listening') {"
+    },
+    {
+      "line": 205,
+      "content": "} else if (payload.type === 'reading') {"
+    },
+    {
+      "line": 222,
+      "content": "if (payload.type === 'listening') {"
+    },
+    {
+      "line": 242,
+      "content": "if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';"
+    },
+    {
+      "line": 258,
+      "content": "} else if (payload.type === 'reading') {"
+    },
+    {
+      "line": 276,
+      "content": "if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';"
+    },
+    {
+      "line": 277,
+      "content": "if (lower.includes('matching')) return 'Matching';"
+    },
+    {
+      "line": 296,
+      "content": "alert(`Metadata migratsiyasi muvaffaqiyatli bajarildi! ${successCount} ta test yangilandi.`);"
+    },
+    {
+      "line": 299,
+      "content": "alert(\"Xatolik: \" + error.message);"
+    },
+    {
+      "line": 402,
+      "content": "<label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>To'plam Turi (Collection Type)</label>"
+    }
+  ],
+  "pages/admin/gamification/SeasonHeader.jsx": [
+    {
+      "line": 11,
+      "content": "if (window.confirm(\"Haqiqatan ham mavsumni yangilamoqchimisiz? Barcha o'quvchilar ballari 0 bo'ladi.\")) {"
+    }
+  ],
+  "pages/admin/gamification/LeaderboardTable.jsx": [
+    {
+      "line": 87,
+      "content": "<div className=\"p-12 text-center opacity-30 text-sm italic font-medium\">O'quvchi topilmadi</div>"
+    }
+  ],
+  "pages/podcasts/PodcastPlayer.jsx": [
+    {
+      "line": 26,
+      "content": "\"🔤 Fill in the Gap — Bo'shliqlarni to'ldiring\","
+    },
+    {
+      "line": 27,
+      "content": "\"📚 Vocabulary — Lug'at\","
+    },
+    {
+      "line": 88,
+      "content": "<span>{loading ? \"Podcast ma'lumotlari yuklanmoqda...\" : \"Natijalar tekshirilmoqda...\"}</span>"
+    },
+    {
+      "line": 97,
+      "content": "<div style={{ color: \"var(--pod-error)\" }}>Xatolik: Bunday podcast topilmadi.</div>"
+    },
+    {
+      "line": 105,
+      "content": "<div style={{ color: \"var(--pod-error)\" }}>Xatolik: Sizning urinishingizni bazadan olish imkoni bo'lmadi.</div>"
+    },
+    {
+      "line": 157,
+      "content": "Tuzatish: Dictation'ni tez o'tkazib yuborish (Skip to Stage 2)"
+    },
+    {
+      "line": 230,
+      "content": "{tab === \"transcript\" ? \"📜 Sinxron Matn\" : \"📚 Lug'at Boyligi\"}"
+    },
+    {
+      "line": 238,
+      "content": "💡 So'zlar ustiga bosib tarjimasini ko'ring. Shadowing uchun matnni kuzatib boring."
+    }
+  ],
+  "pages/podcasts/SpotifyPodcast.jsx": [
+    {
+      "line": 99,
+      "content": "alert(`Tabriklaymiz! Siz ushbu podcastni tinglab ${res.amount} XP yig'dingiz.`);"
+    }
+  ],
+  "pages/podcasts/SpotifyEpisodeDetails.jsx": [
+    {
+      "line": 95,
+      "content": "pointerEvents: scrollOpacity > 0.3 ? 'auto' : 'none',"
+    }
+  ],
+  "pages/podcasts/CreatePodcast.jsx": [
+    {
+      "line": 63,
+      "content": "if (!file || !file.type.includes(\"audio\")) return alert(\"Iltimos MP3 yoki audio fayl tanlang.\");"
+    },
+    {
+      "line": 94,
+      "content": "(err) => { setSaving(false); alert(\"Yuklash xatosi: \" + err.message); },"
+    },
+    {
+      "line": 144,
+      "content": "{editId ? \"✏️ Podcast Tahrirlash\" : \"+ Yangi Podcast\"}"
+    },
+    {
+      "line": 203,
+      "content": "<span style={{ fontSize: 11, color: \"var(--pod-muted)\" }}>Ihtiyoriy, lekin aniq tekshirish uchun juda muhim!</span>"
+    },
+    {
+      "line": 210,
+      "content": "placeholder=\"To'liq va xatosiz audioning matnini bu yerga tashlang. Bu tizimga gaplarni 100% tushunishga va aniq vaqtlarga ajratishga yordam beradi (Forced Alignment)...\""
+    },
+    {
+      "line": 216,
+      "content": "<label style={{ fontSize: 13, color: \"var(--pod-text)\", fontWeight: 600 }}>💡 Yordamchi so'zlar (Hint Words)</label>"
+    },
+    {
+      "line": 217,
+      "content": "<span style={{ fontSize: 11, color: \"var(--pod-muted)\" }}>Atoqli otlar yoki murakkab so'zlar. Vergul bilan ajrating</span>"
+    },
+    {
+      "line": 229,
+      "content": "{saving ? \"Saqlanmoqda...\" : \"💾 Ma'lumotlarni saqlash\"}"
+    },
+    {
+      "line": 250,
+      "content": "MP3 faylni shu yerga tashlang yoki bosing"
+    },
+    {
+      "line": 253,
+      "content": "Yuklanganidan so'ng Whisper AI avtomatik matnga o'giradi"
+    },
+    {
+      "line": 282,
+      "content": "{ key: \"vocab\", label: \"📚 Lug'at (AI)\" },"
+    }
+  ],
+  "pages/podcasts/components/MediaAssetsSection.jsx": [
+    {
+      "line": 20,
+      "content": "{['audio', 'video', 'youtube'].map(type => ("
+    },
+    {
+      "line": 26,
+      "content": "{type === 'audio' ? <Music size={14} /> : type === 'video' ? <Play size={14} /> : <Music size={14} className=\"rotate-90\" />}"
+    },
+    {
+      "line": 57,
+      "content": "{form.mediaType === 'audio' ? 'Audio Source (URL)' : 'Video Source (URL)'}"
+    },
+    {
+      "line": 75,
+      "content": "accept={form.mediaType === 'audio' ? \"audio/*\" : \"video/*\"}"
+    },
+    {
+      "line": 77,
+      "content": "onChange={e => handleFileUpload(e.target.files[0], 'audio')}"
+    },
+    {
+      "line": 103,
+      "content": "{form.mediaType !== 'audio' && ("
+    }
+  ],
+  "pages/public/PublicDashboard.jsx": [
+    {
+      "line": 41,
+      "content": "const [limitType, setLimitType] = useState('reading');"
+    },
+    {
+      "line": 108,
+      "content": "const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');"
+    },
+    {
+      "line": 109,
+      "content": "const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');"
+    },
+    {
+      "line": 110,
+      "content": "const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;"
+    },
+    {
+      "line": 129,
+      "content": "const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');"
+    },
+    {
+      "line": 130,
+      "content": "const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');"
+    },
+    {
+      "line": 131,
+      "content": "const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;"
+    },
+    {
+      "line": 162,
+      "content": "console.error(\"Dashboard datasi olishda xatolik:\", err);"
+    },
+    {
+      "line": 194,
+      "content": "userName={userData?.fullName?.split(' ')[0] || \"O'quvchi\"}"
+    },
+    {
+      "line": 212,
+      "content": "{ label: \"Daily Streak\", value: streak, unit: \"kun\", icon: Flame, color: \"text-orange-500\", bg: \"bg-orange-50\" },"
+    },
+    {
+      "line": 213,
+      "content": "{ label: \"Total XP\", value: xp, unit: \"ball\", icon: Trophy, color: \"text-yellow-500\", bg: \"bg-yellow-50\" },"
+    },
+    {
+      "line": 215,
+      "content": "{ label: \"So'z boyligi\", value: vocabCount, unit: \"so'z\", icon: BookOpen, color: \"text-blue-500\", bg: \"bg-blue-50\", link: \"/vocabulary\" }"
+    },
+    {
+      "line": 242,
+      "content": "<h2 className=\"text-2xl font-[900] text-[#1a1a1a] tracking-tight\">Bo'lim tayyorlanmoqda</h2>"
+    },
+    {
+      "line": 243,
+      "content": "<p className=\"text-[#aaa] font-bold mt-2\">Bu bo'lim tez orada sizga taqdim etiladi.</p>"
+    },
+    {
+      "line": 261,
+      "content": "userName={userData?.fullName?.split(' ')[0] || \"O'quvchi\"}"
+    }
+  ],
+  "pages/public/Pricing.jsx": [
+    {
+      "line": 13,
+      "content": "category: 'Reading',"
+    },
+    {
+      "line": 16,
+      "content": "{ label: 'Reading Passage testlar', free: 'Cheklangan', standard: true, pro: true },"
+    },
+    {
+      "line": 17,
+      "content": "{ label: 'Full Reading testlar', free: false, standard: true, pro: true },"
+    },
+    {
+      "line": 23,
+      "content": "category: 'Listening',"
+    },
+    {
+      "line": 26,
+      "content": "{ label: 'Listening Section testlar', free: 'Cheklangan', standard: true, pro: true },"
+    },
+    {
+      "line": 59,
+      "content": "desc: 'IELTS ga ilk qadam. Limited Reading/Listening va 7 kunlik Study Route.',"
+    },
+    {
+      "line": 60,
+      "content": "cta: 'Hozir boshlash',"
+    },
+    {
+      "line": 71,
+      "content": "desc: 'Reading, Listening va Podcast testlariga to\\'liq kirish imkoniyati.',"
+    },
+    {
+      "line": 78,
+      "content": "id: 'pro',"
+    },
+    {
+      "line": 79,
+      "content": "name: 'Pro',"
+    },
+    {
+      "line": 83,
+      "content": "desc: 'AI imkoniyatlari bilan IELTS ga to\\'liq va professional tayyorgarlik.',"
+    },
+    {
+      "line": 113,
+      "content": "q: 'Obuna bekor qilinsa nima bo\\'ladi?',"
+    },
+    {
+      "line": 114,
+      "content": "a: 'Obuna muddati tugagach, siz Free rejimga o\\'tasiz. Barcha natijalar va progress saqlanib qoladi.'"
+    },
+    {
+      "line": 117,
+      "content": "q: 'Standard va Pro farqi nima?',"
+    },
+    {
+      "line": 118,
+      "content": "a: 'Standard tarifda Reading, Listening va Podcast funksiyalari mavjud. Pro tarifda bunga qo\\'shimcha AI Writing baholash, AI Speaking Examiner va Full Mock Exam ham kiradi.'"
+    },
+    {
+      "line": 122,
+      "content": "a: 'Standard: oylik 29 000 × 3 = 87 000 so\\'m, 3 oylik tarif 79 000 so\\'m — 8 000 so\\'m tejaladi. Pro: oylik 39 000 × 3 = 117 000 so\\'m, 3 oylik 99 000 so\\'m — 18 000 so\\'m tejaladi.'"
+    },
+    {
+      "line": 146,
+      "content": "O'z darajangizga mos<br/>tarifni tanlang."
+    },
+    {
+      "line": 149,
+      "content": "IELTS 7+ ballga erishish uchun kerakli barcha asboblar bir joyda."
+    },
+    {
+      "line": 212,
+      "content": "const isCurrent = userData?.accountType === plan.id || (plan.id === 'pro' && userData?.isPro);"
+    },
+    {
+      "line": 213,
+      "content": "const isDownGrade = plan.id === 'standard' && (userData?.accountType === 'pro' || userData?.isPro);"
+    },
+    {
+      "line": 220,
+      "content": "ctaText = \"Faol tarif\";"
+    },
+    {
+      "line": 256,
+      "content": "<p className=\"text-zinc-400 text-[15px] mb-10\">Qaysi funksiyalar qaysi tarifda mavjudligini ko'ring.</p>"
+    },
+    {
+      "line": 336,
+      "content": "animate={{ height: 'auto', opacity: 1 }}"
+    },
+    {
+      "line": 365,
+      "content": "<p className=\"text-zinc-400 text-[14px] mt-2\">Kredit karta talab qilinmaydi. Istalgan vaqt bekor qilish mumkin.</p>"
+    },
+    {
+      "line": 376,
+      "content": "Pro'ga o'tish"
+    },
+    {
+      "line": 379,
+      "content": "<Shield size={11} /> Xavfsiz to'lov · Tezkor faollashtirish"
+    }
+  ],
+  "pages/public/LandingPage.jsx": [
+    {
+      "line": 55,
+      "content": "<p className=\"text-xs text-gray-600 font-medium uppercase tracking-wide\">Faol O'quvchilar</p>"
+    },
+    {
+      "line": 62,
+      "content": "<p className=\"text-xs text-gray-600 font-medium uppercase tracking-wide\">O'rtacha Ball</p>"
+    },
+    {
+      "line": 110,
+      "content": "<span className=\"relative z-10\">IELTS dan yuqori ball olishning eng zamonaviy usuli.</span>"
+    },
+    {
+      "line": 117,
+      "content": "Real imtihon muhiti, sun'iy intellekt yordamida chuqur tahlil va aniq natijalar."
+    },
+    {
+      "line": 126,
+      "content": "Boshlash <ArrowRight size={18} />"
+    },
+    {
+      "line": 133,
+      "content": "Namuna ko'rish"
+    },
+    {
+      "line": 157,
+      "content": "<p className=\"text-xl text-gray-500 max-w-2xl mx-auto\">Reading va Listening bo'limlari xuddi rasmiy imtihondagidek ko'rinishda.</p>"
+    },
+    {
+      "line": 320,
+      "content": "<p className=\"text-gray-500 text-sm mt-2\">Yuqori sifatli audio va real vaqt rejimidagi savollar.</p>"
+    },
+    {
+      "line": 363,
+      "content": "<p className=\"text-lg font-medium text-gray-600\">Reading, Listening va Writing bo'limlari xuddi real imtihondagidek.</p>"
+    },
+    {
+      "line": 387,
+      "content": "<p className=\"font-medium text-gray-600\">Har bir testdan so'ng xatolaringizni ko'rib chiqing.</p>"
+    },
+    {
+      "line": 432,
+      "content": "<p className=\"font-medium text-gray-600\">O'qituvchingiz bergan kalit (Access Key) orqali yopiq testlarga kiring.</p>"
+    },
+    {
+      "line": 454,
+      "content": "<h3 className=\"mb-2 text-2xl font-bold\">Tez va Qulay</h3>"
+    },
+    {
+      "line": 469,
+      "content": "{ title: \"Ro'yxatdan o'ting\", desc: \"Shaxsiy kabinet yarating\" },"
+    },
+    {
+      "line": 470,
+      "content": "{ title: \"Testni tanlang\", desc: \"Yoki Access Key kiriting\" },"
+    },
+    {
+      "line": 471,
+      "content": "{ title: \"Natijani oling\", desc: \"Avtomatik tekshirish va tahlil\" }"
+    },
+    {
+      "line": 525,
+      "content": "Hisob ochish"
+    }
+  ],
+  "pages/teacher/TeacherDashboard.jsx": [
+    {
+      "line": 113,
+      "content": "(r.type === 'writing' || r.type === 'mock_full') && !r.teacherFeedback && !r.writingBand"
+    },
+    {
+      "line": 141,
+      "content": "label: 'Tayinlangan Testlar',"
+    },
+    {
+      "line": 213,
+      "content": "O'qituvchi Paneli"
+    },
+    {
+      "line": 231,
+      "content": "Bugungi holat, guruh natijalari va yangi vazifalarni bitta joyda, tez va oson boshqaring."
+    },
+    {
+      "line": 237,
+      "content": "onClick={() => navigate('/teacher/create-writing')}"
+    },
+    {
+      "line": 245,
+      "content": "Yangi vazifa yaratish"
+    },
+    {
+      "line": 257,
+      "content": "Barcha guruhlar"
+    },
+    {
+      "line": 273,
+      "content": "<p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Guruh tayinlanmagan</p>"
+    },
+    {
+      "line": 274,
+      "content": "<p className=\"text-sm text-gray-400\">Admin sizga guruh tayinlashini kuting</p>"
+    },
+    {
+      "line": 344,
+      "content": "Faol guruh"
+    },
+    {
+      "line": 350,
+      "content": "{ label: \"O'quvchilar\", val: group.studentIds?.length || 0 },"
+    },
+    {
+      "line": 351,
+      "content": "{ label: 'Testlar',     val: group.realTestCount || 0 },"
+    },
+    {
+      "line": 378,
+      "content": "So'nggi Natijalar"
+    },
+    {
+      "line": 412,
+      "content": "{r.type === 'writing' && !r.writingBand && ("
+    },
+    {
+      "line": 448,
+      "content": "Barchasini ko'rish <ChevronRight size={16} />"
+    }
+  ],
+  "pages/teacher/TeacherTests.jsx": [
+    {
+      "line": 114,
+      "content": "...assign, isSet: true, title: set.name || assign.title || \"Test To'plam\","
+    },
+    {
+      "line": 147,
+      "content": "if (t.includes('reading')) return 'text-blue-400 bg-blue-500/10 border-blue-500/20';"
+    },
+    {
+      "line": 148,
+      "content": "if (t.includes('listening')) return 'text-pink-400 bg-pink-500/10 border-pink-500/20';"
+    },
+    {
+      "line": 149,
+      "content": "if (t.includes('writing')) return 'text-orange-400 bg-orange-500/10 border-orange-500/20';"
+    },
+    {
+      "line": 165,
+      "content": "<h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Tayinlangan Testlar</h1>"
+    },
+    {
+      "line": 179,
+      "content": "<p className=\"text-sm mt-1 text-gray-400\">Admin guruhingizga test tayinlagach bu yerda ko'rinadi</p>"
+    },
+    {
+      "line": 202,
+      "content": "<span className=\"opacity-50\">Guruh:</span> {test.groupName}"
+    },
+    {
+      "line": 218,
+      "content": "To'plamni Ochish"
+    },
+    {
+      "line": 249,
+      "content": "<span className=\"opacity-50\">Guruh:</span> {test.groupName}"
+    }
+  ],
+  "pages/teacher/TeacherCreateWriting.jsx": [
+    {
+      "line": 38,
+      "content": "setErrorMsg(\"Guruhlarni yuklashda xatolik yuz berdi\");"
+    },
+    {
+      "line": 55,
+      "content": "setErrorMsg(\"Iltimos, barcha maydonlarni to'ldiring va guruhni tanlang\");"
+    },
+    {
+      "line": 71,
+      "content": "type: 'writing',"
+    },
+    {
+      "line": 104,
+      "content": "type: 'writing',"
+    },
+    {
+      "line": 109,
+      "content": "setSuccessMsg(\"Writing testi muvaffaqiyatli yaratildi va guruhga tayinlandi!\");"
+    },
+    {
+      "line": 118,
+      "content": "setErrorMsg(\"Xatolik yuz berdi\");"
+    },
+    {
+      "line": 136,
+      "content": "Yangi Writing Test Yaratish"
+    },
+    {
+      "line": 139,
+      "content": "Test savollarini kiriting va guruhga tayinlang."
+    },
+    {
+      "line": 175,
+      "content": "<p className=\"text-xs text-red-500 mt-2\">Sizda tayinlangan guruhlar yo'q.</p>"
+    },
+    {
+      "line": 212,
+      "content": "Rasm yuklash (Diagramma/Grafik)"
+    },
+    {
+      "line": 236,
+      "content": "title=\"Rasmni o'chirish\""
+    },
+    {
+      "line": 272,
+      "content": "{loading ? 'Yaratilmoqda...' : 'Testni Saqlash va Tayinlash'}"
+    }
+  ],
+  "pages/teacher/TeacherWritingReview.jsx": [
+    {
+      "line": 22,
+      "content": "const [filter, setFilter] = useState('pending');"
+    },
+    {
+      "line": 71,
+      "content": "<div className={`absolute bottom-0 left-0 right-0 px-4 py-3 border-t backdrop-blur-xl ${isDark ? 'bg-[#1A1A1A]/90 border-white/5' : 'bg-[#FBFBFD]/95 border-gray-200 shadow-lg'}`}>"
+    }
+  ],
+  "pages/teacher/TeacherAllResults.jsx": [
+    {
+      "line": 112,
+      "content": "const isFast = (d.status === 'graded' || d.status === 'published') && timeSpentSeconds > 0 && timeSpentSeconds < 600 && d.type !== 'speaking';"
+    },
+    {
+      "line": 268,
+      "content": "<option value=\"all\">Barcha Turlar</option>"
+    },
+    {
+      "line": 287,
+      "content": "<option value=\"all\">Barcha Statuslar</option>"
+    },
+    {
+      "line": 309,
+      "content": "<h1 className={`text-xl font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-gray-900'}`}>Natijalar</h1>"
+    },
+    {
+      "line": 335,
+      "content": "<th className={`py-3 px-4 text-[13px] font-semibold tracking-wide ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>O'quvchi</th>"
+    },
+    {
+      "line": 375,
+      "content": "<span className={`w-fit px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider border ${res.type === 'listening' ? (isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-700 border-indigo-100') : res.type === 'reading' ? (isDark ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-sky-50 text-sky-700 border-sky-100') : res.type === 'writing' ? (isDark ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100') : (isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-100')}`}>"
+    },
+    {
+      "line": 421,
+      "content": "if (res.type === 'writing' || res.type === 'mock_full') {"
+    },
+    {
+      "line": 427,
+      "content": "className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-bold uppercase tracking-wide transition-all ${res.status !== 'graded' && res.status !== 'published' && (res.type === 'writing' || res.type === 'mock_full')"
+    },
+    {
+      "line": 433,
+      "content": "{((res.status === 'pending' || res.status === 'pending_review') && (res.type === 'writing' || res.type === 'mock_full')) ? 'Baholash' : 'Ko\\'rish'}"
+    },
+    {
+      "line": 469,
+      "content": "Jami <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{filteredResults.length}</span> tadan <span className={isDark ? 'text-white' : 'text-gray-900'}>{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)}</span> ko'rsatilmoqda"
+    }
+  ],
+  "pages/teacher/TeacherGroupStats.jsx": [
+    {
+      "line": 158,
+      "content": "<h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Guruh Statistikasi</h1>"
+    },
+    {
+      "line": 160,
+      "content": "O'quvchilarning test natijalari va o'sish dinamikasi"
+    },
+    {
+      "line": 171,
+      "content": "<p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Guruh tayinlanmagan</p>"
+    },
+    {
+      "line": 184,
+      "content": "? 'bg-emerald-600 text-white shadow-lg'"
+    },
+    {
+      "line": 198,
+      "content": "{ label: \"O'quvchilar\", value: currentStudentIds.length, icon: Users, color: 'blue' },"
+    },
+    {
+      "line": 199,
+      "content": "{ label: \"O'rtacha Band\", value: groupAvgBand(), icon: TrendingUp, color: 'emerald' },"
+    },
+    {
+      "line": 200,
+      "content": "{ label: \"Tayinlangan Testlar\", value: currentGroup?.realTestCount || 0, icon: BookOpen, color: 'purple' }"
+    },
+    {
+      "line": 219,
+      "content": "placeholder=\"O'quvchi qidirish...\""
+    },
+    {
+      "line": 227,
+      "content": "{[{ key: 'name', label: 'Ismi' }, { key: 'score', label: 'Ball' }, { key: 'tests', label: 'Testlar' }].map(s => ("
+    },
+    {
+      "line": 248,
+      "content": "<p className=\"text-sm opacity-50\">O'quvchi topilmadi</p>"
+    },
+    {
+      "line": 277,
+      "content": "<p className=\"text-[10px] text-gray-400\">{stats.count} ta natija</p>"
+    },
+    {
+      "line": 288,
+      "content": "{['reading', 'listening', 'writing', 'speaking'].map(type => {"
+    },
+    {
+      "line": 306,
+      "content": "<p className={`text-xs font-bold uppercase mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>So'nggi Natijalar</p>"
+    }
+  ]
+}

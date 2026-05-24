@@ -4,9 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { hapticFeedback } from '../../utils/haptic';
 import ShareModal from '../common/ShareModal';
+import { useTranslation } from '../../context/LanguageContext';
+import { deriveQuestionTypesForCard } from '../../utils/TestUtils';
+import QuestionTypeTags from './QuestionTypeTags';
 
-export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard }) {
+export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard, passageNumber: passageNumberProp }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const isPremium = test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening';
   
@@ -55,16 +59,48 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
      test.type === 'listening' ? (isListeningFull ? 40 : 10) : 
      test.type === 'writing' ? 60 : 60);
 
-  const cardImage = test.thumbnail || (
-    test.type === 'reading' ? '/images/dashboard/reading_passage_yellow_card.png' :
-    test.type === 'listening' ? 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?q=80&w=800' :
-    test.type === 'writing' ? 'https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=800' :
-    test.type === 'speaking' ? 'https://images.unsplash.com/photo-1506784926709-22f1ec395907?q=80&w=800' :
-    'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800'
-  );
+  const cardImage = test.type === 'listening' 
+    ? '/images/dashboard/listening_orange_headphones.jpg' 
+    : (test.thumbnail || (
+        test.type === 'reading' ? '/images/dashboard/reading_passage_yellow_card.png' :
+        test.type === 'writing' ? 'https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=800' :
+        test.type === 'speaking' ? 'https://images.unsplash.com/photo-1506784926709-22f1ec395907?q=80&w=800' :
+        'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800'
+      ));
+
+  const pNum = (() => {
+    // 1. Explicit prop from parent (highest priority)
+    if (passageNumberProp) return Number(passageNumberProp);
+    // 2. Direct fields on the test object
+    if (test.passageNumber) return Number(test.passageNumber);
+    if (test.passage_number) return Number(test.passage_number);
+    // 3. Derive from title
+    const title = test.title?.toLowerCase() || '';
+    const match = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
+    if (match) return Number(match[1]);
+    // 4. Derive from minimum question ID (IELTS: Q1-13=P1, Q14-26=P2, Q27-40=P3)
+    if (test.questions && Array.isArray(test.questions) && test.questions.length > 0) {
+      const ids = [];
+      const extractIds = (obj) => {
+        if (!obj) return;
+        if (obj.id && !isNaN(parseInt(obj.id))) ids.push(parseInt(obj.id));
+        if (Array.isArray(obj.items)) obj.items.forEach(extractIds);
+        if (Array.isArray(obj.questions)) obj.questions.forEach(extractIds);
+        if (Array.isArray(obj.groups)) obj.groups.forEach(extractIds);
+      };
+      test.questions.forEach(extractIds);
+      if (ids.length > 0) {
+        const minId = Math.min(...ids);
+        if (minId <= 13) return 1;
+        if (minId <= 26) return 2;
+        if (minId <= 40) return 3;
+      }
+    }
+    return null;
+  })();
 
   const passageLabel = test.type === 'reading' 
-    ? (test.title.match(/Passage\s*(\d+)/i)?.[0] || (test.difficulty === 'easy' ? 'Passage 1' : test.difficulty === 'medium' ? 'Passage 2' : test.difficulty === 'hard' ? 'Passage 3' : 'Reading Passage'))
+    ? (pNum ? `Passage ${pNum}` : 'Reading Passage')
     : test.type === 'listening'
     ? (test.title.match(/Part\s*(\d+)|Section\s*(\d+)/i)?.[0] || (test.difficulty?.includes('1') ? 'Section 1' : test.difficulty?.includes('2') ? 'Section 2' : test.difficulty?.includes('3') ? 'Section 3' : test.difficulty?.includes('4') ? 'Section 4' : 'Listening Section'))
     : (test.type === 'mock_full' ? 'Full Mock' : 'IELTS Test');
@@ -85,64 +121,7 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
 
   const showGetAccess = !canAccess && isPremium && !isCompleted && !test.isSet;
 
-  const derivedQuestionTypes = (() => {
-    // 1. If it has parts (Listening virtual parts in metadata), aggregate them
-    const aggregated = new Set();
-    if (test.parts && typeof test.parts === 'object') {
-      Object.values(test.parts).forEach(p => {
-        if (p.qTypes && Array.isArray(p.qTypes)) {
-          p.qTypes.forEach(t => aggregated.add(t));
-        }
-      });
-    }
-    if (test.passages && typeof test.passages === 'object') {
-      Object.values(test.passages).forEach(p => {
-        if (p.qTypes && Array.isArray(p.qTypes)) {
-          p.qTypes.forEach(t => aggregated.add(t));
-        }
-      });
-    }
-    if (aggregated.size > 0) return Array.from(aggregated);
-
-    // 2. Fallback to existing test.questionTypes
-    if (test.questionTypes && test.questionTypes.length > 0) {
-      return test.questionTypes;
-    }
-
-    // 3. Fallback to parsing questions/sections (for full test object if loaded)
-    const types = new Set();
-    const mapType = (t) => {
-      if (!t) return null;
-      const lower = t.toLowerCase();
-      if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection') || lower.includes('pick_')) return 'Multiple Choice';
-      if (lower.includes('matching_headings')) return 'Matching Headings';
-      if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
-      if (lower.includes('matching')) return 'Matching';
-      if (lower.includes('table')) return 'Table Completion';
-      if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
-      if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
-      if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
-      if (lower.includes('short_answer')) return 'Short Answer';
-      return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    };
-
-    const qArray = test.questions || [];
-    qArray.forEach(q => {
-      if (q.type) { const m = mapType(q.type); if (m) types.add(m); }
-      if (q.items) q.items.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
-      if (q.questions) q.questions.forEach(it => { if (it.type) { const m = mapType(it.type); if (m) types.add(m); } });
-      if (q.groups) q.groups.forEach(g => { if (g.type) { const m = mapType(g.type); if (m) types.add(m); } });
-    });
-
-    const sArray = test.sections || [];
-    sArray.forEach(s => {
-      (s.questions || []).forEach(q => {
-        if (q.type) { const m = mapType(q.type); if (m) types.add(m); }
-      });
-    });
-
-    return Array.from(types);
-  })();
+  const derivedQuestionTypes = deriveQuestionTypesForCard(test);
 
   const getGradient = (id, title) => {
     let hash = 0;
@@ -191,7 +170,11 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
     }
   };
 
-  const hasThumbnail = test.thumbnail && !test.thumbnail.includes('reading_passage_yellow') && !test.thumbnail.includes('dashboard/reading_passage');
+  const hasVisual = test.type === 'listening' || (
+    test.thumbnail && 
+    !test.thumbnail.includes('reading_passage_yellow') && 
+    !test.thumbnail.includes('dashboard/reading_passage')
+  );
 
   return (
     <motion.div 
@@ -200,12 +183,12 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
         hapticFeedback('light');
         handleClick();
       }}
-      className="group w-full bg-white dark:bg-zinc-950 rounded-2xl overflow-hidden transition-all duration-[400ms] hover:shadow-lg flex flex-col h-full cursor-pointer border border-zinc-200/80 dark:border-zinc-800/80"
+      className="group w-full bg-white dark:bg-zinc-950 rounded-lg overflow-hidden transition-all duration-[400ms] hover:shadow-lg flex flex-col h-full cursor-pointer border border-zinc-200/80 dark:border-zinc-800/80"
     >
       {/* Top Visual Section */}
-      <div className="relative aspect-[1.5/1] w-full overflow-hidden rounded-t-2xl bg-[#f5f5f7] dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-900">
-        {hasThumbnail ? (
-          <img src={test.thumbnail} alt={test.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+      <div className="relative aspect-[1.75/1] w-full overflow-hidden rounded-t-lg bg-[#f5f5f7] dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-900">
+        {hasVisual ? (
+          <img src={cardImage} alt={test.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
         ) : (
           <>
             {/* Gradient Background */}
@@ -231,29 +214,15 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
               )}
               {isCompleted && (
                 <span className="px-2.5 py-0.5 rounded bg-[#34c759] text-white text-[10px] font-bold tracking-wide uppercase shadow-sm">
-                  Done
+                  {t('practice.statusCompleted')}
                 </span>
               )}
             </div>
           </div>
           
-          {/* Big Typography inside mockup */}
-          <div className="my-auto z-10 pr-2">
-            <h3 className="text-[17px] md:text-[19px] font-extrabold leading-tight tracking-tight text-white line-clamp-2 drop-shadow-lg">
-              {test.title}
-            </h3>
-          </div>
+
           
-          {/* Tags */}
-          {derivedQuestionTypes && derivedQuestionTypes.length > 0 && (
-            <div className="flex flex-wrap gap-1 opacity-90 transition-opacity">
-              {derivedQuestionTypes.slice(0, 2).map((qType, idx) => (
-                <span key={idx} className="px-2 py-0.5 rounded bg-white/15 backdrop-blur-md text-white text-[9px] font-semibold tracking-wide border border-white/5 uppercase">
-                  {qType}
-                </span>
-              ))}
-            </div>
-          )}
+          <QuestionTypeTags types={derivedQuestionTypes} />
         </div>
 
         {/* Hover Action Overlay */}
@@ -284,14 +253,14 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
                   onClick={(e) => { e.stopPropagation(); onReview(test); }}
                   className="px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-[12px] border border-white/20 active:scale-95 transition-all"
                 >
-                  Review
+                  {t('practice.review')}
                 </button>
               )}
               <button 
                 onClick={(e) => { e.stopPropagation(); isCompleted ? onStart(test) : handleClick(); }}
                 className="px-4 py-1.5 rounded-full bg-white text-zinc-900 hover:bg-zinc-100 font-bold text-[12px] shadow-md active:scale-95 transition-all flex items-center gap-1"
               >
-                {isCompleted ? 'Retake' : 'Start'}
+                {isCompleted ? t('practice.retake') : t('practice.start')}
               </button>
             </div>
           )}
@@ -299,43 +268,36 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
       </div>
 
       {/* Footer Info Section (Figma Community Style) */}
-      <div className="p-4 bg-white dark:bg-zinc-950 flex-1">
+      <div className="p-3 bg-white dark:bg-zinc-950 flex-1">
         {/* Text Content */}
         <div className="w-full">
-          <h4 className="text-[13.5px] font-bold text-zinc-900 dark:text-zinc-150 group-hover:text-[#0066cc] dark:group-hover:text-[#3894ff] transition-colors line-clamp-1 leading-snug">
+          <h4 className="text-[13.5px] font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-[#0066cc] dark:group-hover:text-[#3894ff] transition-colors line-clamp-1 leading-snug">
             {test.title}
           </h4>
-          <div className="text-[11px] text-zinc-450 dark:text-zinc-500 mt-1 flex items-center flex-wrap gap-1.5 font-medium">
-            <span>by ENGLEV</span>
-            <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
+          <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 flex items-center flex-wrap gap-1.5">
             <span className="flex items-center gap-0.5">
-              <FileText size={11} className="text-zinc-450 dark:text-zinc-500" />
-              {questionCount} Savol
-            </span>
-            <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
-            <span className="flex items-center gap-0.5">
-              <Clock size={11} className="text-zinc-450 dark:text-zinc-500" />
-              {duration}m
+              <FileText size={11} className="text-zinc-500 dark:text-zinc-400" />
+              {t('practice.questionsCount').replace('{count}', questionCount)}
             </span>
             {isCompleted && (
               <>
                 <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
-                <span className="text-[#34c759] font-bold">
-                  Result: {test.result.score}/{test.result.totalQuestions || test.totalQuestions || 40}
+                <span className="text-[#34c759]">
+                  {t('practice.result')}: {test.result.score}/{test.result.totalQuestions || test.totalQuestions || 40}
                 </span>
                 <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onReview(test); }} 
-                  className="text-[#0071e3] hover:underline font-bold"
+                  className="text-[#0071e3] dark:text-[#3894ff] hover:underline"
                 >
-                  Review
+                  {t('practice.review')}
                 </button>
                 <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onStart(test); }} 
-                  className="text-zinc-500 hover:text-zinc-700 font-bold"
+                  className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                 >
-                  Retake
+                  {t('practice.retake')}
                 </button>
               </>
             )}

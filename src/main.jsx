@@ -5,6 +5,7 @@ import './index.css' // Agar css bo'lsa
 import { BrowserRouter } from 'react-router-dom' // 🔥 MUHIM: Routerni import qiling
 import { AuthProvider } from './context/AuthContext'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { LanguageProvider } from './context/LanguageContext'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,7 +23,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <App />
+          <LanguageProvider>
+            <App />
+          </LanguageProvider>
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>

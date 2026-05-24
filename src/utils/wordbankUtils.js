@@ -4,6 +4,7 @@ import {
     collection,
     addDoc,
     getDocs,
+    getCountFromServer,
     deleteDoc,
     doc,
     query,
@@ -117,8 +118,8 @@ export async function getSynonymPairCounts(userId, testIds) {
         testIds.map(async (testId) => {
             try {
                 const ref = collection(db, "users", userId, "synonymPairs", testId, "pairs");
-                const snapshot = await getDocs(ref);
-                counts[testId] = snapshot.size;
+                const countSnap = await getCountFromServer(query(ref));
+                counts[testId] = countSnap.data().count;
             } catch {
                 counts[testId] = 0;
             }

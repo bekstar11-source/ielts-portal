@@ -16,7 +16,7 @@ import TaskSection from "./InteractivePlayer/TaskSection";
 // Hooks
 import { useYouTubeBridge } from "./InteractivePlayer/useYouTubeBridge";
 
-export default function InteractivePlayer({ isOpen, onClose }) {
+export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEnabled = false }) {
     const { playTrack, currentTrack: podcast, setCurrentTrack, isPlaying, setIsPlaying, currentTime, setCurrentTime, duration, setDuration, volume, isMuted, playbackRate, handleSeek, toggleMute, updateVolume, audioRef, youtubePlayerRef } = usePodcast();
     const { user, userData } = useAuth();
     
@@ -269,6 +269,7 @@ export default function InteractivePlayer({ isOpen, onClose }) {
                         duration={duration}
                         audioRef={audioRef}
                         youtubePlayerRef={youtubePlayerRef}
+                        keyboardShortcutsEnabled={keyboardShortcutsEnabled}
                     />
                 </div>
 

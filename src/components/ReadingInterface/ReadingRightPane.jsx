@@ -26,7 +26,9 @@ const ReadingRightPane = memo(({
     keywordTable = [],
     onAddNote,
     onOpenNotes,
-    isPremium
+    isPremium,
+    passageTitle,
+    passageLabel
 }) => {
     const internalRef = useRef(null);
     const [tempSelection, setTempSelection] = useState(null);
@@ -152,7 +154,7 @@ const ReadingRightPane = memo(({
                     position={tempSelection?.position}
                     onHighlight={applyAction}
                     onClear={clearSelectionMenu}
-                    onAddDictionary={() => addToDictionary({ sectionTitle: testData?.passages?.[activePassage]?.title || `Questions`, testTitle: testName || "Reading Test" })}
+                    onAddDictionary={() => addToDictionary({ sectionTitle: passageTitle || "", testTitle: passageLabel || "Reading Test" })}
                     isReviewMode={isReviewMode}
                     onAddToWordBank={onAddToWordBank}
                     onAddNote={() => applyAction('note')}
@@ -187,7 +189,10 @@ const ReadingRightPane = memo(({
     prev.isReviewMode === next.isReviewMode &&
     prev.highlights === next.highlights &&
     prev.pendingPassageWord === next.pendingPassageWord &&
-    prev.keywordTable === next.keywordTable
+    prev.keywordTable === next.keywordTable &&
+    prev.passageTitle === next.passageTitle &&
+    prev.passageLabel === next.passageLabel &&
+    prev.testName === next.testName
 );
 
 export default ReadingRightPane;

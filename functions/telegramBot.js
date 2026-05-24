@@ -104,11 +104,11 @@ async function handleCallback(chatId, query) {
   if (data === "show_prices") {
     const msg = "📊 <b>Tariflar va Narxlar:</b>\n\n" +
       "🔹 <b>Standard:</b>\n" +
-      "  - 1 oy: 29 000 so'm\n" +
-      "  - 3 oy: 79 000 so'm (Tejamkor!)\n\n" +
+      "  - 1 oy: 35 000 so'm\n" +
+      "  - 3 oy: 89 000 so'm (Tejamkor!)\n\n" +
       "🔸 <b>Pro (AI bilan):</b>\n" +
-      "  - 1 oy: 39 000 so'm\n" +
-      "  - 3 oy: 99 000 so'm (Eng mashhur!)";
+      "  - 1 oy: 49 000 so'm\n" +
+      "  - 3 oy: 129 000 so'm (Eng mashhur!)";
     
     await sendMessage(chatId, msg, {
       inline_keyboard: [[{ text: "🌐 Saytga o'tish", url: "https://ielts-portal-v1.web.app/pricing" }]]
@@ -231,8 +231,8 @@ async function sendWelcome(chatId, firstName) {
 // To'lov jarayoni (Chiroyli ko'rinishda)
 async function handlePaymentStart(chatId, userId, planId, billing) {
   const prices = {
-    standard_monthly: "29 000", standard_tri: "79 000",
-    pro_monthly: "39 000", pro_tri: "99 000"
+    standard_monthly: "35 000", standard_tri: "89 000",
+    pro_monthly: "49 000", pro_tri: "129 000"
   };
 
   const key = `${planId}_${billing}`;

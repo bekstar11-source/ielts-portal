@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, ChevronDown, Check, X, Bookmark, Layers, HelpCircle, RotateCcw } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function PracticeFilters({ 
   activeTab, 
@@ -24,18 +25,21 @@ export default function PracticeFilters({
   setSelectedParts,
   isStandalonePage = false
 }) {
-  const [isScrolled, setIsScrolled] = useState(() => typeof window !== 'undefined' ? window.scrollY > 380 : false);
+  const { t } = useTranslation();
+  const [isScrolled, setIsScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null); // 'status' | 'passages' | 'parts' | 'types' | null
   
   const containerRef = useRef(null);
+  const keepVisibleOnScroll = isStandalonePage;
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 380);
+      setIsScrolled(window.scrollY > (keepVisibleOnScroll ? 120 : 380));
     };
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [keepVisibleOnScroll]);
 
   // Click outside to close dropdowns
   useEffect(() => {
@@ -62,46 +66,61 @@ export default function PracticeFilters({
 
   // Status mapping
   const statusOptions = [
-    { id: 'all', label: 'Barchasi' },
-    { id: 'completed', label: 'Yechilgan' },
-    { id: 'not_completed', label: 'Yechilmagan' }
+    { id: 'all', label: t('practice.statusAll') },
+    { id: 'completed', label: t('practice.statusCompleted') },
+    { id: 'not_completed', label: t('practice.statusNotCompleted') }
   ];
 
   const getStatusLabel = () => {
     const found = statusOptions.find(o => o.id === selectedStatus);
-    return found ? found.label : 'Barchasi';
+    return found ? found.label : t('practice.statusAll');
   };
 
-  // Question Types mapping based on tab
-  const questionTypeOptions = activeTab === 'reading' ? [
-    { id: 'GAP FILL', label: 'Gap Fill' },
-    { id: 'SUMMARY', label: 'Summary' },
-    { id: 'DIAGRAM', label: 'Diagram' },
-    { id: 'NOTES', label: 'Notes' },
-    { id: 'TABLE', label: 'Table' },
-    { id: 'FLOW CHART', label: 'Flow Chart' },
-    { id: 'SENTENCE', label: 'Sentence' },
-    { id: 'MCQ', label: 'MCQ' },
-    { id: 'TRUE/FALSE/NG', label: 'True / False / NG' },
-    { id: 'YES/NO/NG', label: 'Yes / No / NG' },
-    { id: 'HEADINGS', label: 'Headings' },
-    { id: 'MATCHING', label: 'Information Matching' },
-    { id: 'PARA MATCH', label: 'Features Matching' },
-  ] : [
-    { id: 'FORM', label: 'Form Completion' },
-    { id: 'NOTES', label: 'Note Completion' },
-    { id: 'TABLE', label: 'Table Completion' },
-    { id: 'FLOW CHART', label: 'Flow-chart' },
-    { id: 'SUMMARY', label: 'Summary' },
-    { id: 'SENTENCE', label: 'Sentence' },
-    { id: 'MCQ', label: 'MCQ' },
-    { id: 'MULTI CHOICE', label: 'Multiple Choice' },
-    { id: 'SHORT ANSWER', label: 'Short Answer' },
-    { id: 'MAP', label: 'Map Labelling' },
-    { id: 'PLAN', label: 'Plan Labelling' },
-    { id: 'DIAGRAM', label: 'Diagram Labelling' },
-    { id: 'MATCHING', label: 'Matching' }
+  const questionTypeGroups = [
+    {
+      title: 'COMPLETION',
+      options: [
+        { id: 'completion_gap_fill', label: t('practice.completion'), dbTypes: ['GAP FILL', 'SUMMARY', 'NOTES', 'TABLE', 'FLOW CHART', 'SENTENCE', 'FORM'] },
+        { id: 'map_plan_diagram', label: t('practice.mapPlanDiagram'), dbTypes: ['MAP', 'PLAN', 'DIAGRAM'] }
+      ]
+    },
+    {
+      title: 'MULTIPLE CHOICE',
+      options: [
+        { id: 'multiple_choice', label: t('practice.multipleChoice'), dbTypes: ['MCQ', 'SHORT ANSWER'] },
+        { id: 'multiple_choice_many', label: t('practice.multipleChoiceMany'), dbTypes: ['MULTI CHOICE'] }
+      ]
+    },
+    {
+      title: 'MATCHING',
+      options: [
+        { id: 'matching_names', label: t('practice.matchingNames'), dbTypes: ['PARA MATCH', 'MATCHING'] },
+        { id: 'matching_features', label: t('practice.matchingFeatures'), dbTypes: ['MATCHING'] },
+        { id: 'matching_sentence_endings', label: t('practice.matchingSentenceEndings'), dbTypes: ['SENTENCE', 'PARA MATCH'] },
+        { id: 'flow_chart_matching', label: t('practice.flowChartMatching'), dbTypes: ['FLOW CHART'] }
+      ]
+    },
+    {
+      title: 'IDENTIFICATION & HEADINGS',
+      options: [
+        { id: 'true_false_ng', label: t('practice.trueFalseNg'), dbTypes: ['TRUE/FALSE/NG'] },
+        { id: 'yes_no_ng', label: t('practice.yesNoNg'), dbTypes: ['YES/NO/NG'] },
+        { id: 'headings', label: t('practice.headings'), dbTypes: ['HEADINGS'] }
+      ]
+    }
   ];
+
+  const getSelectedOptionsCount = () => {
+    let count = 0;
+    questionTypeGroups.forEach(group => {
+      group.options.forEach(opt => {
+        if (opt.dbTypes.some(t => selectedQuestionTypes.includes(t))) {
+          count++;
+        }
+      });
+    });
+    return count;
+  };
 
   const hasAnyFilterActive = selectedStatus !== 'all' || 
                             selectedQuestionTypes.length > 0 || 
@@ -111,8 +130,12 @@ export default function PracticeFilters({
   return (
     <div 
       ref={containerRef}
-      className={`sticky top-[44px] z-45 w-full bg-white dark:bg-zinc-900 border-b border-black/[0.04] dark:border-white/[0.05] mb-6 py-3 transition-all duration-300 ${
-        isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      className={`sticky z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-black/[0.04] dark:border-white/[0.05] mb-6 py-3 transition-shadow duration-300 ${
+        keepVisibleOnScroll ? 'top-0 md:top-12' : 'top-[44px]'
+      } ${
+        keepVisibleOnScroll || !isScrolled ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      } ${
+        keepVisibleOnScroll && isScrolled ? 'shadow-sm' : ''
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-6">
@@ -188,7 +211,7 @@ export default function PracticeFilters({
                 }`}
               >
                 <Bookmark size={14} className="opacity-75" />
-                <span>Status: {getStatusLabel()}</span>
+                <span>{t('practice.filterStatus')}: {getStatusLabel()}</span>
                 <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'status' ? 'rotate-180' : ''}`} />
               </button>
 
@@ -230,7 +253,7 @@ export default function PracticeFilters({
                   }`}
                 >
                   <Layers size={14} className="opacity-75" />
-                  <span>Matnlar: {selectedPassages.length > 0 ? selectedPassages.join(', ') : 'Barchasi'}</span>
+                  <span>{t('practice.filterPassages')}: {selectedPassages.length > 0 ? selectedPassages.map(n => t('practice.passageNum').replace('{num}', n)).join(', ') : t('practice.statusAll')}</span>
                   <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'passages' ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -256,7 +279,7 @@ export default function PracticeFilters({
                             }}
                             className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
                           >
-                            <span>Passage {num}</span>
+                            <span>{t('practice.passageNum').replace('{num}', num)}</span>
                             {isSel && <Check size={14} className="text-blue-500" />}
                           </button>
                         );
@@ -279,7 +302,7 @@ export default function PracticeFilters({
                   }`}
                 >
                   <Layers size={14} className="opacity-75" />
-                  <span>Partlar: {selectedParts.length > 0 ? selectedParts.map(p => `Part ${p}`).join(', ') : 'Barchasi'}</span>
+                  <span>{t('practice.filterParts')}: {selectedParts.length > 0 ? selectedParts.map(p => t('practice.partNum').replace('{num}', p)).join(', ') : t('practice.statusAll')}</span>
                   <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'parts' ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -327,7 +350,7 @@ export default function PracticeFilters({
                 }`}
               >
                 <HelpCircle size={14} className="opacity-75" />
-                <span>Savol Turlari: {selectedQuestionTypes.length > 0 ? `${selectedQuestionTypes.length} ta` : 'Barchasi'}</span>
+                <span>{getSelectedOptionsCount() > 0 ? t('practice.filterQuestionTypesCount').replace('{count}', getSelectedOptionsCount()) : `${t('practice.filterQuestionTypes')}: ${t('practice.statusAll')}`}</span>
                 <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'types' ? 'rotate-180' : ''}`} />
               </button>
 
@@ -337,27 +360,49 @@ export default function PracticeFilters({
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 5 }}
-                    className="absolute left-0 mt-1.5 w-[250px] max-h-[300px] overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-50 p-1 scrollbar-thin"
+                    className="absolute left-0 mt-1.5 w-[calc(100vw-32px)] sm:w-[500px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl z-50 p-6"
                   >
-                    {questionTypeOptions.map((opt) => {
-                      const isSel = selectedQuestionTypes.includes(opt.id);
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => {
-                            if (isSel) {
-                              setSelectedQuestionTypes(selectedQuestionTypes.filter(x => x !== opt.id));
-                            } else {
-                              setSelectedQuestionTypes([...selectedQuestionTypes, opt.id]);
-                            }
-                          }}
-                          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
-                        >
-                          <span>{opt.label}</span>
-                          {isSel && <Check size={14} className="text-blue-500" />}
-                        </button>
-                      );
-                    })}
+                    <div className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100 mb-5 select-none">
+                      Question Types
+                    </div>
+                    <div className="space-y-6">
+                      {questionTypeGroups.map((group, groupIdx) => (
+                        <div key={groupIdx} className="space-y-2.5">
+                          <span className="text-[10px] font-bold tracking-wider text-[#7e8a9f] dark:text-zinc-500 block uppercase">
+                            {group.title}
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3.5">
+                            {group.options.map((opt) => {
+                              const isSel = opt.dbTypes.some(t => selectedQuestionTypes.includes(t));
+                              return (
+                                <button
+                                  key={opt.id}
+                                  onClick={() => {
+                                    if (isSel) {
+                                      setSelectedQuestionTypes(selectedQuestionTypes.filter(x => !opt.dbTypes.includes(x)));
+                                    } else {
+                                      setSelectedQuestionTypes([...selectedQuestionTypes, ...opt.dbTypes]);
+                                    }
+                                  }}
+                                  className="flex items-center gap-3 group text-left outline-none"
+                                >
+                                  <div className={`w-[18px] h-[18px] rounded border flex items-center justify-center transition-all shrink-0 ${
+                                    isSel 
+                                      ? 'border-[#0066cc] bg-[#0066cc] text-white' 
+                                      : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 group-hover:border-zinc-400 dark:group-hover:border-zinc-500'
+                                  }`}>
+                                    {isSel && <Check size={11} strokeWidth={3} />}
+                                  </div>
+                                  <span className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
+                                    {opt.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -370,7 +415,7 @@ export default function PracticeFilters({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-400 text-[12px] font-bold transition-all duration-200"
               >
                 <RotateCcw size={12} />
-                <span>Tozalash</span>
+                <span>{t('practice.clearFilters')}</span>
               </button>
             )}
           </div>
@@ -380,7 +425,7 @@ export default function PracticeFilters({
             <Search size={14} className="text-gray-400 mr-2 shrink-0" />
             <input 
               type="text" 
-              placeholder="Qidirish..." 
+              placeholder={t('practice.searchPlaceholder')} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent border-none outline-none w-full text-[13px] text-[#1d1d1f] dark:text-white placeholder-gray-450 dark:placeholder-gray-500 py-0"

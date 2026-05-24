@@ -1,17 +1,20 @@
 import React from 'react';
 import { Sparkles, ArrowUpRight, BrainCircuit, Layers, Gamepad2 } from 'lucide-react';
+import { useTranslation } from '../../context/LanguageContext';
 
 const WordBankHero = ({ 
     wordsCount, todayAddedCount, dueForReviewCount,
     setFilterTab, setPracticeMode,
     isDark 
 }) => {
+    const { t } = useTranslation();
+
     const learningModules = [
         { 
-          title: "Review", 
-          desc: "Spaced repetition practice", 
+          title: t('wordbank.review'), 
+          desc: t('wordbank.spacedRepetition'), 
           icon: <BrainCircuit className="w-5 h-5" />, 
-          stats: `${dueForReviewCount} due`,
+          stats: `${dueForReviewCount} ${t('wordbank.due')}`,
           isPrimary: true,
           onClick: () => {
               setFilterTab('due');
@@ -19,20 +22,20 @@ const WordBankHero = ({
           }
         },
         { 
-          title: "Flashcards", 
-          desc: "Study all words", 
+          title: t('wordbank.flashcards'), 
+          desc: t('wordbank.studyAll'), 
           icon: <Layers className="w-5 h-5" />, 
-          stats: `${wordsCount} words`,
+          stats: t('wordbank.newWordsCount').replace('{count}', wordsCount),
           onClick: () => {
               setFilterTab('all');
               setPracticeMode('flashcards');
           }
         },
         { 
-          title: "Match Game", 
-          desc: "Test your speed", 
+          title: t('wordbank.matchGame'), 
+          desc: t('wordbank.testSpeed'), 
           icon: <Gamepad2 className="w-5 h-5" />, 
-          stats: "Play now",
+          stats: t('wordbank.playNow'),
           onClick: () => {
               setPracticeMode('match');
           }
@@ -40,29 +43,29 @@ const WordBankHero = ({
     ];
 
     return (
-        <div className="max-w-[1200px] mx-auto px-6 pt-12 w-full">
+        <div className="w-full">
             {/* Hero Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
                 <div className="space-y-3">
                     <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#FB5102]/10 rounded-full border border-[#FB5102]/20">
                         <Sparkles className="w-3 h-3 text-[#FB5102]" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#FB5102]">Personal Lexicon</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#FB5102]">{t('wordbank.personalLexicon')}</span>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">Word Bank</h1>
+                    <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">{t('wordbank.title')}</h1>
                     <p className={`text-base max-w-xl ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Your personal collection of vocabulary and keywords collected from IELTS materials.
+                        {t('wordbank.subtitle')}
                     </p>
                 </div>
 
                 <div className="flex items-center gap-6 pb-1">
                     <div className="text-right">
                         <p className="text-2xl font-semibold">{wordsCount}</p>
-                        <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Total Words</p>
+                        <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">{t('wordbank.totalWords')}</p>
                     </div>
                     <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
                     <div className="text-right">
                         <p className="text-2xl font-semibold text-[#FB5102]">+{todayAddedCount}</p>
-                        <p className="text-[10px] uppercase tracking-widest text-[#FB5102]/70 font-bold">Today</p>
+                        <p className="text-[10px] uppercase tracking-widest text-[#FB5102]/70 font-bold">{t('wordbank.today')}</p>
                     </div>
                 </div>
             </div>

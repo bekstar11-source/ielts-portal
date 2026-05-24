@@ -34,8 +34,9 @@ export const useAdminArticles = () => {
     const handleSaveArticle = async (formData, editingArticleId = null) => {
         setProcessing(true);
         try {
+            const { content, vocabulary, ...rest } = formData;
             const data = {
-                ...formData,
+                ...rest,
                 updatedAt: serverTimestamp()
             };
 

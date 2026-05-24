@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { 
   BookOpen, Headphones, PenTool, Mic, ArrowRight, Sparkles
 } from 'lucide-react';
+import { useTranslation } from "../../context/LanguageContext";
 
 // COMPONENTS
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
@@ -15,6 +16,7 @@ import BottomNav from "../../components/dashboard/BottomNav";
 
 export default function Library() {
   const { user, userData, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -51,8 +53,8 @@ export default function Library() {
             {/* Other tabs are handled via navigation to standalone pages or specific library sub-states */}
             {activeTab !== 'overview' && (
               <div className="py-20 text-center">
-                <h2 className="text-2xl font-bold capitalize">{activeTab} section</h2>
-                <p className="text-zinc-500 mt-2">Loading resources...</p>
+                <h2 className="text-2xl font-bold capitalize">{activeTab} {t('library.section')}</h2>
+                <p className="text-zinc-500 mt-2">{t('library.loading')}</p>
               </div>
             )}
           </motion.div>
@@ -83,28 +85,29 @@ export default function Library() {
 
 function LibraryOverview() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const modules = [
     {
-      title: "Reading",
+      title: t('dashboard.reading'),
       icon: <BookOpen className="w-7 h-7 transition-transform group-hover:scale-110" />,
       path: "/reading",
       color: "hover:text-[#0066cc] hover:bg-blue-50/30 hover:border-blue-500/20"
     },
     {
-      title: "Listening",
+      title: t('dashboard.listening'),
       icon: <Headphones className="w-7 h-7 transition-transform group-hover:scale-110" />,
       path: "/listening",
       color: "hover:text-purple-600 hover:bg-purple-50/30 hover:border-purple-500/20"
     },
     {
-      title: "Writing",
+      title: t('dashboard.writing'),
       icon: <PenTool className="w-7 h-7 transition-transform group-hover:scale-110" />,
       path: "/practice?tab=writing",
       color: "hover:text-emerald-600 hover:bg-emerald-50/30 hover:border-emerald-500/20"
     },
     {
-      title: "Speaking",
+      title: t('dashboard.speaking'),
       icon: <Mic className="w-7 h-7 transition-transform group-hover:scale-110" />,
       path: "/practice?tab=speaking",
       color: "hover:text-amber-600 hover:bg-amber-50/30 hover:border-amber-500/20"
@@ -117,7 +120,7 @@ function LibraryOverview() {
       <div className="text-center max-w-xl mx-auto space-y-2 mb-12 md:mb-16 relative z-10">
         <span className="text-[11px] font-bold tracking-wider text-black/30 uppercase">IELTS Portal</span>
         <h1 className="text-[32px] md:text-[38px] font-bold text-[#1d1d1f] tracking-tight font-sans">
-          Modulni tanlang
+          {t('library.chooseModule')}
         </h1>
       </div>
 

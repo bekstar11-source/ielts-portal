@@ -286,7 +286,7 @@ export const TestSolvingView = ({
                 )}
 
                 {stage === 'writing' && (
-                    <div style={{ userSelect: 'text', WebkitUserSelect: 'text' }}>
+                    <div className="h-full w-full" style={{ userSelect: 'text', WebkitUserSelect: 'text' }}>
                     <WritingInterface
                         testData={tests.writing}
                         userAnswers={answers.writing}
@@ -294,6 +294,7 @@ export const TestSolvingView = ({
                         textSize={textSize}
                         testId={mockId}
                         disableInternalSession={true}
+                        isMockExam={true}
                     />
                     </div>
                 )}

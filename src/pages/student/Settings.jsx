@@ -24,11 +24,13 @@ import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useTheme } from '../../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '../../context/LanguageContext';
 
 import PlanetBackground from '../../components/dashboard/PlanetBackground'; // Import PlanetBackground
 
 export default function Settings() {
     const { user, userData, logout } = useAuth();
+    const { t } = useTranslation();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const navigate = useNavigate();
@@ -68,7 +70,7 @@ export default function Settings() {
         if (file) {
             // Check file size (2MB limit)
             if (file.size > 2 * 1024 * 1024) {
-                setMessage('Rasm hajmi 2MB dan oshmasligi kerak! ❌');
+                setMessage(t('settings.imageSizeError'));
                 return;
             }
             setImageFile(file);
@@ -110,10 +112,10 @@ export default function Settings() {
                 photoURL: photoURL
             });
 
-            setMessage('Ma\'lumotlar muvaffaqiyatli saqlandi! ✅');
+            setMessage(t('settings.saveSuccess'));
         } catch (error) {
             console.error("Settings save error:", error);
-            setMessage('Xatolik yuz berdi. ❌');
+            setMessage(t('settings.saveError'));
         } finally {
             setLoading(false);
         }
@@ -144,7 +146,7 @@ export default function Settings() {
                         <div className={`p-2 rounded-full transition-colors ${isDark ? 'group-hover:bg-white/10' : 'group-hover:bg-black/5'}`}>
                             <ArrowLeft size={18} />
                         </div>
-                        <span className="font-medium text-sm">Dashboardga qaytish</span>
+                        <span className="font-medium text-sm">{t('roadmap.backToDashboard')}</span>
                     </motion.button>
                 )}
 
@@ -152,13 +154,13 @@ export default function Settings() {
                     {/* Left Sidebar Navigation */}
                     <div className="w-full md:w-64 shrink-0 space-y-1">
                         <h1 className="text-xl font-bold tracking-tight mb-4 px-2">
-                            Sozlamalar
+                            {t('settings.title')}
                         </h1>
                         
                         {[
-                            { id: 'profile', label: 'Profil ma\'lumotlari', icon: User },
-                            { id: 'exam', label: 'Imtihon tayyorgarligi', icon: Target },
-                            { id: 'account', label: 'Hisob', icon: Smartphone }
+                            { id: 'profile', label: t('settings.profileInfo'), icon: User },
+                            { id: 'exam', label: t('settings.examPrep'), icon: Target },
+                            { id: 'account', label: t('settings.account'), icon: Smartphone }
                         ].map((item) => (
                             <button
                                 key={item.id}
@@ -181,7 +183,7 @@ export default function Settings() {
                                 className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[13px] font-bold text-red-500 hover:bg-red-500/10 transition-all"
                             >
                                 <LogOut size={16} />
-                                Chiqish
+                                {t('dashboard.logout')}
                             </button>
                         </div>
                     </div>
@@ -221,14 +223,14 @@ export default function Settings() {
                                                 <input id="profile-upload" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                                             </div>
                                             <div className="mt-4 text-center">
-                                                <h3 className="text-base font-bold">{formData.fullName || 'Foydalanuvchi'}</h3>
-                                                <p className="text-zinc-500 text-sm mt-1">Profil rasmingizni yangilash uchun kamerani bosing</p>
+                                                <h3 className="text-base font-bold">{formData.fullName || t('settings.defaultUser')}</h3>
+                                                <p className="text-zinc-500 text-sm mt-1">{t('settings.updatePhotoPrompt')}</p>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
-                                                <label className="text-xs font-bold text-zinc-500 ml-1">Ism Familiya</label>
+                                                <label className="text-xs font-bold text-zinc-500 ml-1">{t('settings.fullName')}</label>
                                                 <div className="relative group">
                                                     <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
                                                     <input
@@ -237,13 +239,13 @@ export default function Settings() {
                                                         value={formData.fullName}
                                                         onChange={handleChange}
                                                         className={`w-full py-2.5 pl-12 pr-4 rounded-lg outline-none border transition-all duration-300 font-bold text-[13px] ${isDark ? 'bg-zinc-900 border-white/5 focus:border-white/20' : 'bg-[#f5f5f7] border-transparent focus:border-black/10 focus:bg-white'}`}
-                                                        placeholder="Ismingizni kiriting"
+                                                        placeholder={t('settings.enterNamePlaceholder')}
                                                     />
                                                 </div>
                                             </div>
 
                                             <div className="space-y-2">
-                                                <label className="text-xs font-bold text-zinc-500 ml-1">Telefon Raqam</label>
+                                                <label className="text-xs font-bold text-zinc-500 ml-1">{t('settings.phoneNumber')}</label>
                                                 <div className="relative group">
                                                     <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
                                                     <input
@@ -264,7 +266,7 @@ export default function Settings() {
                                     <div className="space-y-8">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                             <div className="space-y-4">
-                                                <label className="text-xs font-bold text-zinc-500 ml-1">Target Band</label>
+                                                <label className="text-xs font-bold text-zinc-500 ml-1">{t('settings.targetBand')}</label>
                                                 <div className="grid grid-cols-3 gap-2">
                                                     {['6.0', '6.5', '7.0', '7.5', '8.0', '9.0'].map(band => (
                                                         <button
@@ -284,7 +286,7 @@ export default function Settings() {
                                             </div>
 
                                             <div className="space-y-4">
-                                                <label className="text-xs font-bold text-zinc-500 ml-1">Imtihon Sanasi</label>
+                                                <label className="text-xs font-bold text-zinc-500 ml-1">{t('settings.examDate')}</label>
                                                 <div className="relative group">
                                                     <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-blue-500 transition-colors pointer-events-none" />
                                                     <input
@@ -308,7 +310,7 @@ export default function Settings() {
                                                     <Mail size={18} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[11px] font-bold text-zinc-500">Email Manzil</p>
+                                                    <p className="text-[11px] font-bold text-zinc-500">{t('settings.emailAddress')}</p>
                                                     <p className="font-bold text-[14px] leading-tight">{user?.email}</p>
                                                 </div>
                                             </div>
@@ -320,9 +322,9 @@ export default function Settings() {
                                                     <Target size={18} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[11px] font-bold text-zinc-500">Account Holati</p>
+                                                    <p className="text-[11px] font-bold text-zinc-500">{t('settings.accountStatus')}</p>
                                                     <p className="font-bold text-[14px] leading-tight flex items-center gap-2">
-                                                        {userData?.isPremium ? 'Premium Plan' : 'Free Plan'}
+                                                        {userData?.isPremium ? t('settings.premiumPlan') : t('settings.freePlan')}
                                                         {userData?.isPremium && <CheckCircle2 size={14} className="text-green-500" />}
                                                     </p>
                                                 </div>
@@ -359,12 +361,12 @@ export default function Settings() {
                                         {loading ? (
                                             <>
                                                 <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
-                                                Saqlanmoqda...
+                                                {t('settings.saving')}
                                             </>
                                         ) : (
                                             <>
                                                 <Save size={20} />
-                                                Saqlash
+                                                {t('common.save')}
                                             </>
                                         )}
                                     </button>

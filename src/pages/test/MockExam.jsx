@@ -9,6 +9,7 @@ import MockExamIntro from "../../components/MockExam/MockExamIntro";
 import MockExamResult from "../../components/MockExam/MockExamResult";
 import MockExamSectionIntro from "../../components/MockExam/MockExamSectionIntro";
 import { TestSolvingView } from "../../components/MockExam/TestSolvingView";
+import ResultsCalculatingScreen from "../../components/TestSolving/ResultsCalculatingScreen";
 import { Maximize } from "lucide-react";
 const SECURITY_ACTIVE_STAGES = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended'];
 
@@ -260,8 +261,12 @@ export default function MockExam() {
         />;
     }
 
-    if (stage === 'loading' || stage === 'saving') {
+    if (stage === 'loading') {
         return <div className="h-screen flex items-center justify-center text-xl font-bold bg-white text-zinc-900 font-sans">Yuklanmoqda...</div>;
+    }
+
+    if (stage === 'saving') {
+        return <ResultsCalculatingScreen accent="#e31b23" />;
     }
 
     if (stage === 'test_ended') {

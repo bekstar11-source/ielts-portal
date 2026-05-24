@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable no-unused-vars */
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronLeft, BookMarked, Share2, 
@@ -6,7 +7,7 @@ import {
   ArrowRight, ExternalLink, Clock, User,
   Star, PlayCircle, MoreHorizontal, Send, 
   X, MessageSquare as MessageSquareIcon, Sparkles, Volume2,
-  Pause, Play, Award
+  Pause, Play, Award, ShieldCheck
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from "../../firebase/firebase";
@@ -15,18 +16,21 @@ import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useAuth } from '../../context/AuthContext';
 import SiteFooter from '../../components/common/SiteFooter';
 import { useGamification } from '../../hooks/useGamification';
-
-const stripHtml = (html) => {
-  if (!html) return "";
-  return html
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\u00A0/g, ' ')
-    .trim();
-};
+import { stripHtml } from '../../utils/textUtils';
+import ArticleVocabulary from '../../components/articles/ArticleVocabulary';
+import ArticleLevelPicker from '../../components/articles/ArticleLevelPicker';
+import {
+  ARTICLE_LEVELS,
+  getArticleContent,
+  getArticleVocabulary,
+  getArticleReadTime,
+  getDefaultReadingLevel,
+  savePreferredReadingLevel,
+} from '../../utils/articleLevels';
+import { hasClappedArticle, addArticleClap, removeArticleClap } from '../../utils/articleClaps';
 
 export default function ArticleReading() {
-  const { user, userData } = useAuth();
+  const { user, userData, updateUserLocalData } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [article, setArticle] = useState(null);
@@ -34,10 +38,12 @@ export default function ArticleReading() {
   const [textSize, setTextSize] = useState('text-lg'); // text-base, text-lg, text-xl
   const [completed, setCompleted] = useState(false);
   const { awardXP } = useGamification();
+  const commentsRef = useRef(null);
   
   // Interaction states
   const [claps, setClaps] = useState(0);
-  const [showComments, setShowComments] = useState(false);
+  const [hasClapped, setHasClapped] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [isClapping, setIsClapping] = useState(false);
@@ -46,10 +52,99 @@ export default function ArticleReading() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentBlockIndex, setCurrentBlockIndex] = useState(-1);
-  const [synth, setSynth] = useState(window.speechSynthesis);
+  const synth = window.speechSynthesis;
+  const [voices, setVoices] = useState([]);
+
+  // Time & Scroll states for XP Claiming
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [isScrollMet, setIsScrollMet] = useState(false);
+  const [readingLevel, setReadingLevel] = useState('B2');
+
+  const activeContent = article ? getArticleContent(article, readingLevel) : [];
+  const activeVocabulary = article ? getArticleVocabulary(article, readingLevel) : [];
+  const activeReadTime = article ? getArticleReadTime(article, readingLevel) : '';
+  const levelReadTimes = article
+    ? ARTICLE_LEVELS.reduce((acc, lv) => {
+        acc[lv] = getArticleReadTime(article, lv);
+        return acc;
+      }, {})
+    : {};
+
+  useEffect(() => {
+    if (userData) {
+      setReadingLevel(getDefaultReadingLevel(userData));
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    if (id) {
+      setHasClapped(hasClappedArticle(id, user, userData));
+    }
+  }, [id, user, userData?.clappedArticles]);
+
+  useEffect(() => {
+    if (!article) return;
+    setTimeSpent(0);
+    setIsScrollMet(false);
+    synth.cancel();
+    setIsSpeaking(false);
+    setIsPaused(false);
+    setCurrentBlockIndex(-1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [readingLevel, article?.id, synth]);
+
+  const handleLevelChange = (level) => {
+    setReadingLevel(level);
+    savePreferredReadingLevel(level);
+  };
+
+  useEffect(() => {
+    const loadVoices = () => {
+      if (synth) {
+        setVoices(synth.getVoices());
+      }
+    };
+    loadVoices();
+    if (synth && synth.onvoiceschanged !== undefined) {
+      synth.onvoiceschanged = loadVoices;
+    }
+  }, [synth]);
+
+  useEffect(() => {
+    if (loading || !article || article.isMemberOnly) return;
+    
+    const interval = setInterval(() => {
+      setTimeSpent(prev => {
+        if (prev >= 120) {
+          clearInterval(interval);
+          return 120;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+
+    const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      if (scrollHeight <= 0) return;
+      const percentage = (scrollTop / scrollHeight) * 100;
+      if (percentage >= 85) {
+        setIsScrollMet(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    setTimeout(handleScroll, 500);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [loading, article]);
 
   useEffect(() => {
     fetchArticle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchArticle = async () => {
@@ -75,22 +170,73 @@ export default function ArticleReading() {
 
   const handleClap = async () => {
     if (!article) return;
+
     setIsClapping(true);
-    const newClapCount = claps + 1;
-    setClaps(newClapCount);
-    
-    try {
-      const docRef = doc(db, "articles", id);
-      await updateDoc(docRef, { claps: newClapCount });
-    } catch (err) {
-      console.error("Error updating claps:", err);
+
+    if (hasClapped) {
+      setHasClapped(false);
+      setClaps((prev) => Math.max(0, prev - 1));
+
+      try {
+        await removeArticleClap({
+          db,
+          articleId: id,
+          user,
+          userData,
+          updateUserLocalData,
+        });
+      } catch (err) {
+        console.error("Error updating claps:", err);
+        setHasClapped(true);
+        setClaps((prev) => prev + 1);
+      }
+    } else {
+      setHasClapped(true);
+      setClaps((prev) => prev + 1);
+
+      try {
+        await addArticleClap({
+          db,
+          articleId: id,
+          user,
+          userData,
+          updateUserLocalData,
+        });
+      } catch (err) {
+        console.error("Error updating claps:", err);
+        setHasClapped(false);
+        setClaps((prev) => Math.max(0, prev - 1));
+      }
     }
-    
+
     setTimeout(() => setIsClapping(false), 300);
   };
 
   const handleClaimXP = async () => {
     if (!user || !article) return;
+
+    if (timeSpent < 120 || !isScrollMet) {
+      const remainingSeconds = 120 - timeSpent;
+      const minutes = Math.floor(remainingSeconds / 60);
+      const seconds = remainingSeconds % 60;
+      let timeString = "";
+      if (minutes > 0) {
+        timeString = `${minutes} daqiqa ${seconds > 0 ? `${seconds} soniya` : ''}`;
+      } else {
+        timeString = `${seconds} soniya`;
+      }
+      
+      let message = "Iltimos, maqolani diqqat bilan o'qib chiqing. XP olish uchun:\n";
+      if (timeSpent < 120) {
+        message += `- Kamida yana ${timeString} o'qishda davom eting.\n`;
+      }
+      if (!isScrollMet) {
+        message += `- Maqola oxirigacha varaqlang (scroll pastga).`;
+      }
+      alert(message);
+      return;
+    }
+
     const result = await awardXP('article', article.id, article.title);
     if (result.success) {
       alert(`Tabriklaymiz! Siz ushbu maqolani o'qib ${result.amount} XP yig'dingiz.`);
@@ -112,7 +258,9 @@ export default function ArticleReading() {
       userId: user.uid,
       userName: userData?.fullName || user.email?.split('@')[0] || "User",
       userAvatar: userData?.avatar || null,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      claps: 0,
+      replies: []
     };
     
     // Optimistic update
@@ -130,6 +278,40 @@ export default function ArticleReading() {
       setNewComment(tempComment); // Restore text on error
       setComments(prev => prev.filter(c => c.id !== commentData.id)); // Rollback
       alert("Izohni saqlashda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
+    }
+  };
+
+  const handleClapComment = async (commentId) => {
+    if (!user) {
+      alert("Izohga qarsak chalish uchun tizimga kiring.");
+      return;
+    }
+
+    let updatedComments = [];
+    setComments(prev => {
+      updatedComments = prev.map(c => {
+        if (c.id === commentId) {
+          return { ...c, claps: (c.claps || 0) + 1 };
+        }
+        return c;
+      });
+      return updatedComments;
+    });
+
+    try {
+      const docRef = doc(db, "articles", id);
+      // Wait a tick or compute directly to ensure accurate update
+      const targetComments = comments.map(c => {
+        if (c.id === commentId) {
+          return { ...c, claps: (c.claps || 0) + 1 };
+        }
+        return c;
+      });
+      await updateDoc(docRef, { 
+        comments: targetComments
+      });
+    } catch (err) {
+      console.error("Error clapping comment:", err);
     }
   };
 
@@ -154,9 +336,10 @@ export default function ArticleReading() {
     const canAccess = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
     
     const isLocked = article.isMemberOnly && !canAccess;
+    const fullContent = getArticleContent(article, readingLevel);
     const blocksToRead = isLocked 
-      ? article.content?.slice(0, Math.ceil(article.content.length / 3)) 
-      : article.content;
+      ? fullContent?.slice(0, Math.ceil(fullContent.length / 3)) 
+      : fullContent;
 
     if (!blocksToRead || blocksToRead.length === 0) return;
 
@@ -174,8 +357,8 @@ export default function ArticleReading() {
       const text = tempDiv.textContent || tempDiv.innerText || "";
       
       const utterance = new SpeechSynthesisUtterance(text);
-      const voices = synth.getVoices();
-      const naturalVoice = voices.find(v => v.name.includes('Natural') || v.name.includes('Google US English'));
+      const availableVoices = voices.length > 0 ? voices : synth.getVoices();
+      const naturalVoice = availableVoices.find(v => v.name.includes('Natural') || v.name.includes('Google US English'));
       if (naturalVoice) utterance.voice = naturalVoice;
       utterance.rate = 0.95;
 
@@ -210,8 +393,8 @@ export default function ArticleReading() {
 
   if (loading) {
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
         </div>
     );
   }
@@ -219,15 +402,15 @@ export default function ArticleReading() {
   if (!article) return null;
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-[#1D1D1F] font-sans antialiased selection:bg-blue-50 selection:text-blue-600">
+    <div className="min-h-screen bg-[#FFFFFF] dark:bg-black text-[#1D1D1F] dark:text-[#f5f5f7] font-sans antialiased selection:bg-blue-50 dark:selection:bg-blue-950/30 selection:text-blue-600 dark:selection:text-blue-400 transition-colors duration-300">
       <DashboardHeader user={user} userData={userData} activeTab="articles" />
       
       {/* Sub Header / Action Bar */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-black/[0.05] py-3">
+      <div className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-black/[0.05] dark:border-white/[0.08] py-3">
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
           <button 
             onClick={() => navigate('/articles')}
-            className="flex items-center gap-1.5 text-sm font-bold text-[#0066CC] hover:bg-blue-50 px-4 py-2 rounded-full transition-all"
+            className="flex items-center gap-1.5 text-sm font-bold text-[#0066CC] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 px-4 py-2 rounded-full transition-all"
           >
             <ChevronLeft size={18} /> All Articles
           </button>
@@ -235,12 +418,12 @@ export default function ArticleReading() {
           <div className="flex items-center gap-2 md:gap-4">
             <button 
               onClick={() => setTextSize(prev => prev === 'text-base' ? 'text-lg' : prev === 'text-lg' ? 'text-xl' : 'text-base')}
-              className="p-2.5 hover:bg-[#F5F5F7] rounded-full transition-all text-[#86868B]"
+              className="p-2.5 hover:bg-[#F5F5F7] dark:hover:bg-neutral-800 rounded-full transition-all text-[#86868B] dark:text-neutral-400"
               title="Font Size"
             >
               <Type size={20} />
             </button>
-            <button className="p-2.5 hover:bg-[#F5F5F7] rounded-full transition-all text-[#86868B]">
+            <button className="p-2.5 hover:bg-[#F5F5F7] dark:hover:bg-neutral-800 rounded-full transition-all text-[#86868B] dark:text-neutral-400">
               <BookMarked size={20} />
             </button>
           </div>
@@ -253,12 +436,12 @@ export default function ArticleReading() {
           {/* Badges */}
           <div className="flex flex-wrap gap-2">
             {article.isMemberOnly && (
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-[#F2F2F2] rounded-md text-[13px] font-medium text-[#242424] border border-black/[0.05]">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-[#F2F2F2] dark:bg-neutral-900 rounded-md text-[13px] font-medium text-[#242424] dark:text-neutral-200 border border-black/[0.05] dark:border-white/[0.08]">
                 <Star size={14} className="text-yellow-500 fill-yellow-500" /> Member-only story
               </div>
             )}
             {article.isFeatured && (
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-[#F2F2F2] rounded-md text-[13px] font-medium text-[#242424] border border-black/[0.05]">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-[#F2F2F2] dark:bg-neutral-900 rounded-md text-[13px] font-medium text-[#242424] dark:text-neutral-200 border border-black/[0.05] dark:border-white/[0.08]">
                 <BookMarked size={14} className="text-gray-500" /> Featured
               </div>
             )}
@@ -269,12 +452,12 @@ export default function ArticleReading() {
             <motion.h1 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl md:text-[42px] font-bold tracking-tight leading-[1.2] text-[#242424] font-serif"
+              className="text-4xl md:text-[42px] font-bold tracking-tight leading-[1.2] text-[#242424] dark:text-neutral-100 font-serif"
             >
               {article.title}
             </motion.h1>
             {article.subtitle && (
-              <p className="text-xl md:text-2xl text-[#6B6B6B] leading-snug">
+              <p className="text-xl md:text-2xl text-[#6B6B6B] dark:text-neutral-450 leading-snug">
                 {stripHtml(article.subtitle)}
               </p>
             )}
@@ -285,22 +468,22 @@ export default function ArticleReading() {
             <div className="flex items-center gap-4">
               <div className="relative">
                 {article.authorAvatar ? (
-                  <img src={article.authorAvatar} className="w-12 h-12 rounded-full object-cover border border-black/[0.05]" alt={article.author} />
+                  <img src={article.authorAvatar} className="w-12 h-12 rounded-full object-cover border border-black/[0.05] dark:border-white/[0.08]" alt={article.author} />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-400">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-bold text-gray-400 dark:text-neutral-500">
                     {article.author?.charAt(0)}
                   </div>
                 )}
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-[16px] text-[#242424] hover:underline cursor-pointer">{article.author}</span>
-                  <CheckCircle2 size={14} className="text-blue-500 fill-blue-500 text-white" />
-                  <span className="text-[#6B6B6B] text-[16px] mx-1">·</span>
-                  <button className="text-[#1A8917] text-[16px] font-medium hover:text-[#156d12] transition-colors">Follow</button>
+                  <span className="font-medium text-[16px] text-[#242424] dark:text-neutral-200 hover:underline cursor-pointer">{article.author}</span>
+                  <CheckCircle2 size={14} className="text-blue-500 fill-blue-500 dark:fill-blue-550 text-white" />
                 </div>
-                <div className="flex items-center gap-2 text-[#6B6B6B] text-[14px]">
-                  <span>{article.readTime || '5 min read'}</span>
+                <div className="flex items-center gap-2 text-[#6B6B6B] dark:text-neutral-450 text-[14px]">
+                  <span>{activeReadTime || article.readTime || '5 min read'}</span>
+                  <span>·</span>
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">{readingLevel}</span>
                   <span>·</span>
                   <span>{article.createdAt ? new Date(article.createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Jan 13, 2026'}</span>
                 </div>
@@ -308,12 +491,23 @@ export default function ArticleReading() {
             </div>
           </div>
 
+          <ArticleLevelPicker
+            value={readingLevel}
+            onChange={handleLevelChange}
+            readTimes={levelReadTimes}
+          />
+
           {/* Interaction Bar */}
-          <div className="flex items-center justify-between py-4 border-y border-black/[0.05]">
+          <div className="flex items-center justify-between py-4 border-y border-black/[0.05] dark:border-white/[0.08]">
             <div className="flex items-center gap-6">
               <button 
+                type="button"
                 onClick={handleClap}
-                className={`flex items-center gap-2 text-[#6B6B6B] hover:text-[#242424] transition-all group ${isClapping ? 'scale-110' : ''}`}
+                className={`flex items-center gap-2 transition-all group hover:text-[#242424] dark:hover:text-white ${
+                  hasClapped
+                    ? 'text-[#242424] dark:text-white'
+                    : 'text-[#6B6B6B] dark:text-neutral-450'
+                } ${isClapping ? 'scale-110' : ''}`}
               >
                 <motion.div 
                   animate={isClapping ? { scale: [1, 1.4, 1], rotate: [0, -10, 10, 0] } : {}}
@@ -324,17 +518,17 @@ export default function ArticleReading() {
                 <span className="text-[13px] font-medium">{claps >= 1000 ? (claps/1000).toFixed(1) + 'K' : claps}</span>
               </button>
               <button 
-                onClick={() => setShowComments(true)}
-                className="flex items-center gap-2 text-[#6B6B6B] hover:text-[#242424] transition-all group"
+                onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                className="flex items-center gap-2 text-[#6B6B6B] dark:text-neutral-450 hover:text-[#242424] dark:hover:text-white transition-all group"
               >
                 <MessageSquareIcon size={20} className="group-hover:scale-110 transition-transform" />
                 <span className="text-[13px] font-medium">{comments.length}</span>
               </button>
             </div>
-            <div className="flex items-center gap-4 text-[#6B6B6B]">
+            <div className="flex items-center gap-4 text-[#6B6B6B] dark:text-neutral-450">
               <button 
                 onClick={handleListen}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${isSpeaking ? 'bg-black text-white' : 'hover:text-[#242424] hover:bg-black/[0.03]'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${isSpeaking ? 'bg-black text-white dark:bg-white dark:text-black' : 'hover:text-[#242424] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'}`}
               >
                 {isSpeaking ? (
                   <Pause size={18} />
@@ -345,9 +539,9 @@ export default function ArticleReading() {
                   {isPaused ? 'Paused' : isSpeaking ? 'Listening...' : 'Listen'}
                 </span>
               </button>
-              <button className="p-1 hover:text-[#242424] transition-all"><BookMarked size={20} /></button>
-              <button className="p-1 hover:text-[#242424] transition-all"><Share2 size={20} /></button>
-              <button className="p-1 hover:text-[#242424] transition-all"><MoreHorizontal size={20} /></button>
+              <button className="p-1 hover:text-[#242424] dark:hover:text-white transition-all"><BookMarked size={20} /></button>
+              <button className="p-1 hover:text-[#242424] dark:hover:text-white transition-all"><Share2 size={20} /></button>
+              <button className="p-1 hover:text-[#242424] dark:hover:text-white transition-all"><MoreHorizontal size={20} /></button>
             </div>
           </div>
         </div>
@@ -362,34 +556,36 @@ export default function ArticleReading() {
             >
               <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover" />
             </motion.div>
-            <p className="text-center text-[14px] text-[#6B6B6B] mt-4">
+            <p className="text-center text-[14px] text-[#6B6B6B] dark:text-neutral-450 mt-4">
               All illustrations by <span className="underline cursor-pointer">{article.author}</span>
             </p>
           </div>
         )}
 
-        <article className={`${textSize} text-[#242424] font-serif article-container relative`}>
+        <article className={`${textSize} text-[#242424] dark:text-neutral-200 font-serif article-container relative`}>
           {(() => {
             const isPro = userData?.accountType === 'pro' || userData?.isPro;
             const isStandard = userData?.accountType === 'standard';
             const canAccess = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
             
             const isLocked = article.isMemberOnly && !canAccess;
+            const fullContent = activeContent;
             const contentToShow = isLocked 
-              ? article.content?.slice(0, Math.ceil(article.content.length / 3)) 
-              : article.content;
+              ? fullContent?.slice(0, Math.ceil((fullContent?.length || 0) / 3)) 
+              : fullContent;
 
             return (
               <>
                 {contentToShow?.map((block, i) => {
-                  const cleanText = (block.text || '')
+                  const cleanText = stripHtml(block.text);
+                  const cleanHtml = (block.text || '')
                     .replace(/&nbsp;/g, ' ')
                     .replace(/\u00A0/g, ' ');
 
                   return block.type === 'heading' ? (
                     <h2 
                       key={i} 
-                      className={`font-bold text-[#242424] font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1' : ''}`}
+                      className={`font-bold text-[#242424] dark:text-neutral-100 font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1' : ''}`}
                       style={{
                         fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
                         lineHeight: block.style?.lineHeight || 1.2,
@@ -400,12 +596,12 @@ export default function ArticleReading() {
                         fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
                       }}
                     >
-                      {cleanText.replace(/<[^>]*>/g, '')}
+                      {cleanText}
                     </h2>
                   ) : (
                     <div 
                       key={i} 
-                      className={`article-body-block font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1 bg-blue-50/10' : ''}`}
+                      className={`article-body-block font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1 bg-blue-50/10 dark:bg-blue-950/20' : ''}`}
                       style={{
                         fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
                         lineHeight: block.style?.lineHeight || 1.8,
@@ -414,7 +610,7 @@ export default function ArticleReading() {
                         letterSpacing: block.style?.letterSpacing || undefined,
                         fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
                       }}
-                      dangerouslySetInnerHTML={{ __html: cleanText }}
+                      dangerouslySetInnerHTML={{ __html: cleanHtml }}
                     />
                   );
                 })}
@@ -423,9 +619,9 @@ export default function ArticleReading() {
                   <div className="relative mt-0">
                     {/* The "Fade to Blur" Transition Section */}
                     <div className="relative h-64 overflow-hidden pointer-events-none select-none">
-                      <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent via-white/80 to-white" />
+                      <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent via-white/80 to-white dark:via-black/80 dark:to-black" />
                       <div className="blur-[1.5px] opacity-40">
-                        {article.content?.slice(Math.ceil(article.content.length / 3), Math.ceil(article.content.length / 3) + 2).map((block, i) => (
+                        {fullContent?.slice(Math.ceil((fullContent?.length || 0) / 3), Math.ceil((fullContent?.length || 0) / 3) + 2).map((block, i) => (
                            <div 
                               key={i} 
                               className="article-body-block font-serif"
@@ -436,19 +632,19 @@ export default function ArticleReading() {
                                 fontWeight: block.style?.fontWeight || '400',
                                 fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
                               }}
-                              dangerouslySetInnerHTML={{ __html: block.text }}
+                              dangerouslySetInnerHTML={{ __html: (block.text || '').replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ') }}
                             />
                         ))}
                       </div>
                     </div>
 
                     {/* Premium Paywall Section */}
-                    <div className="relative z-20 text-center max-w-2xl mx-auto space-y-12 pt-10 pb-32 bg-white">
+                    <div className="relative z-20 text-center max-w-2xl mx-auto space-y-12 pt-10 pb-32 bg-white dark:bg-black">
                       <div className="space-y-6">
-                        <h2 className="text-3xl md:text-[42px] font-bold text-[#242424] leading-tight">
+                        <h2 className="text-3xl md:text-[42px] font-bold text-[#242424] dark:text-neutral-100 leading-tight">
                           Become a member to read this story, and all of IELTS Portal.
                         </h2>
-                        <p className="text-[#6B6B6B] text-lg max-w-xl mx-auto">
+                        <p className="text-[#6B6B6B] dark:text-neutral-450 text-lg max-w-xl mx-auto">
                           {article.author} put this story behind our paywall, so it’s only available to read with a paid IELTS Portal membership, which comes with a host of benefits:
                         </p>
                       </div>
@@ -462,7 +658,7 @@ export default function ArticleReading() {
                         ].map((benefit, idx) => (
                           <div key={idx} className="flex items-start gap-4">
                             <Star size={18} className="text-yellow-500 fill-yellow-500 mt-1 shrink-0" />
-                            <p className="text-[#242424] font-medium">{benefit}</p>
+                            <p className="text-[#242424] dark:text-neutral-200 font-medium">{benefit}</p>
                           </div>
                         ))}
                       </div>
@@ -476,10 +672,10 @@ export default function ArticleReading() {
                           { title: "Reading Hacks", img: "https://images.unsplash.com/photo-1506784365847-bbad939e9335?w=200&h=200&fit=crop" }
                         ].map((item, idx) => (
                           <div key={idx} className="flex flex-col items-center gap-3">
-                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-gray-100 shadow-lg">
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-gray-100 dark:border-neutral-800 shadow-lg">
                               <img src={item.img} className="w-full h-full object-cover" alt={item.title} />
                             </div>
-                            <span className="text-[13px] font-bold text-[#242424] text-center line-clamp-1">{item.title}</span>
+                            <span className="text-[13px] font-bold text-[#242424] dark:text-neutral-200 text-center line-clamp-1">{item.title}</span>
                           </div>
                         ))}
                       </div>
@@ -499,17 +695,179 @@ export default function ArticleReading() {
             );
           })()}
         </article>
+
+        <ArticleVocabulary vocabulary={activeVocabulary} level={readingLevel} />
         
+        {/* Inline Comments Section (Medium Style) */}
+        <section ref={commentsRef} className="mt-16 border-t border-gray-150 dark:border-neutral-850 pt-10 pb-16 max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-neutral-100 font-sans">
+              Responses ({comments.length})
+            </h3>
+            <button 
+              title="Response guidelines"
+              className="text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-neutral-350 transition-colors"
+            >
+              <ShieldCheck size={20} />
+            </button>
+          </div>
+
+          {/* Comment Form (Medium style input container) */}
+          {user ? (
+            <div className="bg-[#f9f9f9] dark:bg-neutral-900/60 border border-gray-100 dark:border-neutral-850 rounded-xl p-4 shadow-sm mb-10 transition-all text-left">
+              <div className="flex items-center gap-3 mb-3">
+                {userData?.avatar ? (
+                  <img src={userData.avatar} className="w-8 h-8 rounded-full object-cover" alt="me" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/40 flex items-center justify-center text-[11px] font-bold text-blue-600 dark:text-blue-400">
+                    {userData?.fullName?.charAt(0) || user?.email?.charAt(0) || "U"}
+                  </div>
+                )}
+                <span className="text-sm font-medium text-gray-800 dark:text-neutral-250">
+                  {userData?.fullName || user?.email?.split('@')[0] || "User"}
+                </span>
+              </div>
+              <textarea 
+                value={newComment}
+                onChange={(e) => {
+                  setNewComment(e.target.value);
+                  setIsInputFocused(true);
+                }}
+                onFocus={() => setIsInputFocused(true)}
+                placeholder="What are your thoughts?"
+                className="w-full bg-transparent border-none focus:ring-0 text-[14px] min-h-[80px] resize-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-600 p-0 focus:outline-none"
+              />
+              {isInputFocused && (
+                <div className="flex justify-end gap-2 pt-2 border-t border-gray-150/40 dark:border-neutral-850/40 mt-2">
+                  <button 
+                    onClick={() => {
+                      setNewComment("");
+                      setIsInputFocused(false);
+                    }}
+                    className="px-4 py-1.5 hover:bg-gray-200/50 dark:hover:bg-neutral-850 text-gray-500 dark:text-neutral-450 rounded-full text-[13px] font-medium transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    disabled={!newComment.trim()}
+                    onClick={async () => {
+                      await handlePostComment();
+                      setIsInputFocused(false);
+                    }}
+                    className="px-4 py-1.5 bg-[#1A8917] hover:bg-[#156d12] disabled:opacity-40 text-white rounded-full text-[13px] font-medium transition-all"
+                  >
+                    Respond
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-[#f9f9f9] dark:bg-neutral-900/60 border border-gray-100 dark:border-neutral-850 rounded-xl p-6 text-center mb-10">
+              <p className="text-sm text-gray-500 dark:text-neutral-450 mb-3">Please sign in to write a response.</p>
+              <button 
+                onClick={() => navigate('/auth/login')}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-[13px] font-medium transition-all"
+              >
+                Sign In
+              </button>
+            </div>
+          )}
+
+          {/* Comments List */}
+          <div className="space-y-6 text-left">
+            {comments.length > 0 ? (
+              comments.slice().reverse().map((comment) => (
+                <div key={comment.id} className="border-b border-gray-100 dark:border-neutral-850/60 pb-6 last:border-b-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {comment.userAvatar ? (
+                        <img src={comment.userAvatar} className="w-9 h-9 rounded-full object-cover border border-gray-100 dark:border-neutral-850" alt={comment.userName} />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-neutral-450">
+                          {comment.userName?.charAt(0) || "U"}
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[14px] font-semibold text-gray-800 dark:text-neutral-200 hover:underline cursor-pointer">
+                            {comment.userName}
+                          </span>
+                        </div>
+                        <span className="text-[12px] text-gray-400 dark:text-neutral-500">
+                          {(() => {
+                            if (!comment.createdAt) return "Just now";
+                            try {
+                              const d = typeof comment.createdAt.toDate === 'function' ? comment.createdAt.toDate() : new Date(comment.createdAt);
+                              return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            } catch (e) {
+                              return "Just now";
+                            }
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                    <button className="text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-neutral-350 transition-colors">
+                      <MoreHorizontal size={18} />
+                    </button>
+                  </div>
+
+                  <p className="text-[15px] leading-relaxed text-gray-800 dark:text-neutral-250 mt-3 pl-12 whitespace-pre-line font-sans">
+                    {comment.text}
+                  </p>
+
+                  <div className="flex items-center gap-6 mt-4 pl-12 text-gray-400 dark:text-neutral-500">
+                    <button 
+                      onClick={() => handleClapComment(comment.id)}
+                      className="flex items-center gap-1.5 hover:text-gray-700 dark:hover:text-neutral-200 transition-colors"
+                      title="Clap"
+                    >
+                      <span className="text-[15px]">👏</span>
+                      <span className="text-[13px]">{comment.claps || 0}</span>
+                    </button>
+
+                    <button className="flex items-center gap-1.5 hover:text-gray-700 dark:hover:text-neutral-200 transition-colors">
+                      <MessageSquareIcon size={14} />
+                      <span className="text-[13px]">{comment.replies?.length || 0} replies</span>
+                    </button>
+
+                    <button className="hover:text-gray-700 dark:hover:text-neutral-200 transition-colors text-[13px] font-medium">
+                      Reply
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center space-y-3">
+                <div className="w-16 h-16 bg-gray-55 dark:bg-neutral-900/30 rounded-full flex items-center justify-center mx-auto text-gray-300 dark:text-neutral-700">
+                  <MessageSquareIcon size={32} />
+                </div>
+                <p className="text-gray-400 dark:text-neutral-500 text-sm">No responses yet. Be the first to respond.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Claim XP Section */}
         {user && article && !article.isMemberOnly && (
-          <div className="mt-16 flex flex-col items-center justify-center p-8 bg-blue-50/50 rounded-3xl border border-blue-100">
+          <div className="mt-8 mb-24 flex flex-col items-center justify-center p-8 bg-blue-50/50 dark:bg-blue-950/10 rounded-3xl border border-blue-100 dark:border-blue-900/40 max-w-2xl mx-auto text-center">
             <Sparkles className="text-blue-500 mb-4" size={32} />
-            <h3 className="text-xl font-bold text-[#242424] mb-2">Maqolani o'qib chiqdingizmi?</h3>
-            <p className="text-[#6B6B6B] mb-6 text-center">XP yig'ing va reytingda ko'tariling.</p>
+            <h3 className="text-xl font-bold text-[#242424] dark:text-neutral-200 mb-2">Maqolani o'qib chiqdingizmi?</h3>
+            <p className="text-[#6B6B6B] dark:text-neutral-400 mb-6 text-center text-sm">
+              {!completed && !userData?.awardedItems?.includes(article.id) && (
+                <>
+                  XP olish uchun maqolani oxirigacha o'qing.<br />
+                  <span className="font-semibold">O'qish vaqti:</span> {Math.floor(timeSpent / 60)} daqiqa {timeSpent % 60} soniya / 2 daqiqa.
+                  <span className="mx-2">|</span>
+                  <span className="font-semibold">Varaqlash:</span> {isScrollMet ? "✓ Oxiriga yetdi" : "✗ Oxirigacha scroll qiling"}
+                </>
+              )}
+              {(completed || userData?.awardedItems?.includes(article.id)) && "Siz ushbu maqola uchun XP olgansiz."}
+            </p>
             <button 
               onClick={handleClaimXP}
               disabled={completed || userData?.awardedItems?.includes(article.id)}
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-full font-bold text-sm transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-blue-500/20"
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-neutral-800 disabled:text-gray-500 dark:disabled:text-neutral-500 text-white rounded-full font-bold text-sm transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-blue-500/20 dark:shadow-none"
             >
               {completed || userData?.awardedItems?.includes(article.id) ? (
                 <><CheckCircle2 size={18} /> XP Olindi</>
@@ -519,6 +877,7 @@ export default function ArticleReading() {
             </button>
           </div>
         )}
+
         <style>{`
           .article-container, 
           .article-container h2, 
@@ -526,6 +885,12 @@ export default function ArticleReading() {
           .article-container p, 
           .article-container span {
             font-family: Charter, Georgia, Cambria, "Times New Roman", Times, serif !important;
+          }
+          .dark .article-container span,
+          .dark .article-container p,
+          .dark .article-container div,
+          .dark .article-container h2 {
+            color: #e5e5e5 !important;
           }
           .article-body-block {
             word-break: normal;
@@ -538,185 +903,15 @@ export default function ArticleReading() {
           .article-body-block ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
           .article-body-block li { margin-bottom: 0.25rem; }
           .article-body-block a { color: #0066CC; text-decoration: underline; }
+          .dark .article-body-block a { color: #60a5fa !important; }
           .article-body-block strong { font-weight: 700; }
           .article-body-block em { font-style: italic; }
           .article-body-block s { text-decoration: line-through; }
           .article-body-block u { text-decoration: underline; }
         `}</style>
-
-
-        {/* Bottom Comment Section - Moved Higher */}
-        <section className="mt-20 border-t border-black/[0.05] pt-12 pb-32">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-bold text-[#242424]">Responses ({comments.length})</h3>
-          </div>
-
-          {/* Inline Input Area */}
-          <div className="bg-white p-6 rounded-3xl border border-black/[0.05] shadow-sm mb-12 group focus-within:border-blue-500 transition-all">
-            <div className="flex gap-4 mb-4">
-              {userData?.avatar ? (
-                <img src={userData.avatar} className="w-10 h-10 rounded-full border border-black/[0.05]" alt="me" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
-                  {userData?.fullName?.charAt(0) || user?.email?.charAt(0)}
-                </div>
-              )}
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-[#242424]">{userData?.fullName || "Your Response"}</span>
-                <span className="text-xs text-gray-500">Share your thoughts</span>
-              </div>
-            </div>
-            <textarea 
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="What are your thoughts?"
-              className="w-full bg-transparent border-none focus:ring-0 text-[16px] min-h-[100px] resize-none placeholder-gray-400"
-            />
-            <div className="flex justify-end pt-4 border-t border-black/[0.02]">
-              <button 
-                disabled={!newComment.trim()}
-                onClick={handlePostComment}
-                className="px-6 py-2.5 bg-[#1A8917] hover:bg-[#156d12] text-white rounded-full text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2 active:scale-95"
-              >
-                Publish <Send size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* Comments Feed */}
-          <div className="space-y-10">
-            {comments.length > 0 ? comments.map((comment) => (
-              <div key={comment.id} className="space-y-4">
-                <div className="flex items-center gap-3">
-                  {comment.userAvatar ? (
-                    <img src={comment.userAvatar} className="w-9 h-9 rounded-full border border-black/[0.05]" alt={comment.userName} />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-400">
-                      {comment.userName?.charAt(0)}
-                    </div>
-                  )}
-                  <div className="flex flex-col">
-                    <span className="text-[14px] font-bold text-[#242424]">{comment.userName}</span>
-                    <span className="text-[12px] text-[#6B6B6B]">{new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                  </div>
-                </div>
-                <p className="text-[16px] leading-relaxed text-[#242424] pl-12 font-serif">
-                  {comment.text}
-                </p>
-                <div className="pl-12 flex items-center gap-4 text-gray-400">
-                  <button className="flex items-center gap-1.5 hover:text-[#242424] transition-colors">
-                    👏 <span className="text-xs font-medium">Helpful</span>
-                  </button>
-                  <button className="text-xs font-medium hover:text-[#242424] transition-colors">Reply</button>
-                </div>
-              </div>
-            )) : (
-              <div className="py-16 text-center space-y-4 bg-gray-50/50 rounded-[40px] border border-dashed border-gray-200">
-                <p className="text-gray-500 text-sm">No responses yet. Be the first to share your thoughts.</p>
-              </div>
-            )}
-          </div>
-        </section>
       </main>
 
-
-
-      <SiteFooter />
-
-      {/* Comments Drawer */}
-      <AnimatePresence>
-        {showComments && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowComments(false)}
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100]"
-            />
-            <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-[101] flex flex-col"
-            >
-              <div className="p-6 border-b border-black/[0.05] flex items-center justify-between">
-                <h3 className="text-xl font-bold">Responses ({comments.length})</h3>
-                <button 
-                  onClick={() => setShowComments(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-all"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-                {/* Input Area */}
-                <div className="bg-white p-4 rounded-2xl border border-black/[0.05] shadow-sm mb-4">
-                  <div className="flex gap-3 mb-3">
-                    {userData?.avatar ? (
-                      <img src={userData.avatar} className="w-8 h-8 rounded-full" alt="me" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">
-                        {userData?.fullName?.charAt(0) || user?.email?.charAt(0)}
-                      </div>
-                    )}
-                    <span className="text-sm font-medium">{userData?.fullName || "Writing response..."}</span>
-                  </div>
-                  <textarea 
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="What are your thoughts?"
-                    className="w-full bg-transparent border-none focus:ring-0 text-sm min-h-[100px] resize-none"
-                  />
-                  <div className="flex justify-end pt-2">
-                    <button 
-                      disabled={!newComment.trim()}
-                      onClick={handlePostComment}
-                      className="px-4 py-2 bg-[#1A8917] hover:bg-[#156d12] text-white rounded-full text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-2"
-                    >
-                      Respond <Send size={14} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Comments List */}
-                <div className="space-y-6">
-                  {comments.length > 0 ? comments.map((comment) => (
-                    <div key={comment.id} className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        {comment.userAvatar ? (
-                          <img src={comment.userAvatar} className="w-8 h-8 rounded-full border border-black/[0.05]" alt={comment.userName} />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400">
-                            {comment.userName?.charAt(0)}
-                          </div>
-                        )}
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">{comment.userName}</span>
-                          <span className="text-[12px] text-[#6B6B6B]">{new Date(comment.createdAt).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <p className="text-[14px] leading-relaxed text-[#242424] pl-11">
-                        {comment.text}
-                      </p>
-                    </div>
-                  )) : (
-                    <div className="py-12 text-center space-y-3">
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-300">
-                        <MessageSquareIcon size={32} />
-                      </div>
-                      <p className="text-gray-400 text-sm">No responses yet. Be the first to respond.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+      <SiteFooter />    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, ImageIcon, Star, Edit2, Trash2, MessageSquare } from 'lucide-react';
+import { formatArticleCategoryHashtag } from '../../../utils/articleCategory';
 
 const AdminArticlesTable = ({ articles, loading, onEdit, onDelete }) => {
     if (loading) {
@@ -47,7 +48,7 @@ const AdminArticlesTable = ({ articles, loading, onEdit, onDelete }) => {
                             )}
                             <div className="absolute top-4 left-4 flex gap-2">
                                 <span className="px-3 py-1 bg-white/90 backdrop-blur-md text-[10px] font-bold rounded-full uppercase tracking-wider text-black shadow-sm">
-                                    {article.category}
+                                    {formatArticleCategoryHashtag(article.category)}
                                 </span>
                                 {article.isMemberOnly && (
                                     <span className="px-3 py-1 bg-yellow-400 text-black text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
@@ -70,7 +71,9 @@ const AdminArticlesTable = ({ articles, loading, onEdit, onDelete }) => {
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-xs font-bold text-[#242424] dark:text-white/80">{article.author}</span>
-                                    <span className="text-[10px] text-gray-400">{article.readTime}</span>
+                                    <span className="text-[10px] text-gray-400">
+                                        {article.levels ? 'B1·B2·C1' : article.readTime}
+                                    </span>
                                 </div>
                             </div>
 

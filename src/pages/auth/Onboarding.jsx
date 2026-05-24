@@ -10,25 +10,11 @@ import {
     ChevronUp,
     ChevronDown,
     Check, 
-    Target, 
-    Calendar, 
-    Globe, 
-    Clock, 
-    User, 
-    Award, 
-    BookOpen,
-    Sparkles,
-    TrendingUp,
     Loader2,
-    CalendarDays
+    CalendarDays,
+    Sparkles
 } from 'lucide-react';
-
-const steps = [
-    { id: 1, title: "Tanishuv" },
-    { id: 2, title: "Daraja" },
-    { id: 3, title: "Maqsad" },
-    { id: 4, title: "Tayyor!" }
-];
+import { useTranslation } from '../../context/LanguageContext';
 
 const StepTitle = ({ title, subtitle }) => (
     <div className="mb-4 text-center">
@@ -41,45 +27,13 @@ const StepTitle = ({ title, subtitle }) => (
     </div>
 );
 
-const NumberStepper = ({ value, onChange, min = 0, max = 9, step = 0.5 }) => {
-    const increment = () => {
-        const current = parseFloat(value) || 4.0;
-        if (current < max) onChange((current + step).toFixed(1));
-    };
-    const decrement = () => {
-        const current = parseFloat(value) || 4.0;
-        if (current > min) onChange((current - step).toFixed(1));
-    };
-
-    return (
-        <div className="flex items-center bg-white border border-[#eee] rounded-lg overflow-hidden max-w-[85px] mx-auto shadow-sm">
-            <div className="flex-1 text-center py-1 px-2 text-[15px] font-bold text-[#1a1a1a]">
-                {value || "5.0"}
-            </div>
-            <div className="flex flex-col border-l border-[#eee]">
-                <button 
-                    onClick={increment}
-                    className="p-1 hover:bg-[#f8f8f9] text-[#aaa] hover:text-[#000000] transition-colors border-b border-[#eee]"
-                >
-                    <ChevronUp size={10} />
-                </button>
-                <button 
-                    onClick={decrement}
-                    className="p-1 hover:bg-[#f8f8f9] text-[#aaa] hover:text-[#000000] transition-colors"
-                >
-                    <ChevronDown size={10} />
-                </button>
-            </div>
-        </div>
-    );
-};
-
 const CustomDatePicker = ({ value, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const { lang, t } = useTranslation();
     const [viewDate, setViewDate] = useState(value ? new Date(value) : new Date());
 
-    const months = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
-    const days = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"];
+    const months = t('onboarding.months') || [];
+    const days = t('onboarding.days') || [];
 
     const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
     const getFirstDayOfMonth = (year, month) => {
@@ -101,6 +55,16 @@ const CustomDatePicker = ({ value, onChange }) => {
     const firstDay = getFirstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth());
     const today = new Date();
 
+    const formatDate = (val) => {
+        if (!val) return t('onboarding.dateSelectPlaceholder');
+        const d = new Date(val);
+        if (lang === 'uz') {
+            return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' });
+        } else {
+            return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+    };
+
     return (
         <div className="relative">
             <button
@@ -109,7 +73,7 @@ const CustomDatePicker = ({ value, onChange }) => {
             >
                 <div className="flex items-center gap-3">
                     <CalendarDays size={18} className="text-[#000000]" />
-                    <span>{value ? new Date(value).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }) : "Sanani tanlang"}</span>
+                    <span>{formatDate(value)}</span>
                 </div>
                 <ChevronDown size={16} className={`text-[#aaa] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -167,6 +131,14 @@ export default function Onboarding() {
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const { t } = useTranslation();
+
+    const steps = [
+        { id: 1, title: t('onboarding.step1Title') },
+        { id: 2, title: t('onboarding.step2Title') },
+        { id: 3, title: t('onboarding.step3Title') },
+        { id: 4, title: t('onboarding.step4Title') }
+    ];
 
     const [formData, setFormData] = useState({
         firstName: "",
@@ -252,8 +224,8 @@ export default function Onboarding() {
     const renderStep1 = () => (
         <div className="max-w-xs mx-auto">
             <StepTitle 
-                title="Keling, tanishaylik" 
-                subtitle="Sizga mos o'quv rejasini tuzish uchun ma'lumotlaringiz kerak." 
+                title={t('onboarding.tanishuvHeader')} 
+                subtitle={t('onboarding.tanishuvSub')} 
             />
             <div className="space-y-3 max-w-[260px] mx-auto mt-8">
                 <input
@@ -261,14 +233,14 @@ export default function Onboarding() {
                     value={formData.firstName}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     className="w-full bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg py-1.5 px-5 text-[13px] font-medium text-[#1a1a1a] outline-none transition-all"
-                    placeholder="Ism"
+                    placeholder={t('onboarding.firstNamePlaceholder')}
                 />
                 <input
                     type="text"
                     value={formData.lastName}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     className="w-full bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg py-1.5 px-5 text-[13px] font-medium text-[#1a1a1a] outline-none transition-all"
-                    placeholder="Familiya"
+                    placeholder={t('onboarding.lastNamePlaceholder')}
                 />
             </div>
         </div>
@@ -277,15 +249,15 @@ export default function Onboarding() {
     const renderStep2 = () => (
         <div className="max-w-[400px] mx-auto">
             <StepTitle 
-                title="Hozirgi darajangiz" 
-                subtitle="Ingliz tili bilimingizni qanday baholaysiz?" 
+                title={t('onboarding.currentLevelHeader')} 
+                subtitle={t('onboarding.currentLevelSub')} 
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mt-8">
                 {[
-                    { val: 'Beginner', label: 'Boshlang\'ich', desc: 'A1-A2 daraja' },
-                    { val: 'Intermediate', label: 'O\'rta', desc: 'B1-B2 daraja' },
-                    { val: 'Upper-Intermediate', label: 'Yuqori O\'rta', desc: 'B2+ daraja' },
-                    { val: 'Advanced', label: 'Ilg\'or', desc: 'C1-C2 daraja' },
+                    { val: 'Beginner', label: t('onboarding.levelBeginner'), desc: t('onboarding.levelBeginnerDesc') },
+                    { val: 'Intermediate', label: t('onboarding.levelIntermediate'), desc: t('onboarding.levelIntermediateDesc') },
+                    { val: 'Upper-Intermediate', label: t('onboarding.levelUpperIntermediate'), desc: t('onboarding.levelUpperIntermediateDesc') },
+                    { val: 'Advanced', label: t('onboarding.levelAdvanced'), desc: t('onboarding.levelAdvancedDesc') },
                 ].map((level) => (
                     <button
                         key={level.val}
@@ -309,8 +281,8 @@ export default function Onboarding() {
     const renderStep3 = () => (
         <div className="max-w-[400px] mx-auto">
             <StepTitle 
-                title="Sizning maqsadingiz" 
-                subtitle="Qanday natijaga erishmoqchisiz?" 
+                title={t('onboarding.targetHeader')} 
+                subtitle={t('onboarding.targetSub')} 
             />
             <div className="mt-8">
                 <div className="grid grid-cols-7 gap-1.5">
@@ -331,7 +303,7 @@ export default function Onboarding() {
 
             <div className="max-w-xs mx-auto mt-7">
                 <div className="space-y-2">
-                    <label className="text-[12px] font-semibold text-[#888] ml-1">Imtihon sanasi (Taxminiy)</label>
+                    <label className="text-[12px] font-semibold text-[#888] ml-1">{t('onboarding.examDateLabel')}</label>
                     <CustomDatePicker 
                         value={formData.examDate}
                         onChange={(val) => handleInputChange('examDate', val)}
@@ -344,8 +316,8 @@ export default function Onboarding() {
     const renderStep4 = () => (
         <div className="max-w-lg mx-auto">
             <StepTitle 
-                title="O'quv rejasi" 
-                subtitle="Zaif tomonlaringiz va bo'sh vaqtingizni belgilang." 
+                title={t('onboarding.studyPlanHeader')} 
+                subtitle={t('onboarding.studyPlanSub')} 
             />
             
             <div className="grid grid-cols-2 gap-2 mb-4">
@@ -365,13 +337,13 @@ export default function Onboarding() {
             </div>
 
             <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[#aaa] ml-1 mb-2 block">Kunlik ajratiladigan vaqt</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[#aaa] ml-1 mb-2 block">{t('onboarding.dailyTimeLabel')}</label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {[
-                        { val: '30m', label: '30 daqiqa' },
-                        { val: '1h', label: '1 soat' },
-                        { val: '2h', label: '2 soat' },
-                        { val: '3h+', label: '3+ soat' }
+                        { val: '30m', label: t('onboarding.dailyTime30m') },
+                        { val: '1h', label: t('onboarding.dailyTime1h') },
+                        { val: '2h', label: t('onboarding.dailyTime2h') },
+                        { val: '3h+', label: t('onboarding.dailyTime3h') }
                     ].map((time) => (
                         <button
                             key={time.val}
@@ -445,18 +417,16 @@ export default function Onboarding() {
                                             transition={{ delay: 0.2 }}
                                             className="text-3xl font-bold text-[#1a1a1a] mb-4 tracking-tight"
                                         >
-                                            Hammasi tayyor!
+                                            {t('onboarding.successHeader')}
                                         </motion.h2>
                                         
                                         <motion.p 
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: 0.3 }}
-                                            className="text-[#666] text-[15px] font-medium leading-relaxed mb-10"
+                                            className="text-[#666] text-[15px] font-medium leading-relaxed mb-10 whitespace-pre-line"
                                         >
-                                            Ma'lumotlaringiz tahlil qilindi.<br />
-                                            Endi shaxsiy dashboard'ingizni<br />
-                                            ko'rishingiz mumkin.
+                                            {t('onboarding.successSub')}
                                         </motion.p>
                                         
                                         <motion.button
@@ -467,7 +437,7 @@ export default function Onboarding() {
                                             disabled={loading}
                                             className="w-auto px-10 py-2.5 bg-[#1a1a1a] text-white rounded-lg font-bold text-[12px] hover:bg-black transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-3 active:scale-95 group mx-auto"
                                         >
-                                            {loading ? <Loader2 className="animate-spin" /> : "Platformaga kirish"}
+                                            {loading ? <Loader2 className="animate-spin" /> : t('onboarding.enterPlatformBtn')}
                                             {!loading && <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />}
                                         </motion.button>
                                     </div>
@@ -481,14 +451,14 @@ export default function Onboarding() {
                                     onClick={prevStep}
                                     className={`flex items-center gap-2 text-[12px] font-bold transition-all ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'text-[#aaa] hover:text-[#000000]'}`}
                                 >
-                                    <ChevronLeft size={16} /> Orqaga
+                                    <ChevronLeft size={16} /> {t('onboarding.prevBtn')}
                                 </button>
                                 
                                 <button
                                     onClick={nextStep}
                                     className="px-6 py-2.5 bg-[#1a1a1a] text-white rounded-lg text-[12px] font-bold transition-all flex items-center gap-2 active:scale-95 shadow-xl shadow-black/5"
                                 >
-                                    Keyingi <ChevronRight size={16} />
+                                    {t('onboarding.nextBtn')} <ChevronRight size={16} />
                                 </button>
                             </div>
                         )}
@@ -518,10 +488,10 @@ export default function Onboarding() {
                     >
                         <div className="h-1.5 w-14 bg-black mb-8 rounded-full" />
                         <h3 className="text-black text-4xl font-bold leading-tight mb-6 tracking-tight">
-                            Muvaffaqiyat — bu har kungi kichik g'alabalar yig'indisidir.
+                            {t('onboarding.quoteText')}
                         </h3>
                         <p className="text-black/40 text-lg font-medium max-w-lg">
-                            IELTS natijangizni sun'iy intellektga asoslangan platforma orqali keyingi bosqichga olib chiqing.
+                            {t('onboarding.quoteSub')}
                         </p>
                     </motion.div>
                 </div>

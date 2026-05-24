@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { useStudentData } from '../../hooks/useStudentData';
+import { useTranslation } from '../../context/LanguageContext';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
     BarChart, Bar, Cell, PieChart, Pie
@@ -17,6 +18,7 @@ import SiteFooter from '../../components/common/SiteFooter';
 export default function StudentStatistics() {
     const navigate = useNavigate();
     const { user, userData } = useAuth();
+    const { t } = useTranslation();
     const { userResults, loading: dataLoading } = useStudentData(user);
     const { stats, loading: analyticsLoading } = useAnalytics(user?.uid, userResults);
 
@@ -104,12 +106,12 @@ export default function StudentStatistics() {
 
     const skillDistribution = useMemo(() => {
         return [
-            { name: 'Reading', value: stats.skillAverages.reading, color: '#007AFF' },
-            { name: 'Listening', value: stats.skillAverages.listening, color: '#34C759' },
-            { name: 'Writing', value: stats.skillAverages.writing, color: '#FF9500' },
-            { name: 'Speaking', value: stats.skillAverages.speaking, color: '#AF52DE' },
+            { name: t('dashboard.reading'), value: stats.skillAverages.reading, color: '#007AFF' },
+            { name: t('dashboard.listening'), value: stats.skillAverages.listening, color: '#34C759' },
+            { name: t('dashboard.writing'), value: stats.skillAverages.writing, color: '#FF9500' },
+            { name: t('dashboard.speaking'), value: stats.skillAverages.speaking, color: '#AF52DE' },
         ].filter(s => s.value > 0);
-    }, [stats.skillAverages]);
+    }, [stats.skillAverages, t]);
 
     const calculatedOverallBand = useMemo(() => {
         if (!stats || stats.totalTests === 0) {
@@ -152,13 +154,13 @@ export default function StudentStatistics() {
                             className="flex items-center gap-1 text-sm font-medium text-black/50 hover:text-black transition-colors mb-4 group"
                         >
                             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                            Orqaga qaytish
+                            {t('statistics.back')}
                         </button>
                         <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-[#1D1D1F]">
-                            Sizning yutuqlaringiz
+                            {t('statistics.title')}
                         </h1>
                         <p className="text-lg text-black/50 font-medium mt-2">
-                            Barcha testlar va ko'rsatkichlar tahlili.
+                            {t('statistics.subtitle')}
                         </p>
                     </div>
 
@@ -167,7 +169,7 @@ export default function StudentStatistics() {
                             onClick={() => navigate('/leaderboard')}
                             className="bg-[#007AFF] text-white px-6 py-3 rounded-full font-semibold flex items-center gap-2 hover:bg-[#0066CC] hover:scale-105 active:scale-95 transition-all shadow-[0_8px_20px_rgba(0,122,255,0.25)] h-[52px]"
                         >
-                            <Trophy size={18} /> Reyting
+                            <Trophy size={18} /> {t('dashboard.ranking')}
                         </button>
                         <div className="bg-gradient-to-b from-gray-800 to-black p-0.5 rounded-[20px] shadow-lg h-[52px] flex items-center justify-center overflow-hidden">
                             <div className="px-5 py-2 bg-gradient-to-b from-gray-900 to-black text-white rounded-[18px] h-full flex flex-col justify-center">
@@ -181,26 +183,32 @@ export default function StudentStatistics() {
                 {/* KPI Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                     <KPICard 
-                        title="Jami testlar" 
+                        title={t('statistics.totalTests')} 
                         value={stats.totalTests} 
                         icon={Activity} 
                         color="blue" 
                     />
                     <KPICard 
-                        title="O'rtacha ball" 
+                        title={t('statistics.averageScore')} 
                         value={calculatedOverallBand} 
                         icon={Target} 
                         color="purple" 
                     />
                     <KPICard 
-                        title="Sarflangan vaqt" 
+                        title={t('statistics.timeSpent')} 
                         value={`${Math.round(stats.timeSpent / 60)} min`} 
                         icon={Clock} 
                         color="orange" 
                     />
                     <KPICard 
-                        title="Barqarorlik" 
-                        value={stats.consistency} 
+                        title={t('statistics.consistency')} 
+                        value={
+                            stats.consistency === "Barkamol" ? t('statistics.consistencyLabels.barkamol') :
+                            stats.consistency === "O'zgaruvchan" ? t('statistics.consistencyLabels.ozgaruvchan') :
+                            stats.consistency === "Barqaror" ? t('statistics.consistencyLabels.barqaror') :
+                            stats.consistency === "Kam ma'lumot" ? t('statistics.consistencyLabels.kamMalumot') :
+                            t('statistics.consistencyLabels.nomalum')
+                        } 
                         icon={TrendingUp} 
                         color="emerald" 
                     />
@@ -212,26 +220,26 @@ export default function StudentStatistics() {
                     <div className="lg:col-span-3 bg-white rounded-[32px] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-black/[0.03] animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                         <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h3 className="text-xl font-bold text-[#1D1D1F]">Faollik Statistikasi</h3>
+                                <h3 className="text-xl font-bold text-[#1D1D1F]">{t('statistics.activityStats')}</h3>
                             </div>
                             <div className="flex bg-[#F5F5F7] p-1 rounded-xl">
-                                <button 
+                               <button 
                                     onClick={() => setTimeRange('haftalik')} 
                                     className={`px-4 py-1.5 text-xs md:text-sm font-semibold rounded-lg transition-colors ${timeRange === 'haftalik' ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-black' : 'text-black/50 hover:text-black'}`}
                                 >
-                                    Haftalik
+                                    {t('statistics.weekly')}
                                 </button>
                                 <button 
                                     onClick={() => setTimeRange('oylik')} 
                                     className={`px-4 py-1.5 text-xs md:text-sm font-semibold rounded-lg transition-colors ${timeRange === 'oylik' ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-black' : 'text-black/50 hover:text-black'}`}
                                 >
-                                    Oylik
+                                    {t('statistics.monthly')}
                                 </button>
                                 <button 
                                     onClick={() => setTimeRange('barchasi')} 
                                     className={`px-4 py-1.5 text-xs md:text-sm font-semibold rounded-lg transition-colors ${timeRange === 'barchasi' ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-black' : 'text-black/50 hover:text-black'}`}
                                 >
-                                    Barchasi
+                                    {t('statistics.all')}
                                 </button>
                             </div>
                         </div>
@@ -240,72 +248,72 @@ export default function StudentStatistics() {
                             {/* Left Legend Panel */}
                             <div className="lg:w-[240px] flex flex-col gap-8 lg:border-r border-black/[0.03] lg:pr-8 py-4 shrink-0">
                                 <LegendItem 
-                                    title="READING" 
+                                    title={t('dashboard.reading').toUpperCase()} 
                                     value={stats.skillAverages.reading} 
                                     color="#007AFF" 
                                     isActive={activeLines.reading} 
                                     onToggle={() => toggleLine('reading')} 
-                                />
-                                <LegendItem 
-                                    title="LISTENING" 
+                                  />
+                                  <LegendItem 
+                                    title={t('dashboard.listening').toUpperCase()} 
                                     value={stats.skillAverages.listening} 
                                     color="#34C759" 
                                     isActive={activeLines.listening} 
                                     onToggle={() => toggleLine('listening')} 
-                                />
-                                <LegendItem 
-                                    title="WRITING" 
+                                  />
+                                  <LegendItem 
+                                    title={t('dashboard.writing').toUpperCase()} 
                                     value={stats.skillAverages.writing} 
                                     color="#FF9500" 
                                     isActive={activeLines.writing} 
                                     onToggle={() => toggleLine('writing')} 
-                                />
-                                <LegendItem 
-                                    title="SPEAKING" 
+                                  />
+                                  <LegendItem 
+                                    title={t('dashboard.speaking').toUpperCase()} 
                                     value={stats.skillAverages.speaking} 
                                     color="#AF52DE" 
                                     isActive={activeLines.speaking} 
                                     onToggle={() => toggleLine('speaking')} 
-                                />
-                            </div>
-
-                            {/* Line Chart */}
-                            <div className="flex-1 h-[340px] w-full relative">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={chartData} margin={{ top: 20, right: 20, left: -20, bottom: 20 }}>
-                                        <XAxis 
-                                            dataKey="displayDate" 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{ fill: '#00000060', fontSize: 11, fontWeight: 600 }} 
-                                            dy={15} 
-                                        />
-                                        <YAxis 
-                                            domain={[0, 9]} 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{ fill: '#00000060', fontSize: 11, fontWeight: 600 }} 
-                                        />
-                                        <Tooltip 
-                                            cursor={{ stroke: '#000000', strokeWidth: 1, opacity: 0.1 }}
-                                            contentStyle={{ 
-                                                backgroundColor: '#ffffff', 
-                                                borderRadius: '8px', 
-                                                border: '1px solid rgba(0,0,0,0.05)', 
-                                                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                                                padding: '12px 16px'
-                                            }} 
-                                            itemStyle={{ fontWeight: 700, fontSize: 13, color: '#1D1D1F' }}
-                                            labelStyle={{ color: '#00000080', marginBottom: '8px', fontWeight: 600, fontSize: 12 }}
-                                        />
-                                        {activeLines.reading && <Line type="linear" dataKey="reading" stroke="#007AFF" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#007AFF' }} activeDot={{ r: 6, strokeWidth: 0 }} name="Reading" connectNulls />}
-                                        {activeLines.listening && <Line type="linear" dataKey="listening" stroke="#34C759" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#34C759' }} activeDot={{ r: 6, strokeWidth: 0 }} name="Listening" connectNulls />}
-                                        {activeLines.writing && <Line type="linear" dataKey="writing" stroke="#FF9500" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#FF9500' }} activeDot={{ r: 6, strokeWidth: 0 }} name="Writing" connectNulls />}
-                                        {activeLines.speaking && <Line type="linear" dataKey="speaking" stroke="#AF52DE" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#AF52DE' }} activeDot={{ r: 6, strokeWidth: 0 }} name="Speaking" connectNulls />}
-                                    </LineChart>
-                                </ResponsiveContainer>
-                                <p className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-black/30 uppercase tracking-widest">Analitika (Vaqt o'qida)</p>
-                            </div>
+                                  />
+                              </div>
+  
+                              {/* Line Chart */}
+                              <div className="flex-1 h-[340px] w-full relative">
+                                  <ResponsiveContainer width="100%" height="100%">
+                                      <LineChart data={chartData} margin={{ top: 20, right: 20, left: -20, bottom: 20 }}>
+                                          <XAxis 
+                                              dataKey="displayDate" 
+                                              axisLine={false} 
+                                              tickLine={false} 
+                                              tick={{ fill: '#00000060', fontSize: 11, fontWeight: 600 }} 
+                                              dy={15} 
+                                          />
+                                          <YAxis 
+                                              domain={[0, 9]} 
+                                              axisLine={false} 
+                                              tickLine={false} 
+                                              tick={{ fill: '#00000060', fontSize: 11, fontWeight: 600 }} 
+                                          />
+                                          <Tooltip 
+                                              cursor={{ stroke: '#000000', strokeWidth: 1, opacity: 0.1 }}
+                                              contentStyle={{ 
+                                                  backgroundColor: '#ffffff', 
+                                                  borderRadius: '8px', 
+                                                  border: '1px solid rgba(0,0,0,0.05)', 
+                                                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                                                  padding: '12px 16px'
+                                              }} 
+                                              itemStyle={{ fontWeight: 700, fontSize: 13, color: '#1D1D1F' }}
+                                              labelStyle={{ color: '#00000080', marginBottom: '8px', fontWeight: 600, fontSize: 12 }}
+                                          />
+                                          {activeLines.reading && <Line type="linear" dataKey="reading" stroke="#007AFF" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#007AFF' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.reading')} connectNulls />}
+                                          {activeLines.listening && <Line type="linear" dataKey="listening" stroke="#34C759" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#34C759' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.listening')} connectNulls />}
+                                          {activeLines.writing && <Line type="linear" dataKey="writing" stroke="#FF9500" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#FF9500' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.writing')} connectNulls />}
+                                          {activeLines.speaking && <Line type="linear" dataKey="speaking" stroke="#AF52DE" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#AF52DE' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.speaking')} connectNulls />}
+                                      </LineChart>
+                                  </ResponsiveContainer>
+                                  <p className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-black/30 uppercase tracking-widest">{t('statistics.analyticsTimeAxis')}</p>
+                              </div>
                         </div>
                     </div>
 
@@ -313,8 +321,8 @@ export default function StudentStatistics() {
                     <div className="lg:col-span-3 bg-white rounded-[32px] p-8 shadow-sm border border-black/[0.03] animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                         <div className="flex items-center justify-between mb-10">
                             <div>
-                                <h3 className="text-xl font-bold text-[#1D1D1F]">Ko'nikmalar</h3>
-                                <p className="text-sm text-black/40 font-medium">Har bir bo'lim bo'yicha o'rtacha ball</p>
+                                <h3 className="text-xl font-bold text-[#1D1D1F]">{t('statistics.skills')}</h3>
+                                <p className="text-sm text-black/40 font-medium">{t('statistics.avgPerSection')}</p>
                             </div>
                             <Award className="text-black/20" size={24} />
                         </div>
@@ -334,7 +342,7 @@ export default function StudentStatistics() {
                                     />
                                     <Tooltip 
                                         cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-                                        formatter={(value) => [Number(value).toFixed(1), "O'rtacha ball"]}
+                                        formatter={(value) => [Number(value).toFixed(1), t('statistics.avg')]}
                                         contentStyle={{ 
                                             backgroundColor: 'rgba(255, 255, 255, 0.85)', 
                                             backdropFilter: 'blur(20px)',
@@ -361,39 +369,39 @@ export default function StudentStatistics() {
                     <div className="bg-white rounded-[32px] p-8 shadow-sm border border-black/[0.03]">
                         <h3 className="text-xl font-bold text-[#1D1D1F] mb-6 flex items-center gap-2">
                             <PenTool size={20} className="text-orange-500" />
-                            E'tibor berish kerak
+                            {t('statistics.focusAreas')}
                         </h3>
                         <div className="flex flex-wrap gap-2">
                             {stats.weakAreas.length > 0 ? stats.weakAreas.map(area => (
                                 <span key={area} className="px-4 py-2 bg-orange-50 text-orange-600 rounded-full text-sm font-bold border border-orange-100">
-                                    {area}
+                                    {t('dashboard.' + area.toLowerCase())}
                                 </span>
                             )) : (
-                                <p className="text-black/40 font-medium italic">Sizda barcha ko'rsatkichlar a'lo darajada!</p>
+                                <p className="text-black/40 font-medium italic">{t('statistics.allExcellent')}</p>
                             )}
                         </div>
                         <p className="text-sm text-black/40 mt-6 leading-relaxed font-medium">
-                            Ushbu yo'nalishlar bo'yicha ko'proq mashq bajarish umumiy ballingizni sezilarli darajada oshiradi.
+                            {t('statistics.focusExplanation')}
                         </p>
                     </div>
 
                     <div className="bg-white rounded-[32px] p-8 shadow-sm border border-black/[0.03]">
                         <h3 className="text-xl font-bold text-[#1D1D1F] mb-6 flex items-center gap-2">
                             <Calendar size={20} className="text-blue-500" />
-                            Kelgusi qadamlar
+                            {t('statistics.nextSteps')}
                         </h3>
                         <ul className="space-y-4">
                             <li className="flex items-start gap-3">
                                 <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
                                     <span className="text-xs font-bold">1</span>
                                 </div>
-                                <p className="text-sm text-black/70 font-medium">Haftada kamida 2 ta to'liq Listening testini ishlang.</p>
+                                <p className="text-sm text-black/70 font-medium">{t('statistics.step1')}</p>
                             </li>
                             <li className="flex items-start gap-3">
                                 <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
                                     <span className="text-xs font-bold">2</span>
                                 </div>
-                                <p className="text-sm text-black/70 font-medium">Vocabulary bo'limidan har kuni 10 ta yangi so'z o'rganing.</p>
+                                <p className="text-sm text-black/70 font-medium">{t('statistics.step2')}</p>
                             </li>
                         </ul>
                     </div>

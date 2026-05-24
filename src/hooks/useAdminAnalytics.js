@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase/firebase';
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
 
 export function useAdminAnalytics() {
     const [loading, setLoading] = useState(true);
@@ -19,12 +19,12 @@ export function useAdminAnalytics() {
         async function fetchData() {
             try {
                 const [resultsSnap, usersSnap, testsSnap] = await Promise.all([
-                    getDocs(query(collection(db, "results"), orderBy("createdAt", "asc"))),
-                    getDocs(collection(db, "users")),
-                    getDocs(collection(db, "tests"))
+                    getDocs(query(collection(db, "results"), orderBy("createdAt", "desc"), limit(1000))),
+                    getDocs(query(collection(db, "users"), limit(1000))),
+                    getDocs(collection(db, "tests_metadata"))
                 ]);
 
-                const results = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: d.data().createdAt?.toDate() }));
+                const results = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: d.data().createdAt?.toDate() })).reverse();
                 const users = usersSnap.docs.filter(d => d.data().role !== 'admin');
                 const tests = testsSnap.docs;
 

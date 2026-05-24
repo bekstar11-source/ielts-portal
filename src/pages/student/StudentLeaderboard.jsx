@@ -6,10 +6,12 @@ import { Trophy, Medal, Star, Target, Activity } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import SiteFooter from '../../components/common/SiteFooter';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function StudentLeaderboard() {
     const { user, userData } = useAuth();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actualRank, setActualRank] = useState(null);
@@ -73,7 +75,7 @@ export default function StudentLeaderboard() {
 
     const [migrating, setMigrating] = useState(false);
     const handleMigrateStats = async () => {
-        if (!window.confirm("Barcha top 10 o'quvchilarning Band natijalarini natijalar bazasidan qayta hisoblab chiqishni xohlaysizmi?")) return;
+        if (!window.confirm(t('leaderboard.confirmRecalculate'))) return;
         setMigrating(true);
         try {
             for (const u of users) {
@@ -95,11 +97,11 @@ export default function StudentLeaderboard() {
                     await updateDoc(userRef, updateData);
                 }
             }
-            alert("Ma'lumotlar muvaffaqiyatli yangilandi!");
+            alert(t('leaderboard.successUpdate'));
             fetchLeaderboard();
         } catch (e) {
             console.error(e);
-            alert("Xatolik: " + e.message);
+            alert(t('leaderboard.errorUpdate').replace('{error}', e.message));
         } finally {
             setMigrating(false);
         }
@@ -120,17 +122,17 @@ export default function StudentLeaderboard() {
                         <Trophy size={32} />
                     </div>
                     <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#1D1D1F] mb-3">
-                        Reyting va XP
+                        {t('leaderboard.title')}
                     </h1>
                     <p className="text-base text-black/50 font-medium max-w-lg mx-auto">
-                        Testlarni yeching, maqolalar o'qing va podcast eshitib o'z reytingingizni oshiring!
+                        {t('leaderboard.subtitle')}
                     </p>
                     <button 
                         onClick={() => navigate('/statistics')}
                         className="mt-6 inline-flex items-center gap-2 bg-white border border-black/5 text-black px-6 py-2.5 rounded-full text-xs font-bold hover:bg-black hover:text-white transition-all active:scale-95 shadow-sm hover:shadow-xl hover:shadow-black/10 group"
                     >
                         <Activity size={16} className="text-blue-500 group-hover:text-white transition-colors" />
-                        Mening statistikalarim
+                        {t('leaderboard.myStats')}
                     </button>
                 </div>
 
@@ -141,7 +143,7 @@ export default function StudentLeaderboard() {
                             <Star size={24} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest mb-0.5">Sizning ochkolaringiz</p>
+                            <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest mb-0.5">{t('leaderboard.yourPoints')}</p>
                             <h2 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">{currentUserPoints} <span className="text-sm text-black/40 font-medium tracking-normal ml-1">XP</span></h2>
                         </div>
                     </div>
@@ -151,10 +153,10 @@ export default function StudentLeaderboard() {
                             <Medal size={24} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest mb-0.5">Sizning o'rningiz</p>
+                            <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest mb-0.5">{t('leaderboard.yourRank')}</p>
                             <h2 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">
                                 {actualRank !== null ? `#${actualRank}` : "—"} 
-                                <span className="text-sm text-black/40 font-medium tracking-normal ml-1">umumiy reytingda</span>
+                                <span className="text-sm text-black/40 font-medium tracking-normal ml-1">{t('leaderboard.overallRank')}</span>
                             </h2>
                         </div>
                     </div>
@@ -162,22 +164,22 @@ export default function StudentLeaderboard() {
 
                 {/* How to earn points */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-black/[0.03] mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                    <h3 className="text-lg font-bold text-[#1D1D1F] mb-5">Qanday qilib XP yig'ish mumkin?</h3>
+                    <h3 className="text-lg font-bold text-[#1D1D1F] mb-5">{t('leaderboard.howToEarn')}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
                             <Target className="text-blue-500 mb-2" size={20} />
-                            <h4 className="font-bold text-[#1D1D1F] text-sm mb-1">Test ishlash</h4>
-                            <p className="text-xs text-black/50 font-medium leading-relaxed">Ballingizga qarab XP (masalan, 9.0 = 90 XP)</p>
+                            <h4 className="font-bold text-[#1D1D1F] text-sm mb-1">{t('leaderboard.solveTests')}</h4>
+                            <p className="text-xs text-black/50 font-medium leading-relaxed">{t('leaderboard.solveTestsDesc')}</p>
                         </div>
                         <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
                             <Activity className="text-green-500 mb-2" size={20} />
-                            <h4 className="font-bold text-[#1D1D1F] text-sm mb-1">Podcast tinglash</h4>
-                            <p className="text-xs text-black/50 font-medium leading-relaxed">+20 XP har bir epizod uchun</p>
+                            <h4 className="font-bold text-[#1D1D1F] text-sm mb-1">{t('leaderboard.listenPodcasts')}</h4>
+                            <p className="text-xs text-black/50 font-medium leading-relaxed">{t('leaderboard.listenPodcastsDesc')}</p>
                         </div>
                         <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
                             <Star className="text-purple-500 mb-2" size={20} />
-                            <h4 className="font-bold text-[#1D1D1F] text-sm mb-1">Maqola o'qish</h4>
-                            <p className="text-xs text-black/50 font-medium leading-relaxed">+10 XP har bir maqola uchun</p>
+                            <h4 className="font-bold text-[#1D1D1F] text-sm mb-1">{t('leaderboard.readArticles')}</h4>
+                            <p className="text-xs text-black/50 font-medium leading-relaxed">{t('leaderboard.readArticlesDesc')}</p>
                         </div>
                     </div>
                 </div>
@@ -186,8 +188,8 @@ export default function StudentLeaderboard() {
                 <div className="bg-white rounded-2xl shadow-sm border border-black/[0.03] overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                     <div className="p-5 md:p-6 border-b border-black/[0.03] flex items-center justify-between">
                         <div>
-                            <h3 className="text-lg font-bold text-[#1D1D1F]">Kuchli 10 talik</h3>
-                            <p className="text-xs text-black/40 font-medium mt-0.5">Platformadagi eng faol o'quvchilar ro'yxati</p>
+                            <h3 className="text-lg font-bold text-[#1D1D1F]">{t('leaderboard.top10')}</h3>
+                            <p className="text-xs text-black/40 font-medium mt-0.5">{t('leaderboard.activeStudentsDesc')}</p>
                         </div>
                         {(userData?.role === 'admin' || user?.email === 'bekstar11@gmail.com') && (
                             <button 
@@ -195,7 +197,7 @@ export default function StudentLeaderboard() {
                                 disabled={migrating}
                                 className="text-[10px] font-bold uppercase tracking-widest text-blue-500 hover:text-blue-600 disabled:opacity-50"
                             >
-                                {migrating ? "Yangilanmoqda..." : "Ma'lumotlarni yangilash"}
+                                {migrating ? t('leaderboard.updating') : t('leaderboard.updateData')}
                             </button>
                         )}
                     </div>
@@ -204,17 +206,17 @@ export default function StudentLeaderboard() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50/50">
-                                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40">O'rin</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40">O'quvchi</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-center">Band (R+L)</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-right">Ochko (XP)</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40">{t('leaderboard.rank')}</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40">{t('leaderboard.student')}</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-center">{t('leaderboard.band')}</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-right">{t('leaderboard.xp')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-black/[0.03]">
                                 {loading ? (
                                     <tr>
                                         <td colSpan="4" className="px-6 py-12 text-center text-black/40 font-medium">
-                                            Yuklanmoqda...
+                                            {t('leaderboard.loading')}
                                         </td>
                                     </tr>
                                 ) : users.map((u, idx) => {
@@ -238,8 +240,8 @@ export default function StudentLeaderboard() {
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-[#1D1D1F] text-[13px] leading-tight">
-                                                            {u.fullName || "Noma'lum foydalanuvchi"}
-                                                            {isCurrentUser && <span className="ml-1.5 text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md font-bold">Siz</span>}
+                                                            {u.fullName || t('leaderboard.unknownUser')}
+                                                            {isCurrentUser && <span className="ml-1.5 text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md font-bold">{t('leaderboard.you')}</span>}
                                                         </p>
                                                         <p className="text-[10px] text-black/40 font-medium">Level {Math.floor(u.points / 100) + 1}</p>
                                                     </div>
@@ -286,8 +288,8 @@ export default function StudentLeaderboard() {
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-[#1D1D1F] text-[13px] leading-tight">
-                                                            {userData?.fullName || "Siz"}
-                                                            <span className="ml-1.5 text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md font-bold">Siz</span>
+                                                            {userData?.fullName || t('leaderboard.you')}
+                                                            <span className="ml-1.5 text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md font-bold">{t('leaderboard.you')}</span>
                                                         </p>
                                                         <p className="text-[10px] text-black/40 font-medium">Level {Math.floor((userData?.points || 0) / 100) + 1}</p>
                                                     </div>
@@ -317,7 +319,7 @@ export default function StudentLeaderboard() {
                                 {!loading && users.length === 0 && (
                                     <tr>
                                         <td colSpan="4" className="px-6 py-12 text-center text-black/40 font-medium">
-                                            Hali hech kim XP yig'magan
+                                            {t('leaderboard.noXP')}
                                         </td>
                                     </tr>
                                 )}

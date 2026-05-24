@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Play, ArrowRight, Crown, Zap, BookOpen, FileText, Clock, Diamond, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ShareModal from '../common/ShareModal';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function FullReadingCard({ test, isCompleted, onReview, onStart, isPro, isStandard }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const passages = test.title?.split('/').map(s => s.trim()) || [test.title];
 
@@ -34,14 +36,14 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
           <div>
             <div className="flex items-center gap-2 mb-4">
               <span className="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-bold tracking-wider uppercase">
-                Full Test
+                {t('practice.fullReading')}
               </span>
               <span className="px-2.5 py-1 rounded-full bg-white text-[#0071e3] text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
                 <Crown size={10} className="text-[#bf953f]" /> Premium
               </span>
               {isCompleted && (
                 <span className="px-2.5 py-1 rounded-full bg-[#34c759]/20 backdrop-blur-md text-[#34c759] text-[10px] font-bold tracking-wider uppercase border border-[#34c759]/30">
-                  Completed
+                  {t('practice.statusCompleted')}
                 </span>
               )}
             </div>
@@ -65,20 +67,20 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
             <div className="flex flex-wrap gap-4 mt-2">
               <div className="flex items-center gap-1.5 text-white/70 text-[12px] font-bold">
                 <BookOpen size={14} strokeWidth={2.5} />
-                3 Passages
+                3 {t('practice.passages')}
               </div>
               <div className="flex items-center gap-1.5 text-white/70 text-[12px] font-bold">
                 <FileText size={14} strokeWidth={2.5} />
-                40 Questions
+                40 {t('practice.questions')}
               </div>
               <div className="flex items-center gap-1.5 text-white/70 text-[12px] font-bold">
                 <Clock size={14} strokeWidth={2.5} />
-                60 Mins
+                60 {t('practice.mins')}
               </div>
               {isCompleted && (
                 <div className="w-full pt-2">
                   <p className="text-white text-[18px] font-bold">
-                    Score: {test.result?.score}/40
+                    {t('practice.result')}: {test.result?.score}/40
                   </p>
                 </div>
               )}
@@ -110,7 +112,7 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
                       onClick={(e) => { e.stopPropagation(); onReview(test); }}
                       className="bg-white/20 text-white px-4 py-2 rounded-full font-bold text-[14px] hover:bg-white/30 backdrop-blur-md transition-all duration-300 flex items-center gap-2 z-10"
                     >
-                      Review
+                      {t('practice.review')}
                     </button>
                   )}
                   <button
@@ -118,7 +120,7 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
                     className="flex items-center gap-3 group/btn z-10"
                   >
                     <span className="text-white text-[14px] font-bold opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300 flex items-center gap-1.5">
-                      {isCompleted ? 'Retake' : 'Start Now'}
+                      {isCompleted ? t('practice.retake') : t('practice.startNow')}
                     </span>
                     <div className="w-12 h-12 rounded-full bg-white text-[#0071e3] flex items-center justify-center shadow-lg transform group-hover/btn:scale-110 transition-transform duration-300">
                       <Play size={20} className="fill-current ml-1" />

@@ -18,6 +18,7 @@ import TestCommentSection from "../../components/TestReview/TestCommentSection";
 import { motion, AnimatePresence } from "framer-motion";
 import { hapticFeedback } from "../../utils/haptic";
 import BottomNav from "../../components/dashboard/BottomNav";
+import { useTranslation } from "../../context/LanguageContext";
 
 const getTestTheme = (type) => {
   switch (type) {
@@ -92,6 +93,8 @@ const formatDate = (dateString) => {
 
 export default function MyResults({ tests: propTests, loading: propLoading }) {
   const { user, userData, logout } = useAuth();
+  const { t, currentLanguage } = useTranslation();
+  const dateLocale = currentLanguage === 'uz' ? 'uz-UZ' : 'en-US';
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('results');
   const [searchTerm, setSearchTerm] = useState("");
@@ -310,7 +313,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
           <nav className="w-full h-[52px] bg-stone-50/80 backdrop-blur-xl flex items-center border-b border-divider-soft">
               <div className="w-full px-8 h-full flex items-center justify-between">
                 <div className="flex items-center gap-x-8">
-                  <span className="text-lg font-semibold text-neutral-900">Results</span>
+                  <span className="text-lg font-semibold text-neutral-900">{t('myResults.title')}</span>
                   <div className="hidden md:flex items-center gap-x-6 h-[52px]">
                     {filters.map((f) => (
                       <button
@@ -322,7 +325,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                           : 'text-neutral-500 hover:text-neutral-900 border-transparent'
                         }`}
                       >
-                        {f.label}
+                        {t(`myResults.categories.${f.id}`)}
                       </button>
                     ))}
                   </div>
@@ -334,7 +337,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
 
       {!isComponent && (
         <div className="md:hidden sticky top-0 z-[100] w-full bg-stone-50 border-b border-divider-soft flex items-center justify-between px-6 h-14">
-          <span className="text-lg font-bold">Results</span>
+          <span className="text-lg font-bold">{t('myResults.title')}</span>
           <div className="flex items-center gap-4">
              <Search size={20} className="text-neutral-500" />
              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold uppercase">
@@ -348,8 +351,8 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
         {!isComponent && (
           <header className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="hidden md:block">
-              <h1 className="font-display-md text-display-md text-ink">Natijalarim</h1>
-              <p className="font-body text-body text-ink-muted-48 mt-2">Barcha topshirilgan imtihonlaringizning batafsil statistikasi.</p>
+              <h1 className="font-display-md text-display-md text-ink">{t('myResults.title')}</h1>
+              <p className="font-body text-body text-ink-muted-48 mt-2">{t('myResults.subtitle')}</p>
             </div>
             
             {/* Mobile Filters */}
@@ -367,7 +370,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                     : 'bg-white text-neutral-500 border-neutral-200'
                   }`}
                 >
-                  {f.label}
+                  {t(`myResults.categories.${f.id}`)}
                 </button>
               ))}
             </div>
@@ -380,12 +383,12 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-white border border-hairline rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-action-blue transition-all" 
-                  placeholder="Qidirish..." 
+                  placeholder={t('myResults.searchPlaceholder')}
                 />
               </div>
               <button className="flex items-center gap-2 bg-white border border-hairline px-4 py-2.5 rounded-full text-sm font-medium hover:bg-pearl transition-colors active:scale-95">
                 <Download size={18} />
-                <span className="hidden sm:inline">Eksport</span>
+                <span className="hidden sm:inline">{t('myResults.export')}</span>
               </button>
             </div>
           </header>
@@ -395,18 +398,18 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
           {loading && results.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 bg-white rounded-xl border border-hairline text-center px-6">
               <div className="w-8 h-8 border-2 border-zinc-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-              <p className="text-zinc-550 text-sm">Natijalaringiz yuklanmoqda...</p>
+              <p className="text-zinc-550 text-sm">{t('myResults.loading')}</p>
             </div>
           ) : filteredResults.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 bg-white rounded-xl border border-hairline text-center px-6">
               <span className="material-symbols-outlined text-[48px] text-ink-muted-48 mb-4">search_off</span>
-              <h3 className="text-xl font-bold mb-2">Natijalar topilmadi</h3>
-              <p className="text-ink-muted-48 mb-8 text-sm">Tanlangan filtr bo'yicha hech qanday natija mavjud emas.</p>
+              <h3 className="text-xl font-bold mb-2">{t('myResults.noResults')}</h3>
+              <p className="text-ink-muted-48 mb-8 text-sm">{t('myResults.noResultsDesc')}</p>
               <button 
                 onClick={() => {setFilterType('all'); setSearchTerm('');}} 
                 className="text-action-blue font-bold text-sm hover:underline"
               >
-                Filtrlarni tozalash
+                {t('myResults.clearFilters')}
               </button>
             </div>
           ) : (
@@ -424,8 +427,8 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
               
               const dateObj = new Date(res.lastAttemptDate || res.date);
               const day = dateObj.getDate();
-              const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-              const time = dateObj.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+              const month = dateObj.toLocaleDateString(dateLocale, { month: 'short' }).toUpperCase();
+              const time = dateObj.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' });
 
               return (
                 <motion.div 
@@ -458,15 +461,15 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                           {isGraded ? (
                             <>
                               {Number(bandScore || 0).toFixed(1)}
-                              <span className="text-[10px] md:text-sm font-black text-ink-muted-48 uppercase ml-1">Best Band</span>
+                              <span className="text-[10px] md:text-sm font-black text-ink-muted-48 uppercase ml-1">{t('myResults.bestBand')}</span>
                             </>
                           ) : (
-                            <span className="text-[10px] md:text-sm font-medium text-ink-muted-48">Grading...</span>
+                            <span className="text-[10px] md:text-sm font-medium text-ink-muted-48">{t('myResults.grading')}</span>
                           )}
                         </div>
                         {isGraded && (
                           <div className="text-[10px] md:text-[12px] text-ink-muted-48 mt-0.5 md:mt-1 font-bold uppercase tracking-wide">
-                            {res.bestScore !== undefined ? `${res.bestScore}/${res.totalQuestions || 40} BEST SCORE` : "EVALUATED"}
+                            {res.bestScore !== undefined ? `${res.bestScore}/${res.totalQuestions || 40} ${t('myResults.bestScore')}` : t('myResults.evaluated')}
                           </div>
                         )}
                       </div>
@@ -476,13 +479,13 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                   {/* Attempts History */}
                   <div className="w-full mt-5 pt-4 border-t border-hairline">
                     <p className="text-xs text-ink-muted-48 uppercase font-bold mb-3 tracking-wider">
-                      Urinishlar tarixi ({res.attempts?.length || 1})
+                      {t('myResults.attemptsHistory')} ({res.attempts?.length || 1})
                     </p>
                     <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
                       {res.attempts && res.attempts.length > 0 ? (
                         [...res.attempts].reverse().map((attempt, index) => {
                           const attemptDateObj = new Date(attempt.date);
-                          const attemptDateStr = attemptDateObj.toLocaleDateString('uz-UZ', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
+                          const attemptDateStr = attemptDateObj.toLocaleDateString(dateLocale, { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
                           const minsSpent = Math.max(1, Math.floor((attempt.timeSpent || 0) / 60));
                           const scoreVal = attempt.bandScore || attempt.overallBand || attempt.score || 0;
                           const isBand = attempt.bandScore != null || attempt.overallBand != null || res.type === 'mock_full' || res.type === 'reading' || res.type === 'listening' || res.type === 'writing' || res.type === 'speaking';
@@ -494,15 +497,15 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                                 <span className="text-sm text-ink font-medium">{attemptDateStr}</span>
                               </div>
                               <div className="flex items-center gap-4">
-                                <span className="text-xs text-ink-muted-48 hidden sm:inline">{minsSpent} min</span>
+                                <span className="text-xs text-ink-muted-48 hidden sm:inline">{minsSpent} {t('myResults.minUnit')}</span>
                                 <span className="text-sm font-bold text-action-blue">
-                                  {Number(scoreVal).toFixed(1)} {isBand ? 'band' : 'ball'}
+                                  {Number(scoreVal).toFixed(1)} {isBand ? t('myResults.band') : t('myResults.ball')}
                                 </span>
                                 <button 
                                   onClick={() => navigate(`/review/${res.id}?attempt=${attempt.attemptId}`)}
                                   className="text-xs bg-white border border-hairline hover:bg-pearl text-ink px-3 py-1.5 rounded-full font-medium transition-colors shadow-sm"
                                 >
-                                  Review
+                                  {t('myResults.review')}
                                 </button>
                               </div>
                             </div>
@@ -514,16 +517,16 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                           <div className="flex items-center gap-3">
                             <span className="text-xs text-ink-muted-48 font-bold">#1</span>
                             <span className="text-sm text-ink font-medium">
-                              {new Date(res.date).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {new Date(res.date).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className="text-sm font-bold text-action-blue">{Number(bandScore || 0).toFixed(1)} band</span>
+                            <span className="text-sm font-bold text-action-blue">{Number(bandScore || 0).toFixed(1)} {t('myResults.band')}</span>
                             <button 
                               onClick={() => navigate(`/review/${res.id}`)}
                               className="text-xs bg-white border border-hairline hover:bg-pearl text-ink px-3 py-1.5 rounded-full font-medium transition-colors shadow-sm"
                             >
-                              Review
+                              {t('myResults.review')}
                             </button>
                           </div>
                         </div>
@@ -562,27 +565,27 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
         )}
       </main>
 
-      {!isComponent && (
-        <>
-          <section className="w-full bg-white py-section border-t border-hairline">
-            <div className="max-w-6xl mx-auto px-8">
-              <div className="flex flex-col items-center text-center mb-16">
-                <span className="text-action-blue font-semibold tracking-widest uppercase text-xs mb-4">Motivation</span>
-                <h2 className="font-display-md text-3xl max-w-2xl">Muvaffaqiyat kaliti tinimsiz mehnatdadir.</h2>
+        {!isComponent && (
+          <>
+            <section className="w-full bg-white py-section border-t border-hairline">
+              <div className="max-w-6xl mx-auto px-8">
+                <div className="flex flex-col items-center text-center mb-16">
+                  <span className="text-action-blue font-semibold tracking-widest uppercase text-xs mb-4">{t('myResults.motivationTitle')}</span>
+                  <h2 className="font-display-md text-3xl max-w-2xl">{t('myResults.motivationQuote')}</h2>
+                </div>
+                <div className="relative rounded-2xl overflow-hidden aspect-[21/9]">
+                  <img 
+                    className="w-full h-full object-cover" 
+                    alt="A focused student sitting in a bright, modern library"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHrx_83zpVcIennaqB7KnJsIF6uwiwBRG_pMKVRI5uCWzvb413B1IkIeIvbfEpCKJ1sroDSWKULg_3EakhMM0dsInf1YsCeZov9KQcLZSWYsPY0F1Jzijf6KZBNWiq95_O_4I2TBT84SjF2YQwpH4TpGeH9ZIjsxQ1aGqkpkHImFlL0Jln6KWTqiXHWZV_nZfEfTFQZ_yzTf8m3Sxt7paawURp6mimaSShtUphLh765_Y1E8e9b-sGsyT13kOXopYgJszaI_EdPnUb"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                </div>
               </div>
-              <div className="relative rounded-2xl overflow-hidden aspect-[21/9]">
-                <img 
-                  className="w-full h-full object-cover" 
-                  alt="A focused student sitting in a bright, modern library"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHrx_83zpVcIennaqB7KnJsIF6uwiwBRG_pMKVRI5uCWzvb413B1IkIeIvbfEpCKJ1sroDSWKULg_3EakhMM0dsInf1YsCeZov9KQcLZSWYsPY0F1Jzijf6KZBNWiq95_O_4I2TBT84SjF2YQwpH4TpGeH9ZIjsxQ1aGqkpkHImFlL0Jln6KWTqiXHWZV_nZfEfTFQZ_yzTf8m3Sxt7paawURp6mimaSShtUphLh765_Y1E8e9b-sGsyT13kOXopYgJszaI_EdPnUb"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-              </div>
-            </div>
-          </section>
-          <SiteFooter />
-        </>
-      )}
+            </section>
+            <SiteFooter />
+          </>
+        )}
 
       {/* --- SIDE PANEL: COMMENTS --- */}
       <AnimatePresence>
@@ -604,7 +607,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
             >
               <div className="h-16 bg-zinc-950 text-white flex items-center justify-between px-6 shrink-0">
                 <div className="flex flex-col">
-                  <h2 className="text-sm font-black tracking-widest leading-none">Comments</h2>
+                  <h2 className="text-sm font-black tracking-widest leading-none">{t('myResults.comments')}</h2>
                   <span className="text-[10px] text-gray-400 font-medium mt-1 truncate max-w-[300px]">{selectedResult.testTitle}</span>
                 </div>
                 <button 

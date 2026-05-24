@@ -28,30 +28,7 @@ export default function ListeningPartsSection({
             </div>
 
             {/* Beautiful Segmented Tab Filter */}
-            <div className="flex items-center gap-1 bg-[#f5f5f7] p-1 rounded-xl border border-black/5 self-start md:self-auto shadow-sm">
-                {[
-                    { id: 'all', label: 'All Parts' },
-                    { id: '1', label: 'Part 1' },
-                    { id: '2', label: 'Part 2' },
-                    { id: '3', label: 'Part 3' },
-                    { id: '4', label: 'Part 4' },
-                ].map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => {
-                            setActivePartFilter(tab.id);
-                            setCurrentPage(1);
-                        }}
-                        className={`px-4 py-2 rounded-lg text-[12px] font-bold transition-all relative ${
-                            activePartFilter === tab.id
-                                ? 'bg-white text-black shadow-sm border border-black/5'
-                                : 'text-black/50 hover:text-black hover:bg-black/5'
-                        }`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
+
         </div>
         
         {filteredVirtualParts.length === 0 ? (
@@ -59,7 +36,7 @@ export default function ListeningPartsSection({
                 Ushbu bo'limga mos part practice testlari topilmadi.
             </div>
         ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 pt-4">
                 {filteredVirtualParts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
                     <PracticeCard 
                         key={test.id} 

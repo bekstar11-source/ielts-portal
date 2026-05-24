@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { db, functions } from "../../firebase/firebase";
-import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, getCountFromServer } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, getCountFromServer, limit } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { useNavigate } from "react-router-dom";
 import { hapticFeedback } from "../../utils/haptic";
@@ -90,9 +90,9 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
         if (rawAssignments.length === 0) {
             const fetchFallback = async () => {
                 try {
-                    const q = query(collection(db, "tests"), where("type", "==", "reading"));
+                    const q = query(collection(db, "tests_metadata"), where("type", "==", "reading"), limit(5));
                     const snap = await getDocs(q);
-                    setPublicTestsFallback(snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 5));
+                    setPublicTestsFallback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                 } catch (err) {
                     console.warn("Could not fetch fallback tests in hook due to permissions:", err);
                 }

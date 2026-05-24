@@ -4,6 +4,7 @@ import { calculateBandScore, formatTime, checkAnswer, scoreMultiAnswer, isMultiA
 import { Icons } from '../Icons';
 import { useAuth } from '../../context/AuthContext';
 import PricingModal from '../dashboard/PricingModal';
+import { useTranslation } from '../../context/LanguageContext';
 
 // ──────────────────────────────────────────────
 // AUDIO PRELOADER HOOK
@@ -59,6 +60,7 @@ function useAudioPreloader(audioUrls) {
 // MODE SELECTION MODAL
 // ──────────────────────────────────────────────
 export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowModeSelection, test }) => {
+    const { t } = useTranslation();
     const [phase, setPhase] = useState('select'); // 'select' | 'preloading'
 
     // Barcha audio URL-larini testdan to'playmiz
@@ -89,8 +91,8 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
         return (
             <div className="absolute inset-0 bg-white/90 z-[999] flex items-center justify-center backdrop-blur-md">
                 <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-lg w-full text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Test Mode</h2>
-                    <p className="text-gray-500 mb-8 text-sm">Choose how you want to take this test</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('testSolving.selectModeTitle')}</h2>
+                    <p className="text-gray-500 mb-8 text-sm">{t('testSolving.selectModeSubtitle')}</p>
                     <div className="grid grid-cols-2 gap-4">
                         {/* EXAM MODE — avval audio preload qiladi */}
                         <button
@@ -98,8 +100,8 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
                             className="bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
                         >
                             <div className="text-3xl mb-3">🎓</div>
-                            <h3 className="font-bold text-gray-900 group-hover:text-red-600">Exam Mode</h3>
-                            <p className="text-gray-400 text-xs mt-2">No pause. Real exam conditions.</p>
+                            <h3 className="font-bold text-gray-900 group-hover:text-red-600">{t('testSolving.examMode')}</h3>
+                            <p className="text-gray-400 text-xs mt-2">{t('testSolving.examModeDesc')}</p>
                         </button>
 
                         {/* PRACTICE MODE — to'g'ridan-to'g'ri boshlanadi */}
@@ -112,8 +114,8 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
                             className="bg-white hover:bg-green-50 border border-gray-200 hover:border-green-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
                         >
                             <div className="text-3xl mb-3">🎧</div>
-                            <h3 className="font-bold text-gray-900 group-hover:text-green-600">Practice Mode</h3>
-                            <p className="text-gray-400 text-xs mt-2">Pause allowed. Self-paced.</p>
+                            <h3 className="font-bold text-gray-900 group-hover:text-green-600">{t('testSolving.practiceMode')}</h3>
+                            <p className="text-gray-400 text-xs mt-2">{t('testSolving.practiceModeDesc')}</p>
                         </button>
                     </div>
                 </div>
@@ -134,12 +136,12 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
                 </div>
 
                 <h2 className="text-xl font-bold text-gray-900 mb-1">
-                    {done ? 'Ready to Start!' : 'Preparing Audio...'}
+                    {done ? t('testSolving.readyToStart') : t('testSolving.preparingAudio')}
                 </h2>
                 <p className="text-gray-400 text-sm mb-6">
                     {done
-                        ? 'All audio files are cached. Starting exam...'
-                        : 'Downloading audio files for uninterrupted playback.'}
+                        ? t('testSolving.cachedDesc')
+                        : t('testSolving.downloadingDesc')}
                 </p>
 
                 {/* Progress bar */}
@@ -176,6 +178,7 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
 // RESULT MODAL
 // ──────────────────────────────────────────────
 export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, initialDuration, isReviewing, setIsReviewing, onExit, userAnswers, partNumber = null, resultId = null, navigate = null }) => {
+    const { t } = useTranslation();
     const { userData } = useAuth();
     const [showPricingModal, setShowPricingModal] = useState(false);
 
@@ -317,11 +320,11 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
     return (
         <div className="absolute inset-0 bg-white/90 z-50 flex items-center justify-center backdrop-blur-md animate-in fade-in">
             <div className="bg-white p-7 rounded-3xl shadow-2xl border border-gray-100 max-w-md w-full text-center">
-                <h3 className="font-bold text-2xl text-gray-900 mb-1">Test Completed 🎉</h3>
+                <h3 className="font-bold text-2xl text-gray-900 mb-1">{t('testSolving.testCompleted')}</h3>
 
                 <p className="text-gray-500 mb-3.5 flex items-center justify-center gap-1.5 text-xs font-semibold">
                     <Icons.Clock className="w-3.5 h-3.5 opacity-55" />
-                    Time Spent: <span className="font-black text-gray-800">{formatTime(timeSpent)}</span>
+                    {t('testSolving.timeSpent')}: <span className="font-black text-gray-800">{formatTime(timeSpent)}</span>
                 </p>
 
                 {test.type !== 'speaking' && test.type !== 'writing' ? (
@@ -330,23 +333,23 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                         <div className="grid grid-cols-2 gap-3.5">
                             {/* Answers Panel */}
                             <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-3.5 flex flex-col justify-center items-center">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Answers</span>
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">{t('testSolving.answers')}</span>
                                 <div className="flex items-baseline gap-1 mt-1.5">
                                     <span className="text-2xl font-black text-emerald-600">{score}</span>
                                     <span className="text-gray-300 font-bold text-md">/</span>
                                     <span className="text-2xl font-black text-rose-500">{totalMistakes}</span>
                                 </div>
                                 <div className="flex gap-2.5 mt-1.5 text-[9px] font-black tracking-wide">
-                                    <span className="text-emerald-700">✓ To'g'ri</span>
-                                    <span className="text-rose-600">✗ Xato</span>
+                                    <span className="text-emerald-700">✓ {t('testSolving.correct')}</span>
+                                    <span className="text-rose-600">✗ {t('testSolving.mistake')}</span>
                                 </div>
                             </div>
 
                             {/* Band Score Panel */}
                             <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-3.5 flex flex-col justify-center items-center">
-                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-wider">Band Score</span>
+                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-wider">{t('testSolving.bandScore')}</span>
                                 <span className="text-3xl font-black text-blue-600 mt-1">{bandScore}</span>
-                                <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-1">IELTS Standard</span>
+                                <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-1">{t('testSolving.ieltsStandard')}</span>
                             </div>
                         </div>
 
@@ -354,7 +357,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                         {partStats.length > 0 && (
                             <div className="mt-4 pt-3.5 border-t border-gray-100 w-full text-left">
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center mb-3">
-                                    Xatolar Tahlili
+                                    {t('testSolving.mistakesAnalysis')}
                                 </p>
                                 <div className={`grid ${colsClass} gap-2`}>
                                     {partStats.map((part, index) => (
@@ -364,7 +367,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                                             </span>
                                             <div className="flex items-center justify-center gap-0.5 mt-1">
                                                 <span className="text-xs font-black text-rose-500">{part.mistakes}</span>
-                                                <span className="text-[9px] font-bold text-gray-400">xato</span>
+                                                <span className="text-[9px] font-bold text-gray-400">{t('testSolving.mistakes')}</span>
                                             </div>
                                         </div>
                                     ))}
@@ -373,7 +376,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                         )}
                     </div>
                 ) : (
-                    <p className="text-gray-500 my-6 text-sm">Your answer has been submitted for grading.</p>
+                    <p className="text-gray-500 my-6 text-sm">{t('testSolving.submittedGrading')}</p>
                 )}
 
                 <div className="flex flex-col gap-2 mt-4">
@@ -392,9 +395,9 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                         className="bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl w-full text-sm transition shadow-md shadow-gray-100 active:scale-[0.98] flex items-center justify-center gap-1.5"
                     >
                         {!canReview && <span className="text-xs">🔒</span>}
-                        Review Mistakes
+                        {t('testSolving.reviewMistakes')}
                     </button>
-                    <button onClick={onExit} className="text-gray-500 hover:text-gray-900 font-bold py-2 rounded-xl w-full text-xs transition active:scale-[0.98]">Exit</button>
+                    <button onClick={onExit} className="text-gray-500 hover:text-gray-900 font-bold py-2 rounded-xl w-full text-xs transition active:scale-[0.98]">{t('testSolving.exit')}</button>
                 </div>
             </div>
 

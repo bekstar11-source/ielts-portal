@@ -3,20 +3,27 @@ import { useLocation } from 'react-router-dom';
 import { usePodcast } from '../../context/PodcastContext';
 import InteractivePlayer from '../InteractivePlayer';
 
+const isPodcastPath = (pathname) =>
+  pathname.startsWith('/podcast') || pathname === '/podcasts';
+
 const GlobalPodcastPlayer = () => {
   const { isExpanded, setIsExpanded, setIsPlaying } = usePodcast();
   const location = useLocation();
+  const isPodcastRoute = isPodcastPath(location.pathname);
 
   useEffect(() => {
-    // Check if the current path is NOT a podcast-related path
-    const isPodcastRoute = location.pathname.startsWith('/podcast') || location.pathname === '/podcasts';
-    
     if (!isPodcastRoute) {
       setIsPlaying(false);
     }
-  }, [location.pathname, setIsPlaying]);
+  }, [isPodcastRoute, setIsPlaying]);
 
-  return <InteractivePlayer isOpen={isExpanded} onClose={() => setIsExpanded(false)} />;
+  return (
+    <InteractivePlayer
+      isOpen={isExpanded}
+      onClose={() => setIsExpanded(false)}
+      keyboardShortcutsEnabled={isPodcastRoute}
+    />
+  );
 };
 
 export default GlobalPodcastPlayer;

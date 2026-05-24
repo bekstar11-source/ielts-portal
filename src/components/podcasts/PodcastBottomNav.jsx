@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Search, Library, Heart, LayoutDashboard } from "lucide-react";
+import { Home, Search, Library, Heart, Headphones } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 export default function PodcastBottomNav({ isDark }) {
@@ -7,11 +7,11 @@ export default function PodcastBottomNav({ isDark }) {
     const location = useLocation();
 
     const tabs = [
-        { id: 'home', label: 'Home', icon: Home, path: '/podcasts' },
+        { id: 'home', label: 'Podcasts', icon: Headphones, path: '/podcasts' },
         { id: 'liked', label: 'Liked', icon: Heart, path: '/podcasts?tab=liked' },
         { id: 'search', label: 'Search', icon: Search, path: '/podcasts?tab=search' },
         { id: 'library', label: 'Your Library', icon: Library, path: '/podcasts?tab=library' },
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+        { id: 'dashboard', label: 'Home', icon: Home, path: '/dashboard' },
     ];
 
     const isActive = (path) => location.pathname + location.search === path;

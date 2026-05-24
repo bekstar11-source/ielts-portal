@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { extractArticleCategories, categoryMatchesSearch } from "../../utils/articleCategory";
 import { useTheme } from "../../context/ThemeContext";
 import { Plus, Search, BookOpen } from "lucide-react";
 
@@ -33,9 +34,11 @@ export default function AdminArticles() {
         }
     };
 
+    const existingCategories = useMemo(() => extractArticleCategories(articles), [articles]);
+
     const filteredArticles = articles.filter(a => 
         a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.category.toLowerCase().includes(searchTerm.toLowerCase())
+        categoryMatchesSearch(a.category, searchTerm)
     );
 
     return (
@@ -80,6 +83,7 @@ export default function AdminArticles() {
                     isOpen={showModal}
                     onClose={() => setShowModal(false)}
                     onSave={handleSave}
+                    existingCategories={existingCategories}
                     onUpload={async (file) => {
                         return await uploadFile(file);
                     }}

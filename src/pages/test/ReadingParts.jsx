@@ -55,7 +55,7 @@ export default function ReadingParts() {
   const [hasMore, setHasMore] = useState(true);
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 200;
 
   const rawAssignments = useMemo(() => {
     // Deduplicate between assignments and library tests
@@ -128,13 +128,51 @@ export default function ReadingParts() {
     return ["all", ...Array.from(types).sort()];
   }, [rawAssignments]);
 
+  const getQuestionCount = (test) => {
+    if (test.totalQuestions) return test.totalQuestions;
+    
+    const countUniqueIds = (items) => {
+      if (!items || !Array.isArray(items)) return 0;
+      const ids = new Set();
+      const extract = (obj) => {
+        if (!obj) return;
+        if (obj.id && !isNaN(parseInt(obj.id))) {
+          ids.add(parseInt(obj.id));
+        }
+        if (Array.isArray(obj.items)) obj.items.forEach(extract);
+        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
+        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
+      };
+      items.forEach(extract);
+      return ids.size;
+    };
+
+    if (test.questions) {
+      const count = countUniqueIds(test.questions);
+      if (count > 0) return count;
+    }
+    if (test.sections) {
+      const count = countUniqueIds(test.sections);
+      if (count > 0) return count;
+    }
+    
+    const titleLower = test.title?.toLowerCase() || '';
+    const isReadingFull = titleLower.includes('full') || titleLower.includes('/');
+    
+    return (test.questions?.length) || (isReadingFull ? 40 : 13);
+  };
+
   const filteredTests = useMemo(() => {
     const q = searchQuery.toLowerCase();
     const result = [];
     
     rawAssignments.forEach(item => {
-      let matchesTab = item.type === 'reading' && !item.title?.includes('/') && !item.isSet;
+      let matchesTab = item.type === 'reading' && !item.isSet;
       if (!matchesTab) return;
+
+      // Filter out tests with more than 14 questions for the parts page
+      const qCount = getQuestionCount(item);
+      if (qCount > 14) return;
 
       const matchesSearch = !q || item.title?.toLowerCase().includes(q);
       const isDone = !!item.result;
@@ -287,7 +325,7 @@ export default function ReadingParts() {
                                 <p className="text-[#86868b] text-[14px]">Displaying {filteredTests.length} passages</p>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8 pt-4">
                                 {filteredTests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
                                     <PracticeCard 
                                         key={test.id} 
@@ -305,24 +343,25 @@ export default function ReadingParts() {
                             {/* Pagination & Load More */}
                             <div className="flex flex-col items-center gap-5 pt-10 pb-8">
                                 {filteredTests.length > itemsPerPage && (
-                                    <div className="flex justify-center items-center gap-1.5">
+                                    <div className="flex justify-center items-center gap-1">
                                         {(() => {
                                             const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
-                                            const pages = [];
-                                            const delta = 1; 
-                                            
-                                            for (let i = 1; i <= totalPages; i++) {
-                                                if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
-                                                    pages.push(i);
-                                                } else if (i === currentPage - delta - 1 || i === currentPage + delta + 1) {
-                                                    pages.push('...');
+                                            let pages = [];
+                                            if (totalPages <= 5) {
+                                                for (let i = 1; i <= totalPages; i++) pages.push(i);
+                                            } else {
+                                                if (currentPage <= 3) {
+                                                    pages = [1, 2, 3, '...', totalPages];
+                                                } else if (currentPage >= totalPages - 2) {
+                                                    pages = [1, '...', totalPages - 2, totalPages - 1, totalPages];
+                                                } else {
+                                                    pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
                                                 }
                                             }
-                                            const uniquePages = pages.filter((p, i) => p !== '...' || pages[i-1] !== '...');
 
-                                            return uniquePages.map((p, i) => (
+                                            return pages.map((p, i) => (
                                                 p === '...' ? (
-                                                    <span key={`dots-${i}`} className="text-[#86868b] px-1 text-[13px]">...</span>
+                                                    <span key={`dots-${i}`} className="text-[#86868b] px-1 text-[11.5px]">...</span>
                                                 ) : (
                                                     <button
                                                         key={p}
@@ -330,7 +369,7 @@ export default function ReadingParts() {
                                                             setCurrentPage(p);
                                                             window.scrollTo({ top: 0, behavior: 'smooth' });
                                                         }}
-                                                        className={`w-8 h-8 rounded-full text-[13px] font-semibold transition-all ${
+                                                        className={`w-7 h-7 rounded-full text-[11.5px] font-semibold transition-all ${
                                                             currentPage === p 
                                                             ? 'bg-[#1d1d1f] text-white' 
                                                             : 'bg-[#f5f5f7] text-[#1d1d1f] hover:bg-gray-200'
@@ -342,23 +381,6 @@ export default function ReadingParts() {
                                             ));
                                         })()}
                                     </div>
-                                )}
-
-                                {hasMore && (
-                                    <button
-                                        onClick={() => fetchLibraryPage()}
-                                        disabled={loadingLibrary}
-                                        className="group relative flex items-center gap-3 px-8 py-3.5 bg-[#1d1d1f] text-white rounded-full font-semibold transition-all hover:bg-black active:scale-95 disabled:opacity-50 text-[13px] shadow-sm"
-                                    >
-                                        {loadingLibrary ? (
-                                            <Loader2 size={16} className="animate-spin" />
-                                        ) : (
-                                            <>
-                                                Show More Tests
-                                                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                                            </>
-                                        )}
-                                    </button>
                                 )}
                             </div>
                         </div>

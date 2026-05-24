@@ -8,7 +8,8 @@ export default function WritingInterface({
     isReviewMode,
     textSize,
     testId,
-    disableInternalSession = false
+    disableInternalSession = false,
+    isMockExam = false
 }) {
     const currentTestId = testId || testData?.id;
 
@@ -113,7 +114,7 @@ export default function WritingInterface({
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className={`flex-1 flex overflow-hidden ${isMockExam ? 'pb-[50px]' : ''}`}>
 
                 {/* Left: Task Prompt */}
                 <div className="w-1/2 bg-white border-r border-gray-100 overflow-y-auto p-10">

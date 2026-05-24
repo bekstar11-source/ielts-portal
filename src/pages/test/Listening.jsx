@@ -25,8 +25,8 @@ import PracticeFilters from "../../components/practice/PracticeFilters";
 import { useListeningCollections } from "../../hooks/useListeningCollections";
 import ListeningHeroBanner from "../../components/practice/ListeningHeroBanner";
 import ListeningPartsSection from "../../components/practice/ListeningPartsSection";
-import ListeningFullTestsSection from "../../components/practice/ListeningFullTestsSection";
 import ListeningCollectionsSection from "../../components/practice/ListeningCollectionsSection";
+import { deriveQuestionTypesForCard } from "../../utils/TestUtils";
 
 const categories = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
@@ -50,6 +50,10 @@ export default function Listening() {
   
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
+  // Custom hook to manage collections logic
+  const collectionsData = useListeningCollections(userResults);
+  const { allCollectionsTests = [] } = collectionsData;
+  
   // Library Pagination State
   const [libraryTests, setLibraryTests] = useState([]);
   const [lastVisible, setLastVisible] = useState(null);
@@ -59,11 +63,17 @@ export default function Listening() {
   const PAGE_SIZE = 12;
 
   const rawAssignments = useMemo(() => {
-    // Deduplicate between assignments and library tests
+    // Deduplicate between assignments, library tests, and all collections tests
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
-    return [...assignments, ...uniqueLibrary];
-  }, [assignments, libraryTests]);
+    const uniqueColTests = allCollectionsTests.filter(t => !assignedIds.has(t.id));
+    
+    // Deduplicate between library and colTests
+    const libraryIds = new Set(uniqueLibrary.map(t => t.id));
+    const uniqueColTestsFiltered = uniqueColTests.filter(t => !libraryIds.has(t.id));
+
+    return [...assignments, ...uniqueLibrary, ...uniqueColTestsFiltered];
+  }, [assignments, libraryTests, allCollectionsTests]);
 
   const fetchLibraryPage = async (isFirstPage = false) => {
     if (loadingLibrary || (!hasMore && !isFirstPage)) return;
@@ -122,36 +132,22 @@ export default function Listening() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  const partsSectionRef = useRef(null);
-  const fullTestSectionRef = useRef(null);
   const collectionsSectionRef = useRef(null);
 
-  const listeningFilters = [
-    { id: 'parts', label: 'Listening Parts', ref: partsSectionRef },
-    { id: 'full_test', label: 'Full Tests', ref: fullTestSectionRef },
-    { id: 'collections', label: 'Collections', ref: collectionsSectionRef }
-  ];
   const [activeSubTab, setActiveSubTab] = useState(() => {
     const params = new URLSearchParams(location.search);
-    return params.get('section') || 'parts';
+    const section = params.get('section');
+    return section === 'collections' || section === 'full_test' ? section : 'parts';
   });
 
-  // Custom hook to manage collections logic
-  const collectionsData = useListeningCollections(userResults);
-
-  const handleSubTabClick = (filter) => {
-    if (activeSubTab === filter.id) return;
-    setActiveSubTab(filter.id);
-    navigate(`/listening?section=${filter.id}`, { replace: true });
-  };
-
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const sectionFromUrl = queryParams.get('section');
-    if (sectionFromUrl && sectionFromUrl !== activeSubTab) {
+    const sectionFromUrl = new URLSearchParams(location.search).get('section');
+    if (sectionFromUrl === 'collections' || sectionFromUrl === 'full_test') {
       setActiveSubTab(sectionFromUrl);
+    } else if (!sectionFromUrl) {
+      setActiveSubTab('parts');
     }
-  }, [location.search, activeSubTab]);
+  }, [location.search]);
 
   const processedTests = useMemo(() => {
     // 1. Get unique tests from rawAssignments (which has assignments + libraryTests)
@@ -177,6 +173,7 @@ export default function Listening() {
         ...test,
         title: test.title?.toLowerCase().includes('full') ? test.title : `${test.title} (Full Mock)`,
         isFullTest: true,
+        questionTypes: deriveQuestionTypesForCard(test),
         result: fullAttempt || null
       };
       fullTestsList.push(fullTestObj);
@@ -203,7 +200,9 @@ export default function Listening() {
             audioUrl: partData.audioUrl || test.audioUrl || "",
             startTime: partData.startSec || 0,
             endTime: partData.endSec || 0,
-            questionTypes: partData.qTypes || [],
+            parts: test.parts,
+            questions: test.questions,
+            questionTypes: deriveQuestionTypesForCard({ ...test, partNumber: partNum }),
             isVirtualPart: true,
             result: partAttempt || null
           });
@@ -225,7 +224,9 @@ export default function Listening() {
             audioUrl: test.audioUrl || "",
             startTime: 0,
             endTime: 0,
-            questionTypes: [],
+            parts: test.parts,
+            questions: test.questions,
+            questionTypes: deriveQuestionTypesForCard({ ...test, partNumber: partNum }),
             isVirtualPart: true,
             result: partAttempt || null
           });
@@ -367,8 +368,8 @@ export default function Listening() {
           activeTab="listening" 
           setActiveTab={() => {}}
           activeSubTab={activeSubTab}
-          handleSubTabClick={handleSubTabClick}
-          listeningFilters={listeningFilters}
+          listeningFilters={[]}
+          handleSubTabClick={() => {}}
           categories={categories}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -420,7 +421,6 @@ export default function Listening() {
                                 className="space-y-16 pb-20"
                             >
                                 <ListeningPartsSection
-                                    partsSectionRef={partsSectionRef}
                                     filteredVirtualParts={filteredVirtualParts}
                                     activePartFilter={activePartFilter}
                                     setActivePartFilter={setActivePartFilter}
@@ -440,40 +440,7 @@ export default function Listening() {
                         );
                     }
 
-                    if (activeSubTab === 'full_test') {
-                        if (filteredFullTests.length === 0) {
-                            return (
-                                <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-4 duration-700" key="no-full_tests">
-                                    <div className="w-16 h-16 bg-[#f5f5f7] rounded-full flex items-center justify-center mb-6">
-                                        <Search size={24} className="text-gray-300" />
-                                    </div>
-                                    <h3 className="text-[24px] font-semibold text-[#1d1d1f]">Hech narsa topilmadi</h3>
-                                    <p className="text-[#86868b] mt-2 max-w-[300px]">Qidiruv mezonlariga mos keladigan testlar mavjud emas.</p>
-                                </div>
-                            );
-                        }
-                        return (
-                            <motion.div 
-                                key="full_test"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="space-y-16 pb-20"
-                            >
-                                <ListeningFullTestsSection
-                                    filteredFullTests={filteredFullTests}
-                                    fullTestSectionRef={fullTestSectionRef}
-                                    handleReview={handleReview}
-                                    handleStartTest={handleStartTest}
-                                    setSelectedSet={setSelectedSet}
-                                    isPro={isPro}
-                                    isStandard={isStandard}
-                                />
-                            </motion.div>
-                        );
-                    }
-
-                    if (activeSubTab === 'collections') {
+                    if (activeSubTab === 'full_test' || activeSubTab === 'collections') {
                         return (
                             <motion.div 
                                 key="collections"

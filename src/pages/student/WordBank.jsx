@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Search, Sparkles, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../context/LanguageContext';
 
 // Hooks
 import { useWordBank } from '../../hooks/useWordBank';
@@ -22,6 +23,7 @@ export default function Wordbank() {
     const { user, userData } = useAuth();
     const { theme } = useTheme();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const isDark = theme === 'dark';
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -39,7 +41,7 @@ export default function Wordbank() {
     } = useWordBank(user);
 
     const playPronunciation = (wordId, text) => {
-        if (!('speechSynthesis' in window)) return alert("Speach synthesis not supported.");
+        if (!('speechSynthesis' in window)) return alert(t('wordbank.speechNotSupported'));
         window.speechSynthesis.cancel();
         setPlayingAudioId(wordId);
         const utterance = new SpeechSynthesisUtterance(text);
@@ -114,8 +116,8 @@ export default function Wordbank() {
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
                         <div className="flex items-center gap-1 bg-[#f5f5f7] dark:bg-white/5 p-1 rounded-xl w-fit">
                             {[
-                                { id: 'vocabulary', label: 'All Words' },
-                                { id: 'keywords', label: 'Keywords' }
+                                { id: 'vocabulary', label: t('wordbank.allWords') },
+                                { id: 'keywords', label: t('wordbank.keywords') }
                             ].map(tab => (
                                 <button 
                                     key={tab.id}
@@ -128,11 +130,11 @@ export default function Wordbank() {
                         </div>
 
                         <div className="flex flex-col sm:flex-row items-center gap-4">
-                            <div className="relative w-full sm:w-[320px] group">
+                             <div className="relative w-full sm:w-[320px] group">
                                 <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-[#FB5102]' : 'text-gray-400 group-focus-within:text-[#FB5102]'}`} />
                                 <input 
                                     type="text" 
-                                    placeholder="Search words..." 
+                                    placeholder={t('wordbank.searchWords')} 
                                     className={`w-full border outline-none rounded-xl py-2.5 pl-11 pr-4 text-sm transition-all ${isDark ? 'bg-black/20 border-white/10 focus:border-[#FB5102]/40 text-white' : 'bg-[#f5f5f7] border-transparent focus:bg-white focus:border-[#FB5102]/30 text-gray-900'}`}
                                     value={mainTab === 'vocabulary' ? searchTerm : keywordSearch}
                                     onChange={(e) => mainTab === 'vocabulary' ? setSearchTerm(e.target.value) : setKeywordSearch(e.target.value)}
@@ -146,7 +148,7 @@ export default function Wordbank() {
                                 ${ (batchProcessing || words.every(w => w.hasAI)) ? 'opacity-40 cursor-not-allowed' : 'bg-[#FB5102] text-white hover:bg-[#e64a02] active:scale-95'}`}
                             >
                                 {batchProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                <span>{batchProcessing ? "Translating..." : "Auto-translate All"}</span>
+                                <span>{batchProcessing ? t('wordbank.translating') : t('wordbank.autoTranslateAll')}</span>
                             </button>
                         </div>
                     </div>
@@ -154,7 +156,7 @@ export default function Wordbank() {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-20">
                             <Loader2 className="w-8 h-8 text-[#FB5102] animate-spin mb-3" />
-                            <p className="text-sm text-gray-500">Loading your collection...</p>
+                            <p className="text-sm text-gray-500">{t('wordbank.loadingCollection')}</p>
                         </div>
                     ) : (
                         mainTab === 'keywords' ? (

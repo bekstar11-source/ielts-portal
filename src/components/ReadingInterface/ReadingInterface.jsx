@@ -227,6 +227,8 @@ export default function ReadingInterface({
   const currentStorageKey = `reading_session_${currentTestId}_passage_${activePassage}`;
   const passageQuestions = testData.questions?.filter(g => g.passageId === currentPassageRaw?.id) || [];
   const labelSuffix = detectPassageLabelSuffix(testData, activePassage);
+  const passageLabel = `Passage ${labelSuffix}`;
+  const passageTitle = currentPassageRaw?.title || "";
   const matchingHeadingsGroup = findMatchingHeadingsGroup(passageQuestions);
 
   // --- PROGRESS CALCULATION (for floating bar) ---
@@ -328,8 +330,8 @@ export default function ReadingInterface({
           >
             <ReadingLeftPane
                 key={`${currentTestId}-passage-${activePassage}`}
-                passageLabel={`Passage ${labelSuffix}`}
-                title={currentPassageRaw?.title || ""}
+                passageLabel={passageLabel}
+                title={passageTitle}
                 content={highlightedPassageContent || ""}
                 textSize={textSize}
                 highlightedId={highlightedLoc}
@@ -377,10 +379,13 @@ export default function ReadingInterface({
               onRemoveHighlight={removeHighlight}
               onAddToWordBank={onAddToWordBank}
               testId={testId}
+              testName={testName || testData?.title}
               keywordTable={keywordTable}
               onAddNote={(noteData) => addNote(activePassage, noteData)}
               onOpenNotes={() => setIsNotesVisible(true)}
               isPremium={isPremium}
+              passageTitle={passageTitle}
+              passageLabel={passageLabel}
             />
           </div>
         </div>

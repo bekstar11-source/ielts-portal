@@ -5,94 +5,15 @@ import { useAuth } from '../../context/AuthContext';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardModals from '../../components/dashboard/DashboardModals';
 import SiteFooter from '../../components/common/SiteFooter';
-
-// ─── DATA ─────────────────────────────────────────────────────────────────────
-
-const FEATURES = [
-  {
-    category: 'Reading',
-    icon: BookOpen,
-    items: [
-      { label: 'Reading Passage testlar', free: 'Cheklangan', standard: true, pro: true },
-      { label: 'Full Reading testlar', free: false, standard: true, pro: true },
-      { label: 'Reading Sets (to\'plam)', free: false, standard: true, pro: true },
-      { label: 'Natijalarni tahlili', free: true, standard: true, pro: true },
-    ]
-  },
-  {
-    category: 'Listening',
-    icon: Headphones,
-    items: [
-      { label: 'Listening Section testlar', free: 'Cheklangan', standard: true, pro: true },
-      { label: 'Listening Sets (to\'plam)', free: false, standard: true, pro: true },
-      { label: 'Audio player & Progress', free: true, standard: true, pro: true },
-    ]
-  },
-  {
-    category: 'Study Roadmap',
-    icon: Trophy,
-    items: [
-      { label: '7 kunlik Study Route', free: true, standard: true, pro: true },
-      { label: 'Full Personal Roadmap', free: false, standard: false, pro: true },
-      { label: 'Daily Goals & Tasks', free: true, standard: true, pro: true },
-    ]
-  },
-  {
-    category: 'AI & Premium',
-    icon: Zap,
-    items: [
-      { label: 'AI Writing Evaluation', free: false, standard: false, pro: true },
-      { label: 'AI Speaking Examiner', free: false, standard: false, pro: true },
-      { label: 'Full Mock Exam (L+R+W+S)', free: false, standard: false, pro: true },
-      { label: 'Interactive Podcasts', free: false, standard: true, pro: true },
-    ]
-  },
-];
-
-const PLANS = [
-  {
-    id: 'free',
-    name: 'Free',
-    monthlyPrice: '0',
-    triPrice: '0',
-    period: 'so\'m',
-    desc: 'IELTS ga ilk qadam. Limited Reading/Listening va 7 kunlik Study Route.',
-    cta: 'Hozir boshlash',
-    ctaStyle: 'border border-zinc-200 text-zinc-800 hover:bg-zinc-50',
-    highlight: false,
-    badge: null,
-  },
-  {
-    id: 'standard',
-    name: 'Standard',
-    monthlyPrice: '29 000',
-    triPrice: '79 000',
-    period: 'so\'m',
-    desc: 'Reading, Listening va Podcast testlariga to\'liq kirish imkoniyati.',
-    cta: 'Standard olish',
-    ctaStyle: 'bg-zinc-900 text-white hover:bg-black',
-    highlight: false,
-    badge: null,
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    monthlyPrice: '39 000',
-    triPrice: '99 000',
-    period: 'so\'m',
-    desc: 'AI imkoniyatlari bilan IELTS ga to\'liq va professional tayyorgarlik.',
-    cta: 'Pro\'ga o\'tish',
-    ctaStyle: 'bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white shadow-lg shadow-blue-500/25 hover:brightness-110',
-    highlight: true,
-    badge: 'Eng mashhur',
-  },
-];
+import { useTranslation } from '../../context/LanguageContext';
 
 // ─── COMPONENTS ───────────────────────────────────────────────────────────────
 
 const FeatureValue = ({ value }) => {
+  const { t } = useTranslation();
   if (value === true) return <Check size={17} className="text-[#0071e3] mx-auto" strokeWidth={2.5} />;
   if (value === false) return <X size={17} className="text-zinc-200 mx-auto" strokeWidth={2} />;
+  if (value === 'Cheklangan' || value === 'Limited') return <span className="text-[13px] font-semibold text-zinc-700 text-center block">{t('pricing.limited')}</span>;
   return <span className="text-[13px] font-semibold text-zinc-700 text-center block">{value}</span>;
 };
 
@@ -103,24 +24,99 @@ export default function PricingPage() {
   const [billing, setBilling] = useState('monthly');
   const [openFaq, setOpenFaq] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const { t } = useTranslation();
+
+  const FEATURES = [
+    {
+      category: 'Reading',
+      icon: BookOpen,
+      items: [
+        { label: t('pricing.readingPassage'), free: t('pricing.limited'), standard: t('pricing.higherLimits'), pro: true },
+        { label: t('pricing.fullReading'), free: false, standard: t('pricing.higherLimits'), pro: true },
+        { label: t('pricing.readingSets'), free: false, standard: t('pricing.higherLimits'), pro: true },
+        { label: t('pricing.detailedAnalysis'), free: false, standard: true, pro: true },
+      ]
+    },
+    {
+      category: 'Listening',
+      icon: Headphones,
+      items: [
+        { label: t('pricing.listeningSection'), free: t('pricing.limited'), standard: t('pricing.higherLimits'), pro: true },
+        { label: t('pricing.listeningSets'), free: false, standard: t('pricing.higherLimits'), pro: true },
+        { label: t('pricing.audioPlayer'), free: true, standard: true, pro: true },
+      ]
+    },
+    {
+      category: 'Study Roadmap',
+      icon: Trophy,
+      items: [
+        { label: t('pricing.studyRoute'), free: true, standard: true, pro: true },
+        { label: t('pricing.personalRoadmap'), free: false, standard: false, pro: true },
+        { label: t('pricing.dailyGoals'), free: true, standard: true, pro: true },
+      ]
+    },
+    {
+      category: t('pricing.freeContent'),
+      icon: Sparkles,
+      items: [
+        { label: t('pricing.podcasts'), free: true, standard: true, pro: true },
+        { label: t('pricing.articles'), free: true, standard: true, pro: true },
+        { label: t('pricing.wordbank'), free: true, standard: true, pro: true },
+      ]
+    },
+    {
+      category: t('pricing.mockPremium'),
+      icon: Zap,
+      items: [
+        { label: t('pricing.fullMock'), free: false, standard: t('pricing.standardMockLimit'), pro: t('pricing.proMockLimit') },
+      ]
+    },
+  ];
+
+  const PLANS = [
+    {
+      id: 'free',
+      name: t('common.free'),
+      monthlyPrice: '0',
+      triPrice: '0',
+      period: t('pricing.som'),
+      desc: t('pricing.freeDesc'),
+      cta: t('pricing.freeCTA'),
+      ctaStyle: 'border border-zinc-200 text-zinc-800 hover:bg-zinc-50',
+      highlight: false,
+      badge: null,
+    },
+    {
+      id: 'standard',
+      name: t('common.standard'),
+      monthlyPrice: '35 000',
+      triPrice: '89 000',
+      period: t('pricing.som'),
+      desc: t('pricing.standardDesc'),
+      cta: t('pricing.standardCTA'),
+      ctaStyle: 'bg-zinc-900 text-white hover:bg-black',
+      highlight: false,
+      badge: null,
+    },
+    {
+      id: 'pro',
+      name: t('common.pro'),
+      monthlyPrice: '49 000',
+      triPrice: '129 000',
+      period: t('pricing.som'),
+      desc: t('pricing.proDesc'),
+      cta: t('pricing.proCTA'),
+      ctaStyle: 'bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white shadow-lg shadow-blue-500/25 hover:brightness-110',
+      highlight: true,
+      badge: t('pricing.mostPopular'),
+    },
+  ];
 
   const faqs = [
-    {
-      q: 'To\'lov qanday amalga oshiriladi?',
-      a: 'To\'lov Telegram bot orqali amalga oshiriladi. To\'lovdan so\'ng akkauntingiz avtomatik ravishda faollashtiriladi.'
-    },
-    {
-      q: 'Obuna bekor qilinsa nima bo\'ladi?',
-      a: 'Obuna muddati tugagach, siz Free rejimga o\'tasiz. Barcha natijalar va progress saqlanib qoladi.'
-    },
-    {
-      q: 'Standard va Pro farqi nima?',
-      a: 'Standard tarifda Reading, Listening va Podcast funksiyalari mavjud. Pro tarifda bunga qo\'shimcha AI Writing baholash, AI Speaking Examiner va Full Mock Exam ham kiradi.'
-    },
-    {
-      q: '3 oylik tarifda qanday tejash bor?',
-      a: 'Standard: oylik 29 000 × 3 = 87 000 so\'m, 3 oylik tarif 79 000 so\'m — 8 000 so\'m tejaladi. Pro: oylik 39 000 × 3 = 117 000 so\'m, 3 oylik 99 000 so\'m — 18 000 so\'m tejaladi.'
-    },
+    { q: t('pricing.faq1Q'), a: t('pricing.faq1A') },
+    { q: t('pricing.faq2Q'), a: t('pricing.faq2A') },
+    { q: t('pricing.faq3Q'), a: t('pricing.faq3A') },
+    { q: t('pricing.faq4Q'), a: t('pricing.faq4A') },
   ];
 
   return (
@@ -143,10 +139,10 @@ export default function PricingPage() {
             <Zap size={11} fill="currentColor" className="animate-pulse" /> Premium
           </div>
           <h1 className="text-[36px] md:text-[52px] font-bold text-[#1d1d1f] leading-[1.1] tracking-tight mb-4">
-            O'z darajangizga mos<br/>tarifni tanlang.
+            {t('pricing.heroTitle')}
           </h1>
           <p className="text-[15px] md:text-[17px] text-zinc-500 font-medium max-w-xl mx-auto leading-relaxed">
-            IELTS 7+ ballga erishish uchun kerakli barcha asboblar bir joyda.
+            {t('pricing.heroSubtitle')}
           </p>
 
           {/* Billing Toggle */}
@@ -155,13 +151,13 @@ export default function PricingPage() {
               onClick={() => setBilling('monthly')}
               className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all ${billing === 'monthly' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400'}`}
             >
-              Oylik
+              {t('pricing.monthly')}
             </button>
             <button
               onClick={() => setBilling('tri')}
               className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all flex items-center gap-1.5 ${billing === 'tri' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400'}`}
             >
-              3 Oylik
+              {t('pricing.triMonthly')}
               <span className="text-[10px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded-full">−20%</span>
             </button>
           </div>
@@ -198,7 +194,7 @@ export default function PricingPage() {
                   <div className="mb-1.5">
                     <span className={`text-[14px] font-bold ${plan.highlight ? 'text-blue-200' : 'text-zinc-400'}`}> {plan.period}</span>
                     <p className={`text-[11px] font-bold ${plan.highlight ? 'text-blue-200' : 'text-zinc-400'}`}>
-                      {billing === 'monthly' ? '/ oyiga' : '/ 3 oyga'}
+                      {billing === 'monthly' ? t('pricing.perMonth') : t('pricing.perTriMonth')}
                     </p>
                   </div>
                 </div>
@@ -217,10 +213,10 @@ export default function PricingPage() {
                 let isDisabled = false;
                 
                 if (isCurrent || (isFree && !userData?.accountType)) {
-                  ctaText = "Faol tarif";
+                  ctaText = t('pricing.currentPlan');
                   isDisabled = true;
                 } else if (isDownGrade) {
-                  ctaText = "Sizda Pro bor";
+                  ctaText = t('pricing.proExists');
                   isDisabled = true;
                 }
 
@@ -252,13 +248,13 @@ export default function PricingPage() {
 
       {/* ── COMPARE TABLE ── */}
       <section className="max-w-5xl mx-auto px-6 pb-16">
-        <h2 className="text-[28px] md:text-[36px] font-bold text-zinc-900 tracking-tight mb-2">Tariflarni solishtirish</h2>
-        <p className="text-zinc-400 text-[15px] mb-10">Qaysi funksiyalar qaysi tarifda mavjudligini ko'ring.</p>
+        <h2 className="text-[28px] md:text-[36px] font-bold text-zinc-900 tracking-tight mb-2">{t('pricing.compareTitle')}</h2>
+        <p className="text-zinc-400 text-[15px] mb-10">{t('pricing.compareSubtitle')}</p>
 
         <div className="rounded-2xl border border-zinc-100 overflow-hidden shadow-sm">
           {/* Table Header */}
           <div className="grid grid-cols-4 bg-zinc-50 border-b border-zinc-100">
-            <div className="col-span-1 px-6 py-4 text-[12px] font-black uppercase tracking-widest text-zinc-400">Funksiya</div>
+            <div className="col-span-1 px-6 py-4 text-[12px] font-black uppercase tracking-widest text-zinc-400">{t('pricing.feature')}</div>
             {PLANS.map(plan => (
               <div
                 key={plan.id}
@@ -315,7 +311,7 @@ export default function PricingPage() {
 
       {/* ── FAQ ── */}
       <section className="max-w-2xl mx-auto px-6 pb-20">
-        <h2 className="text-[24px] font-bold text-zinc-900 tracking-tight mb-6">Tez-tez beriladigan savollar</h2>
+        <h2 className="text-[24px] font-bold text-zinc-900 tracking-tight mb-6">{t('pricing.faqTitle')}</h2>
         <div className="space-y-2">
           {faqs.map((faq, idx) => (
             <div key={idx} className="border border-zinc-100 rounded-xl overflow-hidden">
@@ -357,12 +353,12 @@ export default function PricingPage() {
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-3">
               <Zap size={16} fill="#2997ff" className="text-[#2997ff]" />
-              <span className="text-[11px] font-black text-[#2997ff] uppercase tracking-widest">7 kunlik sinov</span>
+              <span className="text-[11px] font-black text-[#2997ff] uppercase tracking-widest">{t('pricing.trialBadge')}</span>
             </div>
             <h2 className="text-[28px] md:text-[36px] font-bold text-white leading-tight tracking-tight">
-              Bugun professional<br/>tayyorgarlikni boshlang.
+              {t('pricing.trialTitle')}
             </h2>
-            <p className="text-zinc-400 text-[14px] mt-2">Kredit karta talab qilinmaydi. Istalgan vaqt bekor qilish mumkin.</p>
+            <p className="text-zinc-400 text-[14px] mt-2">{t('pricing.trialSubtitle')}</p>
           </div>
           <div className="relative z-10 flex flex-col items-center gap-3">
             <button
@@ -373,10 +369,10 @@ export default function PricingPage() {
               className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#0071e3] to-[#2997ff] text-white font-bold text-[15px] shadow-xl shadow-blue-500/30 hover:scale-[1.03] active:scale-[0.97] transition-all whitespace-nowrap"
             >
               <Zap size={16} fill="currentColor" className="animate-pulse" />
-              Pro'ga o'tish
+              {t('pricing.proCTA')}
             </button>
             <span className="text-[11px] text-zinc-500 flex items-center gap-1.5">
-              <Shield size={11} /> Xavfsiz to'lov · Tezkor faollashtirish
+              <Shield size={11} /> {t('pricing.trialFooter')}
             </span>
           </div>
         </div>

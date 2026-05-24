@@ -1,24 +1,18 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, motionValue, useAnimationFrame } from 'framer-motion';
-import { Loader2, AlertCircle, ArrowRight, User, Mail, Lock } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import { db, auth } from "../../firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-
-const Testimonials = [
-    { name: "Dilshodbek T.", score: "7.0", text: "Readingda vaqtni to'g'ri taqsimlashni o'rgandim, natijam kutilganidek chiqdi." },
-    { name: "Shahlo A.", score: "7.5", text: "Listening part 4 juda qiyin edi, platformadagi mashqlar juda katta yordam berdi." },
-    { name: "Bekzod S.", score: "6.5", text: "Speakingda AI bilan gaplashish imtihon oldidan qo'rquvni yengishga yordam berdi." },
-    { name: "Maftuna R.", score: "7.0", text: "Writing Task 2 bo'yicha berilgan feedbacklar xatolarimni tushunishga yordam berdi." },
-    { name: "Azizbek M.", score: "8.0", text: "Mock testlar haqiqiy imtihon darajasida ekan, hamma savollar o'ta aniq." },
-    { name: "Nigora K.", score: "7.5", text: "Vocabulary banki orqali akademik so'zlarni tez va oson o'rgandim." },
-    { name: "Jamshid H.", score: "6.0", text: "Boshida darajam 4.5 edi, 2 oylik tayyorgarlikdan keyin 6.0 ball oldim." },
-];
+import { useTranslation } from '../../context/LanguageContext';
 
 const ScrollingComments = () => {
     const [isHovered, setIsHovered] = useState(false);
     const y = useMemo(() => motionValue(0), []);
+    const { t } = useTranslation();
+
+    const testimonials = t('auth.testimonials') || [];
     
     useAnimationFrame((time, delta) => {
         // Normal speed is ~1px per 35ms, hover speed is much slower.
@@ -42,7 +36,7 @@ const ScrollingComments = () => {
                 style={{ y, willChange: "transform", translateZ: 0 }}
                 className="space-y-6 w-full"
             >
-                {[...Testimonials, ...Testimonials, ...Testimonials].map((item, i) => (
+                {[...testimonials, ...testimonials, ...testimonials].map((item, i) => (
                     <motion.div 
                         key={i} 
                         whileHover={{ backgroundColor: "#fafafa" }}
@@ -51,7 +45,7 @@ const ScrollingComments = () => {
                         <div className="flex justify-between items-center mb-3">
                             <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center text-[10px] font-bold text-white">
-                                    {item.name[0]}
+                                    {item.name ? item.name[0] : ''}
                                 </div>
                                 <span className="text-black font-bold text-[13px] tracking-tight">{item.name}</span>
                             </div>
@@ -77,6 +71,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [step, setStep] = useState(1); // 1: Name & Email, 2: Password
+  const { t } = useTranslation();
 
   const { signup, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -98,7 +93,7 @@ export default function Register() {
         }
       }
     } catch (err) {
-      setError("Google orqali kirishda xatolik!");
+      setError(t('auth.errorGoogle'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -108,15 +103,15 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (step === 1) {
-        if (fullName.length < 3) return setError("To'liq ism kiritilishi kerak");
-        if (!email.includes('@')) return setError("Email noto'g'ri");
+        if (fullName.length < 3) return setError(t('auth.errorFullNameShort'));
+        if (!email.includes('@')) return setError(t('auth.errorInvalidEmailFormat'));
         setError("");
         setStep(2);
         return;
     }
 
     if (password.length < 6) {
-        return setError("Parol kamida 6 ta belgidan iborat bo'lishi kerak.");
+        return setError(t('auth.errorPasswordShort'));
     }
 
     setError("");
@@ -127,9 +122,9 @@ export default function Register() {
       navigate("/dashboard");
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
-        setError("Bu email allaqachon ro'yxatdan o'tgan.");
+        setError(t('auth.errorEmailInUse'));
       } else {
-        setError("Xatolik yuz berdi. Qayta urinib ko'ring.");
+        setError(t('auth.errorGeneric'));
       }
       console.error(err);
     } finally {
@@ -152,10 +147,10 @@ export default function Register() {
               <img src="/englev-logo.png" alt="englev." className="h-11 md:h-12 w-auto object-contain" />
             </Link>
             <h1 className="text-2xl font-bold text-[#1a1a1a] tracking-tight mb-2">
-              Ro'yxatdan o'tish
+              {t('auth.registerTitle')}
             </h1>
             <p className="text-[#666] text-[14px] font-medium leading-relaxed">
-              O'rganishni boshlash uchun <br /> yangi hisob yarating.
+              {t('auth.registerSubtitle')}
             </p>
           </div>
 
@@ -185,12 +180,12 @@ export default function Register() {
                             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
-                        Google orqali boshlash
+                        {t('auth.googleStart')}
                     </button>
 
                     <div className="flex items-center gap-4 py-2">
                         <div className="flex-1 border-t border-[#f0f0f0]"></div>
-                        <div className="text-[11px] font-bold text-[#666]">YOKI</div>
+                        <div className="text-[11px] font-bold text-[#666]">{t('auth.or')}</div>
                         <div className="flex-1 border-t border-[#f0f0f0]"></div>
                     </div>
                 </>
@@ -208,7 +203,7 @@ export default function Register() {
                     >
                         <input
                             type="text"
-                            placeholder="To'liq ismingiz"
+                            placeholder={t('auth.fullNamePlaceholder')}
                             className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb]"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
@@ -216,7 +211,7 @@ export default function Register() {
                         />
                         <input
                             type="email"
-                            placeholder="Email manzilingiz"
+                            placeholder={t('auth.emailPlaceholder')}
                             className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb]"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -226,7 +221,7 @@ export default function Register() {
                             type="submit"
                             className="w-full !mt-8 py-2.5 bg-[#1a1a1a] hover:bg-black text-white rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
                         >
-                            Davom etish
+                            {t('auth.continue')}
                             <ArrowRight size={14} />
                         </button>
                     </motion.div>
@@ -241,7 +236,7 @@ export default function Register() {
                         <div className="relative">
                             <input
                                 type={showPassword ? "text" : "password"}
-                                placeholder="Xavfsiz parol yarating"
+                                placeholder={t('auth.passwordCreatePlaceholder')}
                                 className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb]"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -253,7 +248,7 @@ export default function Register() {
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-[#aaa] hover:text-[#1a1a1a]"
                             >
-                                {showPassword ? "Yashirish" : "Ko'rsatish"}
+                                {showPassword ? t('auth.hide') : t('auth.show')}
                             </button>
                         </div>
                         <button
@@ -261,14 +256,14 @@ export default function Register() {
                             disabled={loading}
                             className="w-full !mt-8 py-2.5 bg-[#1a1a1a] hover:bg-black text-white rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
                         >
-                            {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Hisob yaratish"}
+                            {loading ? <Loader2 className="animate-spin w-4 h-4" /> : t('auth.createAccountBtn')}
                         </button>
                         <button
                             type="button"
                             onClick={() => setStep(1)}
                             className="w-full text-[12px] font-bold text-[#aaa] hover:text-[#1a1a1a]"
                         >
-                            Orqaga qaytish
+                            {t('auth.back')}
                         </button>
                     </motion.div>
                 )}
@@ -277,9 +272,9 @@ export default function Register() {
 
             <div className="pt-4 text-center">
               <p className="text-[12px] text-[#aaa] font-medium">
-                Hisobingiz bormi?{" "}
+                {t('auth.hasAccount')}{" "}
                 <Link to="/login" className="text-[#888] font-bold hover:text-[#1a1a1a] transition-all underline underline-offset-4 decoration-[#FF5520]/20">
-                  Tizimga kiring
+                  {t('auth.signInNow')}
                 </Link>
               </p>
             </div>
@@ -288,8 +283,8 @@ export default function Register() {
         
         {/* Footer */}
         <div className="absolute bottom-6 text-[10px] text-[#ccc] font-medium tracking-wide flex gap-4 uppercase">
-            <a href="#" className="hover:text-[#999]">Maxfiylik</a>
-            <a href="#" className="hover:text-[#999]">Shartlar</a>
+            <a href="#" className="hover:text-[#999]">{t('footer.privacy')}</a>
+            <a href="#" className="hover:text-[#999]">{t('footer.termsOfUse')}</a>
             <span>&copy; 2024 ENGLEV</span>
         </div>
       </div>
@@ -308,8 +303,7 @@ export default function Register() {
                     transition={{ delay: 0.4 }}
                     className="text-3xl font-bold text-black leading-tight mb-4 tracking-[-0.03em]"
                 >
-                    O'quvchilarimizdan <br />
-                    fikrlar.
+                    {t('auth.testimonialsTitle')}
                 </motion.h2>
             </div>
 

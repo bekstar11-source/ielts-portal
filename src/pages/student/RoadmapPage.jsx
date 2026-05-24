@@ -4,10 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, Lock, CheckCircle2, Zap, Star, 
-  ArrowRight, BookOpen, Headphones, PenTool, Flame 
+  ArrowRight, BookOpen, Headphones, PenTool, Flame, MessageCircle
 } from 'lucide-react';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useStudentData } from '../../hooks/useStudentData';
+import { useTranslation } from '../../context/LanguageContext';
 import PricingModal from '../../components/dashboard/PricingModal';
 import SiteFooter from '../../components/common/SiteFooter';
 import { db } from '../../firebase/firebase';
@@ -16,8 +17,9 @@ import { RefreshCw } from 'lucide-react';
 
 export default function RoadmapPage() {
     const { userData, user, logout } = useAuth();
+    const { t } = useTranslation();
     const navigate = useNavigate();
-    const { assignments } = useStudentData(user);
+    const { assignments, userResults } = useStudentData(user);
     const [showPricing, setShowPricing] = useState(false);
     const [selectedDay, setSelectedDay] = useState(userData?.usageStats?.totalDaysActive || 1);
 
@@ -27,15 +29,15 @@ export default function RoadmapPage() {
     const [rawRoadmap, setRawRoadmap] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const fallbackRoadmap = {
-        1: [{ title: "Reading Focus", desc: "Akademik matnlarni tahlil qilish", type: 'reading' }, { title: "Error Analysis", desc: "Xatolar ustida ishlash", type: 'reading' }],
-        2: [{ title: "Listening Mastery", desc: "Turli aksentlarni tushunish", type: 'listening' }, { title: "Section 4 deep dive", desc: "Murakkab qismlar", type: 'listening' }],
-        3: [{ title: "Full Reading", desc: "To'liq Reading passage", type: 'reading' }, { title: "Writing AI", desc: "AI Writing feedback", type: 'writing' }],
-        4: [{ title: "Full Listening", desc: "To'liq Listening test", type: 'listening' }, { title: "Speaking AI", desc: "AI Speaking partner", type: 'speaking' }],
-        5: [{ title: "Reading Mock", desc: "Vaqtga doir test", type: 'reading' }, { title: "Article Analysis", desc: "Ilmiy maqolalar", type: 'article' }],
-        6: [{ title: "Listening Mock", desc: "Vaqtga doir test", type: 'listening' }, { title: "Podcast Session", desc: "Podkastlar", type: 'podcast' }],
-        7: [{ title: "Full Mock Test", desc: "Imtihon simulyatsiyasi", type: 'mock' }, { title: "Final Strategy", desc: "So'nggi maslahatlar", type: 'mock' }]
-    };
+    const fallbackRoadmap = useMemo(() => ({
+        1: [{ title: t('roadmap.fallback.d1Title'), desc: t('roadmap.fallback.d1Desc'), type: 'reading' }, { title: t('roadmap.fallback.errorAnalysis'), desc: t('roadmap.fallback.errorAnalysis'), type: 'reading' }],
+        2: [{ title: t('roadmap.fallback.d2Title'), desc: t('roadmap.fallback.d2Desc'), type: 'listening' }, { title: t('roadmap.fallback.section4Deep'), desc: t('roadmap.fallback.section4Deep'), type: 'listening' }],
+        3: [{ title: t('roadmap.fallback.d3Title'), desc: t('roadmap.fallback.d3Desc'), type: 'reading' }, { title: t('roadmap.fallback.writingAi'), desc: t('roadmap.fallback.writingAi'), type: 'writing' }],
+        4: [{ title: t('roadmap.fallback.d4Title'), desc: t('roadmap.fallback.d4Desc'), type: 'listening' }, { title: t('roadmap.fallback.speakingAi'), desc: t('roadmap.fallback.speakingAi'), type: 'speaking' }],
+        5: [{ title: t('roadmap.fallback.d5Title'), desc: t('roadmap.fallback.d5Desc'), type: 'reading' }, { title: t('roadmap.fallback.articleAnalysis'), desc: t('roadmap.fallback.articleAnalysis'), type: 'article' }],
+        6: [{ title: t('roadmap.fallback.d6Title'), desc: t('roadmap.fallback.d6Desc'), type: 'listening' }, { title: t('roadmap.fallback.podcastSession'), desc: t('roadmap.fallback.podcastSession'), type: 'podcast' }],
+        7: [{ title: t('roadmap.fallback.d7Title'), desc: t('roadmap.fallback.d7Desc'), type: 'mock' }, { title: t('roadmap.fallback.finalStrategy'), desc: t('roadmap.fallback.finalStrategy'), type: 'mock' }]
+    }), [t]);
 
     useEffect(() => {
         const fetchRoadmap = async () => {
@@ -56,7 +58,7 @@ export default function RoadmapPage() {
             }
         };
         fetchRoadmap();
-    }, []);
+    }, [fallbackRoadmap]);
 
     const totalDays = useMemo(() => rawRoadmap ? Object.keys(rawRoadmap).length : 7, [rawRoadmap]);
 
@@ -98,7 +100,7 @@ export default function RoadmapPage() {
     if (loading) return (
         <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#FBFBFD]">
             <RefreshCw className="animate-spin text-blue-600" size={40} />
-            <p className="font-bold text-[#86868B] uppercase tracking-widest">Marshrut yuklanmoqda...</p>
+            <p className="font-bold text-[#86868B] uppercase tracking-widest">{t('roadmap.loading')}</p>
         </div>
     );
 
@@ -120,11 +122,11 @@ export default function RoadmapPage() {
                             className="flex items-center gap-2 text-[#0066CC] font-semibold hover:underline group"
                         >
                             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                            Dashboardga qaytish
+                            {t('roadmap.backToDashboard')}
                         </button>
                         <h1 className="text-[48px] md:text-[64px] font-bold leading-[1.1] tracking-tight">
                             7-Day Route <br />
-                            <span className="text-[#86868B]">Muvaffaqiyat yo'li.</span>
+                            <span className="text-[#86868B]">{t('roadmap.successPath')}</span>
                         </h1>
                     </div>
 
@@ -143,7 +145,7 @@ export default function RoadmapPage() {
                         </div>
                         <div>
                             <p className="text-[11px] font-bold text-[#86868B] uppercase tracking-widest">Progress</p>
-                            <p className="text-lg font-bold">{currentDay} / {totalDays} kun</p>
+                            <p className="text-lg font-bold">{currentDay} / {totalDays} {t('dashboard.daysUnit')}</p>
                         </div>
                     </div>
                 </div>
@@ -152,7 +154,7 @@ export default function RoadmapPage() {
                     {/* Vertical Roadmap Sidebar */}
                     <div className="lg:col-span-4 space-y-4">
                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/[0.03]">
-                            <h3 className="text-lg font-bold mb-6">Sprint Marshruti</h3>
+                            <h3 className="text-lg font-bold mb-6">{t('roadmap.sprintRoute')}</h3>
                             <div className="relative space-y-0">
                                 {/* Vertical line */}
                                 <div className="absolute left-[23px] top-4 bottom-4 w-[2px] bg-[#F5F5F7]" />
@@ -180,7 +182,7 @@ export default function RoadmapPage() {
                                         </div>
                                         <div className="text-left">
                                             <p className={`text-[11px] font-bold uppercase tracking-widest ${day.status === 'active' ? 'text-[#0071E3]' : 'text-[#86868B]'}`}>
-                                                Day {day.day}
+                                                {t('roadmap.dayLabel')} {day.day}
                                             </p>
                                             <p className="text-[15px] font-bold truncate max-w-[150px]">{day.title}</p>
                                         </div>
@@ -209,7 +211,7 @@ export default function RoadmapPage() {
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-3 mb-4">
                                             <span className="bg-[#0071E3] text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
-                                                Active Day
+                                                {t('roadmap.activeDay')}
                                             </span>
                                             {selectedDay > currentDay && (
                                                 <span className="bg-[#F5F5F7] text-[#86868B] text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1">
@@ -270,7 +272,7 @@ export default function RoadmapPage() {
                                                         +{task.points} XP <Star size={10} fill="currentColor" />
                                                     </span>
                                                     <div className="flex items-center gap-1.5 text-[12px] font-bold text-white bg-[#161616] px-3.5 py-1.5 rounded-lg shadow-md shadow-black/10 group-hover:scale-105 transition-all">
-                                                        Boshlash <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                                                        {t('common.start')} <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                                                     </div>
                                                 </div>
                                             </div>
@@ -282,16 +284,16 @@ export default function RoadmapPage() {
                                         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                         <div className="relative z-10">
                                             <Zap size={24} className="text-[#0071E3] mb-4" />
-                                            <h4 className="text-xl font-bold mb-1">Sprintni tezlashtirish</h4>
+                                            <h4 className="text-xl font-bold mb-1">{t('roadmap.speedUpSprint')}</h4>
                                             <p className="text-zinc-400 text-sm leading-snug">
-                                                Keyingi kun vazifalarini hoziroq oching va tayyorgarlikni tezlashtiring.
+                                                {t('roadmap.speedUpSprintDesc')}
                                             </p>
                                         </div>
                                         <button 
                                             onClick={() => setShowPricing(true)}
                                             className="relative z-10 mt-8 w-full py-3 bg-white text-black rounded-xl font-bold text-sm hover:bg-zinc-200 transition-all"
                                         >
-                                            Upgrade Pro — 19,000 so'm
+                                            {t('roadmap.upgradePro')}
                                         </button>
                                     </div>
                                 </div>

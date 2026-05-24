@@ -16,7 +16,8 @@ export default function MediaSection({
     currentTime,
     duration,
     handleSeek: globalHandleSeek,
-    audioRef
+    audioRef,
+    keyboardShortcutsEnabled = false,
 }) {
     const videoRef = React.useRef(null);
     const [isBuffering, setIsBuffering] = React.useState(false);
@@ -63,8 +64,10 @@ export default function MediaSection({
         }, 2000);
     }, [isPlaying]);
 
-    // Keyboard Shortcuts (Space for Play/Pause, Arrows for Seeking)
+    // Keyboard Shortcuts (Space for Play/Pause, Arrows for Seeking) — faqat podcast sahifalarida
     React.useEffect(() => {
+        if (!keyboardShortcutsEnabled) return;
+
         const handleKeyDown = (e) => {
             if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
@@ -90,7 +93,7 @@ export default function MediaSection({
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isPlaying, setIsPlaying, currentTime, duration, globalHandleSeek]);
+    }, [keyboardShortcutsEnabled, isPlaying, setIsPlaying, currentTime, duration, globalHandleSeek, podcast?.mediaType]);
 
     const isVideoMode = (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') && podcast.showVideo !== false && String(podcast.showVideo) !== 'false';
 

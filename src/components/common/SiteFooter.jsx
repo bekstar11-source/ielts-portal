@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../../context/LanguageContext';
 
 const SiteFooter = () => {
+  const { t, lang, setLang } = useTranslation();
+
   return (
     <footer className="bg-[#f5f5f7] border-t border-[#d2d2d7] text-[#424245] text-[12px] font-sans pt-10 pb-6 w-full">
       <div className="max-w-[980px] mx-auto px-4 md:px-6">
@@ -9,7 +12,7 @@ const SiteFooter = () => {
         {/* Footnotes / Top info */}
         <div className="border-b border-[#d2d2d7] pb-4 mb-5 text-[11px] leading-snug text-[#6e6e73]">
           <p>
-            Englev Premium obunasi orqali siz barcha Mock testlar va ilg'or tahlillarga ega bo'lasiz. Narxlar va shartlar o'zgarishi mumkin.
+            {t('footer.footnote')}
           </p>
         </div>
 
@@ -17,7 +20,7 @@ const SiteFooter = () => {
         <div className="hidden md:flex flex-wrap justify-between pb-4">
           {/* Column 1 */}
           <div className="w-[18%]">
-            <h3 className="text-[#1d1d1f] font-semibold mb-2">O'rganish va Mashq</h3>
+            <h3 className="text-[#1d1d1f] font-semibold mb-2">{t('footer.learnAndPractice')}</h3>
             <ul className="space-y-2 mb-6">
               <li><Link to="/reading" className="hover:text-[#1d1d1f] hover:underline">Reading</Link></li>
               <li><Link to="/listening" className="hover:text-[#1d1d1f] hover:underline">Listening</Link></li>
@@ -31,98 +34,106 @@ const SiteFooter = () => {
 
           {/* Column 2 */}
           <div className="w-[18%]">
-            <h3 className="text-[#1d1d1f] font-semibold mb-2">Hisob</h3>
+            <h3 className="text-[#1d1d1f] font-semibold mb-2">{t('footer.account')}</h3>
             <ul className="space-y-2 mb-6">
-              <li><Link to="/settings" className="hover:text-[#1d1d1f] hover:underline">Sozlamalar</Link></li>
-              <li><Link to="/my-results" className="hover:text-[#1d1d1f] hover:underline">Mening natijalarim</Link></li>
-              <li><Link to="/dashboard" className="hover:text-[#1d1d1f] hover:underline">Sevimlilar</Link></li>
-              <li><Link to="/leaderboard" className="hover:text-[#1d1d1f] hover:underline">Reyting</Link></li>
+              <li><Link to="/settings" className="hover:text-[#1d1d1f] hover:underline">{t('footer.settings')}</Link></li>
+              <li><Link to="/my-results" className="hover:text-[#1d1d1f] hover:underline">{t('footer.myResults')}</Link></li>
+              <li><Link to="/dashboard" className="hover:text-[#1d1d1f] hover:underline">{t('footer.favorites')}</Link></li>
+              <li><Link to="/leaderboard" className="hover:text-[#1d1d1f] hover:underline">{t('footer.ranking')}</Link></li>
             </ul>
 
-            <h3 className="text-[#1d1d1f] font-semibold mb-2">Premium</h3>
+            <h3 className="text-[#1d1d1f] font-semibold mb-2">{t('footer.premium')}</h3>
             <ul className="space-y-2">
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Obunani yangilash</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Ruxsat kalitini kiritish</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Narxlar</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.upgradeSubscription')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.enterKey')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.pricing')}</span></li>
             </ul>
           </div>
 
           {/* Column 3 */}
           <div className="w-[18%]">
-            <h3 className="text-[#1d1d1f] font-semibold mb-2">Manbalar</h3>
+            <h3 className="text-[#1d1d1f] font-semibold mb-2">{t('footer.resources')}</h3>
             <ul className="space-y-2 mb-6">
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Blog</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Video darslar</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">O'qish bo'yicha maslahatlar</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Muvaffaqiyat tarixi</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">IELTS kalkulyatori</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.blog')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.videos')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.readingTips')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.successStories')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.calculator')}</span></li>
             </ul>
           </div>
 
           {/* Column 4 */}
           <div className="w-[18%]">
-            <h3 className="text-[#1d1d1f] font-semibold mb-2">O'qituvchilar uchun</h3>
+            <h3 className="text-[#1d1d1f] font-semibold mb-2">{t('footer.forTeachers')}</h3>
             <ul className="space-y-2 mb-6">
-              <li><Link to="/teacher" className="hover:text-[#1d1d1f] hover:underline">O'qituvchi portali</Link></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Guruh statistikasi</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Vazifalar yaratish</span></li>
+              <li><Link to="/teacher" className="hover:text-[#1d1d1f] hover:underline">{t('footer.teacherPortal')}</Link></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.groupStats')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.createTasks')}</span></li>
             </ul>
 
-            <h3 className="text-[#1d1d1f] font-semibold mb-2">Muassasalar uchun</h3>
+            <h3 className="text-[#1d1d1f] font-semibold mb-2">{t('footer.forInstitutions')}</h3>
             <ul className="space-y-2">
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Maktablar uchun Englev</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Hamkorlik dasturi</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.englevForSchools')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.partnership')}</span></li>
             </ul>
           </div>
 
           {/* Column 5 */}
           <div className="w-[18%]">
-            <h3 className="text-[#1d1d1f] font-semibold mb-2">Englev Qadriyatlari</h3>
+            <h3 className="text-[#1d1d1f] font-semibold mb-2">{t('footer.values')}</h3>
             <ul className="space-y-2 mb-6">
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Foydalanish imkoniyati</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Ta'lim birinchi o'rinda</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Maxfiylik</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.accessibility')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.educationFirst')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.privacy')}</span></li>
             </ul>
 
-            <h3 className="text-[#1d1d1f] font-semibold mb-2">Englev Haqida</h3>
+            <h3 className="text-[#1d1d1f] font-semibold mb-2">{t('footer.about')}</h3>
             <ul className="space-y-2">
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Yangiliklar xonasi</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Rahbariyat</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Karyera imkoniyatlari</span></li>
-              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">Bog'lanish</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.newsroom')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.leadership')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.careers')}</span></li>
+              <li><span className="cursor-pointer hover:text-[#1d1d1f] hover:underline">{t('footer.contact')}</span></li>
             </ul>
           </div>
         </div>
 
-        {/* Mobile Accordion Placeholder (Simplified for demonstration) */}
+        {/* Mobile Accordion Placeholder */}
         <div className="md:hidden flex flex-col gap-2 pb-5 border-b border-[#d2d2d7]">
-          {/* In a real Apple footer, these are accordions. For brevity, displaying inline list or simplified */}
-          <p className="text-[#1d1d1f] font-semibold">Tezkor havolalar</p>
+          <p className="text-[#1d1d1f] font-semibold">{t('footer.quickLinks')}</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
-            <Link to="/practice" className="hover:underline">Amaliyot</Link>
-            <Link to="/my-results" className="hover:underline">Natijalar</Link>
-            <Link to="/vocabulary" className="hover:underline">WordBank</Link>
-            <Link to="/settings" className="hover:underline">Sozlamalar</Link>
+            <Link to="/practice" className="hover:underline">{t('footer.practice')}</Link>
+            <Link to="/my-results" className="hover:underline">{t('footer.results')}</Link>
+            <Link to="/vocabulary" className="hover:underline">{t('footer.wordbank')}</Link>
+            <Link to="/settings" className="hover:underline">{t('footer.settings')}</Link>
           </div>
         </div>
 
         {/* Footer Bottom */}
         <div className="pt-4 flex flex-col md:flex-row md:items-center justify-between gap-4 text-[#6e6e73]">
           <div>
-            Biz bilan bog'lanish uchun: <span className="text-[#0066cc] cursor-pointer hover:underline">O'quv markaz topish</span> yoki qo'ng'iroq qiling <span className="text-[#1d1d1f]">+998 91 518 18 44</span>.
+            {t('footer.contactInfo')}
           </div>
         </div>
 
         <div className="mt-3 pt-3 border-t border-[#d2d2d7] flex flex-col md:flex-row md:items-center justify-between gap-3 text-[#6e6e73]">
-          <p>Copyright © 2026 Englev Inc. Barcha huquqlar himoyalangan.</p>
+          <p>Copyright © 2026 Englev Inc. {t('footer.rightsReserved')}</p>
           <div className="flex flex-wrap gap-x-3 gap-y-1">
-            <span className="hover:text-[#1d1d1f] cursor-pointer hover:underline">Maxfiylik siyosati</span>
-            <span className="border-l border-[#d2d2d7] pl-3 hover:text-[#1d1d1f] cursor-pointer hover:underline">Foydalanish shartlari</span>
-            <span className="border-l border-[#d2d2d7] pl-3 hover:text-[#1d1d1f] cursor-pointer hover:underline">Savdo va to'lovlar</span>
-            <span className="border-l border-[#d2d2d7] pl-3 hover:text-[#1d1d1f] cursor-pointer hover:underline">Yuridik ma'lumotlar</span>
-            <span className="border-l border-[#d2d2d7] pl-3 hover:text-[#1d1d1f] cursor-pointer hover:underline">Sayt xaritasi</span>
+            <span className="hover:text-[#1d1d1f] cursor-pointer hover:underline">{t('footer.privacyPolicy')}</span>
+            <span className="border-l border-[#d2d2d7] pl-3 hover:text-[#1d1d1f] cursor-pointer hover:underline">{t('footer.termsOfUse')}</span>
+            <span className="border-l border-[#d2d2d7] pl-3 hover:text-[#1d1d1f] cursor-pointer hover:underline">{t('footer.salesAndPayments')}</span>
+            <span className="border-l border-[#d2d2d7] pl-3 hover:text-[#1d1d1f] cursor-pointer hover:underline">{t('footer.legalInfo')}</span>
+            <span className="border-l border-[#d2d2d7] pl-3 hover:text-[#1d1d1f] cursor-pointer hover:underline">{t('footer.sitemap')}</span>
           </div>
-          <p className="hover:text-[#1d1d1f] cursor-pointer hover:underline">O'zbekiston</p>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setLang(lang === 'uz' ? 'en' : 'uz')} 
+              className="hover:text-[#1d1d1f] cursor-pointer hover:underline text-left font-semibold"
+            >
+              {lang === 'uz' ? 'English' : "O'zbekcha"}
+            </button>
+            <span className="text-[#d2d2d7]">|</span>
+            <p className="hover:text-[#1d1d1f] cursor-pointer hover:underline">{t('footer.country')}</p>
+          </div>
         </div>
 
       </div>
