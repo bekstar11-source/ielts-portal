@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoreHorizontal, Edit2, Trash2, Globe, Lock, BookOpen, Headphones, PenTool, Mic2, Eye } from 'lucide-react';
+import { MoreHorizontal, Edit2, Trash2, Globe, Lock, BookOpen, Headphones, PenTool, Mic2, Eye, Award } from 'lucide-react';
 
 const passagePartNumber = (p, idx, kind) => {
     const idNum = Number(p.id);
@@ -24,6 +24,13 @@ const formatQuestionType = (type) => {
 
 const getSegments = (test) => {
     const type = test.type || '';
+    if (type === 'mock') {
+        return [
+            { label: 'R', title: 'Reading Module', exists: !!test.subTests?.readingId },
+            { label: 'L', title: 'Listening Module', exists: !!test.subTests?.listeningId },
+            { label: 'W', title: 'Writing Module', exists: !!test.subTests?.writingId }
+        ];
+    }
     if (type === 'reading') {
         const present = new Set();
         (test.passages || []).forEach((p, idx) => {
@@ -114,7 +121,15 @@ const AdminTestsList = ({
                         } else {
                             // Metadata-only document: use summary fields
                             qTypes = test.questionTypes || [];
-                            if (test.type === 'listening' && test.parts) {
+                            if (test.type === 'mock') {
+                                passageCount = 3;
+                                qTypes = ["Reading", "Listening", "Writing"];
+                                segments = [
+                                    { label: 'R', title: 'Reading Module', exists: !!test.subTests?.readingId },
+                                    { label: 'L', title: 'Listening Module', exists: !!test.subTests?.listeningId },
+                                    { label: 'W', title: 'Writing Module', exists: !!test.subTests?.writingId }
+                                ];
+                            } else if (test.type === 'listening' && test.parts) {
                                 const partKeys = Object.keys(test.parts);
                                 passageCount = partKeys.length;
                                 partKeys.forEach(k => {
@@ -164,7 +179,8 @@ const AdminTestsList = ({
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isDark ? 'bg-white/5 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
                                             {test.type === 'reading' ? <BookOpen size={16} /> : 
                                              test.type === 'listening' ? <Headphones size={16} /> : 
-                                             test.type === 'writing' ? <PenTool size={16} /> : <Mic2 size={16} />}
+                                             test.type === 'writing' ? <PenTool size={16} /> : 
+                                             test.type === 'mock' ? <Award size={16} /> : <Mic2 size={16} />}
                                         </div>
                                         <div>
                                             <div className="text-sm font-bold truncate max-w-[300px]">{test.title || "Untitled Test"}</div>
@@ -186,7 +202,7 @@ const AdminTestsList = ({
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex flex-col gap-0.5">
                                             <span className={`text-xs font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
-                                                {passageCount} {test.type === 'listening' ? 'Parts' : test.type === 'writing' ? 'Tasks' : 'Passages'}
+                                                {passageCount} {test.type === 'listening' ? 'Parts' : test.type === 'writing' ? 'Tasks' : test.type === 'mock' ? 'Modules' : 'Passages'}
                                             </span>
                                             <span className="text-[10px] text-zinc-400">
                                                 {totalGroups} question groups
@@ -229,7 +245,9 @@ const AdminTestsList = ({
                                 </td>
                                 <td className="py-4 pr-4 text-right">
                                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => onView(test.id)} className="p-2 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 rounded-lg transition-colors"><Eye size={14} /></button>
+                                        {test.type !== 'mock' && (
+                                            <button onClick={() => onView(test.id)} className="p-2 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 rounded-lg transition-colors"><Eye size={14} /></button>
+                                        )}
                                         <button onClick={() => onEdit(test.id)} className="p-2 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400 rounded-lg transition-colors"><Edit2 size={14} /></button>
                                         <button onClick={() => onDelete(test.id, test.title)} className="p-2 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 rounded-lg transition-colors"><Trash2 size={14} /></button>
                                     </div>

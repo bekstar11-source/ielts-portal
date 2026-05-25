@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { hapticFeedback } from "../../utils/haptic";
 import { getRecommendations } from "../../utils/recommendations";
 
-export function useStudentDashboard(user, userData, rawAssignments, userResults, analyticsStats, refresh) {
+export function useStudentDashboard(user, userData, rawAssignments, userResults, analyticsStats, refresh, loading) {
     const navigate = useNavigate();
 
     // MODAL STATES
@@ -60,13 +60,13 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
                 const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < ONE_HOUR);
 
                 if (isCacheValid) {
-                    const cached = localStorage.getItem(CACHE_KEY);
-                    if (cached) {
-                        const { mistakes, vocab } = JSON.parse(cached);
-                        setMistakesCount(mistakes || 0);
-                        setVocabCount(vocab || 0);
-                        return;
-                    }
+                     const cached = localStorage.getItem(CACHE_KEY);
+                     if (cached) {
+                         const { mistakes, vocab } = JSON.parse(cached);
+                         setMistakesCount(mistakes || 0);
+                         setVocabCount(vocab || 0);
+                         return;
+                     }
                 }
 
                 const [mSnap, vSnap] = await Promise.all([
@@ -110,7 +110,7 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
     const confirmStartTest = (incrementUsage) => {
         const test = testToStart;
         if (!test) return;
-        
+
         setShowStartConfirm(false);
         const type = test.type?.toLowerCase() || '';
         const isReading = type.includes('reading') || test.title?.toLowerCase().includes('reading');
@@ -120,10 +120,10 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
         if (limitTarget && incrementUsage) {
             incrementUsage(limitTarget).catch(err => console.error("Stats update failed:", err));
         }
-        
-        if (test.type === 'mock_full') { 
-            navigate('/mock-exam', { state: { mockData: test } }); 
-            return; 
+
+        if (test.type === 'mock_full') {
+            navigate('/mock-exam', { state: { mockData: test } });
+            return;
         }
         navigate(`/test/${test.id || test.testId}`);
     };
@@ -140,18 +140,18 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
                 alert("Test qo'shildi! 🚀");
                 sessionStorage.removeItem(`student_assignments_${user.uid}`);
                 sessionStorage.removeItem(`student_assignments_time_${user.uid}`);
-                
-                setShowKeyModal(false); 
+
+                setShowKeyModal(false);
                 setAccessKeyInput("");
                 if (refresh) refresh();
                 else window.location.reload();
             } else {
                 throw new Error("Kalitni faollashtirishda kutilmagan xatolik yuz berdi.");
             }
-        } catch (error) { 
-            setKeyError(error.message || "Kalit xato yoki ishlatilgan!"); 
-        } finally { 
-            setCheckingKey(false); 
+        } catch (error) {
+            setKeyError(error.message || "Kalit xato yoki ishlatilgan!");
+        } finally {
+            setCheckingKey(false);
         }
     };
 
@@ -163,7 +163,7 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
             if (!num || isNaN(num)) return "0.0";
             return (Math.round(num * 2) / 2).toFixed(1);
         };
-        const useFallback = analyticsStats.totalTests === 0;
+        const useFallback = !loading && analyticsStats.totalTests === 0;
         const fallbackValue = userData?.currentBand || 0;
 
         return [
@@ -172,9 +172,10 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
             { name: "Writing", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.writing), color: "orange", isActive: activeSkills.Writing },
             { name: "Speaking", score: useFallback ? roundToIELTSBand(fallbackValue) : roundToIELTSBand(averages.speaking), color: "emerald", isActive: activeSkills.Speaking }
         ];
-    }, [analyticsStats, userData, activeSkills]);
+    }, [analyticsStats, userData, activeSkills, loading]);
 
     const overallBand = useMemo(() => {
+        if (loading) return 0;
         if (analyticsStats.totalTests === 0) return userData?.currentBand || 0;
         let sum = 0, count = 0;
         skillStats.forEach(skill => {
@@ -182,7 +183,7 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
         });
         if (count === 0) return 0;
         return Math.round((sum / count) * 2) / 2;
-    }, [skillStats, analyticsStats.totalTests, userData]);
+    }, [skillStats, analyticsStats.totalTests, userData, loading]);
 
     return {
         activeTab, setActiveTab,

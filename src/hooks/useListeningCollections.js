@@ -69,7 +69,7 @@ export function useListeningCollections(userResults) {
         const snapCols = await getDocs(collection(db, "test_collections"));
         const fetchedCols = snapCols.docs
           .map(d => ({ id: d.id, ...d.data() }))
-          .filter(c => c.type?.toLowerCase() !== 'reading');
+          .filter(c => c.type?.toLowerCase() === 'listening');
         setCollections(fetchedCols);
         fetchCollectionCounts(fetchedCols);
 

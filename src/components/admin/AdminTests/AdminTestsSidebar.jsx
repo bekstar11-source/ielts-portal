@@ -1,5 +1,4 @@
-import React from 'react';
-import { Folder, BookOpen, Headphones, PenTool, Mic2, Layers, Plus, Edit2, Hash } from 'lucide-react';
+import { Folder, BookOpen, Headphones, PenTool, Mic2, Layers, Plus, Edit2, Hash, Award } from 'lucide-react';
 
 const AdminTestsSidebar = ({ 
     collections, filterCollection, setFilterCollection, 
@@ -7,7 +6,7 @@ const AdminTestsSidebar = ({
     onAddCollection, onEditCollection, isDark,
     onMigrate, isMigrating
 }) => {
-    const TEST_TYPES = ["All", "Reading", "Listening", "Writing", "Speaking"];
+    const TEST_TYPES = ["All", "Reading", "Listening", "Writing", "Speaking", "Mock"];
 
     return (
         <aside className={`w-64 border-r flex flex-col shrink-0 overflow-y-auto transition-colors ${isDark ? 'bg-[#181818] border-white/5' : 'bg-[#fbfbfb] border-zinc-200'}`}>
@@ -33,6 +32,7 @@ const AdminTestsSidebar = ({
                              {collections.map(c => {
                                 const isListening = c.type === 'listening';
                                 const isReading = c.type === 'reading';
+                                const isMock = c.type === 'mock';
                                 const wrapperClass = c.thumbnail 
                                     ? `w-5 h-5 rounded overflow-hidden shrink-0 flex items-center justify-center border ${isDark ? 'border-white/10' : 'border-black/5'}`
                                     : `w-5 h-5 rounded shrink-0 flex items-center justify-center border ${
@@ -40,7 +40,9 @@ const AdminTestsSidebar = ({
                                             ? (isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-250 text-amber-600')
                                             : isReading
                                                 ? (isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-250 text-emerald-600')
-                                                : (isDark ? 'bg-white/5 border-white/10 text-zinc-400' : 'bg-zinc-100 border-zinc-200 text-zinc-500')
+                                                : isMock
+                                                    ? (isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-250 text-blue-600')
+                                                    : (isDark ? 'bg-white/5 border-white/10 text-zinc-400' : 'bg-zinc-100 border-zinc-200 text-zinc-500')
                                       }`;
                                 return (
                                     <div key={c.id} className="group relative">
@@ -75,7 +77,8 @@ const AdminTestsSidebar = ({
                                         {type === 'Reading' ? <BookOpen size={16} /> : 
                                          type === 'Listening' ? <Headphones size={16} /> : 
                                          type === 'Writing' ? <PenTool size={16} /> : 
-                                         type === 'Speaking' ? <Mic2 size={16} /> : <Layers size={16} />}
+                                         type === 'Speaking' ? <Mic2 size={16} /> : 
+                                         type === 'Mock' ? <Award size={16} /> : <Layers size={16} />}
                                         {type}
                                     </span>
                                 </button>

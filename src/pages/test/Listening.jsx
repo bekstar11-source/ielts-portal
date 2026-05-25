@@ -60,7 +60,7 @@ export default function Listening() {
   const [hasMore, setHasMore] = useState(true);
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 200;
 
   const rawAssignments = useMemo(() => {
     // Deduplicate between assignments, library tests, and all collections tests
@@ -132,13 +132,13 @@ export default function Listening() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  const collectionsSectionRef = useRef(null);
-
   const [activeSubTab, setActiveSubTab] = useState(() => {
     const params = new URLSearchParams(location.search);
     const section = params.get('section');
     return section === 'collections' || section === 'full_test' ? section : 'parts';
   });
+
+  const collectionsSectionRef = useRef(null);
 
   useEffect(() => {
     const sectionFromUrl = new URLSearchParams(location.search).get('section');
@@ -148,6 +148,11 @@ export default function Listening() {
       setActiveSubTab('parts');
     }
   }, [location.search]);
+
+  // Reset pagination to page 1 when search query or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter, activeSubTab]);
 
   const processedTests = useMemo(() => {
     // 1. Get unique tests from rawAssignments (which has assignments + libraryTests)

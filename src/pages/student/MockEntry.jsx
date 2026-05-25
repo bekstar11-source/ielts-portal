@@ -601,7 +601,7 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                 <div className="space-y-4 flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
-                        <h4 className="text-xl font-bold text-gray-800">IELTS CD Academic Full Mock</h4>
+                        <h4 className="text-xl font-bold text-gray-800">{test.title || "IELTS CD Academic Full Mock"}</h4>
                         <span className="text-[11px] font-bold text-[#e31b23] bg-red-50 px-2.5 py-1 rounded-full border border-red-100">{t('mock.unlocked')}</span>
                     </div>
                     

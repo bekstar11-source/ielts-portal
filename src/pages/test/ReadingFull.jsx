@@ -63,7 +63,7 @@ export default function ReadingFull() {
   const [hasMore, setHasMore] = useState(true);
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 200;
 
   const rawAssignments = useMemo(() => {
     // Deduplicate between assignments, library tests, and all collections tests

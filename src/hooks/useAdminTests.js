@@ -46,7 +46,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             const qCols = query(collection(db, "test_collections"), orderBy("createdAt", "asc"));
             const snapCols = await getDocs(qCols);
             setCollections(snapCols.docs.map(d => ({ id: d.id, ...d.data() })));
-        } catch (e) {
+        } catch {
             // orderBy may fail without index; fetch without sort as fallback
             try {
                 const snapCols = await getDocs(collection(db, "test_collections"));
@@ -434,14 +434,18 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    const addCollection = async (name, thumbnail = "", type = "reading") => {
+    const addCollection = async (name, thumbnail = "", type = "reading", subTests = null) => {
         try {
-            await addDoc(collection(db, "test_collections"), {
+            const data = {
                 name: name.trim(),
                 thumbnail: thumbnail.trim(),
                 type: type,
                 createdAt: serverTimestamp()
-            });
+            };
+            if (type === 'mock' && subTests) {
+                data.subTests = subTests;
+            }
+            await addDoc(collection(db, "test_collections"), data);
             await fetchCollections();
             return true;
         } catch (err) {
@@ -450,13 +454,17 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    const updateCollection = async (id, name, thumbnail = "", type = "reading") => {
+    const updateCollection = async (id, name, thumbnail = "", type = "reading", subTests = null) => {
         try {
-            await updateDoc(doc(db, "test_collections", id), {
+            const data = {
                 name: name.trim(),
                 thumbnail: thumbnail.trim(),
                 type: type
-            });
+            };
+            if (type === 'mock' && subTests) {
+                data.subTests = subTests;
+            }
+            await updateDoc(doc(db, "test_collections", id), data);
             await fetchCollections();
             return true;
         } catch (err) {

@@ -29,7 +29,7 @@ export default function StudentDashboard() {
     const { checkLimit, incrementUsage } = useDailyLimit(userData);
 
     // 🔥 LOGIC HOOK
-    const dashboard = useStudentDashboard(user, userData, rawAssignments, userResults, analyticsStats, refresh);
+    const dashboard = useStudentDashboard(user, userData, rawAssignments, userResults, analyticsStats, refresh, loading);
 
     useEffect(() => {
         if (userData?.role === 'admin') { navigate('/admin', { replace: true }); return; }
@@ -113,6 +113,7 @@ export default function StudentDashboard() {
                     usageStats={userData?.usageStats}
                     onStartTest={onStartTestRequest}
                     assignments={rawAssignments.length > 0 ? rawAssignments : dashboard.publicTestsFallback}
+                    loading={loading}
                 />
             );
         }

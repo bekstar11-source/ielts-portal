@@ -3,7 +3,6 @@ import RoadmapTimeline from './RoadmapTimeline';
 
 // REFACTORED COMPONENTS
 import DashboardWelcome from './DashboardWelcome';
-import DashboardAnalytics from './DashboardAnalytics';
 import DashboardReadingCarousel from './DashboardReadingCarousel';
 import DashboardArticles from './DashboardArticles';
 import DashboardListeningBanner from './DashboardListeningBanner';
@@ -21,6 +20,7 @@ export default function HeroSection({
     usageStats = null,
     onStartTest = null,
     assignments = [],
+    loading = false,
 }) {
     const [animatedCurrent, setAnimatedCurrent] = useState(0);
     const [animatedDays, setAnimatedDays] = useState(0);
@@ -59,9 +59,8 @@ export default function HeroSection({
                 animatedCurrent={animatedCurrent}
                 animatedDays={animatedDays}
                 skillStats={skillStats}
+                loading={loading}
             />
-
-            <DashboardAnalytics skillStats={skillStats} onToggleSkill={onToggleSkill} />
 
             <div className="w-full mt-8 mb-4">
                 <RoadmapTimeline usageStats={usageStats} onStartTest={onStartTest} assignments={assignments} />

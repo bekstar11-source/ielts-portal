@@ -118,6 +118,10 @@ export default function ReadingParts() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStatus, selectedQuestionTypes, selectedPassages]);
+
   const allQuestionTypes = useMemo(() => {
     const types = new Set();
     rawAssignments.forEach(item => {

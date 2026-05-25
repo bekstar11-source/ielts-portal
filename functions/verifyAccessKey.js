@@ -56,6 +56,15 @@ async function verifyAccessKey(data, context) {
                 throw new Error("Ushbu kalit allaqachon ishlatilgan.");
             }
 
+            let mockTitle = 'Full Mock Exam (L+R+W)';
+            if (freshKeyData.collectionId) {
+                const colRef = db.collection("test_collections").doc(freshKeyData.collectionId);
+                const colDoc = await transaction.get(colRef);
+                if (colDoc.exists) {
+                    mockTitle = colDoc.data().name || mockTitle;
+                }
+            }
+
             const userData = userDoc.data();
             const now = new Date().toISOString();
             let mockAssignment = {};
@@ -67,7 +76,8 @@ async function verifyAccessKey(data, context) {
                 mockAssignment = {
                     id: 'MOCK_' + freshKeyData.key,
                     type: 'mock_full',
-                    title: 'Full Mock Exam (L+R+W)',
+                    title: mockTitle,
+                    collectionId: freshKeyData.collectionId || "",
                     startDate: now,
                     status: 'unlocked_mock',
                     mockKey: freshKeyData.key,
