@@ -137,7 +137,7 @@ export default function CreatePodcast() {
     };
 
     return (
-        <div className="podcast-layout" style={{ padding: "24px 32px" }}>
+        <div className="podcast-layout p-4 sm:p-6 md:p-8">
             <div style={{ maxWidth: 1400, margin: "0 auto" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
                     <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "var(--pod-text)" }}>
@@ -150,7 +150,7 @@ export default function CreatePodcast() {
 
                 {/* Meta form */}
                 <div className="pod-card" style={{ marginBottom: 20 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                             <label style={{ fontSize: 12, color: "var(--pod-text-2)" }}>Sarlavha</label>
                             <input
@@ -275,7 +275,7 @@ export default function CreatePodcast() {
                 {step === "editor" && podcast && (
                     <>
                         {/* Tabs */}
-                        <div style={{ display: "flex", gap: 0, marginBottom: 16, background: "var(--pod-surface-2)", padding: 4, borderRadius: "var(--pod-radius)", width: "fit-content" }}>
+                        <div className="flex overflow-x-auto gap-1 mb-4 bg-[var(--pod-surface-2)] p-1 rounded-[var(--pod-radius)] w-full sm:w-fit scrollbar-none">
                             {[
                                 { key: "segments", label: "🌊 Segmentlar" },
                                 { key: "mcq", label: "✅ MCQ Savollar" },

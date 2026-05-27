@@ -162,7 +162,7 @@ export default function DashboardListeningCarousel({ isListeningPaused, onStartT
                                     onClick={() => item.link ? navigate(item.link) : onStartTest(item)}
                                     className="flex-none w-[200px] md:w-[240px] group/card cursor-pointer"
                                 >
-                                    <div className="relative aspect-[3/2.8] rounded-lg overflow-hidden mb-3 shadow-md group-hover:shadow-2xl transition-all duration-500 bg-zinc-100">
+                                    <div className="relative aspect-[3/2.8] rounded-lg overflow-hidden mb-3 shadow-md group-hover:shadow-2xl transition-all duration-500 bg-zinc-100 dark:bg-zinc-800">
                                         <img 
                                             src={item.img} 
                                             alt={item.title}
@@ -180,10 +180,10 @@ export default function DashboardListeningCarousel({ isListeningPaused, onStartT
                                         </div>
                                     </div>
                                     <div className="px-1">
-                                        <h4 className="text-[14px] font-bold text-[#1D1D1F] leading-tight mb-1">{item.title}</h4>
-                                        <p className="text-[12px] text-zinc-500 font-medium leading-snug line-clamp-2">{item.sub}</p>
+                                        <h4 className="text-[14px] font-bold text-[#1D1D1F] dark:text-[#f5f5f7] leading-tight mb-1">{item.title}</h4>
+                                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 font-medium leading-snug line-clamp-2">{item.sub}</p>
                                         <div className="flex items-center gap-2 mt-2">
-                                            <span className="text-[10px] font-bold text-[#0066cc] uppercase tracking-wide">{item.questions}</span>
+                                            <span className="text-[10px] font-bold text-[#0066cc] dark:text-[#3894ff] uppercase tracking-wide">{item.questions}</span>
                                         </div>
                                     </div>
                                 </div>

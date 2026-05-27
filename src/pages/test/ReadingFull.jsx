@@ -262,7 +262,7 @@ export default function ReadingFull() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-[#09090b] font-sans text-gray-900 dark:text-[#f5f5f7] overflow-x-hidden transition-colors duration-200">
       <DashboardHeader
         user={user} userData={userData}
         activeTab="reading"
@@ -319,13 +319,13 @@ export default function ReadingFull() {
                         if (fullTests.length === 0) {
                             return (
                                 <div className="flex flex-col items-center justify-center py-40 text-center" key="no-fulltests">
-                                    <Search size={24} className="text-gray-300 mb-6" />
-                                    <h3 className="text-[24px] font-semibold text-[#1d1d1f]">Hech narsa topilmadi</h3>
+                                    <Search size={24} className="text-gray-300 dark:text-zinc-600 mb-6" />
+                                    <h3 className="text-[24px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Hech narsa topilmadi</h3>
                                 </div>
                             );
                         }
                         return (
-                            <motion.div 
+                          <motion.div 
                                 key="full_test"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -333,7 +333,7 @@ export default function ReadingFull() {
                                 className="space-y-4 pb-20"
                                 ref={fullTestSectionRef}
                             >
-                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Full Reading</h2>
+                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Full Reading</h2>
                                 <div 
                                     ref={fullReadingScroll.scrollRef}
                                     onScroll={(e) => fullReadingScroll.updateScrollState(e.currentTarget)}

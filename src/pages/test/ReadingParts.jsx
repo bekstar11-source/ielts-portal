@@ -256,7 +256,7 @@ export default function ReadingParts() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-[#09090b] font-sans text-gray-900 dark:text-[#f5f5f7] overflow-x-hidden transition-colors duration-200">
       <DashboardHeader
         user={user} userData={userData}
         activeTab="reading"
@@ -309,11 +309,11 @@ export default function ReadingParts() {
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
         ) : (
-            <AnimatePresence mode="wait">
+             <AnimatePresence mode="wait">
                 {filteredTests.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-40 text-center" key="no-passages">
-                        <Search size={24} className="text-gray-300 mb-6" />
-                        <h3 className="text-[24px] font-semibold text-[#1d1d1f]">Hech narsa topilmadi</h3>
+                        <Search size={24} className="text-gray-300 dark:text-zinc-600 mb-6" />
+                        <h3 className="text-[24px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Hech narsa topilmadi</h3>
                     </div>
                 ) : (
                     <motion.div 
@@ -325,8 +325,8 @@ export default function ReadingParts() {
                     >
                         <div className="space-y-4">
                             <div className="space-y-1">
-                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Reading Passages</h2>
-                                <p className="text-[#86868b] text-[14px]">Displaying {filteredTests.length} passages</p>
+                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Reading Passages</h2>
+                                <p className="text-[#86868b] dark:text-zinc-450 text-[14px]">Displaying {filteredTests.length} passages</p>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8 pt-4">
@@ -343,7 +343,7 @@ export default function ReadingParts() {
                                     />
                                 ))}
                             </div>
-
+ 
                             {/* Pagination & Load More */}
                             <div className="flex flex-col items-center gap-5 pt-10 pb-8">
                                 {filteredTests.length > itemsPerPage && (
@@ -362,10 +362,10 @@ export default function ReadingParts() {
                                                     pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
                                                 }
                                             }
-
+ 
                                             return pages.map((p, i) => (
                                                 p === '...' ? (
-                                                    <span key={`dots-${i}`} className="text-[#86868b] px-1 text-[11.5px]">...</span>
+                                                    <span key={`dots-${i}`} className="text-[#86868b] dark:text-zinc-500 px-1 text-[11.5px]">...</span>
                                                 ) : (
                                                     <button
                                                         key={p}
@@ -375,8 +375,8 @@ export default function ReadingParts() {
                                                         }}
                                                         className={`w-7 h-7 rounded-full text-[11.5px] font-semibold transition-all ${
                                                             currentPage === p 
-                                                            ? 'bg-[#1d1d1f] text-white' 
-                                                            : 'bg-[#f5f5f7] text-[#1d1d1f] hover:bg-gray-200'
+                                                            ? 'bg-[#1d1d1f] text-white dark:bg-white dark:text-zinc-900' 
+                                                            : 'bg-[#f5f5f7] text-[#1d1d1f] dark:bg-zinc-800 dark:text-[#f5f5f7] hover:bg-gray-200 dark:hover:bg-zinc-700'
                                                         }`}
                                                     >
                                                         {p}

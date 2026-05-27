@@ -54,7 +54,7 @@ export default function AdminDashboard() {
 
             {/* ACTIVITY CHART */}
             <div className={`rounded-[24px] p-6 border transition-colors ${isDark ? 'bg-[#272727] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <h3 className="text-gray-900 dark:text-white font-medium">Faollik Statistikasi</h3>
                     <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
                         {["week", "month"].map(range => (

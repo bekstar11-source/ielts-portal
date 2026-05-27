@@ -64,18 +64,18 @@ export default function Leaderboard() {
     }, []);
 
     return (
-        <div className="max-w-2xl mx-auto mt-8 bg-white border border-vetra-grey/60 rounded-3xl p-6 relative overflow-hidden shadow-sm">
+        <div className="max-w-2xl mx-auto mt-8 bg-white dark:bg-zinc-900 border border-vetra-grey/60 dark:border-zinc-800 rounded-3xl p-6 relative overflow-hidden shadow-sm">
             {/* Subtle glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-50 rounded-full blur-[80px] pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-50 dark:bg-yellow-500/[0.03] rounded-full blur-[80px] pointer-events-none"></div>
 
-            <h3 className="text-xl font-bold text-vetra-midnight mb-6 flex items-center gap-2">
+            <h3 className="text-xl font-bold text-vetra-midnight dark:text-white mb-6 flex items-center gap-2">
                 <Trophy className="text-yellow-500" />
                 Top O'quvchilar
             </h3>
 
             {loading ? (
                 <div className="space-y-3">
-                    {[1, 2, 3].map(i => <div key={i} className="h-14 bg-vetra-grey/30 rounded-xl animate-pulse" />)}
+                    {[1, 2, 3].map(i => <div key={i} className="h-14 bg-vetra-grey/30 dark:bg-zinc-800 rounded-xl animate-pulse" />)}
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -90,15 +90,15 @@ export default function Leaderboard() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.1 }}
                                 className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${isMe
-                                    ? 'bg-[#F44A22]/5 border-[#F44A22]/30 shadow-sm'
-                                    : 'bg-vetra-silver/50 border-vetra-grey/40 hover:bg-vetra-silver'
+                                    ? 'bg-[#F44A22]/5 dark:bg-[#F44A22]/10 border-[#F44A22]/30 dark:border-[#F44A22]/50 shadow-sm'
+                                    : 'bg-vetra-silver/50 dark:bg-zinc-950/50 border-vetra-grey/40 dark:border-zinc-850 hover:bg-vetra-silver dark:hover:bg-zinc-800'
                                     }`}
                             >
                                 {/* Rank */}
                                 <div className={`w-8 h-8 flex items-center justify-center font-bold text-lg rounded-full ${index === 0 ? 'bg-yellow-500 text-white' :
-                                    index === 1 ? 'bg-gray-300 text-vetra-midnight' :
+                                    index === 1 ? 'bg-gray-300 text-vetra-midnight dark:bg-zinc-700 dark:text-white' :
                                         index === 2 ? 'bg-amber-600 text-white' :
-                                            'text-vetra-stone bg-vetra-grey/40'
+                                            'text-vetra-stone dark:text-zinc-400 bg-vetra-grey/40 dark:bg-zinc-800'
                                     }`}>
                                     {index + 1}
                                 </div>
@@ -106,7 +106,7 @@ export default function Leaderboard() {
                                 {/* Avatar & Info */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <h4 className={`font-bold truncate ${isMe ? 'text-[#F44A22]' : 'text-vetra-midnight'}`}>
+                                        <h4 className={`font-bold truncate ${isMe ? 'text-[#F44A22]' : 'text-vetra-midnight dark:text-white'}`}>
                                             {leader.fullName || "Foydalanuvchi"}
                                         </h4>
                                         {index === 0 && <Crown size={14} className="text-yellow-500" />}
@@ -116,23 +116,23 @@ export default function Leaderboard() {
                                             <badge.icon size={10} /> {badge.label}
                                         </span>
                                         <span className="text-vetra-grey">•</span>
-                                        <span className="text-vetra-stone">{(leader.stats?.totalTests || 0)} ta test</span>
+                                        <span className="text-vetra-stone dark:text-zinc-400">{(leader.stats?.totalTests || 0)} ta test</span>
                                     </div>
                                 </div>
 
                                 {/* Points */}
                                 <div className="text-right">
-                                    <div className="text-vetra-midnight font-bold text-lg">
+                                    <div className="text-vetra-midnight dark:text-white font-bold text-lg">
                                         {leader.gamification?.points || 0}
                                     </div>
-                                    <div className="text-xs text-vetra-stone uppercase">XP</div>
+                                    <div className="text-xs text-vetra-stone dark:text-zinc-400 uppercase">XP</div>
                                 </div>
                             </motion.div>
                         );
                     })}
 
                     {leaders.length === 0 && (
-                        <div className="text-center py-8 text-vetra-stone">
+                        <div className="text-center py-8 text-vetra-stone dark:text-zinc-450">
                             Hozircha ma'lumot yo'q.
                         </div>
                     )}

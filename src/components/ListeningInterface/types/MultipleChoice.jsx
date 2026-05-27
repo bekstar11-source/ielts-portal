@@ -26,7 +26,7 @@ export const MultipleChoice = memo(({ group, userAnswers, onAnswerChange, isRevi
                                 <div className="relative flex items-center justify-center shrink-0">
                                     <input 
                                         type="radio" 
-                                        className="appearance-none w-5 h-5 border border-black rounded-full checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer" 
+                                        className={`appearance-none w-5 h-5 border rounded-full transition-all cursor-pointer ${isSelected ? (isReviewMode ? (isCorrect ? 'bg-green-600 border-green-600' : 'bg-red-600 border-red-600') : 'bg-blue-600 border-blue-600') : (isReviewMode && isCorrect ? 'border-green-600 bg-white' : 'border-black bg-white')}`} 
                                         checked={isSelected} 
                                         onChange={() => !isReviewMode && onAnswerChange(q.id, String(opt.label))} 
                                         disabled={isReviewMode} 

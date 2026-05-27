@@ -26,7 +26,7 @@ import { useListeningCollections } from "../../hooks/useListeningCollections";
 import ListeningHeroBanner from "../../components/practice/ListeningHeroBanner";
 import ListeningPartsSection from "../../components/practice/ListeningPartsSection";
 import ListeningCollectionsSection from "../../components/practice/ListeningCollectionsSection";
-import { deriveQuestionTypesForCard } from "../../utils/TestUtils";
+import { deriveQuestionTypesForCard, qTypeMatchesSelected } from "../../utils/TestUtils";
 
 const categories = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
@@ -267,7 +267,7 @@ export default function Listening() {
                            (selectedStatus === 'not_completed' && !isDone);
       
       const matchesType = selectedQuestionTypes.length === 0 || 
-                         (part.questionTypes && part.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                         (part.questionTypes && part.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
       
       const matchesPartTab = activePartFilter === 'all' || String(part.partNumber) === activePartFilter;
 
@@ -285,7 +285,7 @@ export default function Listening() {
                            (selectedStatus === 'not_completed' && !isDone);
       
       const matchesType = selectedQuestionTypes.length === 0 || 
-                         (full.questionTypes && full.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                         (full.questionTypes && full.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
 
       return matchesSearch && matchesStatus && matchesType;
     });
@@ -346,7 +346,7 @@ export default function Listening() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 pb-24 selection:bg-[#0066cc]/30 selection:text-[#1d1d1f]">
+    <div className="min-h-screen bg-white dark:bg-[#09090b] font-sans text-gray-900 dark:text-[#f5f5f7] pb-24 selection:bg-[#0066cc]/30 selection:text-[#1d1d1f] transition-colors duration-200">
       <DashboardHeader
         user={user} userData={userData}
         activeTab="listening"
@@ -409,11 +409,11 @@ export default function Listening() {
                         if (filteredVirtualParts.length === 0) {
                             return (
                                 <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-4 duration-700" key="no-parts">
-                                    <div className="w-16 h-16 bg-[#f5f5f7] rounded-full flex items-center justify-center mb-6">
-                                        <Search size={24} className="text-gray-300" />
+                                    <div className="w-16 h-16 bg-[#f5f5f7] dark:bg-zinc-800 rounded-full flex items-center justify-center mb-6">
+                                        <Search size={24} className="text-gray-300 dark:text-zinc-650" />
                                     </div>
-                                    <h3 className="text-[24px] font-semibold text-[#1d1d1f]">Hech narsa topilmadi</h3>
-                                    <p className="text-[#86868b] mt-2 max-w-[300px]">Qidiruv mezonlariga mos keladigan testlar mavjud emas.</p>
+                                    <h3 className="text-[24px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Hech narsa topilmadi</h3>
+                                    <p className="text-[#86868b] dark:text-[#86868b] mt-2 max-w-[300px]">Qidiruv mezonlariga mos keladigan testlar mavjud emas.</p>
                                 </div>
                             );
                         }

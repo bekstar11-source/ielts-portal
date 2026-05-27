@@ -90,25 +90,25 @@ export default function DashboardArticles() {
             <div className="max-w-7xl mx-auto px-6">
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
                     <div className="max-w-3xl">
-                        <h2 className="text-[28px] md:text-[36px] lg:text-[42px] font-semibold text-[#1D1D1F] leading-[1.1] tracking-tight">
+                        <h2 className="text-[28px] md:text-[36px] lg:text-[42px] font-semibold text-[#1D1D1F] dark:text-white leading-[1.1] tracking-tight">
                             Eng sara maqolalar va nashrlar. <br className="hidden md:block" />
                             Hammasi bitta joyda.
                         </h2>
                     </div>
                     
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 pb-2 w-full lg:w-auto mt-6 lg:mt-0">
-                        <button className="w-full sm:w-auto bg-[#1D1D1F] text-white px-8 py-3.5 sm:py-3 rounded-full text-[15px] font-semibold hover:bg-black transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap">
+                        <button className="w-full sm:w-auto bg-[#1D1D1F] dark:bg-white text-white dark:text-black px-8 py-3.5 sm:py-3 rounded-full text-[15px] font-semibold hover:bg-black dark:hover:bg-zinc-200 transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap">
                             Bepul o'qish
                         </button>
                         <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start gap-4 sm:gap-8 lg:gap-24">
-                            <button className="text-[#1D1D1F] hover:underline text-[16px] font-medium flex items-center gap-1 group whitespace-nowrap">
+                            <button className="text-[#1D1D1F] dark:text-[#f5f5f7] hover:underline text-[16px] font-medium flex items-center gap-1 group whitespace-nowrap">
                                 Barchasini ko'rish
                                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                             </button>
                             
                             <button 
                                 onClick={() => setIsPaused(!isPaused)}
-                                className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-400 hover:text-black hover:border-zinc-400 transition-all active:scale-90 shrink-0"
+                                className="w-10 h-10 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-400 dark:text-zinc-550 hover:text-black dark:hover:text-white hover:border-zinc-400 dark:hover:border-zinc-700 transition-all active:scale-90 shrink-0"
                             >
                                 {isPaused ? (
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg>
@@ -134,7 +134,7 @@ export default function DashboardArticles() {
                         <div key={listIdx} className="flex gap-4 pr-4">
                             {articles.map((article, i) => (
                                 <div key={`${listIdx}-${i}`} className="flex-none w-[180px] md:w-[200px] group/card cursor-pointer">
-                                    <div className="relative aspect-[3/4] rounded-md overflow-hidden mb-3 shadow-md group-hover:shadow-xl transition-all duration-500 bg-zinc-100">
+                                    <div className="relative aspect-[3/4] rounded-md overflow-hidden mb-3 shadow-md group-hover:shadow-xl transition-all duration-500 bg-zinc-100 dark:bg-zinc-800">
                                         <img 
                                             src={article.img} 
                                             alt={article.title}
@@ -147,9 +147,9 @@ export default function DashboardArticles() {
                                         </div>
                                     </div>
                                     <div className="space-y-0.5">
-                                        <h4 className="text-[12px] font-bold text-[#1D1D1F]">{article.title}</h4>
-                                        <p className="text-[12px] text-zinc-500 font-medium leading-tight line-clamp-1">{article.sub}</p>
-                                        <p className="text-[10px] text-zinc-400 font-medium mt-0.5">{article.date}</p>
+                                        <h4 className="text-[12px] font-bold text-[#1D1D1F] dark:text-white">{article.title}</h4>
+                                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 font-medium leading-tight line-clamp-1">{article.sub}</p>
+                                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium mt-0.5">{article.date}</p>
                                     </div>
                                 </div>
                             ))}

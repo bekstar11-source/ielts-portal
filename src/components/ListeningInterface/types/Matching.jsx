@@ -23,7 +23,7 @@ const DraggableOption = ({ label, text, isReviewMode }) => {
         zIndex: 1000,
         transition: 'none',
     } : {
-        transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease'
+        transition: 'box-shadow 200ms ease, border-color 200ms ease'
     };
 
     return (

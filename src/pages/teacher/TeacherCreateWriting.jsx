@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, setDoc } from 'firebase/firestore';
 import { db, storage } from '../../firebase/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../context/AuthContext';
@@ -94,6 +94,20 @@ export default function TeacherCreateWriting() {
             };
 
             const testRef = await addDoc(collection(db, 'tests'), newTest);
+            
+            // Write to tests_metadata
+            await setDoc(doc(db, "tests_metadata", testRef.id), {
+                id: testRef.id,
+                title: newTest.title,
+                type: 'writing',
+                difficulty: 'medium',
+                duration: 60,
+                isExclusive: false,
+                createdAt: newTest.createdAt,
+                updatedAt: newTest.createdAt,
+                questionTypes: ['Completion'],
+                collectionId: null
+            });
             
             // 2. Tanlangan guruhga tayinlash
             const groupRef = doc(db, 'groups', selectedGroupId);

@@ -34,7 +34,12 @@
 
   /* Body uchun umumiy sozlamalar */
   html, body {
-    @apply bg-ielts-bg text-text-primary font-sans;
+    @apply bg-ielts-bg text-text-primary font-sans transition-colors duration-200;
+  }
+  
+  html.dark, html.dark body {
+    background-color: #09090b !important;
+    color: #f5f5f7 !important;
   }
 
   /* Butun sayt bo'ylab matn belgilangandagi rang (Apple style) */

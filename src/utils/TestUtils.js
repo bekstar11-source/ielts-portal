@@ -235,3 +235,32 @@ export const clearTestStorage = (userId, testId, partNumber = null) => {
         sessionStorage.removeItem(`listening_hl_${testId}_p${i}`);
     }
 };
+
+export const qTypeMatchesSelected = (testType, selectedTypes) => {
+    if (!testType) return false;
+    if (!selectedTypes || selectedTypes.length === 0) return true;
+    
+    const normType = testType.trim().toUpperCase().replace(/_/g, ' ');
+    
+    if (selectedTypes.includes(normType)) return true;
+    
+    const titleCaseGroups = {
+        'COMPLETION': ['GAP FILL', 'SUMMARY', 'NOTES', 'TABLE', 'FLOW CHART', 'SENTENCE', 'FORM'],
+        'TABLE COMPLETION': ['TABLE'],
+        'FLOW CHART': ['FLOW CHART'],
+        'MULTIPLE CHOICE': ['MCQ', 'SHORT ANSWER', 'MULTI CHOICE'],
+        'SHORT ANSWER': ['SHORT ANSWER'],
+        'MATCHING': ['MATCHING', 'PARA MATCH'],
+        'MATCHING HEADINGS': ['HEADINGS'],
+        'TFNG/YNNG': ['TRUE/FALSE/NG', 'YES/NO/NG'],
+        'MAP/DIAGRAM': ['MAP', 'PLAN', 'DIAGRAM']
+    };
+    
+    const mappedDbTypes = titleCaseGroups[normType];
+    if (mappedDbTypes) {
+        return mappedDbTypes.some(dbType => selectedTypes.includes(dbType));
+    }
+    
+    return false;
+};
+

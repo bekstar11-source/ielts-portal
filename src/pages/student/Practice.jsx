@@ -28,6 +28,7 @@ import PracticeCard from "../../components/practice/PracticeCard";
 import FullReadingCard from "../../components/practice/FullReadingCard";
 import ReadingSetCard from "../../components/practice/ReadingSetCard";
 import { usePracticeScroll } from "../../hooks/usePracticeScroll";
+import { qTypeMatchesSelected } from "../../utils/TestUtils";
 
 // Categories
 const categories = [
@@ -267,7 +268,7 @@ export default function Practice() {
         const matchingSubTests = item.subTests?.filter((s, idx) => {
             const mSearch = s.title?.toLowerCase().includes(q);
             const mType = selectedQuestionTypes.length === 0 || 
-                         (s.questionTypes && s.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                         (s.questionTypes && s.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
             
             const subIsDone = !!s.result;
             const mStatus = selectedStatus === 'all' || 
@@ -291,7 +292,7 @@ export default function Practice() {
       }
 
       const matchesType = selectedQuestionTypes.length === 0 || 
-                         (item.questionTypes && item.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                         (item.questionTypes && item.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
       
       if (matchesSearch && matchesType && matchesStatus && matchesPassage) {
         result.push(item);

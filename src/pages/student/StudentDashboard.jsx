@@ -122,7 +122,7 @@ export default function StudentDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-white font-sans text-[#1d1d1f] antialiased selection:bg-black selection:text-white overflow-x-hidden">
+        <div className="min-h-screen bg-white dark:bg-[#09090b] font-sans text-[#1d1d1f] dark:text-[#f5f5f7] antialiased selection:bg-black selection:text-white overflow-x-hidden transition-colors duration-200">
             <DashboardHeader
                 user={user} userData={userData}
                 activeTab={dashboard.activeTab} setActiveTab={dashboard.setActiveTab}

@@ -100,14 +100,14 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                 {/* Header */}
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
                     <div className="max-w-3xl">
-                        <h2 className="text-[28px] md:text-[36px] lg:text-[42px] font-semibold text-[#1D1D1F] leading-[1.1] tracking-tight">
+                        <h2 className="text-[28px] md:text-[36px] lg:text-[42px] font-semibold text-[#1D1D1F] dark:text-white leading-[1.1] tracking-tight">
                             Tavsiya etilgan matnlar. <br className="hidden md:block" />
-                            <span className="text-[18px] md:text-[24px] lg:text-[28px] text-zinc-500 block mt-2 font-medium">Sizning darajangizga mos Reading passagelar.</span>
+                            <span className="text-[18px] md:text-[24px] lg:text-[28px] text-zinc-500 dark:text-zinc-400 block mt-2 font-medium">Sizning darajangizga mos Reading passagelar.</span>
                         </h2>
                     </div>
                     <button 
                         onClick={() => navigate('/reading')}
-                        className="text-[#1D1D1F] hover:underline text-[16px] font-medium flex items-center gap-1 group whitespace-nowrap"
+                        className="text-[#1D1D1F] dark:text-[#f5f5f7] hover:underline text-[16px] font-medium flex items-center gap-1 group whitespace-nowrap"
                     >
                         Barchasini ko'rish
                         <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -128,20 +128,20 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                                 <Loader2 className="w-8 h-8 animate-spin text-[#0066cc]" />
                             </div>
                         ) : realItems.map((item, i) => (
-                            <div 
+                             <div 
                                 key={item.id || i} 
-                                className="group/apple-card relative aspect-[3/3.8] bg-[#F6F6FA] rounded-xl p-5 transition-all duration-500 cursor-default overflow-hidden animate-fade-in-up hover:shadow-lg hover:border-black/10 shadow-sm border border-black/5"
+                                className="group/apple-card relative aspect-[3/3.8] bg-[#F6F6FA] dark:bg-zinc-900 rounded-xl p-5 transition-all duration-500 cursor-default overflow-hidden animate-fade-in-up hover:shadow-lg hover:border-black/10 dark:hover:border-white/10 shadow-sm border border-black/5 dark:border-zinc-800"
                                 style={{ animationDelay: item.delay }}
                             >
                                 <div className="relative z-10 space-y-2">
-                                    <h3 className="text-[27px] font-extrabold text-[#1d1d1f] leading-[1.2] tracking-tight group-hover/apple-card:text-[#0066cc] transition-colors line-clamp-2">
+                                    <h3 className="text-[27px] font-extrabold text-[#1d1d1f] dark:text-[#f5f5f7] leading-[1.2] tracking-tight group-hover/apple-card:text-[#0066cc] dark:group-hover/apple-card:text-[#3894ff] transition-colors line-clamp-2">
                                         {item.title}
                                     </h3>
-                                    <p className="text-[14px] text-zinc-500 font-medium leading-snug line-clamp-2">
+                                    <p className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium leading-snug line-clamp-2">
                                         {item.sub}
                                     </p>
                                     <div className="pt-1">
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10.5px] font-bold text-[#424245] bg-white/50 border border-black/[0.04] tracking-wide capitalize">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10.5px] font-bold text-[#424245] dark:text-zinc-300 bg-white/50 dark:bg-zinc-805/50 border border-black/[0.04] dark:border-white/[0.04] tracking-wide capitalize">
                                             {item.questions}
                                         </span>
                                     </div>
@@ -172,14 +172,14 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                             <button 
                                 onClick={() => handleScroll(-1)}
                                 disabled={!canLeft}
-                                className={`w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#1d1d1f] active:scale-95 transition-all shadow-lg border border-black/5 ${canLeft ? 'hover:bg-white cursor-pointer' : 'opacity-30 cursor-default'}`}
+                                className={`w-10 h-10 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md flex items-center justify-center text-[#1d1d1f] dark:text-white active:scale-95 transition-all shadow-lg border border-black/5 dark:border-zinc-800 ${canLeft ? 'hover:bg-white dark:hover:bg-zinc-800 cursor-pointer' : 'opacity-30 cursor-default'}`}
                             >
                                 <ChevronLeft size={18} />
                             </button>
                             <button 
                                 onClick={() => handleScroll(1)}
                                 disabled={!canRight}
-                                className={`w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#1d1d1f] active:scale-95 transition-all shadow-lg border border-black/5 ${canRight ? 'hover:bg-white cursor-pointer' : 'opacity-30 cursor-default'}`}
+                                className={`w-10 h-10 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md flex items-center justify-center text-[#1d1d1f] dark:text-white active:scale-95 transition-all shadow-lg border border-black/5 dark:border-zinc-800 ${canRight ? 'hover:bg-white dark:hover:bg-zinc-800 cursor-pointer' : 'opacity-30 cursor-default'}`}
                             >
                                 <ChevronRight size={18} />
                             </button>

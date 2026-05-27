@@ -89,9 +89,9 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
   }, [roadmapData]);
 
   if (loading) return (
-    <div className="w-full py-20 flex flex-col items-center justify-center gap-4 bg-[#FBFBFD]">
-      <RefreshCw className="animate-spin text-blue-600" size={32} />
-      <p className="text-sm font-bold text-[#86868B] uppercase tracking-widest">Marshrut yuklanmoqda...</p>
+    <div className="w-full py-20 flex flex-col items-center justify-center gap-4 bg-[#FBFBFD] dark:bg-[#0c0c0e]">
+      <RefreshCw className="animate-spin text-blue-600 dark:text-blue-400" size={32} />
+      <p className="text-sm font-bold text-[#86868B] dark:text-zinc-400 uppercase tracking-widest">Marshrut yuklanmoqda...</p>
     </div>
   );
 
@@ -143,7 +143,7 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
   };
 
   return (
-    <div className="w-full py-12 px-0 relative overflow-hidden bg-[#FBFBFD] border-y border-black/[0.03]">
+    <div className="w-full py-12 px-0 relative overflow-hidden bg-[#FBFBFD] dark:bg-[#0c0c0e] border-y border-black/[0.03] dark:border-zinc-800/80 transition-colors duration-250">
       
       {/* Diagonal Glow effektlari */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none flex justify-center items-center z-0">
@@ -180,6 +180,9 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
               user-select: none;
               cursor: default;
             }
+            .dark .pulsing-text {
+              color: #f5f5f7;
+            }
             @media (max-width: 768px) {
               .pulsing-text { font-size: 3.5rem; }
             }
@@ -192,12 +195,12 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
             <span className="font-medium">7-day</span> route
           </h1>
 
-          <p className="text-[#86868B] text-base font-medium max-w-2xl leading-relaxed mt-1 mb-6 mx-auto">
+          <p className="text-[#86868B] dark:text-zinc-400 text-base font-medium max-w-2xl leading-relaxed mt-1 mb-6 mx-auto">
             7 kun ichida platformamiz imkoniyatlari bo'ylab bepul sayohat qiling.
           </p>
           <button 
             onClick={() => navigate('/roadmap')}
-            className="text-[#0066CC] hover:underline text-sm font-bold flex items-center gap-1 group transition-all"
+            className="text-[#0066CC] dark:text-[#3894ff] hover:underline text-sm font-bold flex items-center gap-1 group transition-all"
           >
             To'liq marshrutni ko'rish
             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -210,27 +213,27 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
             <div 
               key={task.id}
               onClick={() => handleStart(task)}
-              className="p-5 rounded-[20px] bg-white/40 backdrop-blur-xl border border-white/40 shadow-[0_4px_24px_0_rgba(0,0,0,0.03)] hover:bg-white/60 transition-all duration-500 cursor-pointer group flex flex-col justify-between animate-fade-in-up hover:-translate-y-1"
+              className="p-5 rounded-[20px] bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-white/40 dark:border-zinc-800/40 shadow-[0_4px_24px_0_rgba(0,0,0,0.03)] hover:bg-white/60 dark:hover:bg-zinc-900/60 transition-all duration-500 cursor-pointer group flex flex-col justify-between animate-fade-in-up hover:-translate-y-1"
               style={{ animationDelay: `${idx * 100}ms` }}
             >
               <div>
                 <div className="flex justify-between items-center mb-5">
                   <div className="flex items-center gap-2.5">
-                    <span className={`font-bold text-[#1D1D1F] text-lg tracking-tight relative after:content-[''] after:absolute after:-bottom-0.5 after:left-0 after:w-0 after:h-[1.5px] ${idx === 0 ? 'after:bg-blue-500' : 'after:bg-purple-500'} group-hover:after:w-full after:transition-all after:duration-500`}>
+                    <span className={`font-bold text-[#1D1D1F] dark:text-[#f5f5f7] text-lg tracking-tight relative after:content-[''] after:absolute after:-bottom-0.5 after:left-0 after:w-0 after:h-[1.5px] ${idx === 0 ? 'after:bg-blue-500' : 'after:bg-purple-500'} group-hover:after:w-full after:transition-all after:duration-500`}>
                       {task.title}
                     </span>
                   </div>
-                  <span className="text-[9px] font-black text-[#86868B] uppercase tracking-wider bg-[#F5F5F7] px-2 py-0.5 rounded-full border border-black/5">Day {currentDay}</span>
+                  <span className="text-[9px] font-black text-[#86868B] dark:text-zinc-400 uppercase tracking-wider bg-[#F5F5F7] dark:bg-zinc-800 px-2 py-0.5 rounded-full border border-black/5 dark:border-zinc-700/50">Day {currentDay}</span>
                 </div>
-                <p className="text-[#86868B] text-[13px] leading-snug mb-4 group-hover:text-[#1D1D1F] transition-colors duration-300">
+                <p className="text-[#86868B] dark:text-zinc-400 text-[13px] leading-snug mb-4 group-hover:text-[#1D1D1F] dark:group-hover:text-[#f5f5f7] transition-colors duration-300">
                   {task.desc}
                 </p>
               </div>
-              <div className="mt-auto pt-4 border-t border-black/[0.03] flex items-center justify-between">
-                <span className="text-[10px] font-black text-[#A8AAAC] uppercase tracking-widest">
+              <div className="mt-auto pt-4 border-t border-black/[0.03] dark:border-zinc-800/60 flex items-center justify-between">
+                <span className="text-[10px] font-black text-[#A8AAAC] dark:text-zinc-500 uppercase tracking-widest">
                   {task.type}
                 </span>
-                <div className="px-3.5 py-1.5 rounded-lg bg-[#161616] text-white text-[10px] font-bold shadow-md shadow-black/10 group-hover:shadow-black/20 transition-all duration-300 flex items-center gap-1.5 group-hover:scale-105 active:scale-95">
+                <div className="px-3.5 py-1.5 rounded-lg bg-[#161616] dark:bg-zinc-800 text-white text-[10px] font-bold shadow-md shadow-black/10 group-hover:shadow-black/20 transition-all duration-300 flex items-center gap-1.5 group-hover:scale-105 active:scale-95">
                   Boshlash 
                   <ArrowRight className="w-3 h-3 transition-transform duration-500 group-hover:translate-x-0.5" />
                 </div>
@@ -262,34 +265,34 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
                     key={item.day} 
                     className={`min-w-[240px] w-[240px] flex flex-col gap-4 snap-start group ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <div className={`w-full aspect-[16/10] rounded-xl bg-[#F5F5F7] border ${isToday ? 'border-[#0071E3] shadow-[0_0_0_1px_#0071E3]' : 'border-black/[0.03]'} relative overflow-hidden flex items-center justify-center transition-all duration-500 group-hover:border-[#0071E3]/20 group-hover:shadow-md group-hover:shadow-blue-500/5`}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-white to-transparent pointer-events-none"></div>
+                  <div className={`w-full aspect-[16/10] rounded-xl bg-[#F5F5F7] dark:bg-zinc-900 border ${isToday ? 'border-[#0071E3] shadow-[0_0_0_1px_#0071E3]' : 'border-black/[0.03] dark:border-zinc-800'} relative overflow-hidden flex items-center justify-center transition-all duration-500 group-hover:border-[#0071E3]/20 group-hover:shadow-md group-hover:shadow-blue-500/5`}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white dark:from-zinc-900/50 to-transparent pointer-events-none"></div>
                     
                     {/* Markazdagi Katta yozuv va ikonka */}
                     <div className={`relative z-10 flex flex-col items-center transition-all duration-500 ${isLocked ? 'opacity-30' : 'opacity-80 group-hover:opacity-100'}`}>
-                      <item.icon size={28} className="mb-2 text-[#86868B] group-hover:text-[#0071E3] transition-colors" />
-                      <span className="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-[#1D1D1F] to-[#86868B]">
+                      <item.icon size={28} className="mb-2 text-[#86868B] dark:text-zinc-500 group-hover:text-[#0071E3] dark:group-hover:text-[#3894ff] transition-colors" />
+                      <span className="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-[#1D1D1F] dark:from-[#f5f5f7] to-[#86868B] dark:to-zinc-500">
                         DAY {item.day}
                       </span>
                     </div>
-
+ 
                     {isToday && (
                       <div className="absolute top-2 right-2 px-2 py-0.5 bg-[#0071E3] text-white text-[9px] font-bold rounded-full z-20">
                         BUGUN
                       </div>
                     )}
                     {isLocked && (
-                      <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md p-1.5 rounded-lg border border-black/5 shadow-sm">
+                      <div className="absolute top-3 left-3 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md p-1.5 rounded-lg border border-black/5 dark:border-zinc-800 shadow-sm">
                         <Lock size={14} className="text-[#86868B]" />
                       </div>
                     )}
                   </div>
-
+ 
                   <div className="flex flex-col gap-1.5 mt-1 px-1">
-                  <h4 className={`text-[13px] font-semibold tracking-tight transition-colors duration-300 ${isLocked ? 'text-[#86868B]' : 'text-[#1D1D1F] group-hover:text-[#0071E3]'}`}>
+                  <h4 className={`text-[13px] font-semibold tracking-tight transition-colors duration-300 ${isLocked ? 'text-[#86868B] dark:text-zinc-500' : 'text-[#1D1D1F] dark:text-[#f5f5f7] group-hover:text-[#0071E3] dark:group-hover:text-[#3894ff]'}`}>
                     {item.title}
                   </h4>
-                  <p className="text-[11px] text-[#86868B] leading-snug line-clamp-2 font-normal">
+                  <p className="text-[11px] text-[#86868B] dark:text-zinc-400 leading-snug line-clamp-2 font-normal">
                     {item.desc}
                   </p>
                 </div>
@@ -303,14 +306,14 @@ export default function RoadmapTimeline({ usageStats = {}, onStartTest, assignme
             <button 
                 onClick={() => handleScroll(-1)}
                 disabled={!canLeft}
-                className={`w-10 h-10 rounded-full flex items-center justify-center border border-black/5 bg-white transition-all shadow-sm ${canLeft ? 'hover:bg-[#F5F5F7] hover:shadow-md active:scale-90' : 'opacity-30'}`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center border border-black/5 dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-all shadow-sm ${canLeft ? 'hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 hover:shadow-md active:scale-90' : 'opacity-30'}`}
             >
                 <ChevronLeft size={18} />
             </button>
             <button 
                 onClick={() => handleScroll(1)}
                 disabled={!canRight}
-                className={`w-10 h-10 rounded-full flex items-center justify-center border border-black/5 bg-white transition-all shadow-sm ${canRight ? 'hover:bg-[#F5F5F7] hover:shadow-md active:scale-90' : 'opacity-30'}`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center border border-black/5 dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-all shadow-sm ${canRight ? 'hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 hover:shadow-md active:scale-90' : 'opacity-30'}`}
             >
                 <ChevronRight size={18} />
             </button>

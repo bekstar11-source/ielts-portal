@@ -64,10 +64,10 @@ export default function AnnouncementsBoard() {
 
     const getBg = (type) => {
         switch (type) {
-            case 'warning': return 'bg-orange-50 border-orange-200';
-            case 'success': return 'bg-green-50 border-green-200';
-            case 'danger': return 'bg-red-50 border-red-200';
-            default: return 'bg-blue-50 border-blue-200';
+            case 'warning': return 'bg-orange-50 dark:bg-orange-950/15 border-orange-200 dark:border-orange-900/40';
+            case 'success': return 'bg-green-50 dark:bg-green-950/15 border-green-200 dark:border-green-900/40';
+            case 'danger': return 'bg-red-50 dark:bg-red-950/15 border-red-200 dark:border-red-900/40';
+            default: return 'bg-blue-50 dark:bg-blue-950/15 border-blue-200 dark:border-blue-900/40';
         }
     };
 
@@ -75,7 +75,7 @@ export default function AnnouncementsBoard() {
         <div className="mb-10 w-full">
             <div className="flex justify-between items-center mb-4 px-1">
                 <div>
-                    <h2 className="text-xl font-bold text-vetra-midnight flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-vetra-midnight dark:text-white flex items-center gap-2">
                         <FaBullhorn className="text-vetra-orange" />
                         E'lonlar Doskasi
                     </h2>
@@ -93,9 +93,9 @@ export default function AnnouncementsBoard() {
                     >
                         <div className="mt-1 text-lg">{getIcon(item.type)}</div>
                         <div className="flex-1">
-                            <h3 className="font-bold text-vetra-midnight text-sm md:text-base mb-1">{item.title}</h3>
-                            <p className="text-vetra-stone text-sm whitespace-pre-wrap leading-relaxed">{item.message}</p>
-                            <p className="text-vetra-stone/50 text-[10px] mt-2">
+                            <h3 className="font-bold text-vetra-midnight dark:text-zinc-100 text-sm md:text-base mb-1">{item.title}</h3>
+                            <p className="text-vetra-stone dark:text-zinc-350 text-sm whitespace-pre-wrap leading-relaxed">{item.message}</p>
+                            <p className="text-vetra-stone/50 dark:text-zinc-500 text-[10px] mt-2">
                                 {item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() : ''}
                             </p>
                         </div>

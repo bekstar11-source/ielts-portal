@@ -310,6 +310,7 @@ export default function AdminTests() {
                 createdAt: mergedPayload.createdAt,
                 updatedAt: mergedPayload.updatedAt,
                 questionTypes: getQuestionTypesFromQuestions(mergedPayload.questions || []),
+                collectionId: mergedPayload.collectionId && mergedPayload.collectionId !== "None" ? mergedPayload.collectionId : null,
             };
 
             if (mergedPayload.type === 'listening') {
@@ -452,6 +453,7 @@ export default function AdminTests() {
                     createdAt: payload.createdAt || new Date().toISOString(),
                     updatedAt: payload.updatedAt || new Date().toISOString(),
                     questionTypes: payload.questionTypes || getQuestionTypesFromQuestions(payload.questions || []),
+                    collectionId: payload.collectionId && payload.collectionId !== "None" ? payload.collectionId : null,
                 };
 
                 if (payload.type === 'listening') {

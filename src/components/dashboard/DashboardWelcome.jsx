@@ -44,18 +44,18 @@ export default function DashboardWelcome({
                 <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left max-w-xl">
                     {/* Top Badge */}
                     <div className="flex items-center gap-2 text-sm sm:text-base font-semibold text-zinc-400 mb-3 tracking-wide uppercase">
-                        <span className="text-black">IELTS 2026</span>
+                        <span className="text-black dark:text-white">IELTS 2026</span>
                         <span className="text-[10px]">•</span>
                         <span>{t('dashboard.reality')}</span>
                     </div>
 
                     {/* Main Headline */}
-                    <h1 className="text-[28px] sm:text-[48px] lg:text-[54px] xl:text-[64px] font-bold text-black tracking-[-0.04em] leading-[1.1] mb-4 sm:mb-5 whitespace-pre-line">
+                    <h1 className="text-[28px] sm:text-[48px] lg:text-[54px] xl:text-[64px] font-bold text-black dark:text-white tracking-[-0.04em] leading-[1.1] mb-4 sm:mb-5 whitespace-pre-line">
                         {t('dashboard.welcomeHeadline')}
                     </h1>
 
                     {/* Subheadline */}
-                    <p className="text-[15px] sm:text-[18px] md:text-[20px] lg:text-[21px] text-zinc-400 font-normal leading-[1.6] mb-4 sm:mb-9">
+                    <p className="text-[15px] sm:text-[18px] md:text-[20px] lg:text-[21px] text-zinc-400 dark:text-zinc-300 font-normal leading-[1.6] mb-4 sm:mb-9">
                         {t('dashboard.welcomeSub')}
                     </p>
                 </div>
@@ -103,25 +103,25 @@ export default function DashboardWelcome({
                             </div>
 
                             {/* 3. Overall (Markaziy) */}
-                            <div className="relative z-30 w-24 sm:w-36 md:w-48 lg:w-40 xl:w-48 h-24 sm:h-28 md:h-36 lg:h-28 xl:h-36 bg-white rounded-xl sm:rounded-2xl md:rounded-[2rem] flex flex-col items-center justify-center shadow-[0_0_80px_rgba(209,18,65,0.25)] hover:-translate-y-2 card-transition border-2 sm:border-4 border-gray-100 -ml-[28px] sm:-ml-[40px] md:-ml-[56px] lg:-ml-[40px] xl:-ml-[56px] overflow-hidden group cursor-default">
+                            <div className="relative z-30 w-24 sm:w-36 md:w-48 lg:w-40 xl:w-48 h-24 sm:h-28 md:h-36 lg:h-28 xl:h-36 bg-white dark:bg-zinc-900 rounded-xl sm:rounded-2xl md:rounded-[2rem] flex flex-col items-center justify-center shadow-[0_0_80px_rgba(209,18,65,0.25)] hover:-translate-y-2 card-transition border-2 sm:border-4 border-gray-100 dark:border-zinc-800/80 -ml-[28px] sm:-ml-[40px] md:-ml-[56px] lg:-ml-[40px] xl:-ml-[56px] overflow-hidden group cursor-default">
                                 <div className="absolute top-0 w-full h-1 bg-[#d11241]"></div>
-                                <div className="absolute bottom-0 w-full h-1/3 bg-gradient-to-t from-gray-100 to-transparent"></div>
-                                <span className="absolute inset-0 flex items-center justify-center text-[40px] sm:text-[60px] md:text-[80px] lg:text-[60px] xl:text-[80px] font-black text-gray-50/80 pointer-events-none select-none">O</span>
+                                <div className="absolute bottom-0 w-full h-1/3 bg-gradient-to-t from-gray-100 dark:from-zinc-850 to-transparent"></div>
+                                <span className="absolute inset-0 flex items-center justify-center text-[40px] sm:text-[60px] md:text-[80px] lg:text-[60px] xl:text-[80px] font-black text-gray-50/80 dark:text-zinc-800/20 pointer-events-none select-none">O</span>
                                 <span className="relative z-10 text-[7px] sm:text-[9px] md:text-xs lg:text-[9px] xl:text-xs font-bold text-[#d11241] uppercase tracking-widest pt-1 sm:pt-0 mb-0.5">
                                     {lang === 'uz' ? "Umumiy Natija" : "Overall Score"}
                                 </span>
                                 {loading ? (
                                     <div className="w-12 h-6 sm:w-20 sm:h-10 bg-gray-200 animate-pulse rounded my-1 sm:my-2"></div>
                                 ) : (
-                                    <span className="relative z-10 text-xl sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl font-black text-gray-900 drop-shadow-sm transform group-hover:scale-105 card-transition my-0.5 sm:my-1">
+                                    <span className="relative z-10 text-xl sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl font-black text-gray-900 dark:text-white drop-shadow-sm transform group-hover:scale-105 card-transition my-0.5 sm:my-1">
                                         {overallVal}
                                     </span>
                                 )}
                                 {loading ? (
-                                    <div className="w-10 h-3 sm:w-16 sm:h-5 bg-gray-200 animate-pulse rounded-full mt-1"></div>
+                                    <div className="w-12 h-6 sm:w-20 sm:h-10 bg-gray-200 animate-pulse rounded my-1 sm:my-2"></div>
                                 ) : (
-                                    <div className="relative z-10 mt-0.5 sm:mt-1 md:mt-2 lg:mt-1 xl:mt-2 rounded-full sm:bg-gray-900 sm:border sm:border-black sm:shadow-lg px-0 py-0 sm:px-3 sm:py-1 md:px-4 md:py-1.5 lg:px-3 lg:py-1 xl:px-4 xl:py-1.5">
-                                        <span className="text-[7px] sm:text-[8px] md:text-[10px] lg:text-[8px] xl:text-[10px] font-bold text-gray-900 sm:text-white uppercase tracking-wider">
+                                    <div className="relative z-10 mt-0.5 sm:mt-1 md:mt-2 lg:mt-1 xl:mt-2 rounded-full sm:bg-gray-900 dark:sm:bg-zinc-800 sm:border sm:border-black dark:sm:border-zinc-700 sm:shadow-lg px-0 py-0 sm:px-3 sm:py-1 md:px-4 md:py-1.5 lg:px-3 lg:py-1 xl:px-4 xl:py-1.5">
+                                        <span className="text-[7px] sm:text-[8px] md:text-[10px] lg:text-[8px] xl:text-[10px] font-bold text-gray-900 dark:text-zinc-300 sm:text-white uppercase tracking-wider">
                                             CEFR: {cefrVal}
                                         </span>
                                     </div>
@@ -163,13 +163,13 @@ export default function DashboardWelcome({
                     {/* Target Band & Days Remaining Cards */}
                     <div className="flex items-center justify-center relative py-1 mt-3 lg:mt-4 select-none scale-100 origin-center card-transition">
                         {/* Target Card (White) */}
-                        <div className="relative z-20 w-28 h-14 sm:w-32 sm:h-16 bg-white rounded-xl flex flex-col justify-center items-center shadow-md border border-gray-150 overflow-hidden group cursor-default">
+                        <div className="relative z-20 w-28 h-14 sm:w-32 sm:h-16 bg-white dark:bg-zinc-900 rounded-xl flex flex-col justify-center items-center shadow-md border border-gray-150 dark:border-zinc-800 overflow-hidden group cursor-default">
                             <div className="absolute top-0 w-full h-0.5 sm:h-1 bg-[#d11241]"></div>
-                            <span className="absolute inset-0 flex items-center justify-center text-3xl sm:text-4xl font-black text-gray-50 pointer-events-none select-none">T</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-3xl sm:text-4xl font-black text-gray-50 dark:text-zinc-800/20 pointer-events-none select-none">T</span>
                             <span className="relative z-10 text-[7px] sm:text-[8px] font-bold text-[#d11241] uppercase tracking-widest mb-0.5">
                                 {t('dashboard.targetScore')}
                             </span>
-                            <span className="relative z-10 text-base sm:text-lg font-black text-gray-900 transform group-hover:scale-105 card-transition">
+                            <span className="relative z-10 text-base sm:text-lg font-black text-gray-900 dark:text-white transform group-hover:scale-105 card-transition">
                                 {parseFloat(targetBand || 7.5).toFixed(1)}
                             </span>
                         </div>

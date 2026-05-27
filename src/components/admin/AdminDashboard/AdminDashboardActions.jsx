@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const ActionCard = ({ title, desc, icon: Icon, bg, onClick, isDark }) => (
     <button 
         onClick={onClick}
-        className={`col-span-12 sm:col-span-6 lg:col-span-2 p-4 rounded-2xl flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.02] active:scale-95 group ${bg}`}
+        className={`col-span-6 sm:col-span-4 lg:col-span-2 p-4 rounded-2xl flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.02] active:scale-95 group ${bg}`}
     >
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110 ${bg.includes('bg-white') ? 'bg-gray-100 dark:bg-white/10' : 'bg-white/20'}`}>
             <Icon className={`w-6 h-6 ${bg.includes('bg-white') ? 'text-gray-700 dark:text-white' : 'text-white'}`} />

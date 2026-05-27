@@ -436,7 +436,7 @@ export default function KeyManager() {
   );
 
   return (
-    <div className={`min-h-screen font-sans transition-colors duration-200 p-6 md:p-8 ${
+    <div className={`min-h-screen font-sans transition-colors duration-200 p-4 sm:p-6 md:p-8 ${
       isDark ? 'bg-[#09090b] text-zinc-100' : 'bg-[#fafafa] text-zinc-800'
     }`}>
       
@@ -476,7 +476,7 @@ export default function KeyManager() {
           </h2>
 
           {/* Generator Tabs */}
-          <div className={`flex gap-1.5 p-1 rounded-xl mb-5 ${isDark ? 'bg-zinc-905 bg-zinc-950/60' : 'bg-zinc-100/80'}`}>
+          <div className={`flex gap-1.5 p-1 rounded-xl mb-5 ${isDark ? 'bg-zinc-900 bg-zinc-950/60' : 'bg-zinc-100/80'}`}>
             <button
               type="button"
               onClick={() => setActiveGeneratorTab("create_mock")}
@@ -755,7 +755,7 @@ export default function KeyManager() {
                     : (isDark ? 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700' : 'bg-white border-zinc-200 hover:border-zinc-250')
                 }`}
               >
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 min-w-0">
                   <span className={`text-[10px] font-black w-6 text-center ${isDark ? 'text-zinc-700' : 'text-zinc-300'}`}>
                     {filteredKeys.length - index}
                   </span>

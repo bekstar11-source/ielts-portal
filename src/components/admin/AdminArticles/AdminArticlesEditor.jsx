@@ -275,7 +275,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                 exit={{ opacity: 0, y: 50, scale: 0.98 }}
                 className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-[#1E1E1E] rounded-[24px] shadow-2xl overflow-hidden flex flex-col"
             >
-                <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/2">
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/2">
                     <div>
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                             {article ? 'Maqolani tahrirlash' : 'Yangi maqola yaratish'}
@@ -291,7 +291,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
                     <form onSubmit={handleSave} className="space-y-5">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">

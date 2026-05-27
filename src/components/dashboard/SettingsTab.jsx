@@ -125,13 +125,13 @@ export default function SettingsTab() {
         </div>
         
         <div className="text-center sm:text-left space-y-1">
-            <h3 className="text-lg font-bold leading-tight">{fullName || "Ism Familiya"}</h3>
+            <h3 className={`text-lg font-bold leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{fullName || "Ism Familiya"}</h3>
             <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-center sm:justify-start gap-2 text-zinc-500 text-[12px] font-medium">
+                <div className="flex items-center justify-center sm:justify-start gap-2 text-zinc-500 dark:text-zinc-400 text-[12px] font-medium">
                     <Mail size={12} />
                     {user?.email}
                 </div>
-                <div className="flex items-center justify-center sm:justify-start gap-2 text-zinc-500 text-[12px] font-medium">
+                <div className="flex items-center justify-center sm:justify-start gap-2 text-zinc-500 dark:text-zinc-400 text-[12px] font-medium">
                     <Target size={12} />
                     Target Band: {targetBand}
                 </div>
@@ -143,35 +143,35 @@ export default function SettingsTab() {
       <div className={`${isDark ? 'bg-[#121212] border-white/5' : 'bg-white border-[#eee]'} rounded-xl p-6 border shadow-sm space-y-6`}>
         <div className="grid grid-cols-1 gap-4">
             <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-zinc-500 ml-1">To'liq Ism</label>
+                <label className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 ml-1">To'liq Ism</label>
                 <div className="relative group">
-                    <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-black transition-colors" />
+                    <User size={16} className={`absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors ${isDark ? 'group-focus-within:text-white' : 'group-focus-within:text-black'}`} />
                     <input 
                         type="text" 
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="Ismingizni kiriting"
-                        className={`w-full py-2 pl-12 pr-4 rounded-lg outline-none border transition-all duration-300 font-bold text-[13px] ${isDark ? 'bg-zinc-900 border-white/5 focus:border-white/20' : 'bg-[#f5f5f7] border-transparent focus:border-black/10 focus:bg-white'}`}
+                        className={`w-full py-2 pl-12 pr-4 rounded-lg outline-none border transition-all duration-300 font-bold text-[13px] ${isDark ? 'bg-zinc-900 border-white/5 focus:border-white/20 text-white' : 'bg-[#f5f5f7] border-transparent focus:border-black/10 focus:bg-white text-zinc-900'}`}
                     />
                 </div>
             </div>
 
             <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-zinc-500 ml-1">Telefon Raqam</label>
+                <label className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 ml-1">Telefon Raqam</label>
                 <div className="relative group">
-                    <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-black transition-colors" />
+                    <Phone size={16} className={`absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors ${isDark ? 'group-focus-within:text-white' : 'group-focus-within:text-black'}`} />
                     <input 
                         type="text" 
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+998 90 123 45 67" 
-                        className={`w-full py-2 pl-12 pr-4 rounded-lg outline-none border transition-all duration-300 font-bold text-[13px] ${isDark ? 'bg-zinc-900 border-white/5 focus:border-white/20' : 'bg-[#f5f5f7] border-transparent focus:border-black/10 focus:bg-white'}`}
+                        className={`w-full py-2 pl-12 pr-4 rounded-lg outline-none border transition-all duration-300 font-bold text-[13px] ${isDark ? 'bg-zinc-900 border-white/5 focus:border-white/20 text-white' : 'bg-[#f5f5f7] border-transparent focus:border-black/10 focus:bg-white text-zinc-900'}`}
                     />
                 </div>
             </div>
 
             <div className="space-y-3">
-                <label className="text-[12px] font-bold text-zinc-500 ml-1">Target Band</label>
+                <label className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 ml-1">Target Band</label>
                 <div className="grid grid-cols-4 gap-1.5">
                     {['6.5', '7.0', '7.5', '8.0'].map(band => (
                         <button
