@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Users, Search, Trash2, ArrowRight, UserPlus, Clock } from 'lucide-react';
 import { db } from '../../../firebase/firebase';
 import { addDoc, deleteDoc, doc, collection, serverTimestamp } from 'firebase/firestore';
+import GroupDetailPanel from '../GroupDetailPanel';
 
 const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
     const isDark = theme === 'dark';
@@ -10,6 +11,8 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
     const [newGroupName, setNewGroupName] = useState("");
     const [selectedTeacherId, setSelectedTeacherId] = useState("");
     const [isCreating, setIsCreating] = useState(false);
+    const [selectedGroup, setSelectedGroup] = useState(null);
+    const [showDetailPanel, setShowDetailPanel] = useState(false);
 
     const filteredGroups = groups.filter(g =>
         g.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -26,6 +29,7 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
                 teacherId: selectedTeacherId,
                 teacherName: teacher?.fullName || 'Noma\'lum',
                 studentCount: 0,
+                studentIds: [],
                 createdAt: serverTimestamp()
             });
             setNewGroupName("");
@@ -90,24 +94,24 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
                         <div className={`p-4 rounded-xl mb-4 flex justify-between items-center transition-colors ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
                             <div className="flex flex-col">
                                 <span className="text-[9px] font-black uppercase tracking-tighter opacity-40">O'quvchilar</span>
-                                <span className="text-lg font-black">{group.studentCount || 0}</span>
+                                <span className="text-lg font-black">{group.studentIds?.length || 0}</span>
                             </div>
                             <div className="flex -space-x-2">
-                                {[...Array(Math.min(3, group.studentCount || 0))].map((_, i) => (
+                                {[...Array(Math.min(3, group.studentIds?.length || 0))].map((_, i) => (
                                     <div key={i} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${isDark ? 'bg-zinc-800 border-zinc-900 text-gray-500' : 'bg-gray-200 border-white text-gray-400'}`}>
                                         U
                                     </div>
                                 ))}
-                                {(group.studentCount || 0) > 3 && (
+                                {(group.studentIds?.length || 0) > 3 && (
                                     <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${isDark ? 'bg-zinc-800 border-zinc-900 text-blue-400' : 'bg-gray-200 border-white text-blue-600'}`}>
-                                        +{(group.studentCount || 0) - 3}
+                                        +{(group.studentIds?.length || 0) - 3}
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         <button
-                            onClick={() => {/* Open member manager */}}
+                            onClick={() => { setSelectedGroup(group); setShowDetailPanel(true); }}
                             className={`w-full h-10 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isDark ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                         >
                             <UserPlus size={14} /> Boshqarish
@@ -159,6 +163,14 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
                     </div>
                 </div>
             )}
+
+            <GroupDetailPanel
+                group={selectedGroup ? groups.find(g => g.id === selectedGroup.id) : null}
+                isOpen={showDetailPanel}
+                onClose={() => { setShowDetailPanel(false); setSelectedGroup(null); }}
+                onUpdate={onRefresh}
+                allStudents={students}
+            />
         </div>
     );
 };

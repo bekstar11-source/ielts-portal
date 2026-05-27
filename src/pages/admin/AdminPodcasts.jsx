@@ -34,6 +34,7 @@ export default function AdminPodcasts() {
     const [viewMode, setViewMode] = useState("list"); // 'list' or 'grid'
     const [filterLevel, setFilterLevel] = useState("All");
     const [filterCollection, setFilterCollection] = useState("All");
+    const [isFinderOpen, setIsFinderOpen] = useState(false);
     
     // Collection Management
     const [isAddingCollection, setIsAddingCollection] = useState(false);
@@ -187,7 +188,7 @@ export default function AdminPodcasts() {
                             </div>
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Cover Image (URL or Upload)</label>
-                                <div className="flex gap-3">
+                                <div className="flex flex-col sm:flex-row gap-3">
                                     <div className="flex-1 space-y-2">
                                         <input 
                                             className="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-xl outline-none focus:border-emerald-500 transition-all text-xs"
@@ -212,7 +213,7 @@ export default function AdminPodcasts() {
                                             </label>
                                         </div>
                                     </div>
-                                    <div className="w-24 h-24 rounded-xl bg-zinc-100 border border-zinc-200 shrink-0 overflow-hidden shadow-inner">
+                                    <div className="h-24 w-full sm:w-24 sm:h-24 rounded-xl bg-zinc-100 border border-zinc-200 shrink-0 overflow-hidden shadow-inner flex items-center justify-center">
                                         {editingCol.thumbnail ? <img src={editingCol.thumbnail} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-zinc-300"><ImageIcon size={24} /></div>}
                                     </div>
                                 </div>
@@ -226,12 +227,28 @@ export default function AdminPodcasts() {
                 </div>
             )}
 
+            {/* MOBILE FINDER BACKDROP */}
+            {isFinderOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] md:hidden"
+                    onClick={() => setIsFinderOpen(false)}
+                />
+            )}
+
             {/* FINDER SIDEBAR */}
-            <aside className="w-64 bg-[#fbfbfb] border-r border-zinc-200 flex flex-col shrink-0 sticky top-0 h-[calc(100vh-64px)] overflow-y-auto">
-                <div className="p-6">
-                    <h1 className="text-xl font-bold tracking-tight mb-8">Podcasts</h1>
+            <aside className={`fixed inset-y-0 left-0 z-[100] w-72 bg-[#fbfbfb] border-r border-zinc-200 flex flex-col transition-transform duration-300 md:static md:translate-x-0 md:w-64 md:h-[calc(100vh-64px)] md:z-0 ${isFinderOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="p-6 h-full flex flex-col overflow-y-auto">
+                    <div className="flex items-center justify-between mb-8 md:block md:mb-8">
+                        <h1 className="text-xl font-bold tracking-tight">Podcasts</h1>
+                        <button 
+                            onClick={() => setIsFinderOpen(false)} 
+                            className="md:hidden p-2 hover:bg-zinc-200 rounded-full transition-colors text-zinc-500"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                     
-                    <div className="space-y-8">
+                    <div className="space-y-8 flex-1">
                         <div>
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 px-2 flex justify-between items-center">
                                 Collections
@@ -241,7 +258,7 @@ export default function AdminPodcasts() {
                             </h3>
                             <nav className="space-y-0.5">
                                 <button 
-                                    onClick={() => setFilterCollection("All")}
+                                    onClick={() => { setFilterCollection("All"); setIsFinderOpen(false); }}
                                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-semibold transition-colors ${filterCollection === 'All' ? 'bg-zinc-200 text-zinc-900' : 'text-zinc-500 hover:bg-zinc-100'}`}
                                 >
                                     <Folder size={16} /> All Podcasts
@@ -249,7 +266,7 @@ export default function AdminPodcasts() {
                                 {collections.map(c => (
                                     <div key={c.id} className="group relative">
                                         <button 
-                                            onClick={() => setFilterCollection(c.id)}
+                                            onClick={() => { setFilterCollection(c.id); setIsFinderOpen(false); }}
                                             className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-semibold transition-colors ${filterCollection === c.id ? 'bg-zinc-200 text-zinc-900' : 'text-zinc-500 hover:bg-zinc-100'}`}
                                         >
                                             <span className="flex items-center gap-3 truncate pr-10">
@@ -293,7 +310,7 @@ export default function AdminPodcasts() {
                                 {LEVELS.map(l => (
                                     <button 
                                         key={l}
-                                        onClick={() => setFilterLevel(l)}
+                                        onClick={() => { setFilterLevel(l); setIsFinderOpen(false); }}
                                         className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-semibold transition-colors ${filterLevel === l ? 'bg-zinc-200 text-zinc-900' : 'text-zinc-500 hover:bg-zinc-100'}`}
                                     >
                                         <span className="flex items-center gap-3"><span className={`w-1.5 h-1.5 rounded-full ${l === 'All' ? 'bg-zinc-400' : 'bg-emerald-500'}`}></span> {l}</span>
@@ -310,13 +327,22 @@ export default function AdminPodcasts() {
             <div className="flex-1 flex flex-col overflow-hidden">
                 
                 {/* TOOLBAR */}
-                <header className="h-16 bg-white border-b border-zinc-200 flex items-center justify-between px-6 shrink-0">
-                    <div className="flex items-center gap-4 flex-1">
-                        <div className="flex bg-zinc-100 p-1 rounded-lg">
+                <header className="min-h-16 py-3 md:py-0 md:h-16 bg-white border-b border-zinc-200 flex flex-col md:flex-row items-stretch md:items-center justify-between px-4 md:px-6 gap-3 shrink-0">
+                    <div className="flex items-center gap-2 md:gap-4 flex-1">
+                        {/* Mobile Filters Toggle Button */}
+                        <button 
+                            onClick={() => setIsFinderOpen(true)}
+                            className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 rounded-lg text-xs font-bold text-zinc-600 transition-all active:scale-95 shrink-0"
+                        >
+                            <Filter size={14} />
+                            <span>Filters</span>
+                        </button>
+
+                        <div className="flex bg-zinc-100 p-1 rounded-lg shrink-0">
                             <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}><LayoutGrid size={16} /></button>
                             <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}><List size={16} /></button>
                         </div>
-                        <div className="relative w-full max-w-sm">
+                        <div className="relative flex-1 max-w-sm">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
                             <input 
                                 type="text"
@@ -328,14 +354,24 @@ export default function AdminPodcasts() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => navigate("/admin/create-podcast")} className="flex items-center gap-2 px-4 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-bold hover:bg-zinc-50 transition-all active:scale-95"><Plus size={14} /> Classic</button>
-                        <button onClick={() => navigate("/admin/create-spotify-podcast")} className="flex items-center gap-2 px-6 py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold hover:bg-zinc-800 transition-all shadow-sm active:scale-95"><Plus size={14} /> Spotify-Style</button>
+                    <div className="flex items-center gap-2 justify-end">
+                        <button 
+                            onClick={() => navigate("/admin/create-podcast")} 
+                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-bold hover:bg-zinc-50 text-zinc-700 transition-all active:scale-95"
+                        >
+                            <Plus size={14} /> Classic
+                        </button>
+                        <button 
+                            onClick={() => navigate("/admin/create-spotify-podcast")} 
+                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold hover:bg-zinc-800 transition-all shadow-sm active:scale-95"
+                        >
+                            <Plus size={14} /> Spotify-Style
+                        </button>
                     </div>
                 </header>
 
                 {/* CONTENT LISTING */}
-                <main className="flex-1 overflow-y-auto bg-white p-6">
+                <main className="flex-1 overflow-y-auto bg-white p-4 md:p-6">
                     {loading ? (
                         <div className="h-full flex items-center justify-center">
                             <Loader2 className="animate-spin text-emerald-500" size={32} />
@@ -346,61 +382,126 @@ export default function AdminPodcasts() {
                             <p className="mt-4 text-sm font-bold">No results matching your filters</p>
                         </div>
                     ) : viewMode === 'list' ? (
-                        /* LIST (TABLE) VIEW */
-                        <table className="w-full border-collapse text-left">
-                            <thead>
-                                <tr className="text-[10px] font-black uppercase tracking-widest text-zinc-400 border-b border-zinc-100">
-                                    <th className="pb-3 pl-2 font-black">Title</th>
-                                    <th className="pb-3 font-black">Level</th>
-                                    <th className="pb-3 font-black">Collection</th>
-                                    <th className="pb-3 font-black">Duration</th>
-                                    <th className="pb-3 font-black">Date</th>
-                                    <th className="pb-3 pr-2 text-right font-black">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-50">
-                                {filteredPodcasts.map(p => (
-                                    <tr key={p.id} className="group hover:bg-zinc-50/80 transition-colors">
-                                        <td className="py-3 pl-2">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded bg-zinc-100 border border-zinc-200 flex items-center justify-center overflow-hidden shrink-0">
-                                                    {p.thumbnail ? <img src={p.thumbnail} className="w-full h-full object-cover" /> : <Headphones size={14} className="text-zinc-400" />}
+                        <>
+                            {/* LIST (TABLE) VIEW FOR DESKTOP */}
+                            <table className="w-full border-collapse text-left hidden md:table">
+                                <thead>
+                                    <tr className="text-[10px] font-black uppercase tracking-widest text-zinc-400 border-b border-zinc-100">
+                                        <th className="pb-3 pl-2 font-black">Title</th>
+                                        <th className="pb-3 font-black">Level</th>
+                                        <th className="pb-3 font-black">Collection</th>
+                                        <th className="pb-3 font-black">Duration</th>
+                                        <th className="pb-3 font-black">Date</th>
+                                        <th className="pb-3 pr-2 text-right font-black">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-50">
+                                    {filteredPodcasts.map(p => (
+                                        <tr key={p.id} className="group hover:bg-zinc-50/80 transition-colors">
+                                            <td className="py-3 pl-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded bg-zinc-100 border border-zinc-200 flex items-center justify-center overflow-hidden shrink-0">
+                                                        {p.thumbnail ? <img src={p.thumbnail} className="w-full h-full object-cover" /> : <Headphones size={14} className="text-zinc-400" />}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-bold text-zinc-900 line-clamp-1">{p.title || "Untitled"}</div>
+                                                        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">{p.status}</div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div className="text-sm font-bold text-zinc-900 line-clamp-1">{p.title || "Untitled"}</div>
-                                                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">{p.status}</div>
+                                            </td>
+                                            <td className="py-3 text-xs font-bold text-zinc-600">
+                                                <span className="px-2 py-0.5 bg-zinc-100 rounded text-zinc-500">{p.level || "---"}</span>
+                                            </td>
+                                            <td className="py-3">
+                                                <div className="flex items-center gap-1.5 group/move">
+                                                    <select 
+                                                        className="bg-zinc-100/50 border border-transparent px-2 py-1 rounded text-[10px] font-bold text-zinc-500 uppercase tracking-tight outline-none cursor-pointer hover:border-zinc-200 hover:bg-white focus:bg-white focus:border-emerald-500 transition-all appearance-none"
+                                                        value={p.collectionId || "None"}
+                                                        onChange={(e) => assignToCollection(p.id, e.target.value)}
+                                                    >
+                                                        <option value="None">📦 No Collection</option>
+                                                        {collections.map(c => <option key={c.id} value={c.id}>📁 {c.name}</option>)}
+                                                    </select>
+                                                    <ChevronRight size={10} className="text-zinc-300 group-hover/move:translate-x-0.5 transition-transform" />
+                                                </div>
+                                            </td>
+                                            <td className="py-3 text-xs font-mono font-bold text-zinc-500">{formatTime(p.duration)}</td>
+                                            <td className="py-3 text-xs font-medium text-zinc-400">{formatDate(p.createdAt)}</td>
+                                            <td className="py-3 pr-2 text-right">
+                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => navigate(p.mode === 'spotify' ? `/admin/edit-spotify-podcast/${p.id}` : `/admin/edit-podcast/${p.id}`)} className="p-2 hover:bg-white rounded-md text-zinc-400 hover:text-emerald-600 border border-transparent hover:border-zinc-200"><Edit2 size={14} /></button>
+                                                    <button onClick={() => toggleStatus(p)} className="p-2 hover:bg-white rounded-md text-zinc-400 hover:text-zinc-900 border border-transparent hover:border-zinc-200">{p.status === 'published' ? <EyeOff size={14} /> : <Eye size={14} />}</button>
+                                                    <button onClick={() => handleDelete(p.id)} className="p-2 hover:bg-white rounded-md text-zinc-300 hover:text-rose-600 border border-transparent hover:border-zinc-200"><Trash2 size={14} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            {/* LIST (CARD) VIEW FOR MOBILE */}
+                            <div className="md:hidden flex flex-col divide-y divide-zinc-100">
+                                {filteredPodcasts.map(p => (
+                                    <div key={p.id} className="py-4 flex flex-col gap-3">
+                                        {/* Top Row: Thumbnail + Title & Status */}
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-12 h-12 rounded bg-zinc-100 border border-zinc-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                                                {p.thumbnail ? <img src={p.thumbnail} className="w-full h-full object-cover" /> : <Headphones size={20} className="text-zinc-400" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-sm font-bold text-zinc-900 leading-snug break-words">{p.title || "Untitled"}</h4>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${p.status === 'published' ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                                                        {p.status}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-zinc-400">• {formatDate(p.createdAt)}</span>
                                                 </div>
                                             </div>
-                                        </td>
-                                        <td className="py-3 text-xs font-bold text-zinc-600">
-                                            <span className="px-2 py-0.5 bg-zinc-100 rounded text-zinc-500">{p.level || "---"}</span>
-                                        </td>
-                                        <td className="py-3">
-                                            <div className="flex items-center gap-1.5 group/move">
+                                        </div>
+
+                                        {/* Mid Row: Level, Duration, Collection select */}
+                                        <div className="flex flex-wrap items-center gap-2 bg-zinc-50/50 p-2 rounded-lg border border-zinc-100">
+                                            <div className="text-xs font-bold text-zinc-600">
+                                                <span className="px-2 py-0.5 bg-white border border-zinc-200 rounded text-zinc-500 text-[10px]">{p.level || "---"}</span>
+                                            </div>
+                                            <div className="text-xs font-mono font-bold text-zinc-500 text-[10px]">{formatTime(p.duration)}</div>
+                                            <div className="flex-1 min-w-[120px] flex items-center gap-1">
                                                 <select 
-                                                    className="bg-zinc-100/50 border border-transparent px-2 py-1 rounded text-[10px] font-bold text-zinc-500 uppercase tracking-tight outline-none cursor-pointer hover:border-zinc-200 hover:bg-white focus:bg-white focus:border-emerald-500 transition-all appearance-none"
+                                                    className="w-full bg-white border border-zinc-200 px-2 py-1 rounded text-[10px] font-bold text-zinc-500 uppercase tracking-tight outline-none cursor-pointer focus:border-emerald-500 transition-all appearance-none"
                                                     value={p.collectionId || "None"}
                                                     onChange={(e) => assignToCollection(p.id, e.target.value)}
                                                 >
                                                     <option value="None">📦 No Collection</option>
                                                     {collections.map(c => <option key={c.id} value={c.id}>📁 {c.name}</option>)}
                                                 </select>
-                                                <ChevronRight size={10} className="text-zinc-300 group-hover/move:translate-x-0.5 transition-transform" />
                                             </div>
-                                        </td>
-                                        <td className="py-3 text-xs font-mono font-bold text-zinc-500">{formatTime(p.duration)}</td>
-                                        <td className="py-3 text-xs font-medium text-zinc-400">{formatDate(p.createdAt)}</td>
-                                        <td className="py-3 pr-2 text-right">
-                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => navigate(p.mode === 'spotify' ? `/admin/edit-spotify-podcast/${p.id}` : `/admin/edit-podcast/${p.id}`)} className="p-2 hover:bg-white rounded-md text-zinc-400 hover:text-emerald-600 border border-transparent hover:border-zinc-200"><Edit2 size={14} /></button>
-                                                <button onClick={() => toggleStatus(p)} className="p-2 hover:bg-white rounded-md text-zinc-400 hover:text-zinc-900 border border-transparent hover:border-zinc-200">{p.status === 'published' ? <EyeOff size={14} /> : <Eye size={14} />}</button>
-                                                <button onClick={() => handleDelete(p.id)} className="p-2 hover:bg-white rounded-md text-zinc-300 hover:text-rose-600 border border-transparent hover:border-zinc-200"><Trash2 size={14} /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                        </div>
+
+                                        {/* Bottom Row: Actions */}
+                                        <div className="flex items-center justify-end gap-2 pt-1">
+                                            <button 
+                                                onClick={() => navigate(p.mode === 'spotify' ? `/admin/edit-spotify-podcast/${p.id}` : `/admin/edit-podcast/${p.id}`)} 
+                                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2 px-3 bg-zinc-50 hover:bg-zinc-100 active:bg-zinc-200 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-700 transition-colors"
+                                            >
+                                                <Edit2 size={12} /> Edit
+                                            </button>
+                                            <button 
+                                                onClick={() => toggleStatus(p)} 
+                                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2 px-3 bg-zinc-50 hover:bg-zinc-100 active:bg-zinc-200 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-700 transition-colors"
+                                            >
+                                                {p.status === 'published' ? <><EyeOff size={12} /> Draft</> : <><Eye size={12} /> Publish</>}
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(p.id)} 
+                                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2 px-3 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 border border-rose-100 rounded-lg text-xs font-bold text-rose-600 transition-colors"
+                                            >
+                                                <Trash2 size={12} /> Delete
+                                            </button>
+                                        </div>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
+                            </div>
+                        </>
                     ) : (
                         /* GRID VIEW */
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
@@ -408,18 +509,19 @@ export default function AdminPodcasts() {
                                 <div key={p.id} className="group bg-white border border-zinc-200 rounded-lg p-3 hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/5 transition-all">
                                     <div className="aspect-square bg-zinc-50 rounded-md mb-3 relative overflow-hidden border border-zinc-100">
                                         {p.thumbnail ? <img src={p.thumbnail} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-zinc-200"><Headphones size={32} /></div>}
-                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
-                                            <button onClick={() => navigate(p.mode === 'spotify' ? `/admin/edit-spotify-podcast/${p.id}` : `/admin/edit-podcast/${p.id}`)} className="p-2 bg-white rounded-lg shadow-xl text-zinc-900 hover:text-emerald-600"><Edit2 size={14} /></button>
-                                            <button onClick={() => handleDelete(p.id)} className="p-2 bg-white rounded-lg shadow-xl text-rose-500 hover:bg-rose-50"><Trash2 size={14} /></button>
+                                        <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col gap-1 z-10">
+                                            <button onClick={() => navigate(p.mode === 'spotify' ? `/admin/edit-spotify-podcast/${p.id}` : `/admin/edit-podcast/${p.id}`)} className="p-2 md:p-1.5 bg-white rounded-lg shadow-xl text-zinc-900 hover:text-emerald-600 transition-all"><Edit2 size={16} className="md:w-[14px] md:h-[14px]" /></button>
+                                            <button onClick={() => toggleStatus(p)} className="p-2 md:p-1.5 bg-white rounded-lg shadow-xl text-zinc-900 hover:text-emerald-600 transition-all">{p.status === 'published' ? <EyeOff size={16} className="md:w-[14px] md:h-[14px]" /> : <Eye size={16} className="md:w-[14px] md:h-[14px]" />}</button>
+                                            <button onClick={() => handleDelete(p.id)} className="p-2 md:p-1.5 bg-white rounded-lg shadow-xl text-rose-500 hover:bg-rose-50 transition-all"><Trash2 size={16} className="md:w-[14px] md:h-[14px]" /></button>
                                         </div>
-                                        <div className="absolute bottom-2 left-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute bottom-2 left-2 right-2 flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
                                             <select 
-                                                className="w-full bg-black/60 backdrop-blur-md text-white text-[9px] font-bold uppercase p-1.5 rounded-md outline-none cursor-pointer hover:bg-black/80 transition-colors"
+                                                className="w-full bg-black/75 backdrop-blur-md text-white text-[10px] md:text-[9px] font-bold uppercase p-2 md:p-1.5 rounded-md outline-none cursor-pointer hover:bg-black/90 transition-colors border border-white/10"
                                                 value={p.collectionId || "None"}
                                                 onChange={(e) => assignToCollection(p.id, e.target.value)}
                                             >
-                                                <option value="None">📦 No Collection</option>
-                                                {collections.map(c => <option key={c.id} value={c.id}>📁 {c.name}</option>)}
+                                                <option value="None" className="text-zinc-800">📦 No Collection</option>
+                                                {collections.map(c => <option key={c.id} value={c.id} className="text-zinc-800">📁 {c.name}</option>)}
                                             </select>
                                         </div>
                                     </div>

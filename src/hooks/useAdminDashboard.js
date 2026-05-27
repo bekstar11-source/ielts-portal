@@ -165,8 +165,8 @@ export const useAdminDashboard = (isAuthorized) => {
         setProcessing(true);
         try {
             await updateDoc(doc(db, "groups", groupId), { studentIds: arrayUnion(userId) });
-            await updateDoc(doc(db, "users", userId), { studentType: 'group' });
-            setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, studentType: 'group' } : u));
+            await updateDoc(doc(db, "users", userId), { studentType: 'group', groupId: groupId });
+            setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, studentType: 'group', groupId: groupId } : u));
             return true;
         } catch (err) {
             console.error(err);

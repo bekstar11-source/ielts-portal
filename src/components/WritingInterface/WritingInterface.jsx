@@ -114,13 +114,13 @@ export default function WritingInterface({
             </div>
 
             {/* Main Content */}
-            <div className={`flex-1 flex overflow-hidden ${isMockExam ? 'pb-[50px]' : ''}`}>
+            <div className={`flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden ${isMockExam ? 'pb-[50px]' : ''}`}>
 
                 {/* Left: Task Prompt */}
-                <div className="w-1/2 bg-white border-r border-gray-100 overflow-y-auto p-10">
+                <div className="w-full md:w-1/2 bg-white border-b md:border-b-0 md:border-r border-gray-100 overflow-y-visible md:overflow-y-auto p-6 md:p-10">
                     <div className="max-w-2xl mx-auto h-full flex flex-col">
-                        <div className="mb-8">
-                            <h2 className="text-3xl font-black text-zinc-900 mb-3 tracking-tight">{currentTask?.title}</h2>
+                        <div className="mb-6 md:mb-8">
+                            <h2 className="text-2xl md:text-3xl font-black text-zinc-900 mb-3 tracking-tight">{currentTask?.title}</h2>
                             <div className="flex flex-wrap gap-4 text-[13px] font-bold">
                                 <span className="text-zinc-400 uppercase tracking-wider">⏱️ Spend about {currentTask?.id === 1 ? '20' : '40'} mins</span>
                                 <span className="text-zinc-400 uppercase tracking-wider">✍️ Min {minWords} words</span>
@@ -128,14 +128,14 @@ export default function WritingInterface({
                         </div>
 
                         <div className="flex-1">
-                            <div className="bg-zinc-50 border-l-[6px] border-zinc-900 p-10 rounded-xl mb-8 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)]">
-                                <p className="text-zinc-800 leading-relaxed whitespace-pre-wrap text-xl font-semibold italic">
+                            <div className="bg-zinc-50 border-l-[6px] border-zinc-900 p-6 md:p-10 rounded-xl mb-6 md:mb-8 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)]">
+                                <p className="text-zinc-800 leading-relaxed whitespace-pre-wrap text-lg md:text-xl font-semibold italic">
                                     "{currentTask?.prompt}"
                                 </p>
                             </div>
 
                             {currentTask?.image && (
-                                <div className="mb-8 group">
+                                <div className="mb-6 md:mb-8 group">
                                     <img
                                         src={currentTask.image}
                                         alt="Task visual"
@@ -145,14 +145,14 @@ export default function WritingInterface({
                             )}
                         </div>
                         
-                        <div className="mt-auto pt-8 border-t border-gray-50">
+                        <div className="mt-auto pt-8 border-t border-gray-50 hidden md:block">
                             <p className="text-[11px] text-gray-400 font-medium uppercase tracking-[0.2em]">End of prompt area</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Right: Answer Area */}
-                <div className="w-1/2 bg-[#fdfdfd] overflow-hidden p-10 flex flex-col">
+                <div className="w-full md:w-1/2 bg-[#fdfdfd] p-6 md:p-10 flex flex-col min-h-[450px] md:min-h-0">
                     <div className="max-w-2xl mx-auto w-full h-full flex flex-col">
                         <div className="mb-5 flex justify-between items-end">
                             <div className="flex flex-col">
@@ -167,7 +167,7 @@ export default function WritingInterface({
                             </div>
                         </div>
 
-                        <div className="flex-1 relative group">
+                        <div className="flex-1 relative group min-h-[300px] md:min-h-0">
                             <div className="absolute inset-0 bg-zinc-900/5 rounded-[32px] translate-x-1 translate-y-1 transition-transform group-focus-within:translate-x-1.5 group-focus-within:translate-y-1.5"></div>
                             <textarea
                                 value={currentAnswer}
@@ -181,10 +181,10 @@ export default function WritingInterface({
                                 data-enable-grammarly="false"
                                 disabled={isReviewMode}
                                 placeholder={`Type your response for ${currentTask?.title.toLowerCase()}...`}
-                                className={`relative h-full w-full p-10 border-2 rounded-[32px] font-serif text-xl leading-relaxed resize-none focus:outline-none focus:ring-0 transition-all ${isReviewMode
+                                className={`relative h-full w-full p-6 md:p-10 border-2 rounded-[32px] font-serif text-lg md:text-xl leading-relaxed resize-none focus:outline-none focus:ring-0 transition-all ${isReviewMode
                                     ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
                                     : 'bg-white border-zinc-200 focus:border-zinc-900 shadow-sm'
-                                    } min-h-[500px]`}
+                                    } min-h-[300px] md:min-h-[400px]`}
                             />
                         </div>
                     </div>

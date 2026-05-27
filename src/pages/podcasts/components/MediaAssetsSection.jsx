@@ -35,7 +35,7 @@ export const MediaAssetsSection = ({
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Cover Artwork</label>
                 <div 
                     onClick={() => thumbRef.current.click()}
-                    className="relative aspect-square w-full bg-zinc-50 rounded-lg border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 transition-all group overflow-hidden"
+                    className="relative aspect-square w-full bg-zinc-50 rounded-lg border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 transition-all group overflow-hidden mb-3"
                 >
                     <input ref={thumbRef} type="file" accept="image/*" hidden onChange={e => handleFileUpload(e.target.files[0], 'thumb')} />
                     {form.thumbnail ? (
@@ -47,6 +47,22 @@ export const MediaAssetsSection = ({
                         </>
                     )}
                     {thumbProgress > 0 && <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all" style={{ width: `${thumbProgress}%` }} />}
+                </div>
+                <div className="flex gap-2">
+                    <input 
+                        className="flex-1 bg-zinc-50 border border-zinc-200 p-3 rounded-lg outline-none focus:border-emerald-500 transition-colors text-[10px] font-mono"
+                        placeholder="Or enter Thumbnail URL (https://...)"
+                        value={form.thumbnail || ''}
+                        onChange={e => setForm(f => ({ ...f, thumbnail: e.target.value }))}
+                    />
+                    <button 
+                        type="button"
+                        onClick={() => thumbRef.current.click()}
+                        className="p-3 bg-zinc-100 text-zinc-600 rounded-lg hover:bg-zinc-200 transition-colors flex items-center justify-center"
+                        title="Upload Cover Image"
+                    >
+                        <Upload size={16} />
+                    </button>
                 </div>
             </div>
 

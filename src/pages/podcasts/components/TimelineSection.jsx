@@ -24,19 +24,19 @@ export const TimelineItem = ({ seg, currentTime, updateSegment, deleteSegment })
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300 group-hover:text-zinc-400 transition-colors">
                         {seg.type === 'text' ? 'Transcript Segment' : seg.type === 'mcq' ? 'Multiple Choice Question' : seg.type === 'gapfill' ? 'Gap-fill Challenge' : 'Sentence Completion Challenge'}
                     </span>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <button 
                             onClick={() => updateSegment(seg.id, { time: Math.floor(currentTime) })}
-                            className="p-1.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors"
+                            className="p-2 md:p-1.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors"
                             title="Set to current playback time"
                         >
-                            <Clock size={12} />
+                            <Clock size={14} className="md:w-3 md:h-3" />
                         </button>
                         <button 
                             onClick={() => deleteSegment(seg.id)}
-                            className="p-1.5 hover:bg-rose-50 text-rose-500 rounded transition-colors"
+                            className="p-2 md:p-1.5 hover:bg-rose-50 text-rose-500 rounded transition-colors"
                         >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} className="md:w-3 md:h-3" />
                         </button>
                     </div>
                 </div>
@@ -108,25 +108,25 @@ export const TimelineItem = ({ seg, currentTime, updateSegment, deleteSegment })
 
 export const TimelineSection = ({ segments, addSegment, updateSegment, deleteSegment, currentTime }) => (
     <div className="space-y-4 h-full flex flex-col">
-        <div className="bg-white border border-zinc-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-4">
+        <div className="bg-white border border-zinc-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3">
                 <h3 className="font-bold text-sm flex items-center gap-2">
                     <Clock size={16} className="text-emerald-600" />
                     Interactive Timeline
                 </h3>
                 <span className="text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded font-bold uppercase">{segments.length} Items</span>
             </div>
-            <div className="flex gap-2">
-                <button onClick={() => addSegment('text')} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 text-white text-[10px] font-bold rounded-lg hover:bg-zinc-800 transition-colors">
-                    <Plus size={12} /> Add Transcript
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <button onClick={() => addSegment('text')} className="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-2.5 py-1.5 bg-zinc-900 text-white text-[10px] font-bold rounded-lg hover:bg-zinc-800 transition-colors">
+                    <Plus size={12} /> Transcript
                 </button>
-                <button onClick={() => addSegment('mcq')} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-colors">
+                <button onClick={() => addSegment('mcq')} className="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-colors">
                     <Plus size={12} /> MCQ
                 </button>
-                <button onClick={() => addSegment('gapfill')} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-colors">
+                <button onClick={() => addSegment('gapfill')} className="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-colors">
                     <Plus size={12} /> Gap-fill
                 </button>
-                <button onClick={() => addSegment('completion')} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-colors">
+                <button onClick={() => addSegment('completion')} className="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-colors">
                     <Plus size={12} /> Completion
                 </button>
             </div>

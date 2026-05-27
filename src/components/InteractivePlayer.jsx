@@ -125,10 +125,16 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
         setIsSaving(true);
         try {
             const allQuestions = podcast.questions || [];
+            const completionQuestions = allQuestions.filter(q => q.type === 'completion');
             let correctCount = 0;
             allQuestions.forEach(q => {
-                const userVal = String(finalAnswers[q.time] || "").toLowerCase().trim();
-                const correctVal = String(q.data.answer || q.data.correctIndex).toLowerCase().trim();
+                let answerKey = q.time;
+                if (q.type === 'completion') {
+                    const idx = completionQuestions.indexOf(q);
+                    answerKey = `completion-${q.time}-${idx}`;
+                }
+                const userVal = String(finalAnswers[answerKey] ?? "").toLowerCase().trim();
+                const correctVal = String(q.data.answer ?? q.data.correctIndex ?? "").toLowerCase().trim();
                 if (userVal === correctVal) correctCount++;
             });
 
@@ -324,6 +330,11 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
                 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes slide-in-from-right { from { transform: translateX(20px); } to { transform: translateX(0); } }
                 .animate-in { animation: fade-in 0.5s ease-out, slide-in-from-right 0.5s ease-out; }
+                
+                @keyframes bounce {
+                    from { height: 15%; }
+                    to { height: 100%; }
+                }
             `}} />
         </motion.div>
     );

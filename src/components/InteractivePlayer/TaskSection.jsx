@@ -48,8 +48,8 @@ export default function TaskSection({
         let allCorrect = true;
         currentQuestions.forEach((q, idx) => {
             const answerKey = currentStep === 3 ? `completion-${q.time}-${idx}` : q.time;
-            const userVal = String(answers[answerKey] || "").toLowerCase().trim();
-            const correctVal = String(q.data.answer || q.data.correctIndex).toLowerCase().trim();
+            const userVal = String(answers[answerKey] ?? "").toLowerCase().trim();
+            const correctVal = String(q.data.answer ?? q.data.correctIndex ?? "").toLowerCase().trim();
             if (userVal !== correctVal) allCorrect = false;
         });
 
@@ -89,8 +89,8 @@ export default function TaskSection({
         let correct = 0;
         stepQuestions.forEach((q, idx) => {
             const answerKey = stepId === 3 ? `completion-${q.time}-${idx}` : q.time;
-            const userVal = String(answers[answerKey] || "").toLowerCase().trim();
-            const correctVal = String(q.data.answer || q.data.correctIndex).toLowerCase().trim();
+            const userVal = String(answers[answerKey] ?? "").toLowerCase().trim();
+            const correctVal = String(q.data.answer ?? q.data.correctIndex ?? "").toLowerCase().trim();
             if (userVal === correctVal) correct++;
         });
         return { correct, total: stepQuestions.length, percentage: Math.round((correct / stepQuestions.length) * 100) };

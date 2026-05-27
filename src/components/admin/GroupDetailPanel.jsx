@@ -74,6 +74,10 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
             await updateDoc(doc(db, 'groups', group.id), {
                 studentIds: arrayRemove(studentId)
             });
+            await updateDoc(doc(db, 'users', studentId), {
+                studentType: 'public',
+                groupId: null
+            });
             onUpdate();
         } catch (error) {
             alert("Xatolik: " + error.message);
@@ -84,6 +88,10 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
         try {
             await updateDoc(doc(db, 'groups', group.id), {
                 studentIds: arrayUnion(studentId)
+            });
+            await updateDoc(doc(db, 'users', studentId), {
+                studentType: 'group',
+                groupId: group.id
             });
             onUpdate();
         } catch (error) {

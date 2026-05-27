@@ -55,7 +55,7 @@ export default function CreateSpotifyPodcast() {
                 saving={saving}
             />
 
-            <main className="max-w-[1600px] mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <main className="max-w-[1600px] mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
                 
                 {/* LEFT SIDEBAR */}
                 <div className="lg:col-span-4 space-y-6">
