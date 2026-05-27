@@ -104,7 +104,7 @@ export default function Practice() {
     if (activeTab === 'reading') {
       navigate('/reading', { replace: true });
     } else if (activeTab === 'listening') {
-      navigate('/listening', { replace: true });
+      navigate('/listening/parts', { replace: true });
     }
   }, [activeTab]);
 
@@ -120,7 +120,7 @@ export default function Practice() {
       return;
     }
     if (tabId === 'listening') {
-      navigate('/listening');
+      navigate('/listening/parts');
       return;
     }
     if (tabId === 'podcasts') {

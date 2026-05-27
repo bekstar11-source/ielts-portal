@@ -78,7 +78,7 @@ export default function DashboardHeader({
   const [isFullTestsOpen, setIsFullTestsOpen] = useState(() => {
     return (
       location.pathname === '/reading/full' ||
-      (location.pathname === '/listening' && location.search.includes('section=full_test')) ||
+      location.pathname === '/listening/full' ||
       (location.pathname === '/practice' && location.search.includes('type=full'))
     );
   });
@@ -86,7 +86,7 @@ export default function DashboardHeader({
   const [isPartTestsOpen, setIsPartTestsOpen] = useState(() => {
     return (
       location.pathname === '/reading/parts' ||
-      (location.pathname === '/listening' && !location.search.includes('section=full_test')) ||
+      location.pathname === '/listening/parts' ||
       (location.pathname === '/practice' && location.search.includes('type=part')) ||
       location.pathname === '/library'
     );
@@ -133,11 +133,11 @@ export default function DashboardHeader({
 
   const renderIeltsSection = (isMobile = false) => {
     const isFullReadingActive = location.pathname === '/reading/full';
-    const isFullListeningActive = location.pathname === '/listening' && location.search.includes('section=full_test');
+    const isFullListeningActive = location.pathname === '/listening/full';
     const isFullWritingActive = location.pathname.startsWith('/practice') && location.search.includes('tab=writing') && location.search.includes('type=full');
     
     const isPartReadingActive = location.pathname === '/reading/parts';
-    const isPartListeningActive = location.pathname === '/listening' && !location.search.includes('section=full_test');
+    const isPartListeningActive = location.pathname === '/listening/parts';
     const isPartWritingActive = location.pathname.startsWith('/practice') && location.search.includes('tab=writing') && location.search.includes('type=part');
 
     const isSpeakingActive = location.pathname === '/speaking-ai';
@@ -192,7 +192,7 @@ export default function DashboardHeader({
                     {t('dashboard.reading')}
                   </button>
                   <button
-                    onClick={() => handleSubItemClick('/listening?section=full_test')}
+                    onClick={() => handleSubItemClick('/listening/full')}
                     className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
                       isFullListeningActive
                         ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
@@ -236,7 +236,7 @@ export default function DashboardHeader({
                     {t('dashboard.reading')}
                   </button>
                   <button
-                    onClick={() => handleSubItemClick('/listening?section=parts')}
+                    onClick={() => handleSubItemClick('/listening/parts')}
                     className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
                       isPartListeningActive
                         ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
@@ -338,7 +338,7 @@ export default function DashboardHeader({
                   {t('dashboard.reading')}
                 </button>
                 <button
-                  onClick={() => navigate(isFull ? '/listening?section=full_test' : '/listening?section=parts')}
+                  onClick={() => navigate(isFull ? '/listening/full' : '/listening/parts')}
                   className={`w-full text-left px-2.5 py-1 text-[12px] rounded-lg transition-all flex items-center gap-2 font-normal group ${
                     isListeningActive
                       ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
@@ -475,7 +475,7 @@ export default function DashboardHeader({
                   {t('dashboard.reading')}
                 </button>
                 <button
-                  onClick={() => { navigate(isFull ? '/listening?section=full_test' : '/listening?section=parts'); setIsMobileMenuOpen(false); }}
+                  onClick={() => { navigate(isFull ? '/listening/full' : '/listening/parts'); setIsMobileMenuOpen(false); }}
                   className={`w-full text-left px-2.5 py-1 text-[11px] rounded-lg transition-all flex items-center gap-2 font-normal group ${
                     isListeningActive
                       ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'

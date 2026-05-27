@@ -172,7 +172,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
       uzLabel: 'Listening To\'liq testlar',
       desc: 'Realistic full listening simulation with audio tracks and questions.',
       uzDesc: 'Audio va savollar bilan to\'liq Listening imtihoni simulyatsiyasi.',
-      path: '/listening?section=full_test',
+      path: '/listening/full',
       icon: Headphones
     },
     {
@@ -182,7 +182,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
       uzLabel: 'Listening qismlar bo\'yicha amaliyot',
       desc: 'Listen and practice specific listening sections individually.',
       uzDesc: 'Listening bo\'limlarini alohida-alohida mashq qiling.',
-      path: '/listening?section=parts',
+      path: '/listening/parts',
       icon: Headphones
     },
     {
@@ -348,7 +348,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
           // Select default quick links when query is empty
           const quickLinks = [
             '/reading/full',
-            '/listening?section=full_test',
+            '/listening/full',
             '/practice?tab=speaking',
             '/vocabulary'
           ];
@@ -458,7 +458,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
                     {[
                       { label: lang === 'uz' ? 'Reading To\'liq imtihon' : 'Reading Full Test', path: '/reading/full', icon: BookOpen, col: 'text-blue-500', bg: 'bg-blue-500/5' },
-                      { label: lang === 'uz' ? 'Listening Imtihon' : 'Listening Full Test', path: '/listening?section=full_test', icon: Headphones, col: 'text-red-500', bg: 'bg-red-500/5' },
+                      { label: lang === 'uz' ? 'Listening Imtihon' : 'Listening Full Test', path: '/listening/full', icon: Headphones, col: 'text-red-500', bg: 'bg-red-500/5' },
                       { label: lang === 'uz' ? 'Speaking AI simulyator' : 'Speaking AI Simulator', path: '/practice?tab=speaking', icon: Mic, col: 'text-emerald-500', bg: 'bg-emerald-500/5' },
                       { label: lang === 'uz' ? 'Lug\'at boyligi' : 'Vocabulary WordBank', path: '/vocabulary', icon: BookMarked, col: 'text-violet-500', bg: 'bg-violet-500/5' },
                     ].map((item, idx) => {

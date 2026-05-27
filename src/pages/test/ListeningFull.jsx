@@ -1,21 +1,18 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStudentData } from "../../hooks/useStudentData";
-import { useTranslation } from "../../context/LanguageContext";
 import { db, functions } from "../../firebase/firebase";
-import { collection, query, where, doc, updateDoc, arrayUnion, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, startAfter, getCountFromServer } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { 
-  BookOpen, Headphones, PenTool, Mic, Search, Loader2 
+  BookOpen, Headphones, PenTool, Mic, Search 
 } from 'lucide-react';
-import { limit, startAfter, getCountFromServer } from "firebase/firestore";
 
 // COMPONENTS
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import DashboardModals from "../../components/dashboard/DashboardModals";
-
 import PricingModal from "../../components/dashboard/PricingModal";
 import SiteFooter from "../../components/common/SiteFooter";
 import { useDailyLimit } from "../../hooks/useDailyLimit";
@@ -24,10 +21,10 @@ import BottomNav from "../../components/dashboard/BottomNav";
 // REFACTORED COMPONENTS
 import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
-import FullReadingCard from "../../components/practice/FullReadingCard";
-import ReadingCollectionsSection from "../../components/practice/ReadingCollectionsSection";
-import { useReadingCollections } from "../../hooks/useReadingCollections";
-import { usePracticeScroll } from "../../hooks/usePracticeScroll";
+import { useListeningCollections } from "../../hooks/useListeningCollections";
+import ListeningHeroBanner from "../../components/practice/ListeningHeroBanner";
+import ListeningCollectionsSection from "../../components/practice/ListeningCollectionsSection";
+import { deriveQuestionTypesForCard, qTypeMatchesSelected } from "../../utils/TestUtils";
 
 const categories = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
@@ -36,25 +33,21 @@ const categories = [
   { id: 'speaking', label: 'Speaking', icon: Mic },
 ];
 
-export default function ReadingFull() {
+export default function ListeningFull() {
   const { user, logout, userData } = useAuth();
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("all"); 
+  const [selectedParts, setSelectedParts] = useState([]);
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
-  
-  const isPro = userData?.accountType === 'pro' || userData?.isPro;
-  const isStandard = userData?.accountType === 'standard';
-  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
   
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
   // Custom hook to manage collections logic
-  const collectionsData = useReadingCollections(userResults);
+  const collectionsData = useListeningCollections(userResults);
   const { allCollectionsTests = [] } = collectionsData;
   
   // Library Pagination State
@@ -66,12 +59,10 @@ export default function ReadingFull() {
   const PAGE_SIZE = 200;
 
   const rawAssignments = useMemo(() => {
-    // Deduplicate between assignments, library tests, and all collections tests
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
     const uniqueColTests = allCollectionsTests.filter(t => !assignedIds.has(t.id));
     
-    // Deduplicate between library and colTests
     const libraryIds = new Set(uniqueLibrary.map(t => t.id));
     const uniqueColTestsFiltered = uniqueColTests.filter(t => !libraryIds.has(t.id));
 
@@ -83,8 +74,8 @@ export default function ReadingFull() {
     setLoadingLibrary(true);
     try {
         let q = query(
-            collection(db, 'tests'),
-            where('type', '==', 'reading'),
+            collection(db, 'tests_metadata'),
+            where('type', '==', 'listening'),
             limit(PAGE_SIZE)
         );
 
@@ -97,8 +88,7 @@ export default function ReadingFull() {
         
         if (isFirstPage) {
             setLibraryTests(newTests);
-            // Fetch Total Count for students library
-            const countSnap = await getCountFromServer(query(collection(db, 'tests'), where('type', '==', 'reading')));
+            const countSnap = await getCountFromServer(query(collection(db, 'tests_metadata'), where('type', '==', 'listening')));
             setTotalLibraryCount(countSnap.data().count);
         } else {
             setLibraryTests(prev => [...prev, ...newTests]);
@@ -128,92 +118,98 @@ export default function ReadingFull() {
   const [keyError, setKeyError] = useState("");
 
   const { checkLimit, incrementUsage } = useDailyLimit(userData);
+  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isStandard = userData?.accountType === 'standard';
 
-  const fullReadingScroll = usePracticeScroll();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
-  const fullTestSectionRef = useRef(null);
-  const setSectionRef = useRef(null);
+  const [activeSubTab] = useState('collections');
+  const collectionsSectionRef = useRef(null);
 
-  const readingFilters = [];
+  // Reset pagination to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStatus, selectedQuestionTypes]);
 
-  const [activeSubTab] = useState('set');
+  const fullTestsList = useMemo(() => {
+    const testMap = new Map();
+    rawAssignments.forEach(item => {
+      if (item.type === 'listening') {
+        testMap.set(item.id, item);
+      }
+    });
+    const allUniqueTests = Array.from(testMap.values());
+
+    const resultList = [];
+    allUniqueTests.forEach(test => {
+      const fullAttempt = userResults?.find(
+        r => String(r.testId).trim() === String(test.id).trim() && !r.partNumber
+      );
+
+      resultList.push({
+        ...test,
+        title: test.title?.toLowerCase().includes('full') ? test.title : `${test.title} (Full Mock)`,
+        isFullTest: true,
+        questionTypes: deriveQuestionTypesForCard(test),
+        result: fullAttempt || null
+      });
+    });
+
+    return resultList;
+  }, [rawAssignments, userResults]);
 
   const allQuestionTypes = useMemo(() => {
     const types = new Set();
-    rawAssignments.forEach(item => {
-      if (item.type === 'reading' && item.questionTypes) {
+    fullTestsList.forEach(item => {
+      if (item.questionTypes) {
         item.questionTypes.forEach(t => types.add(t));
       }
     });
     return ["all", ...Array.from(types).sort()];
-  }, [rawAssignments]);
+  }, [fullTestsList]);
 
-  const getQuestionCount = (test) => {
-    if (test.totalQuestions) return test.totalQuestions;
-    
-    const countUniqueIds = (items) => {
-      if (!items || !Array.isArray(items)) return 0;
-      const ids = new Set();
-      const extract = (obj) => {
-        if (!obj) return;
-        if (obj.id && !isNaN(parseInt(obj.id))) {
-          ids.add(parseInt(obj.id));
-        }
-        if (Array.isArray(obj.items)) obj.items.forEach(extract);
-        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
-        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
-      };
-      items.forEach(extract);
-      return ids.size;
-    };
-
-    if (test.questions) {
-      const count = countUniqueIds(test.questions);
-      if (count > 0) return count;
-    }
-    if (test.sections) {
-      const count = countUniqueIds(test.sections);
-      if (count > 0) return count;
-    }
-    
-    const titleLower = test.title?.toLowerCase() || '';
-    const isReadingFull = titleLower.includes('full') || titleLower.includes('/');
-    
-    return (test.questions?.length) || (isReadingFull ? 40 : 13);
-  };
-
-  const filteredTests = useMemo(() => {
+  const filteredFullTests = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return rawAssignments.filter(item => {
-      if (item.type !== 'reading') return false;
-      const matchesSearch = !q || item.title?.toLowerCase().includes(q);
-      const isDone = !!item.result;
+    return fullTestsList.filter(full => {
+      const matchesSearch = !q || full.title?.toLowerCase().includes(q);
+      const isDone = !!full.result;
       const matchesStatus = selectedStatus === 'all' || 
                            (selectedStatus === 'completed' && isDone) || 
                            (selectedStatus === 'not_completed' && !isDone);
+      
       const matchesType = selectedQuestionTypes.length === 0 || 
-                         (item.questionTypes && item.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                          (full.questionTypes && full.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
+
       return matchesSearch && matchesStatus && matchesType;
     });
-  }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus]);
+  }, [fullTestsList, searchQuery, selectedStatus, selectedQuestionTypes]);
 
-  const filteredCollectionProcessedTests = useMemo(() => {
+  // Filter collections processed tests using filteredFullTests as source or matching collectionsData structure
+  const filteredCollectionsData = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    const fullTestsList = (collectionsData.collectionProcessedTests.fullTestsList || []).filter(test => {
+    const fullTestsListFiltered = (collectionsData.collectionProcessedTests?.fullTestsList || []).filter(test => {
       const matchesSearch = !q || test.title?.toLowerCase().includes(q);
       const isDone = !!test.result;
       const matchesStatus = selectedStatus === 'all' || 
                            (selectedStatus === 'completed' && isDone) || 
                            (selectedStatus === 'not_completed' && !isDone);
+      
       const matchesType = selectedQuestionTypes.length === 0 || 
-                         (test.questionTypes && test.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                          (test.questionTypes && test.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
       return matchesSearch && matchesStatus && matchesType;
     });
-    return { fullTestsList };
-  }, [collectionsData.collectionProcessedTests, searchQuery, selectedStatus, selectedQuestionTypes]);
+    return {
+      ...collectionsData,
+      collectionProcessedTests: {
+        ...collectionsData.collectionProcessedTests,
+        fullTestsList: fullTestsListFiltered
+      }
+    };
+  }, [collectionsData, searchQuery, selectedStatus, selectedQuestionTypes]);
 
   const handleStartTest = (test) => { 
-    if (!checkLimit('reading')) {
+    if (!checkLimit('listening')) {
       setShowPricingModal(true);
       return;
     }
@@ -226,7 +222,8 @@ export default function ReadingFull() {
     if (!test) return;
     setShowStartConfirm(false);
     setSelectedSet(null);
-    incrementUsage('reading').catch(err => console.error("Stats update failed:", err));
+    incrementUsage('listening').catch(err => console.error("Stats update failed:", err));
+    
     const targetId = test.id || test.testId || test.targetId;
     if (targetId) navigate(`/test/${targetId}`);
     else alert("Test ID topilmadi!");
@@ -262,43 +259,47 @@ export default function ReadingFull() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#09090b] font-sans text-gray-900 dark:text-[#f5f5f7] overflow-x-hidden transition-colors duration-200">
+    <div className="min-h-screen bg-white dark:bg-[#09090b] font-sans text-gray-900 dark:text-[#f5f5f7] pb-24 selection:bg-[#0066cc]/30 selection:text-[#1d1d1f] transition-colors duration-200">
       <DashboardHeader
         user={user} userData={userData}
-        activeTab="reading"
+        activeTab="listening"
         onLogoutClick={() => setShowLogoutConfirm(true)}
         loading={loading}
       />
 
-
+      <ListeningHeroBanner />
 
       <main className="w-full pb-24 md:pb-0">
+        <div className="h-8 md:h-12" />
+
         <PracticeHero 
-          activeTab="reading" 
+          activeTab="listening" 
           categories={categories} 
-          totalCount={loading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading').length)}
-          filteredCount={filteredTests.length}
+          totalCount={loading ? 0 : filteredFullTests.length}
+          filteredCount={filteredFullTests.length}
         />
 
         <PracticeFilters 
-          activeTab="reading" 
+          activeTab="listening" 
           setActiveTab={() => {}}
-          activeSubTab={activeSubTab}
+          activeSubTab="collections"
+          listeningFilters={[]}
           handleSubTabClick={() => {}}
-          readingFilters={readingFilters}
           categories={categories}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           handleTabClick={(tabId) => {
-            if (tabId === 'listening') navigate('/listening/full');
+            if (tabId === 'reading') navigate('/reading/full');
             else if (tabId === 'podcasts') navigate('/podcasts');
-            else if (tabId !== 'reading') navigate(`/practice?tab=${tabId}`);
+            else navigate(`/practice?tab=${tabId}`);
           }}
           allQuestionTypes={allQuestionTypes}
           selectedQuestionTypes={selectedQuestionTypes}
           setSelectedQuestionTypes={setSelectedQuestionTypes}
           selectedStatus={selectedStatus}
           setSelectedStatus={setSelectedStatus}
+          selectedParts={selectedParts}
+          setSelectedParts={setSelectedParts}
           showQuestionFilters={showQuestionFilters}
           setShowQuestionFilters={setShowQuestionFilters}
           isStandalonePage={true}
@@ -313,75 +314,23 @@ export default function ReadingFull() {
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
         ) : (
             <AnimatePresence mode="wait">
-                {(() => {
-                    if (activeSubTab === 'full_test') {
-                        const fullTests = filteredTests.filter(t => !t.isSet && getQuestionCount(t) > 14);
-                        if (fullTests.length === 0) {
-                            return (
-                                <div className="flex flex-col items-center justify-center py-40 text-center" key="no-fulltests">
-                                    <Search size={24} className="text-gray-300 dark:text-zinc-600 mb-6" />
-                                    <h3 className="text-[24px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Hech narsa topilmadi</h3>
-                                </div>
-                            );
-                        }
-                        return (
-                          <motion.div 
-                                key="full_test"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="space-y-4 pb-20"
-                                ref={fullTestSectionRef}
-                            >
-                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Full Reading</h2>
-                                <div 
-                                    ref={fullReadingScroll.scrollRef}
-                                    onScroll={(e) => fullReadingScroll.updateScrollState(e.currentTarget)}
-                                    className="flex gap-5 overflow-x-auto pt-4 pb-12 hide-scrollbar -mx-6 px-6"
-                                >
-                                    {fullTests.map((test, i) => (
-                                      <FullReadingCard 
-                                        key={test.id}
-                                        test={test}
-                                        index={i}
-                                        isCompleted={!!test.result}
-                                        onReview={handleReview}
-                                        onStart={handleStartTest}
-                                        onSelectSet={setSelectedSet}
-                                        isPro={isPro}
-                                        isStandard={isStandard}
-                                      />
-                                    ))}
-                                </div>
-                            </motion.div>
-                        );
-                    }
-
-                    if (activeSubTab === 'set') {
-                        return (
-                            <motion.div 
-                                key="collections"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="space-y-16 pb-20"
-                            >
-                                <ReadingCollectionsSection
-                                    collectionsSectionRef={setSectionRef}
-                                    {...collectionsData}
-                                    collectionProcessedTests={filteredCollectionProcessedTests}
-                                    handleReview={handleReview}
-                                    handleStartTest={handleStartTest}
-                                    setSelectedSet={setSelectedSet}
-                                    isPro={isPro}
-                                    isStandard={isStandard}
-                                />
-                            </motion.div>
-                        );
-                    }
-
-                    return null;
-                })()}
+                <motion.div 
+                    key="collections"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-16 pb-20"
+                >
+                    <ListeningCollectionsSection
+                        collectionsSectionRef={collectionsSectionRef}
+                        {...filteredCollectionsData}
+                        handleReview={handleReview}
+                        handleStartTest={handleStartTest}
+                        setSelectedSet={setSelectedSet}
+                        isPro={isPro}
+                        isStandard={isStandard}
+                    />
+                </motion.div>
             </AnimatePresence>
         )}
         </div>

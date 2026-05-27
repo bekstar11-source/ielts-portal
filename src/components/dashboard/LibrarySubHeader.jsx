@@ -17,7 +17,7 @@ export default function LibrarySubHeader({ activeTab, scrolledContent }) {
   const tabs = [
     { id: 'overview', label: 'Overview', path: '/library?tab=overview' },
     { id: 'reading', label: 'Reading', path: '/reading' },
-    { id: 'listening', label: 'Listening', path: '/listening' },
+    { id: 'listening', label: 'Listening', path: '/listening/parts' },
     { id: 'writing', label: 'Writing', path: '/practice?tab=writing' },
     { id: 'speaking', label: 'Speaking', path: '/practice?tab=speaking' },
   ];

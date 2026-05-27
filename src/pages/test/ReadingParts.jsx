@@ -284,7 +284,7 @@ export default function ReadingParts() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           handleTabClick={(tabId) => {
-            if (tabId === 'listening') navigate('/listening?section=parts');
+            if (tabId === 'listening') navigate('/listening/parts');
             else if (tabId === 'podcasts') navigate('/podcasts');
             else if (tabId !== 'reading') navigate(`/practice?tab=${tabId}`);
           }}

@@ -97,7 +97,7 @@ function LibraryOverview() {
     {
       title: t('dashboard.listening'),
       icon: <Headphones className="w-7 h-7 transition-transform group-hover:scale-110" />,
-      path: "/listening",
+      path: "/listening/parts",
       color: "hover:text-purple-600 hover:bg-purple-50/30 hover:border-purple-500/20"
     },
     {
