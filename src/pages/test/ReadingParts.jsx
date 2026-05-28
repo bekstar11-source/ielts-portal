@@ -269,6 +269,7 @@ export default function ReadingParts() {
       <main className="w-full pb-24 md:pb-0">
         <PracticeHero 
           activeTab="reading" 
+          subType="parts"
           categories={categories} 
           totalCount={loading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading' && !t.title?.includes('/') && !t.isSet).length)}
           filteredCount={filteredTests.length}

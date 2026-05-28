@@ -477,6 +477,8 @@ export const translations = {
     practice: {
       heroTitle: "IELTS Reading Mashg'uloti",
       heroSubtitle: "Bizning matnlar va to'liq imtihonlar kutubxonamiz yordamida o'qish tezligi va tushunish qobiliyatingizni oshiring.",
+      heroTitleListening: "IELTS Listening Mashg'uloti",
+      heroSubtitleListening: "Bizning audio materiallar va to'liq imtihonlar kutubxonamiz yordamida eshitish qobiliyatingizni oshiring.",
       notFound: "Hech narsa topilmadi",
       notFoundDesc: "Qidiruv mezonlariga mos keladigan testlar mavjud emas.",
       readingPassages: "Reading matnlari",
@@ -1139,6 +1141,8 @@ export const translations = {
     practice: {
       heroTitle: "IELTS Reading Practice",
       heroSubtitle: "Improve your reading speed and comprehension with our curated library of single passages and full-length exams.",
+      heroTitleListening: "IELTS Listening Practice",
+      heroSubtitleListening: "Improve your listening comprehension and speed with our curated library of audio sections and full-length exams.",
       notFound: "Nothing found",
       notFoundDesc: "No tests match your search criteria.",
       readingPassages: "Reading Passages",

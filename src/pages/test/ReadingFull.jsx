@@ -275,6 +275,7 @@ export default function ReadingFull() {
       <main className="w-full pb-24 md:pb-0">
         <PracticeHero 
           activeTab="reading" 
+          subType="full"
           categories={categories} 
           totalCount={loading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading').length)}
           filteredCount={filteredTests.length}

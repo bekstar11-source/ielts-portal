@@ -21,7 +21,6 @@ import BottomNav from "../../components/dashboard/BottomNav";
 // REFACTORED COMPONENTS
 import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
-import ListeningHeroBanner from "../../components/practice/ListeningHeroBanner";
 import ListeningPartsSection from "../../components/practice/ListeningPartsSection";
 import { deriveQuestionTypesForCard, qTypeMatchesSelected } from "../../utils/TestUtils";
 
@@ -279,13 +278,10 @@ export default function ListeningParts() {
         loading={loading}
       />
 
-      <ListeningHeroBanner />
-
       <main className="w-full pb-24 md:pb-0">
-        <div className="h-8 md:h-12" />
-
         <PracticeHero 
           activeTab="listening" 
+          subType="parts"
           categories={categories} 
           totalCount={loading ? 0 : (totalLibraryCount * 4 || partTestsList.length)}
           filteredCount={filteredVirtualParts.length}

@@ -21,10 +21,10 @@ export default function ListeningPartsSection({
 }) {
   return (
     <div className="space-y-6" ref={partsSectionRef}>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-100 pb-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
             <div className="space-y-1">
-                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">Listening Parts</h2>
-                <p className="text-[#86868b] text-[14px]">Displaying {filteredVirtualParts.length} part practice tests</p>
+                <h2 className="text-[32px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Listening Parts</h2>
+                <p className="text-[#86868b] dark:text-zinc-400 text-[14px]">Displaying {filteredVirtualParts.length} part practice tests</p>
             </div>
 
             {/* Beautiful Segmented Tab Filter */}
@@ -72,7 +72,7 @@ export default function ListeningPartsSection({
 
                         return uniquePages.map((p, i) => (
                             p === '...' ? (
-                                <span key={`dots-${i}`} className="text-[#86868b] px-1 text-[13px]">...</span>
+                                <span key={`dots-${i}`} className="text-[#86868b] dark:text-zinc-500 px-1 text-[13px]">...</span>
                             ) : (
                                 <button
                                     key={p}
@@ -86,8 +86,8 @@ export default function ListeningPartsSection({
                                     }}
                                     className={`w-8 h-8 rounded-full text-[13px] font-semibold transition-all ${
                                         currentPage === p 
-                                        ? 'bg-[#1d1d1f] text-white' 
-                                        : 'bg-[#f5f5f7] text-[#1d1d1f] hover:bg-gray-200'
+                                        ? 'bg-[#1d1d1f] text-white dark:bg-[#f5f5f7] dark:text-[#1d1d1f]' 
+                                        : 'bg-[#f5f5f7] text-[#1d1d1f] hover:bg-gray-200 dark:bg-zinc-800 dark:text-[#f5f5f7] dark:hover:bg-zinc-700'
                                     }`}
                                 >
                                     {p}

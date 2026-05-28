@@ -22,7 +22,6 @@ import BottomNav from "../../components/dashboard/BottomNav";
 import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
 import { useListeningCollections } from "../../hooks/useListeningCollections";
-import ListeningHeroBanner from "../../components/practice/ListeningHeroBanner";
 import ListeningCollectionsSection from "../../components/practice/ListeningCollectionsSection";
 import { deriveQuestionTypesForCard, qTypeMatchesSelected } from "../../utils/TestUtils";
 
@@ -267,13 +266,10 @@ export default function ListeningFull() {
         loading={loading}
       />
 
-      <ListeningHeroBanner />
-
       <main className="w-full pb-24 md:pb-0">
-        <div className="h-8 md:h-12" />
-
         <PracticeHero 
           activeTab="listening" 
+          subType="full"
           categories={categories} 
           totalCount={loading ? 0 : filteredFullTests.length}
           filteredCount={filteredFullTests.length}
