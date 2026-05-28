@@ -179,6 +179,20 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "stories",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "active",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

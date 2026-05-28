@@ -153,7 +153,7 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
 
             const type = post.announcementType || 'info';
             return (
-                <div className={`p-5 rounded-2xl border ${announcementStyles[type] || announcementStyles.info} mx-4 my-2 flex items-start gap-3`}>
+                <div className={`p-5 rounded-lg border ${announcementStyles[type] || announcementStyles.info} mx-4 my-2 flex items-start gap-3`}>
                     <Megaphone className="w-5 h-5 flex-shrink-0 mt-0.5" />
                     <div>
                         <h4 className="font-bold text-sm mb-1">{post.title}</h4>
@@ -212,10 +212,10 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                             materialType === 'podcast'
                                 ? handlePodcastPlay
                                 : isMediaClickable
-                                    ? () => handleUniversalNavigate(getCleanCtaUrl(), navigate)
+                                    ? () => handleUniversalNavigate(getCleanCtaUrl(), navigate, { fromNewsfeed: true })
                                     : undefined
                         }
-                        className={`relative w-full rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-white/5 shadow-sm group/carousel transition-all ${
+                        className={`relative w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-white/5 shadow-sm group/carousel transition-all ${
                             isMediaClickable ? 'cursor-pointer hover:shadow-md' : ''
                         }`}
                         style={{ aspectRatio: aspectRatio }}
@@ -309,7 +309,7 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                                     <div 
                                         key={test.id}
                                         onClick={() => handleUniversalNavigate(categoryUrl, navigate)}
-                                        className="min-w-[210px] max-w-[210px] p-3 rounded-xl border border-gray-150 dark:border-white/5 bg-gray-50/60 dark:bg-zinc-900/40 hover:bg-gray-50 dark:hover:bg-zinc-900/85 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-sm cursor-pointer transition-all duration-200 snap-center flex flex-col justify-between gap-3 group/test-card"
+                                        className="min-w-[210px] max-w-[210px] p-3 rounded-lg border border-gray-150 dark:border-white/5 bg-gray-50/60 dark:bg-zinc-900/40 hover:bg-gray-50 dark:hover:bg-zinc-900/85 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-sm cursor-pointer transition-all duration-200 snap-center flex flex-col justify-between gap-3 group/test-card"
                                     >
                                         <div className="space-y-1">
                                             <div className="flex items-center justify-between">
@@ -330,7 +330,7 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                                                 e.stopPropagation();
                                                 handleUniversalNavigate(categoryUrl, navigate);
                                             }}
-                                            className="w-full flex items-center justify-center gap-1.5 bg-[#0066cc] dark:bg-[#3894ff] hover:bg-[#0055aa] dark:hover:bg-[#1a7ddb] text-white font-bold text-[9px] py-1.5 rounded-lg active:scale-[0.98] transition-all shadow-sm shrink-0"
+                                            className="w-full flex items-center justify-center gap-1.5 bg-[#0066cc] dark:bg-[#3894ff] hover:bg-[#0055aa] dark:hover:bg-[#1a7ddb] text-white font-bold text-[9px] py-1.5 rounded-md active:scale-[0.98] transition-all shadow-sm shrink-0"
                                         >
                                             {post.ctaText || "Testni bajarish"}
                                             <ArrowRight size={10} />
@@ -346,10 +346,10 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                             materialType === 'podcast'
                                 ? handlePodcastPlay
                                 : post.ctaUrl
-                                    ? () => handleUniversalNavigate(getCleanCtaUrl(), navigate)
+                                    ? () => handleUniversalNavigate(getCleanCtaUrl(), navigate, { fromNewsfeed: true })
                                     : undefined
                         }
-                        className={`flex items-center justify-between py-2.5 px-4 rounded-xl border transition-all duration-200 group/material-card ${
+                        className={`flex items-center justify-between py-2.5 px-4 rounded-lg border transition-all duration-200 group/material-card ${
                             post.ctaUrl 
                                 ? 'cursor-pointer bg-gray-55/60 hover:bg-gray-55 dark:bg-zinc-900/45 dark:hover:bg-zinc-900/85 active:scale-[0.995] border-gray-100 dark:border-white/5 hover:border-gray-150 dark:hover:border-white/10 hover:shadow-sm' 
                                 : 'bg-gray-55/30 dark:bg-zinc-900/20 border-gray-100 dark:border-white/5'
@@ -370,7 +370,7 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                                         ? handlePodcastPlay
                                         : (e) => {
                                             e.stopPropagation();
-                                            handleUniversalNavigate(getCleanCtaUrl(), navigate);
+                                            handleUniversalNavigate(getCleanCtaUrl(), navigate, { fromNewsfeed: true });
                                         }
                                 }
                                 className="flex items-center gap-1 bg-[#0066cc] dark:bg-[#3894ff] hover:bg-[#0055aa] dark:hover:bg-[#1a7ddb] text-white font-medium text-[9px] px-2.5 py-1 rounded-md active:scale-95 transition-all shadow-sm flex-shrink-0"

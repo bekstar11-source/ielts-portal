@@ -57,9 +57,16 @@ export const MultipleChoice = memo(({ group, userAnswers, onAnswerChange, isRevi
 
     return <>{(group.questions || group.items || []).map(renderQuestion)}</>;
 }, (prev, next) => {
-    const prevItems = (prev.group.questions || prev.group.items || []);
-    const nextItems = (next.group.questions || next.group.items || []);
+    const getAllQuestions = (group) => {
+        if (group.groups && Array.isArray(group.groups)) {
+            return group.groups.flatMap(sub => sub.questions || sub.items || []);
+        }
+        return group.questions || group.items || [];
+    };
+    const prevItems = getAllQuestions(prev.group);
+    const nextItems = getAllQuestions(next.group);
     if (prevItems.length !== nextItems.length) return false;
     const anyAnswerChanged = prevItems.some(q => prev.userAnswers[q.id] !== next.userAnswers[q.id]);
     return !anyAnswerChanged && prev.group === next.group && prev.isReviewMode === next.isReviewMode;
 });
+

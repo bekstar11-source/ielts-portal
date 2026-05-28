@@ -121,7 +121,7 @@ export default function StoryViewerModal({ stories, initialIndex, onClose, onSto
         e.stopPropagation();
         if (!story.ctaUrl) return;
         onClose();
-        handleUniversalNavigate(story.ctaUrl, navigate);
+        handleUniversalNavigate(story.ctaUrl, navigate, { fromNewsfeed: true });
     };
 
     return (

@@ -15,9 +15,10 @@ export function useStories(user) {
         const fetchStoriesAndVotes = async () => {
             setLoading(true);
             try {
-                // Fetch all stories sorted by creation date
+                // Fetch active stories sorted by creation date
                 const q = query(
                     collection(db, 'stories'),
+                    where('active', '==', true),
                     orderBy('createdAt', 'desc')
                 );
                 
@@ -32,28 +33,42 @@ export function useStories(user) {
                     };
                 });
 
-                // Filter out inactive and expired stories on the client side
+                // Filter out expired stories on the client side
                 const now = new Date();
                 const activeStories = fetchedStories.filter(story => {
-                    if (story.active === false) return false;
                     if (!story.expiresAt) return true;
                     return story.expiresAt > now;
                 });
 
                 setStories(activeStories);
 
-                // Fetch user's votes for these stories
+                // Fetch user's votes only for these active stories (chunked by 30 to support 'in' query)
                 if (user && activeStories.length > 0) {
-                    const votesQ = query(
-                        collection(db, 'story_responses'),
-                        where('userId', '==', user.uid)
-                    );
-                    const votesSnap = await getDocs(votesQ);
+                    const activeStoryIds = activeStories.map(s => s.id);
                     const votesMap = {};
-                    votesSnap.forEach(d => {
-                        const data = d.data();
-                        votesMap[data.storyId] = data.votedOption;
+                    const CHUNK_SIZE = 30;
+                    const chunks = [];
+                    for (let i = 0; i < activeStoryIds.length; i += CHUNK_SIZE) {
+                        chunks.push(activeStoryIds.slice(i, i + CHUNK_SIZE));
+                    }
+
+                    const chunkSnapshots = await Promise.all(
+                        chunks.map(chunk => 
+                            getDocs(query(
+                                collection(db, 'story_responses'),
+                                where('userId', '==', user.uid),
+                                where('storyId', 'in', chunk)
+                            ))
+                        )
+                    );
+
+                    chunkSnapshots.forEach(votesSnap => {
+                        votesSnap.forEach(d => {
+                            const data = d.data();
+                            votesMap[data.storyId] = data.votedOption;
+                        });
                     });
+                    
                     setUserVotes(votesMap);
                 } else {
                     setUserVotes({});

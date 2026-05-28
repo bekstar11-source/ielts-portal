@@ -462,111 +462,130 @@ export default function AdminTests() {
         setIsMigrating(true);
         try {
             const { db } = await import("../../firebase/firebase");
-            const { collection, getDocs, doc, setDoc } = await import("firebase/firestore");
+            const { collection, getDocs, doc, setDoc, query, limit, startAfter } = await import("firebase/firestore");
             const { getQuestionTypesFromQuestions } = await import("../../components/admin/CreateTest/CreateTestUtils");
 
-            const snap = await getDocs(collection(db, "tests"));
+            let lastVisibleDoc = null;
             let successCount = 0;
+            let hasMoreToMigrate = true;
 
-            for (const d of snap.docs) {
-                const payload = d.data();
-                const testId = d.id;
+            while (hasMoreToMigrate) {
+                let q = query(collection(db, "tests"), limit(10));
+                if (lastVisibleDoc) {
+                    q = query(collection(db, "tests"), startAfter(lastVisibleDoc), limit(10));
+                }
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    hasMoreToMigrate = false;
+                    break;
+                }
+                lastVisibleDoc = snap.docs[snap.docs.length - 1];
 
-                let duration = Number(payload.duration) || 30;
-                if (payload.type === 'listening') {
-                    duration = 30;
-                } else if (payload.type === 'reading') {
-                    duration = 60;
+                for (const d of snap.docs) {
+                    const payload = d.data();
+                    const testId = d.id;
+
+                    let duration = Number(payload.duration) || 30;
+                    if (payload.type === 'listening') {
+                        duration = 30;
+                    } else if (payload.type === 'reading') {
+                        duration = 60;
+                    }
+
+                    const metadata = {
+                        id: testId,
+                        title: payload.title || "",
+                        type: payload.type || "reading",
+                        difficulty: payload.difficulty || "medium",
+                        duration: duration,
+                        audioUrl: payload.audio_url || "",
+                        isExclusive: payload.isExclusive || false,
+                        createdAt: payload.createdAt || new Date().toISOString(),
+                        updatedAt: payload.updatedAt || new Date().toISOString(),
+                        questionTypes: payload.questionTypes || getQuestionTypesFromQuestions(payload.questions || []),
+                        collectionId: payload.collectionId && payload.collectionId !== "None" ? payload.collectionId : null,
+                    };
+
+                    if (payload.type === 'listening') {
+                        const parts = {};
+                        (payload.passages || []).forEach((passage, idx) => {
+                            const partNum = idx + 1;
+                            const partKey = `part${partNum}`;
+                            
+                            const passageQuestions = (payload.questions || []).filter(
+                                q => String(q.passageId) === String(passage.id)
+                            );
+                            
+                            const qTypes = Array.from(new Set(
+                                passageQuestions.map(q => q.type).filter(Boolean)
+                            ));
+
+                            const formattedQTypes = qTypes.map(t => {
+                                const lower = t.toLowerCase();
+                                if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
+                                if (lower.includes('table')) return 'Table Completion';
+                                if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
+                                if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
+                                if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
+                                if (lower.includes('short_answer')) return 'Short Answer';
+                                return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                            });
+
+                            parts[partKey] = {
+                                id: passage.id !== undefined ? String(passage.id) : `part-${partNum}`,
+                                title: passage.title || `Part ${partNum}`,
+                                difficulty: passage.difficulty || payload.difficulty || "medium",
+                                qTypes: Array.from(new Set(formattedQTypes)),
+                                startSec: passage.startTime !== undefined && passage.startTime !== null ? Number(passage.startTime) : 0,
+                                endSec: passage.endTime !== undefined && passage.endTime !== null ? Number(passage.endTime) : 0,
+                                audioUrl: passage.audio || payload.audio_url || ""
+                            };
+                        });
+                        metadata.parts = parts;
+                    } else if (payload.type === 'reading') {
+                        const passages = {};
+                        (payload.passages || []).forEach((passage, idx) => {
+                            const passNum = idx + 1;
+                            const passKey = `passage${passNum}`;
+                            
+                            const passageQuestions = (payload.questions || []).filter(
+                                q => String(q.passageId) === String(passage.id)
+                            );
+                            
+                            const qTypes = Array.from(new Set(
+                                passageQuestions.map(q => q.type).filter(Boolean)
+                            ));
+
+                            const formattedQTypes = qTypes.map(t => {
+                                const lower = t.toLowerCase();
+                                if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
+                                if (lower.includes('matching_headings')) return 'Matching Headings';
+                                if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
+                                if (lower.includes('matching')) return 'Matching';
+                                if (lower.includes('table')) return 'Table Completion';
+                                if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary')) return 'Completion';
+                                return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                            });
+
+                            passages[passKey] = {
+                                id: passage.id !== undefined ? String(passage.id) : `passage-${passNum}`,
+                                title: passage.title || `Passage ${passNum}`,
+                                difficulty: passage.difficulty || payload.difficulty || "medium",
+                                qTypes: Array.from(new Set(formattedQTypes))
+                            };
+                        });
+                        metadata.passages = passages;
+                    }
+
+                    await setDoc(doc(db, "tests_metadata", testId), metadata);
+                    successCount++;
                 }
 
-                const metadata = {
-                    id: testId,
-                    title: payload.title || "",
-                    type: payload.type || "reading",
-                    difficulty: payload.difficulty || "medium",
-                    duration: duration,
-                    audioUrl: payload.audio_url || "",
-                    isExclusive: payload.isExclusive || false,
-                    createdAt: payload.createdAt || new Date().toISOString(),
-                    updatedAt: payload.updatedAt || new Date().toISOString(),
-                    questionTypes: payload.questionTypes || getQuestionTypesFromQuestions(payload.questions || []),
-                    collectionId: payload.collectionId && payload.collectionId !== "None" ? payload.collectionId : null,
-                };
-
-                if (payload.type === 'listening') {
-                    const parts = {};
-                    (payload.passages || []).forEach((passage, idx) => {
-                        const partNum = idx + 1;
-                        const partKey = `part${partNum}`;
-                        
-                        const passageQuestions = (payload.questions || []).filter(
-                            q => String(q.passageId) === String(passage.id)
-                        );
-                        
-                        const qTypes = Array.from(new Set(
-                            passageQuestions.map(q => q.type).filter(Boolean)
-                        ));
-
-                        const formattedQTypes = qTypes.map(t => {
-                            const lower = t.toLowerCase();
-                            if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
-                            if (lower.includes('table')) return 'Table Completion';
-                            if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
-                            if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
-                            if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
-                            if (lower.includes('short_answer')) return 'Short Answer';
-                            return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                        });
-
-                        parts[partKey] = {
-                            id: passage.id !== undefined ? String(passage.id) : `part-${partNum}`,
-                            title: passage.title || `Part ${partNum}`,
-                            difficulty: passage.difficulty || payload.difficulty || "medium",
-                            qTypes: Array.from(new Set(formattedQTypes)),
-                            startSec: passage.startTime !== undefined && passage.startTime !== null ? Number(passage.startTime) : 0,
-                            endSec: passage.endTime !== undefined && passage.endTime !== null ? Number(passage.endTime) : 0,
-                            audioUrl: passage.audio || payload.audio_url || ""
-                        };
-                    });
-                    metadata.parts = parts;
-                } else if (payload.type === 'reading') {
-                    const passages = {};
-                    (payload.passages || []).forEach((passage, idx) => {
-                        const passNum = idx + 1;
-                        const passKey = `passage${passNum}`;
-                        
-                        const passageQuestions = (payload.questions || []).filter(
-                            q => String(q.passageId) === String(passage.id)
-                        );
-                        
-                        const qTypes = Array.from(new Set(
-                            passageQuestions.map(q => q.type).filter(Boolean)
-                        ));
-
-                        const formattedQTypes = qTypes.map(t => {
-                            const lower = t.toLowerCase();
-                            if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
-                            if (lower.includes('matching_headings')) return 'Matching Headings';
-                            if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
-                            if (lower.includes('matching')) return 'Matching';
-                            if (lower.includes('table')) return 'Table Completion';
-                            if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary')) return 'Completion';
-                            return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                        });
-
-                        passages[passKey] = {
-                            id: passage.id !== undefined ? String(passage.id) : `passage-${passNum}`,
-                            title: passage.title || `Passage ${passNum}`,
-                            difficulty: passage.difficulty || payload.difficulty || "medium",
-                            qTypes: Array.from(new Set(formattedQTypes))
-                        };
-                    });
-                    metadata.passages = passages;
+                if (snap.docs.length < 10) {
+                    hasMoreToMigrate = false;
                 }
-
-                await setDoc(doc(db, "tests_metadata", testId), metadata);
-                successCount++;
             }
+
             alert(`Metadata migratsiyasi muvaffaqiyatli bajarildi! ${successCount} ta test yangilandi.`);
         } catch (error) {
             console.error("Migration error:", error);

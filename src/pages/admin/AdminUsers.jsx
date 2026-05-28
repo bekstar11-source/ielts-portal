@@ -28,7 +28,7 @@ export default function AdminUsers() {
         totalStudents,
         refreshData,
         loadMoreStudents
-    } = useAdminUsers();
+    } = useAdminUsers(activeTab);
 
     const tabs = [
         { id: 'students', label: 'Students', icon: GraduationCap },

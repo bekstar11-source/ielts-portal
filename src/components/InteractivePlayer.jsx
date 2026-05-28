@@ -241,7 +241,7 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
             }
             style={{ 
                 pointerEvents: isOpen ? 'auto' : 'none',
-                zIndex: 100
+                zIndex: 1000
             }}
             className={`fixed inset-0 flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#050505] text-white' : 'bg-white text-zinc-900'} ${isFullscreen ? 'p-0' : ''}`}
         >

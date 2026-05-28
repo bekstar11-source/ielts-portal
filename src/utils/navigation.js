@@ -88,7 +88,7 @@ export const getCategoryUrl = (test) => {
  * @param {string} url - The target URL/path.
  * @param {function} navigate - The navigate function from useNavigate().
  */
-export const handleUniversalNavigate = (url, navigate) => {
+export const handleUniversalNavigate = (url, navigate, state = {}) => {
     const cleanPath = getCleanCtaPath(url);
     if (!cleanPath) return;
 
@@ -97,6 +97,6 @@ export const handleUniversalNavigate = (url, navigate) => {
         window.open(cleanPath, '_blank', 'noopener,noreferrer');
     } else {
         // Internal link - navigate with React Router
-        navigate(cleanPath);
+        navigate(cleanPath, { state });
     }
 };

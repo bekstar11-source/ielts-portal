@@ -18,6 +18,28 @@ export function useAdminAnalytics() {
     useEffect(() => {
         async function fetchData() {
             try {
+                // Check Cache
+                const cachedTime = sessionStorage.getItem("admin_analytics_time");
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
+
+                if (isCacheValid) {
+                    const cachedStats = sessionStorage.getItem("admin_analytics_stats");
+                    const cachedActivity = sessionStorage.getItem("admin_analytics_activity");
+                    const cachedDist = sessionStorage.getItem("admin_analytics_dist");
+                    const cachedRadar = sessionStorage.getItem("admin_analytics_radar");
+                    const cachedAtRisk = sessionStorage.getItem("admin_analytics_atRisk");
+
+                    if (cachedStats && cachedActivity && cachedDist && cachedRadar && cachedAtRisk) {
+                        setStats(JSON.parse(cachedStats));
+                        setActivityData(JSON.parse(cachedActivity));
+                        setScoreDist(JSON.parse(cachedDist));
+                        setSkillRadar(JSON.parse(cachedRadar));
+                        setAtRiskStudents(JSON.parse(cachedAtRisk));
+                        setLoading(false);
+                        return;
+                    }
+                }
+
                 const [resultsSnap, usersSnap, testsSnap] = await Promise.all([
                     getDocs(query(collection(db, "results"), orderBy("createdAt", "desc"), limit(1000))),
                     getDocs(query(collection(db, "users"), limit(1000))),
@@ -34,12 +56,13 @@ export function useAdminAnalytics() {
                 const activeUserCount = users.filter(u => (u.data().stats?.totalTests || 0) > 0).length;
                 const completionRate = users.length ? Math.round((activeUserCount / users.length) * 100) : 0;
 
-                setStats({
+                const statsData = {
                     totalTests: results.length,
                     avgScore,
                     activeStudents: activeUserCount,
                     completionRate
-                });
+                };
+                setStats(statsData);
 
                 // 2. ACTIVITY CHART (Last 7 Days)
                 const last7Days = [...Array(7)].map((_, i) => {
@@ -60,10 +83,11 @@ export function useAdminAnalytics() {
                     }
                 });
 
-                setActivityData(Object.entries(activityMap).map(([date, count]) => ({
+                const finalActivityData = Object.entries(activityMap).map(([date, count]) => ({
                     date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
                     tests: count
-                })));
+                }));
+                setActivityData(finalActivityData);
 
                 // 3. SCORE DISTRIBUTION
                 const dist = { '0-4': 0, '4.5-5.5': 0, '6.0-7.0': 0, '7.5+': 0 };
@@ -74,7 +98,8 @@ export function useAdminAnalytics() {
                     else if (val < 7.5) dist['6.0-7.0']++;
                     else dist['7.5+']++;
                 });
-                setScoreDist(Object.entries(dist).map(([range, count]) => ({ range, count })));
+                const finalScoreDist = Object.entries(dist).map(([range, count]) => ({ range, count }));
+                setScoreDist(finalScoreDist);
 
                 // 4. SKILL RADAR
                 const skills = { Reading: { sum: 0, n: 0 }, Listening: { sum: 0, n: 0 }, Writing: { sum: 0, n: 0 }, Speaking: { sum: 0, n: 0 } };
@@ -93,11 +118,12 @@ export function useAdminAnalytics() {
                     }
                 });
 
-                setSkillRadar(Object.entries(skills).map(([subject, data]) => ({
+                const finalSkillRadar = Object.entries(skills).map(([subject, data]) => ({
                     subject,
                     A: data.n ? (data.sum / data.n).toFixed(1) : 0,
                     fullMark: 9
-                })));
+                }));
+                setSkillRadar(finalSkillRadar);
 
                 // 5. AT-RISK STUDENTS
                 const atRiskMap = new Map();
@@ -115,7 +141,16 @@ export function useAdminAnalytics() {
                         }
                     }
                 });
-                setAtRiskStudents(Array.from(atRiskMap.values()).sort((a, b) => b.createdAt - a.createdAt).slice(0, 5));
+                const finalAtRiskStudents = Array.from(atRiskMap.values()).sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+                setAtRiskStudents(finalAtRiskStudents);
+
+                // Cache Data
+                sessionStorage.setItem("admin_analytics_stats", JSON.stringify(statsData));
+                sessionStorage.setItem("admin_analytics_activity", JSON.stringify(finalActivityData));
+                sessionStorage.setItem("admin_analytics_dist", JSON.stringify(finalScoreDist));
+                sessionStorage.setItem("admin_analytics_radar", JSON.stringify(finalSkillRadar));
+                sessionStorage.setItem("admin_analytics_atRisk", JSON.stringify(finalAtRiskStudents));
+                sessionStorage.setItem("admin_analytics_time", Date.now().toString());
 
             } catch (e) {
                 console.error("Analytics Error:", e);

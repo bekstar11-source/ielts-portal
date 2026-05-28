@@ -16,7 +16,7 @@ import { BookOpen, Headphones, Clock, Sparkles, ArrowLeft, ArrowRight, Award, Za
 export default function TestSolving() {
     const { user } = useAuth();
     const location = useLocation();
-    const [isConfirmed, setIsConfirmed] = useState(false);
+    const [isConfirmed, setIsConfirmed] = useState(!location.state?.fromNewsfeed);
     
     // Logic hookdan barcha kerakli state va funksiyalarni olamiz
     const {
