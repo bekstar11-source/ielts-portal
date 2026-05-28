@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
+import { getCategoryUrl } from '../../utils/navigation';
 
 export default function AdminFeedManagement() {
     const navigate = useNavigate();
@@ -43,8 +44,10 @@ export default function AdminFeedManagement() {
             announcementType: post.announcementType || 'info',
             ctaUrl: post.ctaUrl || '',
             ctaText: post.ctaText || '',
+            mediaUrl: post.mediaUrl || '',
             mediaFile: null,
-            mediaFiles: []
+            mediaFiles: [],
+            attachedTests: post.attachedTests || []
         });
         const urls = post.mediaUrls || (post.mediaUrl ? [post.mediaUrl] : []);
         setPostMediaPreviews(urls);
@@ -60,9 +63,13 @@ export default function AdminFeedManagement() {
         announcementType: 'info',
         ctaUrl: '',
         ctaText: '',
+        mediaUrl: '',
         mediaFile: null,
-        mediaFiles: [] // Multiple images
+        mediaFiles: [], // Multiple images
+        attachedTests: [] // Multiple attached tests
     });
+
+    const [selectedTestsInModal, setSelectedTestsInModal] = useState([]);
 
     const [storyForm, setStoryForm] = useState({
         mediaType: 'image', // 'image' | 'video' | 'text'
@@ -94,6 +101,11 @@ export default function AdminFeedManagement() {
 
     const openMaterialSelector = async (target) => {
         setShowMaterialSelector(target);
+        if (target === 'post') {
+            setSelectedTestsInModal(postForm.attachedTests || []);
+        } else {
+            setSelectedTestsInModal([]);
+        }
         setLoadingSelector(true);
         try {
             if (allTests.length === 0) {
@@ -142,7 +154,7 @@ export default function AdminFeedManagement() {
             url = `/test/${item.id}`;
             text = "Testni Boshlash";
         } else if (type === 'podcasts') {
-            url = `/podcast/${item.id}`;
+            url = `/podcast/spotify/${item.id}`;
             text = "Podcastni Eshitish";
         } else if (type === 'articles') {
             url = `/article/${item.id}`;
@@ -150,22 +162,46 @@ export default function AdminFeedManagement() {
         }
 
         if (showMaterialSelector === 'post') {
+            const itemMediaUrl = item.thumbnail || item.image || item.coverUrl || "";
             setPostForm(prev => ({
                 ...prev,
                 ctaUrl: url,
                 ctaText: text,
-                title: prev.title || item.title
+                title: prev.title || item.title,
+                mediaUrl: itemMediaUrl
             }));
+            if (itemMediaUrl) {
+                setPostMediaPreviews([itemMediaUrl]);
+            } else {
+                setPostMediaPreviews([]);
+            }
         } else if (showMaterialSelector === 'story') {
+            const itemMediaUrl = item.thumbnail || item.image || item.coverUrl || "";
             setStoryForm(prev => ({
                 ...prev,
                 ctaUrl: url,
                 ctaText: text,
                 text: prev.text || item.title
             }));
+            if (itemMediaUrl) {
+                setStoryMediaPreview(itemMediaUrl);
+            } else {
+                setStoryMediaPreview("");
+            }
         }
         setShowMaterialSelector(null);
         setSelectorSearchTerm('');
+    };
+
+    const toggleTestInModal = (test) => {
+        setSelectedTestsInModal(prev => {
+            const exists = prev.some(t => t.id === test.id);
+            if (exists) {
+                return prev.filter(t => t.id !== test.id);
+            } else {
+                return [...prev, test];
+            }
+        });
     };
 
     // Filter selector items
@@ -270,6 +306,11 @@ export default function AdminFeedManagement() {
                     docData.mediaUrls = mediaUrls;
                     docData.mediaUrl = mediaUrls[0]; // backward compatibility
                     docData.mediaType = mediaType;
+                } else if (postForm.mediaUrl) {
+                    // Use the auto-populated material image
+                    docData.mediaUrls = [postForm.mediaUrl];
+                    docData.mediaUrl = postForm.mediaUrl;
+                    docData.mediaType = 'image';
                 } else if (editingPostId) {
                     // Keep existing media if no new media was uploaded
                     if (postMediaPreviews && postMediaPreviews.length > 0) {
@@ -285,12 +326,18 @@ export default function AdminFeedManagement() {
                         docData.mediaType = "none";
                     }
                 }
-                if (postForm.ctaUrl) {
+                if (postForm.attachedTests && postForm.attachedTests.length > 0) {
+                    docData.attachedTests = postForm.attachedTests;
+                    docData.ctaUrl = getCategoryUrl(postForm.attachedTests[0]);
+                    docData.ctaText = postForm.ctaText || "Testni Boshlash";
+                } else if (postForm.ctaUrl) {
                     docData.ctaUrl = postForm.ctaUrl;
                     docData.ctaText = postForm.ctaText || "O'tish";
+                    docData.attachedTests = [];
                 } else {
                     docData.ctaUrl = "";
                     docData.ctaText = "";
+                    docData.attachedTests = [];
                 }
             }
 
@@ -311,8 +358,10 @@ export default function AdminFeedManagement() {
                 announcementType: 'info',
                 ctaUrl: '',
                 ctaText: '',
+                mediaUrl: '',
                 mediaFile: null,
-                mediaFiles: []
+                mediaFiles: [],
+                attachedTests: []
             });
             setPostMediaPreviews([]);
             fetchData();
@@ -522,6 +571,7 @@ export default function AdminFeedManagement() {
                                     announcementType: 'info',
                                     ctaUrl: '',
                                     ctaText: '',
+                                    mediaUrl: '',
                                     mediaFile: null,
                                     mediaFiles: []
                                 });
@@ -838,6 +888,30 @@ export default function AdminFeedManagement() {
                                                     />
                                                 </div>
                                             </div>
+
+                                            {/* Display Attached Tests */}
+                                            {postForm.attachedTests && postForm.attachedTests.length > 0 && (
+                                                <div className="space-y-1.5 p-3 rounded-xl border border-dashed border-gray-250 dark:border-white/10 bg-gray-50/50 dark:bg-white/5">
+                                                    <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400">Biriktirilgan testlar ({postForm.attachedTests.length})</label>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {postForm.attachedTests.map((test) => (
+                                                            <div key={test.id} className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/30 text-blue-600 dark:text-blue-400 text-xs px-2.5 py-1 rounded-lg">
+                                                                <span className="font-bold max-w-[150px] truncate">{test.title}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setPostForm(prev => ({
+                                                                        ...prev,
+                                                                        attachedTests: prev.attachedTests.filter(t => t.id !== test.id)
+                                                                    }))}
+                                                                    className="text-blue-400 hover:text-red-500 font-bold transition ml-1"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </>
                                     )}
 
@@ -953,7 +1027,6 @@ export default function AdminFeedManagement() {
                                                         <span className="text-[8px] mt-1">Rasm biriktirilmagan</span>
                                                     </div>
                                                 )}
-
                                                 {/* Text content */}
                                                 <div className="text-[10px] leading-relaxed line-clamp-3">
                                                     <span className="font-bold mr-1.5">IELTS Portal Admin</span>
@@ -963,8 +1036,28 @@ export default function AdminFeedManagement() {
                                         )}
 
                                         {/* Mock Material Selector CTA card */}
-                                        {postForm.ctaUrl && postForm.type !== 'announcement' && (
-                                            <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-150 text-[9px]">
+                                        {postForm.attachedTests && postForm.attachedTests.length > 0 && postForm.type !== 'announcement' ? (
+                                            <div className="w-full flex flex-col gap-1 bg-gray-50/50 dark:bg-zinc-900/40 p-2 rounded-xl border border-gray-150 dark:border-white/5">
+                                                <span className="text-[7px] font-black uppercase text-gray-400 block tracking-wider text-left">Testlar Karuseli ({postForm.attachedTests.length})</span>
+                                                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory text-left">
+                                                    {postForm.attachedTests.map((test) => (
+                                                        <div key={test.id} className="min-w-[130px] max-w-[130px] p-2 rounded-lg border bg-white dark:bg-zinc-950 border-gray-200 dark:border-white/5 text-[8px] flex flex-col justify-between gap-1.5 snap-center">
+                                                            <div>
+                                                                <span className="font-extrabold text-blue-500 dark:text-blue-400 block tracking-wider text-[6px] uppercase">{test.type}</span>
+                                                                <div className="font-bold line-clamp-2 leading-snug">{test.title}</div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center pt-1 border-t border-gray-100 dark:border-white/5">
+                                                                <span className="text-gray-400 text-[6px] capitalize">{test.difficulty || "medium"}</span>
+                                                                <span className="px-1.5 py-0.5 bg-blue-600 text-white font-extrabold text-[6px] rounded tracking-wide uppercase">
+                                                                    {postForm.ctaText || "Boshlash"}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : postForm.ctaUrl && postForm.type !== 'announcement' ? (
+                                            <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-55 dark:bg-zinc-800 border border-gray-150 text-[9px]">
                                                 <div className="flex items-center gap-2">
                                                     <FaBookOpen className="text-blue-500 shrink-0" size={10} />
                                                     <div className="font-bold line-clamp-1 w-[110px]">
@@ -975,7 +1068,7 @@ export default function AdminFeedManagement() {
                                                     {postForm.ctaText || "O'tish"}
                                                 </span>
                                             </div>
-                                        )}
+                                        ) : null}
 
                                         {/* Mock Action Bar */}
                                         <div className="flex justify-between items-center text-gray-400 text-[10px] pt-1">
@@ -1407,36 +1500,88 @@ export default function AdminFeedManagement() {
                                     Hech qanday material topilmadi.
                                 </div>
                             ) : (
-                                getFilteredSelectorItems().map(item => (
-                                    <button
-                                        key={item.id}
-                                        type="button"
-                                        onClick={() => handleSelectMaterial(item, materialTab)}
-                                        className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between text-xs font-bold gap-3 ${
-                                            isDark ? 'bg-white/5 border-white/5 hover:border-white/10' : 'bg-gray-50 border-gray-150 hover:bg-gray-100 hover:border-gray-250'
-                                        }`}
-                                    >
-                                        <div className="min-w-0 flex-1">
-                                            <span className="line-clamp-1">{item.title || 'Sarlavhasiz'}</span>
-                                            <p className={`text-[9px] mt-0.5 font-normal ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
-                                                {materialTab === 'tests' ? `Kolleksiya: ${item.collectionName || 'Kolleksiyasiz'}` : 
-                                                 materialTab === 'podcasts' ? `Level: ${item.level || 'Barcha darajalar'}` : `Kategoriya: ${item.category || 'Kategoriyasiz'}`}
-                                            </p>
-                                        </div>
-                                        
-                                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border uppercase shrink-0 ${
-                                            materialTab === 'tests' 
-                                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 border-blue-500/20' 
-                                                : materialTab === 'podcasts' 
-                                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 border-purple-500/20' 
-                                                    : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 border-emerald-500/20'
-                                        }`}>
-                                            {materialTab === 'tests' ? item.type : materialTab}
-                                        </span>
-                                    </button>
-                                ))
+                                getFilteredSelectorItems().map(item => {
+                                    const isTestTab = materialTab === 'tests';
+                                    const isPostTarget = showMaterialSelector === 'post';
+                                    const isMultiSelect = isPostTarget && isTestTab;
+                                    const isSelected = isMultiSelect && selectedTestsInModal.some(t => t.id === item.id);
+
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => {
+                                                if (isMultiSelect) {
+                                                    toggleTestInModal(item);
+                                                } else {
+                                                    handleSelectMaterial(item, materialTab);
+                                                }
+                                            }}
+                                            className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between text-xs font-bold gap-3 ${
+                                                isSelected 
+                                                    ? 'bg-blue-600/10 border-blue-500 text-blue-600 dark:text-blue-400' 
+                                                    : (isDark ? 'bg-white/5 border-white/5 hover:border-white/10' : 'bg-gray-50 border-gray-150 hover:bg-gray-100 hover:border-gray-250')
+                                            }`}
+                                        >
+                                            <div className="min-w-0 flex-1 flex items-center gap-2">
+                                                {isMultiSelect && (
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
+                                                        isSelected 
+                                                            ? 'bg-blue-600 border-blue-600 text-white' 
+                                                            : (isDark ? 'border-white/25 bg-white/5' : 'border-gray-300 bg-white')
+                                                    }`}>
+                                                        {isSelected && <FaCheck size={8} />}
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="line-clamp-1">{item.title || 'Sarlavhasiz'}</span>
+                                                    <p className={`text-[9px] mt-0.5 font-normal ${isSelected ? 'text-blue-500/60' : (isDark ? 'text-white/40' : 'text-gray-500')}`}>
+                                                        {materialTab === 'tests' ? `Kolleksiya: ${item.collectionName || 'Kolleksiyasiz'}` : 
+                                                         materialTab === 'podcasts' ? `Level: ${item.level || 'Barcha darajalar'}` : `Kategoriya: ${item.category || 'Kategoriyasiz'}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            
+                                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border uppercase shrink-0 ${
+                                                isSelected 
+                                                    ? 'bg-blue-600 text-white border-transparent' 
+                                                    : (materialTab === 'tests' 
+                                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 border-blue-500/20' 
+                                                        : materialTab === 'podcasts' 
+                                                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 border-purple-500/20' 
+                                                            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 border-emerald-500/20')
+                                            }`}>
+                                                {materialTab === 'tests' ? item.type : materialTab}
+                                            </span>
+                                        </button>
+                                    );
+                                })
                             )}
                         </div>
+
+                        {/* Confirm Button for Multi-Select Tests */}
+                        {showMaterialSelector === 'post' && materialTab === 'tests' && (
+                            <div className="mt-4 pt-3 border-t border-gray-200 dark:border-white/5 flex justify-between items-center">
+                                <span className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                                    Tanlandi: {selectedTestsInModal.length} ta test
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPostForm(prev => ({
+                                            ...prev,
+                                            attachedTests: selectedTestsInModal,
+                                            ctaText: prev.ctaText || "Testni Boshlash"
+                                        }));
+                                        setShowMaterialSelector(null);
+                                        setSelectorSearchTerm('');
+                                    }}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-md"
+                                >
+                                    Tanlashni tasdiqlash
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

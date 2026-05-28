@@ -4,13 +4,76 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import CommentsModal from './CommentsModal';
-import { handleUniversalNavigate } from '../../utils/navigation';
+import { handleUniversalNavigate, getCategoryUrl } from '../../utils/navigation';
+import { db } from '../../firebase/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { usePodcast } from '../../context/PodcastContext';
 
 export default function FeedPostCard({ post, user, userData, onLike, onCommentAdded, onDelete }) {
     const navigate = useNavigate();
     const [showComments, setShowComments] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [aspectRatio, setAspectRatio] = useState(1.333); // Default to 4:3
+
+    const { setCurrentTrack, setIsExpanded, setIsPlaying } = usePodcast();
+
+    const extractPodcastId = (ctaUrl) => {
+        if (!ctaUrl) return null;
+        const parts = ctaUrl.split('/');
+        return parts[parts.length - 1];
+    };
+
+    const handlePodcastPlay = async (e) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        
+        const podcastId = extractPodcastId(post.ctaUrl);
+        if (!podcastId) {
+            toast.error("Podcast ID topilmadi");
+            return;
+        }
+
+        const loadingToast = toast.loading("Podcast yuklanmoqda...");
+        try {
+            const snap = await getDoc(doc(db, "podcasts", podcastId));
+            if (snap.exists()) {
+                const data = { id: snap.id, ...snap.data() };
+                setCurrentTrack(data);
+                setIsExpanded(true);
+                setIsPlaying(true);
+                toast.dismiss(loadingToast);
+            } else {
+                toast.error("Podcast topilmadi", { id: loadingToast });
+            }
+        } catch (err) {
+            console.error("Error loading podcast details:", err);
+            toast.error("Podcastni yuklashda xatolik yuz berdi", { id: loadingToast });
+        }
+    };
+
+    const getMaterialType = () => {
+        if (post.type === 'test' || post.type === 'podcast' || post.type === 'article') {
+            return post.type;
+        }
+        if (post.ctaUrl) {
+            if (post.ctaUrl.includes('/podcast')) return 'podcast';
+            if (post.ctaUrl.includes('/test')) return 'test';
+            if (post.ctaUrl.includes('/article')) return 'article';
+        }
+        return null;
+    };
+
+    const materialType = getMaterialType();
+
+    const getCleanCtaUrl = () => {
+        if (!post.ctaUrl) return '';
+        if (materialType === 'podcast' && post.ctaUrl.includes('/podcast/') && !post.ctaUrl.includes('/podcast/spotify/') && !post.ctaUrl.includes('/podcast/album/') && !post.ctaUrl.includes('/podcast/episode/')) {
+            return post.ctaUrl.replace('/podcast/', '/podcast/spotify/');
+        }
+        return post.ctaUrl;
+    };
 
     useEffect(() => {
         const mediaUrls = post.mediaUrls || (post.mediaUrl ? [post.mediaUrl] : []);
@@ -63,7 +126,8 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
 
     // Render type-specific badges or decorations
     const renderCardHeaderDecoration = () => {
-        switch (post.type) {
+        const type = materialType || post.type;
+        switch (type) {
             case 'test':
                 return <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 rounded-full">Test</span>;
             case 'podcast':
@@ -137,12 +201,23 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
             }
         };
 
+        const isMediaClickable = materialType && post.ctaUrl && post.mediaType !== 'video';
+
         return (
             <div className="px-4 py-2 flex flex-col gap-3">
                 {/* Media Image / Video / Carousel */}
                 {mediaUrls.length > 0 && (
                     <div 
-                        className="relative w-full rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-white/5 shadow-sm group/carousel"
+                        onClick={
+                            materialType === 'podcast'
+                                ? handlePodcastPlay
+                                : isMediaClickable
+                                    ? () => handleUniversalNavigate(getCleanCtaUrl(), navigate)
+                                    : undefined
+                        }
+                        className={`relative w-full rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-white/5 shadow-sm group/carousel transition-all ${
+                            isMediaClickable ? 'cursor-pointer hover:shadow-md' : ''
+                        }`}
                         style={{ aspectRatio: aspectRatio }}
                         onTouchStart={hasCarousel ? handleTouchStart : undefined}
                         onTouchEnd={hasCarousel ? handleTouchEnd : undefined}
@@ -218,29 +293,93 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                                 <img src={post.mediaUrl} alt="Post content" className="w-full h-full object-cover animate-fade-in" loading="lazy" />
                             )
                         )}
+
+                        {/* No overlays on top of the image (glassmorphism removed) */}
                     </div>
                 )}
 
-                {/* Material Details Card */}
-                {(post.type === 'test' || post.type === 'podcast' || post.type === 'article') && (
-                    <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 border border-gray-150 dark:border-white/5 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-gray-100 dark:border-white/5 flex items-center justify-center text-gray-500 dark:text-zinc-400">
-                                {post.type === 'test' && <BookOpen size={20} className="text-blue-500" />}
-                                {post.type === 'podcast' && <Volume2 size={20} className="text-purple-500" />}
-                                {post.type === 'article' && <Play size={20} className="text-emerald-500" />}
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-xs md:text-sm text-gray-900 dark:text-white line-clamp-1">{post.title}</h4>
-                                <p className="text-[10px] text-gray-400 dark:text-zinc-500 line-clamp-1 mt-0.5">{post.content || post.description || "Yangi IELTS materiali"}</p>
-                            </div>
+                {/* Attached Tests Carousel (Horizontal scrollable cards) */}
+                {post.attachedTests && post.attachedTests.length > 0 ? (
+                    <div className="w-full flex flex-col gap-1.5 mt-1 px-1">
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider block text-left">Tavsiya Etilgan Testlar</span>
+                        <div className="w-full flex gap-3 overflow-x-auto pb-2 scrollbar-thin snap-x snap-mandatory text-left">
+                            {post.attachedTests.map((test) => {
+                                const categoryUrl = getCategoryUrl(test);
+                                return (
+                                    <div 
+                                        key={test.id}
+                                        onClick={() => handleUniversalNavigate(categoryUrl, navigate)}
+                                        className="min-w-[210px] max-w-[210px] p-3 rounded-xl border border-gray-150 dark:border-white/5 bg-gray-50/60 dark:bg-zinc-900/40 hover:bg-gray-50 dark:hover:bg-zinc-900/85 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-sm cursor-pointer transition-all duration-200 snap-center flex flex-col justify-between gap-3 group/test-card"
+                                    >
+                                        <div className="space-y-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[9px] font-black uppercase tracking-wider text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                                                    {test.type || 'Test'}
+                                                </span>
+                                                <span className="text-[9px] text-gray-400 dark:text-zinc-500 font-medium">
+                                                    {test.difficulty || 'Medium'}
+                                                </span>
+                                            </div>
+                                            <h4 className="font-extrabold text-xs text-gray-800 dark:text-zinc-200 line-clamp-2 leading-snug group-hover/test-card:text-blue-500 dark:group-hover/test-card:text-blue-400 transition-colors">
+                                                {test.title}
+                                            </h4>
+                                        </div>
+                                        
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleUniversalNavigate(categoryUrl, navigate);
+                                            }}
+                                            className="w-full flex items-center justify-center gap-1.5 bg-[#0066cc] dark:bg-[#3894ff] hover:bg-[#0055aa] dark:hover:bg-[#1a7ddb] text-white font-bold text-[9px] py-1.5 rounded-lg active:scale-[0.98] transition-all shadow-sm shrink-0"
+                                        >
+                                            {post.ctaText || "Testni bajarish"}
+                                            <ArrowRight size={10} />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ) : materialType && (
+                    <div 
+                        onClick={
+                            materialType === 'podcast'
+                                ? handlePodcastPlay
+                                : post.ctaUrl
+                                    ? () => handleUniversalNavigate(getCleanCtaUrl(), navigate)
+                                    : undefined
+                        }
+                        className={`flex items-center justify-between py-2.5 px-4 rounded-xl border transition-all duration-200 group/material-card ${
+                            post.ctaUrl 
+                                ? 'cursor-pointer bg-gray-55/60 hover:bg-gray-55 dark:bg-zinc-900/45 dark:hover:bg-zinc-900/85 active:scale-[0.995] border-gray-100 dark:border-white/5 hover:border-gray-150 dark:hover:border-white/10 hover:shadow-sm' 
+                                : 'bg-gray-55/30 dark:bg-zinc-900/20 border-gray-100 dark:border-white/5'
+                        }`}
+                    >
+                        <div className="min-w-0 flex-1 pr-3">
+                            <h4 className="font-bold text-xs text-gray-800 dark:text-zinc-200 line-clamp-1 group-hover/material-card:text-blue-500 dark:group-hover/material-card:text-blue-400 transition-colors">
+                                {post.title || (materialType === 'podcast' ? 'Podcast' : materialType === 'test' ? 'Test' : 'Maqola')}
+                            </h4>
+                            <p className="text-[10px] text-gray-400 dark:text-zinc-500 line-clamp-1 mt-0.5">
+                                {post.description || (materialType === 'podcast' ? 'IELTS Podcast tinglang va mashqlarni bajaring' : materialType === 'test' ? 'IELTS testini yeching' : 'IELTS maqolasini o\'qing')}
+                            </p>
                         </div>
                         {post.ctaUrl && (
                             <button
-                                onClick={() => handleUniversalNavigate(post.ctaUrl, navigate)}
-                                className="flex items-center gap-1 bg-black dark:bg-white text-white dark:text-black font-bold text-[10px] uppercase tracking-wider px-3.5 py-2 rounded-xl hover:scale-105 active:scale-95 transition-all"
+                                onClick={
+                                    materialType === 'podcast'
+                                        ? handlePodcastPlay
+                                        : (e) => {
+                                            e.stopPropagation();
+                                            handleUniversalNavigate(getCleanCtaUrl(), navigate);
+                                        }
+                                }
+                                className="flex items-center gap-1 bg-[#0066cc] dark:bg-[#3894ff] hover:bg-[#0055aa] dark:hover:bg-[#1a7ddb] text-white font-medium text-[9px] px-2.5 py-1 rounded-md active:scale-95 transition-all shadow-sm flex-shrink-0"
                             >
-                                {post.ctaText || "Boshlash"}
+                                {materialType === 'test' 
+                                    ? 'Testni bajarish' 
+                                    : materialType === 'podcast' 
+                                        ? 'Podcastni tinglash' 
+                                        : 'Maqolani o\'qish'}
                                 <ArrowRight size={10} />
                             </button>
                         )}

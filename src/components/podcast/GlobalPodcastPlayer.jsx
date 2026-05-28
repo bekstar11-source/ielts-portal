@@ -17,10 +17,15 @@ const GlobalPodcastPlayer = () => {
     }
   }, [isPodcastRoute, setIsPlaying]);
 
+  const handleClose = () => {
+    setIsExpanded(false);
+    setIsPlaying(false);
+  };
+
   return (
     <InteractivePlayer
       isOpen={isExpanded}
-      onClose={() => setIsExpanded(false)}
+      onClose={handleClose}
       keyboardShortcutsEnabled={isPodcastRoute}
     />
   );

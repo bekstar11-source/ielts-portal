@@ -24,7 +24,7 @@ import BottomNav from "../../components/dashboard/BottomNav";
 import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
 import PracticeCard from "../../components/practice/PracticeCard";
-import { deriveQuestionTypesForCard, qTypeMatchesSelected } from "../../utils/TestUtils";
+import { deriveQuestionTypesForCard, qTypeMatchesSelected, getActualQuestionCount } from "../../utils/TestUtils";
 
 const categories = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
@@ -136,60 +136,7 @@ export default function ReadingParts() {
     return ["all", ...Array.from(types).sort()];
   }, [rawAssignments]);
 
-  const getQuestionCount = (test) => {
-    if (test.totalQuestions) return test.totalQuestions;
-    
-    const countUniqueIds = (items) => {
-      if (!items || !Array.isArray(items)) return 0;
-      const ids = new Set();
-      const extract = (obj) => {
-        if (!obj) return;
-        if (obj.id && !isNaN(parseInt(obj.id))) {
-          ids.add(parseInt(obj.id));
-        }
-        if (obj.rows && Array.isArray(obj.rows)) {
-          obj.rows.forEach(row => {
-            const cells = Array.isArray(row) ? row : (row.cells || []);
-            cells.forEach(cell => {
-              if (!cell) return;
-              if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
-                extract(cell);
-              }
-              if (cell.isMultiQuestion && Array.isArray(cell.content)) {
-                cell.content.forEach(extract);
-              }
-              if (cell.isMixed && Array.isArray(cell.parts)) {
-                cell.parts.forEach(part => {
-                  if (part && part.type === 'input') {
-                    extract(part);
-                  }
-                });
-              }
-            });
-          });
-        }
-        if (Array.isArray(obj.items)) obj.items.forEach(extract);
-        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
-        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
-      };
-      items.forEach(extract);
-      return ids.size;
-    };
-
-    if (test.questions) {
-      const count = countUniqueIds(test.questions);
-      if (count > 0) return count;
-    }
-    if (test.sections) {
-      const count = countUniqueIds(test.sections);
-      if (count > 0) return count;
-    }
-    
-    const titleLower = test.title?.toLowerCase() || '';
-    const isReadingFull = titleLower.includes('full') || titleLower.includes('/');
-    
-    return (test.questions?.length) || (isReadingFull ? 40 : 13);
-  };
+  const getQuestionCount = (test) => getActualQuestionCount(test);
 
   const filteredTests = useMemo(() => {
     const q = searchQuery.toLowerCase();

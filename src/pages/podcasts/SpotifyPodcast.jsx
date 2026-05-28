@@ -105,6 +105,12 @@ export default function SpotifyPodcast() {
         }
     }, [currentTime, duration, podcast, user, xpAwardedSession, awardXP]);
 
+    useEffect(() => {
+        return () => {
+            setIsPlaying(false);
+        };
+    }, [setIsPlaying]);
+
 
 
     const formatTime = (time) => {

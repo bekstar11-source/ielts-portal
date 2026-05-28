@@ -10,7 +10,7 @@ import { ModeSelectionModal, ResultModal } from "../../components/TestSolving/Te
 import ResultsCalculatingScreen from "../../components/TestSolving/ResultsCalculatingScreen";
 import { useTestLogic } from "../../hooks/useTestLogic";
 import { useAuth } from "../../context/AuthContext";
-import { clearTestStorage, deriveQuestionTypesForCard } from "../../utils/TestUtils";
+import { clearTestStorage, deriveQuestionTypesForCard, getActualQuestionCount } from "../../utils/TestUtils";
 import { BookOpen, Headphones, Clock, Sparkles, ArrowLeft, ArrowRight, Award, Zap } from "lucide-react";
 
 export default function TestSolving() {
@@ -143,6 +143,38 @@ export default function TestSolving() {
     const handleCancelExit = () => {
         setShowExitWarning(false);
     };
+    const derivedQuestionTypes = React.useMemo(() => {
+        if (!test) return [];
+        return deriveQuestionTypesForCard(test);
+    }, [test]);
+
+    const cardImage = React.useMemo(() => {
+        if (!test) return "";
+        if (test?.type === 'listening') return '/images/dashboard/listening_orange_headphones.jpg';
+        return test?.thumbnail || (
+            test?.type === 'reading' ? '/images/dashboard/reading_passage_yellow_card.png' :
+            test?.type === 'writing' ? 'https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=800' :
+            test?.type === 'speaking' ? 'https://images.unsplash.com/photo-1506784926709-22f1ec395907?q=80&w=800' :
+            'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800'
+        );
+    }, [test]);
+
+    const duration = React.useMemo(() => {
+        if (initialDuration) return Math.round(initialDuration / 60);
+        if (!test) return 60;
+        if (test.duration) return Number(test.duration);
+        const titleLower = test.title?.toLowerCase() || "";
+        const type = test.type?.toLowerCase() || "";
+        const isFull = partNumber == null && (titleLower.includes('full') || titleLower.includes('/') || (test.passages && test.passages.length > 1));
+        if (type === 'reading') return isFull ? 60 : 20;
+        if (type === 'listening') return isFull ? 40 : 10;
+        return 60;
+    }, [test, initialDuration, partNumber]);
+
+    const questionCount = React.useMemo(() => {
+        if (!test) return 0;
+        return getActualQuestionCount(test, partNumber);
+    }, [test, partNumber]);
 
     if (loading) {
         return (
@@ -186,59 +218,20 @@ export default function TestSolving() {
     const isWriting = testType === 'writing';
     const isSpeaking = testType === 'speaking';
 
-    const derivedQuestionTypes = React.useMemo(() => {
-        if (!test) return [];
-        return deriveQuestionTypesForCard(test);
-    }, [test]);
-
-    const cardImage = React.useMemo(() => {
-        if (!test) return "";
-        if (test.type === 'listening') return '/images/dashboard/listening_orange_headphones.jpg';
-        return test.thumbnail || (
-            test.type === 'reading' ? '/images/dashboard/reading_passage_yellow_card.png' :
-            test.type === 'writing' ? 'https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=800' :
-            test.type === 'speaking' ? 'https://images.unsplash.com/photo-1506784926709-22f1ec395907?q=80&w=800' :
-            'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800'
-        );
-    }, [test]);
-
-    const duration = React.useMemo(() => {
-        if (!test) return 60;
-        if (test.duration) return Number(test.duration);
-        const titleLower = test.title?.toLowerCase() || "";
-        const type = test.type?.toLowerCase() || "";
-        const isFull = titleLower.includes('full') || titleLower.includes('/');
-        if (type === 'reading') return isFull ? 60 : 20;
-        if (type === 'listening') return isFull ? 40 : 10;
-        return 60;
-    }, [test]);
-
-    const questionCount = React.useMemo(() => {
-        if (!test) return 0;
-        if (test.totalQuestions) return test.totalQuestions;
-        if (test.questions) return test.questions.length;
-        const titleLower = test.title?.toLowerCase() || "";
-        const type = test.type?.toLowerCase() || "";
-        const isFull = titleLower.includes('full') || titleLower.includes('/');
-        if (type === 'reading') return isFull ? 40 : 13;
-        if (type === 'listening') return isFull ? 40 : 10;
-        return 40;
-    }, [test]);
-
     if (!isConfirmed) {
         return (
-            <div className="min-h-screen bg-[#030303] text-[#f5f5f7] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans select-none selection:bg-indigo-500/30 selection:text-white">
+            <div className="min-h-screen bg-gradient-to-tr from-gray-50 via-white to-gray-100 text-gray-800 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans select-none selection:bg-[#e31b23]/10 selection:text-[#e31b23]">
                 {/* Spotlight background glow */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent blur-[120px] pointer-events-none" />
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[200px] bg-gradient-to-t from-zinc-900/40 to-transparent blur-[80px] pointer-events-none" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-b from-[#e31b23]/5 via-[#e31b23]/2 to-transparent blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[200px] bg-gradient-to-t from-gray-200/40 to-transparent blur-[80px] pointer-events-none" />
                 
                 {/* Thin Linear line decor */}
-                <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-zinc-800 to-transparent opacity-50" />
+                <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-gray-200 to-transparent opacity-50" />
 
                 {/* Back button */}
                 <button 
                     onClick={handleBackClick}
-                    className="absolute top-6 left-6 flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors bg-zinc-900/40 border border-zinc-800/80 px-3 py-1.5 rounded-lg backdrop-blur-sm group active:scale-95 duration-200"
+                    className="absolute top-6 left-6 flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 transition-all bg-white/80 border border-gray-200 px-3.5 py-2 rounded-lg backdrop-blur-sm shadow-sm hover:shadow active:scale-95 duration-200 group"
                 >
                     <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
                     Orqaga Qaytish
@@ -247,55 +240,55 @@ export default function TestSolving() {
                 {/* Container */}
                 <div className="max-w-[420px] w-full z-10 animate-fade-in-up">
                     {/* Compact Card */}
-                    <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-2xl p-5 backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.8)] flex flex-col gap-5">
+                    <div className="bg-white/90 border border-gray-200/80 rounded-2xl p-6 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] flex flex-col gap-5">
                         
                         {/* Image section */}
-                        <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800/40 group">
+                        <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-gray-100 border border-gray-200/50 group">
                             <img 
                                 src={cardImage} 
                                 alt={test.title} 
-                                className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-102" 
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" 
                             />
                             {/* Gradient Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
                             
                             {/* Type Badge */}
-                            <span className="absolute bottom-3 left-3 px-2 py-0.5 rounded bg-zinc-950/80 border border-zinc-800/60 text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                            <span className="absolute bottom-3 left-3 px-2.5 py-0.5 rounded bg-black/60 backdrop-blur-md border border-white/20 text-[10px] font-black uppercase tracking-widest text-white">
                                 {test.type}
                             </span>
                         </div>
 
                         {/* Title section */}
                         <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                                <Award size={10} className="text-indigo-400" />
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                                <Award size={11} className="text-[#e31b23]" />
                                 IELTS Practice Exam
                             </div>
-                            <h1 className="text-xl font-bold text-white tracking-tight leading-snug">
+                            <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-snug">
                                 {test.title}
                             </h1>
                         </div>
 
                         {/* Specs grid */}
-                        <div className="grid grid-cols-3 gap-2 py-1.5 border-y border-zinc-850">
+                        <div className="grid grid-cols-3 gap-2 py-3 border-y border-gray-100">
                             <div className="flex flex-col gap-0.5 items-start">
-                                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Muddati</span>
-                                <div className="flex items-center gap-1 text-sm font-semibold text-zinc-200">
-                                    <Clock size={13} className="text-zinc-500" />
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Muddati</span>
+                                <div className="flex items-center gap-1 text-sm font-bold text-gray-800">
+                                    <Clock size={13} className="text-gray-400" />
                                     {duration} min
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-0.5 items-start border-l border-zinc-850 pl-3">
-                                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Savollar</span>
-                                <div className="flex items-center gap-1 text-sm font-semibold text-zinc-200">
-                                    <BookOpen size={13} className="text-zinc-500" />
+                            <div className="flex flex-col gap-0.5 items-start border-l border-gray-100 pl-3">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Savollar</span>
+                                <div className="flex items-center gap-1 text-sm font-bold text-gray-800">
+                                    <BookOpen size={13} className="text-gray-400" />
                                     {questionCount} ta
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-0.5 items-start border-l border-zinc-850 pl-3">
-                                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Daraja</span>
-                                <div className="flex items-center gap-1 text-sm font-semibold text-zinc-200 capitalize">
-                                    <Sparkles size={13} className="text-zinc-500" />
+                            <div className="flex flex-col gap-0.5 items-start border-l border-gray-100 pl-3">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Daraja</span>
+                                <div className="flex items-center gap-1 text-sm font-bold text-gray-800 capitalize">
+                                    <Sparkles size={13} className="text-gray-400" />
                                     {test.difficulty || "Medium"}
                                 </div>
                             </div>
@@ -303,13 +296,13 @@ export default function TestSolving() {
 
                         {/* Question Types */}
                         {derivedQuestionTypes.length > 0 && (
-                            <div className="flex flex-col gap-2">
-                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Savol Turlari</span>
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Savol Turlari</span>
                                 <div className="flex flex-wrap gap-1.5">
                                     {derivedQuestionTypes.map((type, i) => (
                                         <span 
                                             key={i} 
-                                            className="px-2 py-0.5 bg-zinc-900/60 border border-zinc-800/80 rounded-md text-[10.5px] font-semibold text-zinc-350 tracking-tight"
+                                            className="px-2 py-0.5 bg-gray-50 border border-gray-200/60 rounded text-[10px] font-bold text-gray-600 tracking-tight"
                                         >
                                             {type}
                                         </span>
@@ -318,25 +311,25 @@ export default function TestSolving() {
                             </div>
                         )}
 
-                        {/* Custom Linear warning box */}
-                        <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-xl p-3 flex gap-2.5 items-start text-left">
-                            <Zap size={14} className="text-indigo-400 shrink-0 mt-0.5" />
+                        {/* Warning box */}
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 flex gap-2.5 items-start text-left">
+                            <Zap size={14} className="text-[#0071e3] shrink-0 mt-0.5" />
                             <div className="flex flex-col gap-0.5">
-                                <span className="text-[11.5px] font-bold text-zinc-200">Diqqat qiling</span>
-                                <p className="text-[10.5px] text-zinc-450 leading-normal">
+                                <span className="text-[11.5px] font-bold text-blue-900">Diqqat qiling</span>
+                                <p className="text-[11px] text-blue-700/90 leading-normal">
                                     Testni boshlaganingizdan so'ng, sizning kunlik testingiz hisobga olinadi va muddatli vaqt hisoblana boshlaydi.
                                 </p>
                             </div>
                         </div>
 
                         {/* Prompt and Action Button */}
-                        <div className="flex flex-col gap-3 pt-2">
-                            <span className="text-center text-[12px] font-medium text-zinc-400">
+                        <div className="flex flex-col gap-3 pt-1">
+                            <span className="text-center text-[12px] font-medium text-gray-500">
                                 Ushbu testni topshirishni istaysizmi?
                             </span>
                             <button
                                 onClick={() => setIsConfirmed(true)}
-                                className="w-full bg-white hover:bg-zinc-100 text-black py-2.5 rounded-xl font-bold text-sm transition-all shadow-[0_4px_16px_rgba(255,255,255,0.1)] active:scale-[0.98] duration-200 flex items-center justify-center gap-1.5"
+                                className="w-full bg-[#e31b23] hover:bg-[#c4151c] text-white py-3 rounded-xl font-bold text-sm transition-all shadow-[0_4px_16px_rgba(227,27,35,0.2)] hover:shadow-[0_4px_20px_rgba(227,27,35,0.3)] active:scale-[0.98] duration-200 flex items-center justify-center gap-1.5"
                             >
                                 Testni Boshlash
                                 <ArrowRight size={14} strokeWidth={2.5} />

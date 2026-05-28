@@ -57,7 +57,32 @@ export const getCleanCtaPath = (url) => {
 };
 
 /**
+ * Resolves a test metadata object to its corresponding category landing page.
+ * 
+ * @param {object} test - The test metadata object.
+ * @returns {string} The category path.
+ */
+export const getCategoryUrl = (test) => {
+    if (!test) return '';
+    const type = (test.type || '').toLowerCase();
+
+    // Check if it's a full test vs part test
+    const isFull = !test.passageNumber && !test.passage_number && 
+                   (!test.title || test.title.includes('/') || test.title.toLowerCase().includes('full') || (test.passages && test.passages.length > 1));
+
+    if (type === 'reading') {
+        return isFull ? '/reading/full' : '/reading/parts';
+    } else if (type === 'listening') {
+        return isFull ? '/listening/full' : '/listening/parts';
+    } else if (type === 'mock') {
+        return '/mock';
+    }
+    return '/practice';
+};
+
+/**
  * Performs navigation using either the React Router navigate function
+
  * or standard window redirection/external tabs.
  * 
  * @param {string} url - The target URL/path.

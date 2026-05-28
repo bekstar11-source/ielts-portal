@@ -185,7 +185,7 @@ export function useCreatePodcast(editId, navigate) {
                         title: saveData.title || "Yangi Podcast",
                         content: saveData.description || "Tizimda yangi podcast yuklandi. Eshitishni va mashqlarni bajarishni boshlang!",
                         mediaUrl: saveData.thumbnail || "",
-                        ctaUrl: `/podcast/${podId}`,
+                        ctaUrl: `/podcast/spotify/${podId}`,
                         ctaText: "Eshitish",
                         likes: [],
                         commentsCount: 0,

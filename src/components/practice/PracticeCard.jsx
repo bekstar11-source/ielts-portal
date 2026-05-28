@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { hapticFeedback } from '../../utils/haptic';
 import ShareModal from '../common/ShareModal';
 import { useTranslation } from '../../context/LanguageContext';
-import { deriveQuestionTypesForCard } from '../../utils/TestUtils';
+import { deriveQuestionTypesForCard, getActualQuestionCount } from '../../utils/TestUtils';
 import QuestionTypeTags from './QuestionTypeTags';
 
 export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard, passageNumber: passageNumberProp }) {
@@ -19,77 +19,7 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
   const isReadingPassage = test.type === 'reading' && (test.title?.toLowerCase().includes('passage') || !test.title?.toLowerCase().includes('full'));
   const isReadingFull = test.type === 'reading' && test.title?.toLowerCase().includes('full');
 
-  // Prioritize totalQuestions from test object (calculated in useStudentData hook)
-  const questionCount = test.totalQuestions || (() => {
-    const countUniqueIds = (items) => {
-      if (!items || !Array.isArray(items)) return 0;
-      
-      let filteredItems = items;
-      const partNum = test.partNumber ?? test.part_number ?? null;
-      if (partNum != null) {
-        let passageId = null;
-        if (test.parts && test.parts[`part${partNum}`]) {
-          passageId = test.parts[`part${partNum}`].id;
-        } else if (test.passages && Array.isArray(test.passages)) {
-          passageId = test.passages[partNum - 1]?.id;
-        }
-        if (passageId) {
-          filteredItems = items.filter(q => String(q.passageId) === String(passageId));
-        }
-      }
-
-      const ids = new Set();
-      const extract = (obj) => {
-        if (!obj) return;
-        // Check if it's an individual question item
-        if (obj.id && !isNaN(parseInt(obj.id))) {
-          ids.add(parseInt(obj.id));
-        }
-        // Handle table/table completion structure
-        if (obj.rows && Array.isArray(obj.rows)) {
-          obj.rows.forEach(row => {
-            const cells = Array.isArray(row) ? row : (row.cells || []);
-            cells.forEach(cell => {
-              if (!cell) return;
-              if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
-                extract(cell);
-              }
-              if (cell.isMultiQuestion && Array.isArray(cell.content)) {
-                cell.content.forEach(extract);
-              }
-              if (cell.isMixed && Array.isArray(cell.parts)) {
-                cell.parts.forEach(part => {
-                  if (part && part.type === 'input') {
-                    extract(part);
-                  }
-                });
-              }
-            });
-          });
-        }
-        // Recurse into common nested structures
-        if (Array.isArray(obj.items)) obj.items.forEach(extract);
-        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
-        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
-      };
-      filteredItems.forEach(extract);
-      return ids.size;
-    };
-
-    if (test.questions) {
-      const count = countUniqueIds(test.questions);
-      if (count > 0) return count;
-    }
-    if (test.sections) {
-      const count = countUniqueIds(test.sections);
-      if (count > 0) return count;
-    }
-    
-    return (test.questions?.length) || 
-      (isListeningFull || isReadingFull ? 40 : 
-       isListeningPart ? 10 : 
-       isReadingPassage ? 13 : 13);
-  })();
+  const questionCount = getActualQuestionCount(test);
 
   const duration = test.duration || 
     (test.type === 'reading' ? (isReadingFull ? 60 : 20) : 

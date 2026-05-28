@@ -290,3 +290,89 @@ export const qTypeMatchesSelected = (testType, selectedTypes) => {
     return false;
 };
 
+export const getActualQuestionCount = (test, partNumber = null) => {
+    if (!test) return 0;
+
+    const partNum = partNumber ?? test.partNumber ?? test.part_number ?? null;
+    if (partNum == null && test.totalQuestions) return test.totalQuestions;
+
+    let items = test.questions || test.sections;
+    if (!items || !Array.isArray(items)) {
+        // Fallback if no questions array
+        const type = test.type?.toLowerCase() || "";
+        if (partNum != null) {
+            return type === 'reading' ? 13 : 10;
+        }
+        const titleLower = test.title?.toLowerCase() || "";
+        const isFull = titleLower.includes('full') || titleLower.includes('/') || (test.passages && test.passages.length > 1);
+        if (type === 'reading') return isFull ? 40 : 13;
+        if (type === 'listening') return isFull ? 40 : 10;
+        return 40;
+    }
+
+    // If partNum is specified, filter questions by the corresponding passage/part ID
+    if (partNum != null) {
+        let passageId = null;
+        if (test.parts && test.parts[`part${partNum}`]) {
+            passageId = test.parts[`part${partNum}`].id;
+        } else {
+            const passages = test.passages || [];
+            passageId = passages[partNum - 1]?.id;
+        }
+
+        if (passageId) {
+            items = items.filter(q => String(q.passageId) === String(passageId));
+        }
+    }
+
+    const ids = new Set();
+    const extract = (obj) => {
+        if (!obj) return;
+        if (obj.id && !isNaN(parseInt(obj.id))) {
+            ids.add(parseInt(obj.id));
+        }
+        if (obj.rows && Array.isArray(obj.rows)) {
+            obj.rows.forEach(row => {
+                const cells = Array.isArray(row) ? row : (row.cells || []);
+                cells.forEach(cell => {
+                    if (!cell) return;
+                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
+                        extract(cell);
+                    }
+                    if (cell.isMultiQuestion && Array.isArray(cell.content)) {
+                        cell.content.forEach(extract);
+                    }
+                    if (cell.isMixed && Array.isArray(cell.parts)) {
+                        cell.parts.forEach(part => {
+                            if (part && part.type === 'input') {
+                                extract(part);
+                            }
+                        });
+                    }
+                });
+            });
+        }
+        if (Array.isArray(obj.items)) obj.items.forEach(extract);
+        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
+        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
+    };
+
+    items.forEach(extract);
+    
+    const count = ids.size;
+    if (count > 0) return count;
+
+    // Fallback if no specific integer IDs were found
+    if (partNum != null) {
+        const type = test.type?.toLowerCase() || "";
+        return type === 'reading' ? 13 : 10;
+    }
+    const type = test.type?.toLowerCase() || "";
+    const titleLower = test.title?.toLowerCase() || "";
+    const isFull = titleLower.includes('full') || titleLower.includes('/') || (test.passages && test.passages.length > 1);
+    if (type === 'reading') return isFull ? 40 : 13;
+    if (type === 'listening') return isFull ? 40 : 10;
+    return 40;
+};
+
+
