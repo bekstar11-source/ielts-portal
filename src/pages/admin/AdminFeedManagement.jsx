@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { db, storage } from '../../firebase/firebase';
 import { 
     collection, getDocs, addDoc, deleteDoc, doc, 
-    query, orderBy, serverTimestamp, Timestamp, where 
+    query, orderBy, serverTimestamp, Timestamp, where, limit
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { 
     FaArrowLeft, FaPlus, FaTrash, FaCheck, FaInfoCircle, 
-    FaExclamationTriangle, FaTimes, FaCamera, FaLink, FaImage, FaFilm 
+    FaExclamationTriangle, FaTimes, FaCamera, FaLink, FaImage, FaFilm,
+    FaBookOpen, FaVolumeUp, FaFileAlt, FaChevronLeft, FaChevronRight,
+    FaBullhorn, FaHeart, FaComment, FaEye, FaShareAlt
 } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
@@ -39,7 +41,8 @@ export default function AdminFeedManagement() {
         announcementType: 'info',
         ctaUrl: '',
         ctaText: '',
-        mediaFile: null
+        mediaFile: null,
+        mediaFiles: [] // Multiple images
     });
 
     const [storyForm, setStoryForm] = useState({
@@ -48,62 +51,115 @@ export default function AdminFeedManagement() {
         ctaUrl: '',
         ctaText: '',
         durationHours: '24',
-        mediaFile: null
+        mediaFile: null,
+        // Sticker States
+        interactiveType: 'none', // 'none' | 'quiz' | 'poll'
+        stickerQuestion: '',
+        stickerOptions: ['', ''],
+        correctOptionIndex: '0'
     });
 
-    // Test Selector States
-    const [showTestSelector, setShowTestSelector] = useState(null); // 'post' | 'story' | null
-    const [allTests, setAllTests] = useState([]);
-    const [selectorSearchTerm, setSelectorSearchTerm] = useState('');
-    const [loadingSelectorTests, setLoadingSelectorTests] = useState(false);
+    // Object URL previews for live mockup
+    const [storyMediaPreview, setStoryMediaPreview] = useState("");
+    const [postMediaPreviews, setPostMediaPreviews] = useState([]);
+    const [previewCarouselIndex, setPreviewCarouselIndex] = useState(0);
 
-    const openTestSelector = async (target) => {
-        setShowTestSelector(target);
-        if (allTests.length === 0) {
-            setLoadingSelectorTests(true);
-            try {
+    // Unified Material Selector States
+    const [showMaterialSelector, setShowMaterialSelector] = useState(null); // 'post' | 'story' | null
+    const [materialTab, setMaterialTab] = useState('tests'); // 'tests' | 'podcasts' | 'articles'
+    const [allTests, setAllTests] = useState([]);
+    const [allPodcasts, setAllPodcasts] = useState([]);
+    const [allArticles, setAllArticles] = useState([]);
+    const [selectorSearchTerm, setSelectorSearchTerm] = useState('');
+    const [loadingSelector, setLoadingSelector] = useState(false);
+
+    const openMaterialSelector = async (target) => {
+        setShowMaterialSelector(target);
+        setLoadingSelector(true);
+        try {
+            if (allTests.length === 0) {
                 const q = query(
                     collection(db, "tests_metadata"), 
                     orderBy("createdAt", "desc"),
-                    limit(500)
+                    limit(200)
                 );
                 const snap = await getDocs(q);
                 const testsList = snap.docs
                     .map(d => ({ id: d.id, ...d.data() }))
                     .filter(t => !t.id.startsWith("_tag") && t.id !== "tag_metadata");
                 setAllTests(testsList);
-            } catch (err) {
-                console.error("Error fetching tests for selector:", err);
-                toast.error("Testlarni yuklab bo'lmadi.");
-            } finally {
-                setLoadingSelectorTests(false);
             }
+            if (allPodcasts.length === 0) {
+                const q = query(
+                    collection(db, "podcasts"),
+                    orderBy("createdAt", "desc"),
+                    limit(200)
+                );
+                const snap = await getDocs(q);
+                setAllPodcasts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            }
+            if (allArticles.length === 0) {
+                const q = query(
+                    collection(db, "articles"),
+                    orderBy("createdAt", "desc"),
+                    limit(200)
+                );
+                const snap = await getDocs(q);
+                setAllArticles(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            }
+        } catch (err) {
+            console.error("Error fetching selector data:", err);
+            toast.error("Ma'lumotlarni yuklab bo'lmadi.");
+        } finally {
+            setLoadingSelector(false);
         }
     };
 
-    const handleSelectTestForCta = (test) => {
-        if (showTestSelector === 'post') {
+    const handleSelectMaterial = (item, type) => {
+        let url = "";
+        let text = "";
+        
+        if (type === 'tests') {
+            url = `/test/${item.id}`;
+            text = "Testni Boshlash";
+        } else if (type === 'podcasts') {
+            url = `/podcast/${item.id}`;
+            text = "Podcastni Eshitish";
+        } else if (type === 'articles') {
+            url = `/article/${item.id}`;
+            text = "Maqolani O'qish";
+        }
+
+        if (showMaterialSelector === 'post') {
             setPostForm(prev => ({
                 ...prev,
-                ctaUrl: `/test/${test.id}`,
-                ctaText: 'Testni Boshlash'
+                ctaUrl: url,
+                ctaText: text,
+                title: prev.title || item.title
             }));
-        } else if (showTestSelector === 'story') {
+        } else if (showMaterialSelector === 'story') {
             setStoryForm(prev => ({
                 ...prev,
-                ctaUrl: `/test/${test.id}`,
-                ctaText: 'Testni Boshlash',
-                text: prev.text || test.title
+                ctaUrl: url,
+                ctaText: text,
+                text: prev.text || item.title
             }));
         }
-        setShowTestSelector(null);
+        setShowMaterialSelector(null);
         setSelectorSearchTerm('');
     };
 
-    const filteredSelectorTests = allTests.filter(t => 
-        (t.title || '').toLowerCase().includes(selectorSearchTerm.toLowerCase()) ||
-        (t.type || '').toLowerCase().includes(selectorSearchTerm.toLowerCase())
-    );
+    // Filter selector items
+    const getFilteredSelectorItems = () => {
+        const queryStr = selectorSearchTerm.toLowerCase();
+        if (materialTab === 'tests') {
+            return allTests.filter(t => (t.title || '').toLowerCase().includes(queryStr) || (t.type || '').toLowerCase().includes(queryStr));
+        } else if (materialTab === 'podcasts') {
+            return allPodcasts.filter(p => (p.title || '').toLowerCase().includes(queryStr) || (p.level || '').toLowerCase().includes(queryStr));
+        } else {
+            return allArticles.filter(a => (a.title || '').toLowerCase().includes(queryStr) || (a.category || '').toLowerCase().includes(queryStr));
+        }
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -150,14 +206,27 @@ export default function AdminFeedManagement() {
 
         setUploading(true);
         try {
-            let mediaUrl = "";
+            let mediaUrls = [];
             let mediaType = "none";
 
-            if (postForm.mediaFile && postForm.type === 'post') {
-                const fileRef = ref(storage, `feed_posts/${Date.now()}_${postForm.mediaFile.name}`);
-                const uploadSnap = await uploadBytes(fileRef, postForm.mediaFile);
-                mediaUrl = await getDownloadURL(uploadSnap.ref);
-                mediaType = postForm.mediaFile.type.startsWith('video/') ? 'video' : 'image';
+            if (postForm.type === 'post') {
+                if (postForm.mediaFiles && postForm.mediaFiles.length > 0) {
+                    // Upload multiple images
+                    const uploadPromises = Array.from(postForm.mediaFiles).map(async (file) => {
+                        const fileRef = ref(storage, `feed_posts/${Date.now()}_${file.name}`);
+                        const uploadSnap = await uploadBytes(fileRef, file);
+                        return getDownloadURL(uploadSnap.ref);
+                    });
+                    mediaUrls = await Promise.all(uploadPromises);
+                    mediaType = 'carousel';
+                } else if (postForm.mediaFile) {
+                    // Single media fallback
+                    const fileRef = ref(storage, `feed_posts/${Date.now()}_${postForm.mediaFile.name}`);
+                    const uploadSnap = await uploadBytes(fileRef, postForm.mediaFile);
+                    const singleUrl = await getDownloadURL(uploadSnap.ref);
+                    mediaUrls = [singleUrl];
+                    mediaType = postForm.mediaFile.type.startsWith('video/') ? 'video' : 'image';
+                }
             }
 
             const docData = {
@@ -172,8 +241,9 @@ export default function AdminFeedManagement() {
                 docData.title = postForm.title;
                 docData.announcementType = postForm.announcementType;
             } else {
-                if (mediaUrl) {
-                    docData.mediaUrl = mediaUrl;
+                if (mediaUrls.length > 0) {
+                    docData.mediaUrls = mediaUrls;
+                    docData.mediaUrl = mediaUrls[0]; // backward compatibility
                     docData.mediaType = mediaType;
                 }
                 if (postForm.ctaUrl) {
@@ -192,8 +262,10 @@ export default function AdminFeedManagement() {
                 announcementType: 'info',
                 ctaUrl: '',
                 ctaText: '',
-                mediaFile: null
+                mediaFile: null,
+                mediaFiles: []
             });
+            setPostMediaPreviews([]);
             fetchData();
         } catch (err) {
             console.error("Error creating post:", err);
@@ -211,6 +283,16 @@ export default function AdminFeedManagement() {
         }
         if (storyForm.mediaType === 'text' && !storyForm.text) {
             return toast.error("Matnli hikoya uchun matn kiritilishi shart!");
+        }
+
+        if (storyForm.interactiveType !== 'none') {
+            if (!storyForm.stickerQuestion.trim()) {
+                return toast.error("Sticker savolini kiritish majburiy!");
+            }
+            const activeOptions = storyForm.stickerOptions.filter(o => o.trim() !== "");
+            if (activeOptions.length < 2) {
+                return toast.error("Kamida 2 ta javob varianti bo'lishi shart!");
+            }
         }
 
         setUploading(true);
@@ -242,6 +324,22 @@ export default function AdminFeedManagement() {
                 docData.ctaText = storyForm.ctaText || "Ko'rish";
             }
 
+            if (storyForm.interactiveType !== 'none') {
+                const activeOptions = storyForm.stickerOptions.filter(o => o.trim() !== "");
+                const votesMap = {};
+                activeOptions.forEach((_, i) => {
+                    votesMap[i] = 0;
+                });
+                
+                docData.interactiveData = {
+                    type: storyForm.interactiveType,
+                    question: storyForm.stickerQuestion.trim(),
+                    options: activeOptions,
+                    correctIndex: storyForm.interactiveType === 'quiz' ? parseInt(storyForm.correctOptionIndex) : null,
+                    votes: votesMap
+                };
+            }
+
             await addDoc(collection(db, 'stories'), docData);
             toast.success("Story chop etildi! 📸");
             setShowStoryModal(false);
@@ -251,8 +349,13 @@ export default function AdminFeedManagement() {
                 ctaUrl: '',
                 ctaText: '',
                 durationHours: '24',
-                mediaFile: null
+                mediaFile: null,
+                interactiveType: 'none',
+                stickerQuestion: '',
+                stickerOptions: ['', ''],
+                correctOptionIndex: '0'
             });
+            setStoryMediaPreview("");
             fetchData();
         } catch (err) {
             console.error("Error creating story:", err);
@@ -284,6 +387,34 @@ export default function AdminFeedManagement() {
         }
     };
 
+    // Helper to add/remove sticker options
+    const handleUpdateStickerOption = (index, value) => {
+        const updated = [...storyForm.stickerOptions];
+        updated[index] = value;
+        setStoryForm({ ...storyForm, stickerOptions: updated });
+    };
+
+    const handleAddStickerOption = () => {
+        if (storyForm.stickerOptions.length < 4) {
+            setStoryForm({
+                ...storyForm,
+                stickerOptions: [...storyForm.stickerOptions, '']
+            });
+        }
+    };
+
+    const handleRemoveStickerOption = (index) => {
+        if (storyForm.stickerOptions.length > 2) {
+            const updated = storyForm.stickerOptions.filter((_, i) => i !== index);
+            setStoryForm({
+                ...storyForm,
+                stickerOptions: updated,
+                // Adjust correct option index if it is now out of bounds
+                correctOptionIndex: parseInt(storyForm.correctOptionIndex) >= updated.length ? '0' : storyForm.correctOptionIndex
+            });
+        }
+    };
+
     return (
         <div className={`min-h-screen font-sans p-4 md:p-6 transition-colors duration-200 ${
             isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'
@@ -311,13 +442,41 @@ export default function AdminFeedManagement() {
 
                     <div className="flex gap-2">
                         <button
-                            onClick={() => setShowStoryModal(true)}
+                            onClick={() => {
+                                setStoryMediaPreview("");
+                                setStoryForm({
+                                    mediaType: 'image',
+                                    text: '',
+                                    ctaUrl: '',
+                                    ctaText: '',
+                                    durationHours: '24',
+                                    mediaFile: null,
+                                    interactiveType: 'none',
+                                    stickerQuestion: '',
+                                    stickerOptions: ['', ''],
+                                    correctOptionIndex: '0'
+                                });
+                                setShowStoryModal(true);
+                            }}
                             className="px-4 py-2 bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:opacity-90 text-white rounded-xl font-bold flex items-center gap-2 text-xs shadow-md transition"
                         >
                             <FaPlus /> Yangi Story
                         </button>
                         <button
-                            onClick={() => setShowPostModal(true)}
+                            onClick={() => {
+                                setPostMediaPreviews([]);
+                                setPostForm({
+                                    type: 'post',
+                                    title: '',
+                                    content: '',
+                                    announcementType: 'info',
+                                    ctaUrl: '',
+                                    ctaText: '',
+                                    mediaFile: null,
+                                    mediaFiles: []
+                                });
+                                setShowPostModal(true);
+                            }}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 text-xs shadow-md transition"
                         >
                             <FaPlus /> Yangi Post
@@ -373,7 +532,7 @@ export default function AdminFeedManagement() {
                                 >
                                     <div className="flex-1 flex gap-4">
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
-                                            isDark ? 'bg-white/5' : 'bg-gray-50 border border-gray-100'
+                                            isDark ? 'bg-white/5' : 'bg-gray-55 border border-gray-100'
                                         }`}>
                                             {post.type === 'announcement' ? '📢' : '📝'}
                                         </div>
@@ -385,6 +544,11 @@ export default function AdminFeedManagement() {
                                                 }`}>
                                                     {post.type}
                                                 </span>
+                                                {post.mediaType === 'carousel' && (
+                                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-purple-100 dark:bg-purple-900/30 text-purple-600 border-purple-500/20">
+                                                        Karusel ({post.mediaUrls?.length || 0})
+                                                    </span>
+                                                )}
                                             </div>
                                             <p className={`text-xs leading-relaxed line-clamp-2 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
                                                 {post.content}
@@ -401,7 +565,7 @@ export default function AdminFeedManagement() {
                                     <button
                                         onClick={() => handleDeletePost(post.id)}
                                         className={`p-2.5 rounded-xl transition ${
-                                            isDark ? 'bg-white/5 hover:bg-red-500/10 hover:text-red-500' : 'bg-gray-50 border border-gray-100 hover:bg-red-50 hover:text-red-600 hover:border-red-100'
+                                            isDark ? 'bg-white/5 hover:bg-red-500/10 hover:text-red-500' : 'bg-gray-55 border border-gray-100 hover:bg-red-50 hover:text-red-600 hover:border-red-100'
                                         }`}
                                     >
                                         <FaTrash size={12} />
@@ -457,7 +621,14 @@ export default function AdminFeedManagement() {
 
                                         <div className="relative z-10 p-3 bg-gradient-to-t from-black/95 via-black/40 to-transparent text-white space-y-1">
                                             <p className="text-[9px] text-white/50">{story.createdAt.toLocaleDateString()}</p>
-                                            <p className="text-[10px] font-bold line-clamp-1">{story.text || 'Rasm / Video'}</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <p className="text-[10px] font-bold line-clamp-1 flex-1">{story.text || 'Story Media'}</p>
+                                                {story.interactiveData && (
+                                                    <span className="text-[8px] font-bold px-1.5 py-0.5 bg-gradient-to-r from-pink-500 to-yellow-500 rounded text-white shrink-0 uppercase">
+                                                        {story.interactiveData.type}
+                                                    </span>
+                                                )}
+                                            </div>
                                             {story.ctaUrl && <p className="text-[8px] text-blue-400 font-bold truncate">🔗 {story.ctaText || 'CTA'}</p>}
                                         </div>
                                     </div>
@@ -469,346 +640,733 @@ export default function AdminFeedManagement() {
 
             </div>
 
-            {/* CREATE POST MODAL */}
+            {/* CREATE POST MODAL WITH PREVIEW */}
             {showPostModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className={`w-full max-w-lg rounded-3xl p-6 border relative transition-colors ${
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+                    <div className={`w-full max-w-5xl rounded-3xl p-6 border relative transition-colors grid grid-cols-1 lg:grid-cols-12 gap-8 my-8 ${
                         isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
                     }`}>
                         <button 
                             onClick={() => setShowPostModal(false)} 
-                            className={`absolute top-4 right-4 hover:opacity-80 transition-opacity ${isDark ? 'text-white/40' : 'text-gray-400'}`}
+                            className={`absolute top-4 right-4 hover:opacity-80 transition-opacity z-10 ${isDark ? 'text-white/40' : 'text-gray-400'}`}
                         >
                             <FaTimes />
                         </button>
-                        <h2 className="text-xl font-bold mb-4">Yangiliklar Tasmasiga Post Yaratish</h2>
 
-                        <form onSubmit={handleCreatePost} className="space-y-4">
+                        {/* Left Side: Form */}
+                        <div className="lg:col-span-7 flex flex-col justify-between">
                             <div>
-                                <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Post Turi</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {['post', 'announcement'].map((type) => (
-                                        <button
-                                            key={type}
-                                            type="button"
-                                            onClick={() => setPostForm({ ...postForm, type })}
-                                            className={`py-2 rounded-xl text-xs font-bold capitalize transition border ${
-                                                postForm.type === type 
-                                                    ? 'bg-blue-600 text-white border-blue-600' 
-                                                    : (isDark ? 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10' : 'bg-white border-gray-250 text-gray-500 hover:bg-gray-50')
-                                            }`}
-                                        >
-                                            {type === 'post' ? '📝 Rasm & Matn (Post)' : '📢 E\'lon (Sariq/Qizil/Yashil)'}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {postForm.type === 'announcement' ? (
-                                <>
+                                <h2 className="text-xl font-bold mb-4">Yangiliklar Tasmasiga Post Yaratish</h2>
+                                <form onSubmit={handleCreatePost} className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-bold uppercase mb-1 text-gray-400">E'lon Turi</label>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {['info', 'success', 'warning', 'danger'].map((t) => (
+                                        <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Post Turi</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {['post', 'announcement'].map((type) => (
                                                 <button
-                                                    key={t}
+                                                    key={type}
                                                     type="button"
-                                                    onClick={() => setPostForm({ ...postForm, announcementType: t })}
-                                                    className={`py-2 rounded-lg text-[10px] font-bold uppercase transition border ${
-                                                        postForm.announcementType === t 
-                                                            ? 'bg-amber-500 text-white border-amber-500' 
+                                                    onClick={() => setPostForm({ ...postForm, type })}
+                                                    className={`py-2 rounded-xl text-xs font-bold capitalize transition border ${
+                                                        postForm.type === type 
+                                                            ? 'bg-blue-600 text-white border-blue-600' 
                                                             : (isDark ? 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10' : 'bg-white border-gray-250 text-gray-500 hover:bg-gray-50')
                                                     }`}
                                                 >
-                                                    {t}
+                                                    {type === 'post' ? '📝 Rasm & Matn (Post)' : '📢 E\'lon (Sariq/Qizil/Yashil)'}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
+
+                                    {postForm.type === 'announcement' ? (
+                                        <>
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase mb-1 text-gray-400">E'lon Turi</label>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    {['info', 'success', 'warning', 'danger'].map((t) => (
+                                                        <button
+                                                            key={t}
+                                                            type="button"
+                                                            onClick={() => setPostForm({ ...postForm, announcementType: t })}
+                                                            className={`py-2 rounded-lg text-[10px] font-bold uppercase transition border ${
+                                                                postForm.announcementType === t 
+                                                                    ? 'bg-amber-500 text-white border-amber-500' 
+                                                                    : (isDark ? 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10' : 'bg-white border-gray-250 text-gray-500 hover:bg-gray-50')
+                                                            }`}
+                                                        >
+                                                            {t}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase mb-1 text-gray-400">Sarlavha</label>
+                                                <input
+                                                    type="text"
+                                                    className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 transition-all ${
+                                                        isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
+                                                    }`}
+                                                    placeholder="Masalan: Ertaga 9:00 da Mock Imtihoni!"
+                                                    value={postForm.title}
+                                                    onChange={e => setPostForm({ ...postForm, title: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Upload Media to Storage */}
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Rasmlar (Bir nechta tanlab Karusel qilish mumkin)</label>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    onChange={e => {
+                                                        const files = e.target.files;
+                                                        setPostForm({ ...postForm, mediaFiles: files, mediaFile: null });
+                                                        if (files && files.length > 0) {
+                                                            const urls = Array.from(files).map(file => URL.createObjectURL(file));
+                                                            setPostMediaPreviews(urls);
+                                                            setPreviewCarouselIndex(0);
+                                                        } else {
+                                                            setPostMediaPreviews([]);
+                                                        }
+                                                    }}
+                                                    className="text-xs w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                                                />
+                                            </div>
+
+                                            {/* Unified Material Selector button */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <label className="block text-xs font-bold uppercase text-gray-400">CTA Link (Ixtiyoriy)</label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openMaterialSelector('post')}
+                                                            className="text-[10px] text-blue-500 hover:text-blue-400 font-bold transition flex items-center gap-1"
+                                                        >
+                                                            🔍 Material tanlash
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 transition ${
+                                                            isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
+                                                        }`}
+                                                        placeholder="/test/ID, /podcast/ID yoki /article/ID"
+                                                        value={postForm.ctaUrl}
+                                                        onChange={e => setPostForm({ ...postForm, ctaUrl: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase mb-1 text-gray-400">CTA Matni</label>
+                                                    <input
+                                                        type="text"
+                                                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 transition ${
+                                                            isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
+                                                        }`}
+                                                        placeholder="Masalan: Testni boshlash"
+                                                        value={postForm.ctaText}
+                                                        onChange={e => setPostForm({ ...postForm, ctaText: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
                                     <div>
-                                        <label className="block text-xs font-bold uppercase mb-1 text-gray-400">Sarlavha</label>
-                                        <input
-                                            type="text"
-                                            className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 transition-all ${
+                                        <label className="block text-xs font-bold uppercase mb-1 text-gray-400">Post Xabari / Matni</label>
+                                        <textarea
+                                            className={`w-full border rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-all h-28 resize-none ${
                                                 isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
                                             }`}
-                                            placeholder="Masalan: Ertaga 9:00 da Mock Imtihoni!"
-                                            value={postForm.title}
-                                            onChange={e => setPostForm({ ...postForm, title: e.target.value })}
+                                            placeholder="Bu yerga batafsil ma'lumot yozing..."
+                                            value={postForm.content}
+                                            onChange={e => setPostForm({ ...postForm, content: e.target.value })}
                                             required
                                         />
                                     </div>
-                                </>
-                            ) : (
-                                <>
-                                    {/* Upload Media to Storage */}
+
+                                    <button
+                                        type="submit"
+                                        disabled={uploading}
+                                        className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition disabled:opacity-50 text-sm shadow-md"
+                                    >
+                                        {uploading ? "Yuklanmoqda..." : "Postni chop etish"}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {/* Right Side: iPhone Live Preview */}
+                        <div className="lg:col-span-5 flex flex-col items-center justify-center bg-gray-100 dark:bg-black/40 rounded-3xl p-6 border border-dashed border-gray-250 dark:border-white/5">
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-4">LIVE PREVIEW</span>
+                            
+                            {/* iPhone Shell */}
+                            <div className="w-[280px] h-[560px] rounded-[40px] border-[8px] border-zinc-800 bg-white dark:bg-zinc-950 shadow-2xl relative overflow-hidden flex flex-col justify-between select-none">
+                                {/* Dynamic Island / Notch */}
+                                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-4 bg-zinc-800 rounded-full z-30" />
+                                
+                                {/* Status bar */}
+                                <div className="h-6 px-6 pt-1 flex justify-between items-center text-[9px] font-bold text-gray-500 dark:text-gray-400 z-20">
+                                    <span>09:41</span>
+                                    <div className="flex items-center gap-1">
+                                        <span>📶</span>
+                                        <span>🔋</span>
+                                    </div>
+                                </div>
+
+                                {/* Mock App Screen */}
+                                <div className="flex-1 flex flex-col bg-white dark:bg-[#09090b] overflow-y-auto overflow-x-hidden p-3 relative scrollbar-none">
+                                    
+                                    {/* Mock Post Card */}
+                                    <div className="w-full border border-gray-150 dark:border-white/5 rounded-2xl p-3 bg-white dark:bg-zinc-900/60 shadow-sm flex flex-col gap-2.5">
+                                        
+                                        {/* Mock Header */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-6 h-6 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black text-[9px] font-black">
+                                                    IP
+                                                </div>
+                                                <div>
+                                                    <span className="font-bold text-[10px] text-gray-900 dark:text-white block leading-none">IELTS Portal Admin</span>
+                                                    <span className="text-[7px] text-gray-400 block mt-0.5">3 daqiqa oldin</span>
+                                                </div>
+                                            </div>
+                                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
+                                                postForm.type === 'announcement' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                                            }`}>
+                                                {postForm.type === 'announcement' ? "E'lon" : 'Post'}
+                                            </span>
+                                        </div>
+
+                                        {/* Mock Media / Announcement */}
+                                            <div className="p-3 rounded-xl border bg-amber-50 dark:bg-amber-950/10 border-amber-100 dark:border-amber-900/20 text-amber-900 dark:text-amber-200 text-[10px] flex gap-2">
+                                                <FaBullhorn className="w-3 h-3 mt-0.5 shrink-0" />
+                                                <div>
+                                                    <h5 className="font-bold mb-0.5">{postForm.title || "Sarlavha shu yerda"}</h5>
+                                                    <p className="text-[9px] leading-relaxed line-clamp-4">{postForm.content || "Tafsilotlar shu yerda bo'ladi."}</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col gap-2">
+                                                {/* Image Carousel preview */}
+                                                {postMediaPreviews.length > 0 ? (
+                                                    <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-50 border relative">
+                                                        <img src={postMediaPreviews[previewCarouselIndex]} alt="preview" className="w-full h-full object-cover" />
+                                                        
+                                                        {postMediaPreviews.length > 1 && (
+                                                            <>
+                                                                <button 
+                                                                    onClick={() => setPreviewCarouselIndex(prev => (prev - 1 + postMediaPreviews.length) % postMediaPreviews.length)}
+                                                                    className="absolute left-1 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-black/40 text-white flex items-center justify-center text-[8px]"
+                                                                >
+                                                                    ‹
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => setPreviewCarouselIndex(prev => (prev + 1) % postMediaPreviews.length)}
+                                                                    className="absolute right-1 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-black/40 text-white flex items-center justify-center text-[8px]"
+                                                                >
+                                                                    ›
+                                                                </button>
+                                                                <div className="absolute bottom-1 inset-x-0 flex justify-center gap-1">
+                                                                    {postMediaPreviews.map((_, i) => (
+                                                                        <div key={i} className={`w-1 h-1 rounded-full ${i === previewCarouselIndex ? 'bg-white' : 'bg-white/40'}`} />
+                                                                    ))}
+                                                                </div>
+                                                                <div className="absolute top-1.5 right-1.5 bg-black/60 px-1 py-0.5 rounded text-[7px] text-white font-bold">
+                                                                    {previewCarouselIndex + 1}/{postMediaPreviews.length}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-full aspect-[4/3] rounded-xl bg-gray-100 dark:bg-zinc-800 border border-dashed flex flex-col items-center justify-center text-gray-400">
+                                                        <FaImage size={18} />
+                                                        <span className="text-[8px] mt-1">Rasm biriktirilmagan</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Text content */}
+                                                <div className="text-[10px] leading-relaxed line-clamp-3">
+                                                    <span className="font-bold mr-1.5">IELTS Portal Admin</span>
+                                                    {postForm.content || "Tavsif matni..."}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Mock Material Selector CTA card */}
+                                        {postForm.ctaUrl && postForm.type !== 'announcement' && (
+                                            <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-150 text-[9px]">
+                                                <div className="flex items-center gap-2">
+                                                    <FaBookOpen className="text-blue-500 shrink-0" size={10} />
+                                                    <div className="font-bold line-clamp-1 w-[110px]">
+                                                        {postForm.title || "Material nomi"}
+                                                    </div>
+                                                </div>
+                                                <span className="px-2 py-1 bg-black dark:bg-white text-white dark:text-black font-bold text-[7px] rounded-lg uppercase shrink-0">
+                                                    {postForm.ctaText || "O'tish"}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Mock Action Bar */}
+                                        <div className="flex justify-between items-center text-gray-400 text-[10px] pt-1">
+                                            <div className="flex gap-2">
+                                                <span>❤️ 0</span>
+                                                <span>💬 0</span>
+                                            </div>
+                                            <span>📤</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CREATE STORY STORY MODAL WITH PREVIEW */}
+            {showStoryModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+                    <div className={`w-full max-w-5xl rounded-3xl p-6 border relative transition-colors grid grid-cols-1 lg:grid-cols-12 gap-8 my-8 ${
+                        isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
+                    }`}>
+                        <button 
+                            onClick={() => setShowStoryModal(false)} 
+                            className={`absolute top-4 right-4 hover:opacity-80 transition-opacity z-10 ${isDark ? 'text-white/40' : 'text-gray-400'}`}
+                        >
+                            <FaTimes />
+                        </button>
+
+                        {/* Left Side: Form */}
+                        <div className="lg:col-span-7 flex flex-col justify-between">
+                            <div>
+                                <h2 className="text-xl font-bold mb-4">Yangicha Admin Story Yaratish</h2>
+                                <form onSubmit={handleCreateStory} className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Rasm yoki Video</label>
-                                        <input
-                                            type="file"
-                                            accept="image/*,video/*"
-                                            onChange={e => setPostForm({ ...postForm, mediaFile: e.target.files[0] })}
-                                            className="text-xs w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                                        <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Story Turi</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[
+                                                { id: 'image', label: '🖼️ Rasm' },
+                                                { id: 'video', label: '🎥 Video' },
+                                                { id: 'text', label: '✍️ Faqat Matn' }
+                                            ].map((type) => (
+                                                <button
+                                                    key={type.id}
+                                                    type="button"
+                                                    onClick={() => setStoryForm({ ...storyForm, mediaType: type.id, mediaFile: null })}
+                                                    className={`py-2 rounded-xl text-xs font-bold transition border ${
+                                                        storyForm.mediaType === type.id 
+                                                            ? 'bg-pink-600 text-white border-pink-600 shadow-sm' 
+                                                            : (isDark ? 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10' : 'bg-white border-gray-250 text-gray-500 hover:bg-gray-50')
+                                                    }`}
+                                                >
+                                                    {type.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {storyForm.mediaType !== 'text' && (
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Fayl yuklash</label>
+                                            <input
+                                                type="file"
+                                                accept={storyForm.mediaType === 'video' ? 'video/*' : 'image/*'}
+                                                onChange={e => {
+                                                    const file = e.target.files[0];
+                                                    setStoryForm({ ...storyForm, mediaFile: file });
+                                                    if (file) {
+                                                        setStoryMediaPreview(URL.createObjectURL(file));
+                                                    } else {
+                                                        setStoryMediaPreview("");
+                                                    }
+                                                }}
+                                                className="text-xs w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-pink-600 file:text-white hover:file:bg-pink-500"
+                                                required
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase mb-1 text-gray-400">Hikoya Matni / Caption</label>
+                                        <textarea
+                                            className={`w-full border rounded-xl px-4 py-3 text-sm outline-none focus:border-pink-500 transition-all h-20 resize-none ${
+                                                isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
+                                            }`}
+                                            placeholder={storyForm.mediaType === 'text' ? 'Story uchun matn yozing...' : 'Rasm/Video ustiga yoziladigan matn...'}
+                                            value={storyForm.text}
+                                            onChange={e => setStoryForm({ ...storyForm, text: e.target.value })}
+                                            required={storyForm.mediaType === 'text'}
                                         />
                                     </div>
 
-                                    {/* Optional CTA links to tests/articles */}
+                                    {/* Unified Material Selector button */}
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <div className="flex justify-between items-center mb-1">
                                                 <label className="block text-xs font-bold uppercase text-gray-400">CTA Link (Ixtiyoriy)</label>
                                                 <button
                                                     type="button"
-                                                    onClick={() => openTestSelector('post')}
-                                                    className="text-[10px] text-blue-500 hover:text-blue-400 font-bold transition flex items-center gap-1"
+                                                    onClick={() => openMaterialSelector('story')}
+                                                    className="text-[10px] text-pink-500 hover:text-pink-400 font-bold transition flex items-center gap-1"
                                                 >
-                                                    🔍 Test tanlash
+                                                    🔍 Material tanlash
                                                 </button>
                                             </div>
                                             <input
                                                 type="text"
-                                                className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 transition ${
+                                                className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-pink-500 transition ${
                                                     isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
                                                 }`}
-                                                placeholder="/test/TEST_ID yoki /library"
-                                                value={postForm.ctaUrl}
-                                                onChange={e => setPostForm({ ...postForm, ctaUrl: e.target.value })}
+                                                placeholder="/test/ID, /podcast/ID yoki /article/ID"
+                                                value={storyForm.ctaUrl}
+                                                onChange={e => setStoryForm({ ...storyForm, ctaUrl: e.target.value })}
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold uppercase mb-1 text-gray-400">CTA Matni</label>
                                             <input
                                                 type="text"
-                                                className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-500 transition ${
+                                                className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-pink-500 transition ${
                                                     isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
                                                 }`}
-                                                placeholder="Masalan: Testni boshlash"
-                                                value={postForm.ctaText}
-                                                onChange={e => setPostForm({ ...postForm, ctaText: e.target.value })}
+                                                placeholder="Masalan: Testni Boshlash"
+                                                value={storyForm.ctaText}
+                                                onChange={e => setStoryForm({ ...storyForm, ctaText: e.target.value })}
                                             />
                                         </div>
                                     </div>
-                                </>
-                            )}
 
-                            <div>
-                                <label className="block text-xs font-bold uppercase mb-1 text-gray-400">Post Xabari / Matni</label>
-                                <textarea
-                                    className={`w-full border rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-all h-28 resize-none ${
-                                        isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
-                                    }`}
-                                    placeholder="Bu yerga batafsil ma'lumot yozing..."
-                                    value={postForm.content}
-                                    onChange={e => setPostForm({ ...postForm, content: e.target.value })}
-                                    required
-                                />
-                            </div>
+                                    {/* Interactive Sticker Section */}
+                                    <div className="border border-gray-200 dark:border-white/5 rounded-2xl p-4 space-y-4">
+                                        <h4 className="text-xs font-black text-pink-500 uppercase tracking-widest">Interaktiv Sticker (So'rovnoma / Quiz)</h4>
+                                        
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Sticker Turi</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {[
+                                                    { id: 'none', label: '❌ Oddiy' },
+                                                    { id: 'quiz', label: '📝 Quiz (Test)' },
+                                                    { id: 'poll', label: '📊 Poll (So\'rovnoma)' }
+                                                ].map((type) => (
+                                                    <button
+                                                        key={type.id}
+                                                        type="button"
+                                                        onClick={() => setStoryForm({ ...storyForm, interactiveType: type.id })}
+                                                        className={`py-1.5 rounded-lg text-xs font-bold transition border ${
+                                                            storyForm.interactiveType === type.id 
+                                                                ? 'bg-pink-600 text-white border-pink-600 shadow-sm' 
+                                                                : (isDark ? 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10' : 'bg-white border-gray-250 text-gray-500 hover:bg-gray-50')
+                                                        }`}
+                                                    >
+                                                        {type.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
 
-                            <button
-                                type="submit"
-                                disabled={uploading}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition disabled:opacity-50 text-sm shadow-md"
-                            >
-                                {uploading ? "Yuklanmoqda..." : "Postni chop etish"}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
+                                        {storyForm.interactiveType !== 'none' && (
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase mb-1 text-gray-400">Sticker Savoli</label>
+                                                    <input
+                                                        type="text"
+                                                        value={storyForm.stickerQuestion}
+                                                        onChange={e => setStoryForm({ ...storyForm, stickerQuestion: e.target.value })}
+                                                        placeholder="Savolni kiriting (e.g. Choose the correct preposition)"
+                                                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-pink-500 transition ${
+                                                            isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
+                                                        }`}
+                                                    />
+                                                </div>
 
-            {/* CREATE STORY MODAL */}
-            {showStoryModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className={`w-full max-w-lg rounded-3xl p-6 border relative transition-colors ${
-                        isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
-                    }`}>
-                        <button 
-                            onClick={() => setShowStoryModal(false)} 
-                            className={`absolute top-4 right-4 hover:opacity-80 transition-opacity ${isDark ? 'text-white/40' : 'text-gray-400'}`}
-                        >
-                            <FaTimes />
-                        </button>
-                        <h2 className="text-xl font-bold mb-4">Yangicha Admin Story Yaratish</h2>
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <label className="block text-xs font-bold uppercase text-gray-400">Variantlar</label>
+                                                        {storyForm.stickerOptions.length < 4 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleAddStickerOption}
+                                                                className="text-[10px] text-pink-500 font-bold hover:text-pink-400 flex items-center gap-1 transition"
+                                                            >
+                                                                ➕ Qo'shish
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        {storyForm.stickerOptions.map((opt, index) => (
+                                                            <div key={index} className="flex gap-2 items-center">
+                                                                <input
+                                                                    type="text"
+                                                                    value={opt}
+                                                                    onChange={e => handleUpdateStickerOption(index, e.target.value)}
+                                                                    placeholder={`Variant ${index + 1}`}
+                                                                    className={`flex-1 border rounded-xl px-3 py-2 text-xs outline-none focus:border-pink-500 transition ${
+                                                                        isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
+                                                                    }`}
+                                                                />
+                                                                {storyForm.stickerOptions.length > 2 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleRemoveStickerOption(index)}
+                                                                        className="p-2 text-gray-400 hover:text-red-500"
+                                                                    >
+                                                                        <FaTrash size={12} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
 
-                        <form onSubmit={handleCreateStory} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Story Turi</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {[
-                                        { id: 'image', label: '🖼️ Rasm' },
-                                        { id: 'video', label: '🎥 Video' },
-                                        { id: 'text', label: '✍️ Faqat Matn' }
-                                    ].map((type) => (
-                                        <button
-                                            key={type.id}
-                                            type="button"
-                                            onClick={() => setStoryForm({ ...storyForm, mediaType: type.id, mediaFile: null })}
-                                            className={`py-2 rounded-xl text-xs font-bold transition border ${
-                                                storyForm.mediaType === type.id 
-                                                    ? 'bg-pink-600 text-white border-pink-600 shadow-sm' 
-                                                    : (isDark ? 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10' : 'bg-white border-gray-250 text-gray-500 hover:bg-gray-50')
-                                            }`}
-                                        >
-                                            {type.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {storyForm.mediaType !== 'text' && (
-                                <div>
-                                    <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Fayl yuklash</label>
-                                    <input
-                                        type="file"
-                                        accept={storyForm.mediaType === 'video' ? 'video/*' : 'image/*'}
-                                        onChange={e => setStoryForm({ ...storyForm, mediaFile: e.target.files[0] })}
-                                        className="text-xs w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-pink-600 file:text-white hover:file:bg-pink-500"
-                                        required
-                                    />
-                                </div>
-                            )}
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase mb-1 text-gray-400">Hikoya Matni / Caption</label>
-                                <textarea
-                                    className={`w-full border rounded-xl px-4 py-3 text-sm outline-none focus:border-pink-500 transition-all h-24 resize-none ${
-                                        isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
-                                    }`}
-                                    placeholder={storyForm.mediaType === 'text' ? 'Story uchun matn yozing (masalan, e\'lon matni)...' : 'Rasm/Video ustiga yoziladigan qisqa matn...'}
-                                    value={storyForm.text}
-                                    onChange={e => setStoryForm({ ...storyForm, text: e.target.value })}
-                                    required={storyForm.mediaType === 'text'}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        <label className="block text-xs font-bold uppercase text-gray-400">CTA Link (Ixtiyoriy)</label>
-                                        <button
-                                            type="button"
-                                            onClick={() => openTestSelector('story')}
-                                            className="text-[10px] text-pink-500 hover:text-pink-400 font-bold transition flex items-center gap-1"
-                                        >
-                                            🔍 Test tanlash
-                                        </button>
+                                                {storyForm.interactiveType === 'quiz' && (
+                                                    <div>
+                                                        <label className="block text-xs font-bold uppercase mb-1 text-gray-400">To'g'ri javob variantini belgilang</label>
+                                                        <select
+                                                            value={storyForm.correctOptionIndex}
+                                                            onChange={e => setStoryForm({ ...storyForm, correctOptionIndex: e.target.value })}
+                                                            className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-pink-500 transition ${
+                                                                isDark ? 'bg-zinc-800 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
+                                                            }`}
+                                                        >
+                                                            {storyForm.stickerOptions.map((_, i) => (
+                                                                <option key={i} value={i}>Variant {i + 1}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                    <input
-                                        type="text"
-                                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-pink-500 transition ${
-                                            isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
-                                        }`}
-                                        placeholder="/test/TEST_ID yoki /library"
-                                        value={storyForm.ctaUrl}
-                                        onChange={e => setStoryForm({ ...storyForm, ctaUrl: e.target.value })}
-                                    />
+
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase mb-1 text-gray-400">Ko'rinish muddati</label>
+                                        <select
+                                            className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink-500 transition ${
+                                                isDark ? 'bg-zinc-800 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
+                                            }`}
+                                            value={storyForm.durationHours}
+                                            onChange={e => setStoryForm({ ...storyForm, durationHours: e.target.value })}
+                                        >
+                                            <option value="24">24 soat</option>
+                                            <option value="48">48 soat</option>
+                                            <option value="168">7 kun (1 hafta)</option>
+                                            <option value="9999">Muddatsiz (Admin o'chirguncha)</option>
+                                        </select>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={uploading}
+                                        className="w-full py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl transition disabled:opacity-50 text-sm shadow-md"
+                                    >
+                                        {uploading ? "Yuklanmoqda..." : "Story chop etish"}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {/* Right Side: iPhone Live Preview */}
+                        <div className="lg:col-span-5 flex flex-col items-center justify-center bg-[#18181b] rounded-3xl p-6 border border-zinc-800">
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-4">LIVE PREVIEW</span>
+                            
+                            {/* iPhone Shell */}
+                            <div className="w-[280px] h-[560px] rounded-[40px] border-[8px] border-zinc-800 bg-zinc-950 shadow-2xl relative overflow-hidden flex flex-col justify-between select-none">
+                                {/* Dynamic Island / Notch */}
+                                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-4 bg-zinc-800 rounded-full z-30" />
+                                
+                                {/* Status bar */}
+                                <div className="h-6 px-6 pt-1 flex justify-between items-center text-[9px] font-bold text-white/60 z-20">
+                                    <span>09:41</span>
+                                    <div className="flex items-center gap-1">
+                                        <span>📶</span>
+                                        <span>🔋</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase mb-1 text-gray-400">CTA Matni</label>
-                                    <input
-                                        type="text"
-                                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-pink-500 transition ${
-                                            isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
-                                        }`}
-                                        placeholder="Masalan: Testni Boshlash"
-                                        value={storyForm.ctaText}
-                                        onChange={e => setStoryForm({ ...storyForm, ctaText: e.target.value })}
-                                    />
+
+                                {/* Mock Story Screen */}
+                                <div className="flex-1 flex flex-col justify-between relative overflow-hidden bg-zinc-900">
+                                    
+                                    {/* Mock Background */}
+                                    <div className="absolute inset-0 z-0">
+                                        {storyForm.mediaType === 'text' ? (
+                                            <div className="w-full h-full bg-gradient-to-br from-[#1e1b4b] via-[#311042] to-[#0f172a] flex items-center justify-center p-4 text-center">
+                                                <p className="text-white text-[11px] font-bold leading-normal whitespace-pre-wrap px-4">
+                                                    {storyForm.text || "Story matni shu yerda bo'ladi..."}
+                                                </p>
+                                            </div>
+                                        ) : storyMediaPreview ? (
+                                            storyForm.mediaType === 'video' ? (
+                                                <video src={storyMediaPreview} className="w-full h-full object-cover opacity-60" muted playsInline />
+                                            ) : (
+                                                <img src={storyMediaPreview} alt="preview" className="w-full h-full object-cover opacity-80" />
+                                            )
+                                        ) : (
+                                            <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-gray-600 gap-1">
+                                                <FaImage size={24} />
+                                                <span className="text-[8px]">Fayl tanlanmagan</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Mock Top bar */}
+                                    <div className="relative z-10 px-4 pt-3 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-400 to-pink-500 p-[1px]">
+                                                <div className="w-full h-full rounded-full bg-zinc-800 flex items-center justify-center text-[7px] text-white font-bold">
+                                                    IP
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="font-bold text-[9px] text-white block leading-none">IELTS Portal Admin</span>
+                                                <span className="text-[7px] text-white/50 block mt-0.5">Bugun</span>
+                                            </div>
+                                        </div>
+                                        <span className="text-white/60 text-xs">✕</span>
+                                    </div>
+
+                                    {/* Mock Interactive Sticker Overlay */}
+                                    {storyForm.interactiveType !== 'none' && (
+                                        <div className="relative z-10 mx-4 p-3 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl text-white text-center shadow-lg my-auto">
+                                            <span className="inline-block text-[7px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-full bg-gradient-to-r from-pink-500 to-yellow-500 text-white mb-1.5">
+                                                {storyForm.interactiveType === 'quiz' ? 'QUIZ' : 'POLL'}
+                                            </span>
+                                            <p className="font-bold text-[10px] leading-snug line-clamp-3 mb-2">{storyForm.stickerQuestion || "Savol matni..."}</p>
+                                            
+                                            <div className="flex flex-col gap-1.5 text-left text-[9px]">
+                                                {storyForm.stickerOptions.filter(o => o.trim() !== "").map((opt, i) => {
+                                                    const isCorrect = storyForm.interactiveType === 'quiz' && parseInt(storyForm.correctOptionIndex) === i;
+                                                    return (
+                                                        <div key={i} className={`p-2 rounded-lg border flex items-center justify-between ${
+                                                            isCorrect ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-white/10 border-white/5 text-white/80'
+                                                        }`}>
+                                                            <span>{opt || `Variant ${i + 1}`}</span>
+                                                            {isCorrect && <FaCheck className="text-emerald-400 text-[8px]" />}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Mock Bottom Overlay */}
+                                    <div className="relative z-10 p-4 bg-gradient-to-t from-black/80 to-transparent flex flex-col items-center gap-2 mt-auto">
+                                        {storyForm.mediaType !== 'text' && storyForm.text && (
+                                            <p className="text-white text-[10px] text-center font-medium line-clamp-2 px-2">
+                                                {storyForm.text}
+                                            </p>
+                                        )}
+                                        {storyForm.ctaUrl && (
+                                            <div className="px-4 py-1.5 bg-white text-black font-bold rounded-full text-[8px] uppercase tracking-wider flex items-center gap-1 shadow-md">
+                                                {storyForm.ctaText || "Ko'rish"}
+                                                <FaLink size={7} />
+                                            </div>
+                                        )}
+                                    </div>
+
                                 </div>
                             </div>
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase mb-1 text-gray-400">Ko'rinish muddati</label>
-                                <select
-                                    className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink-500 transition ${
-                                        isDark ? 'bg-zinc-800 border-white/10 text-white' : 'bg-gray-55 border-gray-200'
-                                    }`}
-                                    value={storyForm.durationHours}
-                                    onChange={e => setStoryForm({ ...storyForm, durationHours: e.target.value })}
-                                >
-                                    <option value="24">24 soat</option>
-                                    <option value="48">48 soat</option>
-                                    <option value="168">7 kun (1 hafta)</option>
-                                    <option value="9999">Muddatsiz (Admin o'chirguncha)</option>
-                                </select>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={uploading}
-                                className="w-full py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl transition disabled:opacity-50 text-sm shadow-md"
-                            >
-                                {uploading ? "Yuklanmoqda..." : "Story chop etish"}
-                            </button>
-                        </form>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* TEST SELECTOR MODAL */}
-            {showTestSelector && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className={`w-full max-w-md rounded-3xl p-6 border relative flex flex-col max-h-[80vh] transition-colors ${
+            {/* UNIFIED MATERIAL SELECTOR MODAL */}
+            {showMaterialSelector && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+                    <div className={`w-full max-w-lg rounded-3xl p-6 border relative flex flex-col max-h-[85vh] transition-colors ${
                         isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
                     }`}>
                         <button 
                             type="button"
-                            onClick={() => { setShowTestSelector(null); setSelectorSearchTerm(''); }} 
+                            onClick={() => { setShowMaterialSelector(null); setSelectorSearchTerm(''); }} 
                             className={`absolute top-4 right-4 hover:opacity-80 transition-opacity ${isDark ? 'text-white/40' : 'text-gray-400'}`}
                         >
                             <FaTimes />
                         </button>
                         
-                        <h3 className="text-lg font-bold mb-2">Testni tanlang</h3>
+                        <h3 className="text-lg font-bold mb-1">Portal Materialini tanlang</h3>
                         <p className={`text-xs mb-4 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
-                            Story yoki Postga biriktirish uchun kerakli testni tanlang.
+                            Story yoki Postga biriktirish uchun kerakli materialni tanlang.
                         </p>
 
+                        {/* Material Selector Tabs */}
+                        <div className="flex border-b border-gray-200 dark:border-white/5 gap-4 mb-4 text-xs font-bold">
+                            {[
+                                { id: 'tests', label: '📖 Testlar', color: 'text-blue-500', bar: 'bg-blue-500' },
+                                { id: 'podcasts', label: '🎙️ Podcastlar', color: 'text-purple-500', bar: 'bg-purple-500' },
+                                { id: 'articles', label: '📰 Maqolalar', color: 'text-emerald-500', bar: 'bg-emerald-500' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => { setMaterialTab(tab.id); setSelectorSearchTerm(''); }}
+                                    className={`pb-2 transition relative ${
+                                        materialTab === tab.id ? tab.color : 'text-gray-400 dark:text-zinc-500 hover:text-gray-300'
+                                    }`}
+                                >
+                                    {tab.label}
+                                    {materialTab === tab.id && <div className={`absolute bottom-0 inset-x-0 h-0.5 ${tab.bar}`} />}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Search Input */}
                         <input
                             type="text"
                             value={selectorSearchTerm}
                             onChange={(e) => setSelectorSearchTerm(e.target.value)}
-                            placeholder="Test nomi yoki turi bo'yicha qidirish..."
-                            className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 mb-4 transition-all ${
-                                isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-55 border-gray-250'
+                            placeholder={`${
+                                materialTab === 'tests' ? 'Test nomi yoki turi...' : 
+                                materialTab === 'podcasts' ? 'Podcast nomi...' : 'Maqola nomi...'
+                            } bo'yicha qidirish...`}
+                            className={`w-full border rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-1 focus:ring-opacity-50 mb-4 transition-all ${
+                                isDark 
+                                    ? 'bg-white/5 border-white/10 text-white focus:border-pink-500 focus:ring-pink-500' 
+                                    : 'bg-gray-55 border-gray-250 focus:border-blue-500 focus:ring-blue-500'
                             }`}
                         />
 
-                        <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-                            {loadingSelectorTests ? (
+                        {/* List Area */}
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin max-h-[45vh]">
+                            {loadingSelector ? (
                                 <div className="flex justify-center items-center py-10">
-                                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
                                 </div>
-                            ) : filteredSelectorTests.length === 0 ? (
+                            ) : getFilteredSelectorItems().length === 0 ? (
                                 <div className="text-center py-10 text-xs text-gray-400">
-                                    Hech qanday test topilmadi.
+                                    Hech qanday material topilmadi.
                                 </div>
                             ) : (
-                                filteredSelectorTests.map(t => (
+                                getFilteredSelectorItems().map(item => (
                                     <button
-                                        key={t.id}
+                                        key={item.id}
                                         type="button"
-                                        onClick={() => handleSelectTestForCta(t)}
-                                        className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between text-xs font-medium ${
-                                            isDark 
-                                                ? 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10' 
-                                                : 'bg-gray-55 border-gray-150 hover:bg-gray-100 hover:border-gray-200'
+                                        onClick={() => handleSelectMaterial(item, materialTab)}
+                                        className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between text-xs font-bold gap-3 ${
+                                            isDark ? 'bg-white/5 border-white/5 hover:border-white/10' : 'bg-gray-50 border-gray-150 hover:bg-gray-100 hover:border-gray-250'
                                         }`}
                                     >
-                                        <div className="min-w-0 flex-1 pr-2">
-                                            <p className="font-bold truncate text-sm">{t.title}</p>
-                                            <p className={`text-[10px] mt-0.5 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
-                                                Kolleksiya: {t.collectionName || 'Kolleksiyasiz'}
+                                        <div className="min-w-0 flex-1">
+                                            <span className="line-clamp-1">{item.title || 'Sarlavhasiz'}</span>
+                                            <p className={`text-[9px] mt-0.5 font-normal ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
+                                                {materialTab === 'tests' ? `Kolleksiya: ${item.collectionName || 'Kolleksiyasiz'}` : 
+                                                 materialTab === 'podcasts' ? `Level: ${item.level || 'Barcha darajalar'}` : `Kategoriya: ${item.category || 'Kategoriyasiz'}`}
                                             </p>
                                         </div>
-                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase shrink-0 ${
-                                            t.type === 'reading' 
-                                                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 border-emerald-500/20' 
-                                                : t.type === 'listening' 
-                                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 border-blue-500/20' 
-                                                    : 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 border-purple-500/20'
+                                        
+                                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border uppercase shrink-0 ${
+                                            materialTab === 'tests' 
+                                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 border-blue-500/20' 
+                                                : materialTab === 'podcasts' 
+                                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 border-purple-500/20' 
+                                                    : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 border-emerald-500/20'
                                         }`}>
-                                            {t.type}
+                                            {materialTab === 'tests' ? item.type : materialTab}
                                         </span>
                                     </button>
                                 ))

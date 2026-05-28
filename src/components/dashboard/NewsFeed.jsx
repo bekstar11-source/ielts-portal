@@ -51,7 +51,7 @@ export default function NewsFeed({ user, userData }) {
 
     // Feed Loading Skeletons
     const renderSkeletons = () => (
-        <div className="space-y-6 px-4">
+        <div className="space-y-6 px-4 w-full max-w-[470px]">
             {[1, 2].map((i) => (
                 <div key={i} className="bg-white dark:bg-[#09090b] rounded-3xl border border-gray-150 dark:border-white/5 p-4 space-y-4 animate-pulse">
                     <div className="flex items-center gap-3">
@@ -72,12 +72,14 @@ export default function NewsFeed({ user, userData }) {
     );
 
     return (
-        <div className="w-full max-w-lg mx-auto bg-white dark:bg-[#09090b] min-h-screen pb-16 transition-colors">
+        <div className="w-full max-w-[630px] mx-auto bg-white dark:bg-[#09090b] min-h-screen pb-16 transition-colors flex flex-col items-start">
             {/* Top Stories */}
-            <StoriesContainer user={user} userData={userData} />
+            <div className="w-full lg:-ml-20 lg:w-[calc(100%+80px)]">
+                <StoriesContainer user={user} userData={userData} />
+            </div>
 
             {/* Posts Stream */}
-            <div className="mt-2 divide-y divide-gray-100 dark:divide-white/5">
+            <div className="mt-2 w-full max-w-[470px] divide-y divide-gray-100 dark:divide-white/5">
                 {posts.map(post => (
                     <FeedPostCard
                         key={post.id}
@@ -95,19 +97,19 @@ export default function NewsFeed({ user, userData }) {
             {loading && posts.length === 0 && renderSkeletons()}
 
             {!loading && posts.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center p-12 text-gray-400 dark:text-zinc-500 min-h-[40vh]">
+                <div className="flex flex-col items-center justify-center text-center p-12 text-gray-400 dark:text-zinc-500 min-h-[40vh] w-full max-w-[470px]">
                     <span className="text-sm font-medium">Hozircha hech qanday yangiliklar yo'q.</span>
                 </div>
             )}
 
             {hasMore && (
-                <div ref={loaderRef} className="py-8 flex justify-center items-center">
+                <div ref={loaderRef} className="py-8 flex justify-center items-center w-full max-w-[470px]">
                     <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 </div>
             )}
 
             {!hasMore && posts.length > 0 && (
-                <div className="py-12 text-center text-xs text-gray-400 dark:text-zinc-500 font-medium">
+                <div className="py-12 text-center text-xs text-gray-400 dark:text-zinc-500 font-medium w-full max-w-[470px]">
                     Siz barcha yangiliklarni ko'rib bo'ldingiz ✨
                 </div>
             )}

@@ -65,7 +65,6 @@ export default function DashboardHeader({
     const key = keyMap[id];
     return key ? t(`dashboard.${key}`) : fallback;
   };
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isStarredOpen, setIsStarredOpen] = useState(true);
@@ -112,7 +111,6 @@ export default function DashboardHeader({
   }, []);
 
   const coreItems = [
-    { id: 'dashboard', label: 'Home', path: '/dashboard', icon: Home },
     { id: 'mock', label: 'Mock Exam', path: '/mock', icon: Computer },
     { id: 'results', label: 'Results', path: '/my-results', icon: BarChart2 },
     { id: 'leaderboard', label: 'Reyting', path: '/leaderboard', icon: TrendingUp },
@@ -765,72 +763,13 @@ export default function DashboardHeader({
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex fixed top-0 left-0 bottom-0 w-60 bg-white dark:bg-[#09090b] border-r border-zinc-200/50 dark:border-zinc-800/80 z-[60] flex-col justify-between p-3 select-none overflow-y-auto hide-scrollbar font-sans">
         <div className="flex flex-col">
-          {/* Profile header */}
-          <div className="relative">
-            <div className="flex items-center justify-between py-0.5 mb-2">
-              <div 
-                onClick={() => setIsProfileOpen(!isProfileOpen)} 
-                className="flex items-center gap-1.5 cursor-pointer group flex-1 min-w-0"
-              >
-                <div className="w-6 h-6 rounded-[6px] bg-blue-600 dark:bg-blue-700 text-white font-medium text-[11px] flex items-center justify-center shrink-0 shadow-sm">
-                  {userData?.fullName ? userData.fullName.charAt(0).toUpperCase() : 'A'}
-                </div>
-                <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-200 truncate group-hover:text-black dark:group-hover:text-white transition-colors">
-                  {userData?.fullName || "User"}
-                </span>
-                <ChevronDown size={12} className={`text-zinc-400 shrink-0 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                  isPremium 
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-[0_1px_3px_rgba(217,119,6,0.3)]' 
-                    : 'bg-zinc-100 text-zinc-650 dark:bg-zinc-800 dark:text-zinc-400'
-                }`}>
-                  {isPremium ? 'PRO' : 'Free'}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-0.5 ml-2">
-                {onRefreshClick && (
-                  <button 
-                    onClick={onRefreshClick}
-                    className={`p-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors shrink-0 ${loading ? 'animate-spin' : ''}`}
-                    title={t('common.refresh') || "Refresh"}
-                  >
-                    <RotateCw size={12} />
-                  </button>
-                )}
-              </div>
+          {/* Logo header */}
+          <div className="flex items-center pt-0.5 pb-2 mb-3 px-1.5 border-b border-zinc-200/50 dark:border-zinc-800/80">
+            <div className="cursor-pointer flex items-center select-none" onClick={() => navigate('/dashboard')}>
+              <span className="text-2xl tracking-tight font-normal text-zinc-900 dark:text-zinc-50 font-sans">
+                eng<span className="font-bold">lev.</span>
+              </span>
             </div>
-
-            {/* Profile Dropdown */}
-            <AnimatePresence>
-              {isProfileOpen && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                  className="absolute left-0 top-10 w-[200px] bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-xl shadow-2xl py-1.5 z-[70] p-1"
-                >
-                  <div className="px-2.5 py-1.5 border-b border-zinc-100 dark:border-zinc-800 mb-1">
-                    <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">{userData?.fullName || "User"}</p>
-                    <p className="text-[10px] text-zinc-450 dark:text-zinc-500 truncate mt-0.5">{user?.email}</p>
-                  </div>
-                  <button
-                    onClick={() => { navigate('/settings'); setIsProfileOpen(false); }}
-                    className="w-full text-left px-2.5 py-1.5 text-xs font-normal text-zinc-650 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-all flex items-center gap-2"
-                  >
-                    <Settings size={13} className="text-zinc-450" />
-                    {t('dashboard.settings')}
-                  </button>
-                  <button
-                    onClick={() => { onLogoutClick(); setIsProfileOpen(false); }}
-                    className="w-full text-left px-2.5 py-1.5 text-xs font-normal text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all flex items-center gap-2"
-                  >
-                    <LogOut size={13} />
-                    {t('dashboard.logout')}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
 
 
@@ -964,8 +903,10 @@ export default function DashboardHeader({
           >
             <Menu size={20} />
           </button>
-          <div className="cursor-pointer" onClick={() => navigate('/dashboard')}>
-            <img src="/englev-logo.png" alt="logo" className="h-8 w-auto object-contain" />
+          <div className="cursor-pointer flex items-center select-none" onClick={() => navigate('/dashboard')}>
+            <span className="text-xl tracking-tight font-normal text-zinc-900 dark:text-zinc-50 font-sans">
+              eng<span className="font-bold">lev.</span>
+            </span>
           </div>
         </div>
 
@@ -1059,70 +1000,18 @@ export default function DashboardHeader({
             >
               <div className="flex flex-col gap-3">
                 {/* Close button row */}
-                <div className="flex items-center justify-between pb-1.5 border-b border-zinc-50 dark:border-zinc-900">
-                  <span className="text-[13px] font-normal text-zinc-850 dark:text-zinc-100">ENGLEV</span>
+                <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-900">
+                  <div className="cursor-pointer flex items-center select-none" onClick={() => { navigate('/dashboard'); setIsMobileMenuOpen(false); }}>
+                    <span className="text-xl tracking-tight font-normal text-zinc-900 dark:text-zinc-50 font-sans">
+                      eng<span className="font-bold">lev.</span>
+                    </span>
+                  </div>
                   <button 
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-zinc-200 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   >
                     <X size={16} />
                   </button>
-                </div>
-
-                {/* Profile header */}
-                <div className="relative">
-                  <div className="flex items-center justify-between py-0.5 mb-1.5">
-                    <div 
-                      onClick={() => setIsProfileOpen(!isProfileOpen)} 
-                      className="flex items-center gap-1.5 cursor-pointer group flex-1 min-w-0"
-                    >
-                      <div className="w-6 h-6 rounded-[6px] bg-blue-600 dark:bg-blue-700 text-white font-medium text-[11px] flex items-center justify-center shrink-0 shadow-sm">
-                        {userData?.fullName ? userData.fullName.charAt(0).toUpperCase() : 'A'}
-                      </div>
-                      <span className="text-[13px] font-medium text-zinc-750 dark:text-zinc-300 truncate group-hover:text-black dark:group-hover:text-white transition-colors">
-                        {userData?.fullName || "User"}
-                      </span>
-                      <ChevronDown size={12} className={`text-zinc-400 shrink-0 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        isPremium 
-                          ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-[0_1px_3px_rgba(217,119,6,0.3)]' 
-                          : 'bg-zinc-100 text-zinc-650 dark:bg-zinc-800 dark:text-zinc-400'
-                      }`}>
-                        {isPremium ? 'PRO' : 'Free'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Profile Dropdown */}
-                  <AnimatePresence>
-                    {isProfileOpen && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                        className="absolute left-1 top-9 w-[200px] bg-white dark:bg-zinc-900 border border-zinc-105 dark:border-zinc-800/80 rounded-xl shadow-2xl py-1.5 z-[110] p-1"
-                      >
-                        <div className="px-2.5 py-1.5 border-b border-zinc-50 dark:border-zinc-800 mb-1">
-                          <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">{userData?.fullName || "User"}</p>
-                          <p className="text-[10px] font-medium text-zinc-450 dark:text-zinc-500 truncate mt-0.5">{user?.email}</p>
-                        </div>
-                        <button
-                          onClick={() => { navigate('/settings'); setIsMobileMenuOpen(false); setIsProfileOpen(false); }}
-                          className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-zinc-650 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-all flex items-center gap-2"
-                        >
-                          <Settings size={13} className="text-zinc-455" />
-                          {t('dashboard.settings')}
-                        </button>
-                        <button
-                          onClick={() => { onLogoutClick(); setIsMobileMenuOpen(false); setIsProfileOpen(false); }}
-                          className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all flex items-center gap-2"
-                        >
-                          <LogOut size={13} />
-                          {t('dashboard.logout')}
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
 
 

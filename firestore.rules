@@ -166,7 +166,15 @@ service cloud.firestore {
     // STORIES
     match /stories/{storyId} {
       allow read: if isAuth();
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['interactiveData']));
+    }
+
+    // STORY RESPONSES
+    match /story_responses/{responseId} {
+      allow read: if isAuth() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
     // FEED POSTS

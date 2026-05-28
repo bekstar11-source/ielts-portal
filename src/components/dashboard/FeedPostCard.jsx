@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Share2, Trash2, ArrowRight, Play, BookOpen, Volume2, Megaphone } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Trash2, ArrowRight, Play, BookOpen, Volume2, Megaphone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { handleUniversalNavigate } from '../../utils/navigation';
 export default function FeedPostCard({ post, user, userData, onLike, onCommentAdded, onDelete }) {
     const navigate = useNavigate();
     const [showComments, setShowComments] = useState(false);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const isLiked = post.likes?.includes(user?.uid);
     const likesCount = post.likes?.length || 0;
     const commentsCount = post.commentsCount || 0;
@@ -74,15 +75,110 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
         }
 
         // For tests, articles, podcasts, or custom media
+        const mediaUrls = post.mediaUrls || (post.mediaUrl ? [post.mediaUrl] : []);
+        const hasCarousel = mediaUrls.length > 1;
+
+        const handleNextImage = (e) => {
+            e.stopPropagation();
+            setCurrentImageIndex((prev) => (prev + 1) % mediaUrls.length);
+        };
+
+        const handlePrevImage = (e) => {
+            e.stopPropagation();
+            setCurrentImageIndex((prev) => (prev - 1 + mediaUrls.length) % mediaUrls.length);
+        };
+
+        // Swipe support variables
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        const handleTouchStart = (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        };
+
+        const handleTouchEnd = (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        };
+
+        const handleSwipe = () => {
+            if (touchStartX - touchEndX > 50) {
+                // Swipe left
+                setCurrentImageIndex((prev) => (prev + 1) % mediaUrls.length);
+            }
+            if (touchEndX - touchStartX > 50) {
+                // Swipe right
+                setCurrentImageIndex((prev) => (prev - 1 + mediaUrls.length) % mediaUrls.length);
+            }
+        };
+
         return (
             <div className="px-4 py-2 flex flex-col gap-3">
-                {/* Media Image / Video */}
-                {post.mediaUrl && (
-                    <div className="relative w-full aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-white/5 shadow-sm">
-                        {post.mediaType === 'video' ? (
-                            <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
+                {/* Media Image / Video / Carousel */}
+                {mediaUrls.length > 0 && (
+                    <div 
+                        className="relative w-full aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-white/5 shadow-sm group/carousel"
+                        onTouchStart={hasCarousel ? handleTouchStart : undefined}
+                        onTouchEnd={hasCarousel ? handleTouchEnd : undefined}
+                    >
+                        {hasCarousel ? (
+                            <>
+                                {/* Swipeable Slides Container */}
+                                <div className="w-full h-full relative overflow-hidden">
+                                    <div 
+                                        className="w-full h-full flex transition-transform duration-350 ease-out"
+                                        style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
+                                    >
+                                        {mediaUrls.map((url, idx) => (
+                                            <div key={idx} className="w-full h-full flex-shrink-0">
+                                                <img 
+                                                    src={url} 
+                                                    alt={`Post carousel ${idx}`} 
+                                                    className="w-full h-full object-cover select-none" 
+                                                    loading="lazy" 
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Navigation Arrows */}
+                                <button
+                                    onClick={handlePrevImage}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10 pointer-events-auto"
+                                >
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <button
+                                    onClick={handleNextImage}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10 pointer-events-auto"
+                                >
+                                    <ChevronRight size={16} />
+                                </button>
+
+                                {/* Dot Indicators */}
+                                <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5 z-10">
+                                    {mediaUrls.map((_, idx) => (
+                                        <div 
+                                            key={idx} 
+                                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                                                idx === currentImageIndex ? 'w-4 bg-white shadow-sm' : 'w-1.5 bg-white/50'
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+
+                                {/* Index Badge */}
+                                <div className="absolute top-3 right-3 px-2 py-1 rounded-md bg-black/60 text-white text-[9px] font-bold tracking-wider z-10">
+                                    {currentImageIndex + 1}/{mediaUrls.length}
+                                </div>
+                            </>
                         ) : (
-                            <img src={post.mediaUrl} alt="Post content" className="w-full h-full object-cover" loading="lazy" />
+                            post.mediaType === 'video' ? (
+                                <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
+                            ) : (
+                                <img src={post.mediaUrl} alt="Post content" className="w-full h-full object-cover animate-fade-in" loading="lazy" />
+                            )
                         )}
                     </div>
                 )}

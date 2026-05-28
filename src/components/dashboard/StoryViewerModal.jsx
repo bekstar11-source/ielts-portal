@@ -6,7 +6,7 @@ import { handleUniversalNavigate } from '../../utils/navigation';
 
 const STORY_DURATION = 5000; // 5 seconds per story
 
-export default function StoryViewerModal({ stories, initialIndex, onClose, onStoryChange }) {
+export default function StoryViewerModal({ stories, initialIndex, onClose, onStoryChange, user, userData, userVotes, submitVote }) {
     const navigate = useNavigate();
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [progress, setProgress] = useState(0);
@@ -19,16 +19,28 @@ export default function StoryViewerModal({ stories, initialIndex, onClose, onSto
 
     const story = stories[currentIndex];
 
-    // Reset progress and timers when current index changes
+    const hasInteractive = story?.interactiveData && story.interactiveData.type !== 'none';
+    const userVotedOption = userVotes?.[story?.id];
+    const hasVoted = userVotedOption !== undefined;
+
+    // Reset progress and timers when current index changes or vote status changes
     useEffect(() => {
+        if (!story) return;
         setProgress(0);
         remainingTime.current = STORY_DURATION;
         startTime.current = Date.now();
-        setIsPaused(false);
-        startTimer();
+        
+        const shouldPause = hasInteractive && !hasVoted;
+        setIsPaused(shouldPause);
+
+        if (!shouldPause) {
+            startTimer();
+        } else {
+            stopTimer();
+        }
 
         return () => stopTimer();
-    }, [currentIndex]);
+    }, [currentIndex, hasVoted, hasInteractive]);
 
     // Handle timer
     const startTimer = () => {
@@ -57,12 +69,15 @@ export default function StoryViewerModal({ stories, initialIndex, onClose, onSto
 
     // Pause / Resume on Hold
     const handlePressStart = () => {
+        // Only allow holding pause if not already paused by sticker
+        if (hasInteractive && !hasVoted) return;
         setIsPaused(true);
         pausedTime.current = Date.now();
         stopTimer();
     };
 
     const handlePressEnd = () => {
+        if (hasInteractive && !hasVoted) return;
         setIsPaused(false);
         const elapsedSincePause = Date.now() - pausedTime.current;
         startTime.current = startTime.current + elapsedSincePause;
@@ -205,7 +220,87 @@ export default function StoryViewerModal({ stories, initialIndex, onClose, onSto
                             />
                         )}
 
-                        </div>
+                        {/* Interactive Sticker Overlay */}
+                        {hasInteractive && (
+                            <div className="absolute inset-x-6 z-20 pointer-events-auto bg-black/60 dark:bg-zinc-950/85 backdrop-blur-md rounded-2xl border border-white/10 p-5 shadow-2xl flex flex-col gap-4 text-white select-text">
+                                {/* Question */}
+                                <div className="text-center">
+                                    <span className="inline-block text-[9px] uppercase font-black tracking-widest px-2.5 py-0.5 rounded-full bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 text-white mb-2 shadow-sm">
+                                        {story.interactiveData.type === 'quiz' ? 'IELTS QUIZ' : 'POLL'}
+                                    </span>
+                                    <p className="font-bold text-sm md:text-base leading-snug text-gray-100">{story.interactiveData.question}</p>
+                                </div>
+                                
+                                {/* Options */}
+                                <div className="flex flex-col gap-2">
+                                    {story.interactiveData.options.map((option, idx) => {
+                                        const optionVotes = story.interactiveData.votes?.[idx] !== undefined 
+                                            ? story.interactiveData.votes[idx] 
+                                            : (story.interactiveData.votes?.[`${idx}`] || 0);
+                                        const totalVotes = Object.values(story.interactiveData.votes || {}).reduce((a, b) => a + b, 0);
+                                        const percentage = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
+                                        
+                                        const isSelected = userVotedOption === idx;
+                                        const isQuiz = story.interactiveData.type === 'quiz';
+                                        const isCorrect = isQuiz && story.interactiveData.correctIndex === idx;
+                                        
+                                        let btnStyle = "bg-white/10 border-white/10 text-white hover:bg-white/20";
+                                        if (hasVoted) {
+                                            if (isQuiz) {
+                                                if (isCorrect) {
+                                                    btnStyle = "bg-emerald-500/30 border-emerald-500 text-emerald-300 font-bold";
+                                                } else if (isSelected) {
+                                                    btnStyle = "bg-red-500/30 border-red-500 text-red-300 font-bold";
+                                                } else {
+                                                    btnStyle = "bg-white/5 border-white/5 text-white/50";
+                                                }
+                                            } else {
+                                                // Poll
+                                                if (isSelected) {
+                                                    btnStyle = "bg-pink-500/30 border-pink-500 text-pink-300 font-bold";
+                                                } else {
+                                                    btnStyle = "bg-white/5 border-white/5 text-white/60";
+                                                }
+                                            }
+                                        }
+
+                                        return (
+                                            <button
+                                                key={idx}
+                                                disabled={hasVoted}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    submitVote(story.id, idx, isCorrect);
+                                                }}
+                                                className={`relative w-full overflow-hidden p-3 rounded-xl border text-left text-xs transition-all duration-300 flex items-center justify-between gap-3 ${btnStyle}`}
+                                            >
+                                                {/* Percentage progress background */}
+                                                {hasVoted && (
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${percentage}%` }}
+                                                        transition={{ duration: 0.6, ease: "easeOut" }}
+                                                        className={`absolute left-0 top-0 bottom-0 z-0 opacity-20 ${
+                                                            isQuiz 
+                                                                ? (isCorrect ? 'bg-emerald-400' : 'bg-red-400') 
+                                                                : 'bg-pink-400'
+                                                        }`}
+                                                    />
+                                                )}
+                                                
+                                                <span className="relative z-10 font-medium">{option}</span>
+                                                {hasVoted && (
+                                                    <span className="relative z-10 font-bold text-[10px]">
+                                                        {percentage}%
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Bottom Overlay containing Caption and/or CTA */}
                     {(story.ctaUrl || (story.mediaType !== 'text' && story.text)) && (

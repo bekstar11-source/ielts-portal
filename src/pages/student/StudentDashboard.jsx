@@ -17,6 +17,7 @@ import MyResults from "./MyResults";
 import Leaderboard from "../../components/dashboard/Leaderboard";
 import SiteFooter from "../../components/common/SiteFooter";
 import BottomNav from "../../components/dashboard/BottomNav";
+import ProfileSidebar from "../../components/dashboard/ProfileSidebar";
 
 export default function StudentDashboard() {
     const { user, logout, userData } = useAuth();
@@ -98,32 +99,24 @@ export default function StudentDashboard() {
 
         if (dashboard.activeTab === 'dashboard') {
             return (
-                <div className="flex flex-col gap-2 max-w-lg mx-auto bg-white dark:bg-[#09090b] transition-colors pb-6">
-                    {/* Compact stats widget */}
-                    <div className="px-4 pt-4 pb-2 flex justify-between items-center border-b border-gray-100 dark:border-white/5">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 text-lg font-extrabold shadow-sm">
-                                {dashboard.overallBand || "0.0"}
-                            </div>
-                            <div>
-                                <h3 className="text-xs font-black text-gray-800 dark:text-zinc-200">Overall Band</h3>
-                                <p className="text-[10px] text-gray-400 dark:text-zinc-500 font-medium">Target: {userData?.targetBand || 7.5}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2.5">
-                            <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-500/5 px-2.5 py-1.5 rounded-xl border border-orange-500/10">
-                                <span>🔥</span>
-                                <span>{userData?.streakCount || 0} kun</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-xs font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-500/5 px-2.5 py-1.5 rounded-xl border border-yellow-500/10">
-                                <span>🏆</span>
-                                <span>{userData?.gamification?.points || 0} ball</span>
-                            </div>
-                        </div>
+                <div className="w-full max-w-[1000px] mx-auto px-4 pt-0 pb-6 flex flex-row gap-12 justify-center items-start bg-white dark:bg-[#09090b] transition-colors">
+                    {/* Left Column: Stories & Feed */}
+                    <div className="flex-1 max-w-[630px] w-full flex flex-col gap-2">
+                        {/* Instagram-like news feed */}
+                        <NewsFeed user={user} userData={userData} />
                     </div>
-                    
-                    {/* Instagram-like news feed */}
-                    <NewsFeed user={user} userData={userData} />
+
+                    {/* Right Column: Profile Sidebar */}
+                    <div className="hidden lg:block w-[320px] shrink-0 sticky top-[80px] self-start">
+                        <ProfileSidebar
+                            user={user}
+                            userData={userData}
+                            stats={analyticsStats}
+                            statsLoading={loading}
+                            onLogoutClick={() => dashboard.setShowLogoutConfirm(true)}
+                            onSeeAllClick={() => handleTabChange('leaderboard')}
+                        />
+                    </div>
                 </div>
             );
         }

@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, setDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 
 export function useStories(user) {
     const [stories, setStories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [viewedStoryIds, setViewedStoryIds] = useState(new Set());
+    const [userVotes, setUserVotes] = useState({});
 
     const getStorageKey = () => user ? `viewed_stories_${user.uid}` : 'viewed_stories_guest';
 
-    // Fetch stories
+    // Fetch stories and votes
     useEffect(() => {
-        const fetchStories = async () => {
+        const fetchStoriesAndVotes = async () => {
             setLoading(true);
             try {
                 // Fetch all stories sorted by creation date
@@ -40,6 +41,23 @@ export function useStories(user) {
                 });
 
                 setStories(activeStories);
+
+                // Fetch user's votes for these stories
+                if (user && activeStories.length > 0) {
+                    const votesQ = query(
+                        collection(db, 'story_responses'),
+                        where('userId', '==', user.uid)
+                    );
+                    const votesSnap = await getDocs(votesQ);
+                    const votesMap = {};
+                    votesSnap.forEach(d => {
+                        const data = d.data();
+                        votesMap[data.storyId] = data.votedOption;
+                    });
+                    setUserVotes(votesMap);
+                } else {
+                    setUserVotes({});
+                }
             } catch (error) {
                 console.error("Error fetching stories:", error);
             } finally {
@@ -47,7 +65,7 @@ export function useStories(user) {
             }
         };
 
-        fetchStories();
+        fetchStoriesAndVotes();
 
         // Load viewed stories from local storage
         try {
@@ -74,10 +92,56 @@ export function useStories(user) {
         });
     };
 
+    const submitVote = async (storyId, optionIdx, isCorrect) => {
+        if (!user) return;
+
+        // Optimistic UI Update
+        setUserVotes(prev => ({
+            ...prev,
+            [storyId]: optionIdx
+        }));
+
+        setStories(prev => prev.map(story => {
+            if (story.id === storyId && story.interactiveData) {
+                const currentVotes = { ...(story.interactiveData.votes || {}) };
+                const prevCount = currentVotes[optionIdx] || 0;
+                currentVotes[optionIdx] = prevCount + 1;
+                return {
+                    ...story,
+                    interactiveData: {
+                        ...story.interactiveData,
+                        votes: currentVotes
+                    }
+                };
+            }
+            return story;
+        }));
+
+        try {
+            // 1. Save response
+            await setDoc(doc(db, 'story_responses', `${user.uid}_${storyId}`), {
+                userId: user.uid,
+                storyId,
+                votedOption: optionIdx,
+                isCorrect,
+                createdAt: serverTimestamp()
+            });
+
+            // 2. Increment count in story doc
+            await updateDoc(doc(db, 'stories', storyId), {
+                [`interactiveData.votes.${optionIdx}`]: increment(1)
+            });
+        } catch (error) {
+            console.error("Error submitting story vote:", error);
+        }
+    };
+
     return {
         stories,
         loading,
         viewedStoryIds,
-        markStoryAsViewed
+        markStoryAsViewed,
+        userVotes,
+        submitVote
     };
 }
