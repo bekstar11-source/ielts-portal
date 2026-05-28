@@ -127,7 +127,7 @@ export default function StoryViewerModal({ stories, initialIndex, onClose, onSto
     return (
         <AnimatePresence>
             <div 
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md select-none touch-none"
+                className="fixed inset-0 z-[150] flex items-center justify-center bg-black/95 backdrop-blur-md select-none touch-none"
                 onClick={onClose}
             >
                 {/* Desktop Prev Button */}
@@ -144,7 +144,7 @@ export default function StoryViewerModal({ stories, initialIndex, onClose, onSto
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                    className="relative w-full max-w-[480px] h-full md:h-[80vh] md:max-h-[850px] md:rounded-3xl bg-zinc-900 overflow-hidden flex flex-col justify-between"
+                    className="relative w-full h-[100dvh] md:h-[80vh] md:max-h-[850px] md:max-w-[480px] rounded-none md:rounded-3xl bg-zinc-900 overflow-hidden flex flex-col justify-between"
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={handlePressStart}
                     onMouseUp={handlePressEnd}
@@ -152,7 +152,7 @@ export default function StoryViewerModal({ stories, initialIndex, onClose, onSto
                     onTouchEnd={handlePressEnd}
                 >
                     {/* Top Info and Progress Bars */}
-                    <div className="absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/70 to-transparent z-10">
+                    <div className="absolute top-0 inset-x-0 p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] bg-gradient-to-b from-black/70 to-transparent z-10">
                         {/* Progress Indicators */}
                         <div className="flex gap-1.5 mb-4">
                             {stories.map((s, idx) => (
@@ -304,7 +304,7 @@ export default function StoryViewerModal({ stories, initialIndex, onClose, onSto
 
                     {/* Bottom Overlay containing Caption and/or CTA */}
                     {(story.ctaUrl || (story.mediaType !== 'text' && story.text)) && (
-                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent pt-24 pb-8 px-6 flex flex-col items-center justify-end gap-3 z-20 pointer-events-none">
+                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent pt-24 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] md:pb-8 px-6 flex flex-col items-center justify-end gap-3 z-20 pointer-events-none">
                             {story.mediaType !== 'text' && story.text && (
                                 <p className="text-white text-sm md:text-base font-medium leading-relaxed drop-shadow-md text-center max-w-sm pointer-events-auto">
                                     {story.text}

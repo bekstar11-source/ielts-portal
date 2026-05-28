@@ -18,11 +18,18 @@ import {
     LogOut,
     ChevronRight,
     Smartphone,
-    Mail
+    Mail,
+    Zap,
+    Sparkles,
+    Check,
+    Lock,
+    Shield
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useTheme } from '../../context/ThemeContext';
+import BottomNav from '../../components/dashboard/BottomNav';
+import SiteFooter from '../../components/common/SiteFooter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../../context/LanguageContext';
 
@@ -46,6 +53,19 @@ export default function Settings() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [activeSection, setActiveSection] = useState('profile');
+
+    const getRemainingDays = () => {
+        if (!userData?.subscriptionEnd) return 0;
+        const end = userData.subscriptionEnd.seconds 
+            ? new Date(userData.subscriptionEnd.seconds * 1000) 
+            : new Date(userData.subscriptionEnd);
+        const diffTime = end - new Date();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+    };
+
+    const isPremium = userData?.isPremium || userData?.accountType === 'premium' || userData?.accountType === 'pro' || userData?.accountType === 'standard';
+    const activeTier = userData?.accountType || (userData?.isPremium ? 'premium' : 'free');
 
     useEffect(() => {
         if (userData) {
@@ -160,6 +180,7 @@ export default function Settings() {
                         {[
                             { id: 'profile', label: t('settings.profileInfo'), icon: User },
                             { id: 'exam', label: t('settings.examPrep'), icon: Target },
+                            { id: 'subscription', label: t('settings.subscription'), icon: Zap },
                             { id: 'account', label: t('settings.account'), icon: Smartphone }
                         ].map((item) => (
                             <button
@@ -302,6 +323,162 @@ export default function Settings() {
                                     </div>
                                 )}
 
+                                {activeSection === 'subscription' && (
+                                    <div className="space-y-6">
+                                        <div className={`relative overflow-hidden rounded-2xl border ${isDark ? 'border-white/5 bg-zinc-950/40' : 'border-[#eee] bg-zinc-50/50'} p-6 shadow-xl`}>
+                                            {/* Glow effect */}
+                                            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-blue-500/10 blur-[80px]" />
+                                            <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-violet-500/10 blur-[80px]" />
+
+                                            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                                <div>
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                                        isPremium 
+                                                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black' 
+                                                            : 'bg-zinc-800 text-zinc-400'
+                                                    }`}>
+                                                        <Zap size={12} fill="currentColor" />
+                                                        {isPremium ? t('settings.premiumPlan') : t('settings.freePlan')}
+                                                    </span>
+
+                                                    <h3 className="text-2xl font-black tracking-tight mt-3">
+                                                        {isPremium 
+                                                            ? `${(activeTier === 'pro' || userData?.isPro) ? 'PRO' : 'STANDARD'} PLAN`
+                                                            : 'FREE PLAN'
+                                                        }
+                                                    </h3>
+                                                    <p className="text-zinc-400 text-xs mt-1.5 leading-relaxed">
+                                                        {isPremium 
+                                                            ? (userData?.groupId && userData?.groupId !== 'none' 
+                                                                ? "Siz o'quv guruhi a'zosisiz. Obunangiz o'qituvchingiz tomonidan faollashtirilgan."
+                                                                : "Barcha premium va mock imtihonlardan cheksiz foydalanish huquqiga egasiz.")
+                                                            : "IELTS tayyorgarligi uchun cheklangan bepul rejimdagi hisob."
+                                                        }
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex flex-col items-center justify-center bg-white/5 border border-white/5 backdrop-blur-md rounded-2xl p-4 min-w-[120px] text-center">
+                                                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t('settings.daysRemaining')}</span>
+                                                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 mt-1">
+                                                        {userData?.groupId && userData?.groupId !== 'none' 
+                                                            ? '∞' 
+                                                            : (isPremium ? getRemainingDays() : '0')
+                                                        }
+                                                    </span>
+                                                    <span className="text-xs font-bold text-zinc-400 mt-0.5">
+                                                        {userData?.groupId && userData?.groupId !== 'none' 
+                                                            ? t('settings.unlimitedAccess') 
+                                                            : `${t('settings.days')}`
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Upgrade Motivation Card */}
+                                        {!isPremium && (
+                                            <div className="space-y-6">
+                                                {/* Visual indicator of limited usage */}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className={`p-4 rounded-xl border ${isDark ? 'border-white/5 bg-zinc-900/30' : 'border-[#eee] bg-zinc-50/50'} flex items-start gap-3`}>
+                                                        <div className="p-2 rounded-lg bg-red-500/10 text-red-400 shrink-0">
+                                                            <Lock size={16} />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className={`text-xs font-bold ${isDark ? 'text-zinc-200' : 'text-zinc-700'}`}>Cheklangan Mock Imtihonlar</h4>
+                                                            <p className="text-[11px] text-zinc-500 mt-1">Haqiqiy imtihon muhitidagi to'liq testlar bepul tarifda yopiq.</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`p-4 rounded-xl border ${isDark ? 'border-white/5 bg-zinc-900/30' : 'border-[#eee] bg-zinc-50/50'} flex items-start gap-3`}>
+                                                        <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 shrink-0">
+                                                            <Sparkles size={16} />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className={`text-xs font-bold ${isDark ? 'text-zinc-200' : 'text-zinc-700'}`}>Sun'iy Intellekt Tahlili</h4>
+                                                            <p className="text-[11px] text-zinc-500 mt-1">Writing va Speaking insholaringizni AI orqali baholash cheklangan.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Premium details / comparison table */}
+                                                <div className={`p-5 rounded-xl border ${isDark ? 'border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-indigo-500/5' : 'border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50'} relative overflow-hidden`}>
+                                                    <div className="absolute right-0 bottom-0 translate-x-1/4 translate-y-1/4 opacity-10">
+                                                        <Sparkles size={150} className="text-violet-400" />
+                                                    </div>
+                                                    <h4 className="text-sm font-bold text-violet-600 dark:text-violet-300 flex items-center gap-1.5">
+                                                        <Sparkles size={16} />
+                                                        Nega premiumga o'tishingiz kerak?
+                                                    </h4>
+                                                    <p className={`text-xs ${isDark ? 'text-zinc-300' : 'text-zinc-600'} mt-2 leading-relaxed`}>
+                                                        Englev Premium orqali IELTS ballingizni tezroq va samaraliroq oshiring. Har bir testdan so'ng xatolaringiz ustida ishlang, batafsil tushuntirishlarni o'qing va sun'iy intellektdan tavsiyalar oling.
+                                                    </p>
+
+                                                    <div className={`mt-4 pt-3 border-t ${isDark ? 'border-white/5' : 'border-zinc-200'} space-y-2`}>
+                                                        {[
+                                                            "50+ dan ortiq to'liq Listening & Reading amaliyot testlari",
+                                                            "Writing insholaringizni soniyalar ichida grammatik, leksik va umumiy ball bo'yicha tahlil qilish",
+                                                            "Speaking simulator: AI imtihon oluvchi bilan og'zaki nutq mashg'uloti",
+                                                            "Siz yo'l qo'ygan xatolarning batafsil tushuntirishlari (explanations)"
+                                                        ].map((benefit, i) => (
+                                                            <div key={i} className="flex items-start gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                                                                <Check size={12} className="text-emerald-500 mt-0.5 shrink-0" />
+                                                                <span>{benefit}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    {/* CTA button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate('/pricing')}
+                                                        className="w-full mt-5 py-3 rounded-xl font-bold text-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                                                    >
+                                                        <Zap size={14} fill="currentColor" />
+                                                        Premiumga O'tish & Tariflarni Ko'rish
+                                                    </button>
+
+                                                    <div className="text-center mt-3 text-[10px] text-zinc-400 dark:text-zinc-500">
+                                                        IELTS 7.5+ band natijaga erishgan o'quvchilarimizning 92% premium tariflardan foydalangan!
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Standard user upgrading to Pro motivation */}
+                                        {isPremium && activeTier === 'standard' && (
+                                            <div className={`p-5 rounded-xl border ${isDark ? 'border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-orange-500/5' : 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50'} relative overflow-hidden`}>
+                                                <h4 className="text-sm font-bold text-amber-600 dark:text-amber-300 flex items-center gap-1.5">
+                                                    <Zap size={16} fill="currentColor" />
+                                                    PRO tarifiga yangilang!
+                                                </h4>
+                                                <p className={`text-xs ${isDark ? 'text-zinc-300' : 'text-zinc-600'} mt-2 leading-relaxed`}>
+                                                    Sizda joriy "Standard" obunasi mavjud. "PRO" rejimiga o'tish orqali siz to'liq shaxsiy Roadmap, ko'proq Mock testlar va ilg'or AI tahlillariga ega bo'lasiz.
+                                                </p>
+                                                
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate('/pricing')}
+                                                    className="w-full mt-4 py-3 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black dark:text-white transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+                                                >
+                                                    <Sparkles size={14} fill="currentColor" />
+                                                    PRO Tarifga Yangilash
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* Pro active */}
+                                        {isPremium && (activeTier === 'pro' || userData?.isPro) && (
+                                            <div className={`p-5 rounded-xl border ${isDark ? 'border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 to-teal-500/5' : 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50'} text-center`}>
+                                                <Sparkles className="mx-auto text-emerald-500 dark:text-emerald-400 mb-2" size={24} />
+                                                <h4 className="text-sm font-bold text-emerald-600 dark:text-emerald-300">Sizda PRO tarif faol!</h4>
+                                                <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'} mt-1`}>
+                                                    IELTS imtihonidan eng yuqori ballni egallashingiz uchun platformamizning barcha premium imkoniyatlari ochiq. Har kuni mashq qiling va muvaffaqiyatga erishing!
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {activeSection === 'account' && (
                                     <div className="space-y-3">
                                         <div className={`py-3 px-4 rounded-xl ${isDark ? 'bg-zinc-900/50' : 'bg-[#f8f8f9]'} border ${isDark ? 'border-white/5' : 'border-[#eee]'}`}>
@@ -383,6 +560,8 @@ export default function Settings() {
                     cursor: pointer;
                 }
             ` }} />
+            {userData?.role !== 'admin' && <BottomNav activeTab="settings" />}
+            <SiteFooter />
         </div>
     );
 }

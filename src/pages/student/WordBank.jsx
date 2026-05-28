@@ -12,6 +12,7 @@ import { useWordBank } from '../../hooks/useWordBank';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import SiteFooter from '../../components/common/SiteFooter';
 import WordBankFlashcards from '../../components/WordBank/WordBankFlashcards';
+import BottomNav from '../../components/dashboard/BottomNav';
 import WordBankMatchGame from '../../components/WordBank/WordBankMatchGame';
 
 // Refactored Components
@@ -183,6 +184,7 @@ export default function Wordbank() {
                     )}
                 </div>
             </main>
+            <BottomNav activeTab="vocabulary" />
             <SiteFooter />
         </div>
     );

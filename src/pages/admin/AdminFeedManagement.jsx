@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, storage } from '../../firebase/firebase';
 import { 
-    collection, getDocs, addDoc, deleteDoc, doc, 
+    collection, getDocs, addDoc, deleteDoc, doc, updateDoc,
     query, orderBy, serverTimestamp, Timestamp, where, limit
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -10,7 +10,7 @@ import {
     FaArrowLeft, FaPlus, FaTrash, FaCheck, FaInfoCircle, 
     FaExclamationTriangle, FaTimes, FaCamera, FaLink, FaImage, FaFilm,
     FaBookOpen, FaVolumeUp, FaFileAlt, FaChevronLeft, FaChevronRight,
-    FaBullhorn, FaHeart, FaComment, FaEye, FaShareAlt
+    FaBullhorn, FaHeart, FaComment, FaEye, FaShareAlt, FaPencilAlt
 } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
@@ -32,6 +32,25 @@ export default function AdminFeedManagement() {
     // Modals
     const [showPostModal, setShowPostModal] = useState(false);
     const [showStoryModal, setShowStoryModal] = useState(false);
+    const [editingPostId, setEditingPostId] = useState(null);
+
+    const handleEditPostClick = (post) => {
+        setEditingPostId(post.id);
+        setPostForm({
+            type: post.type || 'post',
+            title: post.title || '',
+            content: post.content || '',
+            announcementType: post.announcementType || 'info',
+            ctaUrl: post.ctaUrl || '',
+            ctaText: post.ctaText || '',
+            mediaFile: null,
+            mediaFiles: []
+        });
+        const urls = post.mediaUrls || (post.mediaUrl ? [post.mediaUrl] : []);
+        setPostMediaPreviews(urls);
+        setPreviewCarouselIndex(0);
+        setShowPostModal(true);
+    };
 
     // Forms
     const [postForm, setPostForm] = useState({
@@ -194,7 +213,7 @@ export default function AdminFeedManagement() {
         fetchData();
     }, []);
 
-    // Create Direct Post
+    // Create or Update Direct Post
     const handleCreatePost = async (e) => {
         e.preventDefault();
         if (!postForm.content && postForm.type === 'post') {
@@ -232,29 +251,59 @@ export default function AdminFeedManagement() {
             const docData = {
                 type: postForm.type,
                 content: postForm.content,
-                createdAt: serverTimestamp(),
-                likes: [],
-                commentsCount: 0
             };
+
+            if (!editingPostId) {
+                docData.createdAt = serverTimestamp();
+                docData.likes = [];
+                docData.commentsCount = 0;
+            }
 
             if (postForm.type === 'announcement') {
                 docData.title = postForm.title;
                 docData.announcementType = postForm.announcementType;
+                docData.mediaUrls = [];
+                docData.mediaUrl = "";
+                docData.mediaType = "none";
             } else {
                 if (mediaUrls.length > 0) {
                     docData.mediaUrls = mediaUrls;
                     docData.mediaUrl = mediaUrls[0]; // backward compatibility
                     docData.mediaType = mediaType;
+                } else if (editingPostId) {
+                    // Keep existing media if no new media was uploaded
+                    if (postMediaPreviews && postMediaPreviews.length > 0) {
+                        docData.mediaUrls = postMediaPreviews;
+                        docData.mediaUrl = postMediaPreviews[0];
+                        const originalPost = posts.find(p => p.id === editingPostId);
+                        if (originalPost) {
+                            docData.mediaType = originalPost.mediaType || 'image';
+                        }
+                    } else {
+                        docData.mediaUrls = [];
+                        docData.mediaUrl = "";
+                        docData.mediaType = "none";
+                    }
                 }
                 if (postForm.ctaUrl) {
                     docData.ctaUrl = postForm.ctaUrl;
                     docData.ctaText = postForm.ctaText || "O'tish";
+                } else {
+                    docData.ctaUrl = "";
+                    docData.ctaText = "";
                 }
             }
 
-            await addDoc(collection(db, 'feed_posts'), docData);
-            toast.success("Post Feedga chop etildi! 🚀");
+            if (editingPostId) {
+                await updateDoc(doc(db, 'feed_posts', editingPostId), docData);
+                toast.success("Post yangilandi! 🚀");
+            } else {
+                await addDoc(collection(db, 'feed_posts'), docData);
+                toast.success("Post Feedga chop etildi! 🚀");
+            }
+
             setShowPostModal(false);
+            setEditingPostId(null);
             setPostForm({
                 type: 'post',
                 title: '',
@@ -268,8 +317,8 @@ export default function AdminFeedManagement() {
             setPostMediaPreviews([]);
             fetchData();
         } catch (err) {
-            console.error("Error creating post:", err);
-            toast.error("Post yaratishda xatolik yuz berdi.");
+            console.error("Error creating/updating post:", err);
+            toast.error(editingPostId ? "Postni yangilashda xatolik." : "Post yaratishda xatolik yuz berdi.");
         } finally {
             setUploading(false);
         }
@@ -464,6 +513,7 @@ export default function AdminFeedManagement() {
                         </button>
                         <button
                             onClick={() => {
+                                setEditingPostId(null);
                                 setPostMediaPreviews([]);
                                 setPostForm({
                                     type: 'post',
@@ -562,14 +612,26 @@ export default function AdminFeedManagement() {
                                             </div>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => handleDeletePost(post.id)}
-                                        className={`p-2.5 rounded-xl transition ${
-                                            isDark ? 'bg-white/5 hover:bg-red-500/10 hover:text-red-500' : 'bg-gray-55 border border-gray-100 hover:bg-red-50 hover:text-red-600 hover:border-red-100'
-                                        }`}
-                                    >
-                                        <FaTrash size={12} />
-                                    </button>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button
+                                            onClick={() => handleEditPostClick(post)}
+                                            className={`p-2.5 rounded-xl transition ${
+                                                isDark ? 'bg-white/5 hover:bg-blue-500/10 hover:text-blue-400' : 'bg-gray-55 border border-gray-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100'
+                                            }`}
+                                            title="Tahrirlash"
+                                        >
+                                            <FaPencilAlt size={12} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeletePost(post.id)}
+                                            className={`p-2.5 rounded-xl transition ${
+                                                isDark ? 'bg-white/5 hover:bg-red-500/10 hover:text-red-500' : 'bg-gray-55 border border-gray-100 hover:bg-red-50 hover:text-red-600 hover:border-red-100'
+                                            }`}
+                                            title="O'chirish"
+                                        >
+                                            <FaTrash size={12} />
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         )}
@@ -647,7 +709,10 @@ export default function AdminFeedManagement() {
                         isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
                     }`}>
                         <button 
-                            onClick={() => setShowPostModal(false)} 
+                            onClick={() => {
+                                setShowPostModal(false);
+                                setEditingPostId(null);
+                            }} 
                             className={`absolute top-4 right-4 hover:opacity-80 transition-opacity z-10 ${isDark ? 'text-white/40' : 'text-gray-400'}`}
                         >
                             <FaTimes />
@@ -656,7 +721,7 @@ export default function AdminFeedManagement() {
                         {/* Left Side: Form */}
                         <div className="lg:col-span-7 flex flex-col justify-between">
                             <div>
-                                <h2 className="text-xl font-bold mb-4">Yangiliklar Tasmasiga Post Yaratish</h2>
+                                <h2 className="text-xl font-bold mb-4">{editingPostId ? "Postni Tahrirlash" : "Yangiliklar Tasmasiga Post Yaratish"}</h2>
                                 <form onSubmit={handleCreatePost} className="space-y-4">
                                     <div>
                                         <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Post Turi</label>
@@ -794,7 +859,7 @@ export default function AdminFeedManagement() {
                                         disabled={uploading}
                                         className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition disabled:opacity-50 text-sm shadow-md"
                                     >
-                                        {uploading ? "Yuklanmoqda..." : "Postni chop etish"}
+                                        {uploading ? "Yuklanmoqda..." : (editingPostId ? "Saqlash" : "Postni chop etish")}
                                     </button>
                                 </form>
                             </div>

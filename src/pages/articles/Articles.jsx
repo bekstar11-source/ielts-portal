@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import { useAuth } from "../../context/AuthContext";
 import SiteFooter from "../../components/common/SiteFooter";
+import BottomNav from "../../components/dashboard/BottomNav";
 
 import { stripHtml } from "../../utils/textUtils";
 import { getArticleContent, getMaxVocabularyCount, articleHasLevels } from "../../utils/articleLevels";
@@ -431,6 +432,7 @@ export default function Articles() {
                 </div>
             </main>
 
+            <BottomNav activeTab="articles" />
             <SiteFooter />
         </div>
     );

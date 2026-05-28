@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, Trash2, ArrowRight, Play, BookOpen, Volume2, Megaphone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -10,6 +10,31 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
     const navigate = useNavigate();
     const [showComments, setShowComments] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [aspectRatio, setAspectRatio] = useState(1.333); // Default to 4:3
+
+    useEffect(() => {
+        const mediaUrls = post.mediaUrls || (post.mediaUrl ? [post.mediaUrl] : []);
+        if (mediaUrls.length === 0) return;
+
+        const firstUrl = mediaUrls[0];
+        if (post.mediaType === 'video') {
+            setAspectRatio(1.777); // Default to 16:9 for video
+            return;
+        }
+
+        const img = new Image();
+        img.src = firstUrl;
+        img.onload = () => {
+            const ratio = img.naturalWidth / img.naturalHeight;
+            // Clamp ratio between 0.8 (4:5 portrait) and 1.91 (16:8.4 landscape)
+            const clampedRatio = Math.max(0.8, Math.min(1.91, ratio));
+            setAspectRatio(clampedRatio);
+        };
+        img.onerror = () => {
+            setAspectRatio(1.333); // Fallback
+        };
+    }, [post]);
+
     const isLiked = post.likes?.includes(user?.uid);
     const likesCount = post.likes?.length || 0;
     const commentsCount = post.commentsCount || 0;
@@ -117,7 +142,8 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                 {/* Media Image / Video / Carousel */}
                 {mediaUrls.length > 0 && (
                     <div 
-                        className="relative w-full aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-white/5 shadow-sm group/carousel"
+                        className="relative w-full rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-white/5 shadow-sm group/carousel"
+                        style={{ aspectRatio: aspectRatio }}
                         onTouchStart={hasCarousel ? handleTouchStart : undefined}
                         onTouchEnd={hasCarousel ? handleTouchEnd : undefined}
                     >
@@ -175,7 +201,19 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                             </>
                         ) : (
                             post.mediaType === 'video' ? (
-                                <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
+                                <video 
+                                    src={post.mediaUrl} 
+                                    controls 
+                                    className="w-full h-full object-cover" 
+                                    onLoadedMetadata={(e) => {
+                                        const { videoWidth, videoHeight } = e.target;
+                                        if (videoWidth && videoHeight) {
+                                            const ratio = videoWidth / videoHeight;
+                                            const clampedRatio = Math.max(0.8, Math.min(1.91, ratio));
+                                            setAspectRatio(clampedRatio);
+                                        }
+                                    }}
+                                />
                             ) : (
                                 <img src={post.mediaUrl} alt="Post content" className="w-full h-full object-cover animate-fade-in" loading="lazy" />
                             )

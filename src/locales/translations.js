@@ -429,7 +429,12 @@ export const translations = {
       accountStatus: "Account Holati",
       premiumPlan: "Premium Plan",
       freePlan: "Free Plan",
-      saving: "Saqlanmoqda..."
+      saving: "Saqlanmoqda...",
+      subscription: "Obuna va Tarif",
+      daysRemaining: "Qolgan kunlar",
+      unlimitedAccess: "Cheksiz kirish",
+      activeSubscription: "Faol obuna",
+      days: "kun"
     },
     mock: {
       unexpectedError: "Kalitni faollashtirishda kutilmagan xatolik yuz berdi.",
@@ -1093,7 +1098,12 @@ export const translations = {
       accountStatus: "Account Status",
       premiumPlan: "Premium Plan",
       freePlan: "Free Plan",
-      saving: "Saving..."
+      saving: "Saving...",
+      subscription: "Subscription & Plan",
+      daysRemaining: "Days remaining",
+      unlimitedAccess: "Unlimited access",
+      activeSubscription: "Active subscription",
+      days: "days"
     },
     mock: {
       unexpectedError: "An unexpected error occurred while activating the key.",
