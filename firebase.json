@@ -28,6 +28,10 @@
     ],
     "rewrites": [
       {
+        "source": "/share/podcast/**",
+        "function": "sharePodcast"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

@@ -51,7 +51,7 @@ export default function ListeningParts() {
   const [hasMore, setHasMore] = useState(true);
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
-  const PAGE_SIZE = 200;
+  const PAGE_SIZE = 24;
 
   const rawAssignments = useMemo(() => {
     const assignedIds = new Set(assignments.map(a => a.id));

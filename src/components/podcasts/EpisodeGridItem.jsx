@@ -1,9 +1,10 @@
-import React from "react";
-import { Play, Pause, Heart } from "lucide-react";
+import React, { useState } from "react";
+import { Play, Pause, Heart, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import LazyImage from "../common/LazyImage";
 import { usePodcast } from "../../context/PodcastContext";
 import { useAuth } from "../../context/AuthContext";
+import ShareModal from "../common/ShareModal";
 
 const DIFF_COLORS = {
     easy: "bg-emerald-500",
@@ -26,6 +27,7 @@ export default function EpisodeGridItem({
     const { likedPodcasts, toggleLike } = usePodcast();
     const isLiked = likedPodcasts.includes(p?.id);
     const navigate = useNavigate();
+    const [isShareOpen, setIsShareOpen] = useState(false);
     if (!p) return null;
     const isPlayingThis = currentTrack?.id === p.id && isPlaying;
 
@@ -92,8 +94,28 @@ export default function EpisodeGridItem({
                         <Heart size={14} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
                         <span className="text-[11px] font-bold">{(p.likesCount || 0) + (isLiked ? 1 : 0)}</span>
                     </button>
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsShareOpen(true);
+                        }}
+                        className={`p-1 rounded-full transition-all active:scale-125 ${
+                            isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900'
+                        }`}
+                        title="Share"
+                    >
+                        <Share2 size={14} />
+                    </button>
                 </div>
             </div>
+            
+            <ShareModal
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                testId={p.id}
+                testTitle={p.title}
+                testType="podcast"
+            />
         </div>
     );
 }

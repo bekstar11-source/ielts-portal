@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { db, storage } from "../firebase/firebase";
-import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -292,6 +292,23 @@ export const useTestEditor = (id) => {
                 const docRef = await addDoc(collection(db, "tests"), payload);
                 const metadata = compileMetadata(docRef.id, payload);
                 await setDoc(doc(db, "tests_metadata", docRef.id), metadata);
+
+                // Auto post the new test to the feed
+                try {
+                    await addDoc(collection(db, "feed_posts"), {
+                        type: "test",
+                        title: payload.title || "Yangi Test",
+                        content: `${payload.type?.toUpperCase()} bo'limi bo'yicha yangi imtihon yuklandi. Bajarishni boshlang!`,
+                        ctaUrl: `/test/${docRef.id}`,
+                        ctaText: "Testni Boshlash",
+                        likes: [],
+                        commentsCount: 0,
+                        createdAt: serverTimestamp()
+                    });
+                } catch (feedErr) {
+                    console.error("Error auto-posting test to feed:", feedErr);
+                }
+
                 alert("Test yaratildi!");
             }
             navigate("/admin/tests");

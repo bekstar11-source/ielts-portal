@@ -44,7 +44,24 @@ export const useAdminArticles = () => {
                 await updateDoc(doc(db, "articles", editingArticleId), data);
             } else {
                 data.createdAt = serverTimestamp();
-                await addDoc(collection(db, "articles"), data);
+                const docRef = await addDoc(collection(db, "articles"), data);
+
+                // Auto post the new article to the feed
+                try {
+                    await addDoc(collection(db, "feed_posts"), {
+                        type: "article",
+                        title: data.title || "Yangi Maqola",
+                        content: data.excerpt || "Tizimda yangi maqola chop etildi. O'qishni boshlang!",
+                        mediaUrl: data.image || "",
+                        ctaUrl: `/article/${docRef.id}`,
+                        ctaText: "Maqolani O'qish",
+                        likes: [],
+                        commentsCount: 0,
+                        createdAt: serverTimestamp()
+                    });
+                } catch (feedErr) {
+                    console.error("Error auto-posting article to feed:", feedErr);
+                }
             }
             await fetchArticles();
             return true;

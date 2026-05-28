@@ -25,6 +25,7 @@ import BottomNav from "../../components/dashboard/BottomNav";
 import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
 import FullReadingCard from "../../components/practice/FullReadingCard";
+import { deriveQuestionTypesForCard, qTypeMatchesSelected } from "../../utils/TestUtils";
 import ReadingCollectionsSection from "../../components/practice/ReadingCollectionsSection";
 import { useReadingCollections } from "../../hooks/useReadingCollections";
 import { usePracticeScroll } from "../../hooks/usePracticeScroll";
@@ -57,65 +58,14 @@ export default function ReadingFull() {
   const collectionsData = useReadingCollections(userResults);
   const { allCollectionsTests = [] } = collectionsData;
   
-  // Library Pagination State
-  const [libraryTests, setLibraryTests] = useState([]);
-  const [lastVisible, setLastVisible] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [totalLibraryCount, setTotalLibraryCount] = useState(0);
-  const [loadingLibrary, setLoadingLibrary] = useState(false);
-  const PAGE_SIZE = 200;
-
   const rawAssignments = useMemo(() => {
-    // Deduplicate between assignments, library tests, and all collections tests
     const assignedIds = new Set(assignments.map(a => a.id));
-    const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
     const uniqueColTests = allCollectionsTests.filter(t => !assignedIds.has(t.id));
-    
-    // Deduplicate between library and colTests
-    const libraryIds = new Set(uniqueLibrary.map(t => t.id));
-    const uniqueColTestsFiltered = uniqueColTests.filter(t => !libraryIds.has(t.id));
-
-    return [...assignments, ...uniqueLibrary, ...uniqueColTestsFiltered];
-  }, [assignments, libraryTests, allCollectionsTests]);
-
-  const fetchLibraryPage = async (isFirstPage = false) => {
-    if (loadingLibrary || (!hasMore && !isFirstPage)) return;
-    setLoadingLibrary(true);
-    try {
-        let q = query(
-            collection(db, 'tests'),
-            where('type', '==', 'reading'),
-            limit(PAGE_SIZE)
-        );
-
-        if (!isFirstPage && lastVisible) {
-            q = query(q, startAfter(lastVisible));
-        }
-
-        const snap = await getDocs(q);
-        const newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
-        
-        if (isFirstPage) {
-            setLibraryTests(newTests);
-            // Fetch Total Count for students library
-            const countSnap = await getCountFromServer(query(collection(db, 'tests'), where('type', '==', 'reading')));
-            setTotalLibraryCount(countSnap.data().count);
-        } else {
-            setLibraryTests(prev => [...prev, ...newTests]);
-        }
-        
-        setLastVisible(snap.docs[snap.docs.length - 1]);
-        setHasMore(snap.docs.length === PAGE_SIZE);
-    } catch (err) {
-        console.error("Error fetching library tests:", err);
-    } finally {
-        setLoadingLibrary(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLibraryPage(true);
-  }, []);
+    return [...assignments, ...uniqueColTests].map(test => ({
+      ...test,
+      questionTypes: test.questionTypes || deriveQuestionTypesForCard(test)
+    }));
+  }, [assignments, allCollectionsTests]);
 
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [showStartConfirm, setShowStartConfirm] = useState(false);
@@ -159,6 +109,27 @@ export default function ReadingFull() {
         if (obj.id && !isNaN(parseInt(obj.id))) {
           ids.add(parseInt(obj.id));
         }
+        if (obj.rows && Array.isArray(obj.rows)) {
+          obj.rows.forEach(row => {
+            const cells = Array.isArray(row) ? row : (row.cells || []);
+            cells.forEach(cell => {
+              if (!cell) return;
+              if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
+                extract(cell);
+              }
+              if (cell.isMultiQuestion && Array.isArray(cell.content)) {
+                cell.content.forEach(extract);
+              }
+              if (cell.isMixed && Array.isArray(cell.parts)) {
+                cell.parts.forEach(part => {
+                  if (part && part.type === 'input') {
+                    extract(part);
+                  }
+                });
+              }
+            });
+          });
+        }
         if (Array.isArray(obj.items)) obj.items.forEach(extract);
         if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
         if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
@@ -192,21 +163,24 @@ export default function ReadingFull() {
                            (selectedStatus === 'completed' && isDone) || 
                            (selectedStatus === 'not_completed' && !isDone);
       const matchesType = selectedQuestionTypes.length === 0 || 
-                         (item.questionTypes && item.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                         (item.questionTypes && item.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
       return matchesSearch && matchesStatus && matchesType;
     });
   }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus]);
 
   const filteredCollectionProcessedTests = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    const fullTestsList = (collectionsData.collectionProcessedTests.fullTestsList || []).filter(test => {
+    const fullTestsList = (collectionsData.collectionProcessedTests.fullTestsList || []).map(test => ({
+      ...test,
+      questionTypes: test.questionTypes || deriveQuestionTypesForCard(test)
+    })).filter(test => {
       const matchesSearch = !q || test.title?.toLowerCase().includes(q);
       const isDone = !!test.result;
       const matchesStatus = selectedStatus === 'all' || 
                            (selectedStatus === 'completed' && isDone) || 
                            (selectedStatus === 'not_completed' && !isDone);
       const matchesType = selectedQuestionTypes.length === 0 || 
-                         (test.questionTypes && test.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                         (test.questionTypes && test.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
       return matchesSearch && matchesStatus && matchesType;
     });
     return { fullTestsList };
@@ -277,7 +251,7 @@ export default function ReadingFull() {
           activeTab="reading" 
           subType="full"
           categories={categories} 
-          totalCount={loading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading').length)}
+          totalCount={loading ? 0 : rawAssignments.filter(t => t.type === 'reading').length}
           filteredCount={filteredTests.length}
         />
 

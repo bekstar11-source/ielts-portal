@@ -12,33 +12,11 @@ export function useListeningCollections(userResults) {
   const [collectionCounts, setCollectionCounts] = useState({});
   const [allCollectionsTests, setAllCollectionsTests] = useState([]);
 
-  const fetchCollectionCounts = async (cols) => {
+  const fetchCollectionCounts = (cols, allTests = []) => {
     const counts = {};
-    for (const col of cols) {
-      try {
-        const countSnap = await getCountFromServer(
-          query(
-            collection(db, "tests"), 
-            where("collectionId", "==", col.id),
-            where("type", "==", "listening")
-          )
-        );
-        counts[col.id] = countSnap.data().count;
-      } catch (e) {
-        try {
-          const countSnap = await getCountFromServer(
-            query(
-              collection(db, "tests_metadata"), 
-              where("collectionId", "==", col.id),
-              where("type", "==", "listening")
-            )
-          );
-          counts[col.id] = countSnap.data().count;
-        } catch (e2) {
-          counts[col.id] = 0;
-        }
-      }
-    }
+    cols.forEach(col => {
+      counts[col.id] = allTests.filter(t => String(t.collectionId) === String(col.id)).length;
+    });
     setCollectionCounts(counts);
   };
 
@@ -50,20 +28,21 @@ export function useListeningCollections(userResults) {
       const fetchedCols = snapCols.docs
         .map(d => ({ id: d.id, ...d.data() }));
       setCollections(fetchedCols);
-      fetchCollectionCounts(fetchedCols);
       
       const colIds = fetchedCols.map(c => c.id).filter(Boolean);
+      let fetchedAllTests = [];
       if (colIds.length > 0) {
         const qAllTests = query(
           collection(db, 'tests_metadata'),
           where('collectionId', 'in', colIds)
         );
         const snapAllTests = await getDocs(qAllTests);
-        const fetchedAllTests = snapAllTests.docs
+        fetchedAllTests = snapAllTests.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(t => t.type === 'listening');
         setAllCollectionsTests(fetchedAllTests);
       }
+      fetchCollectionCounts(fetchedCols, fetchedAllTests);
     } catch (e) {
       try {
         const snapCols = await getDocs(collection(db, "test_collections"));
@@ -71,20 +50,21 @@ export function useListeningCollections(userResults) {
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(c => c.type?.toLowerCase() === 'listening');
         setCollections(fetchedCols);
-        fetchCollectionCounts(fetchedCols);
 
         const colIds = fetchedCols.map(c => c.id).filter(Boolean);
+        let fetchedAllTests = [];
         if (colIds.length > 0) {
           const qAllTests = query(
             collection(db, 'tests_metadata'),
             where('collectionId', 'in', colIds)
           );
           const snapAllTests = await getDocs(qAllTests);
-          const fetchedAllTests = snapAllTests.docs
+          fetchedAllTests = snapAllTests.docs
             .map(d => ({ id: d.id, ...d.data() }))
             .filter(t => t.type === 'listening');
           setAllCollectionsTests(fetchedAllTests);
         }
+        fetchCollectionCounts(fetchedCols, fetchedAllTests);
       } catch (e2) {
         console.error("Failed to load collections:", e2);
       }
@@ -137,17 +117,50 @@ export function useListeningCollections(userResults) {
   }, []);
 
   const collectionProcessedTests = useMemo(() => {
+    const sortedCollectionTests = [...collectionTests].sort((a, b) => {
+      const titleA = a.title || '';
+      const titleB = b.title || '';
+
+      const getBookNum = (title) => {
+        const match = title.match(/cambridge\s*(\d+)/i);
+        return match ? parseInt(match[1], 10) : null;
+      };
+
+      const getTestNum = (title) => {
+        const match = title.match(/test\s*(\d+)/i);
+        return match ? parseInt(match[1], 10) : null;
+      };
+
+      const bookA = getBookNum(titleA);
+      const bookB = getBookNum(titleB);
+
+      if (bookA !== null && bookB !== null) {
+        if (bookA !== bookB) {
+          return bookB - bookA;
+        }
+        const testA = getTestNum(titleA);
+        const testB = getTestNum(titleB);
+        if (testA !== null && testB !== null) {
+          if (testA !== testB) {
+            return testA - testB;
+          }
+        }
+      }
+
+      return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
     const partTestsList = [];
     const fullTestsList = [];
 
-    collectionTests.forEach(test => {
+    sortedCollectionTests.forEach(test => {
       const fullAttempt = userResults?.find(
         r => String(r.testId).trim() === String(test.id).trim() && !r.partNumber
       );
 
       fullTestsList.push({
         ...test,
-        title: test.title?.toLowerCase().includes('full') ? test.title : `${test.title} (Full Mock)`,
+        title: test.title,
         isFullTest: true,
         questionTypes: deriveQuestionTypesForCard(test),
         result: fullAttempt || null

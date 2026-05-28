@@ -239,10 +239,29 @@ export const clearTestStorage = (userId, testId, partNumber = null) => {
 export const qTypeMatchesSelected = (testType, selectedTypes) => {
     if (!testType) return false;
     if (!selectedTypes || selectedTypes.length === 0) return true;
+
+    const typeMap = {
+        'mcq': 'MCQ', 'multiple_choice': 'MCQ', 'gap_fill': 'GAP FILL',
+        'notes_completion': 'NOTES', 'summary_completion': 'SUMMARY',
+        'table_completion': 'TABLE', 'flow_chart_completion': 'FLOW CHART',
+        'map_labeling': 'MAP', 'matching': 'MATCHING',
+        'true_false_not_given': 'TRUE/FALSE/NG', 'true_false': 'TRUE/FALSE/NG',
+        'tfng': 'TRUE/FALSE/NG', 'yes_no_not_given': 'YES/NO/NG',
+        'yes_no': 'YES/NO/NG', 'ynng': 'YES/NO/NG',
+        'short_answer': 'SHORT ANSWER', 'sentence_completion': 'SENTENCE',
+        'diagram_labeling': 'DIAGRAM', 'heading_matching': 'HEADINGS',
+        'paragraph_matching': 'PARA MATCH',
+    };
+
+    const clean = (str) => String(str || "").trim().toUpperCase().replace(/_/g, ' ');
     
-    const normType = testType.trim().toUpperCase().replace(/_/g, ' ');
+    const rawTypeLower = String(testType).trim().toLowerCase();
+    const resolvedType = typeMap[rawTypeLower] || clean(testType);
     
-    if (selectedTypes.includes(normType)) return true;
+    const normType = clean(resolvedType);
+    const cleanSelected = selectedTypes.map(clean);
+    
+    if (cleanSelected.includes(normType)) return true;
     
     const titleCaseGroups = {
         'COMPLETION': ['GAP FILL', 'SUMMARY', 'NOTES', 'TABLE', 'FLOW CHART', 'SENTENCE', 'FORM'],
@@ -256,9 +275,16 @@ export const qTypeMatchesSelected = (testType, selectedTypes) => {
         'MAP/DIAGRAM': ['MAP', 'PLAN', 'DIAGRAM']
     };
     
-    const mappedDbTypes = titleCaseGroups[normType];
-    if (mappedDbTypes) {
-        return mappedDbTypes.some(dbType => selectedTypes.includes(dbType));
+    for (const [groupName, dbTypes] of Object.entries(titleCaseGroups)) {
+        const isGroupSelected = cleanSelected.includes(groupName);
+        const isDbTypesSelected = dbTypes.some(dbType => cleanSelected.includes(dbType));
+        
+        const isTypeInGroup = dbTypes.includes(normType);
+        const isTypeGroupName = normType === groupName;
+        
+        if ((isGroupSelected || isDbTypesSelected) && (isTypeInGroup || isTypeGroupName)) {
+            return true;
+        }
     }
     
     return false;

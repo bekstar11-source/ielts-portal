@@ -64,7 +64,7 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
             }}
             className={`
                 min-w-[140px] md:min-w-[180px] min-h-[32px] border rounded-none flex items-center justify-center relative
-                transition-all duration-300 px-3 py-1 group/slot cursor-pointer
+                px-3 py-1 group/slot cursor-pointer
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')
@@ -78,7 +78,7 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
             `}
         >
             {value ? (
-                <div className="flex items-center w-full px-2 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center w-full px-2">
                     <span className="text-[14px] font-normal text-gray-900 line-clamp-1 flex-1 leading-tight text-center">
                         {stripLeadingOptionLabel(selectedOption?.text || value)}
                     </span>

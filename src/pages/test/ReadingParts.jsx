@@ -24,6 +24,7 @@ import BottomNav from "../../components/dashboard/BottomNav";
 import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
 import PracticeCard from "../../components/practice/PracticeCard";
+import { deriveQuestionTypesForCard, qTypeMatchesSelected } from "../../utils/TestUtils";
 
 const categories = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
@@ -55,13 +56,16 @@ export default function ReadingParts() {
   const [hasMore, setHasMore] = useState(true);
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
-  const PAGE_SIZE = 200;
+  const PAGE_SIZE = 24;
 
   const rawAssignments = useMemo(() => {
     // Deduplicate between assignments and library tests
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
-    return [...assignments, ...uniqueLibrary];
+    return [...assignments, ...uniqueLibrary].map(test => ({
+      ...test,
+      questionTypes: test.questionTypes || deriveQuestionTypesForCard(test)
+    }));
   }, [assignments, libraryTests]);
 
   const fetchLibraryPage = async (isFirstPage = false) => {
@@ -143,6 +147,27 @@ export default function ReadingParts() {
         if (obj.id && !isNaN(parseInt(obj.id))) {
           ids.add(parseInt(obj.id));
         }
+        if (obj.rows && Array.isArray(obj.rows)) {
+          obj.rows.forEach(row => {
+            const cells = Array.isArray(row) ? row : (row.cells || []);
+            cells.forEach(cell => {
+              if (!cell) return;
+              if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
+                extract(cell);
+              }
+              if (cell.isMultiQuestion && Array.isArray(cell.content)) {
+                cell.content.forEach(extract);
+              }
+              if (cell.isMixed && Array.isArray(cell.parts)) {
+                cell.parts.forEach(part => {
+                  if (part && part.type === 'input') {
+                    extract(part);
+                  }
+                });
+              }
+            });
+          });
+        }
         if (Array.isArray(obj.items)) obj.items.forEach(extract);
         if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
         if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
@@ -198,7 +223,7 @@ export default function ReadingParts() {
                             (pNum && selectedPassages.includes(pNum));
 
       const matchesType = selectedQuestionTypes.length === 0 || 
-                         (item.questionTypes && item.questionTypes.some(t => selectedQuestionTypes.includes(t)));
+                         (item.questionTypes && item.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
       
       if (matchesSearch && matchesType && matchesStatus && matchesPassage) {
         result.push(item);
@@ -343,12 +368,10 @@ export default function ReadingParts() {
                                         isStandard={isStandard}
                                     />
                                 ))}
-                            </div>
- 
-                            {/* Pagination & Load More */}
+                            </div>                            {/* Pagination & Load More */}
                             <div className="flex flex-col items-center gap-5 pt-10 pb-8">
                                 {filteredTests.length > itemsPerPage && (
-                                    <div className="flex justify-center items-center gap-1">
+                                    <div className="flex justify-center items-center gap-1.5">
                                         {(() => {
                                             const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
                                             let pages = [];
@@ -363,7 +386,7 @@ export default function ReadingParts() {
                                                     pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
                                                 }
                                             }
- 
+  
                                             return pages.map((p, i) => (
                                                 p === '...' ? (
                                                     <span key={`dots-${i}`} className="text-[#86868b] dark:text-zinc-500 px-1 text-[11.5px]">...</span>
@@ -386,6 +409,23 @@ export default function ReadingParts() {
                                             ));
                                         })()}
                                     </div>
+                                )}
+
+                                {hasMore && (
+                                    <button
+                                        onClick={() => fetchLibraryPage()}
+                                        disabled={loadingLibrary}
+                                        className="group relative flex items-center gap-3 px-8 py-3.5 bg-[#1d1d1f] text-white dark:bg-[#f5f5f7] dark:text-[#1d1d1f] rounded-full font-semibold transition-all hover:bg-black dark:hover:bg-white active:scale-95 disabled:opacity-50 text-[11.5px] shadow-sm"
+                                    >
+                                        {loadingLibrary ? (
+                                            <Loader2 size={14} className="animate-spin" />
+                                        ) : (
+                                            <>
+                                                Show More Tests
+                                                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                            </>
+                                        )}
+                                    </button>
                                 )}
                             </div>
                         </div>

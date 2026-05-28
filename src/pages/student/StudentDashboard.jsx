@@ -9,8 +9,7 @@ import { useStudentDashboard } from "../../hooks/dashboard/useStudentDashboard";
 
 // COMPONENTS
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
-import HeroSection from "../../components/dashboard/HeroSection";
-import AnnouncementsBoard from "../../components/dashboard/AnnouncementsBoard";
+import NewsFeed from "../../components/dashboard/NewsFeed";
 import DashboardModals from "../../components/dashboard/DashboardModals";
 import PricingModal from "../../components/dashboard/PricingModal";
 import SettingsTab from "../../components/dashboard/SettingsTab";
@@ -99,22 +98,33 @@ export default function StudentDashboard() {
 
         if (dashboard.activeTab === 'dashboard') {
             return (
-                <HeroSection
-                    userName={userData?.fullName?.split(' ')[0] || "O'quvchi"}
-                    targetBand={userData?.targetBand || 7.5}
-                    currentBand={dashboard.overallBand}
-                    previousBand={userData?.previousIELTSScore || 0}
-                    examDate={userData?.examDate}
-                    onUpgradeClick={() => dashboard.setShowPricingModal(true)}
-                    skillStats={dashboard.skillStats}
-                    onToggleSkill={dashboard.toggleSkill}
-                    streakCount={userData?.streakCount || 0}
-                    points={userData?.gamification?.points || 0}
-                    usageStats={userData?.usageStats}
-                    onStartTest={onStartTestRequest}
-                    assignments={rawAssignments.length > 0 ? rawAssignments : dashboard.publicTestsFallback}
-                    loading={loading}
-                />
+                <div className="flex flex-col gap-2 max-w-lg mx-auto bg-white dark:bg-[#09090b] transition-colors pb-6">
+                    {/* Compact stats widget */}
+                    <div className="px-4 pt-4 pb-2 flex justify-between items-center border-b border-gray-100 dark:border-white/5">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 text-lg font-extrabold shadow-sm">
+                                {dashboard.overallBand || "0.0"}
+                            </div>
+                            <div>
+                                <h3 className="text-xs font-black text-gray-800 dark:text-zinc-200">Overall Band</h3>
+                                <p className="text-[10px] text-gray-400 dark:text-zinc-500 font-medium">Target: {userData?.targetBand || 7.5}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-500/5 px-2.5 py-1.5 rounded-xl border border-orange-500/10">
+                                <span>🔥</span>
+                                <span>{userData?.streakCount || 0} kun</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-500/5 px-2.5 py-1.5 rounded-xl border border-yellow-500/10">
+                                <span>🏆</span>
+                                <span>{userData?.gamification?.points || 0} ball</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Instagram-like news feed */}
+                    <NewsFeed user={user} userData={userData} />
+                </div>
             );
         }
 
@@ -134,7 +144,6 @@ export default function StudentDashboard() {
             />
             <main className="w-full pb-24 md:pb-0">
                 {renderContent()}
-                {dashboard.activeTab === 'dashboard' && <div className="mt-12"><AnnouncementsBoard /></div>}
             </main>
             
             <BottomNav activeTab={dashboard.activeTab} setActiveTab={handleTabChange} />

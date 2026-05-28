@@ -1,6 +1,7 @@
-// src/components/PodcastInterface/results/PodcastReportCard.jsx
 import React, { useEffect, useState } from "react";
 import "../shared/PodcastStyles.css";
+import { Share2 } from "lucide-react";
+import ShareModal from "../../common/ShareModal";
 
 const SKILLS = [
     { key: "listening", label: "Listening Comprehension", icon: "🎧", desc: "MCQ + Gap Fill" },
@@ -43,8 +44,9 @@ function getBandLabel(band) {
     return "Basic";
 }
 
-export default function PodcastReportCard({ bands, podcastTitle, onClose }) {
+export default function PodcastReportCard({ bands, podcastId, podcastTitle, onClose }) {
     const [show, setShow] = useState(false);
+    const [isShareOpen, setIsShareOpen] = useState(false);
     useEffect(() => { setTimeout(() => setShow(true), 100); }, []);
 
     if (!bands) return null;
@@ -116,10 +118,28 @@ export default function PodcastReportCard({ bands, podcastTitle, onClose }) {
             </div>
 
             {onClose && (
-                <button className="pod-btn pod-btn-primary" style={{ alignSelf: "center" }} onClick={onClose}>
-                    Dashboard ga qaytish
-                </button>
+                <div style={{ display: "flex", gap: 12, justifyContent: "center", width: "100%" }}>
+                    <button 
+                        className="pod-btn pod-btn-ghost" 
+                        style={{ display: "flex", alignItems: "center", gap: 8 }}
+                        onClick={() => setIsShareOpen(true)}
+                    >
+                        <Share2 size={16} /> Ulashish
+                    </button>
+                    <button className="pod-btn pod-btn-primary" onClick={onClose}>
+                        Dashboard ga qaytish
+                    </button>
+                </div>
             )}
+
+            <ShareModal
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                testId={podcastId}
+                testTitle={podcastTitle}
+                testType="podcast"
+                bandScore={bands?.overall}
+            />
         </div>
     );
 }

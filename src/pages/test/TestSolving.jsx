@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
+import { useLocation } from "react-router-dom";
 const ReadingInterface = lazy(() => import("../../components/ReadingInterface/ReadingInterface"));
 const ListeningInterface = lazy(() => import("../../components/ListeningInterface/ListeningInterface"));
 const WritingInterface = lazy(() => import("../../components/WritingInterface/WritingInterface"));
@@ -13,6 +14,8 @@ import { clearTestStorage } from "../../utils/TestUtils";
 
 export default function TestSolving() {
     const { user } = useAuth();
+    const location = useLocation();
+    
     // Logic hookdan barcha kerakli state va funksiyalarni olamiz
     const {
         test, loading, testMode, setTestMode, showModeSelection, setShowModeSelection,
@@ -22,6 +25,27 @@ export default function TestSolving() {
         activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
         audioRefs, handleSeekTo, partNumber, resultId
     } = useTestLogic();
+
+    // Dynamically determine the originating/return path
+    const returnPath = React.useMemo(() => {
+        if (location.state?.from) return location.state.from;
+        if (!test) return "/practice";
+
+        const type = test.type?.toLowerCase();
+        if (type === 'reading') {
+            return partNumber ? '/reading/parts' : '/reading/full';
+        }
+        if (type === 'listening') {
+            return partNumber ? '/listening/parts' : '/listening/full';
+        }
+        if (type === 'writing') {
+            return '/practice?tab=writing';
+        }
+        if (type === 'speaking') {
+            return '/speaking-practice';
+        }
+        return '/practice';
+    }, [location.state, test, partNumber]);
 
     // Exam modeda intro countdown tugagach audio play bo'lishi uchun trigger
     const [triggerPlay, setTriggerPlay] = useState(false);
@@ -78,7 +102,7 @@ export default function TestSolving() {
         if (!showResult) {
             setShowFinishWarning(true);
         } else {
-            navigate('/my-results');
+            navigate(returnPath);
         }
     };
 
@@ -98,7 +122,7 @@ export default function TestSolving() {
         if (shouldBlock) {
             setShowExitWarning(true);
         } else {
-            navigate(-1);
+            navigate(returnPath);
         }
     };
 
@@ -110,7 +134,7 @@ export default function TestSolving() {
             clearTestStorage(user.uid, test.id, partNumber);
         }
         // Hard redirect to break all history traps
-        window.location.href = '/practice';
+        window.location.href = returnPath;
     };
 
     // "No, Continue" bosilganda — chiqish modalini yopish
@@ -292,7 +316,7 @@ export default function TestSolving() {
                     initialDuration={initialDuration}
                     isReviewing={isReviewing}
                     setIsReviewing={setIsReviewing}
-                    onExit={() => navigate('/my-results')}
+                    onExit={() => navigate(returnPath)}
                     userAnswers={userAnswers}
                     partNumber={partNumber}
                     resultId={resultId}

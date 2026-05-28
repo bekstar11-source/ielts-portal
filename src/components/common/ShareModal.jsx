@@ -20,14 +20,32 @@ export default function ShareModal({
 
   // Generate share link
   const getShareUrl = () => {
-    let url = `${window.location.origin}/test/${testId}`;
-    if (startAtPart && currentPart) {
-      url += `?part=${currentPart}`;
+    if (testType === 'podcast') {
+      return `${window.location.origin}/share/podcast/${testId}`;
+    }
+    let cleanId = testId;
+    let partNum = currentPart;
+    if (testId && testId.includes('_part_')) {
+      const parts = testId.split('_part_');
+      cleanId = parts[0];
+      if (partNum === null || partNum === undefined) {
+        partNum = parseInt(parts[1], 10);
+      }
+    }
+    let url = `${window.location.origin}/test/${cleanId}`;
+    if (partNum && (startAtPart || (testId && testId.includes('_part_')))) {
+      url += `?part=${partNum}`;
     }
     return url;
   };
 
   const getShareText = () => {
+    if (testType === 'podcast') {
+      if (bandScore !== null && bandScore !== undefined) {
+        return `🚀 Men ENGLEV platformasida ushbu podcastdan ("${testTitle}") ${bandScore} Band Score oldim! Siz ham o'z kuchingizni sinab ko'ring:`;
+      }
+      return `🎧 ENGLEV platformasidagi ushbu ajoyib podcastni ("${testTitle}") tinglang va IELTS bo'limlaringizni rivojlantiring:`;
+    }
     const capitalizedType = testType ? testType.charAt(0).toUpperCase() + testType.slice(1) : 'IELTS';
     if (bandScore !== null && bandScore !== undefined) {
       return `🚀 Men ENGLEV platformasida ushbu ${capitalizedType} testdan (${testTitle}) ${bandScore} ball oldim! Siz ham o'z kuchingizni sinab ko'ring:`;
@@ -92,7 +110,7 @@ export default function ShareModal({
           {/* Title Section (Left-aligned, clean typography) */}
           <div className="mb-5 pr-6">
             <h3 className="text-[17px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">
-              Test havolasini ulashish
+              {testType === 'podcast' ? "Podcast havolasini ulashish" : "Test havolasini ulashish"}
             </h3>
             <p className="text-[12px] text-[#86868b] mt-1 leading-normal">
               {testTitle}
@@ -104,7 +122,7 @@ export default function ShareModal({
             <div className="flex items-center gap-2 bg-[#f5f5f7] dark:bg-[#2d2d30] border border-[#d2d2d7] dark:border-[#424245] rounded-xl p-3 mb-5 text-xs text-[#1d1d1f] dark:text-[#f5f5f7]">
               <Sparkles size={14} className="text-[#bf953f] shrink-0" />
               <span className="font-semibold">
-                Sizning natijangiz: {bandScore} Band Score ({score} ta to'g'ri)
+                Sizning natijangiz: {bandScore} Band Score {testType !== 'podcast' && `(${score} ta to'g'ri)`}
               </span>
             </div>
           )}

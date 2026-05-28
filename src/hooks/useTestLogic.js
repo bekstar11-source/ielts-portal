@@ -13,6 +13,10 @@ import { useGamification } from "./useGamification";
 
 export function useTestLogic() {
     const { testId } = useParams();
+    const cleanTestId = useMemo(() => {
+        if (!testId) return "";
+        return testId.split('_part_')[0];
+    }, [testId]);
     const navigate = useNavigate();
     const location = useLocation();
     const { user, userData } = useAuth();
@@ -23,8 +27,13 @@ export function useTestLogic() {
     const partNumber = useMemo(() => {
         const queryParams = new URLSearchParams(location.search);
         const p = queryParams.get('part') || queryParams.get('passage') || queryParams.get('section');
-        return p ? parseInt(p) : null;
-    }, [location.search]);
+        if (p) return parseInt(p, 10);
+        if (testId && testId.includes('_part_')) {
+            const match = testId.match(/_part_(\d+)/);
+            if (match) return parseInt(match[1], 10);
+        }
+        return null;
+    }, [location.search, testId]);
 
     // UI & Navigation States
     const [testMode, setTestMode] = useState(null);
@@ -45,7 +54,7 @@ export function useTestLogic() {
     const [audioTime, setAudioTime] = useState(0);
 
     // Modularized Logic
-    const { test, loading } = useTestFetch(testId, user, userData, navigate);
+    const { test, loading } = useTestFetch(cleanTestId, user, userData, navigate);
     const { userAnswers, setUserAnswers, writingEssay, setWritingEssay, flaggedQuestions, handleSelectAnswer, toggleFlag } = useTestAnswers();
     const initialDuration = useMemo(() => {
         if (partNumber) return 10 * 60; // 10 minutes per part practice
@@ -73,7 +82,7 @@ export function useTestLogic() {
         return 60 * 60;
     }, [test, partNumber]);
 
-    const { timeLeft, setTimeLeft } = useTestTimer(testId, user?.uid, testMode, initialDuration, !!test && !showModeSelection && !showResult, partNumber);
+    const { timeLeft, setTimeLeft } = useTestTimer(cleanTestId, user?.uid, testMode, initialDuration, !!test && !showModeSelection && !showResult, partNumber);
     const { saving, submitTest } = useTestSubmission(user, userData);
 
     // Initialize Mode & Settings

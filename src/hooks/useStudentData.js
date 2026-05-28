@@ -28,6 +28,27 @@ const getActualQuestionCount = (questions) => {
         if (obj.id && !isNaN(parseInt(obj.id))) {
             ids.add(parseInt(obj.id));
         }
+        if (obj.rows && Array.isArray(obj.rows)) {
+            obj.rows.forEach(row => {
+                const cells = Array.isArray(row) ? row : (row.cells || []);
+                cells.forEach(cell => {
+                    if (!cell) return;
+                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
+                        extract(cell);
+                    }
+                    if (cell.isMultiQuestion && Array.isArray(cell.content)) {
+                        cell.content.forEach(extract);
+                    }
+                    if (cell.isMixed && Array.isArray(cell.parts)) {
+                        cell.parts.forEach(part => {
+                            if (part && part.type === 'input') {
+                                extract(part);
+                            }
+                        });
+                    }
+                });
+            });
+        }
         if (Array.isArray(obj.items)) obj.items.forEach(extract);
         if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
         if (Array.isArray(obj.groups)) obj.groups.forEach(extract);

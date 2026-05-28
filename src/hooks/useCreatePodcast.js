@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc, serverTimestamp, collection, getDocs, query, orderBy } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, collection, getDocs, query, orderBy, addDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../firebase/firebase";
 import { toast } from 'react-hot-toast';
@@ -176,9 +176,27 @@ export function useCreatePodcast(editId, navigate) {
 
             if (!editId) {
                 saveData.createdAt = serverTimestamp();
-            }
+                await setDoc(doc(db, "podcasts", podId), saveData, { merge: true });
 
-            await setDoc(doc(db, "podcasts", podId), saveData, { merge: true });
+                // Auto post the new podcast to the feed
+                try {
+                    await addDoc(collection(db, "feed_posts"), {
+                        type: "podcast",
+                        title: saveData.title || "Yangi Podcast",
+                        content: saveData.description || "Tizimda yangi podcast yuklandi. Eshitishni va mashqlarni bajarishni boshlang!",
+                        mediaUrl: saveData.thumbnail || "",
+                        ctaUrl: `/podcast/${podId}`,
+                        ctaText: "Eshitish",
+                        likes: [],
+                        commentsCount: 0,
+                        createdAt: serverTimestamp()
+                    });
+                } catch (feedErr) {
+                    console.error("Error auto-posting podcast to feed:", feedErr);
+                }
+            } else {
+                await setDoc(doc(db, "podcasts", podId), saveData, { merge: true });
+            }
             toast.success("Podcast saqlandi!", { id: savingToast });
             navigate("/admin/podcasts");
         } catch (err) {

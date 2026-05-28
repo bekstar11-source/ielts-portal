@@ -484,11 +484,36 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
+    const updateTestMetadata = async (id, title, collectionId) => {
+        try {
+            const finalColId = collectionId === 'None' || !collectionId ? null : collectionId;
+            const updatedFields = {
+                title: title.trim(),
+                collectionId: finalColId,
+                updatedAt: new Date().toISOString()
+            };
+            
+            await Promise.all([
+                updateDoc(doc(db, "tests", id), updatedFields),
+                updateDoc(doc(db, "tests_metadata", id), updatedFields)
+            ]);
+            
+            // Sync current state
+            setTests(prev => prev.map(t => t.id === id ? { ...t, ...updatedFields } : t));
+            setAllTestsCache(prev => prev.map(t => t.id === id ? { ...t, ...updatedFields } : t));
+            setSwrCache({}); // Invalidate SWR cache to force reload
+            return true;
+        } catch (err) {
+            console.error("Update Test Metadata Error:", err);
+            return false;
+        }
+    };
+
     useEffect(() => { fetchInitial(); }, []);
 
     return {
         tests, collections, loading, hasMore, totalTestCount, currentPage, isSearching, isBackgroundRefreshing,
         fetchInitial, fetchPage, searchTests, handleDelete, bulkAssignToCollection,
-        addCollection, updateCollection, deleteCollection
+        addCollection, updateCollection, deleteCollection, updateTestMetadata
     };
 };

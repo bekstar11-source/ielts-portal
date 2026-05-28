@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoreHorizontal, Edit2, Trash2, Globe, Lock, BookOpen, Headphones, PenTool, Mic2, Eye, Award } from 'lucide-react';
+import { MoreHorizontal, Edit2, Edit3, Trash2, Globe, Lock, BookOpen, Headphones, PenTool, Mic2, Eye, Award } from 'lucide-react';
 
 const passagePartNumber = (p, idx, kind) => {
     const idNum = Number(p.id);
@@ -80,7 +80,7 @@ const getSegments = (test) => {
 };
 
 const AdminTestsList = ({ 
-    tests, selectedTests, onToggleSelect, onDelete, onEdit, onView, isDark 
+    tests, selectedTests, onToggleSelect, onDelete, onEdit, onQuickEdit, onView, isDark 
 }) => {
     return (
         <div className="w-full overflow-x-auto">
@@ -246,10 +246,35 @@ const AdminTestsList = ({
                                 <td className="py-4 pr-4 text-right">
                                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         {test.type !== 'mock' && (
-                                            <button onClick={() => onView(test.id)} className="p-2 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 rounded-lg transition-colors"><Eye size={14} /></button>
+                                            <button 
+                                                onClick={() => onView(test.id)} 
+                                                className="p-2 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 rounded-lg transition-colors"
+                                                title="Ko'rish"
+                                            >
+                                                <Eye size={14} />
+                                            </button>
                                         )}
-                                        <button onClick={() => onEdit(test.id)} className="p-2 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400 rounded-lg transition-colors"><Edit2 size={14} /></button>
-                                        <button onClick={() => onDelete(test.id, test.title)} className="p-2 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                                        <button 
+                                            onClick={() => onQuickEdit(test)} 
+                                            className="p-2 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400 rounded-lg transition-colors"
+                                            title="Tezkor tahrirlash (Nomi va to'plam)"
+                                        >
+                                            <Edit3 size={14} />
+                                        </button>
+                                        <button 
+                                            onClick={() => onEdit(test.id)} 
+                                            className="p-2 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400 rounded-lg transition-colors"
+                                            title={test.type === 'mock' ? "Modullarni tahrirlash" : "Savollarni tahrirlash"}
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+                                        <button 
+                                            onClick={() => onDelete(test.id, test.title)} 
+                                            className="p-2 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 rounded-lg transition-colors"
+                                            title="O'chirish"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

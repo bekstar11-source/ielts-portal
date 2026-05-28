@@ -79,10 +79,18 @@ export default function AdminTests() {
     const [mockWritingId, setMockWritingId] = useState("");
     const [isSavingMockExam, setIsSavingMockExam] = useState(false);
 
+    // Quick Edit State
+    const [quickEditModalOpen, setQuickEditModalOpen] = useState(false);
+    const [editingTest, setEditingTest] = useState(null);
+    const [quickEditTitle, setQuickEditTitle] = useState("");
+    const [quickEditCollectionId, setQuickEditCollectionId] = useState("");
+    const [isSavingQuickEdit, setIsSavingQuickEdit] = useState(false);
+
     const {
         tests, collections, loading, totalTestCount, currentPage,
         handleDelete, bulkAssignToCollection, fetchPage, searchTests, fetchInitial,
-        addCollection, updateCollection, deleteCollection, isBackgroundRefreshing
+        addCollection, updateCollection, deleteCollection, isBackgroundRefreshing,
+        updateTestMetadata
     } = useAdminTests(12); // Using 12 for better grid layout
 
     // Open/Close Collection handlers
@@ -186,6 +194,35 @@ export default function AdminTests() {
             alert("Saqlashda xatolik yuz berdi: " + err.message);
         } finally {
             setIsSavingMockExam(false);
+        }
+    };
+
+    const handleOpenQuickEdit = (test) => {
+        setEditingTest(test);
+        setQuickEditTitle(test.title || "");
+        setQuickEditCollectionId(test.collectionId || "");
+        setQuickEditModalOpen(true);
+    };
+
+    const handleSaveQuickEdit = async () => {
+        if (!quickEditTitle.trim()) {
+            alert("Test nomini kiriting!");
+            return;
+        }
+        setIsSavingQuickEdit(true);
+        try {
+            const ok = await updateTestMetadata(editingTest.id, quickEditTitle.trim(), quickEditCollectionId);
+            if (ok) {
+                setQuickEditModalOpen(false);
+                setEditingTest(null);
+            } else {
+                alert("Saqlashda xatolik yuz berdi.");
+            }
+        } catch (err) {
+            console.error("Quick edit save error:", err);
+            alert("Saqlashda xatolik yuz berdi: " + err.message);
+        } finally {
+            setIsSavingQuickEdit(false);
         }
     };
 
@@ -597,6 +634,7 @@ export default function AdminTests() {
                                         navigate(`/admin/edit-test/${id}`);
                                     }
                                 }}
+                                onQuickEdit={handleOpenQuickEdit}
                                 onView={(id) => navigate(`/test/${id}`)}
                                 isDark={isDark}
                             />
@@ -963,6 +1001,67 @@ export default function AdminTests() {
                             >
                                 {isMerging && <Loader2 size={16} className="animate-spin" />}
                                 Merge Tests
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* QUICK EDIT MODAL */}
+            {quickEditModalOpen && editingTest && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setQuickEditModalOpen(false)} />
+                    <div className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border ${isDark ? 'bg-[#1e1e1e] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'}`}>
+                        <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50/50'}`}>
+                            <h2 className="font-bold text-lg flex items-center gap-2">
+                                <Edit3 className={isDark ? 'text-blue-400' : 'text-blue-600'} size={20} />
+                                Quick Edit Test
+                            </h2>
+                            <button onClick={() => setQuickEditModalOpen(false)} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-zinc-200'}`}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div>
+                                <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Test Title</label>
+                                <input 
+                                    className={`w-full border p-3 rounded-xl outline-none transition-all font-bold text-sm ${isDark ? 'bg-[#2a2a2a] border-white/10 focus:border-blue-500 text-white' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500 text-zinc-900'}`}
+                                    placeholder="Enter test title..."
+                                    value={quickEditTitle}
+                                    onChange={e => setQuickEditTitle(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Collection</label>
+                                <select 
+                                    className={`w-full border p-3 rounded-xl outline-none transition-all font-bold text-sm ${isDark ? 'bg-[#2a2a2a] border-white/10 focus:border-blue-500 text-white' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500 text-zinc-900'}`}
+                                    value={quickEditCollectionId}
+                                    onChange={e => setQuickEditCollectionId(e.target.value)}
+                                >
+                                    <option value="">No Collection</option>
+                                    {collections
+                                        .filter(c => c.type === editingTest.type)
+                                        .map(c => (
+                                            <option key={c.id} value={c.id}>📁 {c.name}</option>
+                                        ))
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div className={`p-6 pt-0 flex gap-3 bg-transparent`}>
+                            <button 
+                                onClick={() => setQuickEditModalOpen(false)} 
+                                className={`px-4 py-3 font-bold text-sm rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-zinc-400' : 'hover:bg-zinc-100 text-zinc-500'}`}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSaveQuickEdit} 
+                                disabled={isSavingQuickEdit || !quickEditTitle.trim()}
+                                className={`flex-1 font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${isSavingQuickEdit ? 'opacity-70 cursor-not-allowed' : ''} ${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/10' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20'}`}
+                            >
+                                {isSavingQuickEdit && <Loader2 size={16} className="animate-spin" />}
+                                Save Changes
                             </button>
                         </div>
                     </div>

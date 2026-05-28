@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, BarChart, Users, ClipboardCheck, Megaphone, Newspaper } from 'lucide-react';
+import { Plus, BarChart, Users, ClipboardCheck, Megaphone, Newspaper, Compass } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ActionCard = ({ title, desc, icon: Icon, bg, onClick, isDark }) => (
@@ -22,6 +22,7 @@ const AdminDashboardActions = ({ isDark }) => {
         { title: "Test Yaratish", desc: "Yangi Reading/Listening", icon: Plus, bg: "bg-blue-600 shadow-lg shadow-blue-600/20", path: "/admin/create-test" },
         { title: "Analitika", desc: "Statistika va tahlillar", icon: BarChart, bg: "bg-purple-600 shadow-lg shadow-purple-600/20", path: "/admin/analytics" },
         { title: "O'quvchilar", desc: "Tahrirlash va ko'rish", icon: Users, bg: isDark ? "bg-[#353535]" : "bg-white border-gray-100 border shadow-sm", path: "/admin/users" },
+        { title: "Feed & Stories", desc: "Instagram tasma va hikoyalar", icon: Compass, bg: "bg-gradient-to-r from-pink-500 to-yellow-500 shadow-lg shadow-pink-500/20", path: "/admin/feed" },
         { title: "Baholash", desc: "Natijalarni tekshirish", icon: ClipboardCheck, bg: isDark ? "bg-[#353535]" : "bg-white border-gray-100 border shadow-sm", path: "/admin/results" },
         { title: "E'lonlar", desc: "Yangiliklar yuborish", icon: Megaphone, bg: isDark ? "bg-[#353535]" : "bg-white border-gray-100 border shadow-sm", path: "/admin/announcements" },
         { title: "Maqolalar", desc: "Maqolalar yaratish", icon: Newspaper, bg: isDark ? "bg-[#353535]" : "bg-white border-gray-100 border shadow-sm", path: "/admin/articles" }

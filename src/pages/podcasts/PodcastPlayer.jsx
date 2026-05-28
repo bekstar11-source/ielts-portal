@@ -19,6 +19,8 @@ import InteractiveTranscript from "../../components/PodcastInterface/shared/Inte
 import PodcastVocabList from "../../components/PodcastInterface/shared/PodcastVocabList";
 import "../../components/PodcastInterface/shared/PodcastStyles.css";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { Share2 } from "lucide-react";
+import ShareModal from "../../components/common/ShareModal";
 
 const STAGE_TITLES = [
     "✍️ Dictation — Eshitib yazing",
@@ -47,6 +49,7 @@ export default function PodcastPlayer() {
     const [activeToolTab, setActiveToolTab] = useState("transcript"); // 'transcript' | 'vocabulary'
     const [globalTime, setGlobalTime] = useState(0);
     const [allSegments, setAllSegments] = useState([]);
+    const [isShareOpen, setIsShareOpen] = useState(false);
 
     const { attempt, currentStage, stageResults, saving, completeStage, loading: attemptLoading } = usePodcastAttempt(podcastId);
 
@@ -130,7 +133,16 @@ export default function PodcastPlayer() {
                         )}
                     </div>
                 </div>
-                {saving && <span style={{ fontSize: 12, color: "var(--pod-muted)" }}>Saqlanmoqda...</span>}
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <button 
+                        onClick={() => setIsShareOpen(true)}
+                        className="pod-btn pod-btn-ghost" 
+                        style={{ padding: "6px 12px", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                    >
+                        <Share2 size={14} /> Share
+                    </button>
+                    {saving && <span style={{ fontSize: 12, color: "var(--pod-muted)" }}>Saqlanmoqda...</span>}
+                </div>
             </div>
 
             {/* Stage progress */}
@@ -257,11 +269,20 @@ export default function PodcastPlayer() {
                 {showResults && (
                     <PodcastReportCard
                         bands={attempt?.ieltsBands}
+                        podcastId={podcastId}
                         podcastTitle={podcast.title}
                         onClose={() => navigate("/dashboard")}
                     />
                 )}
             </div>
+
+            <ShareModal
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                testId={podcastId}
+                testTitle={podcast.title}
+                testType="podcast"
+            />
         </div>
     );
 }

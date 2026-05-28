@@ -7,12 +7,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
     Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, 
     Mic2, List as ListIcon, Heart, Expand, X, CheckCircle2,
-    Shuffle, Repeat
+    Shuffle, Repeat, Share2
 } from "lucide-react";
 import { usePodcast } from "../../context/PodcastContext";
 import LazyImage from "../../components/common/LazyImage";
 import { useGamification } from "../../hooks/useGamification";
 import { useAuth } from "../../context/AuthContext";
+import ShareModal from "../../components/common/ShareModal";
 
 export default function SpotifyPodcast() {
     const { podcastId } = useParams();
@@ -28,6 +29,7 @@ export default function SpotifyPodcast() {
     const { awardXP } = useGamification();
     const { user, userData } = useAuth();
     const [xpAwardedSession, setXpAwardedSession] = useState(false);
+    const [isShareOpen, setIsShareOpen] = useState(false);
     
     // Questions logic removed as per user request
 
@@ -148,7 +150,16 @@ export default function SpotifyPodcast() {
                         </div>
                     </div>
                 </div>
-                <button onClick={() => navigate('/podcasts')} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors border border-white/5 text-zinc-400"><X size={18} /></button>
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={() => setIsShareOpen(true)}
+                        className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors border border-white/5 text-zinc-400"
+                        title="Share"
+                    >
+                        <Share2 size={18} />
+                    </button>
+                    <button onClick={() => navigate('/podcasts')} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors border border-white/5 text-zinc-400"><X size={18} /></button>
+                </div>
             </header>
 
             <main className="relative z-10 flex-1 flex flex-col lg:flex-row overflow-hidden bg-gradient-to-b from-[#1a1a1a] to-black">
@@ -234,6 +245,13 @@ export default function SpotifyPodcast() {
                 </div>
             </div>
 
+            <ShareModal
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                testId={podcastId}
+                testTitle={podcast.title}
+                testType="podcast"
+            />
         </div>
     );
 }

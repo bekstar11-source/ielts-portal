@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-    Play, Pause, Download, PlusCircle, MoreHorizontal, ChevronLeft
+    Play, Pause, Download, PlusCircle, MoreHorizontal, ChevronLeft, Share2
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import { usePodcast } from "../../context/PodcastContext";
 import { useEpisodeDetails } from "../../hooks/usePodcastData";
 import { formatTime, getPodcastDuration, getPodcastDate } from "../../utils/podcastUtils";
 import PlayerFooter from "../../components/InteractivePlayer/PlayerFooter";
+import ShareModal from "../../components/common/ShareModal";
 
 // Sub-components
 import { EpisodeSkeleton } from "../../components/podcasts/PodcastSkeletons";
@@ -33,6 +34,7 @@ export default function SpotifyEpisodeDetails() {
     const [showMoreDesc, setShowMoreDesc] = useState(false);
     const [scrollOpacity, setScrollOpacity] = useState(0);
     const [openSection, setOpenSection] = useState(null); // 'exercises' or 'transcript'
+    const [isShareOpen, setIsShareOpen] = useState(false);
 
     const handlePlay = () => {
         if (currentTrack?.id !== podcast.id) {
@@ -131,6 +133,13 @@ export default function SpotifyEpisodeDetails() {
                                 <button className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900'}`}>
                                     <Download size={16} />
                                 </button>
+                                <button 
+                                    onClick={() => setIsShareOpen(true)}
+                                    className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900'}`}
+                                    title="Share"
+                                >
+                                    <Share2 size={16} />
+                                </button>
                                 <PlusCircle size={32} strokeWidth={1} className={`cursor-pointer transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
                                 <MoreHorizontal size={32} className={`cursor-pointer transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
                             </div>
@@ -195,6 +204,14 @@ export default function SpotifyEpisodeDetails() {
                 />
             )}
             {!isExpanded && <PodcastBottomNav isDark={isDark} />}
+
+            <ShareModal
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                testId={podcastId}
+                testTitle={podcast?.title}
+                testType="podcast"
+            />
         </div>
     );
 }

@@ -15,9 +15,10 @@ export function useTestFetch(testId, user, userData, navigate) {
             try {
                 let testData = null;
                 const isStaff = userData?.role === 'admin' || userData?.role === 'teacher';
+                const cleanId = testId.split('_part_')[0];
 
                 if (isStaff) {
-                    const testSnap = await getDoc(doc(db, "tests", testId));
+                    const testSnap = await getDoc(doc(db, "tests", cleanId));
                     if (!testSnap.exists()) {
                         alert("Test topilmadi!");
                         navigate("/dashboard");
@@ -26,7 +27,7 @@ export function useTestFetch(testId, user, userData, navigate) {
                     testData = { id: testSnap.id, ...testSnap.data() };
                 } else {
                     const getSanitizedTestFn = httpsCallable(functions, 'getSanitizedTest');
-                    const res = await getSanitizedTestFn({ testId });
+                    const res = await getSanitizedTestFn({ testId: cleanId });
                     testData = res.data;
                 }
 

@@ -11,33 +11,11 @@ export function useReadingCollections(userResults) {
   const [collectionCounts, setCollectionCounts] = useState({});
   const [allCollectionsTests, setAllCollectionsTests] = useState([]);
 
-  const fetchCollectionCounts = async (cols) => {
+  const fetchCollectionCounts = (cols, allTests = []) => {
     const counts = {};
-    for (const col of cols) {
-      try {
-        const countSnap = await getCountFromServer(
-          query(
-            collection(db, "tests"), 
-            where("collectionId", "==", col.id),
-            where("type", "==", "reading")
-          )
-        );
-        counts[col.id] = countSnap.data().count;
-      } catch (e) {
-        try {
-          const countSnap = await getCountFromServer(
-            query(
-              collection(db, "tests_metadata"), 
-              where("collectionId", "==", col.id),
-              where("type", "==", "reading")
-            )
-          );
-          counts[col.id] = countSnap.data().count;
-        } catch (e2) {
-          counts[col.id] = 0;
-        }
-      }
-    }
+    cols.forEach(col => {
+      counts[col.id] = allTests.filter(t => String(t.collectionId) === String(col.id)).length;
+    });
     setCollectionCounts(counts);
   };
 
@@ -49,20 +27,21 @@ export function useReadingCollections(userResults) {
       const fetchedCols = snapCols.docs
         .map(d => ({ id: d.id, ...d.data() }));
       setCollections(fetchedCols);
-      fetchCollectionCounts(fetchedCols);
       
       const colIds = fetchedCols.map(c => c.id).filter(Boolean);
+      let fetchedAllTests = [];
       if (colIds.length > 0) {
         const qAllTests = query(
           collection(db, 'tests_metadata'),
           where('collectionId', 'in', colIds)
         );
         const snapAllTests = await getDocs(qAllTests);
-        const fetchedAllTests = snapAllTests.docs
+        fetchedAllTests = snapAllTests.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(t => t.type === 'reading');
         setAllCollectionsTests(fetchedAllTests);
       }
+      fetchCollectionCounts(fetchedCols, fetchedAllTests);
     } catch (e) {
       try {
         const snapCols = await getDocs(collection(db, "test_collections"));
@@ -70,20 +49,21 @@ export function useReadingCollections(userResults) {
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(c => c.type?.toLowerCase() === 'reading');
         setCollections(fetchedCols);
-        fetchCollectionCounts(fetchedCols);
 
         const colIds = fetchedCols.map(c => c.id).filter(Boolean);
+        let fetchedAllTests = [];
         if (colIds.length > 0) {
           const qAllTests = query(
             collection(db, 'tests_metadata'),
             where('collectionId', 'in', colIds)
           );
           const snapAllTests = await getDocs(qAllTests);
-          const fetchedAllTests = snapAllTests.docs
+          fetchedAllTests = snapAllTests.docs
             .map(d => ({ id: d.id, ...d.data() }))
             .filter(t => t.type === 'reading');
           setAllCollectionsTests(fetchedAllTests);
         }
+        fetchCollectionCounts(fetchedCols, fetchedAllTests);
       } catch (e2) {
         console.error("Failed to load collections:", e2);
       }

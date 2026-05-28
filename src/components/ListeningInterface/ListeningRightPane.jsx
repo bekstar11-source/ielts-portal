@@ -35,6 +35,27 @@ const formatIELTSInstruction = (text) => {
     return result;
 };
 
+const getInputsFromRows = (rows) => {
+    const inputs = [];
+    rows.forEach(row => {
+        const cells = Array.isArray(row) ? row : (row.cells || []);
+        cells.forEach(cell => {
+            if (cell.id && !cell.isMixed && !cell.isMultiQuestion) {
+                inputs.push(cell);
+            }
+            if (cell.isMultiQuestion && cell.content) {
+                inputs.push(...cell.content);
+            }
+            if (cell.isMixed && cell.parts) {
+                cell.parts.forEach(p => {
+                    if (p.type === 'input') inputs.push(p);
+                });
+            }
+        });
+    });
+    return inputs;
+};
+
 const ListeningRightPane = memo(({
     testData,
     activePart,
@@ -186,27 +207,6 @@ const ListeningRightPane = memo(({
                 let partMinId = Infinity;
                 let partMaxId = -Infinity;
 
-                const getInputsFromRows = (rows) => {
-                    const inputs = [];
-                    rows.forEach(row => {
-                        const cells = Array.isArray(row) ? row : (row.cells || []);
-                        cells.forEach(cell => {
-                            if (cell.id && !cell.isMixed && !cell.isMultiQuestion) {
-                                inputs.push(cell);
-                            }
-                            if (cell.isMultiQuestion && cell.content) {
-                                inputs.push(...cell.content);
-                            }
-                            if (cell.isMixed && cell.parts) {
-                                cell.parts.forEach(p => {
-                                    if (p.type === 'input') inputs.push(p);
-                                });
-                            }
-                        });
-                    });
-                    return inputs;
-                };
-
                 questionsForPart.forEach(group => {
                     let items = [];
                     if (Array.isArray(group.groups)) {
@@ -315,8 +315,14 @@ const ListeningRightPane = memo(({
                 let allSubItems = [];
                 if (Array.isArray(group.groups)) {
                     group.groups.forEach(sub => {
-                        allSubItems = [...allSubItems, ...(sub.items || sub.questions || [])];
+                        if (sub.rows) {
+                            allSubItems = [...allSubItems, ...getInputsFromRows(sub.rows)];
+                        } else {
+                            allSubItems = [...allSubItems, ...(sub.items || sub.questions || [])];
+                        }
                     });
+                } else if (group.rows) {
+                    allSubItems = getInputsFromRows(group.rows);
                 } else {
                     allSubItems = group.questions || group.items || [];
                 }

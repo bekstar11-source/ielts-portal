@@ -39,6 +39,7 @@ const DiagnosticResult = lazy(() => import('./pages/diagnostic/DiagnosticResult'
 const CreateTest = lazy(() => import('./pages/admin/CreateTest'));
 const AdminResults = lazy(() => import('./pages/admin/AdminResults'));
 const AdminAnnouncements = lazy(() => import('./pages/admin/AdminAnnouncements'));
+const AdminFeedManagement = lazy(() => import('./pages/admin/AdminFeedManagement'));
 const AdminLogs = lazy(() => import('./pages/admin/AdminLogs'));
 const AdminGamification = lazy(() => import('./pages/admin/AdminGamification'));
 const TestSolving = lazy(() => import('./pages/test/TestSolving'));
@@ -55,6 +56,7 @@ const SpotifyPodcast = lazy(() => import('./pages/podcasts/SpotifyPodcast'));
 const CreateSpotifyPodcast = lazy(() => import('./pages/podcasts/CreateSpotifyPodcast'));
 const SpotifyAlbum = lazy(() => import('./pages/podcasts/SpotifyAlbum'));
 const SpotifyEpisodeDetails = lazy(() => import('./pages/podcasts/SpotifyEpisodeDetails'));
+const SharePodcastRedirect = lazy(() => import('./pages/podcasts/SharePodcastRedirect'));
 const StudentStatistics = lazy(() => import('./pages/student/StudentStatistics'));
 const StudentLeaderboard = lazy(() => import('./pages/student/StudentLeaderboard'));
 const SpeakingPractice = lazy(() => import('./pages/test/SpeakingPractice'));
@@ -153,6 +155,7 @@ function App() {
             {/* CONTENT ROUTES */}
             <Route path="/podcasts" element={<ProtectedRoute><Podcasts /></ProtectedRoute>} />
             <Route path="/podcast/:podcastId" element={<ProtectedRoute><PodcastPlayer /></ProtectedRoute>} />
+            <Route path="/share/podcast/:podcastId" element={<ProtectedRoute><SharePodcastRedirect /></ProtectedRoute>} />
             <Route path="/podcast/spotify/:podcastId" element={<ProtectedRoute><SpotifyPodcast /></ProtectedRoute>} />
             <Route path="/podcast/album/:albumId" element={<ProtectedRoute><SpotifyAlbum /></ProtectedRoute>} />
             <Route path="/podcast/episode/:podcastId" element={<ProtectedRoute><SpotifyEpisodeDetails /></ProtectedRoute>} />
@@ -185,6 +188,7 @@ function App() {
               <Route path="tests" element={<AdminTests />} />
               <Route path="roadmap" element={<AdminRoadmap />} />
               <Route path="announcements" element={<AdminAnnouncements />} />
+              <Route path="feed" element={<AdminFeedManagement />} />
               <Route path="articles" element={<AdminArticles />} />
               <Route path="create-test" element={<CreateTest />} />
               <Route path="edit-test/:id" element={<CreateTest />} />

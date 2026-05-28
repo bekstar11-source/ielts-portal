@@ -49,62 +49,11 @@ export default function ListeningFull() {
   const collectionsData = useListeningCollections(userResults);
   const { allCollectionsTests = [] } = collectionsData;
   
-  // Library Pagination State
-  const [libraryTests, setLibraryTests] = useState([]);
-  const [lastVisible, setLastVisible] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [totalLibraryCount, setTotalLibraryCount] = useState(0);
-  const [loadingLibrary, setLoadingLibrary] = useState(false);
-  const PAGE_SIZE = 200;
-
   const rawAssignments = useMemo(() => {
     const assignedIds = new Set(assignments.map(a => a.id));
-    const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
     const uniqueColTests = allCollectionsTests.filter(t => !assignedIds.has(t.id));
-    
-    const libraryIds = new Set(uniqueLibrary.map(t => t.id));
-    const uniqueColTestsFiltered = uniqueColTests.filter(t => !libraryIds.has(t.id));
-
-    return [...assignments, ...uniqueLibrary, ...uniqueColTestsFiltered];
-  }, [assignments, libraryTests, allCollectionsTests]);
-
-  const fetchLibraryPage = async (isFirstPage = false) => {
-    if (loadingLibrary || (!hasMore && !isFirstPage)) return;
-    setLoadingLibrary(true);
-    try {
-        let q = query(
-            collection(db, 'tests_metadata'),
-            where('type', '==', 'listening'),
-            limit(PAGE_SIZE)
-        );
-
-        if (!isFirstPage && lastVisible) {
-            q = query(q, startAfter(lastVisible));
-        }
-
-        const snap = await getDocs(q);
-        const newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
-        
-        if (isFirstPage) {
-            setLibraryTests(newTests);
-            const countSnap = await getCountFromServer(query(collection(db, 'tests_metadata'), where('type', '==', 'listening')));
-            setTotalLibraryCount(countSnap.data().count);
-        } else {
-            setLibraryTests(prev => [...prev, ...newTests]);
-        }
-        
-        setLastVisible(snap.docs[snap.docs.length - 1]);
-        setHasMore(snap.docs.length === PAGE_SIZE);
-    } catch (err) {
-        console.error("Error fetching library tests:", err);
-    } finally {
-        setLoadingLibrary(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLibraryPage(true);
-  }, []);
+    return [...assignments, ...uniqueColTests];
+  }, [assignments, allCollectionsTests]);
 
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [showStartConfirm, setShowStartConfirm] = useState(false);
@@ -148,7 +97,7 @@ export default function ListeningFull() {
 
       resultList.push({
         ...test,
-        title: test.title?.toLowerCase().includes('full') ? test.title : `${test.title} (Full Mock)`,
+        title: test.title,
         isFullTest: true,
         questionTypes: deriveQuestionTypesForCard(test),
         result: fullAttempt || null
