@@ -75,6 +75,8 @@ const Pricing = lazy(() => import('./pages/public/Pricing'));
 const Library = lazy(() => import('./pages/student/Library'));
 const MockEntry = lazy(() => import('./pages/student/MockEntry'));
 const SpeakingAi = lazy(() => import('./pages/student/SpeakingAi'));
+const MockPurchase = lazy(() => import('./pages/student/MockPurchase'));
+const AdminMocks = lazy(() => import('./pages/admin/AdminMocks'));
 
 // LAYOUTS
 const TeacherLayout = lazy(() => import('./components/common/TeacherLayout'));
@@ -148,6 +150,7 @@ function App() {
             <Route path="/roadmap" element={<ProtectedRoute allowedRoles={['student', 'admin']}><RoadmapPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Settings /></ProtectedRoute>} />
             <Route path="/mock" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockEntry /></ProtectedRoute>} />
+            <Route path="/mock-buy" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockPurchase /></ProtectedRoute>} />
             <Route path="/speaking-ai" element={<ProtectedRoute allowedRoles={['student', 'admin']}><SpeakingAi /></ProtectedRoute>} />
             <Route path="/test-results" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><TestResults /></ProtectedRoute>} />
             <Route path="/mock-exam" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockExam /></ProtectedRoute>} />
@@ -202,6 +205,7 @@ function App() {
               <Route path="create-spotify-podcast" element={<CreateSpotifyPodcast />} />
               <Route path="edit-spotify-podcast/:id" element={<CreateSpotifyPodcast />} />
               <Route path="key-manager" element={<KeyManager />} />
+              <Route path="mocks" element={<AdminMocks />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 

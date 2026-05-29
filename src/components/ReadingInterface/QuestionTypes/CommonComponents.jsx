@@ -20,8 +20,8 @@ export const cleanQuestionText = (text) => {
         .replace(/(?:and\s+)?\d+\s+Choose\s+(?:ONE|TWO|THREE|FOUR|FIVE)\s+letters?,?\s*([A-Z]-[A-Z–])?/gi, '')
         .replace(/(?:Choose\s+the\s+correct\s+letter,?\s*(?:[A-Z](?:,\s*[A-Z])*\s*or\s*[A-Z]|[A-Z]-[A-Z]|[A-Z])\.?)/gi, '')
         .replace(/Write (?:your |the correct )?[^.]+?[\s]*in boxes? [\d\s\-–,and]+ on (?:your |the )?answer sheet\.?/gi, '')
-        .replace(/<(b|strong)>\s*\d+\s*<\/\1>/gi, '')
-        .replace(/^\s*\d+[\.\s]*/g, '')
+        .replace(/<(b|strong)>\s*\d{1,2}\s*<\/\1>/gi, '')
+        .replace(/^\s*\d{1,2}[\.\s]*/g, '')
         .trim();
 };
 

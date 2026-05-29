@@ -33,7 +33,7 @@ const QuestionGroup = ({
     const isChoiceType = ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => type.includes(t));
     const isMultiSelect = type.includes('pick_two') || type.includes('pick_three') || type.includes('multi');
     const isMatching = type.includes('matching') || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));
-    const isSummary = type === 'gap_fill' || type.includes('summary') || type === 'summary_box' || type.includes('flow') || type.includes('note');
+    const isSummary = (type === 'gap_fill' || type.includes('summary') || type === 'summary_box') && !type.includes('note') && !type.includes('flow');
     const isFlowChart = type.includes('flow') || instr.includes('flow-chart') || instr.includes('flow chart');
     const isTable = type.includes('table');
     const isDiagram = type.includes('diagram') || type.includes('labeling');

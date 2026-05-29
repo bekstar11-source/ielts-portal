@@ -127,8 +127,8 @@ export default function ProfileSidebar({
             ) : (
                 <div className="w-full bg-white dark:bg-zinc-900/40 text-zinc-800 dark:text-zinc-100 border border-zinc-200/85 dark:border-zinc-800/85 shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-2xl p-5 mt-3">
                     {/* Header: Title and Icon */}
-                    <div className="flex items-center justify-between mb-4">
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-450 dark:text-zinc-500">
+                    <div className="flex items-center justify-between mb-5">
+                        <span className="text-[11px] font-black uppercase tracking-widest text-zinc-900 dark:text-zinc-100">
                             OVERALL BAND SCORE
                         </span>
                         <div className="p-1 rounded bg-[#007aff]/5 dark:bg-[#007aff]/10 text-[#007aff] flex items-center justify-center shadow-sm">
@@ -142,10 +142,10 @@ export default function ProfileSidebar({
 
                     {/* Large score display */}
                     <div className="flex items-baseline mb-5">
-                        <span className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+                        <span className="text-[52px] font-black text-zinc-950 dark:text-white tracking-tight leading-none">
                             {calculatedOverallBand}
                         </span>
-                        <span className="text-sm font-bold text-zinc-450 dark:text-zinc-500 ml-1.5">
+                        <span className="text-[22px] font-black text-zinc-950 dark:text-white ml-2.5 leading-none">
                             / 9.0
                         </span>
                     </div>

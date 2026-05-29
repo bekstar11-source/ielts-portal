@@ -18,7 +18,7 @@ export const GapFillQuestion = ({
     const renderParts = () => {
         return parts.map((part, i) => {
             const hasOptions = itemOptions && itemOptions.length > 0;
-            const isSelectDropdown = part === '[DROP]' || (part === '[INPUT]' && hasOptions && (isSummary || group.type === 'summary_box'));
+            const isSelectDropdown = part === '[DROP]' || (part === '[INPUT]' && hasOptions && (isSummary || group.type === 'summary_box' || group.type?.includes('note')));
 
             if (part === '[INPUT]' && !isSelectDropdown) {
                 return (
@@ -72,12 +72,15 @@ export const GapFillQuestion = ({
                 );
             }
 
-            const cleanPart = part
-                .replace(/<\/?p>|<\/?div>/gi, "")
-                .replace(/<(b|strong)>\s*\d+\s*<\/\1>/gi, "")
-                .replace(/(\s|^)\d+[\.\s]*$/, "$1")
-                .replace(/^\s*\d+[\.\s]*/, "")
-                .trim();
+            let cleanPart = part.replace(/<\/?p>|<\/?div>/gi, "");
+            const escapedId = String(q.id || "").replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            if (escapedId) {
+                cleanPart = cleanPart
+                    .replace(new RegExp(`<(b|strong)>\\s*${escapedId}[\\.\\s]*<\\/\\1>`, "gi"), "")
+                    .replace(new RegExp(`(\\s|^)${escapedId}[\\.\\s]*$`), "$1")
+                    .replace(new RegExp(`^\\s*${escapedId}[\\.\\s]*`), "");
+            }
+            cleanPart = cleanPart.trim();
             
             if (cleanPart === "" || cleanPart === ".") return null;
 
@@ -94,7 +97,7 @@ export const GapFillQuestion = ({
                     onHighlightRemove={onRemoveHighlight}
                     onOpenNotes={onOpenNotes}
                     isReviewMode={isReviewMode}
-                    className="inline text-black leading-relaxed align-middle"
+                    className="inline text-black leading-relaxed align-middle whitespace-pre-wrap"
                 />
             );
         });
@@ -115,7 +118,7 @@ export const GapFillQuestion = ({
     return (
         <div id={`q-${q.id}`} className={`group/item relative ${containerClass}`}>
             <div className={`flex gap-3 items-start pl-2 ${isFlowChart ? 'mb-0' : 'mb-2'}`}>
-                <span className="flex-1 text-black">{renderParts()}</span>
+                <span className="flex-1 text-black whitespace-pre-wrap">{renderParts()}</span>
             </div>
             {isReviewMode && q.explanation && <QuestionExplanation text={q.explanation} isPremium={isPremium} titleId={q.id} />}
         </div>

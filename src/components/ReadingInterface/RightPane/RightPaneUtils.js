@@ -60,14 +60,14 @@ export const cleanInstructions = (group, isTFNG) => {
     displayInstruction = displayInstruction
         .replace(/^(?:<[^>]*>)*Questions?\s+\d+(?:\s*(?:[\-–]|to)\s*\d+)?\s*/gi, '')
         .replace(/^(?:<[^>]*>)*[\-–]\d+\s*/g, '')
-        .replace(/^\s*\d+[\s.]*/g, '')
+        .replace(/^\s*\d{1,2}[\s.]*/g, '')
         .replace(/Write (?:your |the correct )?[^.]+?[\s]*in boxes? [\d\s\-–,and]+ on (?:your |the )?answer sheet\.?/gi, '')
         .trim();
 
     if (displayInstruction.toLowerCase().includes("choose the correct letter")) {
         displayInstruction = "Choose the correct letter, A, B, C or D.";
     } else {
-        displayInstruction = displayInstruction.replace(/^\d+[\s.]+/g, '');
+        displayInstruction = displayInstruction.replace(/^\d{1,2}[\s.]+/g, '');
     }
     
     if (group.items && group.items.length > 0) {
