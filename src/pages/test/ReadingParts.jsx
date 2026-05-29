@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStudentData } from "../../hooks/useStudentData";
+import { useTranslation } from "../../context/LanguageContext";
 import { db, functions } from "../../firebase/firebase";
 import { collection, query, where, doc, updateDoc, arrayUnion, getDocs } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -35,6 +36,7 @@ const categories = [
 
 export default function ReadingParts() {
   const { user, logout, userData } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -119,12 +121,20 @@ export default function ReadingParts() {
 
   const { checkLimit, incrementUsage } = useDailyLimit(userData);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const [visibleCount, setVisibleCount] = useState(12);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(12);
   }, [searchQuery, selectedStatus, selectedQuestionTypes, selectedPassages]);
+
+  const handleShowMore = async () => {
+    if (filteredTests.length > visibleCount) {
+      setVisibleCount(prev => prev + 12);
+    } else if (hasMore) {
+      await fetchLibraryPage(false);
+      setVisibleCount(prev => prev + 12);
+    }
+  };
 
   const allQuestionTypes = useMemo(() => {
     const types = new Set();
@@ -303,7 +313,7 @@ export default function ReadingParts() {
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8 pt-4">
-                                {filteredTests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
+                                {filteredTests.slice(0, visibleCount).map((test) => (
                                     <PracticeCard 
                                         key={test.id} 
                                         test={test} 
@@ -315,66 +325,26 @@ export default function ReadingParts() {
                                         isStandard={isStandard}
                                     />
                                 ))}
-                            </div>                            {/* Pagination & Load More */}
-                            <div className="flex flex-col items-center gap-5 pt-10 pb-8">
-                                {filteredTests.length > itemsPerPage && (
-                                    <div className="flex justify-center items-center gap-1.5">
-                                        {(() => {
-                                            const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
-                                            let pages = [];
-                                            if (totalPages <= 5) {
-                                                for (let i = 1; i <= totalPages; i++) pages.push(i);
-                                            } else {
-                                                if (currentPage <= 3) {
-                                                    pages = [1, 2, 3, '...', totalPages];
-                                                } else if (currentPage >= totalPages - 2) {
-                                                    pages = [1, '...', totalPages - 2, totalPages - 1, totalPages];
-                                                } else {
-                                                    pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
-                                                }
-                                            }
-  
-                                            return pages.map((p, i) => (
-                                                p === '...' ? (
-                                                    <span key={`dots-${i}`} className="text-[#86868b] dark:text-zinc-500 px-1 text-[11.5px]">...</span>
-                                                ) : (
-                                                    <button
-                                                        key={p}
-                                                        onClick={() => {
-                                                            setCurrentPage(p);
-                                                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                                                        }}
-                                                        className={`w-7 h-7 rounded-full text-[11.5px] font-semibold transition-all ${
-                                                            currentPage === p 
-                                                            ? 'bg-[#1d1d1f] text-white dark:bg-white dark:text-zinc-900' 
-                                                            : 'bg-[#f5f5f7] text-[#1d1d1f] dark:bg-zinc-800 dark:text-[#f5f5f7] hover:bg-gray-200 dark:hover:bg-zinc-700'
-                                                        }`}
-                                                    >
-                                                        {p}
-                                                    </button>
-                                                )
-                                            ));
-                                        })()}
-                                    </div>
-                                )}
-
-                                {hasMore && (
+                            </div>
+                            {/* Show More Button */}
+                            {(filteredTests.length > visibleCount || hasMore) && (
+                                <div className="flex justify-center items-center pt-10 pb-8">
                                     <button
-                                        onClick={() => fetchLibraryPage()}
+                                        onClick={handleShowMore}
                                         disabled={loadingLibrary}
-                                        className="group relative flex items-center gap-3 px-8 py-3.5 bg-[#1d1d1f] text-white dark:bg-[#f5f5f7] dark:text-[#1d1d1f] rounded-full font-semibold transition-all hover:bg-black dark:hover:bg-white active:scale-95 disabled:opacity-50 text-[11.5px] shadow-sm"
+                                        className="group relative flex items-center gap-3 px-8 py-3.5 bg-[#1d1d1f] hover:bg-black dark:bg-[#f5f5f7] dark:hover:bg-white dark:text-[#1d1d1f] text-white rounded-full font-semibold transition-all active:scale-95 disabled:opacity-50 text-[11.5px] shadow-sm"
                                     >
                                         {loadingLibrary ? (
                                             <Loader2 size={14} className="animate-spin" />
                                         ) : (
                                             <>
-                                                Show More Tests
+                                                {t('practice.showMore') || "Show More"}
                                                 <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                                             </>
                                         )}
                                     </button>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 )}

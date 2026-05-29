@@ -4,10 +4,17 @@ import { db } from "../../firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import ReadingInterface from "../../components/ReadingInterface";
 import ListeningInterface from "./components/listening/ListeningInterface";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ReviewTest() {
   const { id } = useParams(); // Result ID
   const navigate = useNavigate();
+  const { userData } = useAuth();
+  
+  const isPremium = userData?.isPremium || 
+                    userData?.isPro || 
+                    ['premium', 'pro', 'standard'].includes(userData?.accountType) || 
+                    ['admin', 'teacher'].includes(userData?.role);
   
   const [loading, setLoading] = useState(true);
   const [testData, setTestData] = useState(null); // Asl test savollari
@@ -105,6 +112,7 @@ export default function ReviewTest() {
                 flaggedQuestions={flaggedQuestions}
                 isReviewMode={true} 
                 textSize={textSize} 
+                isPremium={isPremium}
              />
         ) : testData?.type === 'listening' ? (
              <ListeningInterface 
@@ -115,6 +123,7 @@ export default function ReviewTest() {
                 flaggedQuestions={flaggedQuestions}
                 isReviewMode={true} 
                 textSize={textSize}
+                isPremium={isPremium}
              />
         ) : testData?.type === 'writing' ? (
              // --- WRITING REVIEW ---

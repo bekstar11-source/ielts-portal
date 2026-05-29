@@ -530,7 +530,8 @@ export const translations = {
       searchPlaceholder: "Qidirish...",
       review: "Tahlil",
       result: "Natija",
-      showMoreTypes: "Yana ko'rsatish (+{count})"
+      showMoreTypes: "Yana ko'rsatish (+{count})",
+      showMore: "Ko'proq ko'rsatish"
     },
     leaderboard: {
       title: "Reyting va XP",
@@ -1199,7 +1200,8 @@ export const translations = {
       searchPlaceholder: "Search...",
       review: "Review",
       result: "Result",
-      showMoreTypes: "Show more (+{count})"
+      showMoreTypes: "Show more (+{count})",
+      showMore: "Show More"
     },
     leaderboard: {
       title: "Rank & XP",

@@ -144,15 +144,15 @@ const ReadingLeftPane = memo(({
 
     useEffect(() => {
         if (highlightedId && containerRef.current) {
-            const allLocs = containerRef.current.querySelectorAll("span[id^='loc_']");
+            const allLocs = containerRef.current.querySelectorAll("[id^='loc_']");
             allLocs.forEach(node => {
-                node.classList.remove('!border-green-500', '!border-solid', '!border-b-2');
+                node.classList.remove('active-reading-highlight', '!border-green-500', '!border-solid', '!border-b-2');
             });
 
-            const el = containerRef.current.querySelector(`span[id="${highlightedId}"]`);
+            const el = containerRef.current.querySelector(`[id="${highlightedId}"]`);
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('!border-green-500', '!border-solid', '!border-b-2', 'transition-all', 'duration-500');
+                el.classList.add('active-reading-highlight');
             }
         }
     }, [highlightedId, highlightTrigger]);

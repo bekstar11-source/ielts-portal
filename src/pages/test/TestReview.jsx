@@ -21,7 +21,10 @@ export default function TestReview() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, userData } = useAuth();
-    const isPremium = userData?.isPremium || userData?.accountType === 'premium' || userData?.role === 'admin' || userData?.role === 'teacher';
+    const isPremium = userData?.isPremium || 
+                      userData?.isPro || 
+                      ['premium', 'pro', 'standard'].includes(userData?.accountType) || 
+                      ['admin', 'teacher'].includes(userData?.role);
 
     const [textSize, setTextSize] = useState('text-medium');
     const [isCommentsOpen, setIsCommentsOpen] = useState(false);

@@ -111,13 +111,21 @@ export default function ListeningParts() {
   const isPro = userData?.accountType === 'pro' || userData?.isPro;
   const isStandard = userData?.accountType === 'standard';
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const [visibleCount, setVisibleCount] = useState(12);
 
-  // Reset pagination to page 1 when filters change
+  // Reset pagination when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(12);
   }, [searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter]);
+
+  const handleShowMore = async () => {
+    if (filteredVirtualParts.length > visibleCount) {
+      setVisibleCount(prev => prev + 12);
+    } else if (hasMore) {
+      await fetchLibraryPage(false);
+      setVisibleCount(prev => prev + 12);
+    }
+  };
 
   const partTestsList = useMemo(() => {
     const testMap = new Map();
@@ -342,16 +350,14 @@ export default function ListeningParts() {
                             filteredVirtualParts={filteredVirtualParts}
                             activePartFilter={activePartFilter}
                             setActivePartFilter={setActivePartFilter}
-                            currentPage={currentPage}
-                            setCurrentPage={setCurrentPage}
-                            itemsPerPage={itemsPerPage}
+                            visibleCount={visibleCount}
+                            handleShowMore={handleShowMore}
                             handleReview={handleReview}
                             handleStartTest={handleStartTest}
                             setSelectedSet={setSelectedSet}
                             isPro={isPro}
                             isStandard={isStandard}
                             hasMore={hasMore}
-                            fetchLibraryPage={fetchLibraryPage}
                             loadingLibrary={loadingLibrary}
                         />
                     </motion.div>

@@ -213,6 +213,18 @@ export default function ReadingInterface({
         }
       } catch (e) {}
     }
+
+    // In review mode, convert <mark id="loc_X"> to <span id="loc_X"> to prevent browser's default yellow highlights
+    // and to allow correct keyword injection regex match
+    if (isReviewMode && baseContent) {
+      baseContent = baseContent.replace(/<mark([^>]*)>([\s\S]*?)<\/mark>/gi, (match, attrs, innerContent) => {
+        if (attrs.includes('id="loc_')) {
+          return `<span${attrs}>${innerContent}</span>`;
+        }
+        return innerContent;
+      });
+    }
+
     if (!isReviewMode || !keywordTable?.length) return baseContent;
     return injectKeywordsToHTML(baseContent, keywordTable, false);
   }, [currentPassageRaw?.content, keywordTable, isReviewMode, currentTestId, activePassage]);

@@ -130,15 +130,15 @@
 
   /* --- KEYWORD HIGHLIGHT (Review rejimida keywordTable asosida) --- */
   .keyword-highlight {
-    background-color: rgba(253, 224, 71, 0.4);
-    padding: 0 3px;
-    border-radius: 4px;
-    cursor: pointer;
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+    cursor: text;
     transition: all 0.25s ease;
-    position: relative;
-    display: inline-block;
-    margin-top: 10px;
-    border-bottom: 2px solid #facc15;
+    position: static;
+    display: inline;
+    margin-top: 0;
+    border-bottom: none;
   }
 
   .keyword-highlight .kw-badge {
@@ -167,6 +167,31 @@
     z-index: 10;
     pointer-events: none;
     box-sizing: border-box;
+    display: none; /* Badge yashirilgan */
+  }
+
+  /* Oquvchi savol raqami ustiga bosganda active bo'luvchi joy */
+  .active-reading-highlight {
+    background-color: #fef08a !important; /* soft yellow background */
+    color: #000000 !important;
+    border-radius: 4px;
+    padding: 2px 4px;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+  }
+
+  .active-reading-highlight .keyword-highlight {
+    position: relative;
+    display: inline-block;
+    background-color: rgba(253, 224, 71, 0.4);
+    padding: 0 3px;
+    border-radius: 4px;
+    border-bottom: 2px solid #facc15;
+    cursor: pointer;
+  }
+
+  .active-reading-highlight .keyword-highlight::before {
+    display: block; /* Badge faqat active bo'lganda ko'rinadi */
   }
 
   .keyword-highlight.active-sync {
