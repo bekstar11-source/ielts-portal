@@ -11,6 +11,7 @@ export const PodcastProvider = ({ children }) => {
     const audioRef = useRef(null);
     const [currentTrack, setCurrentTrack] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [volume, setVolume] = useState(0.7);
@@ -156,6 +157,7 @@ export const PodcastProvider = ({ children }) => {
         <PodcastContext.Provider value={{
             currentTrack, setCurrentTrack,
             isPlaying, setIsPlaying,
+            isLoading, setIsLoading,
             currentTime, setCurrentTime,
             duration, setDuration,
             volume, setVolume,
@@ -181,6 +183,13 @@ export const PodcastProvider = ({ children }) => {
                         onTimeUpdate={handleTimeUpdate}
                         onLoadedMetadata={handleLoadedMetadata}
                         onEnded={() => setIsPlaying(false)}
+                        onWaiting={() => setIsLoading(true)}
+                        onPlaying={() => setIsLoading(false)}
+                        onCanPlay={() => setIsLoading(false)}
+                        onSeeking={() => setIsLoading(true)}
+                        onSeeked={() => setIsLoading(false)}
+                        onLoadStart={() => setIsLoading(true)}
+                        onLoadedData={() => setIsLoading(false)}
                         style={{ display: 'none' }}
                     />
                 ) : (
@@ -190,6 +199,13 @@ export const PodcastProvider = ({ children }) => {
                         onTimeUpdate={handleTimeUpdate}
                         onLoadedMetadata={handleLoadedMetadata}
                         onEnded={() => setIsPlaying(false)}
+                        onWaiting={() => setIsLoading(true)}
+                        onPlaying={() => setIsLoading(false)}
+                        onCanPlay={() => setIsLoading(false)}
+                        onSeeking={() => setIsLoading(true)}
+                        onSeeked={() => setIsLoading(false)}
+                        onLoadStart={() => setIsLoading(true)}
+                        onLoadedData={() => setIsLoading(false)}
                         style={{ display: 'none' }}
                     />
                 )

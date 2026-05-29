@@ -74,7 +74,7 @@ export default function AdminUsers() {
             </div>
 
             {/* Content Area */}
-            <main className="flex-1 p-4 md:p-6">
+            <main className="flex-1 p-4 md:p-6 min-h-[calc(100vh-3.5rem)] flex flex-col">
                 <div className="h-full max-w-7xl mx-auto">
                     {activeTab === 'students' && (
                         <StudentsTab

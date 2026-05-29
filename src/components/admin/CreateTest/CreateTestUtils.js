@@ -93,90 +93,156 @@ export const sanitizePayload = (obj) => {
     return cleaned;
 };
 
+const normalizeTitle = (title) => {
+    return String(title || "")
+        .toLowerCase()
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+};
+
+const normalizeContent = (content) => {
+    return String(content || "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+};
+
+const extractAllQuestions = (questionsArray) => {
+    const result = [];
+    if (!questionsArray || !Array.isArray(questionsArray)) return result;
+    
+    const traverse = (q) => {
+        if (!q) return;
+        if (q.question || q.instruction || q.text || q.sentence || q.id) {
+            result.push(q);
+        }
+        if (q.items && Array.isArray(q.items)) q.items.forEach(traverse);
+        if (q.questions && Array.isArray(q.questions)) q.questions.forEach(traverse);
+        if (q.groups && Array.isArray(q.groups)) q.groups.forEach(traverse);
+    };
+    questionsArray.forEach(traverse);
+    return result;
+};
+
+const isGenericQuestionText = (text) => {
+    if (!text || text.length < 15) return true;
+    const genericRegexes = [
+        /choose the correct/i,
+        /write no more than/i,
+        /write your answers/i,
+        /in boxes/i,
+        /on your answer sheet/i,
+        /complete the/i,
+        /true\s*false/i,
+        /yes\s*no/i,
+        /not given/i,
+        /one word only/i,
+        /two words only/i,
+        /three words only/i,
+        /no more than/i
+    ];
+    return genericRegexes.some(rx => rx.test(text));
+};
+
+const cleanAudioUrl = (url) => {
+    if (!url) return "";
+    return String(url).split('?')[0].split('#')[0].trim();
+};
+
 export const checkDuplicateTest = async (testData, existingTests) => {
-    const normalize = (val) => String(val || "").trim().toLowerCase();
+    const t1 = normalizeTitle(testData.title);
     let isDuplicate = false;
     let duplicateTitle = "";
 
     for (let existing of existingTests) {
-        // CHECK 1: Exact Title Match
-        const t1 = normalize(testData.title);
-        const t2 = normalize(existing.title);
-        if (t1.length >= 5 && t1 === t2) {
+        // CHECK 1: Exact Title Match (Normalized)
+        const t2 = normalizeTitle(existing.title);
+        if (t1.length >= 3 && t1 === t2) {
             isDuplicate = true;
             duplicateTitle = existing.title;
             break;
         }
 
-        // CHECK 2: Passage Content Match
+        // CHECK 2: Passage Content Match (Cross-passage comparison)
         if ((testData.type === 'reading' || testData.type === 'listening') &&
             testData.passages?.length > 0 && existing.passages?.length > 0) {
 
             let passageDuplicate = false;
-            for (let i = 0; i < Math.min(testData.passages.length, existing.passages.length); i++) {
-                const p1 = testData.passages[i];
-                const p2 = existing.passages[i];
+            for (let p1 of testData.passages) {
+                const tit1 = normalizeTitle(p1?.title || "");
+                const con1 = normalizeContent(p1?.content || "").substring(0, 300);
+                const au1 = cleanAudioUrl(p1?.audio || p1?.audioUrl || "");
 
-                const tit1 = normalize(p1?.title || "");
-                const tit2 = normalize(p2?.title || "");
-                const con1 = normalize(p1?.content || "").substring(0, 200);
-                const con2 = normalize(p2?.content || "").substring(0, 200);
+                for (let p2 of existing.passages) {
+                    const tit2 = normalizeTitle(p2?.title || "");
+                    const con2 = normalizeContent(p2?.content || "").substring(0, 300);
+                    const au2 = cleanAudioUrl(p2?.audio || p2?.audioUrl || "");
 
-                const isGenericTitle = (s) => !s || s.length < 5 || /^(part|passage|section)\s*\d*$/i.test(s.trim());
+                    const isGenericTitle = (s) => !s || s.length < 5 || /^(part|passage|section|reading|listening)\s*\d*$/i.test(s.trim());
 
-                if (!isGenericTitle(tit1) && tit1 === tit2) {
-                    passageDuplicate = true;
-                    break;
+                    // A: Title match (non-generic)
+                    if (tit1 && tit2 && !isGenericTitle(tit1) && !isGenericTitle(tit2) && tit1 === tit2) {
+                        passageDuplicate = true;
+                        break;
+                    }
+                    // B: Content match
+                    if (con1.length > 80 && con2.length > 80 && con1 === con2) {
+                        passageDuplicate = true;
+                        break;
+                    }
+                    // C: Audio match
+                    if (au1.length > 10 && au2.length > 10 && au1 === au2) {
+                        passageDuplicate = true;
+                        break;
+                    }
                 }
-                if (con1.length > 80 && con1 === con2) {
-                    passageDuplicate = true;
-                    break;
-                }
-                const au1 = (p1?.audio || "").trim();
-                const au2 = (p2?.audio || "").trim();
-                if (au1.length > 10 && au1 === au2) {
-                    passageDuplicate = true;
-                    break;
-                }
+                if (passageDuplicate) break;
             }
+
             if (passageDuplicate) {
                 isDuplicate = true;
-                duplicateTitle = existing.title || "o'xshash kontent";
+                duplicateTitle = existing.title || "o'xshash matn/part";
                 break;
             }
         }
 
         // CHECK 3: Question Content Match
         if (testData.questions?.length > 0 && existing.questions?.length > 0) {
-            const q1 = testData.questions;
-            const q2 = existing.questions;
-            if (q1.length === q2.length) {
-                const ids1 = q1.slice(0, 5).map(q => normalize(q.id)).join(',');
-                const ids2 = q2.slice(0, 5).map(q => normalize(q.id)).join(',');
+            const list1 = extractAllQuestions(testData.questions)
+                .map(q => normalizeContent(q.question || q.text || q.sentence || q.instruction || ""))
+                .filter(t => !isGenericQuestionText(t));
+                
+            const list2 = extractAllQuestions(existing.questions)
+                .map(q => normalizeContent(q.question || q.text || q.sentence || q.instruction || ""))
+                .filter(t => !isGenericQuestionText(t));
 
-                if (ids1 === ids2 && ids1.length > 0) {
-                    let matchCount = 0;
-                    let validTexts = 0;
-                    for (let i = 0; i < Math.min(q1.length, q2.length, 5); i++) {
-                        const txt1 = normalize(q1[i]?.instruction || q1[i]?.question || q1[i]?.text || q1[i]?.sentence || "");
-                        const txt2 = normalize(q2[i]?.instruction || q2[i]?.question || q2[i]?.text || q2[i]?.sentence || "");
-                        if (txt1.length > 15) {
-                            validTexts++;
-                            if (txt1.substring(0, 60) === txt2.substring(0, 60)) matchCount++;
+            const minQuestionsToCheck = Math.min(list1.length, list2.length);
+
+            if (minQuestionsToCheck >= 3) {
+                let matches = 0;
+                const set2 = new Set(list2);
+                for (let text of list1) {
+                    if (set2.has(text)) {
+                        matches++;
+                    } else {
+                        // Check fuzzy match (e.g. prefix match for longer texts)
+                        for (let t2 of list2) {
+                            if (text.length > 25 && t2.length > 25) {
+                                if (text.substring(0, 50) === t2.substring(0, 50)) {
+                                    matches++;
+                                    break;
+                                }
+                            }
                         }
                     }
-                    const isNumericIds = ids1.split(',').every(s => s && !isNaN(Number(s)));
-                    if (isNumericIds) {
-                        if (validTexts >= 2 && matchCount >= validTexts) {
-                            isDuplicate = true;
-                            duplicateTitle = existing.title || "o'xshash savollar";
-                            break;
-                        }
-                    } else if (validTexts > 0 && matchCount >= Math.ceil(validTexts * 0.8)) {
-                        isDuplicate = true;
-                        duplicateTitle = existing.title || "o'xshash IDlar";
-                        break;
-                    }
+                }
+
+                const overlapRatio = matches / minQuestionsToCheck;
+                if (overlapRatio >= 0.6) {
+                    isDuplicate = true;
+                    duplicateTitle = existing.title || "o'xshash savollar";
+                    break;
                 }
             }
         }

@@ -153,9 +153,9 @@ export default function TeacherTests() {
     const handleStart = (test) => {
         if (selectedSet) setSelectedSet(null);
         if (test.type === 'mock' || test.type === 'mock_full') {
-            navigate('/mock-exam', { state: { testId: test.id, isTeacher: true } });
+            navigate('/mock-exam', { state: { testId: test.id, isTeacher: true, from: "/teacher/tests" } });
         } else {
-            navigate(`/test/${test.id}`, { state: { isTeacher: true } });
+            navigate(`/test/${test.id}`, { state: { isTeacher: true, from: "/teacher/tests" } });
         }
     };
 

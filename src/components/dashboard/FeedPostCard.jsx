@@ -13,7 +13,11 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
     const navigate = useNavigate();
     const [showComments, setShowComments] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [aspectRatio, setAspectRatio] = useState(1.333); // Default to 4:3
+    const [aspectRatio, setAspectRatio] = useState(() => {
+        if (post.aspectRatio) return post.aspectRatio;
+        if (post.mediaType === 'video') return 1.777;
+        return 1.777; // Default to landscape instead of 4:3 to prevent initial tall stretching
+    });
     const [showPodcastConfirm, setShowPodcastConfirm] = useState(false);
 
     const { setCurrentTrack, setIsExpanded, setIsPlaying } = usePodcast();
@@ -90,6 +94,11 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
             return;
         }
 
+        if (post.aspectRatio) {
+            setAspectRatio(post.aspectRatio);
+            return;
+        }
+
         const img = new Image();
         img.src = firstUrl;
         img.onload = () => {
@@ -99,7 +108,7 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
             setAspectRatio(clampedRatio);
         };
         img.onerror = () => {
-            setAspectRatio(1.333); // Fallback
+            setAspectRatio(1.777); // Fallback to 1.777 landscape instead of 1.333
         };
     }, [post]);
 

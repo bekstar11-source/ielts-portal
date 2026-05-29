@@ -14,7 +14,7 @@ import { clearTestStorage, deriveQuestionTypesForCard, getActualQuestionCount } 
 import { BookOpen, Headphones, Clock, Sparkles, ArrowLeft, ArrowRight, Award, Zap } from "lucide-react";
 
 export default function TestSolving() {
-    const { user } = useAuth();
+    const { user, userData } = useAuth();
     const location = useLocation();
     const [isConfirmed, setIsConfirmed] = useState(!location.state?.fromNewsfeed);
     
@@ -30,6 +30,12 @@ export default function TestSolving() {
 
     // Dynamically determine the originating/return path
     const returnPath = React.useMemo(() => {
+        if (userData?.role === 'admin') {
+            return location.state?.from || "/admin/tests";
+        }
+        if (userData?.role === 'teacher') {
+            return location.state?.from || "/teacher/tests";
+        }
         if (location.state?.fromNewsfeed) return "/dashboard";
         if (location.state?.from) return location.state.from;
         if (!test) return "/practice";
@@ -48,7 +54,7 @@ export default function TestSolving() {
             return '/speaking-practice';
         }
         return '/practice';
-    }, [location.state, test, partNumber]);
+    }, [location.state, test, partNumber, userData]);
 
     // Exam modeda intro countdown tugagach audio play bo'lishi uchun trigger
     const [triggerPlay, setTriggerPlay] = useState(false);

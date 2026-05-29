@@ -654,7 +654,7 @@ export default function AdminTests() {
                                     }
                                 }}
                                 onQuickEdit={handleOpenQuickEdit}
-                                onView={(id) => navigate(`/test/${id}`)}
+                                onView={(id) => navigate(`/test/${id}`, { state: { from: "/admin/tests" } })}
                                 isDark={isDark}
                             />
 

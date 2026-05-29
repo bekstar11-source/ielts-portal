@@ -30,7 +30,8 @@ export default function PostFormModal({
         mediaUrl: '',
         mediaFile: null,
         mediaFiles: [], // Multiple images
-        attachedTests: [] // Multiple attached tests
+        attachedTests: [], // Multiple attached tests
+        aspectRatio: 1.777 // Default to 16:9
     });
 
     const [postMediaPreviews, setPostMediaPreviews] = useState([]);
@@ -50,7 +51,8 @@ export default function PostFormModal({
                     mediaUrl: editingPost.mediaUrl || '',
                     mediaFile: null,
                     mediaFiles: [],
-                    attachedTests: editingPost.attachedTests || []
+                    attachedTests: editingPost.attachedTests || [],
+                    aspectRatio: editingPost.aspectRatio || 1.777
                 });
                 const urls = editingPost.mediaUrls || (editingPost.mediaUrl ? [editingPost.mediaUrl] : []);
                 setPostMediaPreviews(urls);
@@ -65,7 +67,8 @@ export default function PostFormModal({
                     mediaUrl: '',
                     mediaFile: null,
                     mediaFiles: [],
-                    attachedTests: []
+                    attachedTests: [],
+                    aspectRatio: 1.777
                 });
                 setPostMediaPreviews([]);
             }
@@ -89,17 +92,43 @@ export default function PostFormModal({
         }
 
         const itemMediaUrl = item.thumbnail || item.image || item.coverUrl || "";
-        setPostForm(prev => ({
-            ...prev,
-            ctaUrl: url,
-            ctaText: text,
-            title: prev.title || item.title,
-            mediaUrl: itemMediaUrl
-        }));
+        
         if (itemMediaUrl) {
             setPostMediaPreviews([itemMediaUrl]);
+            const img = new Image();
+            img.src = itemMediaUrl;
+            img.onload = () => {
+                const ratio = img.naturalWidth / img.naturalHeight;
+                const clampedRatio = Math.max(0.8, Math.min(1.91, ratio));
+                setPostForm(prev => ({
+                    ...prev,
+                    ctaUrl: url,
+                    ctaText: text,
+                    title: prev.title || item.title,
+                    mediaUrl: itemMediaUrl,
+                    aspectRatio: clampedRatio
+                }));
+            };
+            img.onerror = () => {
+                setPostForm(prev => ({
+                    ...prev,
+                    ctaUrl: url,
+                    ctaText: text,
+                    title: prev.title || item.title,
+                    mediaUrl: itemMediaUrl,
+                    aspectRatio: 1.777
+                }));
+            };
         } else {
             setPostMediaPreviews([]);
+            setPostForm(prev => ({
+                ...prev,
+                ctaUrl: url,
+                ctaText: text,
+                title: prev.title || item.title,
+                mediaUrl: "",
+                aspectRatio: 1.777
+            }));
         }
         setShowMaterialSelector(false);
     };
@@ -164,7 +193,9 @@ export default function PostFormModal({
                 docData.mediaUrls = [];
                 docData.mediaUrl = "";
                 docData.mediaType = "none";
+                docData.aspectRatio = null;
             } else {
+                docData.aspectRatio = postForm.aspectRatio || 1.777;
                 if (mediaUrls.length > 0) {
                     docData.mediaUrls = mediaUrls;
                     docData.mediaUrl = mediaUrls[0];
@@ -302,12 +333,30 @@ export default function PostFormModal({
                                             multiple
                                             onChange={e => {
                                                 const files = e.target.files;
-                                                setPostForm({ ...postForm, mediaFiles: files, mediaFile: null });
                                                 if (files && files.length > 0) {
                                                     const urls = Array.from(files).map(file => URL.createObjectURL(file));
                                                     setPostMediaPreviews(urls);
                                                     setPreviewCarouselIndex(0);
+                                                    
+                                                    const img = new Image();
+                                                    img.src = urls[0];
+                                                    img.onload = () => {
+                                                        const ratio = img.naturalWidth / img.naturalHeight;
+                                                        const clampedRatio = Math.max(0.8, Math.min(1.91, ratio));
+                                                        setPostForm(prev => ({ 
+                                                            ...prev, 
+                                                            mediaFiles: files, 
+                                                            mediaFile: null, 
+                                                            aspectRatio: clampedRatio 
+                                                        }));
+                                                    };
                                                 } else {
+                                                    setPostForm(prev => ({ 
+                                                        ...prev, 
+                                                        mediaFiles: [], 
+                                                        mediaFile: null, 
+                                                        aspectRatio: 1.777 
+                                                    }));
                                                     setPostMediaPreviews([]);
                                                 }
                                             }}

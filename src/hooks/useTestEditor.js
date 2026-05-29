@@ -114,6 +114,7 @@ export const useTestEditor = (id) => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isEditMode, setIsEditMode] = useState(!!id);
     const [isMockMode, setIsMockMode] = useState(false);
+    const [publishToFeed, setPublishToFeed] = useState(false);
     const [jsonInput, setJsonInput] = useState("");
     const [jsonError, setJsonError] = useState("");
     
@@ -293,20 +294,22 @@ export const useTestEditor = (id) => {
                 const metadata = compileMetadata(docRef.id, payload);
                 await setDoc(doc(db, "tests_metadata", docRef.id), metadata);
 
-                // Auto post the new test to the feed
-                try {
-                    await addDoc(collection(db, "feed_posts"), {
-                        type: "test",
-                        title: payload.title || "Yangi Test",
-                        content: `${payload.type?.toUpperCase()} bo'limi bo'yicha yangi imtihon yuklandi. Bajarishni boshlang!`,
-                        ctaUrl: `/test/${docRef.id}`,
-                        ctaText: "Testni Boshlash",
-                        likes: [],
-                        commentsCount: 0,
-                        createdAt: serverTimestamp()
-                    });
-                } catch (feedErr) {
-                    console.error("Error auto-posting test to feed:", feedErr);
+                // Auto post the new test to the feed if chosen
+                if (publishToFeed) {
+                    try {
+                        await addDoc(collection(db, "feed_posts"), {
+                            type: "test",
+                            title: payload.title || "Yangi Test",
+                            content: `${payload.type?.toUpperCase()} bo'limi bo'yicha yangi imtihon yuklandi. Bajarishni boshlang!`,
+                            ctaUrl: `/test/${docRef.id}`,
+                            ctaText: "Testni Boshlash",
+                            likes: [],
+                            commentsCount: 0,
+                            createdAt: serverTimestamp()
+                        });
+                    } catch (feedErr) {
+                        console.error("Error auto-posting test to feed:", feedErr);
+                    }
                 }
 
                 alert("Test yaratildi!");
@@ -326,6 +329,7 @@ export const useTestEditor = (id) => {
         uploadProgress,
         isEditMode,
         isMockMode, setIsMockMode,
+        publishToFeed, setPublishToFeed,
         jsonInput, setJsonInput,
         jsonError,
         partAudios, setPartAudios,

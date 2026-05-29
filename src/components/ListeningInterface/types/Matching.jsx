@@ -33,8 +33,8 @@ const DraggableOption = ({ label, text, isReviewMode }) => {
             {...listeners}
             {...attributes}
             className={`
-                px-3 h-[26px] border border-gray-400 rounded-[4px] cursor-grab active:cursor-grabbing
-                select-none flex items-center justify-start w-fit transition-all shadow-sm
+                px-3 min-h-[28px] py-1 border border-gray-400 rounded-[4px] cursor-grab active:cursor-grabbing
+                select-none flex items-center justify-start w-fit max-w-full transition-all shadow-sm
                 ${isDragging ? 'opacity-40 ring-2 ring-blue-500 shadow-xl scale-105 z-[1000] bg-white border-transparent' : 'bg-white hover:border-gray-600'}
                 ${isReviewMode ? 'cursor-default opacity-100 grayscale-0' : ''}
             `}
@@ -63,8 +63,8 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
                 if (!isReviewMode) onToggleMenu();
             }}
             className={`
-                min-w-[150px] w-fit max-w-[400px] h-[26px] border rounded-[4px] flex items-center justify-center relative
-                px-3 py-0 group/slot cursor-pointer
+                min-w-[150px] w-fit max-w-[400px] min-h-[28px] border rounded-[4px] flex items-center justify-center relative
+                px-3 py-1 group/slot cursor-pointer
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')

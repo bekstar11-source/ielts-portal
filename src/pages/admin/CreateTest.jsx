@@ -36,6 +36,7 @@ export default function CreateTest() {
         uploading, setUploading,
         uploadProgress,
         isEditMode, isMockMode, setIsMockMode,
+        publishToFeed, setPublishToFeed,
         jsonInput, setJsonInput, jsonError,
         partAudios, setPartAudios,
         audioMode, setAudioMode,
@@ -103,22 +104,26 @@ export default function CreateTest() {
     };
 
     const handlePreSave = async () => {
-        if (!isEditMode) {
-            setLoading(true);
-            try {
-                const q = query(collection(db, "tests"), where("type", "==", testData.type));
-                const snapshot = await getDocs(q);
-                const existingTests = snapshot.docs.map(d => d.data());
-                const { isDuplicate, duplicateTitle } = await checkDuplicateTest(testData, existingTests);
-                
-                if (isDuplicate) {
-                    setDuplicateInfo(duplicateTitle);
-                    setShowDuplicateModal(true);
-                    setLoading(false);
-                    return;
-                }
-            } catch (e) { console.error(e); }
-            finally { setLoading(false); }
+        setLoading(true);
+        try {
+            const q = query(collection(db, "tests"), where("type", "==", testData.type));
+            const snapshot = await getDocs(q);
+            const existingTests = snapshot.docs
+                .filter(docSnap => !id || docSnap.id !== id)
+                .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+            
+            const { isDuplicate, duplicateTitle } = await checkDuplicateTest(testData, existingTests);
+            
+            if (isDuplicate) {
+                setDuplicateInfo(duplicateTitle);
+                setShowDuplicateModal(true);
+                setLoading(false);
+                return;
+            }
+        } catch (e) { 
+            console.error(e); 
+        } finally { 
+            setLoading(false); 
         }
         handleSave();
     };
@@ -262,6 +267,18 @@ export default function CreateTest() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {!isEditMode && (
+                        <div className="flex items-center gap-2 mr-2 px-3 py-1.5 rounded-xl bg-gray-500/5 border border-white/5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider opacity-50">Feedga post qilish?</span>
+                            <button 
+                                onClick={() => setPublishToFeed(!publishToFeed)}
+                                className={`w-10 h-5 rounded-full p-1 transition-all duration-300 ${publishToFeed ? 'bg-blue-600' : 'bg-gray-400'}`}
+                            >
+                                <div className={`w-3 h-3 bg-white rounded-full transition-transform duration-300 ${publishToFeed ? 'translate-x-5' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-2 mr-4 px-3 py-1.5 rounded-xl bg-gray-500/5 border border-white/5">
                         <span className="text-[10px] font-bold uppercase tracking-wider opacity-50">Is Exclusive?</span>
                         <button 

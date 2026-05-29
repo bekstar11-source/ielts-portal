@@ -74,12 +74,12 @@ export default function NewsFeed({ user, userData }) {
     return (
         <div className="w-full max-w-[630px] mx-auto bg-white dark:bg-[#09090b] min-h-screen pb-16 transition-colors flex flex-col items-start">
             {/* Top Stories */}
-            <div className="w-full lg:-ml-20 lg:w-[calc(100%+80px)]">
+            <div className="w-[calc(100%+2rem)] -mx-4 md:w-full md:mx-0 lg:-ml-20 lg:w-[calc(100%+80px)] border-b border-gray-100 dark:border-white/5 md:border-none">
                 <StoriesContainer user={user} userData={userData} />
             </div>
 
             {/* Posts Stream */}
-            <div className="mt-2 w-full max-w-[470px] divide-y divide-gray-100 dark:divide-white/5">
+            <div className={`mt-2 w-full max-w-[470px] divide-y divide-gray-100 dark:divide-white/5 ${!loading ? 'animate-fade-in' : 'opacity-0'}`}>
                 {posts.map(post => (
                     <FeedPostCard
                         key={post.id}

@@ -523,3 +523,25 @@
 .shimmer-sweep {
   animation: shimmer-sweep 5s infinite linear;
 }
+
+/* --- UI/UX OPTIMIZATIONS --- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s ease-out forwards;
+}
+
+/* Dark Mode WCAG AA Contrast Enhancements for subtexts */
+.dark .text-zinc-500,
+.dark .text-gray-500,
+.dark .text-neutral-500,
+.dark .text-slate-500 {
+  color: #a1a1aa !important; /* Increase visibility in dark mode */
+}
+
+.dark .text-white\/40 {
+  color: rgba(255, 255, 255, 0.6) !important; /* Increase opacity to 60% in dark mode */
+}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 
-export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, setDuration, currentTime, youtubePlayerRef, isPlaying) {
+export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, setDuration, currentTime, youtubePlayerRef, isPlaying, setIsLoading) {
     const intervalRef = useRef(null);
 
     const startInterval = useCallback(() => {
@@ -51,12 +51,17 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                 onStateChange: (event) => {
                     if (event.data === window.YT.PlayerState.PLAYING) {
                         setIsPlaying(true);
+                        if (setIsLoading) setIsLoading(false);
                         const d = event.target.getDuration();
                         if (d) setDuration(d);
                     } else if (event.data === window.YT.PlayerState.PAUSED) {
                         setIsPlaying(false);
+                        if (setIsLoading) setIsLoading(false);
                     } else if (event.data === window.YT.PlayerState.ENDED) {
                         setIsPlaying(false);
+                        if (setIsLoading) setIsLoading(false);
+                    } else if (event.data === window.YT.PlayerState.BUFFERING) {
+                        if (setIsLoading) setIsLoading(true);
                     }
                 },
                 onError: (e) => {
@@ -66,7 +71,7 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
         });
         youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
         startInterval();
-    }, [podcast, isPlaying, setIsPlaying, setDuration, startInterval, youtubePlayerRef]);
+    }, [podcast, isPlaying, setIsPlaying, setDuration, startInterval, youtubePlayerRef, setIsLoading]);
 
     useEffect(() => {
         if (!podcast || podcast.mediaType !== 'youtube') return;

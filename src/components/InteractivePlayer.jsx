@@ -17,7 +17,7 @@ import TaskSection from "./InteractivePlayer/TaskSection";
 import { useYouTubeBridge } from "./InteractivePlayer/useYouTubeBridge";
 
 export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEnabled = false }) {
-    const { playTrack, currentTrack: podcast, setCurrentTrack, isPlaying, setIsPlaying, currentTime, setCurrentTime, duration, setDuration, volume, isMuted, playbackRate, handleSeek, toggleMute, updateVolume, audioRef, youtubePlayerRef } = usePodcast();
+    const { playTrack, currentTrack: podcast, setCurrentTrack, isPlaying, setIsPlaying, isLoading, setIsLoading, currentTime, setCurrentTime, duration, setDuration, volume, isMuted, playbackRate, handleSeek, toggleMute, updateVolume, audioRef, youtubePlayerRef } = usePodcast();
     const { user, userData } = useAuth();
     
     const [currentStep, setCurrentStep] = useState(1);
@@ -46,7 +46,8 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
         setDuration,
         currentTime,
         youtubePlayerRef,
-        isPlaying
+        isPlaying,
+        setIsLoading
     );
 
     // Sync YouTube playback state with context
