@@ -30,6 +30,7 @@ export default function TestSolving() {
 
     // Dynamically determine the originating/return path
     const returnPath = React.useMemo(() => {
+        if (location.state?.fromNewsfeed) return "/dashboard";
         if (location.state?.from) return location.state.from;
         if (!test) return "/practice";
 
@@ -60,7 +61,7 @@ export default function TestSolving() {
 
     // Reading yoki Listening testda testni boshlaganida (showModeSelection=false) va tugamagan bo'lsa bloklash
     const isReadingOrListening = test?.type?.toLowerCase() === 'reading' || test?.type?.toLowerCase() === 'listening';
-    const shouldBlock = isReadingOrListening && !showModeSelection && !showResult && !isReviewing;
+    const shouldBlock = isReadingOrListening && isConfirmed && !showModeSelection && !showResult && !isReviewing;
 
     // Popstate (browser back button) orqali chiqishni ushlab olish
     useEffect(() => {
@@ -480,6 +481,7 @@ export default function TestSolving() {
                     partNumber={partNumber}
                     resultId={resultId}
                     navigate={navigate}
+                    fromNewsfeed={!!location.state?.fromNewsfeed}
                 />
 
                 {/* INTERFACE RENDERING */}

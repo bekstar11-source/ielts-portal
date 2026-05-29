@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 // Hooks
@@ -19,6 +19,7 @@ import SpeakingReview from "../../components/TestReview/SpeakingReview";
 export default function TestReview() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, userData } = useAuth();
     const isPremium = userData?.isPremium || userData?.accountType === 'premium' || userData?.role === 'admin' || userData?.role === 'teacher';
 
@@ -71,6 +72,7 @@ export default function TestReview() {
                 onSaveGrade={handleSaveGrade}
                 isSaving={isSaving}
                 navigate={navigate}
+                fromNewsfeed={!!location.state?.fromNewsfeed}
             />
 
             <div className="flex flex-col flex-1 overflow-hidden relative">

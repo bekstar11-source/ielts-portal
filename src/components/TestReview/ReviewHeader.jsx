@@ -10,7 +10,8 @@ const ReviewHeader = ({
     volume, setVolume,
     isCommentsOpen, setIsCommentsOpen,
     onSaveGrade, isSaving,
-    navigate
+    navigate,
+    fromNewsfeed = false
 }) => {
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
@@ -19,7 +20,13 @@ const ReviewHeader = ({
             {/* 1. LEFT: NAVIGATION & TITLES */}
             <div className="flex items-center gap-4">
                 <button
-                    onClick={() => navigate(userData?.role === 'admin' || userData?.role === 'teacher' ? '/admin/results' : '/my-results')}
+                    onClick={() => {
+                        if (fromNewsfeed) {
+                            navigate('/dashboard');
+                        } else {
+                            navigate(userData?.role === 'admin' || userData?.role === 'teacher' ? '/admin/results' : '/my-results');
+                        }
+                    }}
                     className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-all active:scale-95 group"
                 >
                     <svg className="w-5 h-5 text-gray-400 group-hover:text-[#e31b23] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">

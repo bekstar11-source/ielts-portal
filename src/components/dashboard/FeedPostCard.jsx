@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, Trash2, ArrowRight, Play, BookOpen, Volume2, Megaphone, ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import CommentsModal from './CommentsModal';
@@ -14,6 +14,7 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
     const [showComments, setShowComments] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [aspectRatio, setAspectRatio] = useState(1.333); // Default to 4:3
+    const [showPodcastConfirm, setShowPodcastConfirm] = useState(false);
 
     const { setCurrentTrack, setIsExpanded, setIsPlaying } = usePodcast();
 
@@ -23,12 +24,16 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
         return parts[parts.length - 1];
     };
 
-    const handlePodcastPlay = async (e) => {
+    const handlePodcastPlay = (e) => {
         if (e) {
             e.stopPropagation();
             e.preventDefault();
         }
-        
+        setShowPodcastConfirm(true);
+    };
+
+    const confirmPodcastPlay = async () => {
+        setShowPodcastConfirm(false);
         const podcastId = extractPodcastId(post.ctaUrl);
         if (!podcastId) {
             toast.error("Podcast ID topilmadi");
@@ -473,6 +478,47 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                 userData={userData}
                 onCommentAdded={onCommentAdded}
             />
+
+            {/* Podcast Confirm Modal */}
+            <AnimatePresence>
+                {showPodcastConfirm && (
+                    <div className="fixed inset-0 flex items-center justify-center z-[110] p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowPodcastConfirm(false)}
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            className="relative bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-2xl w-full max-w-[300px] text-center border border-[#E4E2E3]/30 dark:border-zinc-800 z-10"
+                        >
+                            <h3 className="text-lg font-bold mb-1 text-[#161616] dark:text-white tracking-tight">Podcast</h3>
+                            <p className="text-xs font-medium text-[#A8AAAC] dark:text-zinc-400 mb-5 px-2 leading-relaxed">
+                                Podcastni eshitishni xohlaysizmi?
+                            </p>
+                            <div className="flex gap-2.5">
+                                <button 
+                                    onClick={() => setShowPodcastConfirm(false)} 
+                                    className="flex-1 py-2.5 rounded-xl font-bold text-[#A8AAAC] dark:text-zinc-400 hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-all duration-300 text-xs"
+                                >
+                                    Yo'q
+                                </button>
+                                <button 
+                                    onClick={confirmPodcastPlay} 
+                                    className="flex-1 py-2.5 rounded-xl font-bold text-white bg-[#161616] dark:bg-white dark:text-black hover:bg-black dark:hover:bg-zinc-200 transition-all duration-300 text-xs shadow-lg shadow-black/10 dark:shadow-white/5 active:scale-[0.98]"
+                                >
+                                    Ha
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
