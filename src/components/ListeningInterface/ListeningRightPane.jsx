@@ -180,7 +180,7 @@ const ListeningRightPane = memo(({
     };
 
     const currentPassage = testData.passages[activePart];
-    const questionsForPart = testData.questions.filter(g => g.passageId === currentPassage?.id);
+    const questionsForPart = testData.questions.filter(g => String(g.passageId) === String(currentPassage?.id));
 
     return (
         <div

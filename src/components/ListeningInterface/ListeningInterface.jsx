@@ -82,7 +82,7 @@ export default function ListeningInterface({
   const handleScrollToQuestion = (questionId) => {
     // 1. Avval savol qaysi Partda ekanligini aniqlaymiz
     const questionPartIndex = testData.passages.findIndex(p =>
-      testData.questions.some(q => q.passageId === p.id &&
+      testData.questions.some(q => String(q.passageId) === String(p.id) &&
         (q.id === questionId || (q.items && q.items.some(i => i.id === questionId)) ||
           (q.groups && q.groups.some(g => g.items.some(i => i.id === questionId))))
       )

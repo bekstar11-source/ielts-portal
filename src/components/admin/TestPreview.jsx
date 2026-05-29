@@ -62,7 +62,7 @@ function ReadingPreview({ testData }) {
     const storageKey = `preview_reading_passage_${activePassage}`;
 
     // Passage label (1-3)
-    const passageQuestions = questions.filter(g => g.passageId === currentPassageRaw?.id) || [];
+    const passageQuestions = questions.filter(g => String(g.passageId) === String(currentPassageRaw?.id)) || [];
     let labelSuffix = activePassage + 1;
     if (passageQuestions.length > 0) {
         const allIds = [];

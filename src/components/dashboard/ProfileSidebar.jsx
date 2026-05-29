@@ -227,21 +227,6 @@ export default function ProfileSidebar({
                     </div>
                 </div>
             )}
-
-            {/* Footer Copyright/Links */}
-            <div className="flex flex-col gap-3 mt-6 text-[11px] text-zinc-400 dark:text-zinc-600 leading-normal font-normal">
-                <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
-                    {['Ma\'lumot', 'Yordam', 'Matbuot', 'API', 'Vakansiyalar', 'Maxfiylik', 'Shartlar', 'Joylashuv', 'Til', 'Meta Verified'].map((link, idx) => (
-                        <React.Fragment key={link}>
-                            <a href="#" className="hover:underline">{link}</a>
-                            {idx < 9 && <span>•</span>}
-                        </React.Fragment>
-                    ))}
-                </div>
-                <div className="uppercase tracking-wider font-semibold text-[9px] mt-1">
-                    © 2026 IELTS PORTAL FROM METATEAM
-                </div>
-            </div>
         </div>
     );
 }

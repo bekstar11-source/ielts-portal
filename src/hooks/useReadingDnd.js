@@ -34,7 +34,7 @@ export const useReadingDnd = (testData, activePassage, parentAnswers, handleDual
 
         const currentPassageId = testData?.passages?.[activePassage]?.id;
         const matchingGroup = testData?.questions?.find(g => {
-            if (g.passageId !== currentPassageId) return false;
+            if (String(g.passageId) !== String(currentPassageId)) return false;
             const gt = String(g.type || "").toLowerCase();
             const gi = String(g.instruction || "").toLowerCase();
             return gt.includes('matching') && (gi.includes('heading') || gt.includes('heading'));

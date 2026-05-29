@@ -19,7 +19,7 @@ export default function ReadingFooter({
         if (!item || item.id == null) return false;
         if (item.answer) return true;
         const idStr = String(item.id).trim();
-        if (idStr.includes('-') || idStr.includes('–')) return false; // Don't count ranges as single questions here
+        if (idStr.includes('-') || idStr.includes('–') || idStr.includes('_')) return false; // Don't count ranges as single questions here
         return !isNaN(idStr) && idStr !== "";
     };
 
@@ -70,8 +70,8 @@ export default function ReadingFooter({
 
         const parseMultiIds = (rawId, count) => {
             const str = String(rawId);
-            if (str.includes('-') || str.includes('–')) {
-                const parts = str.split(/[\-–]/).map(Number).filter(n => !isNaN(n));
+            if (str.includes('-') || str.includes('–') || str.includes('_')) {
+                const parts = str.split(/[\-–_]/).map(Number).filter(n => !isNaN(n));
                 if (parts.length >= 2) {
                     const ids = [];
                     const min = Math.min(parts[0], parts[parts.length - 1]);

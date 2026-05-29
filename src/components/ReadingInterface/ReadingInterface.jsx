@@ -225,7 +225,7 @@ export default function ReadingInterface({
   if (!testData) return <div className="p-10">Loading Test Data...</div>;
 
   const currentStorageKey = `reading_session_${currentTestId}_passage_${activePassage}`;
-  const passageQuestions = testData.questions?.filter(g => g.passageId === currentPassageRaw?.id) || [];
+  const passageQuestions = testData.questions?.filter(g => String(g.passageId) === String(currentPassageRaw?.id)) || [];
   const labelSuffix = detectPassageLabelSuffix(testData, activePassage);
   const passageLabel = `Passage ${labelSuffix}`;
   const passageTitle = currentPassageRaw?.title || "";
@@ -284,16 +284,33 @@ export default function ReadingInterface({
               <div className={`text-[#000000] font-semibold ${isMobile ? 'text-[11px] leading-tight' : 'text-[14px]'}`}>
                   {(() => {
                       // Robust question range calculation
-                      const qNums = (passageQuestions || []).flatMap(g => {
-                          if (g.questions && g.questions.length > 0) {
-                              return g.questions.map(q => q.number);
-                          }
-                          if (g.startNumber && g.endNumber) {
-                              return Array.from({length: g.endNumber - g.startNumber + 1}, (_, i) => g.startNumber + i);
-                          }
-                          return [];
-                      }).filter(n => n !== undefined && n !== null);
-                      
+                      const qNums = [];
+                      const collectNums = (idStr) => {
+                          if (!idStr) return;
+                          const matches = String(idStr).match(/\d+/g);
+                          if (matches) matches.forEach(m => {
+                              const num = parseInt(m);
+                              if (!isNaN(num)) qNums.push(num);
+                          });
+                      };
+                      (passageQuestions || []).forEach(group => {
+                          collectNums(group.id);
+                          if (group.startNumber) qNums.push(Number(group.startNumber));
+                          if (group.endNumber) qNums.push(Number(group.endNumber));
+                          group.items?.forEach(item => collectNums(item.id));
+                          group.questions?.forEach(q => {
+                              collectNums(q.id);
+                              if (q.number) qNums.push(Number(q.number));
+                          });
+                          group.groups?.forEach(g => {
+                              collectNums(g.id);
+                              (g.items || g.questions)?.forEach(it => {
+                                  collectNums(it.id);
+                                  if (it.number) qNums.push(Number(it.number));
+                              });
+                          });
+                      });
+
                       const minQ = qNums.length > 0 ? Math.min(...qNums) : "";
                       const maxQ = qNums.length > 0 ? Math.max(...qNums) : "";
                       

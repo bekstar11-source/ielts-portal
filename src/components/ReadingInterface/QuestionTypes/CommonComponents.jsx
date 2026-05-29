@@ -36,8 +36,8 @@ export const cleanExplanation = (text) => {
 
 export const expandQuestionIds = (id) => {
     const idStr = String(id);
-    if (idStr.includes('-') || idStr.includes('–')) {
-        const parts = idStr.split(/[\-–]/);
+    if (idStr.includes('-') || idStr.includes('–') || idStr.includes('_')) {
+        const parts = idStr.split(/[\-–_]/);
         if (parts.length === 2) {
             const start = parseInt(parts[0].trim());
             const end = parseInt(parts[1].trim());

@@ -287,7 +287,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                 }
             };
 
-            const filteredQuestions = (test.questions || []).filter(q => q.passageId === passage.id);
+            const filteredQuestions = (test.questions || []).filter(q => String(q.passageId) === String(passage.id));
             filteredQuestions.forEach(q => walk(q, q.type));
             
             // Shuningdek passage ning o'zini ham walk qilamiz, agar savollar passage ichida (masalan, groups) bo'lsa

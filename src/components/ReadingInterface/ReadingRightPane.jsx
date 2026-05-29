@@ -138,7 +138,7 @@ const ReadingRightPane = memo(({
         return <div className="h-full flex items-center justify-center text-black">Loading...</div>;
     }
 
-    const filteredQuestions = testData.questions.filter(g => g.passageId === testData.passages[activePassage].id);
+    const filteredQuestions = testData.questions.filter(g => String(g.passageId) === String(testData.passages[activePassage].id));
 
     return (
         <div className="h-full relative flex flex-col">

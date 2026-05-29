@@ -38,8 +38,8 @@ export const getRangeLabel = (group) => {
     const qIds = [];
     allItems.forEach(it => {
         const idStr = String(it.id || "");
-        if (/^\d+\s*[\-–]\s*\d+$/.test(idStr)) {
-            const parts = idStr.split(/[\-–]/);
+        if (/^\d+\s*[\-–_]\s*\d+$/.test(idStr)) {
+            const parts = idStr.split(/[\-–_]/);
             const start = parseInt(parts[0].trim());
             const end = parseInt(parts[1].trim());
             if (!isNaN(start) && !isNaN(end)) {
@@ -58,7 +58,7 @@ export const getRangeLabel = (group) => {
 export const cleanInstructions = (group, isTFNG) => {
     let displayInstruction = group.instruction || "";
     displayInstruction = displayInstruction
-        .replace(/^(?:<[^>]*>)*Questions?\s+\d+(?:\s*(?:[\-–]|to)\s*\d+)?\s*/gi, '')
+        .replace(/^(?:<[^>]*>)*Questions?\s+\d+(?:\s*(?:[\-–]|to|and)\s*\d+)?\s*/gi, '')
         .replace(/^(?:<[^>]*>)*[\-–]\d+\s*/g, '')
         .replace(/^\s*\d{1,2}[\s.]*/g, '')
         .replace(/Write (?:your |the correct )?[^.]+?[\s]*in boxes? [\d\s\-–,and]+ on (?:your |the )?answer sheet\.?/gi, '')
