@@ -6,7 +6,6 @@ import { storage } from "../../firebase/firebase";
 
 // Hooks & Components
 import { useAdminTests } from "../../hooks/useAdminTests";
-import AdminTestsSidebar from "../../components/admin/AdminTests/AdminTestsSidebar";
 import AdminTestsToolbar from "../../components/admin/AdminTests/AdminTestsToolbar";
 import AdminTestsList from "../../components/admin/AdminTests/AdminTestsList";
 import Pagination from "../../components/common/Pagination";
@@ -603,20 +602,6 @@ export default function AdminTests() {
     };
     return (
         <div className={`h-full w-full flex font-sans transition-colors duration-200 relative overflow-hidden ${isDark ? 'bg-[#121212] text-white' : 'bg-[#f5f5f7] text-zinc-900'}`}>
-            <AdminTestsSidebar 
-                collections={collections}
-                filterCollection={filterCollection}
-                setFilterCollection={setFilterCollection}
-                filterType={filterType}
-                setFilterType={setFilterType}
-                totalTestCount={totalTestCount}
-                onAddCollection={handleOpenAddCollection} 
-                onEditCollection={handleOpenEditCollection}
-                onMigrate={handleMigrateMetadata}
-                isMigrating={isMigrating}
-                isDark={isDark}
-            />
-
             <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <AdminTestsToolbar 
                     searchTerm={searchTerm}
@@ -628,6 +613,16 @@ export default function AdminTests() {
                     onMerge={handleOpenMerge} 
                     onCreate={() => navigate("/admin/create-test")}
                     isDark={isDark}
+                    collections={collections}
+                    filterCollection={filterCollection}
+                    setFilterCollection={setFilterCollection}
+                    filterType={filterType}
+                    setFilterType={setFilterType}
+                    totalTestCount={totalTestCount}
+                    onAddCollection={handleOpenAddCollection} 
+                    onEditCollection={handleOpenEditCollection}
+                    onMigrate={handleMigrateMetadata}
+                    isMigrating={isMigrating}
                 />
 
                 <main className={`flex-1 flex flex-col min-h-0 transition-colors ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>

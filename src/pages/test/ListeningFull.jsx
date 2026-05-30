@@ -42,6 +42,7 @@ export default function ListeningFull() {
   const [selectedStatus, setSelectedStatus] = useState("all"); 
   const [selectedParts, setSelectedParts] = useState([]);
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
+  const [freeOnly, setFreeOnly] = useState(false);
   
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
@@ -88,7 +89,7 @@ export default function ListeningFull() {
   // Reset pagination to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedStatus, selectedQuestionTypes]);
+  }, [searchQuery, selectedStatus, selectedQuestionTypes, freeOnly]);
 
   const fullTestsList = useMemo(() => {
     const testMap = new Map();
@@ -138,10 +139,11 @@ export default function ListeningFull() {
       
       const matchesType = selectedQuestionTypes.length === 0 || 
                           (full.questionTypes && full.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
+      const matchesFree = !freeOnly || !!full.isFree;
 
-      return matchesSearch && matchesStatus && matchesType;
+      return matchesSearch && matchesStatus && matchesType && matchesFree;
     });
-  }, [fullTestsList, searchQuery, selectedStatus, selectedQuestionTypes]);
+  }, [fullTestsList, searchQuery, selectedStatus, selectedQuestionTypes, freeOnly]);
 
   // Filter collections processed tests using filteredFullTests as source or matching collectionsData structure
   const filteredCollectionsData = useMemo(() => {
@@ -155,7 +157,8 @@ export default function ListeningFull() {
       
       const matchesType = selectedQuestionTypes.length === 0 || 
                           (test.questionTypes && test.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
-      return matchesSearch && matchesStatus && matchesType;
+      const matchesFree = !freeOnly || !!test.isFree;
+      return matchesSearch && matchesStatus && matchesType && matchesFree;
     });
     return {
       ...collectionsData,
@@ -164,7 +167,7 @@ export default function ListeningFull() {
         fullTestsList: fullTestsListFiltered
       }
     };
-  }, [collectionsData, searchQuery, selectedStatus, selectedQuestionTypes]);
+  }, [collectionsData, searchQuery, selectedStatus, selectedQuestionTypes, freeOnly]);
 
   const handleStartTest = (test) => { 
     if (test.isFree) {
@@ -269,6 +272,9 @@ export default function ListeningFull() {
           showQuestionFilters={showQuestionFilters}
           setShowQuestionFilters={setShowQuestionFilters}
           isStandalonePage={true}
+          freeOnly={freeOnly}
+          setFreeOnly={setFreeOnly}
+          showFreeFilter={!isPro && !isStandard}
         />
 
         <div className="max-w-[1440px] mx-auto px-6">

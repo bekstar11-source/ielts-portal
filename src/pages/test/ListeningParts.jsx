@@ -49,6 +49,7 @@ export default function ListeningParts() {
   const [selectedParts, setSelectedParts] = useState([]);
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
   const [activePartFilter, setActivePartFilter] = useState('all');
+  const [freeOnly, setFreeOnly] = useState(false);
   
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
@@ -170,7 +171,7 @@ export default function ListeningParts() {
   // Reset pagination when filters change
   useEffect(() => {
     setVisibleCount(12);
-  }, [searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter]);
+  }, [searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter, freeOnly]);
 
   const handleShowMore = async () => {
     if (filteredVirtualParts.length > visibleCount) {
@@ -281,10 +282,11 @@ export default function ListeningParts() {
       
       const matchesPartTab = activePartFilter === 'all' || String(part.partNumber) === activePartFilter;
       const matchesPartFilter = selectedParts.length === 0 || selectedParts.includes(part.partNumber);
+      const matchesFree = !freeOnly || !!part.isFree;
 
-      return matchesSearch && matchesStatus && matchesType && matchesPartTab && matchesPartFilter;
+      return matchesSearch && matchesStatus && matchesType && matchesPartTab && matchesPartFilter && matchesFree;
     });
-  }, [partTestsList, searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter, selectedParts]);
+  }, [partTestsList, searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter, selectedParts, freeOnly]);
 
   const handleStartTest = (test) => { 
     if (test.isFree) {
@@ -394,6 +396,9 @@ export default function ListeningParts() {
           showQuestionFilters={showQuestionFilters}
           setShowQuestionFilters={setShowQuestionFilters}
           isStandalonePage={true}
+          freeOnly={freeOnly}
+          setFreeOnly={setFreeOnly}
+          showFreeFilter={!isPro && !isStandard}
         />
 
         <div className="max-w-[1440px] mx-auto px-6">

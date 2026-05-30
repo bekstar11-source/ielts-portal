@@ -47,6 +47,7 @@ export default function ReadingFull() {
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("all"); 
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
+  const [freeOnly, setFreeOnly] = useState(false);
   
   const isPro = userData?.accountType === 'pro' || userData?.isPro;
   const isStandard = userData?.accountType === 'standard';
@@ -120,9 +121,10 @@ export default function ReadingFull() {
                            (selectedStatus === 'not_completed' && !isDone);
       const matchesType = selectedQuestionTypes.length === 0 || 
                          (item.questionTypes && item.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
-      return matchesSearch && matchesStatus && matchesType;
+      const matchesFree = !freeOnly || !!item.isFree;
+      return matchesSearch && matchesStatus && matchesType && matchesFree;
     });
-  }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus]);
+  }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus, freeOnly]);
 
   const filteredCollectionProcessedTests = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -137,10 +139,11 @@ export default function ReadingFull() {
                            (selectedStatus === 'not_completed' && !isDone);
       const matchesType = selectedQuestionTypes.length === 0 || 
                          (test.questionTypes && test.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
-      return matchesSearch && matchesStatus && matchesType;
+      const matchesFree = !freeOnly || !!test.isFree;
+      return matchesSearch && matchesStatus && matchesType && matchesFree;
     });
     return { fullTestsList };
-  }, [collectionsData.collectionProcessedTests, searchQuery, selectedStatus, selectedQuestionTypes]);
+  }, [collectionsData.collectionProcessedTests, searchQuery, selectedStatus, selectedQuestionTypes, freeOnly]);
 
   const handleStartTest = (test) => { 
     if (test.isFree) {
@@ -244,6 +247,9 @@ export default function ReadingFull() {
           showQuestionFilters={showQuestionFilters}
           setShowQuestionFilters={setShowQuestionFilters}
           isStandalonePage={true}
+          freeOnly={freeOnly}
+          setFreeOnly={setFreeOnly}
+          showFreeFilter={!isPro && !isStandard}
         />
 
         <div className="max-w-[1440px] mx-auto px-6">

@@ -45,6 +45,7 @@ export default function ReadingParts() {
   const [selectedStatus, setSelectedStatus] = useState("all"); 
   const [selectedPassages, setSelectedPassages] = useState([]); 
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
+  const [freeOnly, setFreeOnly] = useState(false);
   
   const isPro = userData?.accountType === 'pro' || userData?.isPro;
   const isStandard = userData?.accountType === 'standard';
@@ -179,7 +180,7 @@ export default function ReadingParts() {
 
   useEffect(() => {
     setVisibleCount(12);
-  }, [searchQuery, selectedStatus, selectedQuestionTypes, selectedPassages]);
+  }, [searchQuery, selectedStatus, selectedQuestionTypes, selectedPassages, freeOnly]);
 
   const handleShowMore = async () => {
     if (filteredTests.length > visibleCount) {
@@ -236,12 +237,14 @@ export default function ReadingParts() {
       const matchesType = selectedQuestionTypes.length === 0 || 
                          (item.questionTypes && item.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
       
-      if (matchesSearch && matchesType && matchesStatus && matchesPassage) {
+      const matchesFree = !freeOnly || !!item.isFree;
+      
+      if (matchesSearch && matchesType && matchesStatus && matchesPassage && matchesFree) {
         result.push(item);
       }
     });
     return result;
-  }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus, selectedPassages]);
+  }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus, selectedPassages, freeOnly]);
 
   const handleStartTest = (test) => { 
     if (test.isFree) {
@@ -348,6 +351,9 @@ export default function ReadingParts() {
           setShowQuestionFilters={setShowQuestionFilters}
           isStandalonePage={true}
           hideSubTabs={true}
+          freeOnly={freeOnly}
+          setFreeOnly={setFreeOnly}
+          showFreeFilter={!isPro && !isStandard}
         />
 
         <div className="max-w-[1440px] mx-auto px-6">

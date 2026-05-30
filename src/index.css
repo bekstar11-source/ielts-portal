@@ -549,6 +549,21 @@
   animation: shimmer-sweep 5s infinite linear;
 }
 
+@keyframes free-glow {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
+    border-color: rgba(245, 158, 11, 0.8);
+  }
+}
+
+.free-filter-glow {
+  animation: free-glow 2s infinite ease-in-out;
+}
+
 /* --- UI/UX OPTIMIZATIONS --- */
 @keyframes fadeIn {
   from { opacity: 0; }

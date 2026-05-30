@@ -23,7 +23,10 @@ export default function PracticeFilters({
   setSelectedPassages,
   selectedParts = [],
   setSelectedParts,
-  isStandalonePage = false
+  isStandalonePage = false,
+  freeOnly = false,
+  setFreeOnly,
+  showFreeFilter = false
 }) {
   const { t } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -61,6 +64,7 @@ export default function PracticeFilters({
     setSelectedStatus("all");
     if (setSelectedPassages) setSelectedPassages([]);
     if (setSelectedParts) setSelectedParts([]);
+    if (setFreeOnly) setFreeOnly(false);
     setOpenDropdown(null);
   };
 
@@ -125,7 +129,8 @@ export default function PracticeFilters({
   const hasAnyFilterActive = selectedStatus !== 'all' || 
                             selectedQuestionTypes.length > 0 || 
                             (selectedPassages && selectedPassages.length > 0) || 
-                            (selectedParts && selectedParts.length > 0);
+                            (selectedParts && selectedParts.length > 0) ||
+                            freeOnly;
 
   return (
     <div 
@@ -198,6 +203,27 @@ export default function PracticeFilters({
             {((activeTab === 'reading' && readingFilters && readingFilters.length > 0) ||
               (activeTab === 'listening' && listeningFilters && listeningFilters.length > 0)) && (
               <div className="hidden lg:block w-[1px] h-6 bg-zinc-200 dark:bg-zinc-800 mx-1" />
+            )}
+
+            {/* Free tests filter checkbox (Only for free plan users) */}
+            {showFreeFilter && setFreeOnly && (
+              <button
+                onClick={() => setFreeOnly(!freeOnly)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none free-filter-glow ${
+                  freeOnly
+                    ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-250 dark:border-amber-800 text-amber-600 dark:text-amber-400'
+                    : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                }`}
+              >
+                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
+                  freeOnly 
+                    ? 'border-amber-550 bg-amber-500 text-white' 
+                    : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950'
+                }`}>
+                  {freeOnly && <Check size={10} strokeWidth={3} />}
+                </div>
+                <span>{t('practice.freeOnly') || "Free Tests"}</span>
+              </button>
             )}
 
             {/* DROPDOWN 1: Status */}
