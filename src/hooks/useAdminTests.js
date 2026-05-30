@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '../firebase/firebase';
 import {
     collection,
@@ -6,40 +6,30 @@ import {
     deleteDoc,
     doc,
     query,
-    where,
     orderBy,
     limit,
-    startAfter,
     writeBatch,
-    getCountFromServer,
     addDoc,
     updateDoc,
     serverTimestamp
 } from 'firebase/firestore';
 
 export const useAdminTests = (PAGE_SIZE = 12) => {
-    const [tests, setTests] = useState([]);
-    const [allTestsCache, setAllTestsCache] = useState([]); // proactive full client-side cache for instant searching
+    const [allTestsCache, setAllTestsCache] = useState([]); // full client-side cache
     const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
+    
+    // States for sorting, filtering, and pagination
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterType, setFilterType] = useState("All");
+    const [filterCollection, setFilterCollection] = useState("All");
+    const [filterStatus, setFilterStatus] = useState("All"); // All, Public, Private
+    const [filterAccess, setFilterAccess] = useState("All"); // All, Free, Paid
+    const [filterTag, setFilterTag] = useState("All"); // All, Tag name
+    const [sortBy, setSortBy] = useState("createdAt"); // createdAt, title, difficulty
+    const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageLastVisible, setPageLastVisible] = useState({});
-    const [totalTestCount, setTotalTestCount] = useState(0);
-    const [isSearching, setIsSearching] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
-
-    // Stale-While-Revalidate (SWR) Page Cache
-    const [swrCache, setSwrCache] = useState({}); // Key -> { tests, total }
-
-    // Race-Condition Counter
-    const latestRequestIdRef = useRef(0);
-    // Client-side pagination fallback when compound queries lack indexes
-    const fallbackDocsRef = useRef(null);
-
-    const normalizeType = (type) => (type === 'All' ? 'All' : (type || '').toLowerCase());
-    const cacheKeyFor = (type, collectionId, page) =>
-        `${normalizeType(type)}_${collectionId || 'All'}_${page}`;
 
     const fetchCollections = async () => {
         try {
@@ -47,7 +37,6 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             const snapCols = await getDocs(qCols);
             setCollections(snapCols.docs.map(d => ({ id: d.id, ...d.data() })));
         } catch {
-            // orderBy may fail without index; fetch without sort as fallback
             try {
                 const snapCols = await getDocs(collection(db, "test_collections"));
                 setCollections(snapCols.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -57,359 +46,169 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    // Helper to get total count via high-speed, lightweight Firestore counting
-    const getFilterCount = async (type, collectionId) => {
-        const normalizedType = normalizeType(type);
-        try {
-            let countConstraints = [];
-            if (normalizedType !== "All") {
-                countConstraints.push(where("type", "==", normalizedType));
-            }
-            if (collectionId !== "All") {
-                if (collectionId === "None") {
-                    countConstraints.push(where("collectionId", "==", null));
-                } else {
-                    countConstraints.push(where("collectionId", "==", collectionId));
-                }
-            }
-            const qCount = query(collection(db, "tests_metadata"), ...countConstraints);
-            const countSnap = await getCountFromServer(qCount);
-            return countSnap.data().count;
-        } catch (e) {
-            console.error("Failed to get count:", e);
-            return 0;
-        }
-    };
-
-    // Proactively warm the search cache in the background on mount
+    // Warm the cache on mount
     useEffect(() => {
         const warmCache = async () => {
             try {
+                setLoading(true);
                 const snapAll = await getDocs(query(collection(db, "tests_metadata"), limit(1500)));
                 const allDocs = snapAll.docs.map(d => ({ id: d.id, ...d.data() }));
                 setAllTestsCache(allDocs);
             } catch (err) {
                 console.error("Proactive search cache warming failed:", err);
+            } finally {
+                setLoading(false);
             }
         };
         warmCache();
+        fetchCollections();
     }, []);
 
-    const fetchInitial = async (type = "All", collectionId = "All") => {
-        const requestId = ++latestRequestIdRef.current;
-        const normalizedType = normalizeType(type);
-        setIsSearching(false);
-        fallbackDocsRef.current = null;
+    // Filter, sort, and search list reactively
+    const { filteredAndSortedTests, totalTestCount } = useMemo(() => {
+        let list = [...allTestsCache];
 
-        const cacheKey = cacheKeyFor(type, collectionId, 1);
-        const cached = swrCache[cacheKey];
-
-        if (cached) {
-            // Instant SWR Render: 0ms lag!
-            setTests(cached.tests);
-            setTotalTestCount(cached.total);
-            setCurrentPage(1);
-            setHasMore(cached.total > PAGE_SIZE);
-            setLoading(false);
-            setIsBackgroundRefreshing(true);
-        } else {
-            setLoading(true);
+        // 1. Type Filter
+        if (filterType !== "All") {
+            const typeLower = filterType.toLowerCase();
+            list = list.filter(t => t.type?.toLowerCase() === typeLower);
         }
 
-        try {
-            // 1. Kick off server-side count (fast, cheap)
-            const totalPromise = getFilterCount(type, collectionId);
-
-            // 2. Fetch page documents ordered by creation date
-            let constraints = [];
-            if (normalizedType !== "All") {
-                constraints.push(where("type", "==", normalizedType));
+        // 2. Collection Filter
+        if (filterCollection !== "All") {
+            if (filterCollection === "None") {
+                list = list.filter(t => !t.collectionId);
+            } else {
+                list = list.filter(t => t.collectionId === filterCollection);
             }
-            if (collectionId !== "All") {
-                if (collectionId === "None") {
-                    constraints.push(where("collectionId", "==", null));
-                } else {
-                    constraints.push(where("collectionId", "==", collectionId));
-                }
-            }
-            constraints.push(orderBy("createdAt", "desc"));
-            constraints.push(limit(PAGE_SIZE));
+        }
 
-            const qTests = query(collection(db, "tests_metadata"), ...constraints);
-            const snapTests = await getDocs(qTests);
-            
-            const total = await totalPromise;
+        // 3. Status Filter
+        if (filterStatus !== "All") {
+            const wantPublic = filterStatus === "Public";
+            list = list.filter(t => !!t.isPublic === wantPublic);
+        }
 
-            // Shield: discard if a newer request was initiated
-            if (requestId !== latestRequestIdRef.current) return;
+        // 4. Access Filter
+        if (filterAccess !== "All") {
+            const wantFree = filterAccess === "Free";
+            list = list.filter(t => !!t.isFree === wantFree);
+        }
 
-            const testsData = snapTests.docs
-                .map(d => ({ id: d.id, ...d.data() }))
-                .filter(t => !t.id.startsWith("_tag") && t.id !== "tag_metadata");
+        // 4b. Tag Filter
+        if (filterTag !== "All") {
+            list = list.filter(t => Array.isArray(t.tags) && t.tags.includes(filterTag));
+        }
 
-            // Save to SWR cache
-            setSwrCache(prev => ({
-                ...prev,
-                [cacheKey]: { tests: testsData, total }
-            }));
-
-            setTests(testsData);
-            setTotalTestCount(total);
-            setCurrentPage(1);
-            setPageLastVisible(
-                snapTests.docs.length > 0
-                    ? { 1: snapTests.docs[snapTests.docs.length - 1] }
-                    : {}
+        // 5. Search filter
+        if (searchTerm.trim().length >= 2) {
+            const termLower = searchTerm.toLowerCase().trim();
+            list = list.filter(t => 
+                (t.title || "").toLowerCase().includes(termLower) ||
+                t.id.toLowerCase().includes(termLower)
             );
-            setHasMore(testsData.length === PAGE_SIZE && testsData.length < total);
-        } catch (err) {
-            console.error("Fetch Initial Error:", err);
-            // Fallback for missing compound indexes: fetch unordered and sort client-side
-            try {
-                let constraints = [];
-                if (normalizedType !== "All") {
-                    constraints.push(where("type", "==", normalizedType));
-                }
-                if (collectionId !== "All" && collectionId !== "None") {
-                    constraints.push(where("collectionId", "==", collectionId));
-                }
-                if (collectionId === "None") {
-                    constraints.push(where("collectionId", "==", null));
-                }
-                constraints.push(limit(500));
+        }
 
-                const qTests = query(collection(db, "tests_metadata"), ...constraints);
-                const snapTests = await getDocs(qTests);
-                
-                if (requestId !== latestRequestIdRef.current) return;
+        // 6. Sort
+        list.sort((a, b) => {
+            let valA, valB;
 
-                let docs = snapTests.docs.map(d => ({ id: d.id, ...d.data() }))
-                    .filter(t => !t.id.startsWith("_tag") && t.id !== "tag_metadata");
-                
-                docs.sort((a, b) => {
-                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                    return bTime - aTime;
+            if (sortBy === 'title') {
+                valA = (a.title || "").toLowerCase();
+                valB = (b.title || "").toLowerCase();
+                return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            } else if (sortBy === 'difficulty') {
+                const diffMap = { easy: 1, medium: 2, hard: 3 };
+                valA = diffMap[(a.difficulty || "medium").toLowerCase()] || 2;
+                valB = diffMap[(b.difficulty || "medium").toLowerCase()] || 2;
+            } else {
+                // Default: createdAt
+                valA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                valB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            }
+
+            if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        return { filteredAndSortedTests: list, totalTestCount: list.length };
+    }, [allTestsCache, filterType, filterCollection, filterStatus, filterAccess, filterTag, searchTerm, sortBy, sortOrder]);
+
+    // Current page slice
+    const tests = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filteredAndSortedTests.slice(start, start + PAGE_SIZE);
+    }, [filteredAndSortedTests, currentPage, PAGE_SIZE]);
+
+    // Calculate stats reactively
+    const stats = useMemo(() => {
+        const total = allTestsCache.length;
+        const publicCount = allTestsCache.filter(t => t.isPublic).length;
+        const privateCount = total - publicCount;
+        const freeCount = allTestsCache.filter(t => t.isFree).length;
+        const mockCount = allTestsCache.filter(t => t.type === 'mock').length;
+        return { total, publicCount, privateCount, freeCount, mockCount };
+    }, [allTestsCache]);
+
+    // Calculate all available tags dynamically from loaded tests
+    const allAvailableTags = useMemo(() => {
+        const tagsSet = new Set();
+        allTestsCache.forEach(t => {
+            if (Array.isArray(t.tags)) {
+                t.tags.forEach(tag => {
+                    if (tag) tagsSet.add(tag);
                 });
-
-                fallbackDocsRef.current = docs;
-                const total = docs.length;
-                const pageItems = docs.slice(0, PAGE_SIZE);
-
-                setSwrCache(prev => ({
-                    ...prev,
-                    [cacheKey]: { tests: pageItems, total }
-                }));
-
-                setTests(pageItems);
-                setTotalTestCount(total);
-                setCurrentPage(1);
-                setPageLastVisible({});
-                setHasMore(total > PAGE_SIZE);
-            } catch (e2) {
-                console.error("Index fallback failed:", e2);
             }
-        } finally {
-            if (requestId === latestRequestIdRef.current) {
-                setLoading(false);
-                setIsBackgroundRefreshing(false);
-            }
-        }
+        });
+        return Array.from(tagsSet).sort();
+    }, [allTestsCache]);
 
-        if (collections.length === 0) {
-            await fetchCollections();
-        }
+    // Compatible function handlers to update filter state from external triggers
+    const fetchInitial = (type = "All", collectionId = "All") => {
+        setFilterType(type);
+        setFilterCollection(collectionId);
+        setCurrentPage(1);
     };
 
-    const fetchPage = async (page, type = "All", collectionId = "All") => {
-        if (page === currentPage && !isSearching) return;
-
-        const requestId = ++latestRequestIdRef.current;
-        const normalizedType = normalizeType(type);
-        const cacheKey = cacheKeyFor(type, collectionId, page);
-        const cached = swrCache[cacheKey];
-
-        // Client-side pagination when server-side cursor pagination is unavailable
-        if (fallbackDocsRef.current) {
-            const total = fallbackDocsRef.current.length;
-            const start = (page - 1) * PAGE_SIZE;
-            const pageItems = fallbackDocsRef.current.slice(start, start + PAGE_SIZE);
-            setTests(pageItems);
-            setCurrentPage(page);
-            setHasMore(page * PAGE_SIZE < total);
-            setSwrCache(prev => ({ ...prev, [cacheKey]: { tests: pageItems, total } }));
-            setLoading(false);
-            setIsBackgroundRefreshing(false);
-            return;
-        }
-
-        if (cached) {
-            // SWR instant page navigation
-            setTests(cached.tests);
-            setCurrentPage(page);
-            setHasMore(page * PAGE_SIZE < cached.total);
-            setLoading(false);
-            setIsBackgroundRefreshing(true);
-        } else {
-            setLoading(true);
-        }
-
-        try {
-            const prevPageLastDoc = page > 1 ? pageLastVisible[page - 1] : null;
-            
-            let constraints = [];
-            if (normalizedType !== "All") {
-                constraints.push(where("type", "==", normalizedType));
-            }
-            if (collectionId !== "All") {
-                if (collectionId === "None") {
-                    constraints.push(where("collectionId", "==", null));
-                } else {
-                    constraints.push(where("collectionId", "==", collectionId));
-                }
-            }
-            constraints.push(orderBy("createdAt", "desc"));
-            
-            if (prevPageLastDoc && page > 1) {
-                constraints.push(startAfter(prevPageLastDoc));
-            }
-            constraints.push(limit(PAGE_SIZE));
-
-            const qTests = query(collection(db, "tests_metadata"), ...constraints);
-            const snapTests = await getDocs(qTests);
-            
-            if (requestId !== latestRequestIdRef.current) return;
-
-            const testsData = snapTests.docs
-                .map(d => ({ id: d.id, ...d.data() }))
-                .filter(t => !t.id.startsWith("_tag") && t.id !== "tag_metadata");
-
-            const total = totalTestCount;
-
-            setSwrCache(prev => ({
-                ...prev,
-                [cacheKey]: { tests: testsData, total }
-            }));
-
-            setTests(testsData);
-            if (snapTests.docs.length > 0) {
-                setPageLastVisible(prev => ({ ...prev, [page]: snapTests.docs[snapTests.docs.length - 1] }));
-            }
-            setCurrentPage(page);
-            setHasMore(page * PAGE_SIZE < total);
-        } catch (err) {
-            console.error("Fetch Page Error:", err);
-            // Re-fetch full filtered set for client-side page slice
-            try {
-                let constraints = [];
-                if (normalizedType !== "All") {
-                    constraints.push(where("type", "==", normalizedType));
-                }
-                if (collectionId !== "All" && collectionId !== "None") {
-                    constraints.push(where("collectionId", "==", collectionId));
-                }
-                if (collectionId === "None") {
-                    constraints.push(where("collectionId", "==", null));
-                }
-                constraints.push(limit(500));
-                const snapTests = await getDocs(query(collection(db, "tests_metadata"), ...constraints));
-                if (requestId !== latestRequestIdRef.current) return;
-
-                let docs = snapTests.docs.map(d => ({ id: d.id, ...d.data() }))
-                    .filter(t => !t.id.startsWith("_tag") && t.id !== "tag_metadata");
-                docs.sort((a, b) => {
-                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                    return bTime - aTime;
-                });
-                fallbackDocsRef.current = docs;
-                const total = docs.length;
-                const start = (page - 1) * PAGE_SIZE;
-                const pageItems = docs.slice(start, start + PAGE_SIZE);
-                setSwrCache(prev => ({ ...prev, [cacheKey]: { tests: pageItems, total } }));
-                setTests(pageItems);
-                setCurrentPage(page);
-                setHasMore(page * PAGE_SIZE < total);
-            } catch (e2) {
-                console.error("Fetch Page fallback failed:", e2);
-            }
-        } finally {
-            if (requestId === latestRequestIdRef.current) {
-                setLoading(false);
-                setIsBackgroundRefreshing(false);
-            }
-        }
+    const fetchPage = (page) => {
+        setCurrentPage(page);
     };
 
-    const searchTests = async (term, type = "All", collectionId = "All") => {
-        if (!term || term.trim().length < 2) {
-            fetchInitial(type, collectionId);
-            return;
-        }
-
-        const requestId = ++latestRequestIdRef.current;
-        const normalizedType = normalizeType(type);
-        fallbackDocsRef.current = null;
-        setLoading(true);
-        setIsSearching(true);
-
-        try {
-            const termLower = term.toLowerCase().trim();
-
-            let allDocs = allTestsCache;
-            if (allDocs.length === 0) {
-                // Fetch on demand if background warm hasn't completed yet
-                const snapAll = await getDocs(query(collection(db, "tests_metadata"), limit(1500)));
-                allDocs = snapAll.docs.map(d => ({ id: d.id, ...d.data() }));
-                setAllTestsCache(allDocs);
-            }
-
-            if (requestId !== latestRequestIdRef.current) return;
-
-            let results = allDocs.filter(t => {
-                if (t.id.startsWith("_tag") || t.id === "tag_metadata") return false;
-                const titleMatch = (t.title || "").toLowerCase().includes(termLower);
-                if (!titleMatch) return false;
-                if (normalizedType !== "All" && t.type?.toLowerCase() !== normalizedType) return false;
-                if (collectionId !== "All" && collectionId !== "None" && t.collectionId !== collectionId) return false;
-                if (collectionId === "None" && t.collectionId) return false;
-                return true;
-            });
-
-            // Sort descending client-side
-            results.sort((a, b) => {
-                const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                return bTime - aTime;
-            });
-
-            // Show up to 100 accurate search matches instantly
-            setTests(results.slice(0, 100));
-            setTotalTestCount(results.length);
-            setHasMore(false);
-            setCurrentPage(1);
-        } catch (err) {
-            console.error("Search Error:", err);
-        } finally {
-            if (requestId === latestRequestIdRef.current) {
-                setLoading(false);
-            }
-        }
+    const searchTests = (term) => {
+        setSearchTerm(term);
+        setCurrentPage(1);
     };
 
+    // Actions
     const handleDelete = async (id) => {
         try {
-            await Promise.all([
-                deleteDoc(doc(db, "tests", id)),
-                deleteDoc(doc(db, "tests_metadata", id)).catch(() => {})
-            ]);
-            setTests(prev => prev.filter(t => t.id !== id));
+            const batch = writeBatch(db);
+            batch.delete(doc(db, "tests", id));
+            batch.delete(doc(db, "tests_metadata", id));
+            await batch.commit();
+
             setAllTestsCache(prev => prev.filter(t => t.id !== id));
-            setTotalTestCount(prev => prev - 1);
-            setSwrCache({}); // Invalidate SWR cache to force reload
             return true;
         } catch (err) {
-            console.error(err);
+            console.error("Delete Error:", err);
+            return false;
+        }
+    };
+
+    const bulkDeleteTests = async (ids) => {
+        try {
+            const batch = writeBatch(db);
+            ids.forEach(id => {
+                batch.delete(doc(db, "tests", id));
+                batch.delete(doc(db, "tests_metadata", id));
+            });
+            await batch.commit();
+
+            setAllTestsCache(prev => prev.filter(t => !ids.includes(t.id)));
+            return true;
+        } catch (err) {
+            console.error("Bulk Delete Error:", err);
             return false;
         }
     };
@@ -417,19 +216,172 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
     const bulkAssignToCollection = async (testIds, collectionId) => {
         try {
             const batch = writeBatch(db);
+            const finalColId = collectionId === 'None' || !collectionId ? null : collectionId;
             testIds.forEach(id => {
-                batch.update(doc(db, "tests", id), { collectionId: collectionId === 'None' ? null : collectionId });
-                batch.update(doc(db, "tests_metadata", id), { collectionId: collectionId === 'None' ? null : collectionId });
+                batch.update(doc(db, "tests", id), { collectionId: finalColId });
+                batch.update(doc(db, "tests_metadata", id), { collectionId: finalColId });
             });
             await batch.commit();
             
-            // Sync current state
-            setTests(prev => prev.map(t => testIds.includes(t.id) ? { ...t, collectionId: collectionId === 'None' ? null : collectionId } : t));
-            setAllTestsCache(prev => prev.map(t => testIds.includes(t.id) ? { ...t, collectionId: collectionId === 'None' ? null : collectionId } : t));
-            setSwrCache({}); // Invalidate SWR cache to force reload
+            setAllTestsCache(prev => prev.map(t => testIds.includes(t.id) ? { ...t, collectionId: finalColId } : t));
             return true;
         } catch (err) {
-            console.error(err);
+            console.error("Bulk Move Error:", err);
+            return false;
+        }
+    };
+
+    const bulkUpdateStatus = async (ids, isPublic) => {
+        try {
+            const batch = writeBatch(db);
+            ids.forEach(id => {
+                batch.update(doc(db, "tests", id), { isPublic });
+                batch.update(doc(db, "tests_metadata", id), { isPublic });
+            });
+            await batch.commit();
+
+            setAllTestsCache(prev => prev.map(t => ids.includes(t.id) ? { ...t, isPublic } : t));
+            return true;
+        } catch (err) {
+            console.error("Bulk Status Error:", err);
+            return false;
+        }
+    };
+
+    const bulkUpdateIsFree = async (ids, isFree) => {
+        try {
+            const batch = writeBatch(db);
+            ids.forEach(id => {
+                batch.update(doc(db, "tests", id), { isFree });
+                batch.update(doc(db, "tests_metadata", id), { isFree });
+            });
+            await batch.commit();
+
+            setAllTestsCache(prev => prev.map(t => ids.includes(t.id) ? { ...t, isFree } : t));
+            return true;
+        } catch (err) {
+            console.error("Bulk Free Error:", err);
+            return false;
+        }
+    };
+
+    const duplicateTest = async (id) => {
+        try {
+            const { getDoc, doc } = await import("firebase/firestore");
+            const fullDocRef = doc(db, "tests", id);
+            const fullSnap = await getDoc(fullDocRef);
+            if (!fullSnap.exists()) {
+                throw new Error("Test not found");
+            }
+            const origData = fullSnap.data();
+            const metaSnap = await getDoc(doc(db, "tests_metadata", id));
+
+            const batch = writeBatch(db);
+            const newTestDocRef = doc(collection(db, "tests"));
+            const newId = newTestDocRef.id;
+
+            const newTitle = `Copy of ${origData.title || "Untitled"}`;
+            const nowIso = new Date().toISOString();
+
+            const newTestData = {
+                ...origData,
+                id: newId,
+                title: newTitle,
+                createdAt: nowIso,
+                updatedAt: nowIso
+            };
+            batch.set(newTestDocRef, newTestData);
+
+            let newMetaData = {};
+            if (metaSnap.exists()) {
+                newMetaData = {
+                    ...metaSnap.data(),
+                    id: newId,
+                    title: newTitle,
+                    createdAt: nowIso,
+                    updatedAt: nowIso
+                };
+            } else {
+                newMetaData = {
+                    id: newId,
+                    title: newTitle,
+                    type: origData.type || "reading",
+                    difficulty: origData.difficulty || "medium",
+                    duration: Number(origData.duration) || 60,
+                    isExclusive: origData.isExclusive || false,
+                    isFree: origData.isFree || false,
+                    createdAt: nowIso,
+                    updatedAt: nowIso,
+                    collectionId: origData.collectionId || null,
+                    questionTypes: origData.questionTypes || []
+                };
+            }
+            batch.set(doc(db, "tests_metadata", newId), newMetaData);
+
+            await batch.commit();
+
+            setAllTestsCache(prev => [newMetaData, ...prev]);
+            return newId;
+        } catch (err) {
+            console.error("Duplicate Error:", err);
+            return null;
+        }
+    };
+
+    const importTests = async (testList) => {
+        try {
+            const testsToImport = Array.isArray(testList) ? testList : [testList];
+            const batch = writeBatch(db);
+            const importedMetadataList = [];
+
+            const { getQuestionTypesFromQuestions } = await import("../components/admin/CreateTest/CreateTestUtils");
+
+            for (const test of testsToImport) {
+                const newTestDocRef = doc(collection(db, "tests"));
+                const newId = newTestDocRef.id;
+                const nowIso = new Date().toISOString();
+
+                const newTestData = {
+                    ...test,
+                    id: newId,
+                    title: test.title || "Imported Test",
+                    type: test.type || "reading",
+                    difficulty: test.difficulty || "medium",
+                    duration: Number(test.duration) || 60,
+                    passages: test.passages || [],
+                    questions: test.questions || [],
+                    keywordTable: test.keywordTable || [],
+                    writingTasks: test.writingTasks || [],
+                    speakingTasks: test.speakingTasks || [],
+                    createdAt: nowIso,
+                    updatedAt: nowIso
+                };
+                batch.set(newTestDocRef, newTestData);
+
+                const newMetaData = {
+                    id: newId,
+                    title: newTestData.title,
+                    type: newTestData.type,
+                    difficulty: newTestData.difficulty,
+                    duration: newTestData.duration,
+                    isExclusive: test.isExclusive || false,
+                    isFree: test.isFree || false,
+                    isPublic: test.isPublic || false,
+                    collectionId: test.collectionId || null,
+                    questionTypes: test.questionTypes || getQuestionTypesFromQuestions(newTestData.questions),
+                    createdAt: nowIso,
+                    updatedAt: nowIso
+                };
+                batch.set(doc(db, "tests_metadata", newId), newMetaData);
+                importedMetadataList.push(newMetaData);
+            }
+
+            await batch.commit();
+
+            setAllTestsCache(prev => [...importedMetadataList, ...prev]);
+            return true;
+        } catch (err) {
+            console.error("Import Error:", err);
             return false;
         }
     };
@@ -494,15 +446,12 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                 updatedAt: new Date().toISOString()
             };
             
-            await Promise.all([
-                updateDoc(doc(db, "tests", id), updatedFields),
-                updateDoc(doc(db, "tests_metadata", id), updatedFields)
-            ]);
+            const batch = writeBatch(db);
+            batch.update(doc(db, "tests", id), updatedFields);
+            batch.update(doc(db, "tests_metadata", id), updatedFields);
+            await batch.commit();
             
-            // Sync current state
-            setTests(prev => prev.map(t => t.id === id ? { ...t, ...updatedFields } : t));
             setAllTestsCache(prev => prev.map(t => t.id === id ? { ...t, ...updatedFields } : t));
-            setSwrCache({}); // Invalidate SWR cache to force reload
             return true;
         } catch (err) {
             console.error("Update Test Metadata Error:", err);
@@ -510,11 +459,44 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    useEffect(() => { fetchInitial(); }, []);
-
     return {
-        tests, collections, loading, hasMore, totalTestCount, currentPage, isSearching, isBackgroundRefreshing,
-        fetchInitial, fetchPage, searchTests, handleDelete, bulkAssignToCollection,
-        addCollection, updateCollection, deleteCollection, updateTestMetadata
+        // States
+        tests,
+        collections,
+        loading,
+        totalTestCount,
+        currentPage,
+        filterAccess,
+        filterTag,
+        allAvailableTags,
+        sortBy,
+        sortOrder,
+
+        // Setters
+        setSearchTerm,
+        setFilterType,
+        setFilterCollection,
+        setFilterStatus,
+        setFilterAccess,
+        setFilterTag,
+        setSortBy,
+        setSortOrder,
+        setCurrentPage,
+
+        // Functions
+        fetchInitial,
+        fetchPage,
+        searchTests,
+        handleDelete,
+        bulkDeleteTests,
+        bulkAssignToCollection,
+        bulkUpdateStatus,
+        bulkUpdateIsFree,
+        duplicateTest,
+        importTests,
+        addCollection,
+        updateCollection,
+        deleteCollection,
+        updateTestMetadata
     };
 };
