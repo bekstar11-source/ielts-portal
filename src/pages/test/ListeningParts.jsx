@@ -78,30 +78,72 @@ export default function ListeningParts() {
     if (loadingLibrary || (!hasMore && !isFirstPage)) return;
     setLoadingLibrary(true);
     try {
-        let q = query(
-            collection(db, 'tests_metadata'),
-            where('type', '==', 'listening'),
-            limit(PAGE_SIZE)
-        );
-
-        if (!isFirstPage && lastVisible) {
-            q = query(q, startAfter(lastVisible));
+        let newTests = [];
+        let snap;
+        
+        if (isFirstPage) {
+            // 1. Fetch all free tests for this type
+            const qFree = query(
+                collection(db, 'tests_metadata'),
+                where('type', '==', 'listening'),
+                where('isFree', '==', true)
+            );
+            const snapFree = await getDocs(qFree);
+            const freeTests = snapFree.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
+            
+            // 2. Fetch the first page of all tests
+            const qAll = query(
+                collection(db, 'tests_metadata'),
+                where('type', '==', 'listening'),
+                limit(PAGE_SIZE)
+            );
+            snap = await getDocs(qAll);
+            const allTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
+            
+            // Merge: free tests first, then all tests, deduplicated by ID
+            const mergedMap = new Map();
+            freeTests.forEach(t => mergedMap.set(t.id, t));
+            allTests.forEach(t => {
+                if (!mergedMap.has(t.id)) {
+                    mergedMap.set(t.id, t);
+                }
+            });
+            newTests = Array.from(mergedMap.values());
+        } else {
+            const qAll = query(
+                collection(db, 'tests_metadata'),
+                where('type', '==', 'listening'),
+                startAfter(lastVisible),
+                limit(PAGE_SIZE)
+            );
+            snap = await getDocs(qAll);
+            newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
         }
 
-        const snap = await getDocs(q);
-        let newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
-        
         if (isFirstPage) {
             setLibraryTests(newTests);
             let countQuery = query(collection(db, 'tests_metadata'), where('type', '==', 'listening'));
             const countSnap = await getCountFromServer(countQuery);
             setTotalLibraryCount(countSnap.data().count);
         } else {
-            setLibraryTests(prev => [...prev, ...newTests]);
+            setLibraryTests(prev => {
+                const mergedMap = new Map();
+                prev.forEach(t => mergedMap.set(t.id, t));
+                newTests.forEach(t => {
+                    if (!mergedMap.has(t.id)) {
+                        mergedMap.set(t.id, t);
+                    }
+                });
+                return Array.from(mergedMap.values());
+            });
         }
         
-        setLastVisible(snap.docs[snap.docs.length - 1]);
-        setHasMore(snap.docs.length === PAGE_SIZE);
+        if (snap && snap.docs.length > 0) {
+            setLastVisible(snap.docs[snap.docs.length - 1]);
+            setHasMore(snap.docs.length === PAGE_SIZE);
+        } else if (isFirstPage) {
+            setHasMore(false);
+        }
     } catch (err) {
         console.error("Error fetching library tests:", err);
     } finally {

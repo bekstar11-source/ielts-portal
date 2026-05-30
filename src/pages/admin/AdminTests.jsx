@@ -1072,7 +1072,7 @@ export default function AdminTests() {
                             <div className="flex items-center justify-between p-3 rounded-xl border border-dashed border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-white/5">
                                 <div className="space-y-0.5">
                                     <label className={`text-xs font-bold block ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Is Free Test?</label>
-                                    <span className="text-[10px] text-zinc-400 block leading-tight">Visible only to Free plan users. Hidden from standard & pro.</span>
+                                    <span className="text-[10px] text-zinc-400 block leading-tight">Shown first for all users with FREE badge. Free-plan users can start it without daily limit.</span>
                                 </div>
                                 <button 
                                     onClick={() => setQuickEditIsFree(!quickEditIsFree)}
