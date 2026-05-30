@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStudentData } from "../../hooks/useStudentData";
 import { db, functions } from "../../firebase/firebase";
-import { collection, query, where, getDocs, limit, startAfter, getCountFromServer } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, startAfter, getCountFromServer, orderBy } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { 
   BookOpen, Headphones, PenTool, Mic, Search 
@@ -87,7 +87,8 @@ export default function ListeningParts() {
             const qFree = query(
                 collection(db, 'tests_metadata'),
                 where('type', '==', 'listening'),
-                where('isFree', '==', true)
+                where('isFree', '==', true),
+                orderBy('createdAt', 'desc')
             );
             const snapFree = await getDocs(qFree);
             const freeTests = snapFree.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
@@ -96,6 +97,7 @@ export default function ListeningParts() {
             const qAll = query(
                 collection(db, 'tests_metadata'),
                 where('type', '==', 'listening'),
+                orderBy('createdAt', 'desc'),
                 limit(PAGE_SIZE)
             );
             snap = await getDocs(qAll);
@@ -114,6 +116,7 @@ export default function ListeningParts() {
             const qAll = query(
                 collection(db, 'tests_metadata'),
                 where('type', '==', 'listening'),
+                orderBy('createdAt', 'desc'),
                 startAfter(lastVisible),
                 limit(PAGE_SIZE)
             );

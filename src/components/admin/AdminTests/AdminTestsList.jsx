@@ -18,15 +18,11 @@ const getSegments = (test) => {
         ];
     }
     if (type === 'reading') {
-        const present = new Set();
-        (test.passages || []).forEach((p, idx) => {
-            const num = getPassageOrPartNum(p, idx, 'reading', test.questions || []);
-            if (num >= 1 && num <= 3) present.add(num);
-        });
+        const passageCount = (test.passages || []).length;
         return [1, 2, 3].map(num => ({
             label: `P${num}`,
             title: `Passage ${num}`,
-            exists: present.has(num)
+            exists: num <= passageCount
         }));
     }
     if (type === 'listening') {

@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, motionValue, useAnimationFrame } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import { db, auth } from "../../firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -10,62 +10,6 @@ import { functions } from "../../firebase/firebase";
 import { signInWithCustomToken } from "firebase/auth";
 import { Send } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
-
-const ScrollingComments = () => {
-    const [isHovered, setIsHovered] = useState(false);
-    const y = useMemo(() => motionValue(0), []);
-    const { t } = useTranslation();
-
-    const testimonials = t('auth.testimonials') || [];
-    
-    useAnimationFrame((time, delta) => {
-        // Normal speed is ~1px per 35ms, hover speed is much slower.
-        // delta is in ms. speed = pixels per ms.
-        const normalSpeed = 0.8; // px per frame approx
-        const hoverSpeed = 0.15;
-        const currentSpeed = isHovered ? hoverSpeed : normalSpeed;
-        
-        let nextY = y.get() - currentSpeed;
-        if (nextY <= -1000) nextY = 0;
-        y.set(nextY);
-    });
-
-    return (
-        <div 
-            className="relative h-[450px] overflow-hidden flex flex-col items-center"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-        >
-            <motion.div
-                style={{ y, willChange: "transform", translateZ: 0 }}
-                className="space-y-6 w-full"
-            >
-                {[...testimonials, ...testimonials, ...testimonials].map((item, i) => (
-                    <motion.div 
-                        key={i} 
-                        whileHover={{ backgroundColor: "#fafafa" }}
-                        className="p-5 bg-white border border-[#eee] rounded-3xl shadow-sm transition-colors duration-300"
-                    >
-                        <div className="flex justify-between items-center mb-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center text-[10px] font-bold text-white">
-                                    {item.name ? item.name[0] : ''}
-                                </div>
-                                <span className="text-black font-bold text-[13px] tracking-tight">{item.name}</span>
-                            </div>
-                            <span className="text-white text-[10px] font-extrabold bg-black px-2.5 py-0.5 rounded-full tracking-tighter uppercase font-mono">BAND {item.score}</span>
-                        </div>
-                        <p className="text-[#666] text-[13px] leading-[1.6] font-medium tracking-tight">
-                            <span className="text-black opacity-20 text-lg leading-none mr-1">“</span>
-                            {item.text}
-                        </p>
-                    </motion.div>
-                ))}
-            </motion.div>
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-[#f5f5f7] via-transparent to-[#f5f5f7]" />
-        </div>
-    );
-};
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -167,19 +111,26 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white font-sans selection:bg-black/10 selection:text-black">
-      {/* Left Side - Login Form */}
-      <div className="flex-[1.4] flex flex-col justify-center items-center px-6 py-12 md:px-24 bg-white relative z-10 border-r border-[#f0f0f0]">
+    <div className="min-h-screen flex bg-white font-sans selection:bg-black/10 selection:text-black justify-center items-center relative px-6 py-20">
+      {/* Top-Left Logo */}
+      <div className="absolute top-6 left-6 md:top-10 md:left-12 z-20">
+        <Link to="/" className="block transition-transform hover:scale-105 active:scale-95 select-none">
+          <span className="text-3xl md:text-4xl font-sans tracking-tight text-black lowercase">
+            <span className="font-normal">eng</span>
+            <span className="font-bold">lev.</span>
+          </span>
+        </Link>
+      </div>
+
+      {/* Login Form */}
+      <div className="w-full max-w-[360px] flex flex-col justify-center items-center bg-white relative z-10">
         <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-[300px]"
+            className="w-full"
         >
 
           <div className="text-center mb-8 flex flex-col items-center">
-            <Link to="/" className="mb-6 block transition-transform hover:scale-105 active:scale-95">
-              <img src="/englev-logo.png" alt="englev." className="h-11 md:h-12 w-auto object-contain" />
-            </Link>
             <h1 className="text-2xl font-bold text-[#1a1a1a] tracking-tight mb-2">
               {t('auth.welcomeBack')}
             </h1>
@@ -375,42 +326,13 @@ export default function Login() {
             </div>
           </div>
         </motion.div>
-        
-        {/* Footer */}
-        <div className="absolute bottom-6 text-[10px] text-[#ccc] font-medium tracking-wide flex gap-4 uppercase">
-            <a href="#" className="hover:text-[#999]">{t('footer.privacy')}</a>
-            <a href="#" className="hover:text-[#999]">{t('footer.termsOfUse')}</a>
-            <span>&copy; 2024 ENGLEV</span>
-        </div>
       </div>
 
-      {/* Right Side - Animation */}
-      <div className="hidden lg:flex flex-[0.8] bg-[#f5f5f7] relative items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-white/50" />
-        
-        {/* Animated Squares Grid */}
-        <div className="relative z-10 w-full px-10">
-            <div className="mb-10">
-            <div className="mb-12">
-                <motion.h2 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-3xl font-bold text-black leading-tight mb-4 tracking-[-0.03em]"
-                >
-                    {t('auth.testimonialsTitle')}
-                </motion.h2>
-            </div>
-
-            <div className="relative w-full max-w-[340px]">
-                <ScrollingComments />
-            </div>
-        </div>
-        </div>
-
-        {/* Ambient background glow */}
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-black/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-black/5 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/3" />
+      {/* Footer */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-[#ccc] font-medium tracking-wide flex gap-4 uppercase whitespace-nowrap z-20">
+          <a href="#" className="hover:text-[#999]">{t('footer.privacy')}</a>
+          <a href="#" className="hover:text-[#999]">{t('footer.termsOfUse')}</a>
+          <span>&copy; 2024 ENGLEV</span>
       </div>
     </div>
   );

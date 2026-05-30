@@ -1,12 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lock, Zap, ArrowRight } from 'lucide-react';
 
 const WritingReview = ({ testData, currentAnswers, resultData, isPremium, onAICheck, isAiLoading }) => {
+    const [activeTab, setActiveTab] = useState(1);
+
+    useEffect(() => {
+        if (testData?.writingTasks?.length > 0) {
+            setActiveTab(testData.writingTasks[0].id);
+        }
+    }, [testData]);
+
     return (
         <div className="w-full h-full flex flex-col bg-[#F5F5F7]">
+            {/* Tabs */}
+            {testData.writingTasks && testData.writingTasks.length > 1 && (
+                <div className="bg-white border-b px-6 py-2.5 flex gap-4 shadow-sm sticky top-0 z-10 justify-center shrink-0">
+                    {testData.writingTasks.map(task => (
+                        <button
+                            key={task.id}
+                            onClick={() => setActiveTab(task.id)}
+                            className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition ${
+                                activeTab === task.id 
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm font-bold' 
+                                    : 'text-gray-500 hover:bg-gray-100'
+                            }`}
+                        >
+                            {task.title || `Task ${task.id}`} Review
+                        </button>
+                    ))}
+                </div>
+            )}
+
             <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12">
                 <div className="max-w-[800px] mx-auto flex flex-col gap-16 pb-20">
                     {testData.writingTasks?.map(task => {
+                        if (testData.writingTasks.length > 1 && task.id !== activeTab) return null;
                         const answer = currentAnswers ? currentAnswers[`task${task.id}`] : "";
                         return (
                             <div key={task.id} className="flex flex-col gap-8 animate-fadeIn">

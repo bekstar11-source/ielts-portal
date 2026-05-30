@@ -29,6 +29,7 @@ const compileMetadata = (testId, payload) => {
         audioUrl: payload.audio_url || "",
         isExclusive: payload.isExclusive || false,
         isFree: payload.isFree || false,
+        isPublic: payload.isPublic !== undefined ? payload.isPublic : false,
         createdAt: payload.createdAt || new Date().toISOString(),
         updatedAt: payload.updatedAt || new Date().toISOString(),
         questionTypes: payload.questionTypes || [],

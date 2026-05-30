@@ -10,7 +10,7 @@ import { httpsCallable } from "firebase/functions";
 import { 
   BookOpen, Headphones, PenTool, Mic, ChevronRight, Search, Loader2 
 } from 'lucide-react';
-import { limit, startAfter, getCountFromServer } from "firebase/firestore";
+import { limit, startAfter, getCountFromServer, orderBy } from "firebase/firestore";
 
 // COMPONENTS
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
@@ -91,17 +91,19 @@ export default function ReadingParts() {
         if (isFirstPage) {
             // 1. Fetch all free tests for this type
             const qFree = query(
-                collection(db, 'tests'),
+                collection(db, 'tests_metadata'),
                 where('type', '==', 'reading'),
-                where('isFree', '==', true)
+                where('isFree', '==', true),
+                orderBy('createdAt', 'desc')
             );
             const snapFree = await getDocs(qFree);
             const freeTests = snapFree.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
             
             // 2. Fetch the first page of all tests
             const qAll = query(
-                collection(db, 'tests'),
+                collection(db, 'tests_metadata'),
                 where('type', '==', 'reading'),
+                orderBy('createdAt', 'desc'),
                 limit(PAGE_SIZE)
             );
             snap = await getDocs(qAll);
@@ -119,8 +121,9 @@ export default function ReadingParts() {
         } else {
             // For subsequent pages, just fetch the next page normally
             const qAll = query(
-                collection(db, 'tests'),
+                collection(db, 'tests_metadata'),
                 where('type', '==', 'reading'),
+                orderBy('createdAt', 'desc'),
                 startAfter(lastVisible),
                 limit(PAGE_SIZE)
             );
@@ -131,7 +134,7 @@ export default function ReadingParts() {
         if (isFirstPage) {
             setLibraryTests(newTests);
             // Fetch Total Count for students library
-            let countQuery = query(collection(db, 'tests'), where('type', '==', 'reading'));
+            let countQuery = query(collection(db, 'tests_metadata'), where('type', '==', 'reading'));
             const countSnap = await getCountFromServer(countQuery);
             setTotalLibraryCount(countSnap.data().count);
         } else {
@@ -211,9 +214,15 @@ export default function ReadingParts() {
       let matchesTab = item.type === 'reading' && !item.isSet;
       if (!matchesTab) return;
 
-      // Filter out tests with more than 14 questions for the parts page
-      const qCount = getQuestionCount(item);
-      if (qCount > 14) return;
+      // Filter: only show single-passage "parts" (not full reading tests)
+      const passagesArr = Array.isArray(item.passages) ? item.passages : null;
+      if (passagesArr && passagesArr.length > 1) return; // Multi-passage = full test, skip
+      
+      // For metadata-only docs without passages array, use question count as fallback
+      if (!passagesArr) {
+        const qCount = getQuestionCount(item);
+        if (qCount > 14) return;
+      }
 
       const matchesSearch = !q || item.title?.toLowerCase().includes(q);
       const isDone = !!item.result;
@@ -224,6 +233,13 @@ export default function ReadingParts() {
       const getPassageNum = (test) => {
         if (test.passageNumber) return Number(test.passageNumber);
         if (test.passage_number) return Number(test.passage_number);
+        
+        // Difficulty mapping
+        const diff = String(test.difficulty || '').toLowerCase();
+        if (diff === 'easy') return 1;
+        if (diff === 'medium') return 2;
+        if (diff === 'hard') return 3;
+
         const title = test.title?.toLowerCase() || '';
         const match = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
         if (match) return Number(match[1]);
@@ -389,6 +405,7 @@ export default function ReadingParts() {
                                     <PracticeCard 
                                         key={test.id} 
                                         test={test} 
+                                        passageNumber={getPassageNum(test)}
                                         isCompleted={!!test.result}
                                         onReview={handleReview}
                                         onStart={handleStartTest}

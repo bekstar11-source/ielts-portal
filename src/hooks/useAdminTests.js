@@ -148,7 +148,21 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         const privateCount = total - publicCount;
         const freeCount = allTestsCache.filter(t => t.isFree).length;
         const mockCount = allTestsCache.filter(t => t.type === 'mock').length;
-        return { total, publicCount, privateCount, freeCount, mockCount };
+        const readingCount = allTestsCache.filter(t => t.type === 'reading').length;
+        const listeningCount = allTestsCache.filter(t => t.type === 'listening').length;
+        const writingCount = allTestsCache.filter(t => t.type === 'writing').length;
+        const speakingCount = allTestsCache.filter(t => t.type === 'speaking').length;
+        return { 
+            total, 
+            publicCount, 
+            privateCount, 
+            freeCount, 
+            mockCount,
+            readingCount,
+            listeningCount,
+            writingCount,
+            speakingCount
+        };
     }, [allTestsCache]);
 
     // Calculate all available tags dynamically from loaded tests
@@ -471,6 +485,9 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         allAvailableTags,
         sortBy,
         sortOrder,
+        stats,
+        isBackgroundRefreshing,
+        allTests: allTestsCache,
 
         // Setters
         setSearchTerm,

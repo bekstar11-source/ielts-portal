@@ -43,7 +43,7 @@ const ReviewHeader = ({
                     <h1 className="text-[14px] font-semibold text-gray-900 tracking-tight truncate max-w-[150px] sm:max-w-[280px]">
                         {testData.title}
                     </h1>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                             {resultData.userName || 'Student'}
                         </span>
@@ -51,6 +51,18 @@ const ReviewHeader = ({
                         <span className="text-[9px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-100">
                             {resultData.type === 'mock_full' ? 'FULL MOCK' : 'PARTIAL'}
                         </span>
+                        {testData.tags && testData.tags.length > 0 && (
+                            <>
+                                <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                                <div className="flex items-center gap-1 flex-wrap">
+                                    {testData.tags.map((tag, idx) => (
+                                        <span key={idx} className="text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-250">
+                                            #{tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

@@ -41,7 +41,14 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
     // 2. Direct fields on the test object
     if (test.passageNumber) return Number(test.passageNumber);
     if (test.passage_number) return Number(test.passage_number);
-    // 3. Derive from title
+    // 3. Difficulty field mapping for Reading Single Passages
+    if (test.type === 'reading') {
+      const diff = String(test.difficulty || '').toLowerCase();
+      if (diff === 'easy') return 1;
+      if (diff === 'medium') return 2;
+      if (diff === 'hard') return 3;
+    }
+    // 4. Derive from title
     const title = test.title?.toLowerCase() || '';
     const match = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
     if (match) return Number(match[1]);
