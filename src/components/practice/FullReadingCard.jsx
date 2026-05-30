@@ -10,7 +10,7 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
   const [isShareOpen, setIsShareOpen] = useState(false);
   const passages = test.title?.split('/').map(s => s.trim()) || [test.title];
 
-  const canAccess = isPro || isStandard;
+  const canAccess = isPro || isStandard || !!test.isFree;
 
   const handleClick = () => {
     if (isCompleted) {
@@ -38,9 +38,15 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
               <span className="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-bold tracking-wider uppercase">
                 {t('practice.fullReading')}
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-white text-[#0071e3] text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
-                <Crown size={10} className="text-[#bf953f]" /> Premium
-              </span>
+              {test.isFree ? (
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold tracking-wider uppercase shadow-sm">
+                  FREE
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-full bg-white text-[#0071e3] text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
+                  <Crown size={10} className="text-[#bf953f]" /> PRO
+                </span>
+              )}
               {isCompleted && (
                 <span className="px-2.5 py-1 rounded-full bg-[#34c759]/20 backdrop-blur-md text-[#34c759] text-[10px] font-bold tracking-wider uppercase border border-[#34c759]/30">
                   {t('practice.statusCompleted')}

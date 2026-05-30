@@ -46,13 +46,21 @@ export default function ListeningFull() {
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
   // Custom hook to manage collections logic
-  const collectionsData = useListeningCollections(userResults);
+  const collectionsData = useListeningCollections(userResults, userData);
   const { allCollectionsTests = [] } = collectionsData;
   
   const rawAssignments = useMemo(() => {
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueColTests = allCollectionsTests.filter(t => !assignedIds.has(t.id));
-    return [...assignments, ...uniqueColTests];
+    let combined = [...assignments, ...uniqueColTests];
+
+    // Sort free tests to the beginning
+    combined.sort((a, b) => {
+      if (a.isFree && !b.isFree) return -1;
+      if (!a.isFree && b.isFree) return 1;
+      return 0;
+    });
+    return combined;
   }, [assignments, allCollectionsTests]);
 
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -68,6 +76,8 @@ export default function ListeningFull() {
   const { checkLimit, incrementUsage } = useDailyLimit(userData);
   const isPro = userData?.accountType === 'pro' || userData?.isPro;
   const isStandard = userData?.accountType === 'standard';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
+                    userData?.role === 'admin' || userData?.role === 'teacher';
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -157,6 +167,11 @@ export default function ListeningFull() {
   }, [collectionsData, searchQuery, selectedStatus, selectedQuestionTypes]);
 
   const handleStartTest = (test) => { 
+    if (test.isFree) {
+      setTestToStart(test); 
+      setShowStartConfirm(true); 
+      return;
+    }
     if (!checkLimit('listening')) {
       setShowPricingModal(true);
       return;
@@ -170,7 +185,9 @@ export default function ListeningFull() {
     if (!test) return;
     setShowStartConfirm(false);
     setSelectedSet(null);
-    incrementUsage('listening').catch(err => console.error("Stats update failed:", err));
+    if (!test.isFree) {
+      incrementUsage('listening').catch(err => console.error("Stats update failed:", err));
+    }
     
     const targetId = test.id || test.testId || test.targetId;
     if (targetId) navigate(`/test/${targetId}`);
@@ -178,6 +195,10 @@ export default function ListeningFull() {
   };
 
   const handleReview = (test) => {
+    if (!isPremium && !test.isFree) {
+      setShowPricingModal(true);
+      return;
+    }
     const resultId = test.result?.id;
     if (!resultId) return alert("Natija topilmadi!");
     navigate(`/review/${resultId}`);

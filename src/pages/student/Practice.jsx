@@ -55,7 +55,8 @@ export default function Practice() {
   
   const isPro = userData?.accountType === 'pro' || userData?.isPro;
   const isStandard = userData?.accountType === 'standard';
-  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
+                    userData?.role === 'admin' || userData?.role === 'teacher';
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("all"); // 'all', 'completed', 'not_completed'
   const [selectedPassages, setSelectedPassages] = useState([]); // [1, 2, 3]
@@ -361,6 +362,10 @@ export default function Practice() {
   };
 
   const handleReview = (test) => {
+    if (!isPremium) {
+      setShowPricingModal(true);
+      return;
+    }
     const resultId = test.result?.id;
     if (!resultId) {
       alert(t('practice.resultNotFound'));

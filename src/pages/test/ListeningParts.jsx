@@ -36,6 +36,13 @@ export default function ListeningParts() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isStandard = userData?.accountType === 'standard';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
+                    userData?.role === 'admin' || userData?.role === 'teacher';
+
+  const { checkLimit, incrementUsage } = useDailyLimit(userData);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("all"); 
@@ -56,7 +63,15 @@ export default function ListeningParts() {
   const rawAssignments = useMemo(() => {
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
-    return [...assignments, ...uniqueLibrary];
+    let combined = [...assignments, ...uniqueLibrary];
+
+    // Sort combined tests so free tests are at the beginning
+    combined.sort((a, b) => {
+      if (a.isFree && !b.isFree) return -1;
+      if (!a.isFree && b.isFree) return 1;
+      return 0;
+    });
+    return combined;
   }, [assignments, libraryTests]);
 
   const fetchLibraryPage = async (isFirstPage = false) => {
@@ -74,11 +89,12 @@ export default function ListeningParts() {
         }
 
         const snap = await getDocs(q);
-        const newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
+        let newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
         
         if (isFirstPage) {
             setLibraryTests(newTests);
-            const countSnap = await getCountFromServer(query(collection(db, 'tests_metadata'), where('type', '==', 'listening')));
+            let countQuery = query(collection(db, 'tests_metadata'), where('type', '==', 'listening'));
+            const countSnap = await getCountFromServer(countQuery);
             setTotalLibraryCount(countSnap.data().count);
         } else {
             setLibraryTests(prev => [...prev, ...newTests]);
@@ -106,10 +122,6 @@ export default function ListeningParts() {
   const [accessKeyInput, setAccessKeyInput] = useState("");
   const [checkingKey, setCheckingKey] = useState(false);
   const [keyError, setKeyError] = useState("");
-
-  const { checkLimit, incrementUsage } = useDailyLimit(userData);
-  const isPro = userData?.accountType === 'pro' || userData?.isPro;
-  const isStandard = userData?.accountType === 'standard';
 
   const [visibleCount, setVisibleCount] = useState(12);
 
@@ -154,6 +166,7 @@ export default function ListeningParts() {
             type: "listening",
             difficulty: partData.difficulty || test.difficulty || "medium",
             partNumber: partNum,
+            isFree: !!test.isFree,
             duration: 10,
             audioUrl: partData.audioUrl || test.audioUrl || "",
             startTime: partData.startSec || 0,
@@ -177,6 +190,7 @@ export default function ListeningParts() {
             type: "listening",
             difficulty: test.difficulty || "medium",
             partNumber: partNum,
+            isFree: !!test.isFree,
             duration: 10,
             audioUrl: test.audioUrl || "",
             startTime: 0,
@@ -189,6 +203,13 @@ export default function ListeningParts() {
           });
         }
       }
+    });
+
+    // Sort so that free ones appear first
+    resultList.sort((a, b) => {
+      if (a.isFree && !b.isFree) return -1;
+      if (!a.isFree && b.isFree) return 1;
+      return 0;
     });
 
     return resultList;
@@ -224,6 +245,12 @@ export default function ListeningParts() {
   }, [partTestsList, searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter, selectedParts]);
 
   const handleStartTest = (test) => { 
+    if (test.isFree) {
+      // Free tests are always allowed, bypass limit!
+      setTestToStart(test); 
+      setShowStartConfirm(true); 
+      return;
+    }
     if (!checkLimit('listening')) {
       setShowPricingModal(true);
       return;
@@ -237,7 +264,9 @@ export default function ListeningParts() {
     if (!test) return;
     setShowStartConfirm(false);
     setSelectedSet(null);
-    incrementUsage('listening').catch(err => console.error("Stats update failed:", err));
+    if (!test.isFree) {
+      incrementUsage('listening').catch(err => console.error("Stats update failed:", err));
+    }
     
     if (test.isVirtualPart) {
       navigate(`/test/${test.testId}?part=${test.partNumber}`);
@@ -249,6 +278,10 @@ export default function ListeningParts() {
   };
 
   const handleReview = (test) => {
+    if (!isPremium && !test.isFree) {
+      setShowPricingModal(true);
+      return;
+    }
     const resultId = test.result?.id;
     if (!resultId) return alert("Natija topilmadi!");
     navigate(`/review/${resultId}`);

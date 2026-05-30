@@ -34,7 +34,7 @@ export const DashboardRouter = () => {
   }
 
   if (userData.accountType === 'public' && userData.onboardingCompleted === true) {
-    return <PublicDashboard />;
+    return <StudentDashboard />;
   }
 
   return <StudentDashboard />;

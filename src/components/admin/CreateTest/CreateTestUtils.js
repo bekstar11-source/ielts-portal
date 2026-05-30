@@ -278,3 +278,81 @@ export const getQuestionTypesFromQuestions = (questions) => {
 
     return Array.from(types);
 };
+
+export const getPassageOrPartNum = (p, idx, kind, questions = []) => {
+    if (!p) return idx + 1;
+
+    // 1. Derive from questions if available (highest priority for IELTS standard)
+    if (kind === 'reading' && Array.isArray(questions) && questions.length > 0) {
+        // Filter questions belonging to this passage
+        const passageQuestions = questions.filter(
+            q => String(q.passageId) === String(p.id)
+        );
+        if (passageQuestions.length > 0) {
+            const ids = [];
+            const extractIds = (obj) => {
+                if (!obj) return;
+                if (obj.id && !isNaN(parseInt(obj.id))) ids.push(parseInt(obj.id));
+                if (Array.isArray(obj.items)) obj.items.forEach(extractIds);
+                if (Array.isArray(obj.questions)) obj.questions.forEach(extractIds);
+                if (Array.isArray(obj.groups)) obj.groups.forEach(extractIds);
+            };
+            passageQuestions.forEach(extractIds);
+            if (ids.length > 0) {
+                const minId = Math.min(...ids);
+                if (minId <= 13) return 1;
+                if (minId <= 26) return 2;
+                return 3;
+            }
+        }
+    }
+
+    if (kind === 'listening' && Array.isArray(questions) && questions.length > 0) {
+        // Filter questions belonging to this part
+        const partQuestions = questions.filter(
+            q => String(q.passageId) === String(p.id)
+        );
+        if (partQuestions.length > 0) {
+            const ids = [];
+            const extractIds = (obj) => {
+                if (!obj) return;
+                if (obj.id && !isNaN(parseInt(obj.id))) ids.push(parseInt(obj.id));
+                if (Array.isArray(obj.items)) obj.items.forEach(extractIds);
+                if (Array.isArray(obj.questions)) obj.questions.forEach(extractIds);
+                if (Array.isArray(obj.groups)) obj.groups.forEach(extractIds);
+            };
+            partQuestions.forEach(extractIds);
+            if (ids.length > 0) {
+                const minId = Math.min(...ids);
+                if (minId <= 10) return 1;
+                if (minId <= 20) return 2;
+                if (minId <= 30) return 3;
+                return 4;
+            }
+        }
+    }
+
+    // 2. Fallback to parsing the ID
+    const idNum = Number(p.id);
+    if (!Number.isNaN(idNum)) {
+        if (idNum >= 100) return idNum - 100 + 1;
+        if (idNum >= 1 && idNum <= (kind === 'listening' ? 4 : 3)) return idNum;
+    }
+    const idStr = p.id != null ? String(p.id) : '';
+    const idMatch = idStr.match(/_(\d+)/) || idStr.match(/-(\d+)/) || idStr.match(/(\d+)/);
+    if (idMatch) {
+        const num = parseInt(idMatch[1], 10);
+        if (num >= 1 && num <= (kind === 'listening' ? 4 : 3)) return num;
+    }
+
+    // 3. Fallback to title matching
+    const titlePattern = kind === 'listening' ? /Part\s*(\d+)/i : /Passage\s*(\d+)/i;
+    const titleMatch = p.title?.match(titlePattern) || p.title?.match(/(\d+)/);
+    if (titleMatch) {
+        const num = parseInt(titleMatch[1], 10);
+        if (num >= 1 && num <= (kind === 'listening' ? 4 : 3)) return num;
+    }
+
+    return idx + 1;
+};
+

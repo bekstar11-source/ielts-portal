@@ -55,13 +55,22 @@ export default function ReadingFull() {
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
   // Custom hook to manage collections logic
-  const collectionsData = useReadingCollections(userResults);
+  const collectionsData = useReadingCollections(userResults, userData);
   const { allCollectionsTests = [] } = collectionsData;
   
   const rawAssignments = useMemo(() => {
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueColTests = allCollectionsTests.filter(t => !assignedIds.has(t.id));
-    return [...assignments, ...uniqueColTests].map(test => ({
+    let combined = [...assignments, ...uniqueColTests];
+
+    // Sort free tests to the beginning
+    combined.sort((a, b) => {
+      if (a.isFree && !b.isFree) return -1;
+      if (!a.isFree && b.isFree) return 1;
+      return 0;
+    });
+
+    return combined.map(test => ({
       ...test,
       questionTypes: test.questionTypes || deriveQuestionTypesForCard(test)
     }));
@@ -134,6 +143,11 @@ export default function ReadingFull() {
   }, [collectionsData.collectionProcessedTests, searchQuery, selectedStatus, selectedQuestionTypes]);
 
   const handleStartTest = (test) => { 
+    if (test.isFree) {
+      setTestToStart(test); 
+      setShowStartConfirm(true); 
+      return;
+    }
     if (!checkLimit('reading')) {
       setShowPricingModal(true);
       return;
@@ -147,13 +161,19 @@ export default function ReadingFull() {
     if (!test) return;
     setShowStartConfirm(false);
     setSelectedSet(null);
-    incrementUsage('reading').catch(err => console.error("Stats update failed:", err));
+    if (!test.isFree) {
+      incrementUsage('reading').catch(err => console.error("Stats update failed:", err));
+    }
     const targetId = test.id || test.testId || test.targetId;
     if (targetId) navigate(`/test/${targetId}`);
     else alert("Test ID topilmadi!");
   };
 
   const handleReview = (test) => {
+    if (!isPremium && !test.isFree) {
+      setShowPricingModal(true);
+      return;
+    }
     const resultId = test.result?.id;
     if (!resultId) return alert("Natija topilmadi!");
     navigate(`/review/${resultId}`);

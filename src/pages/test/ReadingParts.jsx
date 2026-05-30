@@ -64,7 +64,17 @@ export default function ReadingParts() {
     // Deduplicate between assignments and library tests
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
-    return [...assignments, ...uniqueLibrary].map(test => ({
+    let combined = [...assignments, ...uniqueLibrary];
+
+    // Filter combined tests based on plan
+    // Sort combined tests so free tests are at the beginning
+    combined.sort((a, b) => {
+      if (a.isFree && !b.isFree) return -1;
+      if (!a.isFree && b.isFree) return 1;
+      return 0;
+    });
+
+    return combined.map(test => ({
       ...test,
       questionTypes: test.questionTypes || deriveQuestionTypesForCard(test)
     }));
@@ -85,12 +95,13 @@ export default function ReadingParts() {
         }
 
         const snap = await getDocs(q);
-        const newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
+        let newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
         
         if (isFirstPage) {
             setLibraryTests(newTests);
             // Fetch Total Count for students library
-            const countSnap = await getCountFromServer(query(collection(db, 'tests'), where('type', '==', 'reading')));
+            let countQuery = query(collection(db, 'tests'), where('type', '==', 'reading'));
+            const countSnap = await getCountFromServer(countQuery);
             setTotalLibraryCount(countSnap.data().count);
         } else {
             setLibraryTests(prev => [...prev, ...newTests]);
@@ -190,6 +201,12 @@ export default function ReadingParts() {
   }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus, selectedPassages]);
 
   const handleStartTest = (test) => { 
+    if (test.isFree) {
+      // Free tests are always allowed, bypass limit!
+      setTestToStart(test); 
+      setShowStartConfirm(true); 
+      return;
+    }
     if (!checkLimit('reading')) {
       setShowPricingModal(true);
       return;
@@ -202,13 +219,19 @@ export default function ReadingParts() {
     const test = testToStart;
     if (!test) return;
     setShowStartConfirm(false);
-    incrementUsage('reading').catch(err => console.error("Stats update failed:", err));
+    if (!test.isFree) {
+      incrementUsage('reading').catch(err => console.error("Stats update failed:", err));
+    }
     const targetId = test.id || test.testId || test.targetId;
     if (targetId) navigate(`/test/${targetId}`);
     else alert("Test ID topilmadi!");
   };
 
   const handleReview = (test) => {
+    if (!isPremium && !test.isFree) {
+      setShowPricingModal(true);
+      return;
+    }
     const resultId = test.result?.id;
     if (!resultId) return alert("Natija topilmadi!");
     navigate(`/review/${resultId}`);

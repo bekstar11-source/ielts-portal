@@ -657,7 +657,7 @@ export const translations = {
       readyToStart: "Boshlashga tayyor!",
       cachedDesc: "Barcha audio fayllar keshlandi. Imtihon boshlanmoqda...",
       downloadingDesc: "Audioni uzilishlarsiz tinglash uchun yuklab olinmoqda.",
-      testCompleted: "Test yakunlandi 🎉",
+      testCompleted: "Test yakunlandi",
       timeSpent: "Sarflangan vaqt",
       answers: "Javoblar",
       correct: "To'g'ri",
@@ -668,7 +668,19 @@ export const translations = {
       mistakesAnalysis: "Xatolar Tahlili",
       reviewMistakes: "Xatolarni ko'rib chiqish",
       exit: "Chiqish",
-      submittedGrading: "Javobingiz baholash uchun yuborildi."
+      submittedGrading: "Javobingiz baholash uchun yuborildi.",
+      viewDetailedAnswers: "Javoblar ro'yxati (Batafsil)",
+      detailedAnswersTitle: "Javoblar Tahlili",
+      questionNum: "Savol",
+      questionType: "Savol Turi",
+      yourAnswer: "Sizning javobingiz",
+      correctAnswer: "To'g'ri javob",
+      status: "Holati",
+      allQuestions: "Barcha savollar",
+      onlyMistakes: "Faqat xatolar",
+      onlyCorrect: "Faqat to'g'rilar",
+      noAnswer: "Javob berilmagan",
+      jumpToQuestion: "O'tish"
     }
   },
   en: {
@@ -1327,7 +1339,7 @@ export const translations = {
        readyToStart: "Ready to Start!",
        cachedDesc: "All audio files are cached. Starting exam...",
        downloadingDesc: "Downloading audio files for uninterrupted playback.",
-       testCompleted: "Test Completed 🎉",
+       testCompleted: "Test Completed",
        timeSpent: "Time Spent",
        answers: "Answers",
        correct: "Correct",
@@ -1338,7 +1350,19 @@ export const translations = {
        mistakesAnalysis: "Mistakes Analysis",
        reviewMistakes: "Review Mistakes",
        exit: "Exit",
-       submittedGrading: "Your answer has been submitted for grading."
+       submittedGrading: "Your answer has been submitted for grading.",
+       viewDetailedAnswers: "Detailed Answer List",
+       detailedAnswersTitle: "Answer Breakdown",
+       questionNum: "Question",
+       questionType: "Question Type",
+       yourAnswer: "Your Answer",
+       correctAnswer: "Correct Answer",
+       status: "Status",
+       allQuestions: "All Questions",
+       onlyMistakes: "Only Mistakes",
+       onlyCorrect: "Only Correct",
+       noAnswer: "No Answer",
+       jumpToQuestion: "Go to"
      }
    }
  };

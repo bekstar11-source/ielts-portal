@@ -72,20 +72,20 @@ export default function ReviewTest() {
         <div className="flex items-center gap-4 pl-4">
           <button 
             onClick={() => navigate(-1)} 
-            className="text-gray-400 hover:text-white font-bold text-sm border border-gray-600 px-3 py-1 rounded transition"
+            className="text-gray-400 hover:text-white font-semibold text-sm border border-gray-600 px-3 py-1 rounded transition"
           >
             &larr; Orqaga
           </button>
           <div>
-             <h1 className="font-bold text-xs text-gray-400 uppercase tracking-widest">Test Review</h1>
-             <p className="font-bold text-white text-sm truncate max-w-xs">{testData?.title}</p>
+             <h1 className="font-semibold text-xs text-gray-400 uppercase tracking-widest">Test Review</h1>
+             <p className="font-semibold text-white text-sm truncate max-w-xs">{testData?.title}</p>
           </div>
         </div>
         
         <div className="flex items-center gap-6 pr-4">
             <div className="bg-gray-800 px-4 py-1 rounded border border-gray-600 text-center">
                 <span className="text-[10px] text-gray-400 block uppercase">Sizning Natijangiz</span>
-                <span className={`font-bold text-lg ${(resultData.status === 'graded' || resultData.writingBand) ? 'text-green-400' : 'text-yellow-400'}`}>
+                <span className={`font-semibold text-lg ${(resultData.status === 'graded' || resultData.writingBand) ? 'text-green-400' : 'text-yellow-400'}`}>
                     {resultData.bandScore ? `Band ${resultData.bandScore}` : 
                      resultData.writingBand ? `Band ${resultData.writingBand}` :
                      resultData.score !== null && resultData.score !== undefined ? `${resultData.score} / ${resultData.totalQuestions}` : "Pending"}
@@ -93,9 +93,9 @@ export default function ReviewTest() {
             </div>
 
             <div className="hidden md:flex items-center bg-gray-700 rounded-md p-1 gap-1 border border-gray-600">
-                <button onClick={() => setTextSize('text-small')} className={`px-2 py-0.5 text-xs font-bold rounded ${textSize === 'text-small' ? 'bg-white text-black' : 'text-gray-300 hover:bg-gray-600'}`}>A-</button>
-                <button onClick={() => setTextSize('text-medium')} className={`px-2 py-0.5 text-xs font-bold rounded ${textSize === 'text-medium' ? 'bg-white text-black' : 'text-gray-300 hover:bg-gray-600'}`}>A</button>
-                <button onClick={() => setTextSize('text-large')} className={`px-2 py-0.5 text-xs font-bold rounded ${textSize === 'text-large' ? 'bg-white text-black' : 'text-gray-300 hover:bg-gray-600'}`}>A+</button>
+                <button onClick={() => setTextSize('text-small')} className={`px-2 py-0.5 text-xs font-semibold rounded ${textSize === 'text-small' ? 'bg-white text-black' : 'text-gray-300 hover:bg-gray-600'}`}>A-</button>
+                <button onClick={() => setTextSize('text-medium')} className={`px-2 py-0.5 text-xs font-semibold rounded ${textSize === 'text-medium' ? 'bg-white text-black' : 'text-gray-300 hover:bg-gray-600'}`}>A</button>
+                <button onClick={() => setTextSize('text-large')} className={`px-2 py-0.5 text-xs font-semibold rounded ${textSize === 'text-large' ? 'bg-white text-black' : 'text-gray-300 hover:bg-gray-600'}`}>A+</button>
             </div>
         </div>
       </header>

@@ -13,6 +13,7 @@ import { getSynonymPairCounts } from "../../utils/wordbankUtils";
 import { calculateBandScore, calculateOverallBand } from "../../utils/ieltsScoring";
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import DashboardModals from "../../components/dashboard/DashboardModals";
+import PricingModal from "../../components/dashboard/PricingModal";
 import SiteFooter from "../../components/common/SiteFooter";
 import TestCommentSection from "../../components/TestReview/TestCommentSection";
 import { motion, AnimatePresence } from "framer-motion";
@@ -103,6 +104,12 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
   const [selectedResult, setSelectedResult] = useState(null);
   const [userRatings, setUserRatings] = useState({});
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+
+  const isPremium = userData?.isPremium || 
+                    userData?.isPro || 
+                    ['premium', 'pro', 'standard'].includes(userData?.accountType) || 
+                    ['admin', 'teacher'].includes(userData?.role);
 
   useEffect(() => {
     const fetchUserRatings = async () => {
@@ -502,10 +509,16 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                                   {Number(scoreVal).toFixed(1)} {isBand ? t('myResults.band') : t('myResults.ball')}
                                 </span>
                                 <button 
-                                  onClick={() => navigate(`/review/${res.id}?attempt=${attempt.attemptId}`)}
+                                  onClick={() => {
+                                    if (isPremium) {
+                                      navigate(`/review/${res.id}?attempt=${attempt.attemptId}`);
+                                    } else {
+                                      setShowPricingModal(true);
+                                    }
+                                  }}
                                   className="text-xs bg-white dark:bg-zinc-900 border border-hairline dark:border-zinc-800 hover:bg-pearl dark:hover:bg-zinc-800 text-ink dark:text-white px-3 py-1.5 rounded-full font-medium transition-colors shadow-sm"
                                 >
-                                  {t('myResults.review')}
+                                  {isPremium ? "" : "🔒 "}{t('myResults.review')}
                                 </button>
                               </div>
                             </div>
@@ -523,10 +536,16 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                           <div className="flex items-center gap-4">
                             <span className="text-sm font-bold text-action-blue dark:text-blue-400">{Number(bandScore || 0).toFixed(1)} {t('myResults.band')}</span>
                             <button 
-                              onClick={() => navigate(`/review/${res.id}`)}
+                              onClick={() => {
+                                if (isPremium) {
+                                  navigate(`/review/${res.id}`);
+                                } else {
+                                  setShowPricingModal(true);
+                                }
+                              }}
                               className="text-xs bg-white dark:bg-zinc-900 border border-hairline dark:border-zinc-800 hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 text-ink dark:text-white px-3 py-1.5 rounded-full font-medium transition-colors shadow-sm"
                             >
-                              {t('myResults.review')}
+                              {isPremium ? "" : "🔒 "}{t('myResults.review')}
                             </button>
                           </div>
                         </div>
@@ -647,6 +666,11 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
         showLogoutConfirm={showLogoutConfirm}
         setShowLogoutConfirm={setShowLogoutConfirm}
         confirmLogout={logout}
+      />
+      <PricingModal 
+        isOpen={showPricingModal} 
+        onClose={() => setShowPricingModal(false)} 
+        userName={userData?.fullName?.split(' ')[0]} 
       />
     </div>
   );

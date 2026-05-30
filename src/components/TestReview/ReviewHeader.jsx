@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Volume2, Volume1, VolumeX, MessageSquare } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, MessageSquare, List } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CustomAudioPlayer from "../TestSolving/CustomAudioPlayer";
+import { useTranslation } from '../../context/LanguageContext';
 
 const ReviewHeader = ({ 
     testData, resultData, userData, 
@@ -11,9 +12,13 @@ const ReviewHeader = ({
     isCommentsOpen, setIsCommentsOpen,
     onSaveGrade, isSaving,
     navigate,
-    fromNewsfeed = false
+    fromNewsfeed = false,
+    isAnswersListOpen,
+    setIsAnswersListOpen,
+    isPremium
 }) => {
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+    const { t } = useTranslation();
 
     return (
         <header className="h-16 bg-white text-gray-900 flex justify-between items-center px-4 sm:px-6 shrink-0 z-20 border-b border-gray-100 relative shadow-sm">
@@ -35,15 +40,15 @@ const ReviewHeader = ({
                 </button>
 
                 <div className="flex flex-col min-w-0">
-                    <h1 className="text-[14px] font-bold text-gray-900 tracking-tight truncate max-w-[150px] sm:max-w-[280px]">
+                    <h1 className="text-[14px] font-semibold text-gray-900 tracking-tight truncate max-w-[150px] sm:max-w-[280px]">
                         {testData.title}
                     </h1>
                     <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] text-gray-500 font-semibold whitespace-nowrap">
+                        <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                             {resultData.userName || 'Student'}
                         </span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                        <span className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-100">
+                        <span className="text-[9px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-100">
                             {resultData.type === 'mock_full' ? 'FULL MOCK' : 'PARTIAL'}
                         </span>
                     </div>
@@ -58,7 +63,7 @@ const ReviewHeader = ({
                             <button
                                 key={part}
                                 onClick={() => setActiveMockPart(part)}
-                                className={`w-9 h-9 flex items-center justify-center rounded-lg text-[12px] font-black transition-all relative ${
+                                className={`w-9 h-9 flex items-center justify-center rounded-lg text-[12px] font-semibold transition-all relative ${
                                     activeMockPart === part 
                                         ? 'bg-white text-gray-900 shadow-md border border-gray-100 scale-[1.02]' 
                                         : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100/50'
@@ -157,8 +162,8 @@ const ReviewHeader = ({
                         ].map((item) => {
                             return (
                                 <div key={item.key} className="px-3.5 flex flex-col items-center first:pl-0 last:pr-0">
-                                    <span className="text-[9px] font-bold text-gray-400 tracking-tight uppercase mb-0.5">{item.label}</span>
-                                    <span className="text-[15px] font-black text-gray-900 leading-none">
+                                    <span className="text-[9px] font-semibold text-gray-400 tracking-tight uppercase mb-0.5">{item.label}</span>
+                                    <span className="text-[15px] font-semibold text-gray-900 leading-none">
                                         {(() => {
                                             const baseKey = item.key.replace('Band', '');
                                             const val = resultData.scores?.[item.key] ?? resultData.scores?.[baseKey] ?? resultData[item.key] ?? resultData[baseKey];
@@ -178,20 +183,34 @@ const ReviewHeader = ({
                     </div>
                 )}
 
+                {isPremium && testData.type?.toLowerCase() !== 'speaking' && testData.type?.toLowerCase() !== 'writing' && (
+                    <button
+                        onClick={() => setIsAnswersListOpen(!isAnswersListOpen)}
+                        className={`h-9 px-4 rounded-md border flex items-center gap-2 transition-all shadow-sm ${
+                            isAnswersListOpen ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                        <List size={18} />
+                        <span className="text-[12px] font-semibold tracking-tight hidden sm:inline">
+                            {t('testSolving.viewDetailedAnswers') || 'Answers List'}
+                        </span>
+                    </button>
+                )}
+
                 <button
                     onClick={() => setIsCommentsOpen(!isCommentsOpen)}
-                    className={`h-11 px-5 rounded-xl border flex items-center gap-2.5 transition-all shadow-sm ${
+                    className={`h-9 px-4 rounded-md border flex items-center gap-2 transition-all shadow-sm ${
                         isCommentsOpen ? 'bg-[#e31b23] border-[#e31b23] text-white' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
                     }`}
                 >
                     <MessageSquare size={18} />
-                    <span className="text-[12px] font-black tracking-tight hidden sm:inline">Comments</span>
+                    <span className="text-[12px] font-semibold tracking-tight hidden sm:inline">Comments</span>
                 </button>
 
-                <div className="h-11 px-5 rounded-xl border border-gray-200 bg-white flex items-center gap-3 shadow-sm min-w-[85px]">
+                <div className="h-9 px-4 rounded-md border border-gray-200 bg-white flex items-center gap-2 shadow-sm min-w-[85px]">
                     <div className="flex flex-col items-center w-full">
-                        <span className="text-[8px] font-bold tracking-widest uppercase text-gray-400 mb-0.5">Overall</span>
-                        <span className="text-[18px] font-black leading-none text-[#e31b23]">
+                        <span className="text-[8px] font-semibold tracking-widest uppercase text-gray-400 mb-0.5">Overall</span>
+                        <span className="text-[18px] font-bold leading-none text-[#e31b23]">
                             {resultData.type === 'mock_full' 
                                 ? (resultData.overallBand || resultData.bandScore ? Number(resultData.overallBand || resultData.bandScore).toFixed(1) : "---")
                                 : (resultData.bandScore || resultData.writingBand || resultData.score ? Number(resultData.bandScore || resultData.writingBand || resultData.score).toFixed(1) : "---")

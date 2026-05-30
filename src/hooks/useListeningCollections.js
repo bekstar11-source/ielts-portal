@@ -3,7 +3,7 @@ import { deriveQuestionTypesForCard } from '../utils/TestUtils';
 import { db } from '../firebase/firebase';
 import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 
-export function useListeningCollections(userResults) {
+export function useListeningCollections(userResults, userData) {
   const [collections, setCollections] = useState([]);
   const [loadingCollections, setLoadingCollections] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState(null);
@@ -11,6 +11,11 @@ export function useListeningCollections(userResults) {
   const [loadingCollectionTests, setLoadingCollectionTests] = useState(false);
   const [collectionCounts, setCollectionCounts] = useState({});
   const [allCollectionsTests, setAllCollectionsTests] = useState([]);
+
+  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isStandard = userData?.accountType === 'standard';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+  const isAdminOrTeacher = userData?.role === 'admin' || userData?.role === 'teacher';
 
   const fetchCollectionCounts = (cols, allTests = []) => {
     const counts = {};
@@ -40,6 +45,14 @@ export function useListeningCollections(userResults) {
         fetchedAllTests = snapAllTests.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(t => t.type === 'listening');
+        
+        // Sort so that free ones appear first
+        fetchedAllTests.sort((a, b) => {
+          if (a.isFree && !b.isFree) return -1;
+          if (!a.isFree && b.isFree) return 1;
+          return 0;
+        });
+
         setAllCollectionsTests(fetchedAllTests);
       }
       fetchCollectionCounts(fetchedCols, fetchedAllTests);
@@ -62,6 +75,14 @@ export function useListeningCollections(userResults) {
           fetchedAllTests = snapAllTests.docs
             .map(d => ({ id: d.id, ...d.data() }))
             .filter(t => t.type === 'listening');
+
+          // Sort so that free ones appear first
+          fetchedAllTests.sort((a, b) => {
+            if (a.isFree && !b.isFree) return -1;
+            if (!a.isFree && b.isFree) return 1;
+            return 0;
+          });
+
           setAllCollectionsTests(fetchedAllTests);
         }
         fetchCollectionCounts(fetchedCols, fetchedAllTests);
@@ -82,7 +103,7 @@ export function useListeningCollections(userResults) {
         where('collectionId', '==', colId)
       );
       const snapMeta = await getDocs(qMeta);
-      const metaDocs = snapMeta.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');
+      let metaDocs = snapMeta.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');
 
       // 2. Fetch from tests
       const qTests = query(
@@ -90,7 +111,7 @@ export function useListeningCollections(userResults) {
         where('collectionId', '==', colId)
       );
       const snapTests = await getDocs(qTests);
-      const testDocs = snapTests.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');
+      let testDocs = snapTests.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');
 
       // 3. Merge by ID to guarantee we capture all tests in the collection
       const mergedMap = new Map();
@@ -104,6 +125,12 @@ export function useListeningCollections(userResults) {
       });
 
       const docs = Array.from(mergedMap.values());
+      // Sort so that free ones appear first
+      docs.sort((a, b) => {
+        if (a.isFree && !b.isFree) return -1;
+        if (!a.isFree && b.isFree) return 1;
+        return 0;
+      });
       setCollectionTests(docs);
     } catch (e) {
       console.error("Error fetching collection tests:", e);
@@ -114,7 +141,7 @@ export function useListeningCollections(userResults) {
 
   useEffect(() => {
     fetchCollections();
-  }, []);
+  }, [userData]);
 
   const collectionProcessedTests = useMemo(() => {
     const sortedCollectionTests = [...collectionTests].sort((a, b) => {
@@ -182,6 +209,7 @@ export function useListeningCollections(userResults) {
             type: "listening",
             difficulty: partData.difficulty || test.difficulty || "medium",
             partNumber: partNum,
+            isFree: !!test.isFree,
             duration: 10,
             audioUrl: partData.audioUrl || test.audioUrl || "",
             startTime: partData.startSec || 0,
@@ -205,6 +233,7 @@ export function useListeningCollections(userResults) {
             type: "listening",
             difficulty: test.difficulty || "medium",
             partNumber: partNum,
+            isFree: !!test.isFree,
             duration: 10,
             audioUrl: test.audioUrl || "",
             startTime: 0,
@@ -217,6 +246,18 @@ export function useListeningCollections(userResults) {
           });
         }
       }
+    });
+
+    // Sort so that free ones appear first
+    fullTestsList.sort((a, b) => {
+      if (a.isFree && !b.isFree) return -1;
+      if (!a.isFree && b.isFree) return 1;
+      return 0;
+    });
+    partTestsList.sort((a, b) => {
+      if (a.isFree && !b.isFree) return -1;
+      if (!a.isFree && b.isFree) return 1;
+      return 0;
     });
 
     return { partTestsList, fullTestsList };

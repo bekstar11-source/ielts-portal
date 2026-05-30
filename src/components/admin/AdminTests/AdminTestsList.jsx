@@ -1,21 +1,7 @@
 import React from 'react';
 import { MoreHorizontal, Edit2, Edit3, Trash2, Globe, Lock, BookOpen, Headphones, PenTool, Mic2, Eye, Award } from 'lucide-react';
 
-const passagePartNumber = (p, idx, kind) => {
-    const idNum = Number(p.id);
-    if (!Number.isNaN(idNum)) {
-        // CreateTest listening parts use ids like 100, 101, 102…
-        if (idNum >= 100) return idNum - 100 + 1;
-        if (idNum >= 1 && idNum <= (kind === 'listening' ? 4 : 3)) return idNum;
-    }
-    const idStr = p.id != null ? String(p.id) : '';
-    const idMatch = idStr.match(/_(\d+)/) || idStr.match(/-(\d+)/) || idStr.match(/(\d+)/);
-    if (idMatch) return parseInt(idMatch[1], 10);
-    const titlePattern = kind === 'listening' ? /Part\s*(\d+)/i : /Passage\s*(\d+)/i;
-    const titleMatch = p.title?.match(titlePattern) || p.title?.match(/(\d+)/);
-    if (titleMatch) return parseInt(titleMatch[1], 10);
-    return idx + 1;
-};
+import { getPassageOrPartNum } from '../CreateTest/CreateTestUtils';
 
 const formatQuestionType = (type) => {
     const label = typeof type === 'string' ? type : (type?.name || type?.type || String(type ?? ''));
@@ -34,7 +20,7 @@ const getSegments = (test) => {
     if (type === 'reading') {
         const present = new Set();
         (test.passages || []).forEach((p, idx) => {
-            const num = passagePartNumber(p, idx, 'reading');
+            const num = getPassageOrPartNum(p, idx, 'reading', test.questions || []);
             if (num >= 1 && num <= 3) present.add(num);
         });
         return [1, 2, 3].map(num => ({
@@ -46,7 +32,7 @@ const getSegments = (test) => {
     if (type === 'listening') {
         const present = new Set();
         (test.passages || []).forEach((p, idx) => {
-            const num = passagePartNumber(p, idx, 'listening');
+            const num = getPassageOrPartNum(p, idx, 'listening', test.questions || []);
             if (num >= 1 && num <= 4) present.add(num);
         });
         return [1, 2, 3, 4].map(num => ({
@@ -136,11 +122,16 @@ const AdminTestsList = ({
                                     const part = test.parts[k];
                                     (part.qTypes || []).forEach(t => { if (!qTypes.includes(t)) qTypes.push(t); });
                                 });
-                                segments = [1, 2, 3, 4].map(num => ({
-                                    label: `Pt${num}`,
-                                    title: `Part ${num}`,
-                                    exists: !!test.parts[`part${num}`]
-                                }));
+                                segments = [1, 2, 3, 4].map(num => {
+                                    const exists = Object.values(test.parts || {}).some((part, idx) => {
+                                        return getPassageOrPartNum(part, idx, 'listening', test.questions || []) === num;
+                                    });
+                                    return {
+                                        label: `Pt${num}`,
+                                        title: `Part ${num}`,
+                                        exists
+                                    };
+                                });
                             } else if (test.type === 'reading' && typeof test.passages === 'object' && test.passages !== null) {
                                 const passKeys = Object.keys(test.passages);
                                 passageCount = passKeys.length;
@@ -148,11 +139,16 @@ const AdminTestsList = ({
                                     const pass = test.passages[k];
                                     (pass.qTypes || []).forEach(t => { if (!qTypes.includes(t)) qTypes.push(t); });
                                 });
-                                segments = [1, 2, 3].map(num => ({
-                                    label: `P${num}`,
-                                    title: `Passage ${num}`,
-                                    exists: !!test.passages[`passage${num}`]
-                                }));
+                                segments = [1, 2, 3].map(num => {
+                                    const exists = Object.values(test.passages || {}).some((pass, idx) => {
+                                        return getPassageOrPartNum(pass, idx, 'reading', test.questions || []) === num;
+                                    });
+                                    return {
+                                        label: `P${num}`,
+                                        title: `Passage ${num}`,
+                                        exists
+                                    };
+                                });
                             } else if (test.type === 'writing') {
                                 passageCount = test.writingTasks?.length || 2;
                                 segments = [1, 2].map(num => ({
@@ -183,7 +179,12 @@ const AdminTestsList = ({
                                              test.type === 'mock' ? <Award size={16} /> : <Mic2 size={16} />}
                                         </div>
                                         <div>
-                                            <div className="text-sm font-bold truncate max-w-[300px]">{test.title || "Untitled Test"}</div>
+                                            <div className="text-sm font-bold truncate max-w-[300px] flex items-center gap-2">
+                                                {test.title || "Untitled Test"}
+                                                {test.isFree && (
+                                                    <span className="text-[9px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white leading-none">FREE</span>
+                                                )}
+                                            </div>
                                             <div className="flex flex-wrap gap-1 mt-1">
                                                 {(test.tags || []).map((tag, i) => (
                                                     <span key={i} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isDark ? 'bg-blue-500/10 text-blue-400 border border-blue-500/10' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>

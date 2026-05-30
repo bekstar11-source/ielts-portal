@@ -12,7 +12,7 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const isPremium = test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening';
+  const isPremium = (test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening') && !test.isFree;
   
   const isListeningPart = test.type === 'listening' && (test.title?.toLowerCase().includes('part') || test.partNumber || !test.title?.toLowerCase().includes('full'));
   const isListeningFull = test.type === 'listening' && test.title?.toLowerCase().includes('full');
@@ -174,11 +174,15 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
               {passageLabel}
             </span>
             <div className="flex gap-1.5">
-              {isPremium && (
+              {test.isFree ? (
+                <span className="px-2.5 py-0.5 rounded bg-emerald-500 text-white text-[10px] font-bold tracking-wide uppercase shadow-sm">
+                  FREE
+                </span>
+              ) : isPremium ? (
                 <span className="px-2.5 py-0.5 rounded bg-amber-500 text-white text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 shadow-sm">
                   <Crown size={9} fill="currentColor" /> PRO
                 </span>
-              )}
+              ) : null}
               {isCompleted && (
                 <span className="px-2.5 py-0.5 rounded bg-[#34c759] text-white text-[10px] font-bold tracking-wide uppercase shadow-sm">
                   {t('practice.statusCompleted')}

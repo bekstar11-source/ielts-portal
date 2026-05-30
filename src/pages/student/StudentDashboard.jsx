@@ -38,6 +38,13 @@ export default function StudentDashboard() {
         }
     }, [userData, navigate]);
 
+    useEffect(() => {
+        if (localStorage.getItem('show_pricing_on_load') === 'true') {
+            localStorage.removeItem('show_pricing_on_load');
+            dashboard.setShowPricingModal(true);
+        }
+    }, [dashboard]);
+
     const handleManualRefresh = async () => {
         if (!user) return;
         localStorage.removeItem(`gamification_counts_${user.uid}`);
@@ -151,7 +158,17 @@ export default function StudentDashboard() {
                 showLogoutConfirm={dashboard.showLogoutConfirm} setShowLogoutConfirm={dashboard.setShowLogoutConfirm} confirmLogout={logout}
                 selectedSet={dashboard.selectedSet} setSelectedSet={dashboard.setSelectedSet}
                 handleStartTest={onStartTestRequest}
-                handleReview={(t) => navigate(`/review/${t.result?.id}`)}
+                handleReview={(t) => {
+                    const isPremium = userData?.isPremium || 
+                                      userData?.isPro || 
+                                      ['premium', 'pro', 'standard'].includes(userData?.accountType) || 
+                                      ['admin', 'teacher'].includes(userData?.role);
+                    if (!isPremium) {
+                        dashboard.setShowPricingModal(true);
+                    } else {
+                        navigate(`/review/${t.result?.id}`);
+                    }
+                }}
             />
             <PricingModal 
                 isOpen={dashboard.showPricingModal} 

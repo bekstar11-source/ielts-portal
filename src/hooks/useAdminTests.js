@@ -484,12 +484,13 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    const updateTestMetadata = async (id, title, collectionId) => {
+    const updateTestMetadata = async (id, title, collectionId, isFree) => {
         try {
             const finalColId = collectionId === 'None' || !collectionId ? null : collectionId;
             const updatedFields = {
                 title: title.trim(),
                 collectionId: finalColId,
+                isFree: isFree || false,
                 updatedAt: new Date().toISOString()
             };
             

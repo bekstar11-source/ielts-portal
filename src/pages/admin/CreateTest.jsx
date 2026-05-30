@@ -36,6 +36,7 @@ export default function CreateTest() {
         uploading, setUploading,
         uploadProgress,
         isEditMode, isMockMode, setIsMockMode,
+        isFree, setIsFree,
         publishToFeed, setPublishToFeed,
         jsonInput, setJsonInput, jsonError,
         partAudios, setPartAudios,
@@ -278,6 +279,16 @@ export default function CreateTest() {
                             </button>
                         </div>
                     )}
+
+                    <div className="flex items-center gap-2 mr-2 px-3 py-1.5 rounded-xl bg-gray-500/5 border border-white/5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-50">Is Free?</span>
+                        <button 
+                            onClick={() => setIsFree(!isFree)}
+                            className={`w-10 h-5 rounded-full p-1 transition-all duration-300 ${isFree ? 'bg-blue-600' : 'bg-gray-400'}`}
+                        >
+                            <div className={`w-3 h-3 bg-white rounded-full transition-transform duration-300 ${isFree ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
 
                     <div className="flex items-center gap-2 mr-4 px-3 py-1.5 rounded-xl bg-gray-500/5 border border-white/5">
                         <span className="text-[10px] font-bold uppercase tracking-wider opacity-50">Is Exclusive?</span>

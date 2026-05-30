@@ -84,6 +84,7 @@ export default function AdminTests() {
     const [editingTest, setEditingTest] = useState(null);
     const [quickEditTitle, setQuickEditTitle] = useState("");
     const [quickEditCollectionId, setQuickEditCollectionId] = useState("");
+    const [quickEditIsFree, setQuickEditIsFree] = useState(false);
     const [isSavingQuickEdit, setIsSavingQuickEdit] = useState(false);
 
     const {
@@ -201,6 +202,7 @@ export default function AdminTests() {
         setEditingTest(test);
         setQuickEditTitle(test.title || "");
         setQuickEditCollectionId(test.collectionId || "");
+        setQuickEditIsFree(test.isFree || false);
         setQuickEditModalOpen(true);
     };
 
@@ -211,7 +213,7 @@ export default function AdminTests() {
         }
         setIsSavingQuickEdit(true);
         try {
-            const ok = await updateTestMetadata(editingTest.id, quickEditTitle.trim(), quickEditCollectionId);
+            const ok = await updateTestMetadata(editingTest.id, quickEditTitle.trim(), quickEditCollectionId, quickEditIsFree);
             if (ok) {
                 setQuickEditModalOpen(false);
                 setEditingTest(null);
@@ -322,7 +324,7 @@ export default function AdminTests() {
 
             const { db } = await import("../../firebase/firebase");
             const { collection, addDoc, setDoc, doc } = await import("firebase/firestore");
-            const { getQuestionTypesFromQuestions } = await import("../../components/admin/CreateTest/CreateTestUtils");
+            const { getQuestionTypesFromQuestions, getPassageOrPartNum } = await import("../../components/admin/CreateTest/CreateTestUtils");
 
             // Save new merged test to firestore 'tests' collection
             const docRef = await addDoc(collection(db, "tests"), mergedPayload);
@@ -353,7 +355,7 @@ export default function AdminTests() {
             if (mergedPayload.type === 'listening') {
                 const parts = {};
                 (mergedPayload.passages || []).forEach((passage, idx) => {
-                    const partNum = idx + 1;
+                    const partNum = getPassageOrPartNum(passage, idx, 'listening', mergedPayload.questions || []);
                     const partKey = `part${partNum}`;
                     const passageQuestions = (mergedPayload.questions || []).filter(
                         q => String(q.passageId) === String(passage.id)
@@ -385,7 +387,7 @@ export default function AdminTests() {
             } else if (mergedPayload.type === 'reading') {
                 const passages = {};
                 (mergedPayload.passages || []).forEach((passage, idx) => {
-                    const passNum = idx + 1;
+                    const passNum = getPassageOrPartNum(passage, idx, 'reading', mergedPayload.questions || []);
                     const passKey = `passage${passNum}`;
                     const passageQuestions = (mergedPayload.questions || []).filter(
                         q => String(q.passageId) === String(passage.id)
@@ -463,7 +465,7 @@ export default function AdminTests() {
         try {
             const { db } = await import("../../firebase/firebase");
             const { collection, getDocs, doc, setDoc, query, limit, startAfter } = await import("firebase/firestore");
-            const { getQuestionTypesFromQuestions } = await import("../../components/admin/CreateTest/CreateTestUtils");
+            const { getQuestionTypesFromQuestions, getPassageOrPartNum } = await import("../../components/admin/CreateTest/CreateTestUtils");
 
             let lastVisibleDoc = null;
             let successCount = 0;
@@ -500,6 +502,7 @@ export default function AdminTests() {
                         duration: duration,
                         audioUrl: payload.audio_url || "",
                         isExclusive: payload.isExclusive || false,
+                        isFree: payload.isFree || false,
                         createdAt: payload.createdAt || new Date().toISOString(),
                         updatedAt: payload.updatedAt || new Date().toISOString(),
                         questionTypes: payload.questionTypes || getQuestionTypesFromQuestions(payload.questions || []),
@@ -509,7 +512,7 @@ export default function AdminTests() {
                     if (payload.type === 'listening') {
                         const parts = {};
                         (payload.passages || []).forEach((passage, idx) => {
-                            const partNum = idx + 1;
+                            const partNum = getPassageOrPartNum(passage, idx, 'listening', payload.questions || []);
                             const partKey = `part${partNum}`;
                             
                             const passageQuestions = (payload.questions || []).filter(
@@ -545,7 +548,7 @@ export default function AdminTests() {
                     } else if (payload.type === 'reading') {
                         const passages = {};
                         (payload.passages || []).forEach((passage, idx) => {
-                            const passNum = idx + 1;
+                            const passNum = getPassageOrPartNum(passage, idx, 'reading', payload.questions || []);
                             const passKey = `passage${passNum}`;
                             
                             const passageQuestions = (payload.questions || []).filter(
@@ -1065,6 +1068,18 @@ export default function AdminTests() {
                                         ))
                                     }
                                 </select>
+                            </div>
+                            <div className="flex items-center justify-between p-3 rounded-xl border border-dashed border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-white/5">
+                                <div className="space-y-0.5">
+                                    <label className={`text-xs font-bold block ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Is Free Test?</label>
+                                    <span className="text-[10px] text-zinc-400 block leading-tight">Visible only to Free plan users. Hidden from standard & pro.</span>
+                                </div>
+                                <button 
+                                    onClick={() => setQuickEditIsFree(!quickEditIsFree)}
+                                    className={`w-10 h-5 rounded-full p-1 transition-all duration-300 shrink-0 ${quickEditIsFree ? 'bg-[#0066cc]' : 'bg-gray-400'}`}
+                                >
+                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform duration-300 ${quickEditIsFree ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
                             </div>
                         </div>
                         <div className={`p-6 pt-0 flex gap-3 bg-transparent`}>

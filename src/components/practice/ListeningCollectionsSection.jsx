@@ -32,6 +32,7 @@ export default function ListeningCollectionsSection({
   isPro,
   isStandard
 }) {
+  const visibleCollections = collections.filter(col => (collectionCounts[col.id] || 0) > 0);
   return (
     <div className="space-y-6 pt-12 border-t border-zinc-100" ref={collectionsSectionRef}>
         <div className="space-y-1">
@@ -111,13 +112,13 @@ export default function ListeningCollectionsSection({
                 <div className="flex justify-center py-20">
                     <Loader2 className="w-8 h-8 text-[#0066cc] animate-spin" />
                 </div>
-            ) : collections.length === 0 ? (
+            ) : visibleCollections.length === 0 ? (
                 <div className="text-center py-20 text-zinc-400 text-sm bg-zinc-50/50 rounded-2xl border border-dashed border-zinc-200">
-                    Hozircha hech qanday kolleksiya yaratilmagan.
+                    Hozircha hech qanday kolleksiya mavjud emas.
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-                    {collections.map(col => {
+                    {visibleCollections.map(col => {
                         const testCount = collectionCounts[col.id] || 0;
                         const colIdString = col.id ? `COL-${col.id.slice(0, 4).toUpperCase()}` : 'COL-0000';
                         return (

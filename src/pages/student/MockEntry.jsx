@@ -37,6 +37,7 @@ import {
 import SiteFooter from '../../components/common/SiteFooter';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardModals from '../../components/dashboard/DashboardModals';
+import PricingModal from '../../components/dashboard/PricingModal';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function MockEntry() {
@@ -53,11 +54,18 @@ export default function MockEntry() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [viewDate, setViewDate] = useState(new Date());
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [showPricingModal, setShowPricingModal] = useState(false);
     
     const [activeTab, setActiveTab] = useState('upcoming');
     const [mockTests, setMockTests] = useState([]);
     const [fetchingMocks, setFetchingMocks] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    useEffect(() => {
+        const handleOpenPricing = () => setShowPricingModal(true);
+        window.addEventListener('open-pricing', handleOpenPricing);
+        return () => window.removeEventListener('open-pricing', handleOpenPricing);
+    }, []);
 
     useEffect(() => {
         const fetchMocks = async () => {
@@ -466,12 +474,29 @@ export default function MockEntry() {
                 setShowLogoutConfirm={setShowLogoutConfirm}
                 confirmLogout={logout}
             />
+            <PricingModal 
+                isOpen={showPricingModal} 
+                onClose={() => setShowPricingModal(false)} 
+                userName={userData?.fullName?.split(' ')[0]} 
+            />
         </div>
     );
 }
 
 const MockTestCard = ({ test, tab, navigate, userData }) => {
     const { t, lang } = useTranslation();
+    const isPremium = userData?.isPremium || 
+                      userData?.isPro || 
+                      ['premium', 'pro', 'standard'].includes(userData?.accountType) || 
+                      ['admin', 'teacher'].includes(userData?.role);
+
+    const handleReviewClick = () => {
+        if (isPremium) {
+            navigate(`/review/${test.resultId || test.id}`);
+        } else {
+            window.dispatchEvent(new CustomEvent('open-pricing'));
+        }
+    };
 
     if (tab === 'past') {
         const isGraded = test.resultStatus === 'graded';
@@ -559,7 +584,7 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                         <div className="space-y-4">
                             {/* Overall Band */}
                             <button 
-                                onClick={() => navigate(`/review/${test.resultId || test.id}`)}
+                                onClick={handleReviewClick}
                                 className="w-full bg-white hover:bg-gray-50 transition-all rounded-xl p-5 flex justify-between items-center group shadow-sm border border-gray-200"
                             >
                                 <div className="text-left space-y-1">
@@ -583,7 +608,7 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                                     return (
                                         <button 
                                             key={skill.label}
-                                            onClick={() => navigate(`/review/${test.resultId || test.id}`)}
+                                            onClick={handleReviewClick}
                                             className="bg-white hover:border-[#e31b23]/30 transition-all border border-gray-200 rounded-xl p-4 text-left space-y-3 group shadow-sm"
                                         >
                                             <div className="flex justify-between items-center">
@@ -612,7 +637,7 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                         </div>
                     </div>
                     <button 
-                        onClick={() => navigate(`/review/${test.resultId || test.id}`)}
+                        onClick={handleReviewClick}
                         className="text-[#e31b23] text-sm font-bold hover:underline flex items-center gap-1 group"
                     >
                         {t('mock.viewFullReport')}

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { db } from '../firebase/firebase';
 import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 
-export function useReadingCollections(userResults) {
+export function useReadingCollections(userResults, userData) {
   const [collections, setCollections] = useState([]);
   const [loadingCollections, setLoadingCollections] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState(null);
@@ -10,6 +10,11 @@ export function useReadingCollections(userResults) {
   const [loadingCollectionTests, setLoadingCollectionTests] = useState(false);
   const [collectionCounts, setCollectionCounts] = useState({});
   const [allCollectionsTests, setAllCollectionsTests] = useState([]);
+
+  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isStandard = userData?.accountType === 'standard';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+  const isAdminOrTeacher = userData?.role === 'admin' || userData?.role === 'teacher';
 
   const fetchCollectionCounts = (cols, allTests = []) => {
     const counts = {};
@@ -39,6 +44,14 @@ export function useReadingCollections(userResults) {
         fetchedAllTests = snapAllTests.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(t => t.type === 'reading');
+        
+        // Sort so that free ones appear first
+        fetchedAllTests.sort((a, b) => {
+          if (a.isFree && !b.isFree) return -1;
+          if (!a.isFree && b.isFree) return 1;
+          return 0;
+        });
+        
         setAllCollectionsTests(fetchedAllTests);
       }
       fetchCollectionCounts(fetchedCols, fetchedAllTests);
@@ -61,6 +74,14 @@ export function useReadingCollections(userResults) {
           fetchedAllTests = snapAllTests.docs
             .map(d => ({ id: d.id, ...d.data() }))
             .filter(t => t.type === 'reading');
+
+          // Sort so that free ones appear first
+          fetchedAllTests.sort((a, b) => {
+            if (a.isFree && !b.isFree) return -1;
+            if (!a.isFree && b.isFree) return 1;
+            return 0;
+          });
+          
           setAllCollectionsTests(fetchedAllTests);
         }
         fetchCollectionCounts(fetchedCols, fetchedAllTests);
@@ -81,7 +102,7 @@ export function useReadingCollections(userResults) {
         where('collectionId', '==', colId)
       );
       const snapMeta = await getDocs(qMeta);
-      const metaDocs = snapMeta.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'reading');
+      let metaDocs = snapMeta.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'reading');
 
       // 2. Fetch from tests
       const qTests = query(
@@ -89,7 +110,7 @@ export function useReadingCollections(userResults) {
         where('collectionId', '==', colId)
       );
       const snapTests = await getDocs(qTests);
-      const testDocs = snapTests.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'reading');
+      let testDocs = snapTests.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'reading');
 
       // 3. Merge by ID to guarantee we capture all tests in the collection
       const mergedMap = new Map();
@@ -103,6 +124,12 @@ export function useReadingCollections(userResults) {
       });
 
       const docs = Array.from(mergedMap.values());
+      // Sort so that free ones appear first
+      docs.sort((a, b) => {
+        if (a.isFree && !b.isFree) return -1;
+        if (!a.isFree && b.isFree) return 1;
+        return 0;
+      });
       setCollectionTests(docs);
     } catch (e) {
       console.error("Error fetching collection tests:", e);
@@ -113,7 +140,7 @@ export function useReadingCollections(userResults) {
 
   useEffect(() => {
     fetchCollections();
-  }, []);
+  }, [userData]);
 
   const collectionProcessedTests = useMemo(() => {
     const fullTestsList = [];

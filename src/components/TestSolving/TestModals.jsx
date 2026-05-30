@@ -5,6 +5,7 @@ import { Icons } from '../Icons';
 import { useAuth } from '../../context/AuthContext';
 import PricingModal from '../dashboard/PricingModal';
 import { useTranslation } from '../../context/LanguageContext';
+import DetailedAnswersModal from '../TestReview/DetailedAnswersModal';
 
 // ──────────────────────────────────────────────
 // AUDIO PRELOADER HOOK
@@ -181,6 +182,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
     const { t } = useTranslation();
     const { userData } = useAuth();
     const [showPricingModal, setShowPricingModal] = useState(false);
+    const [showDetailedAnswers, setShowDetailedAnswers] = useState(false);
 
     // Check if user is standard or pro (or premium/admin/teacher)
     const isPro = userData?.accountType === 'pro' || userData?.isPro;
@@ -318,56 +320,56 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
     const colsClass = partStats.length === 1 ? 'grid-cols-1 max-w-[120px] mx-auto' : (partStats.length === 3 ? 'grid-cols-3' : 'grid-cols-4');
 
     return (
-        <div className="absolute inset-0 bg-white/90 z-50 flex items-center justify-center backdrop-blur-md animate-in fade-in">
-            <div className="bg-white p-7 rounded-3xl shadow-2xl border border-gray-100 max-w-md w-full text-center">
-                <h3 className="font-bold text-2xl text-gray-900 mb-1">{t('testSolving.testCompleted')}</h3>
+        <div className="absolute inset-0 bg-white/90 z-[9999] flex items-center justify-center backdrop-blur-md animate-in fade-in">
+            <div className="bg-white p-8 rounded-3xl shadow-2xl border border-gray-100/80 max-w-md w-full text-center">
+                <h3 className="font-extrabold text-2xl text-gray-900 mb-1">{t('testSolving.testCompleted') || 'Test yakunlandi'}</h3>
 
-                <p className="text-gray-500 mb-3.5 flex items-center justify-center gap-1.5 text-xs font-semibold">
-                    <Icons.Clock className="w-3.5 h-3.5 opacity-55" />
-                    {t('testSolving.timeSpent')}: <span className="font-black text-gray-800">{formatTime(timeSpent)}</span>
+                <p className="text-gray-400 mb-5 flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
+                    <Icons.Clock className="w-3.5 h-3.5 opacity-60" />
+                    {t('testSolving.timeSpent') || 'Sarflangan vaqt'}: <span className="font-black text-gray-800">{formatTime(timeSpent)}</span>
                 </p>
 
                 {test.type !== 'speaking' && test.type !== 'writing' ? (
-                    <div className="my-4">
+                    <div className="my-5">
                         {/* Core Stats Grid */}
-                        <div className="grid grid-cols-2 gap-3.5">
+                        <div className="grid grid-cols-2 gap-4">
                             {/* Answers Panel */}
-                            <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-3.5 flex flex-col justify-center items-center">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">{t('testSolving.answers')}</span>
-                                <div className="flex items-baseline gap-1 mt-1.5">
-                                    <span className="text-2xl font-black text-emerald-600">{score}</span>
-                                    <span className="text-gray-300 font-bold text-md">/</span>
-                                    <span className="text-2xl font-black text-rose-500">{totalMistakes}</span>
+                            <div className="bg-[#f8f9fa] dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800 rounded-2xl p-4 flex flex-col justify-center items-center">
+                                <span className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">{t('testSolving.answers') || 'JAVOBLAR'}</span>
+                                <div className="flex items-baseline gap-1 mt-2">
+                                    <span className="text-3xl font-black text-emerald-650">{score}</span>
+                                    <span className="text-gray-300 font-bold text-lg">/</span>
+                                    <span className="text-3xl font-black text-rose-500">{totalMistakes}</span>
                                 </div>
-                                <div className="flex gap-2.5 mt-1.5 text-[9px] font-black tracking-wide">
-                                    <span className="text-emerald-700">✓ {t('testSolving.correct')}</span>
-                                    <span className="text-rose-600">✗ {t('testSolving.mistake')}</span>
+                                <div className="flex gap-3 mt-2 text-[9px] font-black tracking-widest uppercase">
+                                    <span className="text-emerald-700">✓ {t('testSolving.correct') || "To'g'ri"}</span>
+                                    <span className="text-rose-600">✗ {t('testSolving.mistake') || 'Xato'}</span>
                                 </div>
                             </div>
 
                             {/* Band Score Panel */}
-                            <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-3.5 flex flex-col justify-center items-center">
-                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-wider">{t('testSolving.bandScore')}</span>
-                                <span className="text-3xl font-black text-blue-600 mt-1">{bandScore}</span>
-                                <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-1">{t('testSolving.ieltsStandard')}</span>
+                            <div className="bg-blue-50/30 dark:bg-blue-950/20 border border-blue-150/40 dark:border-blue-900/30 rounded-2xl p-4 flex flex-col justify-center items-center">
+                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{t('testSolving.bandScore') || 'BAND SCORE'}</span>
+                                <span className="text-4xl font-black text-blue-650 mt-1.5">{bandScore}</span>
+                                <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-2">{t('testSolving.ieltsStandard') || 'IELTS STANDARTI'}</span>
                             </div>
                         </div>
 
                         {/* Part Breakdown Grid */}
                         {partStats.length > 0 && (
-                            <div className="mt-4 pt-3.5 border-t border-gray-100 w-full text-left">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center mb-3">
-                                    {t('testSolving.mistakesAnalysis')}
+                            <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800 w-full text-left">
+                                <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest text-center mb-4">
+                                    {t('testSolving.mistakesAnalysis') || 'XATOLAR TAHLILI'}
                                 </p>
-                                <div className={`grid ${colsClass} gap-2`}>
+                                <div className={`grid ${colsClass} gap-3`}>
                                     {partStats.map((part, index) => (
-                                        <div key={part.passageId || index} className="bg-zinc-50/50 border border-zinc-100 rounded-xl p-2 text-center">
-                                            <span className="block text-[9px] font-black text-gray-400 uppercase leading-none mb-1">
+                                        <div key={part.passageId || index} className="bg-[#f8f9fa] dark:bg-zinc-900 border border-zinc-150/40 dark:border-zinc-800 rounded-2xl p-3 text-center transition-all hover:bg-zinc-50 duration-200">
+                                            <span className="block text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none mb-1">
                                                 Part {part.partIndex !== undefined ? part.partIndex + 1 : index + 1}
                                             </span>
-                                            <div className="flex items-center justify-center gap-0.5 mt-1">
-                                                <span className="text-xs font-black text-rose-500">{part.mistakes}</span>
-                                                <span className="text-[9px] font-bold text-gray-400">{t('testSolving.mistakes')}</span>
+                                            <div className="flex items-baseline justify-center gap-0.5 mt-1.5">
+                                                <span className="text-sm font-black text-rose-500 dark:text-rose-455">{part.mistakes}</span>
+                                                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider ml-0.5">{t('testSolving.mistakes') || 'xato'}</span>
                                             </div>
                                         </div>
                                     ))}
@@ -379,7 +381,22 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                     <p className="text-gray-500 my-6 text-sm">{t('testSolving.submittedGrading')}</p>
                 )}
 
-                <div className="flex flex-col gap-2 mt-4">
+                <div className="flex flex-col gap-2.5 mt-5">
+                    {test.type !== 'speaking' && test.type !== 'writing' && (
+                        <button
+                            onClick={() => {
+                                if (canReview) {
+                                    setShowDetailedAnswers(true);
+                                } else {
+                                    setShowPricingModal(true);
+                                }
+                            }}
+                            className="bg-white border border-gray-250 hover:bg-gray-50 text-gray-900 font-extrabold py-3.5 rounded-2xl w-full text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                            {!canReview && <span className="text-xs">🔒</span>}
+                            📊 {t('testSolving.viewDetailedAnswers') || 'Javoblar ro\'yxati (Batafsil)'}
+                        </button>
+                    )}
                     <button 
                         onClick={() => {
                             if (canReview) {
@@ -392,12 +409,12 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                                 setShowPricingModal(true);
                             }
                         }} 
-                        className="bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl w-full text-sm transition shadow-md shadow-gray-100 active:scale-[0.98] flex items-center justify-center gap-1.5"
+                        className="bg-gray-950 hover:bg-black text-white font-extrabold py-3.5 rounded-2xl w-full text-xs uppercase tracking-wider transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                         {!canReview && <span className="text-xs">🔒</span>}
-                        {t('testSolving.reviewMistakes')}
+                        {t('testSolving.reviewMistakes') || 'Xatolarni ko\'rib chiqish'}
                     </button>
-                    <button onClick={onExit} className="text-gray-500 hover:text-gray-900 font-bold py-2 rounded-xl w-full text-xs transition active:scale-[0.98]">{t('testSolving.exit')}</button>
+                    <button onClick={onExit} className="text-gray-400 hover:text-gray-700 font-bold py-2 rounded-xl w-full text-[11px] uppercase tracking-wider transition-colors duration-200">{t('testSolving.exit') || 'Chiqish'}</button>
                 </div>
             </div>
 
@@ -406,6 +423,17 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                     isOpen={showPricingModal}
                     onClose={() => setShowPricingModal(false)}
                     userName={userData?.fullName?.split(' ')[0]}
+                />
+            )}
+
+            {showDetailedAnswers && (
+                <DetailedAnswersModal
+                    isOpen={showDetailedAnswers}
+                    onClose={() => setShowDetailedAnswers(false)}
+                    testData={test}
+                    userAnswers={userAnswers}
+                    score={score}
+                    bandScore={bandScore}
                 />
             )}
         </div>

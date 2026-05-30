@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { 
     detectSectionFromQuestions, 
     getQuestionTypesFromQuestions,
+    getPassageOrPartNum,
     processTime, 
     sanitizePayload, 
     toMMSS 
@@ -27,6 +28,7 @@ const compileMetadata = (testId, payload) => {
         duration: duration,
         audioUrl: payload.audio_url || "",
         isExclusive: payload.isExclusive || false,
+        isFree: payload.isFree || false,
         createdAt: payload.createdAt || new Date().toISOString(),
         updatedAt: payload.updatedAt || new Date().toISOString(),
         questionTypes: payload.questionTypes || [],
@@ -36,7 +38,7 @@ const compileMetadata = (testId, payload) => {
     if (payload.type === 'listening') {
         const parts = {};
         (payload.passages || []).forEach((passage, idx) => {
-            const partNum = idx + 1;
+            const partNum = getPassageOrPartNum(passage, idx, 'listening', payload.questions || []);
             const partKey = `part${partNum}`;
             
             const passageQuestions = (payload.questions || []).filter(
@@ -72,7 +74,7 @@ const compileMetadata = (testId, payload) => {
     } else if (payload.type === 'reading') {
         const passages = {};
         (payload.passages || []).forEach((passage, idx) => {
-            const passNum = idx + 1;
+            const passNum = getPassageOrPartNum(passage, idx, 'reading', payload.questions || []);
             const passKey = `passage${passNum}`;
             
             const passageQuestions = (payload.questions || []).filter(
@@ -114,6 +116,7 @@ export const useTestEditor = (id) => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isEditMode, setIsEditMode] = useState(!!id);
     const [isMockMode, setIsMockMode] = useState(false);
+    const [isFree, setIsFree] = useState(false);
     const [publishToFeed, setPublishToFeed] = useState(false);
     const [jsonInput, setJsonInput] = useState("");
     const [jsonError, setJsonError] = useState("");
@@ -154,6 +157,7 @@ export const useTestEditor = (id) => {
 
                         setTestData({ ...data, passages: newPassages });
                         setIsMockMode(data.isExclusive || false);
+                        setIsFree(data.isFree || false);
                         setJsonInput(JSON.stringify({
                             title: data.title,
                             introDuration: data.introDuration,
@@ -277,6 +281,7 @@ export const useTestEditor = (id) => {
                 questions: finalQuestions,
                 introDuration: Number(testData.introDuration) || 0,
                 isExclusive: isMockMode || false,
+                isFree: isFree || false,
                 questionTypes: getQuestionTypesFromQuestions(finalQuestions),
                 updatedAt: new Date().toISOString()
             };
@@ -329,6 +334,7 @@ export const useTestEditor = (id) => {
         uploadProgress,
         isEditMode,
         isMockMode, setIsMockMode,
+        isFree, setIsFree,
         publishToFeed, setPublishToFeed,
         jsonInput, setJsonInput,
         jsonError,
