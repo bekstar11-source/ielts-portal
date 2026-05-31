@@ -313,7 +313,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     id: newId,
                     title: newTitle,
                     createdAt: nowIso,
-                    updatedAt: nowIso
+                    updatedAt: nowIso,
+                    thumbnail: origData.thumbnail || ""
                 };
             } else {
                 newMetaData = {
@@ -327,7 +328,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     createdAt: nowIso,
                     updatedAt: nowIso,
                     collectionId: origData.collectionId || null,
-                    questionTypes: origData.questionTypes || []
+                    questionTypes: origData.questionTypes || [],
+                    thumbnail: origData.thumbnail || ""
                 };
             }
             batch.set(doc(db, "tests_metadata", newId), newMetaData);
@@ -384,7 +386,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     collectionId: test.collectionId || null,
                     questionTypes: test.questionTypes || getQuestionTypesFromQuestions(newTestData.questions),
                     createdAt: nowIso,
-                    updatedAt: nowIso
+                    updatedAt: nowIso,
+                    thumbnail: test.thumbnail || ""
                 };
                 batch.set(doc(db, "tests_metadata", newId), newMetaData);
                 importedMetadataList.push(newMetaData);
@@ -450,7 +453,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    const updateTestMetadata = async (id, title, collectionId, isFree) => {
+    const updateTestMetadata = async (id, title, collectionId, isFree, thumbnail) => {
         try {
             const finalColId = collectionId === 'None' || !collectionId ? null : collectionId;
             const updatedFields = {
@@ -459,6 +462,11 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                 isFree: isFree || false,
                 updatedAt: new Date().toISOString()
             };
+            
+            // Only update thumbnail if explicitly provided
+            if (thumbnail !== undefined) {
+                updatedFields.thumbnail = thumbnail;
+            }
             
             const batch = writeBatch(db);
             batch.update(doc(db, "tests", id), updatedFields);

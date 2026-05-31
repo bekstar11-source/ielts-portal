@@ -237,7 +237,7 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                                                     timestamp={q.timestamp ?? q.timeStep ?? q.time_step ?? q['time step']}
                                                     activePart={activePart}
                                                 />
-                                                <div className="font-bold text-gray-800 text-[15px] truncate" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />
+                                                <div className="font-bold text-gray-800 text-[15px] break-words whitespace-normal" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />
                                             </div>
                                             <MapDroppableSlot
                                                 id={q.id}

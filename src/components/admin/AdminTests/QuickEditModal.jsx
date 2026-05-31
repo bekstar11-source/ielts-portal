@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Edit3, X, Loader2 } from "lucide-react";
+import { Edit3, X, Loader2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { storage } from "../../../firebase/firebase";
 
 export default function QuickEditModal({
     isOpen,
@@ -14,13 +16,57 @@ export default function QuickEditModal({
     const [quickEditTitle, setQuickEditTitle] = useState("");
     const [quickEditCollectionId, setQuickEditCollectionId] = useState("");
     const [quickEditIsFree, setQuickEditIsFree] = useState(false);
+    const [quickEditThumbnail, setQuickEditThumbnail] = useState("");
     const [isSavingQuickEdit, setIsSavingQuickEdit] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            toast.error("Iltimos, faqat rasm faylini tanlang!");
+            return;
+        }
+
+        setIsUploading(true);
+        setUploadProgress(0);
+        try {
+            const storageRef = ref(storage, `thumbnails/${Date.now()}_${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on(
+                "state_changed",
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setUploadProgress(Math.round(progress));
+                },
+                (error) => {
+                    console.error("Upload error:", error);
+                    toast.error("Rasm yuklashda xatolik: " + error.message);
+                    setIsUploading(false);
+                },
+                async () => {
+                    const url = await getDownloadURL(uploadTask.snapshot.ref);
+                    setQuickEditThumbnail(url);
+                    setIsUploading(false);
+                    toast.success("Rasm muvaffaqiyatli yuklandi! 📸");
+                }
+            );
+        } catch (err) {
+            console.error("Upload error:", err);
+            toast.error("Rasm yuklashda xatolik yuz berdi.");
+            setIsUploading(false);
+        }
+    };
 
     useEffect(() => {
         if (isOpen && editingTest) {
             setQuickEditTitle(editingTest.title || "");
             setQuickEditCollectionId(editingTest.collectionId || "");
             setQuickEditIsFree(editingTest.isFree || false);
+            setQuickEditThumbnail(editingTest.thumbnail || "");
         }
     }, [isOpen, editingTest]);
 
@@ -33,7 +79,7 @@ export default function QuickEditModal({
         }
         setIsSavingQuickEdit(true);
         try {
-            const ok = await updateTestMetadata(editingTest.id, quickEditTitle.trim(), quickEditCollectionId, quickEditIsFree);
+            const ok = await updateTestMetadata(editingTest.id, quickEditTitle.trim(), quickEditCollectionId, quickEditIsFree, quickEditThumbnail.trim());
             if (ok) {
                 toast.success("Test muvaffaqiyatli yangilandi! 🎉");
                 onSaved();
@@ -122,6 +168,67 @@ export default function QuickEditModal({
                         >
                             <div className={`w-3 h-3 bg-white rounded-full transition-transform duration-300 ${quickEditIsFree ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
+                    </div>
+
+                    {/* Thumbnail URL */}
+                    <div>
+                        <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                            Thumbnail URL (rasm)
+                        </label>
+                        <div className="flex gap-2">
+                            <input 
+                                className={`flex-1 border p-3 rounded-xl outline-none transition-all text-sm ${
+                                    isDark ? 'bg-[#2a2a2a] border-white/10 focus:border-blue-500 text-white' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500 text-zinc-900'
+                                }`}
+                                placeholder="https://... yoki rasm yuklang"
+                                value={quickEditThumbnail}
+                                onChange={e => setQuickEditThumbnail(e.target.value)}
+                            />
+                            <label className={`cursor-pointer px-4 py-3 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shrink-0 select-none ${
+                                isUploading 
+                                    ? 'opacity-70 cursor-not-allowed bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400' 
+                                    : isDark 
+                                        ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-white/5' 
+                                        : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200'
+                            }`}>
+                                {isUploading ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" />
+                                        <span>{uploadProgress}%</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload size={14} />
+                                        <span>Rasm yuklash</span>
+                                    </>
+                                )}
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                    onChange={handleImageUpload} 
+                                    disabled={isUploading}
+                                />
+                            </label>
+                        </div>
+                        {quickEditThumbnail && (
+                            <div className="relative mt-3 rounded-xl overflow-hidden border border-zinc-200 dark:border-white/10 h-32 group">
+                                <img 
+                                    src={quickEditThumbnail} 
+                                    alt="Thumbnail preview" 
+                                    className="w-full h-full object-cover"
+                                    onError={e => { e.target.style.display = 'none'; }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setQuickEditThumbnail("")}
+                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                    title="Rasm ni o'chirish"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="p-6 pt-0 flex gap-3 bg-transparent">

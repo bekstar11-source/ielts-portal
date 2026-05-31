@@ -6,6 +6,7 @@ import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardModals from '../../components/dashboard/DashboardModals';
 import SiteFooter from '../../components/common/SiteFooter';
 import { useTranslation } from '../../context/LanguageContext';
+import Navbar from '../../components/common/Navbar';
 
 // ─── COMPONENTS ───────────────────────────────────────────────────────────────
 
@@ -121,12 +122,16 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
-      <DashboardHeader
-        user={user}
-        userData={userData}
-        activeTab="pricing"
-        onLogoutClick={() => setShowLogoutConfirm(true)}
-      />
+      {user ? (
+        <DashboardHeader
+          user={user}
+          userData={userData}
+          activeTab="pricing"
+          onLogoutClick={() => setShowLogoutConfirm(true)}
+        />
+      ) : (
+        <Navbar />
+      )}
 
       {/* ── HERO ── */}
       <section className="relative pt-24 pb-14 bg-[#fafafa] overflow-hidden">

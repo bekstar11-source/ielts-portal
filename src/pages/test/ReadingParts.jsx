@@ -10,7 +10,7 @@ import { httpsCallable } from "firebase/functions";
 import { 
   BookOpen, Headphones, PenTool, Mic, ChevronRight, Search, Loader2 
 } from 'lucide-react';
-import { limit, startAfter, getCountFromServer, orderBy } from "firebase/firestore";
+import { limit, startAfter, getCountFromServer, orderBy, getDocsFromServer } from "firebase/firestore";
 
 // COMPONENTS
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
@@ -33,6 +33,32 @@ const categories = [
   { id: 'writing', label: 'Writing', icon: PenTool },
   { id: 'speaking', label: 'Speaking', icon: Mic },
 ];
+
+const getPassageNum = (test) => {
+  if (!test) return null;
+  if (test.passageNumber) return Number(test.passageNumber);
+  if (test.passage_number) return Number(test.passage_number);
+  
+  // First check if passage key exists in test.passages (e.g. if key is passage1/passage2/passage3)
+  if (test.passages && typeof test.passages === 'object') {
+    const keys = Object.keys(test.passages);
+    if (keys.length === 1) {
+      const match = keys[0].match(/passage(\d)/i);
+      if (match) return Number(match[1]);
+    }
+  }
+
+  const title = test.title?.toLowerCase() || '';
+  const match = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
+  if (match) return Number(match[1]);
+
+  // Difficulty mapping fallback
+  const diff = String(test.difficulty || '').toLowerCase();
+  if (diff === 'easy') return 1;
+  if (diff === 'medium') return 2;
+  if (diff === 'hard') return 3;
+  return null;
+};
 
 export default function ReadingParts() {
   const { user, logout, userData } = useAuth();
@@ -59,6 +85,7 @@ export default function ReadingParts() {
   const [hasMore, setHasMore] = useState(true);
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [allTestsLoaded, setAllTestsLoaded] = useState(false);
   const PAGE_SIZE = 24;
 
   const rawAssignments = useMemo(() => {
@@ -96,7 +123,7 @@ export default function ReadingParts() {
                 where('isFree', '==', true),
                 orderBy('createdAt', 'desc')
             );
-            const snapFree = await getDocs(qFree);
+            const snapFree = await getDocsFromServer(qFree);
             const freeTests = snapFree.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
             
             // 2. Fetch the first page of all tests
@@ -106,7 +133,7 @@ export default function ReadingParts() {
                 orderBy('createdAt', 'desc'),
                 limit(PAGE_SIZE)
             );
-            snap = await getDocs(qAll);
+            snap = await getDocsFromServer(qAll);
             const allTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
             
             // Merge: free tests first, then all tests, deduplicated by ID
@@ -127,7 +154,7 @@ export default function ReadingParts() {
                 startAfter(lastVisible),
                 limit(PAGE_SIZE)
             );
-            snap = await getDocs(qAll);
+            snap = await getDocsFromServer(qAll);
             newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
         }
 
@@ -162,6 +189,49 @@ export default function ReadingParts() {
         setLoadingLibrary(false);
     }
   };
+
+  const fetchAllTestsForSearch = async () => {
+    if (allTestsLoaded || loadingLibrary) return;
+    setLoadingLibrary(true);
+    try {
+        const qAll = query(
+            collection(db, 'tests_metadata'),
+            where('type', '==', 'reading'),
+            orderBy('createdAt', 'desc'),
+            limit(500)
+        );
+        const snap = await getDocsFromServer(qAll);
+        const allTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
+        
+        setLibraryTests(prev => {
+            const mergedMap = new Map();
+            prev.forEach(t => mergedMap.set(t.id, t));
+            allTests.forEach(t => {
+                if (!mergedMap.has(t.id)) {
+                    mergedMap.set(t.id, t);
+                }
+            });
+            return Array.from(mergedMap.values());
+        });
+        setHasMore(false);
+        setAllTestsLoaded(true);
+    } catch (err) {
+        console.error("Error fetching all tests for search:", err);
+    } finally {
+        setLoadingLibrary(false);
+    }
+  };
+
+  useEffect(() => {
+    const hasActiveFilters = searchQuery.trim().length > 0 || 
+                             selectedStatus !== 'all' || 
+                             selectedQuestionTypes.length > 0 || 
+                             selectedPassages.length > 0 ||
+                             freeOnly;
+    if (hasActiveFilters) {
+      fetchAllTestsForSearch();
+    }
+  }, [searchQuery, selectedStatus, selectedQuestionTypes, selectedPassages, freeOnly]);
 
   useEffect(() => {
     fetchLibraryPage(true);
@@ -215,11 +285,17 @@ export default function ReadingParts() {
       if (!matchesTab) return;
 
       // Filter: only show single-passage "parts" (not full reading tests)
-      const passagesArr = Array.isArray(item.passages) ? item.passages : null;
-      if (passagesArr && passagesArr.length > 1) return; // Multi-passage = full test, skip
+      let passagesCount = 0;
+      if (item.passages) {
+        if (Array.isArray(item.passages)) {
+          passagesCount = item.passages.length;
+        } else if (typeof item.passages === 'object') {
+          passagesCount = Object.keys(item.passages).length;
+        }
+      }
+      if (passagesCount > 1) return; // Multi-passage = full test, skip
       
-      // For metadata-only docs without passages array, use question count as fallback
-      if (!passagesArr) {
+      if (passagesCount === 0) {
         const qCount = getQuestionCount(item);
         if (qCount > 14) return;
       }
@@ -230,25 +306,9 @@ export default function ReadingParts() {
                            (selectedStatus === 'completed' && isDone) || 
                            (selectedStatus === 'not_completed' && !isDone);
       
-      const getPassageNum = (test) => {
-        if (test.passageNumber) return Number(test.passageNumber);
-        if (test.passage_number) return Number(test.passage_number);
-        
-        // Difficulty mapping
-        const diff = String(test.difficulty || '').toLowerCase();
-        if (diff === 'easy') return 1;
-        if (diff === 'medium') return 2;
-        if (diff === 'hard') return 3;
-
-        const title = test.title?.toLowerCase() || '';
-        const match = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
-        if (match) return Number(match[1]);
-        return null;
-      };
-
-      const pNum = getPassageNum(item);
-      const matchesPassage = selectedPassages.length === 0 || 
-                            (pNum && selectedPassages.includes(pNum));
+       const pNum = getPassageNum(item);
+       const matchesPassage = selectedPassages.length === 0 || 
+                             (pNum && selectedPassages.includes(pNum));
 
       const matchesType = selectedQuestionTypes.length === 0 || 
                          (item.questionTypes && item.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));

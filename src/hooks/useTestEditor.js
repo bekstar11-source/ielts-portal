@@ -34,6 +34,7 @@ const compileMetadata = (testId, payload) => {
         updatedAt: payload.updatedAt || new Date().toISOString(),
         questionTypes: payload.questionTypes || [],
         collectionId: payload.collectionId && payload.collectionId !== "None" ? payload.collectionId : null,
+        thumbnail: payload.thumbnail || "",
     };
 
     if (payload.type === 'listening') {

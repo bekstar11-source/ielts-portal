@@ -320,7 +320,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
     const colsClass = partStats.length === 1 ? 'grid-cols-1 max-w-[120px] mx-auto' : (partStats.length === 3 ? 'grid-cols-3' : 'grid-cols-4');
 
     return (
-        <div className="absolute inset-0 bg-white/90 z-[9999] flex items-center justify-center backdrop-blur-md animate-in fade-in">
+        <div className="absolute inset-0 bg-white/90 z-[9999] flex items-center justify-center backdrop-blur-md">
             <div className="bg-white p-8 rounded-3xl shadow-2xl border border-gray-100/80 max-w-md w-full text-center">
                 <h3 className="font-extrabold text-2xl text-gray-900 mb-1">{t('testSolving.testCompleted') || 'Test yakunlandi'}</h3>
 

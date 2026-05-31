@@ -32,6 +32,14 @@
         "function": "sharePodcast"
       },
       {
+        "source": "/test/**",
+        "function": "shareTest"
+      },
+      {
+        "source": "/review/**",
+        "function": "shareTest"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

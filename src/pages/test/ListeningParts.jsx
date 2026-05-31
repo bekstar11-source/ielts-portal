@@ -59,6 +59,7 @@ export default function ListeningParts() {
   const [hasMore, setHasMore] = useState(true);
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [allTestsLoaded, setAllTestsLoaded] = useState(false);
   const PAGE_SIZE = 24;
 
   const rawAssignments = useMemo(() => {
@@ -155,6 +156,50 @@ export default function ListeningParts() {
     }
   };
 
+  const fetchAllTestsForSearch = async () => {
+    if (allTestsLoaded || loadingLibrary) return;
+    setLoadingLibrary(true);
+    try {
+        const qAll = query(
+            collection(db, 'tests_metadata'),
+            where('type', '==', 'listening'),
+            orderBy('createdAt', 'desc'),
+            limit(500)
+        );
+        const snap = await getDocs(qAll);
+        const allTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
+        
+        setLibraryTests(prev => {
+            const mergedMap = new Map();
+            prev.forEach(t => mergedMap.set(t.id, t));
+            allTests.forEach(t => {
+                if (!mergedMap.has(t.id)) {
+                    mergedMap.set(t.id, t);
+                }
+            });
+            return Array.from(mergedMap.values());
+        });
+        setHasMore(false);
+        setAllTestsLoaded(true);
+    } catch (err) {
+        console.error("Error fetching all tests for search:", err);
+    } finally {
+        setLoadingLibrary(false);
+    }
+  };
+
+  useEffect(() => {
+    const hasActiveFilters = searchQuery.trim().length > 0 || 
+                             selectedStatus !== 'all' || 
+                             selectedQuestionTypes.length > 0 || 
+                             selectedParts.length > 0 ||
+                             freeOnly ||
+                             activePartFilter !== 'all';
+    if (hasActiveFilters) {
+      fetchAllTestsForSearch();
+    }
+  }, [searchQuery, selectedStatus, selectedQuestionTypes, selectedParts, freeOnly, activePartFilter]);
+
   useEffect(() => {
     fetchLibraryPage(true);
   }, []);
@@ -214,6 +259,7 @@ export default function ListeningParts() {
             partNumber: partNum,
             isFree: !!test.isFree,
             duration: 10,
+            thumbnail: partData.thumbnail || test.thumbnail || null,
             audioUrl: partData.audioUrl || test.audioUrl || "",
             startTime: partData.startSec || 0,
             endTime: partData.endSec || 0,
@@ -238,6 +284,7 @@ export default function ListeningParts() {
             partNumber: partNum,
             isFree: !!test.isFree,
             duration: 10,
+            thumbnail: test.thumbnail || null,
             audioUrl: test.audioUrl || "",
             startTime: 0,
             endTime: 0,

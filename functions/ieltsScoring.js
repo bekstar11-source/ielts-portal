@@ -62,7 +62,7 @@ const normalizeString = (str) => {
     return String(str || "")
         .trim()
         .toLowerCase()
-        .replace(/[.,'":;?!( )]/g, ' ')
+        .replace(/[.,'":;?!]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 };

@@ -424,6 +424,7 @@ export default function AdminTests() {
                                 updatedAt: payload.updatedAt || new Date().toISOString(),
                                 questionTypes: payload.questionTypes || getQuestionTypesFromQuestions(payload.questions || []),
                                 collectionId: payload.collectionId && payload.collectionId !== "None" ? payload.collectionId : null,
+                                thumbnail: payload.thumbnail || "",
                             };
 
                             if (payload.type === 'listening') {
@@ -497,7 +498,21 @@ export default function AdminTests() {
                                 metadata.passages = passages;
                             }
 
-                            await setDoc(doc(db, "tests_metadata", testId), metadata);
+                            // ✅ Use merge:true to preserve existing thumbnail and other fields
+                            // that may have been set manually (e.g. via test editor).
+                            // Without merge, setDoc would overwrite and lose the thumbnail.
+                            const { getDoc: _getDoc } = await import("firebase/firestore");
+                            const existingMetaSnap = await _getDoc(doc(db, "tests_metadata", testId));
+                            const existingThumbnail = existingMetaSnap.exists() 
+                                ? (existingMetaSnap.data().thumbnail || "") 
+                                : "";
+                            
+                            // Use existing thumbnail if tests collection doesn't have one
+                            if (!metadata.thumbnail && existingThumbnail) {
+                                metadata.thumbnail = existingThumbnail;
+                            }
+
+                            await setDoc(doc(db, "tests_metadata", testId), metadata, { merge: true });
                             successCount++;
                         }
 

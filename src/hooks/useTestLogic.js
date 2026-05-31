@@ -39,6 +39,7 @@ export function useTestLogic() {
     const [testMode, setTestMode] = useState(null);
     const [showModeSelection, setShowModeSelection] = useState(true);
     const [showResult, setShowResult] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [score, setScore] = useState(0);
     const [bandScore, setBandScore] = useState(0);
     const [resultId, setResultId] = useState(null);
@@ -123,28 +124,34 @@ export function useTestLogic() {
 
     const handleSubmit = async (violationType = null) => {
         if (!test) return;
-        
-        const totalTime = initialDuration;
-        const timeSpent = testMode === 'practice' ? timeLeft : Math.max(0, totalTime - timeLeft);
-        const resultData = {
-            mode: testMode,
-            violation: typeof violationType === 'string' ? violationType : null,
-            timeSpent,
-            userAnswers,
-            partNumber: partNumber || null
-        };
+        setIsSubmitting(true);
+        try {
+            const totalTime = initialDuration;
+            const timeSpent = testMode === 'practice' ? timeLeft : Math.max(0, totalTime - timeLeft);
+            const resultData = {
+                mode: testMode,
+                violation: typeof violationType === 'string' ? violationType : null,
+                timeSpent,
+                userAnswers,
+                partNumber: partNumber || null
+            };
 
-        const res = await submitTest(test, resultData);
-        if (res && res.success) {
-            const xpAmount = Math.max(10, Math.round(res.bandScore * 10));
-            await awardXP('test', test.id, test.title, xpAmount);
-            setScore(res.score);
-            setBandScore(res.bandScore);
-            setResultId(res.resultId);
-            setShowResult(true);
-            clearTestStorage(user.uid, test.id, partNumber);
-            // Note: We don't remove reading highlights here so they are available in Review mode.
-            // They will be cleared if the user explicitly restarts the test.
+            const res = await submitTest(test, resultData);
+            if (res && res.success) {
+                const xpAmount = Math.max(10, Math.round(res.bandScore * 10));
+                await awardXP('test', test.id, test.title, xpAmount);
+                setScore(res.score);
+                setBandScore(res.bandScore);
+                setResultId(res.resultId);
+                setShowResult(true);
+                clearTestStorage(user.uid, test.id, partNumber);
+                // Note: We don't remove reading highlights here so they are available in Review mode.
+                // They will be cleared if the user explicitly restarts the test.
+            }
+        } catch (error) {
+            console.error("Error submitting test:", error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -173,6 +180,6 @@ export function useTestLogic() {
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate,
-        initialDuration, audioRefs, handleSeekTo, partNumber, resultId
+        initialDuration, audioRefs, handleSeekTo, partNumber, resultId, isSubmitting
     };
 }

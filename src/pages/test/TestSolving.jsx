@@ -25,7 +25,7 @@ export default function TestSolving() {
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
-        audioRefs, handleSeekTo, partNumber, resultId
+        audioRefs, handleSeekTo, partNumber, resultId, isSubmitting
     } = useTestLogic();
 
     // Dynamically determine the originating/return path
@@ -353,7 +353,7 @@ export default function TestSolving() {
     return (
         <div className={`flex flex-col h-screen bg-gray-50 font-sans select-none ${textSize}`}>
 
-            {saving && <ResultsCalculatingScreen />}
+            {(saving || isSubmitting) && <ResultsCalculatingScreen />}
 
             {/* FINISH WARNING MODAL */}
             {showFinishWarning && (
@@ -440,7 +440,7 @@ export default function TestSolving() {
             <TestHeader
                 test={test}
                 timeLeft={timeLeft}
-                saving={saving}
+                saving={saving || isSubmitting}
                 testMode={testMode}
                 onFinish={handleFinishClick}
                 onBack={handleBackClick}

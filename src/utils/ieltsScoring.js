@@ -73,7 +73,7 @@ export const normalizeString = (str) => {
     return String(str || "")
         .trim()
         .toLowerCase()
-        .replace(/[.,'":;?!( )]/g, ' ') // Replace common punctuation with space (except inside words if needed, but safe for IELTS)
+        .replace(/[.,'":;?!]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 };

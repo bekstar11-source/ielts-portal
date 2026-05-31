@@ -1,24 +1,19 @@
+import { checkAnswer as centralCheckAnswer } from '../../utils/ieltsScoring';
+
 export const checkAnswer = (userVal, correctVal) => {
     if (!correctVal || (Array.isArray(correctVal) && correctVal.length === 0)) return false;
     if (!userVal) return false;
-    
-    const u = String(userVal).trim().toLowerCase();
-    
-    // To'g'ri javoblar ro'yxatini shakllantirish (/, |, yoki , bilan ajratilgan bo'lishi mumkin)
-    const correctList = (Array.isArray(correctVal) ? correctVal : String(correctVal).split(/[\/|,]/))
-        .map(c => String(c).trim().toLowerCase())
-        .filter(Boolean);
-        
-    // Agar foydalanuvchi javobi to'g'ri javoblar ro'yxatida bo'lsa (multi-answer holati uchun)
-    if (correctList.includes(u)) return true;
-    
-    // Agar foydalanuvchi o'zi bir nechta javob yozgan bo'lsa (masalan "A, B")
-    if (u.includes(',') || u.includes('/') || u.includes('|')) {
-        const userList = u.split(/[\/|,]/).map(s => s.trim()).filter(Boolean);
-        return userList.every(val => correctList.includes(val));
+
+    if (Array.isArray(correctVal)) {
+        return correctVal.some(val => centralCheckAnswer(val, userVal));
     }
 
-    return false;
+    const correctList = String(correctVal).split(/[\/|,]/).map(c => c.trim()).filter(Boolean);
+    if (correctList.length > 1) {
+        return correctList.some(val => centralCheckAnswer(val, userVal));
+    }
+
+    return centralCheckAnswer(correctVal, userVal);
 };
 
 export const getStatusStyles = (isReviewMode, isCorrect, isSelected = false, type = 'border') => {

@@ -96,11 +96,11 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-6">
             <LanguageSwitcher />
             {!user ? (
-              <Link to="/login" className="px-5 py-2 text-sm font-semibold text-white bg-[#D2232A] hover:bg-red-700 transition-all rounded-lg active:scale-95 shadow-sm">
+              <Link to="/login" className="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md shadow-indigo-100/50 transition-all rounded-lg hover:scale-[1.02] active:scale-95">
                 Sign in
               </Link>
             ) : (
-              <Link to="/dashboard" className="px-5 py-2 text-sm font-semibold text-white bg-[#D2232A] hover:bg-red-700 transition-all rounded-lg active:scale-95 shadow-sm">
+              <Link to="/dashboard" className="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md shadow-indigo-100/50 transition-all rounded-lg hover:scale-[1.02] active:scale-95">
                 {t('navbar.dashboard')}
               </Link>
             )}
@@ -138,11 +138,11 @@ const Navbar = () => {
             <hr className="w-12 border-gray-300" />
 
             {!user ? (
-              <Link to="/login" className="px-8 py-3 text-lg font-semibold text-white bg-[#D2232A] rounded-xl shadow-md" onClick={() => setIsOpen(false)}>
+              <Link to="/login" className="px-8 py-3 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl shadow-md shadow-indigo-100/50" onClick={() => setIsOpen(false)}>
                 Sign in
               </Link>
             ) : (
-              <Link to="/dashboard" className="px-8 py-3 text-lg font-semibold text-white bg-[#D2232A] rounded-xl shadow-md" onClick={() => setIsOpen(false)}>
+              <Link to="/dashboard" className="px-8 py-3 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl shadow-md shadow-indigo-100/50" onClick={() => setIsOpen(false)}>
                 {t('navbar.dashboard')}
               </Link>
             )}
