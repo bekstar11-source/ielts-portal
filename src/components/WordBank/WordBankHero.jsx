@@ -1,10 +1,10 @@
 import React from 'react';
-import { Sparkles, ArrowUpRight, BrainCircuit, Layers, Gamepad2 } from 'lucide-react';
+import { Sparkles, ArrowUpRight, BrainCircuit, Layers, Gamepad2, FileText, Download } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 
 const WordBankHero = ({ 
     wordsCount, todayAddedCount, dueForReviewCount,
-    setFilterTab, setPracticeMode,
+    setFilterTab, setPracticeMode, onExportPDF,
     isDark 
 }) => {
     const { t } = useTranslation();
@@ -29,6 +29,15 @@ const WordBankHero = ({
           onClick: () => {
               setFilterTab('all');
               setPracticeMode('flashcards');
+          }
+        },
+        { 
+          title: "Quiz Testi", 
+          desc: "4 variantli mashq", 
+          icon: <FileText className="w-5 h-5" />, 
+          stats: "Boshlash",
+          onClick: () => {
+              setPracticeMode('quiz');
           }
         },
         { 
@@ -58,6 +67,16 @@ const WordBankHero = ({
                 </div>
 
                 <div className="flex items-center gap-6 pb-1">
+                    <button 
+                        onClick={onExportPDF}
+                        disabled={wordsCount === 0}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all mr-2 hover:scale-[1.02] active:scale-[0.98]
+                            ${wordsCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}
+                            ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700 shadow-sm'}`}
+                    >
+                        <Download className="w-3.5 h-3.5 text-[#FB5102]" />
+                        <span>PDF Eksport</span>
+                    </button>
                     <div className="text-right">
                         <p className="text-2xl font-semibold">{wordsCount}</p>
                         <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">{t('wordbank.totalWords')}</p>
@@ -71,7 +90,7 @@ const WordBankHero = ({
             </div>
 
             {/* Modules */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
                 {learningModules.map((module, idx) => (
                     <button 
                         key={idx}

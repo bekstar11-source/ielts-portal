@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../firebase/firebase';
-import { collection, query, getDocs, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, deleteDoc, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getUserWordBank, deleteWordFromBank } from '../utils/wordbankUtils';
 
@@ -73,21 +73,72 @@ export const useWordBank = (user) => {
             const translateWordFn = httpsCallable(functions, "translateWord");
             const result = await translateWordFn({ 
                 word: wordItem.word, 
-                contextSentence: wordItem.contextSentence 
+                contextSentence: wordItem.contextSentence || "" 
             });
 
-            const { definition, example, translation } = result.data;
+            const { definition, example, translation, phonetics, partOfSpeech, synonyms, antonyms, collocations } = result.data;
             const wordRef = doc(db, "users", user.uid, "vocabulary", wordItem.id);
-            await updateDoc(wordRef, { definition, example, translation, hasAI: true });
+            const updates = {
+                definition: definition || null,
+                example: example || null,
+                translation: translation || null,
+                phonetics: phonetics || null,
+                partOfSpeech: partOfSpeech || null,
+                synonyms: synonyms || [],
+                antonyms: antonyms || [],
+                collocations: collocations || [],
+                hasAI: true
+            };
+            await updateDoc(wordRef, updates);
 
             setWords(prev => prev.map(w => w.id === wordItem.id ? {
-                ...w, definition, example, translation, hasAI: true
+                ...w, ...updates
             } : w));
         } catch (error) {
             console.error("AI error:", error);
             alert("AI tarjimada xatolik: " + error.message);
         } finally {
             setGeneratingId(null);
+        }
+    };
+
+    const handleAddWord = async (wordData) => {
+        if (!user) return;
+        try {
+            const { word, translation, definition, example, phonetics, partOfSpeech, synonyms, antonyms, collocations, hasAI } = wordData;
+            
+            const vocabularyRef = collection(db, "users", user.uid, "vocabulary");
+            const newWordData = {
+                word,
+                translation: translation || null,
+                definition: definition || null,
+                example: example || null,
+                phonetics: phonetics || null,
+                partOfSpeech: partOfSpeech || null,
+                synonyms: synonyms || [],
+                antonyms: antonyms || [],
+                collocations: collocations || [],
+                learningStatus: 'learning',
+                addedAt: new Date(),
+                sectionTitle: "Qo'lda qo'shilganlar",
+                testTitle: "Shaxsiy lug'at",
+                easeFactor: 2.5,
+                interval: 0,
+                nextReviewDate: new Date(),
+                hasAI: !!hasAI
+            };
+            
+            const docRef = await addDoc(vocabularyRef, newWordData);
+            const savedWord = { id: docRef.id, ...newWordData };
+            setWords(prev => [savedWord, ...prev]);
+            
+            if (!hasAI) {
+                await generateAIContext(savedWord);
+            }
+            return docRef.id;
+        } catch (error) {
+            console.error("Error adding word manually:", error);
+            alert("So'z qo'shishda xatolik yuz berdi.");
         }
     };
 
@@ -108,14 +159,25 @@ export const useWordBank = (user) => {
             try {
                 const result = await translateWordFn({ 
                     word: wordItem.word, 
-                    contextSentence: wordItem.contextSentence 
+                    contextSentence: wordItem.contextSentence || "" 
                 });
-                const { definition, example, translation } = result.data;
+                const { definition, example, translation, phonetics, partOfSpeech, synonyms, antonyms, collocations } = result.data;
                 const wordRef = doc(db, "users", user.uid, "vocabulary", wordItem.id);
-                await updateDoc(wordRef, { definition, example, translation, hasAI: true });
+                const updates = {
+                    definition: definition || null,
+                    example: example || null,
+                    translation: translation || null,
+                    phonetics: phonetics || null,
+                    partOfSpeech: partOfSpeech || null,
+                    synonyms: synonyms || [],
+                    antonyms: antonyms || [],
+                    collocations: collocations || [],
+                    hasAI: true
+                };
+                await updateDoc(wordRef, updates);
 
                 setWords(prev => prev.map(w => w.id === wordItem.id ? {
-                    ...w, definition, example, translation, hasAI: true
+                    ...w, ...updates
                 } : w));
             } catch (error) { console.error(error); }
         }
@@ -127,6 +189,7 @@ export const useWordBank = (user) => {
         generatingId, batchProcessing, batchTotal, batchCurrent,
         handleDeleteWord, handleDeleteKeyword,
         updateWordStatus, generateAIContext, handleTranslateAll,
+        handleAddWord,
         refresh: fetchWords
     };
 };

@@ -1,11 +1,80 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ChevronDown, Trash2 } from 'lucide-react';
+import { BookOpen, ChevronDown, Trash2, Download } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 
 const KeywordList = ({ keywords, searchTerm, onDelete, isDark }) => {
     const [expandedGroup, setExpandedGroup] = useState(null);
     const { t } = useTranslation();
+
+    const handleExportGroupPDF = (e, groupTitle, groupKws) => {
+        e.stopPropagation();
+        if (!groupKws || groupKws.length === 0) return;
+        
+        const printWindow = window.open('', '_blank');
+        const docTitle = `${groupTitle} - Kalit so'zlar (Keywords)`;
+        
+        const rowsHtml = groupKws.map((k) => `
+            <tr>
+                <td style="font-weight: bold; width: 35%; font-size: 14px;">${k.passageWord}</td>
+                <td style="color: #fb5102; font-style: italic; width: 20%; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                    ${k.type === 'synonym' ? 'SYN' : k.type === 'antonym' ? 'ANT' : 'PHR'}
+                </td>
+                <td style="width: 45%; font-size: 13px;">${k.questionWord}</td>
+            </tr>
+        `).join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>${docTitle}</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #1f2937; }
+                        .header-table { width: 100%; border-bottom: 2px solid #fb5102; padding-bottom: 15px; margin-bottom: 30px; }
+                        h1 { font-size: 24px; color: #111827; margin: 0; }
+                        p.subtitle { font-size: 12px; color: #6b7280; margin: 5px 0 0 0; }
+                        table.vocab-table { width: 100%; border-collapse: collapse; }
+                        th, td { border-bottom: 1px solid #e5e7eb; padding: 12px 15px; text-align: left; vertical-align: top; }
+                        th { background-color: #f9fafb; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #4b5563; letter-spacing: 0.05em; border-top: 1px solid #e5e7eb; }
+                        tr:nth-child(even) { background-color: #fafafa; }
+                    </style>
+                </head>
+                <body>
+                    <table class="header-table">
+                        <tr>
+                            <td>
+                                <h1>Englev Kalit so'zlar - ${groupTitle}</h1>
+                                <p class="subtitle">Tanlangan test bo'yicha sinonim/antonimlar</p>
+                            </td>
+                            <td style="text-align: right; vertical-align: bottom; font-size: 12px; color: #6b7280;">
+                                Sana: ${new Date().toLocaleDateString()}<br/>
+                                Jami: ${groupKws.length} ta
+                            </td>
+                        </tr>
+                    </table>
+                    <table class="vocab-table">
+                        <thead>
+                            <tr>
+                                <th>Matndagi so'z (Passage Word)</th>
+                                <th>Turi (Type)</th>
+                                <th>Savoldagi so'z (Question Word)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 500);
+                        }
+                    </script>
+                </body>
+           </html>
+        `);
+        printWindow.document.close();
+    };
 
     const filteredKeywords = useMemo(() => {
         return keywords.filter(k => {
@@ -53,7 +122,17 @@ const KeywordList = ({ keywords, searchTerm, onDelete, isDark }) => {
                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{t('wordbank.keywordsCount').replace('{count}', kwList.length)}</p>
                                 </div>
                             </div>
-                            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={(e) => handleExportGroupPDF(e, testName, kwList)}
+                                    className={`p-2 px-3 rounded-xl border flex items-center gap-1.5 text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]
+                                        ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700 shadow-sm'}`}
+                                >
+                                    <Download className="w-3.5 h-3.5 text-[#FB5102]" />
+                                    <span className="hidden sm:inline">PDF Yuklash</span>
+                                </button>
+                                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                            </div>
                         </button>
                         <AnimatePresence>
                             {isExpanded && (

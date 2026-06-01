@@ -18,10 +18,15 @@ async function translateWord(data, context) {
 
     const prompt = `
     Analyze the English word "${word}" within the following context sentence: "${contextSentence || 'No specific context provided, use general meaning.'}".
-    Return a JSON object with EXACTLY these three keys:
+    Return a JSON object with EXACTLY these keys:
     - "definition": A concise English explanation of what the word means in this specific context.
     - "example": A good, clear English example sentence showing how to use the word.
     - "translation": The precise Uzbek translation of the word reflecting its meaning in this context.
+    - "phonetics": The phonetic IPA transcription of the word, e.g., "/kənˈtɛkst/".
+    - "partOfSpeech": The part of speech of the word in this context (e.g., noun, verb, adjective, adverb).
+    - "synonyms": An array of up to 4 English synonyms of this word that are relevant in this context.
+    - "antonyms": An array of up to 4 English antonyms of this word that are relevant in this context.
+    - "collocations": An array of up to 4 common English collocations or phrases using this word.
     `;
 
     try {

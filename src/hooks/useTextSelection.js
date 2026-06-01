@@ -27,7 +27,7 @@ export default function useTextSelection() {
         const rect = range.getBoundingClientRect();
         
         // Konteynermi aniqlash (absolute position uchun)
-        let container = targetContainer;
+        let container = (targetContainer && targetContainer instanceof HTMLElement) ? targetContainer : null;
         if (!container) {
             const common = range.commonAncestorContainer;
             container = common.nodeType === 1 ? common.closest('.passage-content') : common.parentElement?.closest('.passage-content');
@@ -197,14 +197,29 @@ export default function useTextSelection() {
         }
 
         try {
-            // FIREBASE SAVE LOGIC + AUTOMATIC AI TRANSLATION
-            let aiData = {
+            // Save initial vocabulary item to Firestore first (without waiting for translation)
+            const docRef = await addDoc(collection(db, "users", user.uid, "vocabulary"), {
+                word: word,
+                contextSentence: contextSentence,
+                testTitle: testContext.testTitle || "Noma'lum Test",
+                sectionTitle: testContext.sectionTitle || "Noma'lum Qism",
+                addedAt: serverTimestamp(),
+
+                // AI Fields (initially empty)
                 definition: null,
                 example: null,
                 translation: null,
-                hasAI: false
-            };
+                hasAI: false,
 
+                // Spaced Repetition System (SRS) fields
+                learningStatus: 'learning', // learning, review, mastered
+                easeFactor: 2.5,
+                interval: 0,
+                nextReviewDate: serverTimestamp() // needs review immediately
+            });
+
+            // Start translation in the background (asynchronously)
+            (async () => {
                 try {
                     const functions = getFunctions();
                     const translateWordFn = httpsCallable(functions, "translateWord");
@@ -214,36 +229,18 @@ export default function useTextSelection() {
                     });
 
                     if (result.data) {
-                        aiData = {
+                        await updateDoc(docRef, {
                             definition: result.data.definition || null,
                             example: result.data.example || contextSentence || null,
                             translation: result.data.translation || null,
                             hasAI: true
-                        };
+                        });
                     }
                 } catch (aiError) {
                     console.error("AI Auto-Translate error: ", aiError);
                 }
+            })();
 
-            await addDoc(collection(db, "users", user.uid, "vocabulary"), {
-                word: word,
-                contextSentence: contextSentence,
-                testTitle: testContext.testTitle || "Noma'lum Test",
-                sectionTitle: testContext.sectionTitle || "Noma'lum Qism",
-                addedAt: serverTimestamp(),
-
-                // AI Fields
-                definition: aiData.definition,
-                example: aiData.example,
-                translation: aiData.translation,
-                hasAI: aiData.hasAI,
-
-                // Spaced Repetition System (SRS) fields
-                learningStatus: 'learning', // learning, review, mastered
-                easeFactor: 2.5,
-                interval: 0,
-                nextReviewDate: serverTimestamp() // needs review immediately
-            });
             return true;
         } catch (error) {
             console.error("Vocabulary add error:", error);
@@ -252,6 +249,30 @@ export default function useTextSelection() {
     }, [user]);
 
     useEffect(() => {
+        let isMouseDown = false;
+
+        const handleMouseDown = () => {
+            isMouseDown = true;
+        };
+
+        const handleMouseUp = () => {
+            isMouseDown = false;
+            // Short delay to let selection settle
+            setTimeout(() => {
+                const selection = window.getSelection();
+                if (selection && !selection.isCollapsed) {
+                    const selectedText = selection.toString().trim();
+                    if (selectedText.length >= 2) {
+                        const activeElement = document.activeElement;
+                        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+                            return;
+                        }
+                        handleTextSelection();
+                    }
+                }
+            }, 10);
+        };
+
         const onSelectionChange = () => {
             const selection = window.getSelection();
             if (!selection || selection.isCollapsed) {
@@ -265,11 +286,25 @@ export default function useTextSelection() {
                 return;
             }
 
-            handleTextSelection();
+            // Only update position if user is not actively dragging/touching
+            if (!isMouseDown) {
+                handleTextSelection();
+            }
         };
 
+        document.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('touchstart', handleMouseDown);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('touchend', handleMouseUp);
         document.addEventListener('selectionchange', onSelectionChange);
-        return () => document.removeEventListener('selectionchange', onSelectionChange);
+
+        return () => {
+            document.removeEventListener('mousedown', handleMouseDown);
+            document.removeEventListener('touchstart', handleMouseDown);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('touchend', handleMouseUp);
+            document.removeEventListener('selectionchange', onSelectionChange);
+        };
     }, [handleTextSelection]);
 
     useEffect(() => {

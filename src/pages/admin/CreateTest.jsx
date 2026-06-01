@@ -15,6 +15,7 @@ import MediaManager from "../../components/admin/CreateTest/MediaManager";
 import JsonEditor from "../../components/admin/CreateTest/JsonEditor";
 import DuplicateModal from "../../components/admin/CreateTest/DuplicateModal";
 import WritingSection from "../../components/admin/CreateTest/WritingSection";
+import TestValidator, { runValidation } from "../../components/admin/CreateTest/TestValidator";
 
 // --- ICONS ---
 const Icons = {
@@ -105,6 +106,14 @@ export default function CreateTest() {
     };
 
     const handlePreSave = async () => {
+        const { errors } = runValidation(testData);
+        if (errors.length > 0) {
+            const confirmSave = window.confirm(
+                `Testda ${errors.length} ta kritik xato aniqlandi (masalan: kiritilmagan javoblar yoki noto'g'ri passage ID-lar). \n\nBaribir saqlashni xohlaysizmi?`
+            );
+            if (!confirmSave) return;
+        }
+
         setLoading(true);
         try {
             const q = query(collection(db, "tests"), where("type", "==", testData.type));
@@ -320,6 +329,9 @@ export default function CreateTest() {
                     style={{ width: `${panelWidth}%` }}
                 >
                     <div className="max-w-3xl mx-auto space-y-6">
+                        {(testData.type === 'reading' || testData.type === 'listening') && (
+                            <TestValidator testData={testData} isDark={isDark} />
+                        )}
                         <TestBasicInfo 
                             testData={testData} 
                             setTestData={setTestData} 

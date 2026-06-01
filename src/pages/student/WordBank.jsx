@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { Search, Sparkles, Loader2 } from 'lucide-react';
+import { Search, Sparkles, Loader2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../context/LanguageContext';
 
@@ -14,6 +14,8 @@ import SiteFooter from '../../components/common/SiteFooter';
 import WordBankFlashcards from '../../components/WordBank/WordBankFlashcards';
 import BottomNav from '../../components/dashboard/BottomNav';
 import WordBankMatchGame from '../../components/WordBank/WordBankMatchGame';
+import WordBankQuizGame from '../../components/WordBank/WordBankQuizGame';
+import AddWordModal from '../../components/WordBank/AddWordModal';
 
 // Refactored Components
 import WordBankHero from '../../components/WordBank/WordBankHero';
@@ -29,28 +31,103 @@ export default function Wordbank() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [keywordSearch, setKeywordSearch] = useState('');
-    const [practiceMode, setPracticeMode] = useState('dashboard'); // 'dashboard', 'flashcards', 'match'
+    const [practiceMode, setPracticeMode] = useState('dashboard'); // 'dashboard', 'flashcards', 'match', 'quiz'
     const [filterTab, setFilterTab] = useState('all'); // 'all', 'mastered', 'review', 'due'
     const [mainTab, setMainTab] = useState('vocabulary'); // 'vocabulary' | 'keywords'
     const [playingAudioId, setPlayingAudioId] = useState(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     const {
         words, keywords, loading,
         generatingId, batchProcessing,
         handleDeleteWord, handleDeleteKeyword,
-        updateWordStatus, generateAIContext, handleTranslateAll
+        updateWordStatus, generateAIContext, handleTranslateAll,
+        handleAddWord
     } = useWordBank(user);
 
-    const playPronunciation = (wordId, text) => {
+    const playPronunciation = (wordId, text, rate = 0.95) => {
         if (!('speechSynthesis' in window)) return alert(t('wordbank.speechNotSupported'));
         window.speechSynthesis.cancel();
-        setPlayingAudioId(wordId);
+        
+        const playingId = rate < 0.8 ? `${wordId}_slow` : wordId;
+        setPlayingAudioId(playingId);
+        
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
-        utterance.rate = 0.9;
+        utterance.rate = rate;
         utterance.onend = () => setPlayingAudioId(null);
         utterance.onerror = () => setPlayingAudioId(null);
         window.speechSynthesis.speak(utterance);
+    };
+
+    const handleExportPDF = () => {
+        if (words.length === 0) return;
+        const printWindow = window.open('', '_blank');
+        const docTitle = "Shaxsiy Lug'at (WordBank) - Englev";
+        
+        const rowsHtml = words.map((w, index) => `
+            <tr>
+                <td style="font-weight: bold; width: 25%; font-size: 14px;">${w.word}</td>
+                <td style="color: #fb5102; font-style: italic; width: 15%; font-size: 11px; font-weight: bold; text-transform: uppercase;">${w.partOfSpeech || 'noun'}</td>
+                <td style="width: 25%; font-size: 13px;">${w.translation || ''}</td>
+                <td style="width: 35%; font-size: 12px; color: #374151;">
+                    ${w.definition ? `<strong>Def:</strong> ${w.definition}<br/>` : ''}
+                    ${w.example ? `<span style="font-style: italic; color: #6b7280; font-size: 11px;">"${w.example}"</span>` : ''}
+                </td>
+            </tr>
+        `).join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>${docTitle}</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #1f2937; }
+                        .header-table { width: 100%; border-bottom: 2px solid #fb5102; padding-bottom: 15px; margin-bottom: 30px; }
+                        h1 { font-size: 28px; color: #111827; margin: 0; }
+                        p.subtitle { font-size: 12px; color: #6b7280; margin: 5px 0 0 0; }
+                        table.vocab-table { width: 100%; border-collapse: collapse; }
+                        th, td { border-bottom: 1px solid #e5e7eb; padding: 12px 15px; text-align: left; vertical-align: top; }
+                        th { background-color: #f9fafb; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #4b5563; letter-spacing: 0.05em; border-top: 1px solid #e5e7eb; }
+                        tr:nth-child(even) { background-color: #fafafa; }
+                    </style>
+                </head>
+                <body>
+                    <table class="header-table">
+                        <tr>
+                            <td>
+                                <h1>Englev WordBank</h1>
+                                <p class="subtitle">Sizning shaxsiy lug'atingiz</p>
+                            </td>
+                            <td style="text-align: right; vertical-align: bottom; font-size: 12px; color: #6b7280;">
+                                Sana: ${new Date().toLocaleDateString()}<br/>
+                                Jami so'zlar: ${words.length} ta
+                            </td>
+                        </tr>
+                    </table>
+                    <table class="vocab-table">
+                        <thead>
+                            <tr>
+                                <th>So'z</th>
+                                <th>So'z turkumi</th>
+                                <th>Tarjimasi</th>
+                                <th>Ta'rifi va Misol</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 500);
+                        }
+                    </script>
+                </body>
+           </html>
+        `);
+        printWindow.document.close();
     };
 
     const dueForReviewCount = words.filter(w => {
@@ -93,6 +170,16 @@ export default function Wordbank() {
         );
     }
 
+    if (practiceMode === 'quiz') {
+        return (
+            <WordBankQuizGame
+                words={words}
+                onBack={() => setPracticeMode('dashboard')}
+                isDark={isDark}
+            />
+        );
+    }
+
     return (
         <div className={`min-h-screen font-sans transition-colors duration-500 pb-20 ${isDark ? 'bg-black text-[#f5f5f7]' : 'bg-white text-[#1d1d1f]'}`}>
             <DashboardHeader
@@ -109,6 +196,7 @@ export default function Wordbank() {
                     dueForReviewCount={dueForReviewCount}
                     setFilterTab={setFilterTab}
                     setPracticeMode={setPracticeMode}
+                    onExportPDF={handleExportPDF}
                     isDark={isDark}
                 />
 
@@ -131,7 +219,7 @@ export default function Wordbank() {
                         </div>
 
                         <div className="flex flex-col sm:flex-row items-center gap-4">
-                             <div className="relative w-full sm:w-[320px] group">
+                             <div className="relative w-full sm:w-[280px] group">
                                 <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-[#FB5102]' : 'text-gray-400 group-focus-within:text-[#FB5102]'}`} />
                                 <input 
                                     type="text" 
@@ -141,6 +229,14 @@ export default function Wordbank() {
                                     onChange={(e) => mainTab === 'vocabulary' ? setSearchTerm(e.target.value) : setKeywordSearch(e.target.value)}
                                 />
                             </div>
+                            
+                            <button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all w-full sm:w-auto justify-center bg-[#1d1d1f] hover:bg-black text-white dark:bg-white/10 dark:hover:bg-white/20 active:scale-95 border dark:border-white/5 border-transparent`}
+                            >
+                                <Plus className="w-4 h-4" />
+                                <span>Yangi so'z</span>
+                            </button>
                             
                             <button 
                                 onClick={handleTranslateAll} 
@@ -184,6 +280,12 @@ export default function Wordbank() {
                     )}
                 </div>
             </main>
+            <AddWordModal 
+                isOpen={isAddModalOpen} 
+                onClose={() => setIsAddModalOpen(false)} 
+                onAdd={handleAddWord} 
+                isDark={isDark} 
+            />
             <BottomNav activeTab="vocabulary" />
             <SiteFooter />
         </div>

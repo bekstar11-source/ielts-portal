@@ -121,7 +121,7 @@ export default function HighlightMenu({ position, onHighlight, onClear, onClearA
                 disabled={isAdded || isProcessing}
             >
                 {isAdded ? (
-                    <Check size={16} className="animate-in zoom-in" />
+                    <Check size={16} />
                 ) : isProcessing && !isWBAdded ? (
                     <Loader2 size={16} className="animate-spin" />
                 ) : (
@@ -140,7 +140,7 @@ export default function HighlightMenu({ position, onHighlight, onClear, onClearA
                         disabled={isWBAdded || isProcessing}
                     >
                         {isWBAdded ? (
-                            <Check size={16} className="animate-in zoom-in" />
+                            <Check size={16} />
                         ) : isProcessing && isWBAdded ? (
                             <Loader2 size={16} className="animate-spin" />
                         ) : (

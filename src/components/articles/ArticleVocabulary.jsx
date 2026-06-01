@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookMarked, ChevronDown, Volume2 } from 'lucide-react';
+import { BookMarked, ChevronDown, Volume2, Plus, Check, Loader2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../firebase/firebase';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 
 const speakWord = (word) => {
     if (!window.speechSynthesis || !word) return;
@@ -11,9 +14,146 @@ const speakWord = (word) => {
     window.speechSynthesis.speak(utterance);
 };
 
-export default function ArticleVocabulary({ vocabulary = [], level }) {
+export default function ArticleVocabulary({ vocabulary = [], level, articleTitle }) {
     const [expanded, setExpanded] = useState(true);
     const [openIndex, setOpenIndex] = useState(null);
+    const { user } = useAuth();
+    const [addedWords, setAddedWords] = useState(new Set());
+    const [addingWordId, setAddingWordId] = useState(null);
+    const [isAddingAll, setIsAddingAll] = useState(false);
+
+    useEffect(() => {
+        if (!user) {
+            setAddedWords(new Set());
+            return;
+        }
+
+        const fetchExistingWords = async () => {
+            try {
+                const q = query(collection(db, "users", user.uid, "vocabulary"));
+                const snapshot = await getDocs(q);
+                const wordsSet = new Set(snapshot.docs.map(doc => doc.data().word?.toLowerCase().trim()));
+                setAddedWords(wordsSet);
+            } catch (error) {
+                console.error("Error fetching existing vocabulary:", error);
+            }
+        };
+
+        fetchExistingWords();
+    }, [user]);
+
+    const handleAddWord = async (item) => {
+        if (!user) {
+            alert("Lug'atga qo'shish uchun avval tizimga kiring.");
+            return;
+        }
+
+        try {
+            setAddingWordId(item.word);
+
+            await addDoc(collection(db, "users", user.uid, "vocabulary"), {
+                word: item.word,
+                contextSentence: item.example || "",
+                testTitle: articleTitle || "Maqola",
+                sectionTitle: articleTitle || "Maqola",
+                addedAt: serverTimestamp(),
+
+                // Predefined article vocabulary fields
+                definition: item.definition || "",
+                example: item.example || "",
+                translation: item.translation || "",
+                hasAI: true,
+
+                // SRS fields
+                learningStatus: 'learning',
+                easeFactor: 2.5,
+                interval: 0,
+                nextReviewDate: serverTimestamp()
+            });
+
+            setAddedWords(prev => new Set([...prev, item.word.toLowerCase().trim()]));
+        } catch (error) {
+            console.error("Error adding word to wordbank:", error);
+            alert("Lug'atga qo'shishda xatolik yuz berdi: " + error.message);
+        } finally {
+            setAddingWordId(null);
+        }
+    };
+
+    const handleRemoveWord = async (item) => {
+        if (!user) return;
+        try {
+            setAddingWordId(item.word);
+
+            const q = query(
+                collection(db, "users", user.uid, "vocabulary"),
+                where("word", "==", item.word)
+            );
+            const snapshot = await getDocs(q);
+            const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, "users", user.uid, "vocabulary", d.id)));
+            await Promise.all(deletePromises);
+
+            setAddedWords(prev => {
+                const next = new Set(prev);
+                next.delete(item.word.toLowerCase().trim());
+                return next;
+            });
+        } catch (error) {
+            console.error("Error removing word:", error);
+            alert("O'chirishda xatolik yuz berdi: " + error.message);
+        } finally {
+            setAddingWordId(null);
+        }
+    };
+
+    const handleAddAllWords = async () => {
+        if (!user) {
+            alert("Lug'atga qo'shish uchun avval tizimga kiring.");
+            return;
+        }
+
+        setIsAddingAll(true);
+        try {
+            const batch = writeBatch(db);
+            const wordsToAdd = vocabulary.filter(item => !addedWords.has(item.word?.toLowerCase().trim()));
+
+            if (wordsToAdd.length === 0) return;
+
+            wordsToAdd.forEach(item => {
+                const docRef = doc(collection(db, "users", user.uid, "vocabulary"));
+                batch.set(docRef, {
+                    word: item.word,
+                    contextSentence: item.example || "",
+                    testTitle: articleTitle || "Maqola",
+                    sectionTitle: articleTitle || "Maqola",
+                    addedAt: serverTimestamp(),
+
+                    definition: item.definition || "",
+                    example: item.example || "",
+                    translation: item.translation || "",
+                    hasAI: true,
+
+                    learningStatus: 'learning',
+                    easeFactor: 2.5,
+                    interval: 0,
+                    nextReviewDate: serverTimestamp()
+                });
+            });
+
+            await batch.commit();
+
+            setAddedWords(prev => {
+                const next = new Set(prev);
+                wordsToAdd.forEach(item => next.add(item.word.toLowerCase().trim()));
+                return next;
+            });
+        } catch (error) {
+            console.error("Error adding all words to wordbank:", error);
+            alert("Barcha so'zlarni qo'shishda xatolik yuz berdi: " + error.message);
+        } finally {
+            setIsAddingAll(false);
+        }
+    };
 
     if (!vocabulary?.length) return null;
 
@@ -52,6 +192,34 @@ export default function ArticleVocabulary({ vocabulary = [], level }) {
                         className="overflow-hidden"
                     >
                         <div className="pt-3 space-y-2">
+                            <div className="flex items-center justify-between px-2 py-1">
+                                <span className="text-[13px] text-gray-550 dark:text-neutral-400 font-sans">
+                                    Barcha so'zlarni bir martada qo'shing
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={handleAddAllWords}
+                                    disabled={isAddingAll || vocabulary.every(item => addedWords.has(item.word?.toLowerCase().trim()))}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FB5102] hover:bg-[#e64a02] disabled:bg-gray-100 dark:disabled:bg-neutral-800 disabled:text-gray-400 text-white rounded-lg text-xs font-semibold transition-all active:scale-95 shadow-sm"
+                                >
+                                    {isAddingAll ? (
+                                        <>
+                                            <Loader2 size={13} className="animate-spin" />
+                                            <span>Qo'shilmoqda...</span>
+                                        </>
+                                    ) : vocabulary.every(item => addedWords.has(item.word?.toLowerCase().trim())) ? (
+                                        <>
+                                            <Check size={13} />
+                                            <span>Barchasi qo'shilgan</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <BookMarked size={13} />
+                                            <span>Barchasini qo'shish</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                             {vocabulary.map((item, idx) => {
                                 const isOpen = openIndex === idx;
                                 return (
@@ -87,6 +255,37 @@ export default function ArticleVocabulary({ vocabulary = [], level }) {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
+                                                {(() => {
+                                                    const isAdded = addedWords.has(item.word?.toLowerCase().trim());
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (isAdded) {
+                                                                    handleRemoveWord(item);
+                                                                } else {
+                                                                    handleAddWord(item);
+                                                                }
+                                                            }}
+                                                            className={`p-2 rounded-lg transition-colors ${
+                                                                isAdded 
+                                                                    ? 'text-green-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' 
+                                                                    : 'text-gray-400 hover:text-[#FB5102] hover:bg-orange-50 dark:hover:bg-orange-950/30'
+                                                            }`}
+                                                            title={isAdded ? "Lug'atdan o'chirish" : "Lug'atga qo'shish"}
+                                                            disabled={addingWordId === item.word}
+                                                        >
+                                                            {addingWordId === item.word ? (
+                                                                <Loader2 size={16} className="animate-spin" />
+                                                            ) : isAdded ? (
+                                                                <Check size={16} />
+                                                            ) : (
+                                                                <Plus size={16} />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })()}
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {

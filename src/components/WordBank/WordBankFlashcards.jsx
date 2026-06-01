@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw, XCircle, Brain, Target, Zap, Volume2 } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
@@ -10,7 +10,14 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [direction, setDirection] = useState(1); // 1 = right, -1 = left
+    const [playingAudio, setPlayingAudio] = useState(false);
     const { t } = useTranslation();
+
+    useEffect(() => {
+        if (words && currentIndex >= words.length) {
+            setCurrentIndex(0);
+        }
+    }, [words, currentIndex]);
 
     if (!words || words.length === 0) {
         return (
@@ -28,8 +35,8 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
         );
     }
 
-    const currentWord = words[currentIndex];
-    const [playingAudio, setPlayingAudio] = useState(false);
+    const safeIndex = currentIndex < words.length ? currentIndex : 0;
+    const currentWord = words[safeIndex];
 
     const playPronunciation = (e, text) => {
         e.stopPropagation();
@@ -174,7 +181,7 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                         <span>{t('wordbank.back')}</span>
                     </button>
                     <div className={`text-sm font-medium px-4 py-1.5 rounded-full ${isDark ? 'text-gray-400 bg-white/5' : 'text-slate-600 bg-slate-200/60'}`}>
-                        {currentIndex + 1} / {words.length}
+                        {safeIndex + 1} / {words.length}
                     </div>
                 </div>
 
@@ -182,7 +189,7 @@ export default function WordBankFlashcards({ words, onBack, onUpdateStatus }) {
                 <div className="flex-1 relative flex items-center justify-center min-h-[400px] perspective-1000 mb-8 px-4">
                     <AnimatePresence initial={false} custom={direction} mode="wait">
                         <motion.div
-                            key={currentIndex}
+                            key={safeIndex}
                             custom={direction}
                             variants={swipeVariants}
                             initial="enter"

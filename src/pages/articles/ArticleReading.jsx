@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from "../../firebase/firebase";
-import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useAuth } from '../../context/AuthContext';
 import SiteFooter from '../../components/common/SiteFooter';
@@ -39,6 +39,11 @@ export default function ArticleReading() {
   const [completed, setCompleted] = useState(false);
   const { awardXP } = useGamification();
   const commentsRef = useRef(null);
+  
+  const [selectionMenu, setSelectionMenu] = useState(null);
+  const [isWordBankLoading, setIsWordBankLoading] = useState(false);
+  const [isWordBankAdded, setIsWordBankAdded] = useState(false);
+  const articleContainerRef = useRef(null);
   
   // Interaction states
   const [claps, setClaps] = useState(0);
@@ -69,6 +74,167 @@ export default function ArticleReading() {
         return acc;
       }, {})
     : {};
+
+  // Menyuni yopish va selectionni tozalash
+  const dismissMenu = () => {
+    setSelectionMenu(null);
+    const sel = window.getSelection();
+    if (sel) {
+      try {
+        sel.removeAllRanges();
+      } catch (e) { /* ignore */ }
+    }
+  };
+
+  const handleAddToWordBank = async () => {
+    if (!selectionMenu || !user || isWordBankLoading || isWordBankAdded) return;
+    setIsWordBankLoading(true);
+
+    const { word, context } = selectionMenu;
+
+    try {
+      const docRef = await addDoc(collection(db, "users", user.uid, "vocabulary"), {
+        word: word,
+        contextSentence: context || "",
+        testTitle: article?.title || "Maqola",
+        sectionTitle: article?.title || "Maqola",
+        addedAt: serverTimestamp(),
+
+        // AI Fields (initially empty)
+        definition: null,
+        example: null,
+        translation: null,
+        hasAI: false,
+
+        // Spaced Repetition System (SRS) fields
+        learningStatus: 'learning',
+        easeFactor: 2.5,
+        interval: 0,
+        nextReviewDate: serverTimestamp()
+      });
+
+      // Background translate
+      (async () => {
+        try {
+          const { getFunctions, httpsCallable } = await import("firebase/functions");
+          const functions = getFunctions();
+          const translateWordFn = httpsCallable(functions, "translateWord");
+          const result = await translateWordFn({ 
+            word: word, 
+            contextSentence: context 
+          });
+
+          if (result.data) {
+            await updateDoc(docRef, {
+              definition: result.data.definition || null,
+              example: result.data.example || context || null,
+              translation: result.data.translation || null,
+              hasAI: true
+            });
+          }
+        } catch (aiError) {
+          console.error("AI Auto-Translate error: ", aiError);
+        }
+      })();
+
+      setIsWordBankAdded(true);
+      // 1 soniya "Added!" ko'rsatib, keyin tozalash
+      setTimeout(() => {
+        dismissMenu();
+      }, 1000);
+
+    } catch (error) {
+      console.error("WordBank add error:", error);
+      alert("So'zni saqlashda xatolik yuz berdi.");
+    } finally {
+      setIsWordBankLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const container = articleContainerRef.current;
+    if (!container) return;
+
+    const showMenu = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        setSelectionMenu(null);
+        return;
+      }
+
+      const selectedText = selection.toString().trim();
+      if (selectedText.length < 2 || selectedText.length > 60) {
+        setSelectionMenu(null);
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      if (!container.contains(range.commonAncestorContainer)) {
+        setSelectionMenu(null);
+        return;
+      }
+
+      // Kontekst jumlasini olish
+      let contextSentence = "";
+      try {
+        let node = selection.anchorNode;
+        while (node && node !== container && !['P', 'DIV', 'LI'].includes(node.nodeName)) {
+          node = node.parentNode;
+        }
+        if (node && node !== container) {
+          contextSentence = node.textContent.trim();
+          if (contextSentence.length > 250) {
+            contextSentence = contextSentence.substring(0, 250) + "...";
+          }
+        }
+      } catch (e) { /* ignore */ }
+
+      // Menyu pozitsiyasini hisoblash
+      const rect = range.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      setSelectionMenu({
+        top: rect.top - containerRect.top + container.scrollTop - 50,
+        left: rect.left - containerRect.left + container.scrollLeft + (rect.width / 2),
+        word: selectedText,
+        context: contextSentence
+      });
+      setIsWordBankAdded(false);
+      setIsWordBankLoading(false);
+    };
+
+    const onMouseUp = (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      // Menu div ichida bosilsa — ignore
+      if (e.target.closest('.article-selection-menu')) return;
+      setTimeout(showMenu, 30);
+    };
+
+    const onTouchEnd = (e) => {
+      if (e.target.closest('.article-selection-menu')) return;
+      setTimeout(showMenu, 30);
+    };
+
+    // Tashqariga bosilsa menyuni yopish
+    const onDocumentMouseDown = (e) => {
+      if (!selectionMenu) return;
+      // Agar menu ichida yoki article ichida bo'lmasa — yopish
+      if (e.target.closest('.article-selection-menu')) return;
+      if (!container.contains(e.target)) {
+        dismissMenu();
+      }
+    };
+
+    container.addEventListener('mouseup', onMouseUp);
+    container.addEventListener('touchend', onTouchEnd);
+    document.addEventListener('mousedown', onDocumentMouseDown);
+
+    return () => {
+      container.removeEventListener('mouseup', onMouseUp);
+      container.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('mousedown', onDocumentMouseDown);
+    };
+  }, [article?.title, selectionMenu, dismissMenu]);
 
   useEffect(() => {
     if (userData) {
@@ -391,6 +557,7 @@ export default function ArticleReading() {
 
 
 
+
   if (loading) {
     return (
         <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
@@ -402,7 +569,7 @@ export default function ArticleReading() {
   if (!article) return null;
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] dark:bg-black text-[#1D1D1F] dark:text-[#f5f5f7] font-sans antialiased selection:bg-blue-50 dark:selection:bg-blue-950/30 selection:text-blue-600 dark:selection:text-blue-400 transition-colors duration-300">
+    <div className="min-h-screen bg-[#FFFFFF] dark:bg-black text-[#1D1D1F] dark:text-[#f5f5f7] font-sans antialiased selection:bg-blue-100 dark:selection:bg-blue-900/30 selection:text-blue-900 dark:selection:text-blue-100 transition-colors duration-300">
       <DashboardHeader user={user} userData={userData} activeTab="articles" />
       
       {/* Sub Header / Action Bar */}
@@ -562,7 +729,55 @@ export default function ArticleReading() {
           </div>
         )}
 
-        <article className={`${textSize} text-[#242424] dark:text-neutral-200 font-serif article-container relative`}>
+        <article 
+          ref={articleContainerRef}
+          className={`${textSize} text-[#242424] dark:text-neutral-200 font-serif article-container relative`}
+        >
+          {selectionMenu && (
+            <div
+              className="article-selection-menu absolute z-[1000] flex items-center gap-1.5 bg-gray-900/95 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2 touch-none select-none border border-white/[0.08]"
+              style={{
+                top: selectionMenu.top,
+                left: selectionMenu.left
+              }}
+              onMouseDown={(e) => e.preventDefault()}
+              onTouchStart={(e) => e.preventDefault()}
+            >
+              <button
+                onClick={handleAddToWordBank}
+                disabled={isWordBankLoading || isWordBankAdded}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+                  isWordBankAdded 
+                    ? 'text-green-400' 
+                    : 'text-blue-400 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {isWordBankLoading ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : isWordBankAdded ? (
+                  <>
+                    <CheckCircle2 size={14} className="text-green-400" />
+                    <span>Added!</span>
+                  </>
+                ) : (
+                  <>
+                    <BookMarked size={14} />
+                    <span>WordBank'ga qo'shish</span>
+                  </>
+                )}
+              </button>
+              <div className="w-[1px] h-4 bg-white/20"></div>
+              <button
+                onClick={dismissMenu}
+                className="p-1 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           {(() => {
             const isPro = userData?.accountType === 'pro' || userData?.isPro;
             const isStandard = userData?.accountType === 'standard';
@@ -696,7 +911,7 @@ export default function ArticleReading() {
           })()}
         </article>
 
-        <ArticleVocabulary vocabulary={activeVocabulary} level={readingLevel} />
+        <ArticleVocabulary vocabulary={activeVocabulary} level={readingLevel} articleTitle={article.title} />
         
         {/* Inline Comments Section (Medium Style) */}
         <section ref={commentsRef} className="mt-16 border-t border-gray-150 dark:border-neutral-850 pt-10 pb-16 max-w-2xl mx-auto">
@@ -879,12 +1094,41 @@ export default function ArticleReading() {
         )}
 
         <style>{`
-          .article-container, 
-          .article-container h2, 
-          .article-container div, 
-          .article-container p, 
+          .article-container,
+          .article-container h2,
+          .article-container div,
+          .article-container p,
           .article-container span {
             font-family: Charter, Georgia, Cambria, "Times New Roman", Times, serif !important;
+          }
+          .article-container,
+          .article-container * {
+            -webkit-user-select: text !important;
+            user-select: text !important;
+            cursor: auto;
+          }
+          .article-container::selection,
+          .article-container *::selection {
+            background-color: #b3d4fc !important;
+            color: #000 !important;
+          }
+          .dark .article-container::selection,
+          .dark .article-container *::selection {
+            background-color: rgba(96, 165, 250, 0.45) !important;
+            color: #fff !important;
+          }
+          /* Persistent selection highlight (so'z belgilangandan keyin ko'k bo'lib turadi) */
+          mark.article-active-selection {
+            background-color: #b3d4fc !important;
+            color: inherit !important;
+            border-radius: 3px;
+            padding: 1px 0;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+          }
+          .dark mark.article-active-selection {
+            background-color: rgba(96, 165, 250, 0.45) !important;
+            color: #fff !important;
           }
           .dark .article-container span,
           .dark .article-container p,
