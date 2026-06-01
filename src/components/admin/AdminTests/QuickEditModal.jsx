@@ -34,7 +34,8 @@ export default function QuickEditModal({
         setUploadProgress(0);
         try {
             const storageRef = ref(storage, `thumbnails/${Date.now()}_${file.name}`);
-            const uploadTask = uploadBytesResumable(storageRef, file);
+            const metadata = { cacheControl: 'public,max-age=31536000' };
+            const uploadTask = uploadBytesResumable(storageRef, file, metadata);
 
             uploadTask.on(
                 "state_changed",

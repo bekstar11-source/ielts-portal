@@ -44,6 +44,7 @@ export default function ListeningParts() {
   const { checkLimit, incrementUsage } = useDailyLimit(userData);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("all"); 
   const [selectedParts, setSelectedParts] = useState([]);
@@ -189,7 +190,14 @@ export default function ListeningParts() {
   };
 
   useEffect(() => {
-    const hasActiveFilters = searchQuery.trim().length > 0 || 
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const hasActiveFilters = debouncedSearchQuery.trim().length > 0 || 
                              selectedStatus !== 'all' || 
                              selectedQuestionTypes.length > 0 || 
                              selectedParts.length > 0 ||
@@ -198,7 +206,7 @@ export default function ListeningParts() {
     if (hasActiveFilters) {
       fetchAllTestsForSearch();
     }
-  }, [searchQuery, selectedStatus, selectedQuestionTypes, selectedParts, freeOnly, activePartFilter]);
+  }, [debouncedSearchQuery, selectedStatus, selectedQuestionTypes, selectedParts, freeOnly, activePartFilter]);
 
   useEffect(() => {
     fetchLibraryPage(true);

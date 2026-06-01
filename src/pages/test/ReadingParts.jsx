@@ -67,6 +67,7 @@ export default function ReadingParts() {
   const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("all"); 
   const [selectedPassages, setSelectedPassages] = useState([]); 
@@ -223,7 +224,14 @@ export default function ReadingParts() {
   };
 
   useEffect(() => {
-    const hasActiveFilters = searchQuery.trim().length > 0 || 
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const hasActiveFilters = debouncedSearchQuery.trim().length > 0 || 
                              selectedStatus !== 'all' || 
                              selectedQuestionTypes.length > 0 || 
                              selectedPassages.length > 0 ||
@@ -231,7 +239,7 @@ export default function ReadingParts() {
     if (hasActiveFilters) {
       fetchAllTestsForSearch();
     }
-  }, [searchQuery, selectedStatus, selectedQuestionTypes, selectedPassages, freeOnly]);
+  }, [debouncedSearchQuery, selectedStatus, selectedQuestionTypes, selectedPassages, freeOnly]);
 
   useEffect(() => {
     fetchLibraryPage(true);
