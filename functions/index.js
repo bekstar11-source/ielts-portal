@@ -9,6 +9,7 @@ const { analyzeSpeaking } = require("./analyzeSpeaking");
 const { generateVocab } = require("./generateVocab");
 const { translateWord } = require("./translateWord");
 const { checkWriting } = require("./checkWriting");
+const { beautifyArticle } = require("./beautifyArticle");
 const { telegramWebhook, verifyTelegramOTP } = require("./telegramBot");
 const { verifyAccessKey } = require("./verifyAccessKey");
 const { getSanitizedTest } = require("./getSanitizedTest");
@@ -35,6 +36,10 @@ exports.translateWord = functions
 exports.checkWriting = functions
     .runWith({ timeoutSeconds: 120, memory: "256MB" })
     .https.onCall(checkWriting);
+
+exports.beautifyArticle = functions
+    .runWith({ timeoutSeconds: 90, memory: "256MB" })
+    .https.onCall(beautifyArticle);
 
 exports.verifyAccessKey = functions
     .runWith({ timeoutSeconds: 60, memory: "256MB" })

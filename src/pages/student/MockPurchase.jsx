@@ -17,7 +17,9 @@ import {
   Check, 
   AlertCircle,
   ShieldCheck,
-  ShoppingBag
+  ShoppingBag,
+  MessageCircle,
+  ExternalLink
 } from "lucide-react";
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import DashboardModals from "../../components/dashboard/DashboardModals";
@@ -35,6 +37,7 @@ export default function MockPurchase() {
   const [loading, setLoading] = useState(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [userMocks, setUserMocks] = useState([]);
+  const [paymentStarted, setPaymentStarted] = useState(false);
 
   // Purchase Modal State
   const [selectedMock, setSelectedMock] = useState(null);
@@ -97,45 +100,16 @@ export default function MockPurchase() {
   };
 
   // Handle Mock Purchase Confirmation
-  const handleConfirmPurchase = async () => {
-    if (!selectedMock || purchasing || !user?.uid) return;
+  const handleConfirmPurchase = () => {
+    if (!selectedMock || !user?.uid) return;
 
-    setPurchasing(true);
     try {
-      const now = new Date().toISOString();
-      const mockKey = "PURCHASED_" + Math.random().toString(36).substring(2, 8).toUpperCase();
-      
-      // Construct the mock assignment object
-      const mockAssignment = {
-        id: "MOCK_" + mockKey,
-        type: "mock_full",
-        title: selectedMock.title,
-        collectionId: selectedMock.collectionId || "",
-        startDate: now,
-        status: "unlocked_mock",
-        mockKey: mockKey,
-        subTests: {
-          reading: selectedMock.subTests?.readingId || "",
-          listening: selectedMock.subTests?.listeningId || "",
-          writing: selectedMock.subTests?.writingId || ""
-        }
-      };
-
-      // Add to user's mockTests array in firestore
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        mockTests: arrayUnion(mockAssignment)
-      });
-
-      // Close modal & refresh local catalog
-      setSelectedMock(null);
-      
-      // Navigate back to the mock dashboard
-      navigate("/mock");
+      const params = `${user.uid}_mock_${selectedMock.id}`;
+      const telegramUrl = `https://t.me/ielts_portal_auth_bot?start=${params}`;
+      window.open(telegramUrl, "_blank");
+      setPaymentStarted(true);
     } catch (err) {
-      console.error("Error purchasing mock exam:", err);
-    } finally {
-      setPurchasing(false);
+      console.error("Error redirecting to Telegram:", err);
     }
   };
 
@@ -287,7 +261,10 @@ export default function MockPurchase() {
                         </button>
                       ) : (
                         <button
-                          onClick={() => setSelectedMock(mock)}
+                          onClick={() => {
+                            setPaymentStarted(false);
+                            setSelectedMock(mock);
+                          }}
                           className="w-full py-3.5 rounded-lg text-xs font-bold transition-all bg-[#e31b23] hover:bg-[#c4151c] text-white active:scale-98 flex items-center justify-center gap-1.5 shadow-sm shadow-red-950/20"
                         >
                           <ShoppingBag size={14} /> Sotib olish
@@ -315,7 +292,10 @@ export default function MockPurchase() {
           {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" 
-            onClick={() => setSelectedMock(null)}
+            onClick={() => {
+              setSelectedMock(null);
+              setPaymentStarted(false);
+            }}
           />
           
           {/* Checkout Panel */}
@@ -323,71 +303,130 @@ export default function MockPurchase() {
             isDark ? "bg-[#0b0b0c] border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-gray-800"
           }`}>
             <div className="text-center space-y-6">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto ${
-                isDark ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-red-50 text-[#e31b23] border border-red-100"
-              }`}>
-                <ShoppingBag size={24} />
-              </div>
+              {!paymentStarted ? (
+                <>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto ${
+                    isDark ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-red-50 text-[#e31b23] border border-red-100"
+                  }`}>
+                    <ShoppingBag size={24} />
+                  </div>
 
-              <div className="space-y-2">
-                <h3 className={`text-xl font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
-                  To'lovni tasdiqlash
-                </h3>
-                <p className={`text-xs font-semibold leading-relaxed px-2 ${isDark ? "text-zinc-450" : "text-gray-550"}`}>
-                  Ushbu mock testni sotib olishni tasdiqlaysizmi? Mock darhol profilingizga biriktiriladi.
-                </p>
-              </div>
+                  <div className="space-y-2">
+                    <h3 className={`text-xl font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+                      {lang === 'uz' ? "To'lovni boshlash" : "Start Payment"}
+                    </h3>
+                    <p className={`text-xs font-semibold leading-relaxed px-2 ${isDark ? "text-zinc-450" : "text-gray-555"}`}>
+                      {lang === 'uz' 
+                        ? "Ushbu mock testni sotib olish uchun Telegram botimizga yo'naltirilasiz. Bot orqali to'lov qilib, chekni yuborasiz. Admin tasdiqlagach, mock avtomatik ravishda ochiladi." 
+                        : "To purchase this mock test, you will be redirected to our Telegram bot. After transferring payment, upload your receipt in the bot. It will be unlocked once approved by the admin."}
+                    </p>
+                  </div>
 
-              {/* Order Box */}
-              <div className={`p-4 rounded border text-left space-y-2.5 ${
-                isDark ? "bg-zinc-950 border-zinc-850" : "bg-gray-50 border-gray-250"
-              }`}>
-                <div className="flex justify-between items-baseline gap-2">
-                  <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-zinc-550" : "text-zinc-450"}`}>Mock:</span>
-                  <span className={`text-xs font-bold truncate flex-1 text-right ${isDark ? "text-zinc-200" : "text-gray-800"}`}>
-                    {selectedMock.title}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center border-t border-dashed pt-2.5 border-inherit">
-                  <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-zinc-550" : "text-zinc-450"}`}>Jami narxi:</span>
-                  <span className={`text-sm font-extrabold text-red-500`}>
-                    {formatPrice(selectedMock.price)}
-                  </span>
-                </div>
-              </div>
+                  {/* Order Box */}
+                  <div className={`p-4 rounded border text-left space-y-2.5 ${
+                    isDark ? "bg-zinc-950 border-zinc-850" : "bg-gray-50 border-gray-250"
+                  }`}>
+                    <div className="flex justify-between items-baseline gap-2">
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-zinc-550" : "text-zinc-450"}`}>Mock:</span>
+                      <span className={`text-xs font-bold truncate flex-1 text-right ${isDark ? "text-zinc-200" : "text-gray-800"}`}>
+                        {selectedMock.title}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-dashed pt-2.5 border-inherit">
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-zinc-550" : "text-zinc-450"}`}>Jami narxi:</span>
+                      <span className={`text-sm font-extrabold text-red-500`}>
+                        {formatPrice(selectedMock.price)}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-2.5 pt-2">
-                <button
-                  type="button"
-                  disabled={purchasing}
-                  onClick={handleConfirmPurchase}
-                  className="w-full bg-[#e31b23] hover:bg-[#c4151c] text-white py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
-                >
-                  {purchasing ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" />
-                      To'lov qilinmoqda...
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck size={14} /> To'lovni tasdiqlash
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  disabled={purchasing}
-                  onClick={() => setSelectedMock(null)}
-                  className={`w-full py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] border ${
-                    isDark 
-                      ? "bg-transparent border-zinc-800 hover:bg-zinc-900 text-zinc-400" 
-                      : "bg-transparent border-gray-250 hover:bg-gray-50 text-gray-500"
-                  }`}
-                >
-                  Bekor qilish
-                </button>
-              </div>
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleConfirmPurchase}
+                      className="w-full bg-[#e31b23] hover:bg-[#c4151c] text-white py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    >
+                      <MessageCircle size={14} /> 
+                      {lang === 'uz' ? "Telegram orqali to'lash" : "Pay via Telegram"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedMock(null);
+                        setPaymentStarted(false);
+                      }}
+                      className={`w-full py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] border ${
+                        isDark 
+                          ? "bg-transparent border-zinc-800 hover:bg-zinc-900 text-zinc-400" 
+                          : "bg-transparent border-gray-250 hover:bg-gray-50 text-gray-500"
+                      }`}
+                    >
+                      {lang === 'uz' ? "Bekor qilish" : "Cancel"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto ${
+                    isDark ? "bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20" : "bg-blue-50 text-[#0071e3] border border-blue-100"
+                  }`}>
+                    <MessageCircle size={24} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className={`text-xl font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+                      {lang === 'uz' ? "Telegram botga yo'naltirildingiz" : "Redirected to Telegram Bot"}
+                    </h3>
+                    <div className={`text-xs font-semibold leading-relaxed px-2 space-y-3 text-left ${isDark ? "text-zinc-400" : "text-gray-600"}`}>
+                      <p>
+                        {lang === 'uz' 
+                          ? "1. Telegram botda to'lov ma'lumotlarini olish uchun botni ishga tushiring (Start tugmasini bosing)." 
+                          : "1. Start the bot to receive payment instructions in Telegram."}
+                      </p>
+                      <p>
+                        {lang === 'uz' 
+                          ? "2. Belgilangan kartaga to'lovni o'tkazing va to'lov chekini (screenshot) botga yuboring." 
+                          : "2. Make the transfer to the specified card and upload the screenshot to the bot."}
+                      </p>
+                      <p>
+                        {lang === 'uz' 
+                          ? "3. Admin to'lovni tasdiqlashi bilan mock imtihon ushbu sahifada 'Sotib olingan' holatiga o'tadi va mock panelida faollashadi." 
+                          : "3. As soon as the admin confirms the payment, the mock exam will become available."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const params = `${user.uid}_mock_${selectedMock.id}`;
+                        window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, "_blank");
+                      }}
+                      className="w-full bg-[#0071e3] hover:bg-[#005bb5] text-white py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    >
+                      <ExternalLink size={14} />
+                      {lang === 'uz' ? "Telegramni qayta ochish" : "Re-open Telegram"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedMock(null);
+                        setPaymentStarted(false);
+                      }}
+                      className={`w-full py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] border ${
+                        isDark 
+                          ? "bg-transparent border-zinc-800 hover:bg-zinc-900 text-zinc-400" 
+                          : "bg-transparent border-gray-250 hover:bg-gray-50 text-gray-500"
+                      }`}
+                    >
+                      {lang === 'uz' ? "Tushunarli / Yopish" : "Got it / Close"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,8 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Upload, Trash2, ImageIcon, Loader2, Copy, Check } from 'lucide-react';
+import { X, Upload, Trash2, ImageIcon, Loader2, Copy, Check, Sparkles, AlignLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import ReactQuill from 'react-quill-new';
 import 'quill/dist/quill.snow.css';
 import {
@@ -44,6 +45,12 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
     const [vocabularyJsonByLevel, setVocabularyJsonByLevel] = useState(emptyVocabularyJsonByLevel);
     const [vocabularyJsonError, setVocabularyJsonError] = useState('');
     const [vocabCopyDone, setVocabCopyDone] = useState(false);
+
+    // AI Assistant State
+    const [rawPasteText, setRawPasteText] = useState('');
+    const [aiProcessing, setAiProcessing] = useState(false);
+    const [showAiHelper, setShowAiHelper] = useState(false);
+
     const [formData, setFormData] = useState({
         title: '',
         subtitle: '',
@@ -83,6 +90,8 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                 }, {})
             );
             setVocabularyJsonError('');
+            setRawPasteText('');
+            setShowAiHelper(false);
         } else if (isOpen && !article) {
             setFormData((prev) => ({
                 ...prev,
@@ -91,6 +100,8 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
             setVocabularyJsonByLevel(emptyVocabularyJsonByLevel());
             setVocabularyJsonError('');
             setActiveEditorLevel('B1');
+            setRawPasteText('');
+            setShowAiHelper(false);
         }
     }, [article, isOpen]);
 
@@ -121,6 +132,88 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                 [level]: { ...prev.levels[level], ...patch },
             },
         }));
+    };
+
+    const handleQuickSplit = () => {
+        if (!rawPasteText.trim()) {
+            alert("Matn bo'sh! Avval maqola matnini joylang.");
+            return;
+        }
+
+        const paragraphs = rawPasteText
+            .split(/\n\s*\n/)
+            .map(p => p.trim())
+            .filter(Boolean);
+
+        if (paragraphs.length === 0) return;
+
+        const newBlocks = paragraphs.map(p => {
+            const block = makeEmptyContentBlock('paragraph');
+            block.text = p;
+            return block;
+        });
+
+        if (activeLevel.content?.length > 1 || (activeLevel.content?.length === 1 && activeLevel.content[0]?.text)) {
+            if (!window.confirm("Mavjud paragraflarni o'chirib, yangilarini joylashtirasizmi? Bekor qilinsa, oxiriga qo'shiladi.")) {
+                const existing = activeLevel.content || [];
+                updateLevels(activeEditorLevel, { content: [...existing, ...newBlocks] });
+                setRawPasteText('');
+                setShowAiHelper(false);
+                return;
+            }
+        }
+        updateLevels(activeEditorLevel, { content: newBlocks });
+        setRawPasteText('');
+        setShowAiHelper(false);
+    };
+
+    const handleAiBeautify = async () => {
+        if (!rawPasteText.trim()) {
+            alert("Matn bo'sh! Avval maqola matnini joylang.");
+            return;
+        }
+        setAiProcessing(true);
+        try {
+            const functions = getFunctions();
+            const beautifyFn = httpsCallable(functions, "beautifyArticle");
+            const result = await beautifyFn({
+                text: rawPasteText,
+                level: activeEditorLevel
+            });
+
+            if (result.data?.success) {
+                const { content: newBlocks, vocabulary: newVocab } = result.data;
+                
+                let finalizedContent = newBlocks;
+                if (activeLevel.content?.length > 1 || (activeLevel.content?.length === 1 && activeLevel.content[0]?.text)) {
+                    if (!window.confirm("Mavjud paragraflarni AI natijasi bilan almashtirasizmi? Bekor qilinsa, oxiriga qo'shiladi.")) {
+                        finalizedContent = [...(activeLevel.content || []), ...newBlocks];
+                    }
+                }
+                
+                if (newVocab && newVocab.length > 0) {
+                    setVocabularyJsonByLevel(prev => ({
+                        ...prev,
+                        [activeEditorLevel]: JSON.stringify(newVocab, null, 2)
+                    }));
+                }
+
+                updateLevels(activeEditorLevel, { 
+                    content: finalizedContent,
+                });
+                
+                setRawPasteText('');
+                setShowAiHelper(false);
+                alert("✨ AI orqali matn chiroyli qilindi, paragraflarga ajratildi va darajaga mos lug'at generatsiya qilindi!");
+            } else {
+                alert("AI tahririda kutilmagan xatolik yuz berdi.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("AI tahririda xatolik: " + err.message);
+        } finally {
+            setAiProcessing(false);
+        }
     };
 
     const copyVocabularySample = async () => {
@@ -395,6 +488,66 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                                     </button>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* AI Assistant & Quick Paste Panel */}
+                        <div className="border border-blue-500/20 dark:border-blue-500/30 rounded-2xl p-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/10 space-y-3 shadow-sm">
+                            <button
+                                type="button"
+                                onClick={() => setShowAiHelper(!showAiHelper)}
+                                className="w-full flex items-center justify-between font-bold text-xs text-blue-700 dark:text-blue-400 uppercase tracking-wider transition-all hover:opacity-85"
+                            >
+                                <span className="flex items-center gap-2">
+                                    <Sparkles size={16} className="text-blue-600 dark:text-blue-400" />
+                                    AI Yordamchisi va Tezkor Joylash ({activeEditorLevel})
+                                </span>
+                                {showAiHelper ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
+                            
+                            {showAiHelper && (
+                                <div className="space-y-3 pt-2 border-t border-blue-500/10">
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                        Maqola matnini bu yerga to'liq joylashtiring. Siz uni oddiygina paragraflarga bo'lishingiz yoki AI yordamida IELTS darajasiga moslab chiroyli qilishingiz va lug'at yaratishingiz mumkin.
+                                    </p>
+                                    <textarea
+                                        rows={6}
+                                        className="w-full bg-white dark:bg-[#252525] border border-blue-500/10 rounded-xl px-4 py-3 text-xs placeholder-gray-400 focus:ring-2 focus:ring-blue-500/30 text-gray-900 dark:text-white"
+                                        placeholder={`Maqolaning to'liq matnini shu yerga joylang...`}
+                                        value={rawPasteText}
+                                        onChange={(e) => setRawPasteText(e.target.value)}
+                                        disabled={aiProcessing}
+                                    />
+                                    <div className="flex flex-wrap gap-2 justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={handleQuickSplit}
+                                            disabled={aiProcessing || !rawPasteText.trim()}
+                                            className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-250 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold text-[11px] flex items-center gap-1.5 transition-all disabled:opacity-50"
+                                        >
+                                            <AlignLeft size={14} />
+                                            <span>Paragraflarga ajratish (Oddiy)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleAiBeautify}
+                                            disabled={aiProcessing || !rawPasteText.trim()}
+                                            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] flex items-center gap-1.5 transition-all shadow-md shadow-blue-600/10 disabled:opacity-50"
+                                        >
+                                            {aiProcessing ? (
+                                                <>
+                                                    <Loader2 className="animate-spin" size={14} />
+                                                    <span>AI Tahrirlamoqda...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles size={14} />
+                                                    <span>AI bilan chiroyli qilish ({activeEditorLevel})</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Vocabulary for active level */}

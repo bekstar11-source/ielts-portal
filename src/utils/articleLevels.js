@@ -55,24 +55,55 @@ export function computeReadTimeFromContent(content = []) {
     return `${minutes} min read`;
 }
 
-/** Legacy `content` / `vocabulary` → `levels` */
 export function normalizeArticleLevels(article) {
+    const ensureBlockStyles = (contentArray) => {
+        if (!Array.isArray(contentArray)) return [];
+        return contentArray.map(block => {
+            if (!block) return makeEmptyContentBlock('paragraph');
+            
+            const hasValidStyle = block.style && 
+                                  typeof block.style === 'object' && 
+                                  Object.keys(block.style).length > 0;
+                                  
+            return {
+                ...block,
+                style: hasValidStyle ? {
+                    fontSize: block.style.fontSize || (block.type === 'heading' ? 26 : 16),
+                    lineHeight: block.style.lineHeight || (block.type === 'heading' ? 1.25 : 1.6),
+                    marginTop: block.style.marginTop !== undefined ? block.style.marginTop : (block.type === 'heading' ? 24 : 0),
+                    marginBottom: block.style.marginBottom !== undefined ? block.style.marginBottom : (block.type === 'heading' ? 12 : 16),
+                    fontWeight: block.style.fontWeight || (block.type === 'heading' ? '700' : '400'),
+                    letterSpacing: block.style.letterSpacing || (block.type === 'heading' ? '-0.015em' : '0'),
+                } : {
+                    fontSize: block.type === 'heading' ? 26 : 16,
+                    lineHeight: block.type === 'heading' ? 1.25 : 1.6,
+                    marginTop: block.type === 'heading' ? 24 : 0,
+                    marginBottom: block.type === 'heading' ? 12 : 16,
+                    fontWeight: block.type === 'heading' ? '700' : '400',
+                    letterSpacing: block.type === 'heading' ? '-0.015em' : '0',
+                }
+            };
+        });
+    };
+
     if (article?.levels && typeof article.levels === 'object') {
         return ARTICLE_LEVELS.reduce((acc, level) => {
             const src = article.levels[level] || {};
+            const content = ensureBlockStyles(src.content);
             acc[level] = {
-                content: src.content?.length ? src.content : [makeEmptyContentBlock('paragraph')],
+                content: content.length ? content : [makeEmptyContentBlock('paragraph')],
                 vocabulary: Array.isArray(src.vocabulary) ? src.vocabulary : [],
-                readTime: src.readTime || computeReadTimeFromContent(src.content),
+                readTime: src.readTime || computeReadTimeFromContent(content),
             };
             return acc;
         }, {});
     }
 
+    const legacyContent = ensureBlockStyles(article?.content);
     const legacy = {
-        content: article?.content?.length ? article.content : [makeEmptyContentBlock('paragraph')],
+        content: legacyContent.length ? legacyContent : [makeEmptyContentBlock('paragraph')],
         vocabulary: Array.isArray(article?.vocabulary) ? article.vocabulary : [],
-        readTime: article?.readTime || computeReadTimeFromContent(article?.content),
+        readTime: article?.readTime || computeReadTimeFromContent(legacyContent),
     };
 
     return ARTICLE_LEVELS.reduce((acc, level) => {

@@ -25,19 +25,37 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
   const text = message ? message.text : null;
   const contact = message ? message.contact : null;
   const photo = message ? message.photo : null;
+  const document = message ? message.document : null;
 
   try {
+    // Load dynamic admin chat ID from Firestore
+    try {
+      const configSnap = await admin.firestore().collection("config").doc("telegram").get();
+      if (configSnap.exists && configSnap.data().adminChatId) {
+        ADMIN_CHAT_ID = configSnap.data().adminChatId.toString();
+      }
+    } catch (err) {
+      console.error("Error loading ADMIN_CHAT_ID config:", err);
+    }
     // 1. Callback Query handle (Tugmalar bosilganda)
     if (callbackQuery) {
       await handleCallback(chatId, callbackQuery);
       return res.status(200).send("OK");
     }
 
-    // 2. To'lov uchun /start deep linking (start=USERID_PLANID_BILLING)
+    // 2. To'lov/Kirish uchun /start deep linking (start=USERID_PLANID_BILLING yoki start=login_SESSID)
     if (text && text.startsWith("/start ")) {
       const payload = text.split(" ")[1];
       
-      if (payload === "login") {
+      if (payload === "login" || payload.startsWith("login_")) {
+        const sessionId = payload.includes("_") ? payload.split("_")[1] : null;
+        if (sessionId) {
+          await admin.firestore().collection("bot_states").doc(chatId.toString()).set({
+            action: "login_auth",
+            sessionId: sessionId,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
         await sendAuthCodePrompt(chatId);
       } else {
         const parts = payload.split("_");
@@ -57,13 +75,20 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
     else if (text === "/start") {
       await sendWelcome(chatId, message.from.first_name);
     }
-    // 4. Screenshot yuborilganda
-    else if (photo) {
-      await handleScreenshot(chatId, photo, message.from);
+    // 4. Screenshot yuborilganda (Rasm yoki hujjat ko'rinishida)
+    else if (photo || (document && document.mime_type && document.mime_type.startsWith("image/"))) {
+      await handleScreenshot(chatId, photo, document, message.from);
     }
     // 5. Admin uchun ID sini bilish
     else if (text === "/admin_info") {
-      await sendMessage(chatId, `Sizning Chat ID: <code>${chatId}</code>\nUni functions/telegramBot.js dagi ADMIN_CHAT_ID ga yozib qo'ying.`);
+      try {
+        await admin.firestore().collection("config").doc("telegram").set({
+          adminChatId: chatId.toString()
+        }, { merge: true });
+        await sendMessage(chatId, `Sizning Chat ID: <code>${chatId}</code>\nTizimda muvaffaqiyatli saqlandi! Endi barcha to'lov bildirishnomalari sizga keladi.`);
+      } catch (err) {
+        await sendMessage(chatId, `Sizning Chat ID: <code>${chatId}</code>\nUni functions/telegramBot.js dagi ADMIN_CHAT_ID ga yozib qo'ying.`);
+      }
     }
     // 6. Kontakt ulashilganda (Auth uchun)
     else if (contact) {
@@ -117,6 +142,56 @@ async function handleCallback(chatId, query) {
   else if (data === "check_status") {
     // Foydalanuvchi statusini bazadan tekshirish logikasi (agar userId saqlangan bo'lsa)
     await sendMessage(chatId, "⏳ Sizning to'lovingiz tekshirilmoqda. Agar to'lov qilgan bo'lsangiz, tez orada Pro ruxsat beriladi.");
+  }
+  else if (data.startsWith("approve_mock_")) {
+    // approve_mock_studentChatId_studentUserId_mockId
+    const parts = data.split("_");
+    const studentChatId = parts[2];
+    const studentUserId = parts[3];
+    const mockId = parts.slice(4).join("_");
+    
+    try {
+      // 1. Fetch mock metadata from Firestore
+      const mockDoc = await admin.firestore().collection("tests_metadata").doc(mockId).get();
+      if (!mockDoc.exists) {
+        throw new Error("Mock test topilmadi.");
+      }
+      const mockData = mockDoc.data();
+      
+      // 2. Construct mock assignment object
+      const now = new Date().toISOString();
+      const mockKey = "PURCHASED_" + Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      const mockAssignment = {
+        id: "MOCK_" + mockKey,
+        type: "mock_full",
+        title: mockData.title,
+        collectionId: mockData.collectionId || "",
+        startDate: now,
+        status: "unlocked_mock",
+        mockKey: mockKey,
+        subTests: {
+          reading: mockData.subTests?.readingId || "",
+          listening: mockData.subTests?.listeningId || "",
+          writing: mockData.subTests?.writingId || ""
+        }
+      };
+
+      // 3. Add to user's mockTests array in firestore
+      const userRef = admin.firestore().collection("users").doc(studentUserId);
+      await userRef.update({
+        mockTests: admin.firestore.FieldValue.arrayUnion(mockAssignment)
+      });
+
+      // 4. Notify Student
+      await sendMessage(studentChatId, `🎉 <b>Mock to'lovingiz tasdiqlandi!</b>\n\nSizga <b>${mockData.title}</b> mock imtihoni ochildi. Saytga kirib "Mock Exams" bo'limida uni topshirishingiz mumkin.`);
+      
+      // 5. Update Admin Message
+      await editMessageText(chatId, query.message.message_id, `✅ <b>MOCK TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nMock: <b>${mockData.title}</b>\nStatus: Yakunlandi.`);
+    } catch (err) {
+      console.error("Mock Promotion Error:", err);
+      await sendMessage(chatId, "❌ Xatolik yuz berdi: " + err.message);
+    }
   }
   else if (data.startsWith("approve_")) {
     // approve_tier_studentChatId_studentUserId
@@ -230,6 +305,43 @@ async function sendWelcome(chatId, firstName) {
 
 // To'lov jarayoni (Chiroyli ko'rinishda)
 async function handlePaymentStart(chatId, userId, planId, billing) {
+  if (planId === "mock") {
+    const mockId = billing;
+    const mockDoc = await admin.firestore().collection("tests_metadata").doc(mockId).get();
+    if (!mockDoc.exists) {
+      await sendMessage(chatId, "❌ <b>Mock imtihon topilmadi.</b>");
+      return;
+    }
+    const mockData = mockDoc.data();
+    const price = mockData.price !== undefined ? mockData.price : 20000;
+    const formattedPrice = new Intl.NumberFormat("uz-UZ").format(price);
+
+    await admin.firestore().collection("payment_sessions").doc(chatId.toString()).set({
+      userId,
+      planId: "mock",
+      mockId: mockId,
+      mockTitle: mockData.title,
+      price: price,
+      status: "pending",
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    const msg = `💳 <b>TO'LOV MA'LUMOTLARI (MOCK IMTIHON)</b>\n\n` +
+      `📦 <b>Imtihon:</b> ${mockData.title}\n` +
+      `💰 <b>Summa:</b> ${formattedPrice} so'm\n\n` +
+      `--------------------------\n` +
+      `🏛 <b>Karta:</b> <code>8600 0529 2812 2652</code>\n` +
+      `👤 <b>Ega:</b> Aslbek Jo'raboyev\n` +
+      `--------------------------\n\n` +
+      `📝 <b>Ko'rsatma:</b>\n` +
+      `1. Yuqoridagi kartaga kerakli summani o'tkazing.\n` +
+      `2. To'lov chekini (screenshot) ushbu botga yuboring.\n` +
+      `3. Admin tasdiqlashi bilan platformada mock imtihon ochiladi.`;
+
+    await sendMessage(chatId, msg);
+    return;
+  }
+
   const prices = {
     standard_monthly: "35 000", standard_tri: "89 000",
     pro_monthly: "49 000", pro_tri: "129 000"
@@ -260,35 +372,88 @@ async function handlePaymentStart(chatId, userId, planId, billing) {
 }
 
 // Screenshot handling (Notification to Admin)
-async function handleScreenshot(chatId, photoArray, from) {
-  const fileId = photoArray[photoArray.length - 1].file_id;
-  const sessionDoc = await admin.firestore().collection("payment_sessions").doc(chatId.toString()).get();
-  
-  if (!sessionDoc.exists) {
-    await sendMessage(chatId, "❌ <b>Xatolik:</b> Iltimos, avval saytdan tarifni tanlang.");
+async function handleScreenshot(chatId, photoArray, documentObj, from) {
+  let fileId = null;
+  if (photoArray && photoArray.length > 0) {
+    fileId = photoArray[photoArray.length - 1].file_id;
+  } else if (documentObj) {
+    fileId = documentObj.file_id;
+  }
+
+  if (!fileId) {
+    await sendMessage(chatId, "❌ <b>Xatolik:</b> Rasm fayli topilmadi.");
     return;
   }
 
-  const session = sessionDoc.data();
-  const adminMsg = `🎯 <b>YANGI TO'LOV KELDI!</b>\n\n` +
-    `👤 <b>Kimdan:</b> ${from.first_name} ${from.last_name || ""}\n` +
-    `🆔 <b>User ID:</b> <code>${session.userId}</code>\n` +
-    `📦 <b>Tarif:</b> ${session.planId} (${session.billing})\n` +
-    `💰 <b>Summa:</b> ${session.price} so'm\n` +
-    `⏰ <b>Vaqt:</b> ${new Date().toLocaleString('uz-UZ')}\n\n` +
+  const sessionDoc = await admin.firestore().collection("payment_sessions").doc(chatId.toString()).get();
+  
+  let session = null;
+  let userId = null;
+
+  if (sessionDoc.exists) {
+    session = sessionDoc.data();
+    userId = session.userId;
+  } else {
+    // Try to find user by telegram ID
+    const userDoc = await admin.firestore().collection("users").doc(`telegram_${chatId}`).get();
+    if (userDoc.exists) {
+      userId = `telegram_${chatId}`;
+    }
+  }
+
+  if (!userId) {
+    await sendMessage(chatId, "❌ <b>Xatolik:</b> Profilingiz aniqlanmadi. Iltimos, avval platformaga Telegram orqali kiring yoki saytdan tarif/mock tanlang.");
+    return;
+  }
+
+  const fromName = `${from.first_name} ${from.last_name || ""}`.trim();
+  let adminMsg = `🎯 <b>YANGI TO'LOV KELDI!</b>\n\n` +
+    `👤 <b>Kimdan:</b> ${fromName}\n` +
+    `🆔 <b>User ID:</b> <code>${userId}</code>\n`;
+
+  if (session) {
+    if (session.planId === "mock") {
+      const formattedPrice = new Intl.NumberFormat("uz-UZ").format(session.price);
+      adminMsg += `📦 <b>Tanlangan:</b> ${session.mockTitle}\n` +
+        `💰 <b>Summa:</b> ${formattedPrice} so'm\n`;
+    } else {
+      adminMsg += `📦 <b>Tanlangan:</b> ${session.planId} (${session.billing})\n` +
+        `💰 <b>Summa:</b> ${session.price} so'm\n`;
+    }
+  } else {
+    adminMsg += `⚠️ <i>Tanlangan tarif/mock aniqlanmadi (chek to'g'ridan-to'g'ri yuborildi).</i>\n`;
+  }
+  adminMsg += `⏰ <b>Vaqt:</b> ${new Date().toLocaleString('uz-UZ')}\n\n` +
     `Tasdiqlash uchun tugmalardan foydalaning:`;
 
-  const adminKeyboard = {
-    inline_keyboard: [
-      [
-        { text: "✅ Standard", callback_data: `approve_standard_${chatId}_${session.userId}` },
-        { text: "🔥 Pro", callback_data: `approve_pro_${chatId}_${session.userId}` }
-      ],
-      [
-        { text: "💬 Habar yuborish", callback_data: `ask_reply_${chatId}` }
-      ]
+  const inlineKeyboard = [
+    [
+      { text: "✅ Standard", callback_data: `approve_standard_${chatId}_${userId}` },
+      { text: "🔥 Pro", callback_data: `approve_pro_${chatId}_${userId}` }
     ]
-  };
+  ];
+
+  // Fetch all mock tests to list as buttons
+  try {
+    const mocksSnap = await admin.firestore().collection("tests_metadata")
+      .where("type", "==", "mock")
+      .get();
+
+    mocksSnap.forEach(doc => {
+      const mockData = doc.data();
+      inlineKeyboard.push([
+        { text: `🎁 Mock: ${mockData.title}`, callback_data: `approve_mock_${chatId}_${userId}_${doc.id}` }
+      ]);
+    });
+  } catch (err) {
+    console.error("Error fetching mock tests for admin keyboard:", err);
+  }
+
+  inlineKeyboard.push([
+    { text: "💬 Xabar yuborish", callback_data: `ask_reply_${chatId}` }
+  ]);
+
+  const adminKeyboard = { inline_keyboard: inlineKeyboard };
 
   await sendPhotoToAdmin(fileId, adminMsg, adminKeyboard);
   await sendMessage(chatId, "✅ <b>Rahmat!</b> Chekingiz qabul qilindi. Admin tez orada tekshirib ruxsat beradi. Odatda bu 5-15 daqiqa vaqt oladi.");
@@ -299,6 +464,75 @@ async function handleAuthContact(chatId, contact) {
   const telegramId = (contact.user_id || chatId).toString();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
+  // 1. Fetch any pending login session for this bot user
+  let sessionId = null;
+  try {
+    const botStateDoc = await admin.firestore().collection("bot_states").doc(chatId.toString()).get();
+    if (botStateDoc.exists) {
+      const stateData = botStateDoc.data();
+      if (stateData.action === "login_auth" && stateData.sessionId) {
+        sessionId = stateData.sessionId;
+      }
+    }
+  } catch (err) {
+    console.error("Error fetching bot state:", err);
+  }
+
+  // 2. Custom Token generation & user setup
+  const firebaseUid = `telegram_${telegramId}`;
+  let token = null;
+  let isNewUser = false;
+  try {
+    token = await admin.auth().createCustomToken(firebaseUid);
+
+    const userRef = admin.firestore().collection("users").doc(firebaseUid);
+    const userSnap = await userRef.get();
+
+    if (!userSnap.exists) {
+      isNewUser = true;
+      const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
+      await userRef.set({
+        uid: firebaseUid,
+        telegramId: telegramId,
+        phoneNumber: cleanPhone,
+        fullName: fullName || "Telegram User",
+        role: "student",
+        accountType: "public",
+        onboardingCompleted: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastActiveAt: admin.firestore.FieldValue.serverTimestamp(),
+        isOnline: true
+      });
+    } else {
+      const existingData = userSnap.data();
+      if (!existingData.fullName || existingData.fullName === "Noma'lum" || existingData.fullName === "Telegram User") {
+        const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
+        if (fullName) {
+          await userRef.update({ fullName });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error setting up Firebase user / token:", err);
+  }
+
+  // 3. Write back to login_sessions if sessionId is active
+  if (sessionId && token) {
+    try {
+      await admin.firestore().collection("login_sessions").doc(sessionId).set({
+        token: token,
+        isNewUser: isNewUser,
+        status: "authenticated",
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+      // clean up bot_state
+      await admin.firestore().collection("bot_states").doc(chatId.toString()).delete();
+    } catch (err) {
+      console.error("Error writing to login_sessions:", err);
+    }
+  }
+
+  // 4. Save code as fallback in telegram_codes
   await admin.firestore().collection("telegram_codes").doc(telegramId).set({
     code, 
     phoneNumber: cleanPhone, 
@@ -308,13 +542,20 @@ async function handleAuthContact(chatId, contact) {
     chatId: chatId.toString()
   });
 
-  const msg = `🔑 <b>TASDIQLASH KODI</b>\n\n` +
-    `Sizning maxfiy kodingiz:\n\n` +
-    `👉 <code>${code}</code>\n\n` +
-    `Ushbu kodni saytga kiriting. Hech kimga bermang!`;
+  let msg;
+  if (sessionId) {
+    msg = `🎉 <b>Muvaffaqiyatli kirdingiz!</b>\n\n` +
+      `Platformadagi sahifangiz avtomatik ravishda profilingizga kirdi. Endi saytga qaytib o'rganishni davom ettirishingiz mumkin.\n\n` +
+      `<i>(Agar avtomatik kirmagan bo'lsa, ushbu kodni saytga kiriting: <code>${code}</code>)</i>`;
+  } else {
+    msg = `🔑 <b>TASDIQLASH KODI</b>\n\n` +
+      `Sizning maxfiy kodingiz:\n\n` +
+      `👉 <code>${code}</code>\n\n` +
+      `Ushbu kodni saytga kiriting. Hech kimga bermang!`;
+  }
 
   await sendMessage(chatId, msg, {
-    inline_keyboard: [[{ text: "🌐 Saytga qaytish", url: "https://ielts-portal-v1.web.app/login" }]]
+    inline_keyboard: [[{ text: "🌐 Saytga qaytish", url: "https://ielts-portal-v1.web.app/dashboard" }]]
   });
 }
 

@@ -797,17 +797,31 @@ export default function ArticleReading() {
                     .replace(/&nbsp;/g, ' ')
                     .replace(/\u00A0/g, ' ');
 
+                  const blockFontSize = typeof block.style?.fontSize === 'number'
+                    ? `${block.style.fontSize}px`
+                    : (block.style?.fontSize || (block.type === 'heading' ? '26px' : undefined));
+
+                  const blockFontWeight = block.style?.fontWeight || (block.type === 'heading' ? '700' : '400');
+
+                  const blockLineHeight = block.style?.lineHeight || (block.type === 'heading' ? 1.25 : 1.8);
+                  const blockMarginTop = block.style?.marginTop !== undefined 
+                    ? (typeof block.style.marginTop === 'number' ? `${block.style.marginTop}px` : block.style.marginTop)
+                    : (block.type === 'heading' ? '2.5rem' : '0');
+                  const blockMarginBottom = block.style?.marginBottom !== undefined 
+                    ? (typeof block.style.marginBottom === 'number' ? `${block.style.marginBottom}px` : block.style.marginBottom)
+                    : (block.type === 'heading' ? '1rem' : '1.5rem');
+
                   return block.type === 'heading' ? (
                     <h2 
                       key={i} 
                       className={`font-bold text-[#242424] dark:text-neutral-100 font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1' : ''}`}
                       style={{
-                        fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
-                        lineHeight: block.style?.lineHeight || 1.2,
-                        marginTop: block.style?.marginTop ? `${block.style.marginTop}px` : '2.5rem',
-                        marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '1rem',
-                        fontWeight: block.style?.fontWeight || '700',
-                        letterSpacing: block.style?.letterSpacing || undefined,
+                        fontSize: blockFontSize,
+                        lineHeight: blockLineHeight,
+                        marginTop: blockMarginTop,
+                        marginBottom: blockMarginBottom,
+                        fontWeight: blockFontWeight,
+                        letterSpacing: block.style?.letterSpacing || '-0.015em',
                         fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
                       }}
                     >
@@ -818,10 +832,10 @@ export default function ArticleReading() {
                       key={i} 
                       className={`article-body-block font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1 bg-blue-50/10 dark:bg-blue-950/20' : ''}`}
                       style={{
-                        fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
-                        lineHeight: block.style?.lineHeight || 1.8,
-                        marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '1.5rem',
-                        fontWeight: block.style?.fontWeight || '400',
+                        fontSize: blockFontSize,
+                        lineHeight: blockLineHeight,
+                        marginBottom: blockMarginBottom,
+                        fontWeight: blockFontWeight,
                         letterSpacing: block.style?.letterSpacing || undefined,
                         fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
                       }}

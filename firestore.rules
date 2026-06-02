@@ -195,6 +195,12 @@ service cloud.firestore {
       }
     }
     
+    // LOGIN SESSIONS (used for secure, passwordless Telegram login polling)
+    match /login_sessions/{sessionId} {
+      allow read, delete: if true;
+      allow create, update: if false; // Only Firestore Admin SDK can write
+    }
+
     // OTHER COLLECTIONS (Generic fallback)
     match /{path=**} {
       allow read, write: if isAdmin();

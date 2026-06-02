@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import { db, auth } from "../../firebase/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, deleteDoc } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { httpsCallable } from "firebase/functions";
@@ -17,14 +17,48 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [step, setStep] = useState(1); // 1: Email, 2: Password, 3: Telegram Phone, 4: Telegram OTP
+  const [step, setStep] = useState(1); // 1: Email, 2: Password, 3: Telegram Phone, 4: Telegram OTP, 5: Telegram Auto-Auth
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [telegramLoading, setTelegramLoading] = useState(false);
+  const [telegramSessionId, setTelegramSessionId] = useState("");
   const { t } = useTranslation();
 
-  const { login, signInWithGoogle } = useAuth();
+  const { login, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
+  const unsubscribeRef = useRef(null);
+  const telegramWindowRef = useRef(null);
+
+  useEffect(() => {
+    if (user) {
+      const checkOnboardingAndRedirect = async () => {
+        try {
+          const docRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const userData = docSnap.data();
+            if (userData.role === 'admin') navigate('/admin');
+            else if (userData.onboardingCompleted === false) navigate('/onboarding');
+            else navigate('/dashboard');
+          } else {
+            navigate('/dashboard');
+          }
+        } catch (err) {
+          console.error("Error checking onboarding redirect:", err);
+          navigate('/dashboard');
+        }
+      };
+      checkOnboardingAndRedirect();
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
+  }, []);
 
   const handleGoogleLogin = async () => {
     try {
@@ -84,9 +118,59 @@ export default function Login() {
   };
 
   const handleTelegramLogin = () => {
+    // Generate secure session ID
+    const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    setTelegramSessionId(sessionId);
+    
+    // Clear any previous listener
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+    }
+
     // Open telegram bot with deep link to trigger /start immediately
-    window.open("https://t.me/ielts_portal_auth_bot?start=login", "_blank");
-    setStep(4); // Go straight to OTP input
+    const telegramUrl = `https://t.me/ielts_portal_auth_bot?start=login_${sessionId}`;
+    const win = window.open(telegramUrl, "_blank");
+    telegramWindowRef.current = win;
+    setStep(5); // Go to new auto-auth screen
+
+    // Set up real-time listener on the login session
+    unsubscribeRef.current = onSnapshot(doc(db, "login_sessions", sessionId), async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data.status === "authenticated" && data.token) {
+          setTelegramLoading(true);
+          setError("");
+          try {
+            // Close the opened Telegram tab automatically
+            if (telegramWindowRef.current && !telegramWindowRef.current.closed) {
+              try {
+                telegramWindowRef.current.close();
+              } catch (closeErr) {
+                console.warn("Could not close Telegram tab automatically:", closeErr);
+              }
+            }
+
+            await signInWithCustomToken(auth, data.token);
+            // Try to delete the session document to clean up
+            try {
+              await deleteDoc(doc(db, "login_sessions", sessionId));
+            } catch (delErr) {
+              console.warn("Could not delete session doc:", delErr);
+            }
+            navigate(data.isNewUser ? '/onboarding' : '/dashboard');
+          } catch (err) {
+            setError(t('auth.errorInvalidOtp'));
+            console.error(err);
+          } finally {
+            setTelegramLoading(false);
+            if (unsubscribeRef.current) {
+              unsubscribeRef.current();
+              unsubscribeRef.current = null;
+            }
+          }
+        }
+      }
+    });
   };
 
   const handleVerifyOtp = async (e) => {
@@ -108,6 +192,22 @@ export default function Login() {
     } finally {
       setTelegramLoading(false);
     }
+  };
+
+  const handleBackToManual = () => {
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
+    setStep(4);
+  };
+
+  const handleBackFromTelegram = () => {
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
+    setStep(1);
   };
 
   return (
@@ -280,7 +380,7 @@ export default function Login() {
                                     {t('auth.enterCode')} <ArrowRight size={14} />
                                 </button>
                             </div>
-                        ) : (
+                        ) : step === 4 ? (
                             <div className="space-y-3.5">
                                 <p className="text-[12px] text-[#666] font-medium mb-2">
                                     {t('auth.telegramOtpLabel')}
@@ -303,10 +403,63 @@ export default function Login() {
                                     {telegramLoading ? <Loader2 className="animate-spin w-4 h-4" /> : t('common.confirm')}
                                 </button>
                             </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="p-4 bg-gray-50 border border-gray-100 rounded-xl flex flex-col items-center text-center space-y-3">
+                                    <div className="relative flex items-center justify-center w-12 h-12">
+                                        <div className="absolute inset-0 bg-[#24A1DE]/20 rounded-full animate-ping"></div>
+                                        <div className="relative bg-[#24A1DE] text-white p-3 rounded-full">
+                                            <Send size={20} className="ml-0.5" />
+                                        </div>
+                                    </div>
+                                    <h3 className="text-[14px] font-bold text-black">
+                                        {t('auth.telegramWaiting')}
+                                    </h3>
+                                    <p className="text-[12px] text-[#666] leading-relaxed font-medium">
+                                        {t('auth.telegramInstruction')}
+                                    </p>
+                                </div>
+                                <div className="space-y-2 text-[12px] font-semibold text-gray-700 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
+                                    <p className="flex items-start gap-2">
+                                        <span className="text-[#24A1DE]">✦</span>
+                                        <span>{t('auth.telegramStep1')}</span>
+                                    </p>
+                                    <p className="flex items-start gap-2">
+                                        <span className="text-[#24A1DE]">✦</span>
+                                        <span>{t('auth.telegramStep2')}</span>
+                                    </p>
+                                    <p className="flex items-start gap-2 text-gray-500 font-medium italic">
+                                        <span className="text-gray-400">✦</span>
+                                        <span>{t('auth.telegramStep3')}</span>
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-col gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const win = window.open(`https://t.me/ielts_portal_auth_bot?start=login_${telegramSessionId}`, "_blank");
+                                            telegramWindowRef.current = win;
+                                        }}
+                                        className="w-full py-2.5 bg-[#24A1DE] hover:bg-[#208fba] text-white rounded-lg text-[13px] font-bold transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Send size={14} />
+                                        {t('auth.telegramReopen')}
+                                    </button>
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={handleBackToManual}
+                                        className="w-full py-2 bg-transparent hover:bg-gray-50 text-gray-500 hover:text-black rounded-lg text-[12px] font-bold transition-all border border-gray-200"
+                                    >
+                                        {t('auth.telegramManualFallback')}
+                                    </button>
+                                </div>
+                            </div>
                         )}
                         <button
                             type="button"
-                            onClick={() => setStep(1)}
+                            onClick={handleBackFromTelegram}
                             className="w-full text-[12px] font-bold text-[#aaa] hover:text-[#1a1a1a]"
                         >
                             {t('auth.back')}
