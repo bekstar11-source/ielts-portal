@@ -165,12 +165,12 @@ export default function StudentStatistics() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button 
+                        {/* <button 
                             onClick={() => navigate('/leaderboard')}
                             className="bg-[#007AFF] text-white px-6 py-3 rounded-full font-semibold flex items-center gap-2 hover:bg-[#0066CC] hover:scale-105 active:scale-95 transition-all shadow-[0_8px_20px_rgba(0,122,255,0.25)] h-[52px]"
                         >
                             <Trophy size={18} /> {t('dashboard.ranking')}
-                        </button>
+                        </button> */}
                         <div className="bg-gradient-to-b from-gray-800 to-black p-0.5 rounded-[20px] shadow-lg h-[52px] flex items-center justify-center overflow-hidden">
                             <div className="px-5 py-2 bg-gradient-to-b from-gray-900 to-black text-white rounded-[18px] h-full flex flex-col justify-center">
                                 <span className="text-[9px] font-bold uppercase tracking-widest text-white/60 block leading-none mb-1.5">Overall Band</span>

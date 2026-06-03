@@ -8,7 +8,7 @@ import { PodcastProvider } from './context/PodcastContext';
 // COMPONENTS
 import ScrollToTop from './components/common/ScrollToTop';
 import GlobalPodcastPlayer from './components/podcast/GlobalPodcastPlayer';
-import { ProtectedRoute, DashboardRouter } from './components/common/RouteGuards';
+import { ProtectedRoute, DashboardRouter, LoadingScreen } from './components/common/RouteGuards';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
@@ -82,11 +82,7 @@ const AdminMocks = lazy(() => import('./pages/admin/AdminMocks'));
 const TeacherLayout = lazy(() => import('./components/common/TeacherLayout'));
 const AdminLayout = lazy(() => import('./components/common/AdminLayout'));
 
-const PageLoading = () => (
-  <div className="flex h-screen items-center justify-center bg-[#050505] text-white">
-    <div className="animate-pulse text-2xl font-bold">ENGLEV...</div>
-  </div>
-);
+const PageLoading = () => <LoadingScreen />;
 
 function App() {
   const { user, userData, loading } = useAuth();
@@ -147,7 +143,7 @@ function App() {
             <Route path="/listening/full" element={<ProtectedRoute allowedRoles={['student', 'admin']}><ListeningFull /></ProtectedRoute>} />
             <Route path="/listening/parts" element={<ProtectedRoute allowedRoles={['student', 'admin']}><ListeningParts /></ProtectedRoute>} />
             <Route path="/library" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Library /></ProtectedRoute>} />
-            <Route path="/roadmap" element={<ProtectedRoute allowedRoles={['student', 'admin']}><RoadmapPage /></ProtectedRoute>} />
+            {/* <Route path="/roadmap" element={<ProtectedRoute allowedRoles={['student', 'admin']}><RoadmapPage /></ProtectedRoute>} /> */}
             <Route path="/settings" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Settings /></ProtectedRoute>} />
             <Route path="/mock" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockEntry /></ProtectedRoute>} />
             <Route path="/mock-buy" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockPurchase /></ProtectedRoute>} />

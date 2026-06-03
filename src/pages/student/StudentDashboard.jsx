@@ -14,7 +14,7 @@ import DashboardModals from "../../components/dashboard/DashboardModals";
 import PricingModal from "../../components/dashboard/PricingModal";
 import SettingsTab from "../../components/dashboard/SettingsTab";
 import MyResults from "./MyResults";
-import Leaderboard from "../../components/dashboard/Leaderboard";
+// import Leaderboard from "../../components/dashboard/Leaderboard";
 import SiteFooter from "../../components/common/SiteFooter";
 import BottomNav from "../../components/dashboard/BottomNav";
 import ProfileSidebar from "../../components/dashboard/ProfileSidebar";
@@ -99,7 +99,7 @@ export default function StudentDashboard() {
 
     const renderContent = () => {
         if (dashboard.activeTab === 'settings') return <SettingsTab user={user} userData={userData} />;
-        if (dashboard.activeTab === 'leaderboard') return <Leaderboard />;
+        // if (dashboard.activeTab === 'leaderboard') return <Leaderboard />;
         if (dashboard.activeTab === 'results') {
             return <MyResults tests={rawAssignments} onReview={(t) => navigate(`/review/${t.result?.id}`)} onStartTest={onStartTestRequest} loading={loading} />;
         }
@@ -121,7 +121,7 @@ export default function StudentDashboard() {
                             stats={analyticsStats}
                             statsLoading={loading}
                             onLogoutClick={() => dashboard.setShowLogoutConfirm(true)}
-                            onSeeAllClick={() => handleTabChange('leaderboard')}
+                            // onSeeAllClick={() => handleTabChange('leaderboard')}
                         />
                     </div>
                 </div>

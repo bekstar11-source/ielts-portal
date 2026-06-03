@@ -143,12 +143,21 @@ async function handleCallback(chatId, query) {
     // Foydalanuvchi statusini bazadan tekshirish logikasi (agar userId saqlangan bo'lsa)
     await sendMessage(chatId, "⏳ Sizning to'lovingiz tekshirilmoqda. Agar to'lov qilgan bo'lsangiz, tez orada Pro ruxsat beriladi.");
   }
-  else if (data.startsWith("approve_mock_")) {
-    // approve_mock_studentChatId_studentUserId_mockId
-    const parts = data.split("_");
-    const studentChatId = parts[2];
-    const studentUserId = parts[3];
-    const mockId = parts.slice(4).join("_");
+  else if (data.startsWith("ap_mock_")) {
+    const mockId = data.slice(8); // Extract mock ID directly
+    
+    // Parse student details from caption
+    const caption = query.message.caption || "";
+    const userMatch = caption.match(/User ID:<\/b> <code>([^<]+)<\/code>/);
+    const chatMatch = caption.match(/Student Chat ID:<\/b> <code>([^<]+)<\/code>/);
+    
+    const studentUserId = userMatch ? userMatch[1] : null;
+    const studentChatId = chatMatch ? chatMatch[1] : null;
+
+    if (!studentUserId || !studentChatId) {
+      await sendMessage(chatId, "❌ Xatolik: O'quvchi ma'lumotlarini caption'dan o'qib bo'lmadi.");
+      return;
+    }
     
     try {
       // 1. Fetch mock metadata from Firestore
@@ -409,7 +418,8 @@ async function handleScreenshot(chatId, photoArray, documentObj, from) {
   const fromName = `${from.first_name} ${from.last_name || ""}`.trim();
   let adminMsg = `🎯 <b>YANGI TO'LOV KELDI!</b>\n\n` +
     `👤 <b>Kimdan:</b> ${fromName}\n` +
-    `🆔 <b>User ID:</b> <code>${userId}</code>\n`;
+    `🆔 <b>User ID:</b> <code>${userId}</code>\n` +
+    `💬 <b>Student Chat ID:</b> <code>${chatId}</code>\n`;
 
   if (session) {
     if (session.planId === "mock") {
@@ -442,7 +452,7 @@ async function handleScreenshot(chatId, photoArray, documentObj, from) {
     mocksSnap.forEach(doc => {
       const mockData = doc.data();
       inlineKeyboard.push([
-        { text: `🎁 Mock: ${mockData.title}`, callback_data: `approve_mock_${chatId}_${userId}_${doc.id}` }
+        { text: `🎁 Mock: ${mockData.title}`, callback_data: `ap_mock_${doc.id}` }
       ]);
     });
   } catch (err) {

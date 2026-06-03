@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import ReadingInterface from "../../components/ReadingInterface";
 import ListeningInterface from "./components/listening/ListeningInterface";
 import { useAuth } from "../../context/AuthContext";
+import { LoadingScreen } from "../../components/common/RouteGuards";
 
 export default function ReviewTest() {
   const { id } = useParams(); // Result ID
@@ -68,7 +69,7 @@ export default function ReviewTest() {
     }
   }, [testData]);
 
-  if (loading) return <div className="flex h-screen items-center justify-center font-bold text-xl text-gray-500">Yuklanmoqda...</div>;
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="flex flex-col h-screen bg-gray-100 overflow-hidden font-sans">

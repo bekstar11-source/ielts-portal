@@ -113,7 +113,7 @@ export default function DashboardHeader({
   const coreItems = [
     { id: 'mock', label: 'Mock Exam', path: '/mock', icon: Computer },
     { id: 'results', label: 'Results', path: '/my-results', icon: BarChart2 },
-    { id: 'leaderboard', label: 'Reyting', path: '/leaderboard', icon: TrendingUp },
+    // { id: 'leaderboard', label: 'Reyting', path: '/leaderboard', icon: TrendingUp },
   ];
 
   const practiceItems = [
@@ -855,13 +855,13 @@ export default function DashboardHeader({
                     <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 ml-1 mr-0.5"></span>
                     {t('dashboard.speaking')}
                   </button>
-                  <button 
+                  {/* <button 
                     onClick={() => navigate('/roadmap')} 
                     className="w-full text-left text-[13px] font-normal text-zinc-700 dark:text-zinc-300 py-1.5 px-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white transition-all flex items-center gap-2.5"
                   >
                     <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0 ml-1 mr-0.5"></span>
                     {t('dashboard.roadmap')}
-                  </button>
+                  </button> */}
                   <button 
                     onClick={() => navigate('/settings')} 
                     className="w-full text-left text-[13px] font-normal text-zinc-700 dark:text-zinc-300 py-1.5 px-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white transition-all flex items-center gap-2.5"
@@ -1096,13 +1096,13 @@ export default function DashboardHeader({
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
                           {t('dashboard.speaking')}
                         </button>
-                        <button 
+                        {/* <button 
                           onClick={() => { navigate('/roadmap'); setIsMobileMenuOpen(false); }} 
                           className="w-full text-left text-xs font-medium text-zinc-500 dark:text-zinc-405 hover:text-zinc-900 dark:hover:text-zinc-200 py-1 px-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-all flex items-center gap-2"
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
                           {t('dashboard.roadmap')}
-                        </button>
+                        </button> */}
                         <button 
                           onClick={() => { navigate('/settings'); setIsMobileMenuOpen(false); }} 
                           className="w-full text-left text-xs font-medium text-zinc-500 dark:text-zinc-405 hover:text-zinc-900 dark:hover:text-zinc-200 py-1 px-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-all flex items-center gap-2"

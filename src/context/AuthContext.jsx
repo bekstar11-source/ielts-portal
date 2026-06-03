@@ -151,7 +151,32 @@ export function AuthProvider({ children }) {
     try {
       // Use popup for immediate sign-in to avoid redirect flow issues
       const result = await signInWithPopup(auth, provider);
-      // User is signed in; no further handling needed here
+      const user = result.user;
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
+          const newUserData = {
+            uid: user.uid,
+            email: user.email || "",
+            fullName: user.displayName || "O'quvchi",
+            photoURL: user.photoURL || "",
+            role: "student",
+            accountType: "public",
+            onboardingCompleted: false,
+            createdAt: new Date().toISOString(),
+            lastActiveAt: serverTimestamp(),
+            isOnline: true
+          };
+          await setDoc(docRef, newUserData);
+          setUserData(newUserData);
+          logAction(user.uid, 'USER_REGISTER', { email: user.email, method: 'google_popup' });
+        } else {
+          const processed = await processUserData(user.uid, docSnap.data());
+          setUserData(processed);
+          logAction(user.uid, 'USER_LOGIN', { email: user.email, method: 'google_popup' });
+        }
+      }
       return result;
     } catch (error) {
       console.error("Google Sign In Error", error);
@@ -175,7 +200,28 @@ export function AuthProvider({ children }) {
             setUserData(processed);
             setLoading(false);
           } else {
-            // Document might be in creation via redirect handler below, do not set loading to false yet
+            // Document does not exist yet. Check if they signed up using Google or another provider,
+            // or if they are a password user whose document is in creation.
+            const isPasswordUser = currentUser.providerData.some(p => p.providerId === 'password');
+            if (!isPasswordUser) {
+              // Create the document automatically for Google popup / custom token / social login users
+              const docRef = doc(db, "users", currentUser.uid);
+              const newUserData = {
+                uid: currentUser.uid,
+                email: currentUser.email || "",
+                fullName: currentUser.displayName || "O'quvchi",
+                photoURL: currentUser.photoURL || "",
+                role: "student",
+                accountType: "public",
+                onboardingCompleted: false,
+                createdAt: new Date().toISOString(),
+                lastActiveAt: serverTimestamp(),
+                isOnline: true
+              };
+              await setDoc(docRef, newUserData);
+              setUserData(newUserData);
+            }
+            setLoading(false);
           }
         } catch (error) {
           console.error("Firestore user data loading error:", error);

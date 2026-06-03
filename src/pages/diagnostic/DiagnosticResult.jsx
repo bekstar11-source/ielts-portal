@@ -7,6 +7,7 @@ import { ArrowRight, Target, Zap } from 'lucide-react';
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
 import PlanetBackground from '../../components/dashboard/PlanetBackground';
+import { LoadingScreen } from '../../components/common/RouteGuards';
 
 export default function DiagnosticResult() {
     const { id } = useParams();
@@ -37,7 +38,7 @@ export default function DiagnosticResult() {
         fetchResult();
     }, [id, navigate]);
 
-    if (loading) return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">Yuklanmoqda...</div>;
+    if (loading) return <LoadingScreen />;
     if (!result) return null;
 
     const currentBand = result.bandScore || 0;

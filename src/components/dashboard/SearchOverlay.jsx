@@ -103,26 +103,26 @@ export default function SearchOverlay({ isOpen, onClose }) {
       path: '/my-results',
       icon: Trophy
     },
-    {
-      id: 'leaderboard',
-      category: 'pages',
-      label: 'Leaderboard & Ranking',
-      uzLabel: 'Reyting va peshqadamlar',
-      desc: 'See how you rank against other IELTS portal students.',
-      uzDesc: 'Boshqa talabalar orasida reytingingizni va peshqadamlarni ko\'ring.',
-      path: '/leaderboard',
-      icon: TrendingUp
-    },
-    {
-      id: 'roadmap',
-      category: 'pages',
-      label: 'Personal Study Roadmap',
-      uzLabel: 'Shaxsiy o\'quv rejasi',
-      desc: 'Your tailored study strategy and daily language goals.',
-      uzDesc: 'Sizga moslashtirilgan o\'quv strategiyasi va kunlik maqsadlar.',
-      path: '/roadmap',
-      icon: Map
-    },
+    // {
+    //   id: 'leaderboard',
+    //   category: 'pages',
+    //   label: 'Leaderboard & Ranking',
+    //   uzLabel: 'Reyting va peshqadamlar',
+    //   desc: 'See how you rank against other IELTS portal students.',
+    //   uzDesc: 'Boshqa talabalar orasida reytingingizni va peshqadamlarni ko\'ring.',
+    //   path: '/leaderboard',
+    //   icon: TrendingUp
+    // },
+    // {
+    //   id: 'roadmap',
+    //   category: 'pages',
+    //   label: 'Personal Study Roadmap',
+    //   uzLabel: 'Shaxsiy o\'quv rejasi',
+    //   desc: 'Your tailored study strategy and daily language goals.',
+    //   uzDesc: 'Sizga moslashtirilgan o\'quv strategiyasi va kunlik maqsadlar.',
+    //   path: '/roadmap',
+    //   icon: Map
+    // },
     {
       id: 'settings',
       category: 'pages',

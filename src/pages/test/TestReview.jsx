@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 
 // Hooks
 import { useTestReview } from "../../hooks/useTestReview";
+import { LoadingScreen } from "../../components/common/RouteGuards";
 
 // Components
 import ReadingInterface from "../../components/ReadingInterface/ReadingInterface";
@@ -123,7 +124,7 @@ export default function TestReview() {
         if (params.get('openComments') === 'true') setIsCommentsOpen(true);
     }, []);
 
-    if (loading) return <div className="flex h-screen items-center justify-center font-bold text-gray-500">Yuklanmoqda...</div>;
+    if (loading) return <LoadingScreen />;
     if (!resultData || !testData) return <div className="p-10 text-center">Ma'lumot topilmadi</div>;
 
     // Block render entirely for non-premium users for paid tests (prevents content flash before redirect)

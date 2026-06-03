@@ -57,7 +57,7 @@ const SiteFooter = () => {
               <li><Link to="/settings" className="hover:text-[#1d1d1f] hover:underline">{t('footer.settings')}</Link></li>
               <li><Link to="/my-results" className="hover:text-[#1d1d1f] hover:underline">{t('footer.myResults')}</Link></li>
               <li><Link to="/dashboard" className="hover:text-[#1d1d1f] hover:underline">{t('footer.favorites')}</Link></li>
-              <li><Link to="/leaderboard" className="hover:text-[#1d1d1f] hover:underline">{t('footer.ranking')}</Link></li>
+              {/* <li><Link to="/leaderboard" className="hover:text-[#1d1d1f] hover:underline">{t('footer.ranking')}</Link></li> */}
             </ul>
 
             <h3 className="text-[#1d1d1f] font-semibold mb-2">{t('footer.premium')}</h3>
