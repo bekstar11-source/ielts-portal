@@ -66,7 +66,37 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
 
     // Filter, sort, and search list reactively
     const { filteredAndSortedTests, totalTestCount } = useMemo(() => {
-        let list = [...allTestsCache];
+        const mergedSourceIdsSet = new Set();
+        const mergedSourceTitlesSet = new Set();
+
+        allTestsCache.forEach(t => {
+            if (Array.isArray(t.mergedSourceIds)) {
+                t.mergedSourceIds.forEach(id => mergedSourceIdsSet.add(id));
+            }
+            
+            const titleLower = (t.title || "").toLowerCase().trim();
+            if (t.isMerged || titleLower.startsWith("merged:")) {
+                let content = t.title || "";
+                if (titleLower.startsWith("merged:")) {
+                    content = content.slice(7).trim();
+                }
+                if (content) {
+                    const parts = content.split(" + ").map(p => p.trim()).filter(Boolean);
+                    parts.forEach(p => mergedSourceTitlesSet.add(p.toLowerCase()));
+                }
+            }
+        });
+
+        let list = allTestsCache.map(t => {
+            const isSrcId = mergedSourceIdsSet.has(t.id);
+            const isSrcTitle = t.title && mergedSourceTitlesSet.has(t.title.toLowerCase().trim());
+            const isMergedTest = t.isMerged || (t.title?.toLowerCase().startsWith("merged:") && !t.isMergedSource);
+            
+            if ((t.isMergedSource || isSrcId || isSrcTitle) && !isMergedTest) {
+                return { ...t, isMergedSource: true };
+            }
+            return t;
+        });
 
         // 1. Type Filter
         if (filterType !== "All") {
@@ -78,6 +108,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         if (filterCollection !== "All") {
             if (filterCollection === "None") {
                 list = list.filter(t => !t.collectionId);
+            } else if (filterCollection === "Merged") {
+                list = list.filter(t => t.isMerged || t.title?.toLowerCase().startsWith("merged:"));
             } else {
                 list = list.filter(t => t.collectionId === filterCollection);
             }
@@ -304,6 +336,9 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                 createdAt: nowIso,
                 updatedAt: nowIso
             };
+            delete newTestData.isMerged;
+            delete newTestData.isMergedSource;
+            delete newTestData.mergedSourceIds;
             batch.set(newTestDocRef, newTestData);
 
             let newMetaData = {};
@@ -316,6 +351,9 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     updatedAt: nowIso,
                     thumbnail: origData.thumbnail || ""
                 };
+                delete newMetaData.isMerged;
+                delete newMetaData.isMergedSource;
+                delete newMetaData.mergedSourceIds;
             } else {
                 newMetaData = {
                     id: newId,
@@ -403,12 +441,14 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    const addCollection = async (name, thumbnail = "", type = "reading", subTests = null) => {
+    const addCollection = async (name, thumbnail = "", type = "reading", subTests = null, accessTier = "pro", isPublic = true) => {
         try {
             const data = {
                 name: name.trim(),
                 thumbnail: thumbnail.trim(),
                 type: type,
+                accessTier: accessTier,
+                isPublic: isPublic,
                 createdAt: serverTimestamp()
             };
             if (type === 'mock' && subTests) {
@@ -423,12 +463,14 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    const updateCollection = async (id, name, thumbnail = "", type = "reading", subTests = null) => {
+    const updateCollection = async (id, name, thumbnail = "", type = "reading", subTests = null, accessTier = "pro", isPublic = true) => {
         try {
             const data = {
                 name: name.trim(),
                 thumbnail: thumbnail.trim(),
-                type: type
+                type: type,
+                accessTier: accessTier,
+                isPublic: isPublic
             };
             if (type === 'mock' && subTests) {
                 data.subTests = subTests;

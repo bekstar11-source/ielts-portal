@@ -31,12 +31,23 @@ export default function MergeModal({
         }
         setIsMerging(true);
         try {
-            const selectedObjects = tests.filter(t => selectedTests.includes(t.id));
+            const { getDoc, doc, writeBatch, collection } = await import("firebase/firestore");
+            const { getQuestionTypesFromQuestions, getPassageOrPartNum } = await import("../CreateTest/CreateTestUtils");
+
+            const promises = selectedTests.map(id => getDoc(doc(db, "tests", id)));
+            const snaps = await Promise.all(promises);
+            const selectedObjects = snaps.map(s => s.data()).filter(Boolean);
+
+            if (selectedObjects.length < selectedTests.length) {
+                throw new Error("Ba'zi test ma'lumotlarini yuklab bo'lmadi.");
+            }
+
             const { mergeTestsLogic } = await import("../../../utils/TestUtils");
             const mergedPayload = mergeTestsLogic(selectedObjects, mergeTitle.trim());
-
-            const { writeBatch, doc, collection } = await import("firebase/firestore");
-            const { getQuestionTypesFromQuestions, getPassageOrPartNum } = await import("../CreateTest/CreateTestUtils");
+            mergedPayload.isFree = false;
+            mergedPayload.isPublic = false;
+            mergedPayload.isMerged = true;
+            mergedPayload.mergedSourceIds = selectedTests;
 
             const batch = writeBatch(db);
             const testDocRef = doc(collection(db, "tests"));
@@ -57,10 +68,14 @@ export default function MergeModal({
                 duration: duration,
                 audioUrl: mergedPayload.audioUrl || mergedPayload.audio_url || "",
                 isExclusive: mergedPayload.isExclusive || false,
+                isFree: false,
+                isPublic: false,
                 createdAt: mergedPayload.createdAt,
                 updatedAt: mergedPayload.updatedAt,
                 questionTypes: getQuestionTypesFromQuestions(mergedPayload.questions || []),
                 collectionId: mergedPayload.collectionId && mergedPayload.collectionId !== "None" ? mergedPayload.collectionId : null,
+                isMerged: true,
+                mergedSourceIds: selectedTests,
             };
 
             if (mergedPayload.type === 'listening') {
@@ -129,6 +144,13 @@ export default function MergeModal({
             const metadataDocRef = doc(db, "tests_metadata", newTestId);
             batch.set(testDocRef, mergedPayload);
             batch.set(metadataDocRef, metadata);
+
+            // Update source tests to mark them as merged source
+            selectedTests.forEach(id => {
+                batch.update(doc(db, "tests", id), { isMergedSource: true });
+                batch.update(doc(db, "tests_metadata", id), { isMergedSource: true });
+            });
+
             await batch.commit();
 
             toast.success("Testlar muvaffaqiyatli birlashtirildi! 🎉");

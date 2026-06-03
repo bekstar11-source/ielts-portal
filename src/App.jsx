@@ -26,6 +26,7 @@ const TeacherWritingReview = lazy(() => import('./pages/teacher/TeacherWritingRe
 const TeacherGroupStats = lazy(() => import('./pages/teacher/TeacherGroupStats'));
 const TeacherAllResults = lazy(() => import('./pages/teacher/TeacherAllResults'));
 const TeacherCreateWriting = lazy(() => import('./pages/teacher/TeacherCreateWriting'));
+const TeacherSubscription = lazy(() => import('./pages/teacher/TeacherSubscription'));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminTests = lazy(() => import('./pages/admin/AdminTests'));
@@ -135,13 +136,13 @@ function App() {
 
             {/* STUDENT SPECIFIC ROUTES */}
             <Route path="/onboarding" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Onboarding /></ProtectedRoute>} />
-            <Route path="/practice" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Practice /></ProtectedRoute>} />
-            <Route path="/reading" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Reading /></ProtectedRoute>} />
-            <Route path="/reading/full" element={<ProtectedRoute allowedRoles={['student', 'admin']}><ReadingFull /></ProtectedRoute>} />
-            <Route path="/reading/parts" element={<ProtectedRoute allowedRoles={['student', 'admin']}><ReadingParts /></ProtectedRoute>} />
-            <Route path="/listening" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Listening /></ProtectedRoute>} />
-            <Route path="/listening/full" element={<ProtectedRoute allowedRoles={['student', 'admin']}><ListeningFull /></ProtectedRoute>} />
-            <Route path="/listening/parts" element={<ProtectedRoute allowedRoles={['student', 'admin']}><ListeningParts /></ProtectedRoute>} />
+            <Route path="/practice" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><Practice /></ProtectedRoute>} />
+            <Route path="/reading" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><Reading /></ProtectedRoute>} />
+            <Route path="/reading/full" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><ReadingFull /></ProtectedRoute>} />
+            <Route path="/reading/parts" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><ReadingParts /></ProtectedRoute>} />
+            <Route path="/listening" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><Listening /></ProtectedRoute>} />
+            <Route path="/listening/full" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><ListeningFull /></ProtectedRoute>} />
+            <Route path="/listening/parts" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><ListeningParts /></ProtectedRoute>} />
             <Route path="/library" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Library /></ProtectedRoute>} />
             {/* <Route path="/roadmap" element={<ProtectedRoute allowedRoles={['student', 'admin']}><RoadmapPage /></ProtectedRoute>} /> */}
             <Route path="/settings" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Settings /></ProtectedRoute>} />
@@ -177,6 +178,8 @@ function App() {
               <Route path="group-stats" element={<TeacherGroupStats />} />
               <Route path="results" element={<TeacherAllResults />} />
               <Route path="articles" element={<AdminArticles />} />
+              <Route path="browse-articles" element={<Articles />} />
+              <Route path="subscription" element={<TeacherSubscription />} />
             </Route>
 
             {/* ADMIN ROUTES */}

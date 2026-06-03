@@ -10,7 +10,7 @@ import {
 import {
     Users, BookOpen, NotePencil as PenLine,
     CaretRight as ChevronRight, WarningCircle as AlertCircle,
-    Sparkle,
+    Sparkle, Crown
 } from '@phosphor-icons/react';
 
 export default function TeacherDashboard() {
@@ -256,8 +256,46 @@ export default function TeacherDashboard() {
                     >
                         Barcha guruhlar
                     </button>
+                    <button
+                        onClick={() => navigate('/teacher/subscription')}
+                        className="px-8 py-3.5 rounded-full font-semibold text-sm transition-all hover:opacity-90 active:scale-95 flex items-center gap-2"
+                        style={{
+                            background: isDark ? 'rgba(234,179,8,0.15)' : 'rgba(250,204,21,0.2)',
+                            color: isDark ? '#FDE047' : '#CA8A04',
+                            border: isDark ? '1px solid rgba(234,179,8,0.3)' : '1px solid rgba(250,204,21,0.5)',
+                            backdropFilter: 'blur(8px)',
+                        }}
+                    >
+                        <Crown size={18} weight="fill" />
+                        Obuna & To'lovlar
+                    </button>
                 </div>
             </div>
+
+            {/* Subscription Alert */}
+            {!userData?.teacherSubscription || new Date(userData.teacherSubscription.validUntil) < new Date() ? (
+                <div className="max-w-4xl mx-auto px-4 mb-8">
+                    <div className={`p-4 rounded-2xl flex items-center justify-between border ${isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200'}`}>
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-full ${isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-200 text-red-600'}`}>
+                                <AlertCircle size={20} weight="fill" />
+                            </div>
+                            <div>
+                                <h4 className={`font-bold text-sm ${isDark ? 'text-red-400' : 'text-red-700'}`}>Obuna faol emas!</h4>
+                                <p className={`text-xs mt-0.5 ${isDark ? 'text-red-300/70' : 'text-red-600/80'}`}>
+                                    O'quvchilaringiz PRO imkoniyatlardan foydalana olishi uchun obunani yangilang.
+                                </p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => navigate('/teacher/subscription')}
+                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl transition-colors"
+                        >
+                            Obuna Olish
+                        </button>
+                    </div>
+                </div>
+            ) : null}
 
             {/* ── CONTENT ── */}
             {loading ? (

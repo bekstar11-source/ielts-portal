@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Loader2, Headphones, BookOpen, Crown, List } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Headphones, BookOpen, Crown, List, Zap, Sparkles } from 'lucide-react';
 import PracticeCard from './PracticeCard';
 
 const getColDescription = (name) => {
@@ -130,7 +130,7 @@ export default function ListeningCollectionsSection({
                                 }}
                                 className="group bg-white border border-zinc-200/80 rounded-2xl p-6 hover:border-zinc-300 hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[175px] font-sans relative shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                             >
-                                {/* Top Header Block: Title + Pro Badge */}
+                                {/* Top Header Block: Title + Access Badge */}
                                 <div className="flex justify-between items-start gap-4">
                                     <div className="space-y-0.5">
                                         <h3 className="font-bold text-zinc-900 text-lg leading-tight tracking-tight group-hover:text-[#0066cc] transition-colors line-clamp-1">
@@ -141,11 +141,25 @@ export default function ListeningCollectionsSection({
                                         </span>
                                     </div>
                                     
-                                    {/* PRO Badge */}
-                                    <div className="flex items-center gap-1 bg-[#ffd43b] text-[#1d1d1f] font-bold text-[10.5px] px-2.5 py-1.5 rounded-[6px] select-none shrink-0 shadow-sm">
-                                        <Crown size={12} className="fill-current text-[#1d1d1f]" />
-                                        PRO
-                                    </div>
+                                    {/* Dynamic Access Badge */}
+                                    {(!col.accessTier || col.accessTier === 'pro') && (
+                                        <div className="flex items-center gap-1 bg-[#ffd43b] text-[#1d1d1f] font-bold text-[10.5px] px-2.5 py-1.5 rounded-[6px] select-none shrink-0 shadow-sm">
+                                            <Crown size={12} className="fill-current text-[#1d1d1f]" />
+                                            PRO
+                                        </div>
+                                    )}
+                                    {col.accessTier === 'standard' && (
+                                        <div className="flex items-center gap-1 bg-blue-600 text-white font-bold text-[10.5px] px-2.5 py-1.5 rounded-[6px] select-none shrink-0 shadow-sm">
+                                            <Zap size={12} className="fill-current text-white" />
+                                            STANDARD
+                                        </div>
+                                    )}
+                                    {col.accessTier === 'free' && (
+                                        <div className="flex items-center gap-1 bg-emerald-500 text-white font-bold text-[10.5px] px-2.5 py-1.5 rounded-[6px] select-none shrink-0 shadow-sm">
+                                            <Sparkles size={12} className="fill-current text-white" />
+                                            FREE
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Description Block */}

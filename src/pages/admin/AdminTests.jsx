@@ -9,7 +9,7 @@ import { useAdminTests } from "../../hooks/useAdminTests";
 import AdminTestsToolbar from "../../components/admin/AdminTests/AdminTestsToolbar";
 import AdminTestsList from "../../components/admin/AdminTests/AdminTestsList";
 import Pagination from "../../components/common/Pagination";
-import { Loader2, Layers, Award, BookOpen, Headphones, PenTool, Mic2, Globe, Lock, Sparkles } from "lucide-react";
+import { Loader2, Layers, Award, BookOpen, Headphones, PenTool, Mic2, Globe, Lock, Sparkles, Settings, Folder } from "lucide-react";
 
 // Extracted Modals
 import ConfirmModal from "../../components/admin/AdminTests/ConfirmModal";
@@ -292,7 +292,7 @@ export default function AdminTests() {
 
     const handleExportCSV = () => {
         try {
-            const selectedObjects = tests.filter(t => selectedTests.includes(t.id));
+            const selectedObjects = allTests.filter(t => selectedTests.includes(t.id));
             let csvRows = [];
             csvRows.push(["ID", "Title", "Type", "Difficulty", "IsFree", "IsPublic", "CreatedAt"].join(","));
             
@@ -354,7 +354,7 @@ export default function AdminTests() {
             toast.error("Birlashtirish uchun kamida 2 ta test tanlanishi kerak.");
             return;
         }
-        const selectedObjects = tests.filter(t => selectedTests.includes(t.id));
+        const selectedObjects = allTests.filter(t => selectedTests.includes(t.id));
         const firstType = selectedObjects[0]?.type || "reading";
         const allSameType = selectedObjects.every(t => (t.type || "reading") === firstType);
         if (!allSameType) {
@@ -425,6 +425,7 @@ export default function AdminTests() {
                                 questionTypes: payload.questionTypes || getQuestionTypesFromQuestions(payload.questions || []),
                                 collectionId: payload.collectionId && payload.collectionId !== "None" ? payload.collectionId : null,
                                 thumbnail: payload.thumbnail || "",
+                                isMerged: payload.isMerged || payload.title?.toLowerCase().startsWith("merged:") || false
                             };
 
                             if (payload.type === 'listening') {
@@ -538,6 +539,9 @@ export default function AdminTests() {
 
     const filteredTests = useMemo(() => tests, [tests]);
     const totalPages = Math.ceil(totalTestCount / 12);
+    const mergedCount = useMemo(() => {
+        return allTests.filter(t => t.isMerged || t.title?.toLowerCase().startsWith("merged:")).length;
+    }, [allTests]);
 
     return (
         <div className={`h-full w-full flex font-sans transition-colors duration-200 relative overflow-hidden ${isDark ? 'bg-[#121212] text-white' : 'bg-[#f5f5f7] text-zinc-900'}`}>
@@ -568,6 +572,7 @@ export default function AdminTests() {
                     filterType={filterType}
                     setFilterType={setFilterType}
                     totalTestCount={totalTestCount}
+                    mergedCount={mergedCount}
                     onAddCollection={handleOpenAddCollection} 
                     onEditCollection={handleOpenEditCollection}
                     onMigrate={handleMigrateMetadata}
@@ -635,6 +640,85 @@ export default function AdminTests() {
                                     Fonda yangilanmoqda...
                                 </div>
                             )}
+
+                            {/* Collection Info Banner */}
+                            {(() => {
+                                const currentColl = collections.find(c => c.id === filterCollection);
+                                if (!currentColl) return null;
+                                return (
+                                    <div className={`mb-6 p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-200 ${
+                                        isDark 
+                                            ? 'bg-white/5 border-white/5 text-white' 
+                                            : 'bg-zinc-50 border-zinc-200 text-zinc-900'
+                                    }`}>
+                                        <div className="flex items-center gap-4.5">
+                                            <div className={`w-12 h-12 rounded-lg overflow-hidden border flex items-center justify-center shrink-0 ${
+                                                isDark ? 'bg-white/5 border-white/10' : 'bg-white border-zinc-200'
+                                            }`}>
+                                                {currentColl.thumbnail ? (
+                                                    <img src={currentColl.thumbnail} className="w-full h-full object-cover" alt="" />
+                                                ) : (
+                                                    <Folder className={
+                                                        currentColl.type === 'listening' ? 'text-amber-500' :
+                                                        currentColl.type === 'reading' ? 'text-emerald-500' :
+                                                        currentColl.type === 'mock' ? 'text-blue-500' : 'text-zinc-400'
+                                                    } size={20} />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-bold text-base leading-snug">{currentColl.name}</h3>
+                                                    <button
+                                                        onClick={() => handleOpenEditCollection(currentColl)}
+                                                        className={`p-1.5 rounded-lg border transition-all active:scale-95 flex items-center justify-center shrink-0 ${
+                                                            isDark 
+                                                                ? 'bg-white/5 border-white/10 hover:bg-white/10 text-zinc-300' 
+                                                                : 'bg-white border-zinc-200 hover:bg-zinc-50 text-zinc-600'
+                                                        }`}
+                                                        title="To'plam sozlamalari"
+                                                    >
+                                                        <Settings size={14} className="hover:rotate-45 transition-transform duration-200" />
+                                                    </button>
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
+                                                        currentColl.type === 'listening' ? 'bg-amber-500/10 text-amber-500' :
+                                                        currentColl.type === 'reading' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                        'bg-blue-500/10 text-blue-500'
+                                                    }`}>
+                                                        {currentColl.type}
+                                                    </span>
+                                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1 ${
+                                                        currentColl.isPublic !== false 
+                                                            ? 'bg-emerald-500/10 text-emerald-600' 
+                                                            : 'bg-zinc-500/10 text-zinc-500'
+                                                    }`}>
+                                                        {currentColl.isPublic !== false ? <Globe size={9} /> : <Lock size={9} />}
+                                                        {currentColl.isPublic !== false ? 'Public' : 'Private'}
+                                                    </span>
+                                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1 ${
+                                                        currentColl.accessTier === 'free' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                                                        currentColl.accessTier === 'standard' ? 'bg-blue-500/10 text-blue-600' :
+                                                        'bg-amber-500/10 text-amber-500'
+                                                    }`}>
+                                                        {currentColl.accessTier === 'free' ? 'FREE' :
+                                                         currentColl.accessTier === 'standard' ? 'STANDARD' :
+                                                         'PRO'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${
+                                                isDark ? 'bg-white/5 border-white/5' : 'bg-white border-zinc-200'
+                                            }`}>
+                                                {filteredTests.length} ta test
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             <AdminTestsList 
                                 tests={filteredTests}
                                 selectedTests={selectedTests}
@@ -726,7 +810,7 @@ export default function AdminTests() {
                 isOpen={mergeModalOpen}
                 onClose={() => setMergeModalOpen(false)}
                 selectedTests={selectedTests}
-                tests={tests}
+                tests={allTests}
                 isDark={isDark}
                 onSaved={() => {
                     setSelectedTests([]);

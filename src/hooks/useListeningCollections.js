@@ -30,8 +30,11 @@ export function useListeningCollections(userResults, userData) {
     try {
       const { orderBy, where: firestoreWhere } = await import("firebase/firestore");
       const snapCols = await getDocs(query(collection(db, "test_collections"), firestoreWhere("type", "==", "listening"), orderBy("createdAt", "asc")));
-      const fetchedCols = snapCols.docs
+      let fetchedCols = snapCols.docs
         .map(d => ({ id: d.id, ...d.data() }));
+      if (!isAdminOrTeacher) {
+        fetchedCols = fetchedCols.filter(c => c.isPublic !== false);
+      }
       setCollections(fetchedCols);
       
       const colIds = fetchedCols.map(c => c.id).filter(Boolean);
@@ -43,7 +46,15 @@ export function useListeningCollections(userResults, userData) {
         );
         const snapAllTests = await getDocs(qAllTests);
         fetchedAllTests = snapAllTests.docs
-          .map(d => ({ id: d.id, ...d.data() }))
+          .map(d => {
+            const data = d.data();
+            const parentCol = fetchedCols.find(c => c.id === data.collectionId);
+            return {
+              id: d.id,
+              ...data,
+              collectionAccessTier: parentCol?.accessTier || 'pro'
+            };
+          })
           .filter(t => t.type === 'listening');
         
         // Sort so that free ones appear first
@@ -59,9 +70,12 @@ export function useListeningCollections(userResults, userData) {
     } catch (e) {
       try {
         const snapCols = await getDocs(collection(db, "test_collections"));
-        const fetchedCols = snapCols.docs
+        let fetchedCols = snapCols.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(c => c.type?.toLowerCase() === 'listening');
+        if (!isAdminOrTeacher) {
+          fetchedCols = fetchedCols.filter(c => c.isPublic !== false);
+        }
         setCollections(fetchedCols);
 
         const colIds = fetchedCols.map(c => c.id).filter(Boolean);
@@ -73,7 +87,15 @@ export function useListeningCollections(userResults, userData) {
           );
           const snapAllTests = await getDocs(qAllTests);
           fetchedAllTests = snapAllTests.docs
-            .map(d => ({ id: d.id, ...d.data() }))
+            .map(d => {
+              const data = d.data();
+              const parentCol = fetchedCols.find(c => c.id === data.collectionId);
+              return {
+                id: d.id,
+                ...data,
+                collectionAccessTier: parentCol?.accessTier || 'pro'
+              };
+            })
             .filter(t => t.type === 'listening');
 
           // Sort so that free ones appear first
@@ -97,6 +119,9 @@ export function useListeningCollections(userResults, userData) {
   const fetchCollectionTests = async (colId) => {
     setLoadingCollectionTests(true);
     try {
+      const parentCol = collections.find(c => c.id === colId);
+      const colTier = parentCol?.accessTier || 'pro';
+
       // 1. Fetch from tests_metadata
       const qMeta = query(
         collection(db, 'tests_metadata'),
@@ -124,7 +149,10 @@ export function useListeningCollections(userResults, userData) {
         }
       });
 
-      const docs = Array.from(mergedMap.values());
+      const docs = Array.from(mergedMap.values()).map(doc => ({
+        ...doc,
+        collectionAccessTier: colTier
+      }));
       // Sort so that free ones appear first
       docs.sort((a, b) => {
         if (a.isFree && !b.isFree) return -1;
@@ -210,6 +238,7 @@ export function useListeningCollections(userResults, userData) {
             difficulty: partData.difficulty || test.difficulty || "medium",
             partNumber: partNum,
             isFree: !!test.isFree,
+            collectionAccessTier: test.collectionAccessTier,
             duration: 10,
             audioUrl: partData.audioUrl || test.audioUrl || "",
             startTime: partData.startSec || 0,
@@ -234,6 +263,7 @@ export function useListeningCollections(userResults, userData) {
             difficulty: test.difficulty || "medium",
             partNumber: partNum,
             isFree: !!test.isFree,
+            collectionAccessTier: test.collectionAccessTier,
             duration: 10,
             audioUrl: test.audioUrl || "",
             startTime: 0,

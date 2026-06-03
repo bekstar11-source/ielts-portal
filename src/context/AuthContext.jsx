@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     const user = result.user;
 
-    await setDoc(doc(db, "users", user.uid), {
+    const newUserData = {
       uid: user.uid,
       email: email,
       fullName: fullName,
@@ -41,7 +41,10 @@ export function AuthProvider({ children }) {
       // 🔥 Ro'yxatdan o'tganda darhol "Online" deb belgilash
       lastActiveAt: serverTimestamp(),
       isOnline: true
-    });
+    };
+
+    await setDoc(doc(db, "users", user.uid), newUserData);
+    setUserData(newUserData);
 
     logAction(user.uid, 'USER_REGISTER', { email, role, method: 'email' }); // Log action
     return user;
@@ -261,9 +264,6 @@ export function AuthProvider({ children }) {
         }
       } catch (error) {
         console.error("Google Redirect Result handling error:", error);
-      } finally {
-        // If auth user was detected but Firestore doc was missing, we finish loading here
-        setLoading(false);
       }
     };
     handleRedirect();

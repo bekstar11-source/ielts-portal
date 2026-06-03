@@ -4,9 +4,11 @@ import {
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 
-export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfig }) {
+export default function AdvancedAnalyticsChart({ data = [], height = 350, seriesConfig }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+
+    const chartData = data || [];
 
     // Default series if none provided (but we'll pass them from AdminDashboard)
     const defaultConfig = [
@@ -27,7 +29,7 @@ export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfi
     };
 
     // Calculate totals or averages
-    const stats = data.reduce((acc, curr) => {
+    const stats = chartData.reduce((acc, curr) => {
         config.forEach(s => {
             acc[s.key] = (acc[s.key] || 0) + (curr[s.key] || 0);
         });
@@ -37,7 +39,7 @@ export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfi
     // For "decimal" types, we might want to show the overall average instead of total
     const getDisplayTotal = (s) => {
         if (s.type === 'decimal') {
-            const count = data.filter(d => d[s.key] > 0).length;
+            const count = chartData.filter(d => d[s.key] > 0).length;
             return count > 0 ? (stats[s.key] / count).toFixed(1) : '0';
         }
         return stats[s.key] || 0;
@@ -101,7 +103,7 @@ export default function AdvancedAnalyticsChart({ data, height = 350, seriesConfi
             <div className="flex-1 min-w-0 flex flex-col">
                 <div style={{ width: '100%', height: height }}>
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
                             <XAxis 
                                 dataKey="name" 

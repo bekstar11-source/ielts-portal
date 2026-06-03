@@ -148,8 +148,8 @@ async function handleCallback(chatId, query) {
     
     // Parse student details from caption
     const caption = query.message.caption || "";
-    const userMatch = caption.match(/User ID:<\/b> <code>([^<]+)<\/code>/);
-    const chatMatch = caption.match(/Student Chat ID:<\/b> <code>([^<]+)<\/code>/);
+    const userMatch = caption.match(/User ID:(?:<\/b>)?\s*(?:<code>)?\s*([^\s<]+)/i);
+    const chatMatch = caption.match(/Student Chat ID:(?:<\/b>)?\s*(?:<code>)?\s*([^\s<]+)/i);
     
     const studentUserId = userMatch ? userMatch[1] : null;
     const studentChatId = chatMatch ? chatMatch[1] : null;

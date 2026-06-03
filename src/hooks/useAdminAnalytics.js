@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { db } from '../firebase/firebase';
 import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
 
+const safeToDate = (val) => {
+    if (!val) return null;
+    if (typeof val.toDate === 'function') return val.toDate();
+    if (val instanceof Date) return val;
+    if (val.seconds !== undefined) return new Date(val.seconds * 1000);
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+};
+
 export function useAdminAnalytics() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -46,7 +55,7 @@ export function useAdminAnalytics() {
                     getDocs(collection(db, "tests_metadata"))
                 ]);
 
-                const results = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: d.data().createdAt?.toDate() })).reverse();
+                const results = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: safeToDate(d.data().createdAt) })).reverse();
                 const users = usersSnap.docs.filter(d => d.data().role !== 'admin');
                 const tests = testsSnap.docs;
 
@@ -130,7 +139,10 @@ export function useAdminAnalytics() {
                 results.forEach(r => {
                     const val = r.bandScore !== undefined ? Number(r.bandScore) : (Number(r.score) || 0);
                     if (val < 5.0) {
-                        if (!atRiskMap.has(r.userId) || r.createdAt > atRiskMap.get(r.userId).createdAt) {
+                        const existing = atRiskMap.get(r.userId);
+                        const rTime = r.createdAt?.getTime() || 0;
+                        const existingTime = existing?.createdAt?.getTime() || 0;
+                        if (!existing || rTime > existingTime) {
                             atRiskMap.set(r.userId, {
                                 id: r.userId,
                                 name: r.userName || 'Unknown Student',
@@ -141,7 +153,11 @@ export function useAdminAnalytics() {
                         }
                     }
                 });
-                const finalAtRiskStudents = Array.from(atRiskMap.values()).sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+                const finalAtRiskStudents = Array.from(atRiskMap.values()).sort((a, b) => {
+                    const timeA = a.createdAt?.getTime() || 0;
+                    const timeB = b.createdAt?.getTime() || 0;
+                    return timeB - timeA;
+                }).slice(0, 5);
                 setAtRiskStudents(finalAtRiskStudents);
 
                 // Cache Data

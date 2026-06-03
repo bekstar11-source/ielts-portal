@@ -24,6 +24,7 @@ const CATEGORY_INITIAL_LIMIT = 6;
 
 export default function Articles() {
     const { user, userData, updateUserLocalData } = useAuth();
+    const isTeacher = userData?.role === 'teacher';
     const navigate = useNavigate();
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -180,7 +181,7 @@ export default function Articles() {
 
     return (
         <div className="min-h-screen bg-[#F5F5F7] dark:bg-black font-sans text-[#1d1d1f] dark:text-[#f5f5f7] antialiased selection:bg-[#0066cc]/10 selection:text-[#0066cc] transition-colors duration-300">
-            <DashboardHeader user={user} userData={userData} activeTab="articles" />
+            {!isTeacher && <DashboardHeader user={user} userData={userData} activeTab="articles" />}
 
             {/* HERO SECTION */}
             <div className="bg-[#050505] pt-4 pb-3.5 md:pt-6 md:pb-5 px-4 md:px-6 relative overflow-hidden">
@@ -432,8 +433,8 @@ export default function Articles() {
                 </div>
             </main>
 
-            <BottomNav activeTab="articles" />
-            <SiteFooter />
+            {!isTeacher && <BottomNav activeTab="articles" />}
+            {!isTeacher && <SiteFooter />}
         </div>
     );
 }

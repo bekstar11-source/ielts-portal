@@ -170,7 +170,22 @@ export default function ListeningFull() {
   }, [collectionsData, searchQuery, selectedStatus, selectedQuestionTypes, freeOnly]);
 
   const handleStartTest = (test) => { 
-    if (test.isFree) {
+    const colTier = test.collectionAccessTier;
+    const isAdminOrTeacher = userData?.role === 'admin' || userData?.role === 'teacher';
+    let allowed = true;
+    
+    if (colTier === 'pro') {
+      allowed = isPro || isAdminOrTeacher;
+    } else if (colTier === 'standard') {
+      allowed = isStandard || isPro || isAdminOrTeacher;
+    }
+    
+    if (!allowed) {
+      setShowPricingModal(true);
+      return;
+    }
+
+    if (test.isFree || colTier === 'free') {
       setTestToStart(test); 
       setShowStartConfirm(true); 
       return;

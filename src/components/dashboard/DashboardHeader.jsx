@@ -25,7 +25,10 @@ import {
   Layers,
   ClipboardList,
   Moon,
-  Sun
+  Sun,
+  LayoutDashboard,
+  FilePlus,
+  Plus
 } from 'lucide-react';
 import SearchOverlay from './SearchOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -71,6 +74,7 @@ export default function DashboardHeader({
   const [isPracticeOpen, setIsPracticeOpen] = useState(true);
   const [isResourcesOpen, setIsResourcesOpen] = useState(true);
   const [isIeltsOpen, setIsIeltsOpen] = useState(true);
+  const [isTeacherSectionOpen, setIsTeacherSectionOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const isMac = typeof window !== 'undefined' && navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
@@ -272,6 +276,73 @@ export default function DashboardHeader({
                   <span>{t('dashboard.speaking')}</span>
                 </button>
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  const renderTeacherSection = (isMobile = false) => {
+    if (userData?.role !== 'teacher') return null;
+
+    const items = [
+      { id: 't_dashboard', label: "Dashboard", path: '/teacher', icon: LayoutDashboard },
+      { id: 't_tests', label: "Tayinlangan Testlar", path: '/teacher/tests', icon: BookOpen },
+      { id: 't_create_writing', label: "Writing Yaratish", path: '/teacher/create-writing', icon: Plus },
+      { id: 't_writing_review', label: "Writing Tekshirish", path: '/teacher/writing-review', icon: PenTool },
+      { id: 't_stats', label: "Guruh Statistikasi", path: '/teacher/group-stats', icon: BarChart2 },
+      { id: 't_results', label: "Barcha Natijalar", path: '/teacher/results', icon: ClipboardList },
+      { id: 't_subscription', label: "Obuna & To'lovlar", path: '/teacher/subscription', icon: CreditCard }
+    ];
+
+    const handleItemClick = (path) => {
+      navigate(path);
+      if (isMobile) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    const textClass = isMobile ? 'text-[12px]' : 'text-[13px]';
+    const subTextClass = isMobile ? 'text-[12px] py-1' : 'text-[13px] py-1';
+    const iconSize = isMobile ? 13 : 14;
+
+    return (
+      <div className={isMobile ? "mt-3 flex flex-col gap-2.5" : "mt-4 flex flex-col gap-3"}>
+        <button
+          onClick={() => setIsTeacherSectionOpen(!isTeacherSectionOpen)}
+          className="flex items-center gap-1.5 text-[13px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-widest px-2.5 select-none hover:text-zinc-950 dark:hover:text-white transition-colors w-full text-left"
+        >
+          <span>USTOZ PANELI</span>
+          <ChevronDown size={11} className={`text-zinc-450 dark:text-zinc-500 transition-transform duration-200 ${isTeacherSectionOpen ? '' : '-rotate-90'}`} />
+        </button>
+
+        <AnimatePresence initial={false}>
+          {isTeacherSectionOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className={`overflow-hidden flex flex-col ${isMobile ? "gap-2.5" : "gap-1 mt-1 pl-1"}`}
+            >
+              {items.map(item => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path || (item.path === '/teacher' && location.pathname === '/teacher/');
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleItemClick(item.path)}
+                    className={`w-full text-left px-2.5 py-1.5 ${textClass} rounded-lg transition-all flex items-center gap-2.5 font-normal group ${
+                      isActive
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 font-semibold'
+                        : 'text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
+                    }`}
+                  >
+                    <Icon size={15} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-550 dark:text-zinc-455 group-hover:text-black dark:group-hover:text-white transition-colors'} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>
@@ -555,7 +626,8 @@ export default function DashboardHeader({
 
   const isPro = userData?.accountType === 'pro' || userData?.isPro;
   const isStandard = userData?.accountType === 'standard';
-  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
+                    userData?.role === 'admin' || userData?.role === 'teacher';
 
   const isTabActive = (item) => {
     if (item.id === 'dashboard') {
@@ -776,8 +848,20 @@ export default function DashboardHeader({
           
           {/* Core Items (Home, Mock Exam, Results, Reyting) */}
           <div className="flex flex-col gap-1">
+            {userData?.role === 'admin' && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-semibold transition-all bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 mb-1"
+              >
+                <GraduationCap size={15} className="text-amber-500" />
+                <span>Admin Panel</span>
+              </button>
+            )}
             {coreItems.map(renderMenuItem)}
           </div>
+
+          {/* Teacher Section */}
+          {renderTeacherSection(false)}
 
           {/* IELTS Section */}
           {renderIeltsSection(false)}
@@ -1017,8 +1101,20 @@ export default function DashboardHeader({
 
                 {/* Core Items (Home, Mock Exam, Results, Reyting) */}
                 <div className="flex flex-col gap-1">
+                  {userData?.role === 'admin' && (
+                    <button
+                      onClick={() => { navigate('/admin'); setIsMobileMenuOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 mb-1"
+                    >
+                      <GraduationCap size={14} className="text-amber-500" />
+                      <span>Admin Panel</span>
+                    </button>
+                  )}
                   {coreItems.map(renderMobileMenuItem)}
                 </div>
+
+                {/* Teacher Section */}
+                {renderTeacherSection(true)}
 
                 {/* IELTS Section */}
                 {renderIeltsSection(true)}

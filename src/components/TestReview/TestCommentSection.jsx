@@ -4,6 +4,15 @@ import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp 
 import { MessageSquare, Send, AlertTriangle, User, ShieldAlert, CheckCircle2, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const safeToDate = (val) => {
+    if (!val) return null;
+    if (typeof val.toDate === 'function') return val.toDate();
+    if (val instanceof Date) return val;
+    if (val.seconds !== undefined) return new Date(val.seconds * 1000);
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+};
+
 export default function TestCommentSection({ testId, user, userData }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
@@ -23,7 +32,7 @@ export default function TestCommentSection({ testId, user, userData }) {
       const docs = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
+        createdAt: safeToDate(doc.data().createdAt)
       }));
       setComments(docs);
     });

@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
 import { db } from "../../firebase/firebase";
-import { collection, getDocs, getDoc, doc, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, query, where, limit } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-
-// --- ICONS (SVG) ---
-const Icons = {
-  Search: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>,
-  ArrowLeft: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>,
-  Eye: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-  ChevronLeft: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>,
-  ChevronRight: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>,
-  Alert: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>,
-  Type: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>,
-  Status: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.892 2.693.48a47.097 47.097 0 001.186-2.83M5 5h.008v.008H5V5z" /></svg>,
-  ChevronDown: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-};
+import {
+  ArrowLeft,
+  Eye,
+  CaretLeft,
+  CaretRight,
+  CaretDown,
+  WarningCircle as AlertIcon,
+  MagnifyingGlass as SearchIcon,
+  Clock as ClockIcon,
+  CalendarBlank as CalendarIcon,
+  Users as UsersIcon,
+  GraduationCap as GradIcon,
+  FileText as FileIcon,
+  ArrowCounterClockwise,
+  FolderOpen as FolderIcon
+} from "@phosphor-icons/react";
 
 export default function TeacherAllResults() {
   const navigate = useNavigate();
@@ -31,6 +34,8 @@ export default function TeacherAllResults() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [groupFilter, setGroupFilter] = useState("all");
+  const [groups, setGroups] = useState([]);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,21 +51,37 @@ export default function TeacherAllResults() {
         }
 
         const uniqueStudentIds = new Set();
+        const fetchedGroups = [];
         for (const groupId of assignedGroupIds) {
           const groupDoc = await getDoc(doc(db, "groups", groupId));
           if (groupDoc.exists()) {
-            const data = groupDoc.data();
-            if (data.studentIds && Array.isArray(data.studentIds)) {
-              data.studentIds.forEach(id => uniqueStudentIds.add(id));
+            const groupData = { id: groupDoc.id, ...groupDoc.data() };
+            fetchedGroups.push(groupData);
+            if (groupData.studentIds && Array.isArray(groupData.studentIds)) {
+              groupData.studentIds.forEach(id => uniqueStudentIds.add(id));
             }
           }
         }
+        setGroups(fetchedGroups);
 
         const studentIdsArray = Array.from(uniqueStudentIds);
         if (studentIdsArray.length === 0) {
           setLoading(false);
           return;
         }
+
+        // Build mapping: studentId -> array of group names
+        const studentToGroupsMap = {};
+        fetchedGroups.forEach(group => {
+          if (group.studentIds && Array.isArray(group.studentIds)) {
+            group.studentIds.forEach(studentId => {
+              if (!studentToGroupsMap[studentId]) {
+                studentToGroupsMap[studentId] = [];
+              }
+              studentToGroupsMap[studentId].push(group.name || "Nomsiz guruh");
+            });
+          }
+        });
 
         const chunks = [];
         for (let i = 0; i < studentIdsArray.length; i += 10) {
@@ -89,7 +110,7 @@ export default function TeacherAllResults() {
         });
 
         const data = allDocsData.map((d) => {
-          // DURATION HISOBLASH LOGIKASI
+          // Duration calculation
           let durationStr = "-";
           let timeSpentSeconds = 0;
           if (d.timeSpent) {
@@ -120,6 +141,7 @@ export default function TeacherAllResults() {
             id: d.id,
             ...d,
             userName: d.userName || "Noma'lum",
+            studentGroups: studentToGroupsMap[d.userId] || [],
             testTitle: d.testTitle || "Nomsiz Test",
             type: d.type || "other",
             score: d.score !== undefined ? d.score : "-",
@@ -171,9 +193,15 @@ export default function TeacherAllResults() {
       }
     }
 
+    if (groupFilter !== "all") {
+      const targetGroup = groups.find(g => g.id === groupFilter);
+      const studentIdsInGroup = targetGroup?.studentIds || [];
+      temp = temp.filter((item) => studentIdsInGroup.includes(item.userId));
+    }
+
     setFilteredResults(temp);
     setCurrentPage(1);
-  }, [searchTerm, typeFilter, statusFilter, results]);
+  }, [searchTerm, typeFilter, statusFilter, groupFilter, results, groups]);
 
   const formatDateTime = (dateObj) => {
     if (!dateObj) return { date: "-", time: "" };
@@ -208,9 +236,9 @@ export default function TeacherAllResults() {
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${currentPage === page
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                  : isDark ? "bg-[#2C2C2C] border border-white/5 text-gray-400 hover:bg-white/5 hover:border-white/10" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+              className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${currentPage === page
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                  : isDark ? "bg-[#2C2C2C] border border-white/5 text-gray-400 hover:bg-white/5 hover:border-white/10" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-355"
                 }`}
             >
               {page}
@@ -219,131 +247,257 @@ export default function TeacherAllResults() {
     );
   };
 
+  // Computed stats from filteredResults
+  const totalCount = filteredResults.length;
+  const pendingCount = filteredResults.filter(
+    (r) => (r.status === "pending" || r.status === "pending_review") && (r.type === "writing" || r.type === "mock_full")
+  ).length;
+  const violationsCount = filteredResults.filter((r) => r.hasViolation).length;
+
+  const bandScores = filteredResults
+    .map((r) => {
+      const val = r.bandScore || r.score;
+      if (!val || val === "-") return null;
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 0 && num <= 9) return num;
+      return null;
+    })
+    .filter((v) => v !== null);
+  const avgBand = bandScores.length > 0
+    ? (bandScores.reduce((sum, val) => sum + val, 0) / bandScores.length).toFixed(1)
+    : "-";
+
+  const statsList = [
+    {
+      label: "Jami Yechilgan",
+      value: totalCount,
+      icon: FileIcon,
+      color: isDark ? "text-indigo-400" : "text-indigo-650",
+      bg: isDark ? "rgba(99,102,241,0.08)" : "rgba(99,102,241,0.05)",
+      iconBg: isDark ? "bg-indigo-500/20" : "bg-indigo-50",
+    },
+    {
+      label: "Tekshirish Kutilmoqda",
+      value: pendingCount,
+      icon: ClockIcon,
+      color: isDark ? "text-amber-400" : "text-amber-650",
+      bg: isDark ? "rgba(245,158,11,0.08)" : "rgba(245,158,11,0.05)",
+      iconBg: isDark ? "bg-amber-500/20" : "bg-amber-50",
+    },
+    {
+      label: "O'rtacha Band",
+      value: avgBand,
+      icon: GradIcon,
+      color: isDark ? "text-emerald-400" : "text-emerald-650",
+      bg: isDark ? "rgba(16,185,129,0.08)" : "rgba(16,185,129,0.05)",
+      iconBg: isDark ? "bg-emerald-500/20" : "bg-emerald-50",
+    },
+    {
+      label: "Qoidabuzarliklar",
+      value: violationsCount,
+      icon: AlertIcon,
+      color: isDark ? "text-rose-400" : "text-rose-650",
+      bg: isDark ? "rgba(244,63,94,0.08)" : "rgba(244,63,94,0.05)",
+      iconBg: isDark ? "bg-rose-500/20" : "bg-rose-50",
+    },
+  ];
+
   if (loading) return (
-    <div className="flex items-center justify-center h-48">
-      <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${isDark ? 'border-white' : 'border-gray-900'}`}></div>
+    <div className="flex items-center justify-center h-64">
+      <div className={`animate-spin rounded-full h-10 w-10 border-b-2 border-t-transparent ${isDark ? 'border-white' : 'border-gray-900'}`}></div>
     </div>
   );
 
   return (
     <div className={`py-6 font-sans ${isDark ? 'text-white' : 'text-slate-800'}`}>
-      <div className="max-w-7xl mx-auto flex flex-col gap-6">
-        <div className="mb-4">
+      <div className="max-w-7xl mx-auto flex flex-col gap-6 px-4">
+        {/* Back navigation */}
+        <div className="mb-2">
           <button
             onClick={() => navigate('/teacher')}
-            className={`flex items-center gap-2 transition-colors font-medium text-sm group ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
+            className={`flex items-center gap-2 transition-colors font-semibold text-sm group ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm transition-all ${isDark ? 'bg-[#2C2C2C] border-white/5 group-hover:border-white/10' : 'bg-white border-gray-200 group-hover:border-gray-300'}`}>
-              <Icons.ArrowLeft className="w-4 h-4" />
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm transition-all ${isDark ? 'bg-white/5 border-white/10 group-hover:border-white/20' : 'bg-white border-gray-200 group-hover:border-gray-300'}`}>
+              <ArrowLeft className="w-4 h-4" />
             </div>
             Bosh sahifa
           </button>
         </div>
 
-        <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-6 mb-10">
-          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-center">
-            
-            {/* 1. Qidiruv */}
-            <div className="relative w-full md:w-64 group">
-              <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
+        {/* Title Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+          <div>
+            <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              O'quvchilar Natijalari
+            </h1>
+            <p className={`text-sm mt-1 font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Guruhlaringizdagi o'quvchilar tomonidan topshirilgan testlar va yechimlar tahlili.
+            </p>
+          </div>
+          
+          <div className={`px-4 py-2 rounded-2xl text-xs font-bold border ${isDark ? 'bg-white/5 border-white/10 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-700'}`}>
+            Jami {filteredResults.length} ta yechim
+          </div>
+        </div>
+
+        {/* Dynamic Stats Section */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+          {statsList.map((stat, idx) => (
+            <div
+              key={idx}
+              className={`rounded-3xl border p-5 flex items-center gap-4 transition-all duration-300 ${isDark ? 'bg-[#2C2C2C]/50 border-white/5 hover:border-white/10' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'}`}
+              style={{
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+              }}
+            >
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stat.iconBg} ${stat.color} flex-shrink-0`}>
+                <stat.icon size={24} weight="bold" />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {stat.value}
+                </p>
+                <p className={`text-[12px] font-semibold truncate ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-0.5`}>
+                  {stat.label}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filter Section */}
+        <div 
+          className="rounded-3xl p-5 flex flex-col md:flex-row justify-between items-center gap-4"
+          style={{
+            background: isDark ? 'rgba(44, 44, 44, 0.4)' : 'rgba(255, 255, 255, 0.5)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.05)',
+          }}
+        >
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {/* Search Input */}
+            <div className="relative flex-1 md:flex-initial min-w-[200px] group">
+              <SearchIcon className={`absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
               <input
                 type="text"
-                placeholder="Qidirish..."
-                className={`w-full pl-11 pr-4 py-3 rounded-2xl border-none outline-none text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-white focus:bg-white/[0.08] placeholder:text-gray-600' : 'bg-gray-100 text-gray-900 focus:bg-gray-200/50 placeholder:text-gray-500'}`}
+                placeholder="Ism yoki test nomi..."
+                className={`w-full pl-11 pr-4 py-2.5 rounded-2xl border text-sm font-medium transition-all outline-none ${isDark ? 'bg-[#1E1E1E]/50 border-white/5 text-white focus:border-blue-500/50 placeholder:text-gray-600 focus:bg-[#1E1E1E]' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-600/50 placeholder:text-gray-400 focus:bg-white'}`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
-            {/* 2. Turlar Filtri */}
-            <div className="relative w-full sm:w-44">
+            {/* Group Filter */}
+            <div className="relative flex-1 md:flex-initial min-w-[160px]">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <Icons.Type className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+                <UsersIcon className={`w-4.5 h-4.5 ${isDark ? 'text-gray-550' : 'text-gray-400'}`} />
+              </div>
+              <select
+                value={groupFilter}
+                onChange={(e) => setGroupFilter(e.target.value)}
+                className={`w-full pl-11 pr-10 py-2.5 rounded-2xl border text-sm font-medium transition-all outline-none appearance-none cursor-pointer ${isDark ? 'bg-[#1E1E1E]/50 border-white/5 text-gray-300 focus:border-blue-500/50 focus:bg-[#1E1E1E]' : 'bg-gray-50 border-gray-200 text-gray-700 focus:border-blue-600/50 focus:bg-white'}`}
+              >
+                <option value="all">Barcha Guruhlar</option>
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+              <CaretDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            {/* Test Type Filter */}
+            <div className="relative flex-1 md:flex-initial min-w-[150px]">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <FileIcon className={`w-4.5 h-4.5 ${isDark ? 'text-gray-550' : 'text-gray-400'}`} />
               </div>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className={`w-full pl-11 pr-10 py-3 rounded-2xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 focus:bg-white/[0.08]' : 'bg-gray-100 text-gray-700 focus:bg-gray-200/50'}`}
+                className={`w-full pl-11 pr-10 py-2.5 rounded-2xl border text-sm font-medium transition-all outline-none appearance-none cursor-pointer ${isDark ? 'bg-[#1E1E1E]/50 border-white/5 text-gray-300 focus:border-blue-500/50 focus:bg-[#1E1E1E]' : 'bg-gray-50 border-gray-200 text-gray-700 focus:border-blue-600/50 focus:bg-white'}`}
               >
                 <option value="all">Barcha Turlar</option>
                 <option value="reading">Reading</option>
                 <option value="listening">Listening</option>
                 <option value="writing">Writing</option>
                 <option value="speaking">Speaking</option>
+                <option value="mock_full">Mock Exam</option>
               </select>
-              <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+              <CaretDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
 
-            {/* 3. Status Filtri */}
-            <div className="relative w-full sm:w-48">
+            {/* Status Filter */}
+            <div className="relative flex-1 md:flex-initial min-w-[150px]">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <Icons.Status className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+                <GradIcon className={`w-4.5 h-4.5 ${isDark ? 'text-gray-550' : 'text-gray-400'}`} />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className={`w-full pl-11 pr-10 py-3 rounded-2xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 focus:bg-white/[0.08]' : 'bg-gray-100 text-gray-700 focus:bg-gray-200/50'}`}
+                className={`w-full pl-11 pr-10 py-2.5 rounded-2xl border text-sm font-medium transition-all outline-none appearance-none cursor-pointer ${isDark ? 'bg-[#1E1E1E]/50 border-white/5 text-gray-300 focus:border-blue-500/50 focus:bg-[#1E1E1E]' : 'bg-gray-50 border-gray-200 text-gray-700 focus:border-blue-600/50 focus:bg-white'}`}
               >
                 <option value="all">Barcha Statuslar</option>
                 <option value="pending">Kutilmoqda</option>
                 <option value="graded">Baholangan</option>
               </select>
-              <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+              <CaretDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
-
-            {(typeFilter !== 'all' || statusFilter !== 'all' || searchTerm) && (
-              <button
-                onClick={() => {
-                  setTypeFilter('all');
-                  setStatusFilter('all');
-                  setSearchTerm('');
-                }}
-                className={`text-xs font-semibold px-2 underline transition-colors underline-offset-4 ${isDark ? 'text-red-400 hover:text-red-300 decoration-red-500/30' : 'text-red-500 hover:text-red-600 decoration-red-500/20'}`}
-              >
-                Tozalash
-              </button>
-            )}
           </div>
 
-          <div className="flex flex-col items-end">
-            <h1 className={`text-xl font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-gray-900'}`}>Natijalar</h1>
-            <p className={`text-xs font-medium mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Jami {filteredResults.length} ta yechim</p>
-          </div>
+          {(typeFilter !== 'all' || statusFilter !== 'all' || groupFilter !== 'all' || searchTerm) && (
+            <button
+              onClick={() => {
+                setTypeFilter('all');
+                setStatusFilter('all');
+                setGroupFilter('all');
+                setSearchTerm('');
+              }}
+              className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-2xl transition-all border ${isDark ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-100'}`}
+            >
+              <ArrowCounterClockwise className="w-3.5 h-3.5" />
+              Tozalash
+            </button>
+          )}
         </div>
 
+        {/* Table Card */}
         <div 
           className="rounded-[2rem] shadow-sm overflow-hidden" 
           style={{
-            background: isDark
-                ? 'rgba(44,44,44,0.7)'
-                : 'rgba(255,255,255,0.55)',
+            background: isDark ? 'rgba(44,44,44,0.7)' : 'rgba(255,255,255,0.55)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: isDark
-                ? '1px solid rgba(255,255,255,0.06)'
-                : '1px solid rgba(255,255,255,0.7)',
-            boxShadow: isDark
-                ? '0 4px 24px rgba(0,0,0,0.3)'
-                : '0 4px 24px rgba(0,0,0,0.06)',
+            border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.7)',
+            boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.06)',
           }}
         >
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse font-sans">
               <thead>
                 <tr className={`border-b ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-200 bg-gray-50/50'}`}>
-                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide w-32 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Sana</th>
-                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>O'quvchi</th>
-                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Test Nomi</th>
-                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Vaqt</th>
-                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Baho</th>
-                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Status</th>
-                  <th className={`py-3 px-4 text-[13px] font-semibold tracking-wide text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Amal</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider w-32 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Sana</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>O'quvchi</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Test Nomi</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Sarf Vaqti</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Natija</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Status / Qoida</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Amal</th>
                 </tr>
               </thead>
 
               <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
                 {currentItems.length === 0 ? (
-                  <tr><td colSpan="7" className={`p-10 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ma'lumot topilmadi</td></tr>
+                  <tr>
+                    <td colSpan="7" className={`p-16 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <div className="flex flex-col items-center gap-2">
+                        <FolderIcon className="w-10 h-10 opacity-30 text-gray-400" />
+                        <span className="font-semibold">Hech qanday natija topilmadi</span>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   currentItems.map((res) => {
                     const { date, time } = formatDateTime(res.date);
@@ -351,71 +505,108 @@ export default function TeacherAllResults() {
                     return (
                       <tr
                         key={res.id}
-                        className={`group transition-colors duration-150 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}
+                        className={`group transition-colors duration-150 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50/50'}`}
                       >
-                        <td className="py-3 px-4 whitespace-nowrap align-middle">
-                          <div className="flex flex-col leading-tight">
-                            <span className={`text-[13px] font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{date}</span>
-                            <span className={`text-[11px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{time}</span>
+                        {/* 1. Date */}
+                        <td className="py-4 px-5 whitespace-nowrap align-middle">
+                          <div className="flex items-center gap-2">
+                            <CalendarIcon className={`w-4.5 h-4.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                            <div className="flex flex-col leading-tight">
+                              <span className={`text-[13px] font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{date}</span>
+                              <span className={`text-[11px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-450'}`}>{time}</span>
+                            </div>
                           </div>
                         </td>
 
-                        <td className="py-3 px-4 align-middle">
+                        {/* 2. Student */}
+                        <td className="py-4 px-5 align-middle">
                           <div className="flex flex-col leading-tight">
-                            <span className={`text-[14px] font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{res.userName}</span>
-                            <span className={`text-[11px] font-mono mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>ID: {res.id.slice(0, 6)}</span>
+                            <span className={`text-[14px] font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{res.userName}</span>
+                            {/* Group name(s) */}
+                            {res.studentGroups && res.studentGroups.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {res.studentGroups.map((gName, idx) => (
+                                  <span key={idx} className={`px-1.5 py-0.5 rounded-[4px] text-[10px] font-semibold ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`}>
+                                    {gName}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className={`text-[11px] font-medium mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Guruhsiz</span>
+                            )}
                           </div>
                         </td>
 
-                        <td className="py-3 px-4 align-middle">
-                          <div className="flex flex-col gap-1">
-                            <span className={`text-[13px] font-medium truncate max-w-[220px] ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {/* 3. Test Title */}
+                        <td className="py-4 px-5 align-middle">
+                          <div className="flex flex-col gap-1.5">
+                            <span className={`text-[13px] font-bold truncate max-w-[220px] ${isDark ? 'text-gray-200' : 'text-gray-700'}`} title={res.testTitle}>
                               {res.testTitle}
                             </span>
-                            <span className={`w-fit px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider border ${res.type === 'listening' ? (isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-700 border-indigo-100') : res.type === 'reading' ? (isDark ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-sky-50 text-sky-700 border-sky-100') : res.type === 'writing' ? (isDark ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100') : (isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-100')}`}>
-                              {res.type}
+                            <span className={`w-fit px-2 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider border ${
+                              res.type === 'listening' 
+                                ? (isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-700 border-indigo-100') 
+                                : res.type === 'reading' 
+                                ? (isDark ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-sky-50 text-sky-700 border-sky-100') 
+                                : res.type === 'writing' 
+                                ? (isDark ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100') 
+                                : res.type === 'speaking'
+                                ? (isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-100')
+                                : (isDark ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-purple-50 text-purple-700 border-purple-100')
+                            }`}>
+                              {res.type === 'mock_full' ? 'Mock Exam' : res.type}
                             </span>
                           </div>
                         </td>
 
-                        <td className="py-3 px-4 align-middle text-center">
-                          <span className={`text-[12px] font-medium px-2 py-1 rounded ${isDark ? 'bg-white/10 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
+                        {/* 4. Duration */}
+                        <td className="py-4 px-5 align-middle text-center">
+                          <span className={`inline-flex items-center gap-1 text-[12px] font-semibold px-2.5 py-1 rounded-lg ${isDark ? 'bg-white/5 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
+                            <ClockIcon className="w-3.5 h-3.5 text-gray-400" />
                             {res.durationDisplay}
                           </span>
                         </td>
 
-                        <td className="py-3 px-4 align-middle text-center">
-                          <span className={`text-[14px] font-bold font-mono ${res.bandScore || (res.score && res.score !== '-')
-                              ? (isDark ? 'text-white' : 'text-gray-800')
+                        {/* 5. Score */}
+                        <td className="py-4 px-5 align-middle text-center">
+                          <span className={`text-[15px] font-black font-mono px-3 py-1 rounded-lg ${
+                            res.bandScore || (res.score && res.score !== '-')
+                              ? (isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-700')
                               : (isDark ? 'text-gray-500' : 'text-gray-300')
-                            }`}>
+                          }`}>
                             {res.bandScore ? res.bandScore : res.score}
                           </span>
                         </td>
 
-                        <td className="py-3 px-4 align-middle text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] text-[11px] font-semibold border ${res.status === 'graded' || res.status === 'published'
-                                ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
-                                : (isDark ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-orange-50 text-orange-700 border-orange-200')
-                              }`}>
+                        {/* 6. Status and Violations */}
+                        <td className="py-4 px-5 align-middle text-center">
+                          <div className="flex flex-col items-center gap-1.5">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                              res.status === 'graded' || res.status === 'published'
+                                ? (isDark ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                                : (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200')
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                res.status === 'graded' || res.status === 'published' ? 'bg-emerald-500' : 'bg-amber-500'
+                              }`} />
                               {res.status === 'graded' || res.status === 'published' ? 'Baholangan' : 'Kutilmoqda'}
                             </span>
                             
                             {res.hasViolation && (
                               <span 
                                 title={res.violationText} 
-                                className={`inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold border cursor-help w-fit ${isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-100 text-rose-700 border-rose-200'}`}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border cursor-help ${isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-100 text-rose-700 border-rose-200'}`}
                               >
-                                <Icons.Alert className="w-3 h-3" />
+                                <AlertIcon className="w-3 h-3 flex-shrink-0 text-rose-500" />
                                 Qoidabuzarlik
                               </span>
                             )}
                           </div>
                         </td>
 
-                        <td className="py-3 px-4 align-middle">
-                          <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        {/* 7. Action Button */}
+                        <td className="py-4 px-5 align-middle">
+                          <div className="flex items-center justify-center">
                             <button
                               onClick={() => {
                                 if (res.type === 'writing' || res.type === 'mock_full') {
@@ -424,12 +615,13 @@ export default function TeacherAllResults() {
                                   navigate(`/review/${res.id}`);
                                 }
                               }}
-                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-bold uppercase tracking-wide transition-all ${res.status !== 'graded' && res.status !== 'published' && (res.type === 'writing' || res.type === 'mock_full')
-                                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow'
-                                  : (isDark ? 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
-                                }`}
+                              className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
+                                (res.status !== 'graded' && res.status !== 'published') && (res.type === 'writing' || res.type === 'mock_full')
+                                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-blue-500/20 active:scale-95'
+                                  : (isDark ? 'bg-[#1E1E1E] border border-white/5 text-gray-300 hover:bg-white/10 hover:text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
+                              }`}
                             >
-                              <Icons.Eye className="w-3.5 h-3.5" />
+                              <Eye className="w-4 h-4" />
                               {((res.status === 'pending' || res.status === 'pending_review') && (res.type === 'writing' || res.type === 'mock_full')) ? 'Baholash' : 'Ko\'rish'}
                             </button>
                           </div>
@@ -442,30 +634,31 @@ export default function TeacherAllResults() {
             </table>
           </div>
 
-          <div className={`border-t p-3 flex flex-col sm:flex-row justify-between items-center gap-4 ${isDark ? 'border-white/5' : 'border-[#e5e7eb]/50'}`}>
-            <div className="flex items-center gap-1">
+          {/* Pagination */}
+          <div className={`border-t p-4 flex flex-col sm:flex-row justify-between items-center gap-4 ${isDark ? 'border-white/5' : 'border-[#e5e7eb]/50'}`}>
+            <div className="flex items-center gap-1.5">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => prev - 1)}
-                className={`w-8 h-8 flex items-center justify-center border rounded disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark ? 'bg-[#2C2C2C] border-white/5 text-gray-400 hover:bg-white/5' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                className={`w-9 h-9 flex items-center justify-center border rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark ? 'bg-[#2C2C2C] border-white/5 text-gray-400 hover:bg-white/5' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
               >
-                <Icons.ChevronLeft className="w-4 h-4" />
+                <CaretLeft className="w-4 h-4" />
               </button>
 
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 {renderPaginationButtons()}
               </div>
 
               <button
                 disabled={currentPage === totalPages || totalPages === 0}
                 onClick={() => setCurrentPage(prev => prev + 1)}
-                className={`w-8 h-8 flex items-center justify-center border rounded disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark ? 'bg-[#2C2C2C] border-white/5 text-gray-400 hover:bg-white/5' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                className={`w-9 h-9 flex items-center justify-center border rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark ? 'bg-[#2C2C2C] border-white/5 text-gray-400 hover:bg-white/5' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
               >
-                <Icons.ChevronRight className="w-4 h-4" />
+                <CaretRight className="w-4 h-4" />
               </button>
             </div>
 
-            <span className={`text-[13px] font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <span className={`text-[13px] font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               Jami <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{filteredResults.length}</span> tadan <span className={isDark ? 'text-white' : 'text-gray-900'}>{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)}</span> ko'rsatilmoqda
             </span>
           </div>

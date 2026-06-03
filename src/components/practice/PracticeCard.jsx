@@ -12,7 +12,12 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const isPremium = (test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening') && !test.isFree;
+  
+  const isPremium = (() => {
+    if (test.collectionAccessTier === 'free') return false;
+    if (test.collectionAccessTier === 'standard' || test.collectionAccessTier === 'pro') return true;
+    return (test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening') && !test.isFree;
+  })();
   
   const isListeningPart = test.type === 'listening' && (test.title?.toLowerCase().includes('part') || test.partNumber || !test.title?.toLowerCase().includes('full'));
   const isListeningFull = test.type === 'listening' && test.title?.toLowerCase().includes('full');
@@ -87,7 +92,12 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
     ? (test.title.match(/Part\s*(\d+)|Section\s*(\d+)/i)?.[0] || (test.difficulty?.includes('1') ? 'Section 1' : test.difficulty?.includes('2') ? 'Section 2' : test.difficulty?.includes('3') ? 'Section 3' : test.difficulty?.includes('4') ? 'Section 4' : 'Listening Section'))
     : (test.type === 'mock_full' ? 'Full Mock' : 'IELTS Test');
 
-  const canAccess = isPro || (isStandard && (test.type === 'reading' || test.type === 'listening' || test.type === 'podcasts'));
+  const canAccess = (() => {
+    if (test.collectionAccessTier === 'free') return true;
+    if (test.collectionAccessTier === 'standard') return isStandard || isPro;
+    if (test.collectionAccessTier === 'pro') return isPro;
+    return isPro || (isStandard && (test.type === 'reading' || test.type === 'listening' || test.type === 'podcasts'));
+  })();
 
   const handleClick = () => {
     if (isCompleted) {
@@ -184,12 +194,16 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
               {passageLabel}
             </span>
             <div className="flex gap-1.5">
-              {test.isFree ? (
+              {test.collectionAccessTier === 'free' || (test.isFree && !test.collectionAccessTier) ? (
                 <span className="px-2.5 py-0.5 rounded bg-emerald-500 text-white text-[10px] font-bold tracking-wide uppercase shadow-sm">
                   FREE
                 </span>
-              ) : isPremium ? (
-                <span className="px-2.5 py-0.5 rounded bg-amber-500 text-white text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 shadow-sm">
+              ) : test.collectionAccessTier === 'standard' ? (
+                <span className="px-2.5 py-0.5 rounded bg-blue-600 text-white text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 shadow-sm">
+                  <Zap size={9} fill="currentColor" /> STANDARD
+                </span>
+              ) : test.collectionAccessTier === 'pro' || (isPremium && !test.collectionAccessTier) ? (
+                <span className="px-2.5 py-0.5 rounded bg-[#ffd43b] text-[#1d1d1f] text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 shadow-sm">
                   <Crown size={9} fill="currentColor" /> PRO
                 </span>
               ) : null}

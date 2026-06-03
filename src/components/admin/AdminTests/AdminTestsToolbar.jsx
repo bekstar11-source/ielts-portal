@@ -14,6 +14,7 @@ const AdminTestsToolbar = ({
     filterType = "All",
     setFilterType,
     totalTestCount = 0,
+    mergedCount = 0,
     onAddCollection,
     onEditCollection,
     onMigrate,
@@ -264,6 +265,11 @@ const AdminTestsToolbar = ({
                                     )}
                                     <span className="truncate">{currentColl.name}</span>
                                 </>
+                            ) : filterCollection === "Merged" ? (
+                                <>
+                                    <GitMerge size={10} className="text-purple-500 shrink-0" />
+                                    <span>Merged Tests</span>
+                                </>
                             ) : (
                                 <>
                                     <Folder size={10} className="text-blue-500 shrink-0" />
@@ -285,11 +291,25 @@ const AdminTestsToolbar = ({
                                         className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                             filterCollection === 'All'
                                                 ? (isDark ? 'bg-white/10 text-white' : 'bg-zinc-100 text-zinc-950')
-                                                : (isDark ? 'text-zinc-400 hover:bg-white/5 hover:text-white' : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950')
+                                                : (isDark ? 'text-zinc-400 hover:bg-white/5 hover:text-white' : 'text-zinc-650 hover:bg-zinc-50 hover:text-zinc-950')
                                         }`}
                                     >
                                         <span className="flex items-center gap-2"><Folder size={12} className="text-zinc-400" /> All Tests</span>
                                         <span className="text-[9px] font-bold opacity-50 bg-zinc-500/10 px-1.5 py-0.5 rounded-full">{totalTestCount}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setFilterCollection("Merged");
+                                            setIsCollectionOpen(false);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                            filterCollection === 'Merged'
+                                                ? (isDark ? 'bg-white/10 text-white' : 'bg-zinc-100 text-zinc-950')
+                                                : (isDark ? 'text-zinc-400 hover:bg-white/5 hover:text-white' : 'text-zinc-650 hover:bg-zinc-50 hover:text-zinc-950')
+                                        }`}
+                                    >
+                                        <span className="flex items-center gap-2"><GitMerge size={12} className="text-purple-500 shrink-0" /> Merged Tests</span>
+                                        <span className="text-[9px] font-bold opacity-50 bg-zinc-500/10 px-1.5 py-0.5 rounded-full">{mergedCount}</span>
                                     </button>
                                     <div className="h-px bg-zinc-150 dark:bg-white/5 my-1" />
                                     {collections.map(c => {

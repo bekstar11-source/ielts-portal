@@ -202,10 +202,10 @@ export default function MockEntry() {
 
             <main className="flex-1 w-full max-w-6xl mx-auto px-8 py-12 space-y-12 pb-24">
                 {/* Hero Section */}
-                <section>
-                    <h1 className="text-3xl font-bold text-[#e31b23] mb-2">{t('mock.welcome')}, {userData?.fullName?.split(' ')[0] || t('mock.candidate')}</h1>
-                    <p className="text-gray-500 font-medium">{user?.email}</p>
-                    <div className="h-[1px] bg-gray-200 w-full mt-8"></div>
+                <section className="space-y-1">
+                    <h1 className="text-xl font-bold text-[#e31b23]">{t('mock.welcome')}, {userData?.fullName?.split(' ')[0] || t('mock.candidate')}</h1>
+                    <p className="text-gray-500 text-xs font-semibold">{user?.email}</p>
+                    <div className="h-[1px] bg-gray-200 w-full mt-4"></div>
                 </section>
 
                 {/* Dual Banners Grid */}
@@ -313,9 +313,6 @@ export default function MockEntry() {
                     </div>
                 </section>
 
-                {/* Animated Presentation section */}
-                <MockInterfacePresentation lang={lang} />
-
                 {/* Mock History Tabs */}
                 <section className="space-y-8">
                     <div className="flex items-center gap-12 border-b border-gray-200">
@@ -369,6 +366,9 @@ export default function MockEntry() {
                         )}
                     </div>
                 </section>
+
+                {/* Animated Presentation section */}
+                <MockInterfacePresentation lang={lang} />
             </main>
 
             <SiteFooter />

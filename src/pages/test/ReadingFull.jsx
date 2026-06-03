@@ -51,7 +51,8 @@ export default function ReadingFull() {
   
   const isPro = userData?.accountType === 'pro' || userData?.isPro;
   const isStandard = userData?.accountType === 'standard';
-  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
+                    userData?.role === 'admin' || userData?.role === 'teacher';
   
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
@@ -146,7 +147,22 @@ export default function ReadingFull() {
   }, [collectionsData.collectionProcessedTests, searchQuery, selectedStatus, selectedQuestionTypes, freeOnly]);
 
   const handleStartTest = (test) => { 
-    if (test.isFree) {
+    const colTier = test.collectionAccessTier;
+    const isAdminOrTeacher = userData?.role === 'admin' || userData?.role === 'teacher';
+    let allowed = true;
+    
+    if (colTier === 'pro') {
+      allowed = isPro || isAdminOrTeacher;
+    } else if (colTier === 'standard') {
+      allowed = isStandard || isPro || isAdminOrTeacher;
+    }
+    
+    if (!allowed) {
+      setShowPricingModal(true);
+      return;
+    }
+
+    if (test.isFree || colTier === 'free') {
       setTestToStart(test); 
       setShowStartConfirm(true); 
       return;

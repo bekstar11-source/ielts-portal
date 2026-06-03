@@ -18,6 +18,8 @@ export default function CollectionModal({
     const [colName, setColName] = useState("");
     const [colThumbnail, setColThumbnail] = useState("");
     const [colType, setColType] = useState("reading");
+    const [accessTier, setAccessTier] = useState("pro"); // 'pro' | 'standard' | 'free'
+    const [isPublic, setIsPublic] = useState(true);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [isSavingCol, setIsSavingCol] = useState(false);
 
@@ -36,6 +38,8 @@ export default function CollectionModal({
                 setColReadingId(editingCol.subTests?.readingId || "");
                 setColListeningId(editingCol.subTests?.listeningId || "");
                 setColWritingId(editingCol.subTests?.writingId || "");
+                setAccessTier(editingCol.accessTier || "pro");
+                setIsPublic(editingCol.isPublic !== undefined ? editingCol.isPublic : true);
             } else {
                 setColName("");
                 setColThumbnail("");
@@ -43,6 +47,8 @@ export default function CollectionModal({
                 setColReadingId("");
                 setColListeningId("");
                 setColWritingId("");
+                setAccessTier("pro");
+                setIsPublic(true);
             }
         }
     }, [isOpen, editingCol]);
@@ -58,11 +64,11 @@ export default function CollectionModal({
                 : null;
 
             if (editingCol) {
-                const ok = await updateCollection(editingCol.id, colName.trim(), colThumbnail.trim(), colType, subTests);
+                const ok = await updateCollection(editingCol.id, colName.trim(), colThumbnail.trim(), colType, subTests, accessTier, isPublic);
                 if (!ok) throw new Error("Database update failed");
                 toast.success("To'plam muvaffaqiyatli yangilandi! 🎉");
             } else {
-                const ok = await addCollection(colName.trim(), colThumbnail.trim(), colType, subTests);
+                const ok = await addCollection(colName.trim(), colThumbnail.trim(), colType, subTests, accessTier, isPublic);
                 if (!ok) throw new Error("Database insert failed");
                 toast.success("Yangi to'plam muvaffaqiyatli yaratildi! 🎉");
             }
@@ -158,6 +164,59 @@ export default function CollectionModal({
                                     }`}
                                 >
                                     {type === "reading" ? "📖 Reading" : type === "listening" ? "🎧 Listening" : "🎓 Mock"}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                            Obuna Darajasi (Access Tier)
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {[
+                                { id: "free", label: "🎁 Free" },
+                                { id: "standard", label: "⚡ Standard" },
+                                { id: "pro", label: "👑 Pro" }
+                            ].map((tier) => (
+                                <button
+                                    key={tier.id}
+                                    type="button"
+                                    onClick={() => setAccessTier(tier.id)}
+                                    className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border font-bold text-xs transition-all ${
+                                        accessTier === tier.id
+                                            ? 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/10'
+                                            : isDark 
+                                                ? 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
+                                                : 'bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100'
+                                    }`}
+                                >
+                                    {tier.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                            Ko'rinuvchanlik (Visibility)
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {[
+                                { id: true, label: "🌐 Public (Dashboardda ko'rinadi)" },
+                                { id: false, label: "🔒 Private (Yashirin)" }
+                            ].map((option) => (
+                                <button
+                                    key={String(option.id)}
+                                    type="button"
+                                    onClick={() => setIsPublic(option.id)}
+                                    className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border font-bold text-xs transition-all ${
+                                        isPublic === option.id
+                                            ? 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/10'
+                                            : isDark 
+                                                ? 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
+                                                : 'bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100'
+                                    }`}
+                                >
+                                    {option.label}
                                 </button>
                             ))}
                         </div>

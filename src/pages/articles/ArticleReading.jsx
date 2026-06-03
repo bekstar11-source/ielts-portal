@@ -31,6 +31,7 @@ import { hasClappedArticle, addArticleClap, removeArticleClap } from '../../util
 
 export default function ArticleReading() {
   const { user, userData, updateUserLocalData } = useAuth();
+  const isTeacher = userData?.role === 'teacher';
   const { id } = useParams();
   const navigate = useNavigate();
   const [article, setArticle] = useState(null);
@@ -570,13 +571,13 @@ export default function ArticleReading() {
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] dark:bg-black text-[#1D1D1F] dark:text-[#f5f5f7] font-sans antialiased selection:bg-blue-100 dark:selection:bg-blue-900/30 selection:text-blue-900 dark:selection:text-blue-100 transition-colors duration-300">
-      <DashboardHeader user={user} userData={userData} activeTab="articles" />
+      {!isTeacher && <DashboardHeader user={user} userData={userData} activeTab="articles" />}
       
       {/* Sub Header / Action Bar */}
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-black/[0.05] dark:border-white/[0.08] py-3">
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
           <button 
-            onClick={() => navigate('/articles')}
+            onClick={() => navigate(isTeacher ? '/teacher/browse-articles' : '/articles')}
             className="flex items-center gap-1.5 text-sm font-bold text-[#0066CC] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 px-4 py-2 rounded-full transition-all"
           >
             <ChevronLeft size={18} /> All Articles
@@ -1169,7 +1170,7 @@ export default function ArticleReading() {
         `}</style>
       </main>
 
-      <SiteFooter />    </div>
+      {!isTeacher && <SiteFooter />}    </div>
   );
 }
 

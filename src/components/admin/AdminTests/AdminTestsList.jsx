@@ -18,11 +18,15 @@ const getSegments = (test) => {
         ];
     }
     if (type === 'reading') {
-        const passageCount = (test.passages || []).length;
+        const present = new Set();
+        (test.passages || []).forEach((p, idx) => {
+            const num = getPassageOrPartNum(p, idx, 'reading', test.questions || []);
+            if (num >= 1 && num <= 3) present.add(num);
+        });
         return [1, 2, 3].map(num => ({
             label: `P${num}`,
             title: `Passage ${num}`,
-            exists: num <= passageCount
+            exists: present.has(num)
         }));
     }
     if (type === 'listening') {
@@ -155,10 +159,11 @@ const AdminTestsList = ({
                                     const part = test.parts[k];
                                     (part.qTypes || []).forEach(t => { if (!qTypes.includes(t)) qTypes.push(t); });
                                 });
+                                const isArray = Array.isArray(test.parts);
                                 segments = [1, 2, 3, 4].map(num => {
-                                    const exists = Object.values(test.parts || {}).some((part, idx) => {
-                                        return getPassageOrPartNum(part, idx, 'listening', test.questions || []) === num;
-                                    });
+                                    const exists = isArray
+                                        ? test.parts.some((part, idx) => getPassageOrPartNum(part, idx, 'listening', test.questions || []) === num)
+                                        : (test.parts[`part${num}`] !== undefined || test.parts[`Part${num}`] !== undefined);
                                     return {
                                         label: `Pt${num}`,
                                         title: `Part ${num}`,
@@ -172,10 +177,11 @@ const AdminTestsList = ({
                                     const pass = test.passages[k];
                                     (pass.qTypes || []).forEach(t => { if (!qTypes.includes(t)) qTypes.push(t); });
                                 });
+                                const isArray = Array.isArray(test.passages);
                                 segments = [1, 2, 3].map(num => {
-                                    const exists = Object.values(test.passages || {}).some((pass, idx) => {
-                                        return getPassageOrPartNum(pass, idx, 'reading', test.questions || []) === num;
-                                    });
+                                    const exists = isArray
+                                        ? test.passages.some((pass, idx) => getPassageOrPartNum(pass, idx, 'reading', test.questions || []) === num)
+                                        : (test.passages[`passage${num}`] !== undefined || test.passages[`Passage${num}`] !== undefined);
                                     return {
                                         label: `P${num}`,
                                         title: `Passage ${num}`,
@@ -244,6 +250,21 @@ const AdminTestsList = ({
                                                 {test.isFree && (
                                                     <span className="text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-white leading-none">FREE</span>
                                                 )}
+                                                {(test.isMerged || (test.title?.toLowerCase().startsWith("merged:") && !test.isMergedSource)) && (
+                                                    <span className="text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-purple-600 text-white leading-none">MERGED</span>
+                                                )}
+                                                {test.isMergedSource && (
+                                                    <span 
+                                                        className={`text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full flex items-center gap-1 leading-none ${
+                                                            isDark 
+                                                                ? 'bg-purple-500/10 border border-purple-500/20 text-purple-400' 
+                                                                : 'bg-purple-50 border border-purple-150 text-purple-600'
+                                                        }`}
+                                                        title="Birlashtirilgan test tarkibiy qismi (Manba test)"
+                                                    >
+                                                        <span className="text-[10px]">🔗</span> Source
+                                                    </span>
+                                                )}
                                             </div>
                                             
                                             <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
@@ -276,7 +297,7 @@ const AdminTestsList = ({
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex flex-col">
                                             <span className={`text-xs font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
-                                                {passageCount} {test.type === 'listening' ? 'Parts' : test.type === 'writing' ? 'Tasks' : test.type === 'mock' ? 'Modules' : 'Passages'}
+                                                {passageCount}{" "}{test.type === 'listening' ? 'Parts' : test.type === 'writing' ? 'Tasks' : test.type === 'mock' ? 'Modules' : 'Passages'}
                                             </span>
                                             {totalGroups > 0 && (
                                                 <span className="text-[10px] text-zinc-400 font-medium mt-0.5">

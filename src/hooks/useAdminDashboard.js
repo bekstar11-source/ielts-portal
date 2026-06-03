@@ -13,8 +13,17 @@ import {
     orderBy
 } from 'firebase/firestore';
 
+const safeToDate = (val) => {
+    if (!val) return null;
+    if (typeof val.toDate === 'function') return val.toDate();
+    if (val instanceof Date) return val;
+    if (val.seconds !== undefined) return new Date(val.seconds * 1000);
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+};
+
 export const useAdminDashboard = (isAuthorized) => {
-    const [stats, setStats] = useState({ users: 0, tests: 0, results: 0, loading: true });
+    const [stats, setStats] = useState({ users: 0, tests: 0, results: 0, activityData: [], loading: true });
     const [allUsers, setAllUsers] = useState([]);
     const [displayedUsers, setDisplayedUsers] = useState([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
@@ -57,10 +66,9 @@ export const useAdminDashboard = (isAuthorized) => {
                 const resultsSnap = await getDocs(resultsQuery);
                 const resultsDocs = resultsSnap.docs.map(d => {
                     const data = d.data();
-                    let dateVal = data.date;
-                    let dateObj = (dateVal && dateVal.seconds) ? new Date(dateVal.seconds * 1000) : new Date(dateVal);
+                    let dateObj = safeToDate(data.date || data.createdAt);
                     return { ...data, id: d.id, normalizedDate: dateObj };
-                }).filter(r => r.normalizedDate >= thirtyDaysAgo);
+                }).filter(r => r.normalizedDate !== null && r.normalizedDate >= thirtyDaysAgo);
 
                 // Prepare Activity Data
                 const last30Days = [...Array(30)].map((_, i) => {
@@ -74,10 +82,12 @@ export const useAdminDashboard = (isAuthorized) => {
                 }), {});
 
                 resultsDocs.forEach(r => {
-                    const dateKey = r.normalizedDate.toISOString().split('T')[0];
-                    if (activityDataMap[dateKey]) {
-                        activityDataMap[dateKey].tests++;
-                        activityDataMap[dateKey].totalScore += parseFloat(r.bandScore || r.score || 0);
+                    if (r.normalizedDate) {
+                        const dateKey = r.normalizedDate.toISOString().split('T')[0];
+                        if (activityDataMap[dateKey]) {
+                            activityDataMap[dateKey].tests++;
+                            activityDataMap[dateKey].totalScore += parseFloat(r.bandScore || r.score || 0);
+                        }
                     }
                 });
 
@@ -93,8 +103,8 @@ export const useAdminDashboard = (isAuthorized) => {
                 const usersListSnap = await getDocs(recentUsersQuery);
                 usersListSnap.docs.forEach(d => {
                     const u = d.data();
-                    if (u.createdAt) {
-                        const dateObj = u.createdAt.seconds ? new Date(u.createdAt.seconds * 1000) : new Date(u.createdAt);
+                    const dateObj = safeToDate(u.createdAt);
+                    if (dateObj) {
                         const dateKey = dateObj.toISOString().split('T')[0];
                         if (activityDataMap[dateKey]) activityDataMap[dateKey].users++;
                     }
@@ -125,7 +135,7 @@ export const useAdminDashboard = (isAuthorized) => {
 
             } catch (err) {
                 console.error("Dashboard Stats Error:", err);
-                setStats(prev => ({ ...prev, loading: false }));
+                setStats(prev => ({ ...prev, activityData: [], loading: false }));
             }
         };
 
