@@ -208,9 +208,53 @@ export function runValidation(testData) {
                 });
             } else {
                 // Check if answer is in option labels
+                const getOptLabel = (opt, idx) => {
+                    if (typeof opt === 'object' && opt !== null) {
+                        return String(opt.label || '').toUpperCase().trim();
+                    }
+                    const str = String(opt || '').trim();
+                    const match = str.match(/^([A-Z])[\.\)\s]/i);
+                    if (match) {
+                        return match[1].toUpperCase();
+                    }
+                    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                    return letters[idx] || 'A';
+                };
+
+                const getOptText = (opt) => {
+                    if (typeof opt === 'object' && opt !== null) {
+                        return String(opt.text || '').toUpperCase().trim();
+                    }
+                    const str = String(opt || '').trim();
+                    const match = str.match(/^[A-Z][\.\)\s]\s*(.*)$/i);
+                    return (match ? match[1] : str).toUpperCase().trim();
+                };
+
+                const cleanAnswerKey = (ans) => {
+                    const str = String(ans || '').trim();
+                    const match = str.match(/^([A-Z])[\.\)\s]/i);
+                    if (match) return match[1].toUpperCase();
+                    if (str.length === 1 && /^[A-Z]$/i.test(str)) return str.toUpperCase();
+                    return '';
+                };
+
+                const optionLabels = options.map((opt, idx) => getOptLabel(opt, idx));
+                const optionTexts = options.map(opt => getOptText(opt));
+                
+                const cleanedAnsKey = cleanAnswerKey(answer);
                 const upperAns = String(answer || '').toUpperCase().trim();
-                const optionLabels = options.map(opt => String(opt.label || '').toUpperCase().trim());
-                if (!optionLabels.includes(upperAns)) {
+
+                let isFound = false;
+                if (cleanedAnsKey && optionLabels.includes(cleanedAnsKey)) {
+                    isFound = true;
+                } else if (optionLabels.includes(upperAns)) {
+                    isFound = true;
+                } else {
+                    const cleanedAnsText = String(answer || '').replace(/^[A-Z][\.\)\s]\s*/i, '').toUpperCase().trim();
+                    isFound = optionTexts.some(txt => txt && (txt === upperAns || txt === cleanedAnsText));
+                }
+
+                if (!isFound) {
                     errors.push({
                         id: `q-${qId}-mcq-answer-mismatch`,
                         message: `Savol ${qId}: Javob kaliti "${answer}" kiritilgan variantlar (${optionLabels.join(', ')}) orasida topilmadi`,

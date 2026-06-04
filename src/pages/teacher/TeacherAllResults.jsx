@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "../../firebase/firebase";
-import { collection, getDocs, getDoc, doc, query, where, limit } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, query, where, limit, orderBy } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -40,6 +40,10 @@ export default function TeacherAllResults() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+
+  // Load more limit states
+  const [resultsLimit, setResultsLimit] = useState(100);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -89,18 +93,24 @@ export default function TeacherAllResults() {
         }
 
         let allDocsData = [];
+        let foundMore = false;
         for (const chunk of chunks) {
           if (chunk.length === 0) continue;
           const q = query(
             collection(db, "results"),
             where("userId", "in", chunk),
-            limit(100) // Increased limit since we sort client-side
+            orderBy("date", "desc"),
+            limit(resultsLimit)
           );
           const querySnapshot = await getDocs(q);
+          if (querySnapshot.size >= resultsLimit) {
+            foundMore = true;
+          }
           querySnapshot.forEach(docSnap => {
             allDocsData.push({ id: docSnap.id, ...docSnap.data() });
           });
         }
+        setHasMore(foundMore);
 
         // Client-side sort by date descending
         allDocsData.sort((a, b) => {
@@ -130,7 +140,17 @@ export default function TeacherAllResults() {
             durationStr = `${diffMins} daq`;
           }
           
-          const isFast = (d.status === 'graded' || d.status === 'published') && timeSpentSeconds > 0 && timeSpentSeconds < 600 && d.type !== 'speaking';
+          // A part test is when:
+          // 1. d.partNumber exists, OR
+          // 2. test title explicitly mentions "part" / "passage" / "section" (indicating a practice part test, which is < 40 mins)
+          const isPartTest = d.partNumber != null || 
+                             (d.testTitle && (
+                               d.testTitle.toLowerCase().includes("part") || 
+                               d.testTitle.toLowerCase().includes("passage") || 
+                               d.testTitle.toLowerCase().includes("section")
+                             ));
+
+          const isFast = !isPartTest && (d.status === 'graded' || d.status === 'published') && timeSpentSeconds > 0 && timeSpentSeconds < 600 && d.type !== 'speaking';
           const hasViolation = !!d.violation || isFast;
           let violationText = null;
           if (d.violation === 'tab_closed') violationText = 'Tab yopilgan (erta yakunlangan)';
@@ -166,7 +186,7 @@ export default function TeacherAllResults() {
     if (userData) {
       fetchData();
     }
-  }, [userData]);
+  }, [userData, resultsLimit]);
 
   // FILTER LOGIC
   useEffect(() => {
@@ -633,6 +653,22 @@ export default function TeacherAllResults() {
               </tbody>
             </table>
           </div>
+
+          {/* Load More Button */}
+          {hasMore && (
+            <div className={`flex justify-center p-4 border-t ${isDark ? 'border-white/5' : 'border-[#e5e7eb]/50'}`}>
+              <button
+                onClick={() => setResultsLimit(prev => prev + 100)}
+                className={`px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                  isDark 
+                    ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/20' 
+                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100'
+                }`}
+              >
+                Ko'proq yuklash (+100)
+              </button>
+            </div>
+          )}
 
           {/* Pagination */}
           <div className={`border-t p-4 flex flex-col sm:flex-row justify-between items-center gap-4 ${isDark ? 'border-white/5' : 'border-[#e5e7eb]/50'}`}>

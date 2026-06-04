@@ -111,6 +111,122 @@ const compileMetadata = (testId, payload) => {
     return metadata;
 };
 
+const normalizeQuestions = (questions) => {
+    if (!questions || !Array.isArray(questions)) return [];
+
+    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+
+    const normalizeOptionsList = (optionsList) => {
+        if (!optionsList || !Array.isArray(optionsList)) return optionsList;
+        return optionsList.map((opt, idx) => {
+            if (typeof opt === 'object' && opt !== null) {
+                if (opt.label) return opt;
+                return {
+                    label: letters[idx] || 'A',
+                    text: opt.text || ''
+                };
+            }
+            const str = String(opt || '').trim();
+            const match = str.match(/^([A-Z])[\.\)\s]\s*(.*)$/i);
+            if (match) {
+                return {
+                    label: match[1].toUpperCase(),
+                    text: match[2].trim()
+                };
+            }
+            return {
+                label: letters[idx] || 'A',
+                text: str
+            };
+        });
+    };
+
+    const normalizeMcqAnswer = (ans, normalizedOpts) => {
+        if (ans === undefined || ans === null) return "";
+        const str = String(ans).trim();
+        
+        if (str.length === 1 && /^[A-Z]$/i.test(str)) {
+            return str.toUpperCase();
+        }
+
+        const match = str.match(/^([A-Z])[\.\)\s]/i);
+        if (match) {
+            return match[1].toUpperCase();
+        }
+
+        if (normalizedOpts && Array.isArray(normalizedOpts)) {
+            const cleanAns = str.toLowerCase();
+            const foundOpt = normalizedOpts.find(opt => 
+                opt.text && opt.text.toLowerCase() === cleanAns
+            );
+            if (foundOpt) {
+                return foundOpt.label;
+            }
+        }
+
+        return str;
+    };
+
+    return questions.map(group => {
+        const groupTypeLower = String(group.type || "").toLowerCase();
+        const isMCQ = groupTypeLower.includes('multiple') || groupTypeLower.includes('choice') || groupTypeLower.includes('mcq');
+
+        let normalizedGroup = { ...group };
+
+        if (group.options) {
+            normalizedGroup.options = normalizeOptionsList(group.options);
+        }
+
+        const processItems = (items) => {
+            if (!items || !Array.isArray(items)) return items;
+            return items.map(q => {
+                let cleanQ = { ...q };
+                if (cleanQ.options) {
+                    cleanQ.options = normalizeOptionsList(cleanQ.options);
+                }
+
+                if (isMCQ) {
+                    const opts = cleanQ.options || normalizedGroup.options || [];
+                    const ans = cleanQ.answer || cleanQ.correct_answer || cleanQ.correctAnswer || cleanQ.correct_answer_value;
+                    if (ans !== undefined && ans !== null) {
+                        const normalizedAns = normalizeMcqAnswer(ans, opts);
+                        if (cleanQ.answer !== undefined) cleanQ.answer = normalizedAns;
+                        if (cleanQ.correct_answer !== undefined) cleanQ.correct_answer = normalizedAns;
+                        if (cleanQ.correctAnswer !== undefined) cleanQ.correctAnswer = normalizedAns;
+                        if (cleanQ.correct_answer_value !== undefined) cleanQ.correct_answer_value = normalizedAns;
+                    }
+                }
+                return cleanQ;
+            });
+        };
+
+        if (group.items) {
+            normalizedGroup.items = processItems(group.items);
+        }
+        if (group.questions) {
+            normalizedGroup.questions = processItems(group.questions);
+        }
+
+        if (group.groups && Array.isArray(group.groups)) {
+            normalizedGroup.groups = group.groups.map(subGroup => {
+                let cleanSub = { ...subGroup };
+                if (cleanSub.options) {
+                    cleanSub.options = normalizeOptionsList(cleanSub.options);
+                }
+                if (cleanSub.items) {
+                    cleanSub.items = processItems(cleanSub.items);
+                }
+                if (cleanSub.questions) {
+                    cleanSub.questions = processItems(cleanSub.questions);
+                }
+                return cleanSub;
+            });
+        }
+
+        return normalizedGroup;
+    });
+};
+
 export const useTestEditor = (id) => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
@@ -221,7 +337,7 @@ export const useTestEditor = (id) => {
 
             setTestData(prev => {
                 const passagesFromJSON = parsed.passages || [];
-                const newQuestions = parsed.questions || prev.questions;
+                const newQuestions = normalizeQuestions(parsed.questions || prev.questions);
                 const testType = parsed.type || prev.type;
                 const autoDifficulty = detectSectionFromQuestions(testType, newQuestions);
                 

@@ -82,6 +82,16 @@ export const normalizeString = (str) => {
 export const checkAnswer = (correct, user) => {
     if (correct === undefined || correct === null) return false;
 
+    // Support single letter answers matched against prefix-style correct answers (e.g., user: "C", correct: "C. Text")
+    const correctStr = String(correct).trim();
+    const userStr = String(user || '').trim().toUpperCase();
+    if (userStr.length === 1 && /^[A-Z]$/.test(userStr)) {
+        const match = correctStr.match(/^([A-Z])[\.\)\s]/i);
+        if (match && match[1].toUpperCase() === userStr) {
+            return true;
+        }
+    }
+
     // 1. Tozalash
     let cleanCorrect = normalizeString(correct);
     let cleanUser = normalizeString(user);

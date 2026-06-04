@@ -81,16 +81,43 @@ export const useWritingReview = (userData) => {
 
             const t1 = parseFloat(data.task1Band);
             const t2 = parseFloat(data.task2Band);
-            const raw = (t1 + 2 * t2) / 3;
-            let writingOverall = Math.floor(raw);
-            const rem = raw - writingOverall;
-            if (rem >= 0.75) writingOverall += 1;
-            else if (rem >= 0.25) writingOverall += 0.5;
+            
+            // Check which tasks were actually submitted by student
+            let ans = resData.userAnswers || resData.writingAnswers || {};
+            if (resData.attempts && Array.isArray(resData.attempts) && resData.attempts.length > 0) {
+                const lastAttempt = resData.attempts[resData.attempts.length - 1];
+                ans = lastAttempt.userAnswers || lastAttempt.writingAnswers || ans;
+            }
+            if (resData.details?.writingAnswers) {
+                ans = resData.details.writingAnswers || ans;
+            }
+            if (!ans.task1 && resData.task1) ans.task1 = resData.task1;
+            if (!ans.task1 && resData.writingAnswer) ans.task1 = resData.writingAnswer;
+            if (!ans.task2 && resData.task2) ans.task2 = resData.task2;
+
+            const hasT1 = !!ans.task1;
+            const hasT2 = !!ans.task2;
+
+            let writingOverall = 0;
+            if (hasT1 && hasT2) {
+                const raw = (t1 + 2 * t2) / 3;
+                let integerPart = Math.floor(raw);
+                const fractionalPart = raw - integerPart;
+                if (fractionalPart >= 0.75) writingOverall = integerPart + 1;
+                else if (fractionalPart >= 0.25) writingOverall = integerPart + 0.5;
+                else writingOverall = integerPart;
+            } else if (hasT1) {
+                writingOverall = t1;
+            } else if (hasT2) {
+                writingOverall = t2;
+            }
 
             const updates = {
-                task1Band: t1,
-                task2Band: t2,
+                task1Band: hasT1 ? t1 : null,
+                task2Band: hasT2 ? t2 : null,
                 writingBand: writingOverall,
+                task1Details: data.task1Details || null,
+                task2Details: data.task2Details || null,
                 teacherFeedback: data.feedback || '',
                 reviewedAt: new Date().toISOString(),
                 reviewedByTeacher: userData?.uid,

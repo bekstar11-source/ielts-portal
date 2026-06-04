@@ -26,7 +26,7 @@ export const ChoiceQuestion = ({
         else if (isYNNG) itemOptions = ["YES", "NO", "NOT GIVEN"];
     }
 
-    const correctAnswersList = String(q.answer || "").split(',').map(s => s.trim().toLowerCase());
+    const correctAnswersList = String(q.answer || "").split(',').map(s => getOptionValue(s.trim()).toLowerCase());
     const isCorrect = checkAnswer(val, q.answer);
 
     return (
