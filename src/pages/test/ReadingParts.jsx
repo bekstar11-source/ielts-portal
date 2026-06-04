@@ -74,7 +74,7 @@ export default function ReadingParts() {
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
   const [freeOnly, setFreeOnly] = useState(false);
   
-  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isPro = userData?.accountType === 'pro' || userData?.isPro || userData?.role === 'admin' || userData?.role === 'teacher';
   const isStandard = userData?.accountType === 'standard';
   const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
   

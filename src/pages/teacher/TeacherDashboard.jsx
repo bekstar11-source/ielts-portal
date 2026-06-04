@@ -10,7 +10,7 @@ import {
 import {
     Users, BookOpen, NotePencil as PenLine,
     CaretRight as ChevronRight, WarningCircle as AlertCircle,
-    Sparkle, Crown
+    Sparkle, Crown, Monitor
 } from '@phosphor-icons/react';
 
 export default function TeacherDashboard() {
@@ -268,6 +268,19 @@ export default function TeacherDashboard() {
                     >
                         <Crown size={18} weight="fill" />
                         Obuna & To'lovlar
+                    </button>
+                    <button
+                        onClick={() => navigate('/mock')}
+                        className="px-8 py-3.5 rounded-full font-semibold text-sm transition-all hover:opacity-90 active:scale-95 flex items-center gap-2"
+                        style={{
+                            background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.2)',
+                            color: isDark ? '#60A5FA' : '#2563EB',
+                            border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.5)',
+                            backdropFilter: 'blur(8px)',
+                        }}
+                    >
+                        <Monitor size={18} weight="fill" />
+                        Mock Imtihonlar
                     </button>
                 </div>
             </div>

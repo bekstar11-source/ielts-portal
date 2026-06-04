@@ -116,6 +116,11 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
     const likesCount = post.likes?.length || 0;
     const commentsCount = post.commentsCount || 0;
     const isAdmin = userData?.role === 'admin';
+    const isTeacherPost = post.type === 'teacher_test';
+    const authorName = isTeacherPost ? (post.teacherName || "Sizning ustozingiz") : "IELTS Portal Admin";
+    const authorInitials = isTeacherPost 
+        ? (post.teacherName ? post.teacherName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : "US")
+        : "IP";
 
     // Format relative time (e.g. "3 soat oldin")
     const getRelativeTime = (date) => {
@@ -142,6 +147,8 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
     const renderCardHeaderDecoration = () => {
         const type = materialType || post.type;
         switch (type) {
+            case 'teacher_test':
+                return <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-0.5 rounded-full">Vazifa</span>;
             case 'test':
                 return <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 rounded-full">Test</span>;
             case 'podcast':
@@ -157,6 +164,43 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
 
     // Render main body card based on content type
     const renderContentMedia = () => {
+        if (post.type === 'teacher_test') {
+            const isExpired = post.deadline && new Date(post.deadline) < new Date();
+            return (
+                <div className="px-4 py-2 flex flex-col gap-3">
+                    <div className="p-4 rounded-xl border border-indigo-150 dark:border-indigo-900/25 bg-indigo-50/15 dark:bg-indigo-950/10 flex flex-col gap-3 text-left">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-500 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded border border-indigo-150 dark:border-indigo-900/30">
+                                {post.testType === 'mock_full' ? 'Mock Exam' : post.testType?.toUpperCase()}
+                            </span>
+                            {post.deadline && (
+                                <span className={`text-[9px] font-semibold ${isExpired ? 'text-rose-500 font-bold' : 'text-gray-400 dark:text-zinc-500'}`}>
+                                    Muddat: {new Date(post.deadline).toLocaleDateString()}
+                                </span>
+                            )}
+                        </div>
+                        <h4 className="font-extrabold text-xs text-gray-800 dark:text-zinc-200 leading-snug">
+                            {post.content || post.testTitle || 'Vazifa testi'}
+                        </h4>
+                        
+                        <button
+                            onClick={() => {
+                                if (post.testType === 'mock_full') {
+                                    navigate('/mock-exam', { state: { mockData: { id: post.testId, title: post.content, type: 'mock_full' } } });
+                                } else {
+                                    navigate(`/test/${post.testId}`);
+                                }
+                            }}
+                            className="w-full flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] py-2 rounded-lg active:scale-[0.98] transition-all shadow-sm shrink-0"
+                        >
+                            Vazifani bajarish
+                            <ArrowRight size={12} />
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
         if (post.type === 'announcement') {
             const announcementStyles = {
                 warning: 'bg-orange-50 dark:bg-orange-950/10 border-orange-100 dark:border-orange-900/20 text-orange-950 dark:text-orange-200',
@@ -417,11 +461,11 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
             <div className="flex justify-between items-center px-4 pb-2">
                 <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black text-xs font-black select-none">
-                        IP
+                        {authorInitials}
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-gray-900 dark:text-white">IELTS Portal Admin</span>
+                            <span className="font-bold text-xs text-gray-900 dark:text-white">{authorName}</span>
                             {renderCardHeaderDecoration()}
                         </div>
                         <span className="text-[9px] text-gray-400 dark:text-zinc-500 font-medium block mt-0.5">
@@ -430,7 +474,7 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                     </div>
                 </div>
 
-                {isAdmin && (
+                {(isAdmin || (isTeacherPost && (post.teacherId === user?.uid || userData?.role === 'teacher'))) && (
                     <button
                         onClick={() => onDelete(post.id)}
                         className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition"

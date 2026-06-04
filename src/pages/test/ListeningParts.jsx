@@ -36,7 +36,7 @@ export default function ListeningParts() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isPro = userData?.accountType === 'pro' || userData?.isPro;
+  const isPro = userData?.accountType === 'pro' || userData?.isPro || userData?.role === 'admin' || userData?.role === 'teacher';
   const isStandard = userData?.accountType === 'standard';
   const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
                     userData?.role === 'admin' || userData?.role === 'teacher';

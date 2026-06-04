@@ -9,7 +9,7 @@ export default function NewsFeed({ user, userData }) {
     const { 
         posts, loading, loadingMore, hasMore, 
         fetchNextPage, handleLike, handleCommentAdded, handlePostDeleted 
-    } = useNewsFeed(user);
+    } = useNewsFeed(user, userData);
 
     const loaderRef = useRef(null);
 

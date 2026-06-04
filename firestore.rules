@@ -180,12 +180,12 @@ service cloud.firestore {
     // FEED POSTS
     match /feed_posts/{postId} {
       allow read: if isAuth();
-      allow create: if isAdmin();
+      allow create: if isAdmin() || isTeacher();
       allow update: if isAuth() && (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'commentsCount']) ||
-        isAdmin()
+        isAdmin() || isTeacher()
       );
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isTeacher() && resource.data.teacherId == request.auth.uid);
 
       // COMMENTS SUBCOLLECTION
       match /comments/{commentId} {

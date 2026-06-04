@@ -143,12 +143,12 @@ function App() {
             <Route path="/listening" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><Listening /></ProtectedRoute>} />
             <Route path="/listening/full" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><ListeningFull /></ProtectedRoute>} />
             <Route path="/listening/parts" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><ListeningParts /></ProtectedRoute>} />
-            <Route path="/library" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Library /></ProtectedRoute>} />
+            <Route path="/library" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><Library /></ProtectedRoute>} />
             {/* <Route path="/roadmap" element={<ProtectedRoute allowedRoles={['student', 'admin']}><RoadmapPage /></ProtectedRoute>} /> */}
-            <Route path="/settings" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Settings /></ProtectedRoute>} />
-            <Route path="/mock" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockEntry /></ProtectedRoute>} />
-            <Route path="/mock-buy" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockPurchase /></ProtectedRoute>} />
-            <Route path="/speaking-ai" element={<ProtectedRoute allowedRoles={['student', 'admin']}><SpeakingAi /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><Settings /></ProtectedRoute>} />
+            <Route path="/mock" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockEntry /></ProtectedRoute>} />
+            <Route path="/mock-buy" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockPurchase /></ProtectedRoute>} />
+            <Route path="/speaking-ai" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><SpeakingAi /></ProtectedRoute>} />
             <Route path="/test-results" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><TestResults /></ProtectedRoute>} />
             <Route path="/mock-exam" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockExam /></ProtectedRoute>} />
             

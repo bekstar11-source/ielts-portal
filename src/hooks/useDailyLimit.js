@@ -18,7 +18,7 @@ export const useDailyLimit = (userData) => {
   const checkLimit = useCallback((type) => {
     if (!userData) return true;
     if (type === 'reading' || type === 'listening') {
-      if (userData.isPro || userData.isPremium || userData.accountType === 'premium' || userData.accountType === 'pro' || userData.accountType === 'standard') return true;
+      if (userData.isPro || userData.isPremium || userData.accountType === 'premium' || userData.accountType === 'pro' || userData.accountType === 'standard' || userData.role === 'admin' || userData.role === 'teacher') return true;
       return false; // No free tests for Reading and Listening
     }
 
@@ -32,7 +32,7 @@ export const useDailyLimit = (userData) => {
    */
   const incrementUsage = async (type) => {
     if (!userData?.uid) return;
-    if (userData.isPremium || userData.isPro || userData.accountType === 'pro' || userData.accountType === 'standard') return;
+    if (userData.isPremium || userData.isPro || userData.accountType === 'pro' || userData.accountType === 'standard' || userData.role === 'admin' || userData.role === 'teacher') return;
 
     setChecking(true);
     const today = new Date().toISOString().split('T')[0];

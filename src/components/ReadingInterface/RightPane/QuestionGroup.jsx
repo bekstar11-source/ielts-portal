@@ -42,13 +42,13 @@ const QuestionGroup = ({
     const rangeLabel = getRangeLabel(group);
     const displayInstruction = cleanInstructions(group, isTFNG);
 
-    const isJustLetters = group.options && group.options.length > 0 && group.options.every(opt => {
+    const isJustLetters = Array.isArray(group.options) && group.options.length > 0 && group.options.every(opt => {
         const text = String(typeof opt === 'object' ? opt.text : opt).trim();
         return text.length <= 3 || /^[A-Z][\.\)]?\s*$/i.test(text);
     });
     
     const isMatchingParagraph = (type.includes('matching') && (type.includes('paragraph') || instr.includes('paragraph') || instr.includes('contain') || instr.includes('mention')));
-    const showStaticOptions = ((type.includes('matching') && !isMatchingParagraph) || type === 'summary_box') && group.options && group.options.length > 0 && !isJustLetters;
+    const showStaticOptions = ((type.includes('matching') && !isMatchingParagraph) || type === 'summary_box') && Array.isArray(group.options) && group.options.length > 0 && !isJustLetters;
 
     const commonProps = {
         group,
@@ -68,13 +68,13 @@ const QuestionGroup = ({
     const isMatchingHeading = type.includes('matching') && (
         instr.includes('heading') || 
         type.includes('heading') ||
-        (group.options && group.options.some(opt => {
+        (Array.isArray(group.options) && group.options.some(opt => {
             const t = String(typeof opt === 'object' ? opt.text : opt).toLowerCase();
             return t.length > 15;
         }) && instr.includes('paragraph'))
     );
 
-    const isMatchingGrid = type.includes('matching') && !isMatchingHeading && !isMatchingParagraph && group.options && group.options.length > 0;
+    const isMatchingGrid = type.includes('matching') && !isMatchingHeading && !isMatchingParagraph && Array.isArray(group.options) && group.options.length > 0;
 
     return (
         <div className="mb-6 pb-6 border-b border-gray-200 border-dashed last:border-0 font-montserrat">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, setDoc, query, where } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, setDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import { db, storage } from '../../firebase/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../context/AuthContext';
@@ -196,6 +196,26 @@ export default function TeacherCreateWriting() {
                     date: new Date().toISOString()
                 })
             });
+
+            // Create feed post for the assigned writing test
+            try {
+                await addDoc(collection(db, "feed_posts"), {
+                    type: "teacher_test",
+                    title: "Sizning ustozingiz vazifa tayinladi",
+                    content: newTest.title,
+                    testId: testRef.id,
+                    testType: 'writing',
+                    groupId: selectedGroupId,
+                    deadline: null,
+                    teacherId: userData.uid,
+                    teacherName: userData.fullName || "Ustoz",
+                    likes: [],
+                    commentsCount: 0,
+                    createdAt: serverTimestamp()
+                });
+            } catch (feedErr) {
+                console.error("Error creating feed post for assigned writing test:", feedErr);
+            }
 
             // 3. Shablon sifatida saqlash
             if (saveAsTemplate) {

@@ -65,7 +65,7 @@ export const findMatchingHeadingsGroup = (passageQuestions) => {
     const gi = String(g.instruction || "").toLowerCase();
     return gt.includes('matching') && (
       gi.includes('heading') || gt.includes('heading') ||
-      (g.options && g.options.some(opt => {
+      (Array.isArray(g.options) && g.options.some(opt => {
         const t = String(typeof opt === 'object' ? opt.text : opt).toLowerCase();
         return t.length > 15;
       }) && gi.includes('paragraph'))

@@ -15,13 +15,13 @@ export const ChoiceQuestion = ({
     group, q, val, onAnswerChange, isReviewMode, isMultiSelect, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, onOpenNotes, isPremium 
 }) => {
     const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-    let itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
+    let itemOptions = (Array.isArray(q.options) && q.options.length > 0) ? q.options : (Array.isArray(group.options) ? group.options : []);
     
     const type = String(group.type || "").toLowerCase();
     const isTFNG = type.includes('tfng') || type.includes('true_false');
     const isYNNG = type.includes('yesno') || type.includes('yes_no');
 
-    if (itemOptions.length === 0 && group.type) {
+    if ((!itemOptions || itemOptions.length === 0) && group.type) {
         if (isTFNG) itemOptions = ["TRUE", "FALSE", "NOT GIVEN"];
         else if (isYNNG) itemOptions = ["YES", "NO", "NOT GIVEN"];
     }

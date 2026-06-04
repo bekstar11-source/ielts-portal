@@ -7,7 +7,7 @@ import {
 
 const PAGE_SIZE = 5;
 
-export function useNewsFeed(user) {
+export function useNewsFeed(user, userData) {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -52,6 +52,11 @@ export function useNewsFeed(user) {
                     createdAt: d.data().createdAt?.seconds ? new Date(d.data().createdAt.seconds * 1000) : new Date()
                 }));
 
+                const filteredPosts = fetchedPosts.filter(post => {
+                    if (!post.groupId) return true;
+                    return userData?.groupId === post.groupId;
+                });
+
                 lastDocRef.current = snap.docs[snap.docs.length - 1];
                 
                 if (snap.docs.length < PAGE_SIZE) {
@@ -59,12 +64,12 @@ export function useNewsFeed(user) {
                 }
 
                 if (isRefresh) {
-                    setPosts(fetchedPosts);
+                    setPosts(filteredPosts);
                 } else {
                     setPosts(prev => {
                         // Avoid duplicates
                         const existingIds = new Set(prev.map(p => p.id));
-                        const uniqueNew = fetchedPosts.filter(p => !existingIds.has(p.id));
+                        const uniqueNew = filteredPosts.filter(p => !existingIds.has(p.id));
                         return [...prev, ...uniqueNew];
                     });
                 }
@@ -79,7 +84,7 @@ export function useNewsFeed(user) {
 
     useEffect(() => {
         fetchPosts(true);
-    }, [user]);
+    }, [user, userData?.groupId]);
 
     const handleLike = async (postId, isLiked) => {
         if (!user) return;

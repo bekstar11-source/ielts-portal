@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebase/firebase';
-import { doc, getDoc, getDocs, query, where, collection, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, getDocs, query, where, collection, updateDoc, arrayUnion, arrayRemove, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import {
   BookOpen,
   CheckCircle,
@@ -143,6 +143,26 @@ export default function TeacherTests() {
                 assignedTests: arrayUnion(newAssignment)
             });
 
+            // Create feed post for the assigned test
+            try {
+                await addDoc(collection(db, "feed_posts"), {
+                    type: "teacher_test",
+                    title: "Sizning ustozingiz vazifa tayinladi",
+                    content: selectedTest.title,
+                    testId: selectedTest.id,
+                    testType: selectedTest.type,
+                    groupId: selectedGroupId,
+                    deadline: deadline ? new Date(deadline).toISOString() : null,
+                    teacherId: userData.uid,
+                    teacherName: userData.fullName || "Ustoz",
+                    likes: [],
+                    commentsCount: 0,
+                    createdAt: serverTimestamp()
+                });
+            } catch (feedErr) {
+                console.error("Error creating feed post for assigned test:", feedErr);
+            }
+
             alert("Test muvaffaqiyatli tayinlandi! 🎯");
             setShowAssignModal(false);
             // Reset form
@@ -171,6 +191,21 @@ export default function TeacherTests() {
             await updateDoc(doc(db, 'groups', assignment.groupId), {
                 assignedTests: arrayRemove(originalAssign)
             });
+
+            // Delete corresponding feed post
+            try {
+                const feedQuery = query(
+                    collection(db, 'feed_posts'),
+                    where('type', '==', 'teacher_test'),
+                    where('groupId', '==', assignment.groupId),
+                    where('testId', '==', assignment.id)
+                );
+                const feedSnap = await getDocs(feedQuery);
+                const deletePromises = feedSnap.docs.map(docSnap => deleteDoc(docSnap.ref));
+                await Promise.all(deletePromises);
+            } catch (feedErr) {
+                console.error("Error deleting feed post for unassigned test:", feedErr);
+            }
 
             alert("Tayinlov muvaffaqiyatli olib tashlandi! 🗑️");
             fetchData();

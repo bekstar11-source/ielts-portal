@@ -288,6 +288,7 @@ export default function DashboardHeader({
 
     const items = [
       { id: 't_dashboard', label: "Dashboard", path: '/teacher', icon: LayoutDashboard },
+      { id: 't_mock', label: t('dashboard.mockExam') || "Mock Exam", path: '/mock', icon: Computer },
       { id: 't_tests', label: "Tayinlangan Testlar", path: '/teacher/tests', icon: BookOpen },
       { id: 't_create_writing', label: "Writing Yaratish", path: '/teacher/create-writing', icon: Plus },
       { id: 't_writing_review', label: "Writing Tekshirish", path: '/teacher/writing-review', icon: PenTool },
@@ -864,7 +865,7 @@ export default function DashboardHeader({
           {renderTeacherSection(false)}
 
           {/* IELTS Section */}
-          {userData?.role !== 'teacher' && renderIeltsSection(false)}
+          {renderIeltsSection(false)}
 
           {/* Resources Section Collapsible */}
           <div className="mt-4">
@@ -1121,7 +1122,7 @@ export default function DashboardHeader({
                 {renderTeacherSection(true)}
 
                 {/* IELTS Section */}
-                {userData?.role !== 'teacher' && renderIeltsSection(true)}
+                {renderIeltsSection(true)}
 
                 {/* Resources Section Collapsible */}
                 <div className="mt-3">

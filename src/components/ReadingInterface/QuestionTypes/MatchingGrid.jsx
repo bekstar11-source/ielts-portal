@@ -35,7 +35,7 @@ export const MatchingOptionsBox = ({
         <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
             <p className="text-xs font-bold mb-3 uppercase text-ielts-blue tracking-wider">{boxTitle}</p>
             <div className={group.type === 'matching' ? "flex flex-col gap-y-1.5" : "grid grid-cols-2 gap-x-4 gap-y-1.5"}>
-                {group.options.map((opt, idx) => {
+                {Array.isArray(group.options) && group.options.map((opt, idx) => {
                     const optText = typeof opt === 'object' ? opt.text : opt;
                     const staticOptId = `p-${activePassage}-g-static-opt-${idx}`;
                     const injectedOptText = (isReviewMode && keywordTable?.length) ? injectKeywordsToHTML(optText, keywordTable, true, null) : optText;
@@ -62,7 +62,7 @@ export const MatchingOptionsBox = ({
 export const MatchingGridQuestion = ({ 
     group, activePassage, userAnswers, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, handleLocationClick, onOpenNotes, isPremium 
 }) => {
-    const options = group.options || [];
+    const options = Array.isArray(group.options) ? group.options : [];
     const items = group.items || group.questions || [];
     
     const labels = options.map((opt, idx) => {

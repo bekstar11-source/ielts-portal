@@ -11,13 +11,13 @@ import {
 export const GapFillQuestion = ({ 
     group, q, val, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, isSummary, isFlowChart, isLast, onOpenNotes, isPremium
 }) => {
-    const itemOptions = (q.options && q.options.length > 0) ? q.options : (group.options || []);
+    const itemOptions = (Array.isArray(q.options) && q.options.length > 0) ? q.options : (Array.isArray(group.options) ? group.options : []);
     const parts = (q.text || "").split(/(\[INPUT\]|\[DROP\])/g);
     const isCorrect = checkAnswer(val, q.answer);
 
     const renderParts = () => {
         return parts.map((part, i) => {
-            const hasOptions = itemOptions && itemOptions.length > 0;
+            const hasOptions = Array.isArray(itemOptions) && itemOptions.length > 0;
             const isSelectDropdown = part === '[DROP]' || (part === '[INPUT]' && hasOptions && (isSummary || group.type === 'summary_box' || group.type?.includes('note')));
 
             if (part === '[INPUT]' && !isSelectDropdown) {

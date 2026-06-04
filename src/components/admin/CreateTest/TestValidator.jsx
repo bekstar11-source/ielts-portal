@@ -199,7 +199,7 @@ export function runValidation(testData) {
 
         // Multiple choice options check
         if (groupTypeLower.includes('multiple') || groupTypeLower.includes('choice') || groupTypeLower.includes('mcq')) {
-            const options = q.options || group.options || [];
+            const options = (Array.isArray(q.options) ? q.options : null) || (Array.isArray(group.options) ? group.options : null) || [];
             if (options.length < 2) {
                 errors.push({
                     id: `q-${qId}-mcq-options-count`,
