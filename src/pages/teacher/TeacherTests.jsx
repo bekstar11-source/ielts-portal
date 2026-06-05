@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebase/firebase';
 import { doc, getDoc, getDocs, query, where, collection, updateDoc, arrayUnion, arrayRemove, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import {
+  ArrowLeft,
   BookOpen,
   CheckCircle,
   Clock,
@@ -15,8 +16,25 @@ import {
   X,
   Users,
   Eye,
-  Info
+  Info,
+  Calendar,
+  Minus,
+  Warning,
+  Flame,
+  ShieldWarning,
+  NotePencil,
+  Headphones,
+  Trophy,
+  ArrowsCounterClockwise
 } from '@phosphor-icons/react';
+
+const getTestIconAndColor = (type) => {
+    const t = (type || '').toLowerCase();
+    if (t.includes('reading')) return { icon: <BookOpen size={16} weight="fill" />, colorClass: 'bg-blue-500/10 text-blue-500' };
+    if (t.includes('listening')) return { icon: <Headphones size={16} weight="fill" />, colorClass: 'bg-pink-500/10 text-pink-500' };
+    if (t.includes('writing')) return { icon: <NotePencil size={16} weight="fill" />, colorClass: 'bg-orange-500/10 text-orange-500' };
+    return { icon: <Trophy size={16} weight="fill" />, colorClass: 'bg-purple-500/10 text-purple-500' };
+};
 
 export default function TeacherTests() {
     const { userData } = useAuth();
@@ -32,9 +50,9 @@ export default function TeacherTests() {
     const [availableTests, setAvailableTests] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Modals visibility
-    const [showAssignModal, setShowAssignModal] = useState(false);
-    const [showMonitorModal, setShowMonitorModal] = useState(false);
+    // View mode page visibility
+    const [showAssignPage, setShowAssignPage] = useState(false);
+    const [showMonitorPage, setShowMonitorPage] = useState(false);
     const [monitoringTest, setMonitoringTest] = useState(null);
 
     // Assign form states
@@ -44,6 +62,8 @@ export default function TeacherTests() {
     const [selectedTest, setSelectedTest] = useState(null);
     const [deadline, setDeadline] = useState("");
     const [maxAttempts, setMaxAttempts] = useState("1");
+    const [teacherNote, setTeacherNote] = useState("");
+    const [priority, setPriority] = useState("medium");
     const [assigning, setAssigning] = useState(false);
 
     useEffect(() => {
@@ -55,18 +75,17 @@ export default function TeacherTests() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const groupIds = userData?.assignedGroupIds || [];
-            if (!groupIds.length) {
+            const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
+            const querySnap = await getDocs(q);
+            const fetchedGroups = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setGroups(fetchedGroups);
+
+            if (!fetchedGroups.length) {
                 setLoading(false);
                 return;
             }
 
-            // 1. Fetch group documents
-            const groupDocs = await Promise.all(
-                groupIds.map(id => getDoc(doc(db, 'groups', id)))
-            );
-            const fetchedGroups = groupDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() }));
-            setGroups(fetchedGroups);
+            const groupIds = fetchedGroups.map(g => g.id);
 
             // 2. Fetch all student profiles in these groups
             const usersQuery = query(collection(db, "users"), where("groupId", "in", groupIds));
@@ -136,7 +155,9 @@ export default function TeacherTests() {
                 type: selectedTest.type,
                 date: new Date().toISOString(),
                 deadline: deadline ? new Date(deadline).toISOString() : null,
-                maxAttempts: Number(maxAttempts) || 1
+                maxAttempts: Number(maxAttempts) || 1,
+                priority: priority,
+                teacherNote: teacherNote
             };
 
             await updateDoc(doc(db, 'groups', selectedGroupId), {
@@ -153,6 +174,9 @@ export default function TeacherTests() {
                     testType: selectedTest.type,
                     groupId: selectedGroupId,
                     deadline: deadline ? new Date(deadline).toISOString() : null,
+                    maxAttempts: Number(maxAttempts) || 1,
+                    priority: priority,
+                    teacherNote: teacherNote,
                     teacherId: userData.uid,
                     teacherName: userData.fullName || "Ustoz",
                     likes: [],
@@ -164,11 +188,13 @@ export default function TeacherTests() {
             }
 
             alert("Test muvaffaqiyatli tayinlandi! 🎯");
-            setShowAssignModal(false);
+            setShowAssignPage(false);
             // Reset form
             setSelectedTest(null);
             setDeadline("");
             setMaxAttempts("1");
+            setTeacherNote("");
+            setPriority("medium");
             fetchData();
         } catch (err) {
             console.error(err);
@@ -231,6 +257,398 @@ export default function TeacherTests() {
         return matchesQuery && matchesType;
     });
 
+    if (showAssignPage) {
+        return (
+            <div className={`space-y-6 animate-fade-in-up text-left ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                {/* Back Button and Header */}
+                <div className="flex flex-col gap-2">
+                    <button
+                        onClick={() => {
+                            // Reset form on back
+                            setSelectedTest(null);
+                            setDeadline("");
+                            setMaxAttempts("1");
+                            setTeacherNote("");
+                            setPriority("medium");
+                            setShowAssignPage(false);
+                        }}
+                        className={`flex items-center gap-2 transition-colors font-bold text-sm group w-fit ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+                    >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm transition-all ${isDark ? 'bg-white/5 border-white/10 group-hover:border-white/20' : 'bg-white border-gray-200 group-hover:border-gray-300'}`}>
+                            <ArrowLeft className="w-4 h-4" />
+                        </div>
+                        Orqaga Qaytish
+                    </button>
+                    
+                    <div className="mt-2">
+                        <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Yangi Test Tayinlash</h1>
+                        <p className={`text-sm mt-1 font-medium ${isDark ? 'text-gray-400' : 'text-gray-550'}`}>Guruhlar uchun yangi topshiriq tayyorlang va yuboring</p>
+                    </div>
+                </div>
+
+                <form onSubmit={handleAssignTest} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    {/* Left Column: Test Picker (col-span-7) */}
+                    <div className={`lg:col-span-7 p-6 rounded-[28px] border flex flex-col gap-4 ${
+                        isDark ? 'bg-[#2C2C2C]/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                    }`}>
+                        <div className="space-y-2.5">
+                            <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                1. Testni tanlang
+                            </label>
+                            
+                            {/* Type Filter Buttons */}
+                            <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-gray-100/50 dark:bg-[#2C2C2C]/50 border border-gray-200/50 dark:border-white/5">
+                                {[
+                                    { key: 'all', label: 'Barchasi' },
+                                    { key: 'reading', label: 'Reading' },
+                                    { key: 'listening', label: 'Listening' },
+                                    { key: 'writing', label: 'Writing' },
+                                    { key: 'mock_full', label: 'Mock' }
+                                ].map(t => {
+                                    const isActive = testTypeFilter === t.key;
+                                    return (
+                                        <button
+                                            key={t.key}
+                                            type="button"
+                                            onClick={() => setTestTypeFilter(t.key)}
+                                            className={`flex-1 min-w-[70px] text-center py-2 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all ${
+                                                isActive
+                                                    ? 'bg-white dark:bg-[#1E1E1E] text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200/10'
+                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                            }`}
+                                        >
+                                            {t.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Search Input */}
+                            <div className="relative">
+                                <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Test nomini yozing..."
+                                    value={searchTestQuery}
+                                    onChange={e => setSearchTestQuery(e.target.value)}
+                                    className={`w-full pl-11 pr-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all duration-200 ${
+                                        isDark 
+                                            ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500' 
+                                            : 'bg-gray-50 border-gray-200 text-gray-850 focus:border-blue-500 shadow-sm'
+                                    }`}
+                                />
+                            </div>
+
+                            {/* List of tests to select */}
+                            <div className={`border rounded-2xl overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 h-[380px] ${
+                                isDark ? 'bg-[#2C2C2C]/50 border-white/10' : 'bg-gray-50 border-gray-200'
+                            }`}>
+                                {filteredAvailableTests.length > 0 ? (
+                                    filteredAvailableTests.map(test => {
+                                        const isSelected = selectedTest?.id === test.id;
+                                        const { icon, colorClass } = getTestIconAndColor(test.type);
+                                        return (
+                                            <div
+                                                key={test.id}
+                                                onClick={() => setSelectedTest(test)}
+                                                className={`flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all duration-200 ${
+                                                    isSelected 
+                                                        ? (isDark ? 'bg-blue-600/15 border-blue-500 text-blue-400 font-bold' : 'bg-blue-50 border-blue-300 text-blue-700 font-bold shadow-sm')
+                                                        : (isDark ? 'border-transparent text-gray-300 hover:bg-white/5' : 'border-transparent text-gray-700 hover:bg-white')
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
+                                                        {icon}
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0 text-left">
+                                                        <span className="text-xs font-extrabold truncate max-w-[320px]">{test.title || 'Untitled Test'}</span>
+                                                        <span className="text-[9px] text-gray-400 dark:text-zinc-550 uppercase font-black tracking-wider mt-0.5">{test.type === 'mock_full' ? 'Mock Exam' : test.type}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                {isSelected && <CheckCircle size={20} weight="fill" className="text-blue-500 shrink-0" />}
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <p className="text-xs opacity-50 p-6 text-center font-semibold">Bunday test topilmadi</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Settings & Submit (col-span-5) */}
+                    <div className={`lg:col-span-5 p-6 rounded-[28px] border flex flex-col justify-between gap-5 min-h-[500px] ${
+                        isDark ? 'bg-[#2C2C2C]/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                    }`}>
+                        <div className="space-y-4">
+                            <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${isDark ? 'text-gray-400' : 'text-gray-550'}`}>
+                                2. Tayinlash Sozlamalari
+                            </label>
+
+                            {/* Group Select */}
+                            <div className="space-y-2">
+                                <label className={`text-[10px] font-black uppercase tracking-wider text-gray-450 flex items-center gap-1.5`}>
+                                    <Users size={12} /> Guruhni tanlang
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        value={selectedGroupId}
+                                        onChange={e => setSelectedGroupId(e.target.value)}
+                                        className={`w-full pl-11 pr-10 py-3 rounded-2xl border text-sm font-semibold outline-none appearance-none cursor-pointer transition-all duration-200 ${
+                                            isDark 
+                                                ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20' 
+                                                : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 shadow-sm'
+                                        }`}
+                                    >
+                                        {groups.map(g => (
+                                            <option key={g.id} value={g.id}>{g.name}</option>
+                                        ))}
+                                    </select>
+                                    <Users size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-450 pointer-events-none" />
+                                    <CaretDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-450 pointer-events-none" />
+                                </div>
+                            </div>
+
+                            {/* Deadline */}
+                            <div className="space-y-2">
+                                <label className={`text-[10px] font-black uppercase tracking-wider text-gray-455 flex items-center gap-1.5`}>
+                                    <Clock size={12} /> Deadline (Muddati)
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    value={deadline}
+                                    onChange={e => setDeadline(e.target.value)}
+                                    className={`w-full p-3 rounded-xl border text-xs font-semibold outline-none transition-all duration-200 ${
+                                        isDark 
+                                            ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20' 
+                                            : 'bg-gray-50 border-gray-250 text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 shadow-sm'
+                                    }`}
+                                />
+                            </div>
+
+                            {/* Max Attempts Stepper */}
+                            <div className="space-y-2">
+                                <label className={`text-[10px] font-black uppercase tracking-wider text-gray-455 flex items-center gap-1.5`}>
+                                    <ArrowsCounterClockwise size={12} /> Maksimal urinishlar
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        disabled={Number(maxAttempts) <= 1}
+                                        onClick={() => setMaxAttempts(prev => String(Math.max(1, Number(prev) - 1)))}
+                                        className={`w-10 h-10 rounded-xl flex items-center justify-center border font-bold text-lg active:scale-95 transition-all ${
+                                            isDark 
+                                                ? 'bg-[#2C2C2C] border-white/10 text-white hover:bg-white/5 disabled:opacity-40' 
+                                                : 'bg-white border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-40 shadow-sm'
+                                        }`}
+                                    >
+                                        <Minus size={16} weight="bold" />
+                                    </button>
+                                    <span className={`w-12 text-center text-sm font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                        {maxAttempts}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        disabled={Number(maxAttempts) >= 10}
+                                        onClick={() => setMaxAttempts(prev => String(Math.min(10, Number(prev) + 1)))}
+                                        className={`w-10 h-10 rounded-xl flex items-center justify-center border font-bold text-lg active:scale-95 transition-all ${
+                                            isDark 
+                                                ? 'bg-[#2C2C2C] border-white/10 text-white hover:bg-white/5 disabled:opacity-40' 
+                                                : 'bg-white border-gray-200 text-gray-855 hover:bg-gray-100 disabled:opacity-40 shadow-sm'
+                                        }`}
+                                    >
+                                        <Plus size={16} weight="bold" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Priority Level */}
+                            <div className="space-y-2">
+                                <label className={`text-[10px] font-black uppercase tracking-wider text-gray-455 flex items-center gap-1.5`}>
+                                    <Warning size={12} /> Muhimlik darajasi
+                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { key: 'low', label: 'Past', icon: <ShieldWarning size={12} className="text-emerald-500" />, activeClass: 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+                                        { key: 'medium', label: 'O\'rtacha', icon: <Warning size={12} className="text-amber-500" />, activeClass: 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+                                        { key: 'high', label: 'Yuqori', icon: <Flame size={12} className="text-rose-500" />, activeClass: 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-450' }
+                                    ].map(item => {
+                                        const isSelected = priority === item.key;
+                                        return (
+                                            <button
+                                                key={item.key}
+                                                type="button"
+                                                onClick={() => setPriority(item.key)}
+                                                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-black transition-all active:scale-95 ${
+                                                    isSelected ? item.activeClass : (isDark ? 'border-white/5 text-gray-400 bg-[#2C2C2C]/50 hover:bg-white/5' : 'border-gray-200 text-gray-655 bg-gray-50 hover:bg-gray-100 shadow-sm')
+                                                }`}
+                                            >
+                                                {item.icon}
+                                                {item.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Teacher Note / Instructions */}
+                            <div className="space-y-2">
+                                <label className={`text-[10px] font-black uppercase tracking-wider text-gray-455 flex items-center gap-1.5`}>
+                                    O'quvchilarga eslatma / izoh
+                                </label>
+                                <textarea
+                                    value={teacherNote}
+                                    onChange={e => setTeacherNote(e.target.value)}
+                                    placeholder="Masalan: Testning har bir qismini diqqat bilan o'qing va yangi lug'atlarni yozib boring..."
+                                    rows={3}
+                                    className={`w-full p-3 rounded-xl border text-xs font-semibold outline-none resize-none transition-all duration-200 ${
+                                        isDark 
+                                            ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-gray-500' 
+                                            : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder-gray-400 shadow-sm'
+                                    }`}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Submit Button */}
+                        <div className="pt-4 border-t border-dashed border-gray-200 dark:border-white/10">
+                            <button
+                                type="submit"
+                                disabled={assigning || !selectedTest}
+                                className={`w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2
+                                    ${assigning || !selectedTest
+                                        ? 'bg-blue-600/50 cursor-not-allowed text-white/70'
+                                        : 'bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-500 hover:to-indigo-550 text-white shadow-lg shadow-blue-500/25 active:scale-[0.98]'
+                                    }
+                                `}
+                            >
+                                {assigning ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Vazifani Tayinlash"}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        );
+    }
+
+    if (showMonitorPage && monitoringTest) {
+        return (
+            <div className={`space-y-6 animate-fade-in-up text-left ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                {/* Back Button and Header */}
+                <div className="flex flex-col gap-2">
+                    <button
+                        onClick={() => {
+                            setMonitoringTest(null);
+                            setShowMonitorPage(false);
+                        }}
+                        className={`flex items-center gap-2 transition-colors font-bold text-sm group w-fit ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+                    >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm transition-all ${isDark ? 'bg-white/5 border-white/10 group-hover:border-white/20' : 'bg-white border-gray-200 group-hover:border-gray-300'}`}>
+                            <ArrowLeft className="w-4 h-4" />
+                        </div>
+                        Orqaga Qaytish
+                    </button>
+                    
+                    <div className="mt-2">
+                        <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Test Monitoringi</h1>
+                        <p className={`text-sm mt-1 font-medium ${isDark ? 'text-gray-400' : 'text-gray-550'}`}>
+                            Test: <span className="font-extrabold text-blue-600 dark:text-blue-400">{monitoringTest.title}</span> | Guruh: <span className="font-extrabold">{monitoringTest.groupName}</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div className={`p-6 rounded-[28px] border overflow-hidden ${
+                    isDark ? 'bg-[#2C2C2C]/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                }`}>
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-left border-collapse text-xs font-semibold">
+                            <thead>
+                                <tr className={`border-b ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-150 bg-gray-50'}`}>
+                                    <th className="py-4 px-6 rounded-l-xl">O'quvchi</th>
+                                    <th className="py-4 px-6 text-center">Status</th>
+                                    <th className="py-4 px-6 text-center">Ball / Natija</th>
+                                    <th className="py-4 px-6 text-center">Topshirilgan Sana</th>
+                                    <th className="py-4 px-6 text-center rounded-r-xl">Amal</th>
+                                </tr>
+                            </thead>
+                            <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
+                                {students.filter(s => s.groupId === monitoringTest.groupId).length > 0 ? (
+                                    students.filter(s => s.groupId === monitoringTest.groupId).map(student => {
+                                        // Find result for this test & student
+                                        const resDoc = results.find(r => 
+                                            String(r.testId).trim() === String(monitoringTest.id).trim() && 
+                                            r.userId === student.id
+                                        );
+                                        const submitted = !!resDoc;
+                                        const submitDate = resDoc?.date ? (resDoc.date.toDate ? resDoc.date.toDate() : new Date(resDoc.date)).toLocaleDateString() : "-";
+                                        const score = resDoc ? (resDoc.bandScore || resDoc.score) : "-";
+
+                                        return (
+                                            <tr key={student.id} className={isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50/50'}>
+                                                <td className="py-4 px-6 font-bold">
+                                                    <div className="flex flex-col">
+                                                        <span className={isDark ? 'text-white' : 'text-gray-900'}>{student.fullName}</span>
+                                                        <span className="text-[10px] text-gray-400 font-medium mt-0.5">{student.email || student.phoneNumber}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6 text-center">
+                                                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] border ${
+                                                        submitted 
+                                                            ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                                                            : (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-55/50 text-amber-600 border-amber-200')
+                                                    }`}>
+                                                        {submitted ? "Topshirdi" : "Kutilmoqda"}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-6 text-center">
+                                                    <span className={submitted ? "font-bold text-blue-500 font-mono text-sm" : "text-gray-400"}>
+                                                        {score}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-6 text-center text-gray-400">
+                                                    {submitDate}
+                                                </td>
+                                                <td className="py-4 px-6 text-center">
+                                                    {submitted ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (monitoringTest.type === 'writing' || monitoringTest.type === 'mock_full') {
+                                                                    navigate('/teacher/writing-review', { state: { selectedId: resDoc.id } });
+                                                                } else {
+                                                                    navigate(`/review/${resDoc.id}`);
+                                                                }
+                                                            }}
+                                                            className={`px-4 py-1.5 rounded-xl border font-bold hover:scale-95 transition-all text-xs ${
+                                                                isDark 
+                                                                    ? 'bg-blue-600/20 text-blue-400 border-blue-500/20 hover:bg-blue-600/30' 
+                                                                    : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 shadow-sm'
+                                                            }`}
+                                                        >
+                                                            Ko'rish
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-gray-400 opacity-50 font-bold">-</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan="5" className="p-8 text-center text-gray-450 opacity-60">Guruhda talaba yo'q</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={`space-y-6 ${isDark ? 'text-white' : 'text-slate-800'}`}>
             {/* Header */}
@@ -245,7 +663,7 @@ export default function TeacherTests() {
                 <button
                     onClick={() => {
                         if (groups.length > 0) setSelectedGroupId(groups[0].id);
-                        setShowAssignModal(true);
+                        setShowAssignPage(true);
                     }}
                     className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-sm shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all"
                 >
@@ -365,7 +783,7 @@ export default function TeacherTests() {
                                     <button
                                         onClick={() => {
                                             setMonitoringTest(assign);
-                                            setShowMonitorModal(true);
+                                            setShowMonitorPage(true);
                                         }}
                                         className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border transition-all ${
                                             isDark 
@@ -381,261 +799,7 @@ export default function TeacherTests() {
                         );
                     })}
                 </div>
-            )}
-
-            {/* ASSIGN TEST MODAL */}
-            {showAssignModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
-                    
-                    <div 
-                        className={`relative w-full max-w-xl rounded-[32px] border shadow-2xl overflow-hidden p-6 z-10 flex flex-col max-h-[90vh] ${
-                            isDark ? 'bg-[#1E1E1E] border-white/15' : 'bg-white border-gray-250'
-                        }`}
-                    >
-                        <div className="flex justify-between items-center pb-4 mb-4 border-b border-gray-500/10">
-                            <h2 className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Yangi Test Tayinlash</h2>
-                            <button onClick={() => setShowAssignModal(false)} className={`p-2 rounded-xl hover:bg-gray-500/10 text-gray-405 transition-colors`}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleAssignTest} className="space-y-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
-                            {/* Group Select */}
-                            <div className="space-y-1.5">
-                                <label className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Guruhni tanlang</label>
-                                <div className="relative">
-                                    <select
-                                        value={selectedGroupId}
-                                        onChange={e => setSelectedGroupId(e.target.value)}
-                                        className={`w-full p-3 rounded-2xl border text-sm font-medium outline-none appearance-none cursor-pointer ${
-                                            isDark ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500'
-                                        }`}
-                                    >
-                                        {groups.map(g => (
-                                            <option key={g.id} value={g.id}>{g.name}</option>
-                                        ))}
-                                    </select>
-                                    <CaretDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                </div>
-                            </div>
-
-                            {/* Search and Select Test */}
-                            <div className="space-y-1.5">
-                                <label className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Testni tanlang</label>
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                    {/* Search Input */}
-                                    <div className="relative flex-1 min-w-[200px]">
-                                        <SearchIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-450" />
-                                        <input
-                                            type="text"
-                                            placeholder="Test nomini yozing..."
-                                            value={searchTestQuery}
-                                            onChange={e => setSearchTestQuery(e.target.value)}
-                                            className={`w-full pl-11 pr-4 py-2.5 rounded-xl border text-xs font-medium outline-none ${
-                                                isDark ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-850 focus:border-blue-500'
-                                            }`}
-                                        />
-                                    </div>
-                                    {/* Type filter */}
-                                    <div className="relative min-w-[130px]">
-                                        <select
-                                            value={testTypeFilter}
-                                            onChange={e => setTestTypeFilter(e.target.value)}
-                                            className={`w-full p-2.5 rounded-xl border text-xs font-bold outline-none appearance-none cursor-pointer ${
-                                                isDark ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-850 focus:border-blue-500'
-                                            }`}
-                                        >
-                                            <option value="all">Barcha turlar</option>
-                                            <option value="reading">Reading</option>
-                                            <option value="listening">Listening</option>
-                                            <option value="writing">Writing</option>
-                                            <option value="mock_full">Mock Exam</option>
-                                        </select>
-                                        <CaretDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-455 pointer-events-none" />
-                                    </div>
-                                </div>
-
-                                {/* List of tests to select */}
-                                <div className={`border rounded-2xl max-h-48 overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 ${
-                                    isDark ? 'bg-[#2C2C2C]/50 border-white/10' : 'bg-gray-50 border-gray-200'
-                                }`}>
-                                    {filteredAvailableTests.length > 0 ? (
-                                        filteredAvailableTests.map(test => {
-                                            const isSelected = selectedTest?.id === test.id;
-                                            return (
-                                                <div
-                                                    key={test.id}
-                                                    onClick={() => setSelectedTest(test)}
-                                                    className={`flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all ${
-                                                        isSelected 
-                                                            ? (isDark ? 'bg-blue-600/20 border-blue-500 text-blue-400 font-bold' : 'bg-blue-50 border-blue-200 text-blue-700 font-bold')
-                                                            : (isDark ? 'border-transparent text-gray-300 hover:bg-white/5' : 'border-transparent text-gray-700 hover:bg-white')
-                                                    }`}
-                                                >
-                                                    <div className="flex flex-col min-w-0">
-                                                        <span className="text-xs truncate max-w-[320px]">{test.title || 'Untitled Test'}</span>
-                                                        <span className="text-[10px] text-gray-455 uppercase font-black tracking-wider mt-0.5">{test.type === 'mock_full' ? 'Mock Exam' : test.type}</span>
-                                                    </div>
-                                                    
-                                                    {isSelected && <CheckCircle size={18} className="text-blue-500 shrink-0" />}
-                                                </div>
-                                            );
-                                        })
-                                    ) : (
-                                        <p className="text-xs opacity-50 p-4 text-center">Bunday test topilmadi</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Additional Settings */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Deadline */}
-                                <div className="space-y-1.5">
-                                    <label className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Deadline (Muddati)</label>
-                                    <input
-                                        type="datetime-local"
-                                        value={deadline}
-                                        onChange={e => setDeadline(e.target.value)}
-                                        className={`w-full p-3 rounded-xl border text-xs font-medium outline-none ${
-                                            isDark ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500'
-                                        }`}
-                                    />
-                                </div>
-
-                                {/* Max attempts */}
-                                <div className="space-y-1.5">
-                                    <label className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-505'}`}>Maksimal urinishlar soni</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="10"
-                                        value={maxAttempts}
-                                        onChange={e => setMaxAttempts(e.target.value)}
-                                        className={`w-full p-3 rounded-xl border text-xs font-medium outline-none ${
-                                            isDark ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500'
-                                        }`}
-                                    />
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={assigning || !selectedTest}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold text-sm shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                            >
-                                {assigning ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Tayinlash"}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* MONITORING MODAL */}
-            {showMonitorModal && monitoringTest && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowMonitorModal(false)} />
-                    
-                    <div 
-                        className={`relative w-full max-w-2xl rounded-[32px] border shadow-2xl overflow-hidden p-6 z-10 flex flex-col max-h-[85vh] ${
-                            isDark ? 'bg-[#1E1E1E] border-white/15' : 'bg-white border-gray-200'
-                        }`}
-                    >
-                        <div className="flex justify-between items-center pb-4 mb-4 border-b border-gray-500/10">
-                            <div className="min-w-0">
-                                <h2 className={`text-lg font-black truncate max-w-[400px] ${isDark ? 'text-white' : 'text-gray-900'}`}>{monitoringTest.title}</h2>
-                                <p className="text-xs text-gray-450 mt-0.5">Guruh: <span className="font-bold">{monitoringTest.groupName}</span></p>
-                            </div>
-                            <button onClick={() => setShowMonitorModal(false)} className={`p-2 rounded-xl hover:bg-gray-500/10 text-gray-405 transition-colors`}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="overflow-y-auto flex-1 pr-1 custom-scrollbar">
-                            <table className="w-full text-left border-collapse text-xs font-semibold">
-                                <thead>
-                                    <tr className={`border-b ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-150 bg-gray-50'}`}>
-                                        <th className="py-3 px-4">O'quvchi</th>
-                                        <th className="py-3 px-4 text-center">Status</th>
-                                        <th className="py-3 px-4 text-center">Ball / Natija</th>
-                                        <th className="py-3 px-4 text-center">Topshirilgan Sana</th>
-                                        <th className="py-3 px-4 text-center">Amal</th>
-                                    </tr>
-                                </thead>
-                                <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
-                                    {students.filter(s => s.groupId === monitoringTest.groupId).length > 0 ? (
-                                        students.filter(s => s.groupId === monitoringTest.groupId).map(student => {
-                                            // Find result for this test & student
-                                            const resDoc = results.find(r => 
-                                                String(r.testId).trim() === String(monitoringTest.id).trim() && 
-                                                r.userId === student.id
-                                            );
-                                            const submitted = !!resDoc;
-                                            const submitDate = resDoc?.date ? (resDoc.date.toDate ? resDoc.date.toDate() : new Date(resDoc.date)).toLocaleDateString() : "-";
-                                            const score = resDoc ? (resDoc.bandScore || resDoc.score) : "-";
-
-                                            return (
-                                                <tr key={student.id} className={isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50/50'}>
-                                                    <td className="py-3.5 px-4 font-bold">
-                                                        <div className="flex flex-col">
-                                                            <span className={isDark ? 'text-white' : 'text-gray-900'}>{student.fullName}</span>
-                                                            <span className="text-[10px] text-gray-450 font-medium mt-0.5">{student.email || student.phoneNumber}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3.5 px-4 text-center">
-                                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] border ${
-                                                            submitted 
-                                                                ? (isDark ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-250')
-                                                                : (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-emerald-250')
-                                                        }`}>
-                                                            {submitted ? "Topshirdi" : "Kutilmoqda"}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3.5 px-4 text-center">
-                                                        <span className={submitted ? "font-bold text-blue-500 font-mono" : "text-gray-400"}>
-                                                            {score}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3.5 px-4 text-center text-gray-405">
-                                                        {submitDate}
-                                                    </td>
-                                                    <td className="py-3.5 px-4 text-center">
-                                                        {submitted ? (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setShowMonitorModal(false);
-                                                                    if (monitoringTest.type === 'writing' || monitoringTest.type === 'mock_full') {
-                                                                        navigate('/teacher/writing-review', { state: { selectedId: resDoc.id } });
-                                                                    } else {
-                                                                        navigate(`/review/${resDoc.id}`);
-                                                                    }
-                                                                }}
-                                                                className={`px-3 py-1 rounded-lg border font-bold hover:scale-95 transition-all ${
-                                                                    isDark 
-                                                                        ? 'bg-blue-600/20 text-blue-400 border-blue-500/20 hover:bg-blue-600/30' 
-                                                                        : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                                                                }`}
-                                                            >
-                                                                Ko'rish
-                                                            </button>
-                                                        ) : (
-                                                            <span className="text-gray-400 opacity-50">-</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="5" className="p-8 text-center text-gray-450 opacity-60">Guruhda talaba yo'q</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            )}
+                )}
         </div>
     );
 }

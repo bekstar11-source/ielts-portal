@@ -38,16 +38,15 @@ export const useWritingReview = (userData) => {
                     allStudents = snaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
                 }
             } else {
-                const groupIds = userData?.assignedGroupIds || [];
-                if (groupIds.length > 0) {
+                const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
+                const querySnap = await getDocs(q);
+                const fetchedGroups = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                if (fetchedGroups.length > 0) {
                     const uniqueStudentIds = new Set();
-                    for (const gId of groupIds) {
-                        const gDoc = await getDoc(doc(db, "groups", gId));
-                        if (gDoc.exists()) {
-                            const gData = gDoc.data();
-                            (gData.studentIds || []).forEach(id => uniqueStudentIds.add(id));
-                        }
-                    }
+                    fetchedGroups.forEach(gData => {
+                        (gData.studentIds || []).forEach(id => uniqueStudentIds.add(id));
+                    });
                     const studentIdsArray = Array.from(uniqueStudentIds);
                     if (studentIdsArray.length > 0) {
                         // Fetch students

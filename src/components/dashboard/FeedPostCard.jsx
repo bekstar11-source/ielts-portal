@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, Trash2, ArrowRight, Play, BookOpen, Volume2, Megaphone, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Trash2, ArrowRight, Play, BookOpen, Volume2, Megaphone, ChevronLeft, ChevronRight, AlertTriangle, RotateCcw, Calendar, Hourglass, MessageSquare, Flame, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,93 @@ import { handleUniversalNavigate, getCategoryUrl } from '../../utils/navigation'
 import { db } from '../../firebase/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { usePodcast } from '../../context/PodcastContext';
+
+const getDeadlineTimeRemaining = (deadline) => {
+    if (!deadline) return { text: "Cheksiz muddat", isUrgent: false, isExpired: false };
+    const deadlineDate = new Date(deadline);
+    const now = new Date();
+    const diffMs = deadlineDate - now;
+
+    if (diffMs <= 0) {
+        return { text: "Muddati o'tgan", isUrgent: false, isExpired: true };
+    }
+
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffDays > 2) {
+        return { text: `${diffDays} kun qoldi`, isUrgent: false, isExpired: false };
+    }
+    if (diffDays === 2) {
+        return { text: "2 kun qoldi", isUrgent: true, isExpired: false };
+    }
+    if (diffDays === 1) {
+        return { text: "Ertaga oxirgi kun", isUrgent: true, isExpired: false };
+    }
+    if (diffHours >= 1) {
+        return { text: `${diffHours} soat qoldi`, isUrgent: true, isExpired: false };
+    }
+    if (diffMins >= 1) {
+        return { text: `${diffMins} daqiqa qoldi`, isUrgent: true, isExpired: false };
+    }
+    return { text: "Hozir tugaydi", isUrgent: true, isExpired: false };
+};
+
+const getPriorityBadge = (priority) => {
+    const p = (priority || 'medium').toLowerCase();
+    switch (p) {
+        case 'high':
+            return (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                    <Flame size={12} className="text-rose-500 dark:text-rose-400 animate-pulse" />
+                    Yuqori
+                </span>
+            );
+        case 'low':
+            return (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <ShieldAlert size={12} className="text-emerald-500 dark:text-emerald-400" />
+                    Past
+                </span>
+            );
+        case 'medium':
+        default:
+            return (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <AlertTriangle size={12} className="text-amber-500 dark:text-amber-400" />
+                    O'rtacha
+                </span>
+            );
+    }
+};
+
+const getTestTypeTag = (testType) => {
+    const t = (testType || '').toLowerCase();
+    let label = 'Test';
+    let bgClasses = 'bg-blue-50 dark:bg-blue-950/40 border-blue-150 dark:border-blue-900/30 text-blue-600 dark:text-blue-400';
+    
+    if (t.includes('reading')) {
+        label = 'Reading';
+        bgClasses = 'bg-blue-50 dark:bg-blue-950/40 border-blue-150 dark:border-blue-900/30 text-blue-600 dark:text-blue-400';
+    } else if (t.includes('listening')) {
+        label = 'Listening';
+        bgClasses = 'bg-pink-50 dark:bg-pink-950/40 border-pink-150 dark:border-pink-900/30 text-pink-600 dark:text-pink-400';
+    } else if (t.includes('writing')) {
+        label = 'Writing';
+        bgClasses = 'bg-orange-50 dark:bg-orange-950/40 border-orange-150 dark:border-orange-900/30 text-orange-600 dark:text-orange-400';
+    } else if (t.includes('mock') || t.includes('full')) {
+        label = 'Mock Exam';
+        bgClasses = 'bg-purple-50 dark:bg-purple-950/40 border-purple-150 dark:border-purple-900/30 text-purple-600 dark:text-purple-400';
+    }
+    
+    return (
+        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${bgClasses}`}>
+            {label}
+        </span>
+    );
+};
+
 
 export default function FeedPostCard({ post, user, userData, onLike, onCommentAdded, onDelete }) {
     const navigate = useNavigate();
@@ -165,36 +252,122 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
     // Render main body card based on content type
     const renderContentMedia = () => {
         if (post.type === 'teacher_test') {
-            const isExpired = post.deadline && new Date(post.deadline) < new Date();
+            const timeRemaining = getDeadlineTimeRemaining(post.deadline);
+            let formattedDeadline = null;
+            if (post.deadline) {
+                try {
+                    const d = new Date(post.deadline);
+                    if (!isNaN(d.getTime())) {
+                        formattedDeadline = d.toLocaleString('uz-UZ', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error formatting deadline:", e);
+                }
+            }
+
             return (
                 <div className="px-4 py-2 flex flex-col gap-3">
-                    <div className="p-4 rounded-xl border border-indigo-150 dark:border-indigo-900/25 bg-indigo-50/15 dark:bg-indigo-950/10 flex flex-col gap-3 text-left">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-500 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded border border-indigo-150 dark:border-indigo-900/30">
-                                {post.testType === 'mock_full' ? 'Mock Exam' : post.testType?.toUpperCase()}
-                            </span>
-                            {post.deadline && (
-                                <span className={`text-[9px] font-semibold ${isExpired ? 'text-rose-500 font-bold' : 'text-gray-400 dark:text-zinc-500'}`}>
-                                    Muddat: {new Date(post.deadline).toLocaleDateString()}
-                                </span>
-                            )}
+                    <div className="p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/5 dark:bg-indigo-950/5 flex flex-col gap-4 text-left shadow-sm">
+                        {/* Tags & Urgency Indicators */}
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                                {getTestTypeTag(post.testType)}
+                                {getPriorityBadge(post.priority)}
+                            </div>
                         </div>
-                        <h4 className="font-extrabold text-xs text-gray-800 dark:text-zinc-200 leading-snug">
+
+                        {/* Title */}
+                        <h4 className="font-extrabold text-sm text-gray-800 dark:text-zinc-100 leading-snug">
                             {post.content || post.testTitle || 'Vazifa testi'}
                         </h4>
-                        
+
+                        {/* Teacher Instructions Box */}
+                        {post.teacherNote && (
+                            <div className="p-3.5 rounded-xl border border-indigo-100/50 dark:border-indigo-900/20 bg-indigo-50/10 dark:bg-indigo-950/10 text-xs text-gray-650 dark:text-zinc-400 flex items-start gap-2.5">
+                                <MessageSquare size={16} className="text-indigo-500 shrink-0 mt-0.5" />
+                                <div className="space-y-0.5">
+                                    <span className="font-black text-[10px] uppercase tracking-wider text-indigo-500 block">Ustoz ko'rsatmasi:</span>
+                                    <p className="italic leading-relaxed whitespace-pre-wrap">{post.teacherNote}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Metadata Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                            {/* Max Attempts */}
+                            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-100 dark:border-white/5">
+                                <RotateCcw size={14} className="text-gray-400 dark:text-zinc-500 shrink-0" />
+                                <div className="min-w-0">
+                                    <span className="text-[9px] font-bold text-gray-450 dark:text-zinc-500 block uppercase tracking-wider">Urinishlar</span>
+                                    <span className="text-xs font-bold text-gray-750 dark:text-zinc-300">{post.maxAttempts || 1} marta</span>
+                                </div>
+                            </div>
+
+                            {/* Deadline Date */}
+                            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-100 dark:border-white/5">
+                                <Calendar size={14} className="text-gray-400 dark:text-zinc-500 shrink-0" />
+                                <div className="min-w-0">
+                                    <span className="text-[9px] font-bold text-gray-455 dark:text-zinc-505 block uppercase tracking-wider">Topshirish muddati</span>
+                                    <span className="text-xs font-bold text-gray-750 dark:text-zinc-300 truncate block">
+                                        {formattedDeadline || "Cheksiz"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Remaining Time */}
+                            <div className={`flex items-center gap-2.5 p-2.5 rounded-xl border ${
+                                timeRemaining.isExpired 
+                                    ? 'bg-rose-50/30 dark:bg-rose-950/10 border-rose-100 dark:border-rose-900/20' 
+                                    : timeRemaining.isUrgent
+                                        ? 'bg-amber-50/30 dark:bg-amber-950/10 border-amber-100 dark:border-amber-900/20'
+                                        : 'bg-gray-50/50 dark:bg-zinc-900/30 border-gray-100 dark:border-white/5'
+                            }`}>
+                                <Hourglass size={14} className={`shrink-0 ${
+                                    timeRemaining.isExpired 
+                                        ? 'text-rose-500' 
+                                        : timeRemaining.isUrgent 
+                                            ? 'text-amber-500 animate-pulse' 
+                                            : 'text-gray-400 dark:text-zinc-500'
+                                }`} />
+                                <div className="min-w-0">
+                                    <span className="text-[9px] font-bold text-gray-450 dark:text-zinc-505 block uppercase tracking-wider">Qolgan vaqt</span>
+                                    <span className={`text-xs font-black truncate block ${
+                                        timeRemaining.isExpired 
+                                            ? 'text-rose-500' 
+                                            : timeRemaining.isUrgent 
+                                                ? 'text-amber-500' 
+                                                : 'text-gray-750 dark:text-zinc-300'
+                                    }`}>
+                                        {timeRemaining.text}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* CTA button */}
                         <button
                             onClick={() => {
                                 if (post.testType === 'mock_full') {
-                                    navigate('/mock-exam', { state: { mockData: { id: post.testId, title: post.content, type: 'mock_full' } } });
+                                    navigate('/mock-exam', { state: { mockData: { id: post.testId, title: post.content || post.testTitle, type: 'mock_full' } } });
                                 } else {
                                     navigate(`/test/${post.testId}`);
                                 }
                             }}
-                            className="w-full flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] py-2 rounded-lg active:scale-[0.98] transition-all shadow-sm shrink-0"
+                            className={`w-full flex items-center justify-center gap-2 font-bold text-xs py-3 rounded-xl active:scale-[0.98] transition-all shadow-sm shrink-0 border ${
+                                timeRemaining.isExpired
+                                    ? 'bg-gray-100 dark:bg-zinc-800 text-gray-450 dark:text-zinc-600 border-gray-200 dark:border-white/5 cursor-not-allowed'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-650 hover:border-indigo-700 text-white shadow-indigo-500/10'
+                            }`}
+                            disabled={timeRemaining.isExpired}
                         >
-                            Vazifani bajarish
-                            <ArrowRight size={12} />
+                            {timeRemaining.isExpired ? "Topshirish muddati tugagan" : "Vazifani bajarish"}
+                            {!timeRemaining.isExpired && <ArrowRight size={14} />}
                         </button>
                     </div>
                 </div>

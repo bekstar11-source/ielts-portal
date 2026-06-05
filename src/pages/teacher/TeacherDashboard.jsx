@@ -32,16 +32,12 @@ export default function TeacherDashboard() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const groupIds = userData?.assignedGroupIds || [];
-            if (!groupIds.length) { setLoading(false); return; }
-
-            const groupDocs = await Promise.all(
-                groupIds.map(id => getDoc(doc(db, 'groups', id)))
-            );
-            const fetchedGroups = groupDocs
-                .filter(d => d.exists())
-                .map(d => ({ id: d.id, ...d.data() }));
+            const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
+            const querySnap = await getDocs(q);
+            const fetchedGroups = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
             setGroups(fetchedGroups);
+
+            if (!fetchedGroups.length) { setLoading(false); return; }
 
             let setIdsToFetch = new Set();
             fetchedGroups.forEach(g => {

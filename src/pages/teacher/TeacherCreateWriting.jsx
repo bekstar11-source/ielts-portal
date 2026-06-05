@@ -24,6 +24,12 @@ export default function TeacherCreateWriting() {
     const [errorMsg, setErrorMsg] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
 
+    // NEW DETAILED ASSIGNMENT STATES
+    const [deadline, setDeadline] = useState("");
+    const [maxAttempts, setMaxAttempts] = useState("1");
+    const [teacherNote, setTeacherNote] = useState("");
+    const [priority, setPriority] = useState("medium");
+
     // NEW STATES
     const [includeTask1, setIncludeTask1] = useState(true);
     const [includeTask2, setIncludeTask2] = useState(true);
@@ -34,11 +40,9 @@ export default function TeacherCreateWriting() {
     useEffect(() => {
         const fetchGroups = async () => {
             try {
-                const groupsSnap = await getDocs(collection(db, 'groups'));
-                const groupsData = groupsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                const assigned = userData?.assignedGroupIds || [];
-                const filteredGroups = groupsData.filter(g => assigned.includes(g.id));
+                const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
+                const groupsSnap = await getDocs(q);
+                const filteredGroups = groupsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setMyGroups(filteredGroups);
             } catch (error) {
                 console.error("Guruhlarni yuklashda xato:", error);
@@ -193,7 +197,11 @@ export default function TeacherCreateWriting() {
                     id: testRef.id,
                     title: newTest.title,
                     type: 'writing',
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    deadline: deadline ? new Date(deadline).toISOString() : null,
+                    maxAttempts: Number(maxAttempts) || 1,
+                    priority: priority,
+                    teacherNote: teacherNote
                 })
             });
 
@@ -206,7 +214,10 @@ export default function TeacherCreateWriting() {
                     testId: testRef.id,
                     testType: 'writing',
                     groupId: selectedGroupId,
-                    deadline: null,
+                    deadline: deadline ? new Date(deadline).toISOString() : null,
+                    maxAttempts: Number(maxAttempts) || 1,
+                    priority: priority,
+                    teacherNote: teacherNote,
                     teacherId: userData.uid,
                     teacherName: userData.fullName || "Ustoz",
                     likes: [],
@@ -250,6 +261,10 @@ export default function TeacherCreateWriting() {
             setSelectedTemplateId('');
             setIncludeTask1(true);
             setIncludeTask2(true);
+            setDeadline("");
+            setMaxAttempts("1");
+            setTeacherNote("");
+            setPriority("medium");
         } catch (error) {
             console.error("Test yaratishda xato:", error);
             setErrorMsg("Xatolik yuz berdi");
@@ -444,6 +459,63 @@ export default function TeacherCreateWriting() {
                         </div>
                     </div>
                 )}
+
+                {/* Qo'shimcha Vazifa Sozlamalari */}
+                <div className="p-4 rounded-xl border border-gray-200/50 dark:border-white/5 bg-gray-50/30 dark:bg-white/5 space-y-4 text-left">
+                    <h3 className={`text-sm font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Qo'shimcha Vazifa Sozlamalari</h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {/* Deadline */}
+                        <div>
+                            <label className={labelClasses}>Deadline (Muddati)</label>
+                            <input
+                                type="datetime-local"
+                                value={deadline}
+                                onChange={e => setDeadline(e.target.value)}
+                                className={inputClasses}
+                            />
+                        </div>
+
+                        {/* Max attempts */}
+                        <div>
+                            <label className={labelClasses}>Maksimal urinishlar</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="10"
+                                value={maxAttempts}
+                                onChange={e => setMaxAttempts(e.target.value)}
+                                className={inputClasses}
+                            />
+                        </div>
+
+                        {/* Priority level */}
+                        <div>
+                            <label className={labelClasses}>Muhimlik darajasi</label>
+                            <select
+                                value={priority}
+                                onChange={e => setPriority(e.target.value)}
+                                className={inputClasses}
+                            >
+                                <option value="low">Past (Low)</option>
+                                <option value="medium">O'rtacha (Medium)</option>
+                                <option value="high">Yuqori (High)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Teacher Note / Instructions */}
+                    <div>
+                        <label className={labelClasses}>O'quvchilarga eslatma / izoh</label>
+                        <textarea
+                            value={teacherNote}
+                            onChange={e => setTeacherNote(e.target.value)}
+                            placeholder="Masalan: Ushbu Writing testining har bir qismini vaqt limitiga rioya qilgan holda yozing..."
+                            rows={3}
+                            className={inputClasses}
+                        />
+                    </div>
+                </div>
 
                 {/* Shablon sifatida saqlash checkbox */}
                 <div className="py-2 border-t border-dashed border-gray-200 dark:border-white/10">

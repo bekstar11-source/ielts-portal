@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebase/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { ArrowLeft, Users, Zap, CheckCircle2, AlertCircle, Crown, Shield, CreditCard } from 'lucide-react';
 
 export default function TeacherSubscription() {
@@ -29,19 +29,15 @@ export default function TeacherSubscription() {
     const fetchStudentCount = async () => {
         setLoading(true);
         try {
-            const groupIds = userData?.assignedGroupIds || [];
-            if (!groupIds.length) {
+            const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
+            const querySnap = await getDocs(q);
+            const fetchedGroups = querySnap.docs.map(d => d.data());
+
+            if (!fetchedGroups.length) {
                 setStudentCount(0);
                 setLoading(false);
                 return;
             }
-
-            const groupDocs = await Promise.all(
-                groupIds.map(id => getDoc(doc(db, 'groups', id)))
-            );
-            const fetchedGroups = groupDocs
-                .filter(d => d.exists())
-                .map(d => d.data());
 
             const allStudentIds = new Set();
             fetchedGroups.forEach(g => {

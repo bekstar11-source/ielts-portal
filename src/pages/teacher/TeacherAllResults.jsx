@@ -48,24 +48,21 @@ export default function TeacherAllResults() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const assignedGroupIds = userData?.assignedGroupIds || [];
-        if (assignedGroupIds.length === 0) {
+        const q = query(collection(db, "groups"), where("teacherId", "==", userData.uid));
+        const querySnap = await getDocs(q);
+        const fetchedGroups = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        if (fetchedGroups.length === 0) {
           setLoading(false);
           return;
         }
 
         const uniqueStudentIds = new Set();
-        const fetchedGroups = [];
-        for (const groupId of assignedGroupIds) {
-          const groupDoc = await getDoc(doc(db, "groups", groupId));
-          if (groupDoc.exists()) {
-            const groupData = { id: groupDoc.id, ...groupDoc.data() };
-            fetchedGroups.push(groupData);
-            if (groupData.studentIds && Array.isArray(groupData.studentIds)) {
-              groupData.studentIds.forEach(id => uniqueStudentIds.add(id));
-            }
+        fetchedGroups.forEach(groupData => {
+          if (groupData.studentIds && Array.isArray(groupData.studentIds)) {
+            groupData.studentIds.forEach(id => uniqueStudentIds.add(id));
           }
-        }
+        });
         setGroups(fetchedGroups);
 
         const studentIdsArray = Array.from(uniqueStudentIds);
