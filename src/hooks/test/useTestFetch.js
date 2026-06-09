@@ -38,14 +38,59 @@ export function useTestFetch(testId, user, userData, navigate) {
                     const resultsSnap = await getDocs(query(
                         collection(db, 'results'),
                         where('userId', '==', user.uid),
-                        where('testId', '==', testId)
+                        where('testId', '==', cleanId)
                     ));
-                    
-                    // Simple limit check for now
-                    if (resultsSnap.size >= 5) { // Example limit
-                         alert("Siz bu testni topshirish limitiga yetgansiz!");
-                         navigate("/dashboard");
-                         return;
+                    const attemptsCount = resultsSnap.size;
+
+                    // Fetch user's groups to find teacher assignments
+                    const groupsSnap = await getDocs(query(
+                        collection(db, 'groups'),
+                        where('studentIds', 'array-contains', user.uid)
+                    ));
+
+                    // Combine user assignments and group assignments
+                    const userAssigns = userData?.assignedTests || [];
+                    const groupAssigns = [];
+                    groupsSnap.docs.forEach(docSnap => {
+                        const gData = docSnap.data();
+                        if (gData.assignedTests) {
+                            groupAssigns.push(...gData.assignedTests);
+                        }
+                    });
+
+                    const allAssigns = [...userAssigns, ...groupAssigns];
+                    // Find the assignment for this test
+                    const assignment = allAssigns.find(a => String(a.id).trim() === cleanId);
+
+                    const hasGroupId = userData?.groupId && userData?.groupId !== 'none';
+                    let maxAttempts = null;
+                    let deadline = null;
+
+                    if (assignment) {
+                        maxAttempts = Number(assignment.maxAttempts) || 1;
+                        deadline = assignment.deadline || assignment.endDate || null;
+                    } else if (hasGroupId && testData.type === 'reading') {
+                        maxAttempts = 1; // Default for grouped reading tests
+                    } else {
+                        maxAttempts = 5; // Default limit for public/standard tests
+                    }
+
+                    // 1. Deadline check
+                    if (deadline) {
+                        const now = new Date();
+                        const deadlineDate = new Date(deadline);
+                        if (now > deadlineDate) {
+                            alert("Ushbu testni topshirish muddati tugagan! (Deadline: " + deadlineDate.toLocaleString('uz-UZ') + ")");
+                            navigate("/dashboard");
+                            return;
+                        }
+                    }
+
+                    // 2. Attempts check
+                    if (attemptsCount >= maxAttempts) {
+                        alert(`Siz bu testni topshirish limitiga yetgansiz! Maksimal urinishlar soni: ${maxAttempts}`);
+                        navigate("/dashboard");
+                        return;
                     }
                 }
 
@@ -60,7 +105,7 @@ export function useTestFetch(testId, user, userData, navigate) {
         };
 
         fetchTest();
-    }, [testId, user, userData?.role]);
+    }, [testId, user, userData?.role, userData?.groupId, userData?.assignedTests]);
 
     return { test, loading };
 }

@@ -89,7 +89,9 @@ exports.sharePodcast = functions
 
             const title = podcast.title || "ENGLEV | Podcast";
             const description = podcast.description || "ENGLEV platformasida ajoyib podcast";
-            const thumbnail = podcast.thumbnail || "https://englev.uz/ielts_mock_showcase.png";
+            const thumbnail = (podcast.thumbnail && !podcast.thumbnail.includes("ielts_mock_showcase.png"))
+                ? podcast.thumbnail 
+                : "https://englev.uz/englev-logo.png";
 
             // Escape function to prevent XSS and malformed tags
             const escapeHtml = (str) => {

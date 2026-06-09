@@ -28,7 +28,7 @@ import PracticeCard from "../../components/practice/PracticeCard";
 import FullReadingCard from "../../components/practice/FullReadingCard";
 import ReadingSetCard from "../../components/practice/ReadingSetCard";
 import { usePracticeScroll } from "../../hooks/usePracticeScroll";
-import { qTypeMatchesSelected } from "../../utils/TestUtils";
+import { qTypeMatchesSelected, getPassageNum } from "../../utils/TestUtils";
 
 // Categories
 const categories = [
@@ -249,15 +249,7 @@ export default function Practice() {
                            (selectedStatus === 'completed' && isDone) || 
                            (selectedStatus === 'not_completed' && !isDone);
       
-      const getPassageNum = (test, indexInSet) => {
-        if (test.passageNumber) return Number(test.passageNumber);
-        if (test.passage_number) return Number(test.passage_number);
-        const title = test.title?.toLowerCase() || '';
-        const match = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
-        if (match) return Number(match[1]);
-        if (indexInSet !== undefined) return indexInSet + 1;
-        return null;
-      };
+
 
       const pNum = getPassageNum(item);
       const matchesPassage = selectedPassages.length === 0 || 
@@ -276,7 +268,7 @@ export default function Practice() {
                            (selectedStatus === 'completed' && subIsDone) || 
                            (selectedStatus === 'not_completed' && !subIsDone);
             
-            const spNum = getPassageNum(s, idx);
+            const spNum = getPassageNum(s, null, idx);
             const mPassage = selectedPassages.length === 0 || (spNum && selectedPassages.includes(spNum));
 
             return mSearch && mType && mStatus && mPassage;

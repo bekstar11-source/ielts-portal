@@ -46,23 +46,23 @@ const getPriorityBadge = (priority) => {
     switch (p) {
         case 'high':
             return (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                    <Flame size={12} className="text-rose-500 dark:text-rose-400 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/20">
+                    <Flame size={13} className="text-rose-500 dark:text-rose-400 animate-pulse" />
                     Yuqori
                 </span>
             );
         case 'low':
             return (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    <ShieldAlert size={12} className="text-emerald-500 dark:text-emerald-400" />
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/20">
+                    <ShieldAlert size={13} className="text-emerald-500 dark:text-emerald-400" />
                     Past
                 </span>
             );
         case 'medium':
         default:
             return (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    <AlertTriangle size={12} className="text-amber-500 dark:text-amber-400" />
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/20">
+                    <AlertTriangle size={13} className="text-amber-500 dark:text-amber-400" />
                     O'rtacha
                 </span>
             );
@@ -72,24 +72,24 @@ const getPriorityBadge = (priority) => {
 const getTestTypeTag = (testType) => {
     const t = (testType || '').toLowerCase();
     let label = 'Test';
-    let bgClasses = 'bg-blue-50 dark:bg-blue-950/40 border-blue-150 dark:border-blue-900/30 text-blue-600 dark:text-blue-400';
+    let bgClasses = 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/30 text-blue-600 dark:text-blue-400';
     
     if (t.includes('reading')) {
         label = 'Reading';
-        bgClasses = 'bg-blue-50 dark:bg-blue-950/40 border-blue-150 dark:border-blue-900/30 text-blue-600 dark:text-blue-400';
+        bgClasses = 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/30 text-blue-600 dark:text-blue-400';
     } else if (t.includes('listening')) {
         label = 'Listening';
-        bgClasses = 'bg-pink-50 dark:bg-pink-950/40 border-pink-150 dark:border-pink-900/30 text-pink-600 dark:text-pink-400';
+        bgClasses = 'bg-pink-50 dark:bg-pink-950/40 border-pink-100 dark:border-pink-900/30 text-pink-600 dark:text-pink-400';
     } else if (t.includes('writing')) {
         label = 'Writing';
-        bgClasses = 'bg-orange-50 dark:bg-orange-950/40 border-orange-150 dark:border-orange-900/30 text-orange-600 dark:text-orange-400';
+        bgClasses = 'bg-orange-50 dark:bg-orange-950/40 border-orange-100 dark:border-orange-900/30 text-orange-600 dark:text-orange-400';
     } else if (t.includes('mock') || t.includes('full')) {
         label = 'Mock Exam';
-        bgClasses = 'bg-purple-50 dark:bg-purple-950/40 border-purple-150 dark:border-purple-900/30 text-purple-600 dark:text-purple-400';
+        bgClasses = 'bg-purple-50 dark:bg-purple-950/40 border-purple-100 dark:border-purple-900/30 text-purple-600 dark:text-purple-400';
     }
     
     return (
-        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${bgClasses}`}>
+        <span className={`text-[11px] font-semibold tracking-wide px-3 py-1 rounded-full border ${bgClasses}`}>
             {label}
         </span>
     );
@@ -273,7 +273,7 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
 
             return (
                 <div className="px-4 py-2 flex flex-col gap-3">
-                    <div className="p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/5 dark:bg-indigo-950/5 flex flex-col gap-4 text-left shadow-sm">
+                    <div className="p-6 rounded-3xl border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/5 dark:bg-indigo-950/5 flex flex-col gap-5 text-left shadow-sm hover:shadow-md transition-all duration-300">
                         {/* Tags & Urgency Indicators */}
                         <div className="flex items-center justify-between flex-wrap gap-2">
                             <div className="flex items-center gap-2">
@@ -283,16 +283,17 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                         </div>
 
                         {/* Title */}
-                        <h4 className="font-extrabold text-sm text-gray-800 dark:text-zinc-100 leading-snug">
+                        <h4 className="text-base font-bold text-gray-900 dark:text-zinc-100 tracking-tight leading-snug">
                             {post.content || post.testTitle || 'Vazifa testi'}
                         </h4>
 
                         {/* Teacher Instructions Box */}
                         {post.teacherNote && (
-                            <div className="p-3.5 rounded-xl border border-indigo-100/50 dark:border-indigo-900/20 bg-indigo-50/10 dark:bg-indigo-950/10 text-xs text-gray-650 dark:text-zinc-400 flex items-start gap-2.5">
+                            <div className="p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/20 bg-indigo-50/10 dark:bg-indigo-950/10 text-xs text-gray-600 dark:text-zinc-400 flex items-start gap-3 relative overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-l-2xl" />
                                 <MessageSquare size={16} className="text-indigo-500 shrink-0 mt-0.5" />
-                                <div className="space-y-0.5">
-                                    <span className="font-black text-[10px] uppercase tracking-wider text-indigo-500 block">Ustoz ko'rsatmasi:</span>
+                                <div className="space-y-1">
+                                    <span className="font-bold text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">Ustoz ko'rsatmasi:</span>
                                     <p className="italic leading-relaxed whitespace-pre-wrap">{post.teacherNote}</p>
                                 </div>
                             </div>
@@ -301,34 +302,34 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                         {/* Metadata Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                             {/* Max Attempts */}
-                            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-100 dark:border-white/5">
-                                <RotateCcw size={14} className="text-gray-400 dark:text-zinc-500 shrink-0" />
+                            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-100 dark:border-white/5">
+                                <RotateCcw size={15} className="text-gray-400 dark:text-zinc-500 shrink-0" />
                                 <div className="min-w-0">
-                                    <span className="text-[9px] font-bold text-gray-450 dark:text-zinc-500 block uppercase tracking-wider">Urinishlar</span>
-                                    <span className="text-xs font-bold text-gray-750 dark:text-zinc-300">{post.maxAttempts || 1} marta</span>
+                                    <span className="text-[10px] font-semibold text-gray-400 dark:text-zinc-500 block uppercase tracking-wider">Urinishlar</span>
+                                    <span className="text-xs font-bold text-gray-700 dark:text-zinc-300 mt-0.5 block">{post.maxAttempts || 1} marta</span>
                                 </div>
                             </div>
 
                             {/* Deadline Date */}
-                            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-100 dark:border-white/5">
-                                <Calendar size={14} className="text-gray-400 dark:text-zinc-500 shrink-0" />
+                            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-100 dark:border-white/5">
+                                <Calendar size={15} className="text-gray-400 dark:text-zinc-500 shrink-0" />
                                 <div className="min-w-0">
-                                    <span className="text-[9px] font-bold text-gray-455 dark:text-zinc-505 block uppercase tracking-wider">Topshirish muddati</span>
-                                    <span className="text-xs font-bold text-gray-750 dark:text-zinc-300 truncate block">
+                                    <span className="text-[10px] font-semibold text-gray-400 dark:text-zinc-500 block uppercase tracking-wider">Muddati</span>
+                                    <span className="text-xs font-bold text-gray-700 dark:text-zinc-300 mt-0.5 truncate block">
                                         {formattedDeadline || "Cheksiz"}
                                     </span>
                                 </div>
                             </div>
 
                             {/* Remaining Time */}
-                            <div className={`flex items-center gap-2.5 p-2.5 rounded-xl border ${
+                            <div className={`flex items-center gap-2.5 p-3 rounded-2xl border ${
                                 timeRemaining.isExpired 
                                     ? 'bg-rose-50/30 dark:bg-rose-950/10 border-rose-100 dark:border-rose-900/20' 
                                     : timeRemaining.isUrgent
                                         ? 'bg-amber-50/30 dark:bg-amber-950/10 border-amber-100 dark:border-amber-900/20'
                                         : 'bg-gray-50/50 dark:bg-zinc-900/30 border-gray-100 dark:border-white/5'
                             }`}>
-                                <Hourglass size={14} className={`shrink-0 ${
+                                <Hourglass size={15} className={`shrink-0 ${
                                     timeRemaining.isExpired 
                                         ? 'text-rose-500' 
                                         : timeRemaining.isUrgent 
@@ -336,13 +337,13 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                                             : 'text-gray-400 dark:text-zinc-500'
                                 }`} />
                                 <div className="min-w-0">
-                                    <span className="text-[9px] font-bold text-gray-450 dark:text-zinc-505 block uppercase tracking-wider">Qolgan vaqt</span>
-                                    <span className={`text-xs font-black truncate block ${
+                                    <span className="text-[10px] font-semibold text-gray-400 dark:text-zinc-500 block uppercase tracking-wider">Qolgan vaqt</span>
+                                    <span className={`text-xs font-black mt-0.5 truncate block ${
                                         timeRemaining.isExpired 
                                             ? 'text-rose-500' 
                                             : timeRemaining.isUrgent 
                                                 ? 'text-amber-500' 
-                                                : 'text-gray-750 dark:text-zinc-300'
+                                                : 'text-gray-700 dark:text-zinc-300'
                                     }`}>
                                         {timeRemaining.text}
                                     </span>
@@ -359,10 +360,10 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                                     navigate(`/test/${post.testId}`);
                                 }
                             }}
-                            className={`w-full flex items-center justify-center gap-2 font-bold text-xs py-3 rounded-xl active:scale-[0.98] transition-all shadow-sm shrink-0 border ${
+                            className={`w-full flex items-center justify-center gap-2 font-bold text-xs py-3.5 rounded-2xl active:scale-[0.98] transition-all duration-200 shadow-sm shrink-0 border ${
                                 timeRemaining.isExpired
-                                    ? 'bg-gray-100 dark:bg-zinc-800 text-gray-450 dark:text-zinc-600 border-gray-200 dark:border-white/5 cursor-not-allowed'
-                                    : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-650 hover:border-indigo-700 text-white shadow-indigo-500/10'
+                                    ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600 border-gray-200 dark:border-white/5 cursor-not-allowed'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-650 hover:border-indigo-700 text-white shadow-indigo-500/10 hover:shadow-indigo-500/20'
                             }`}
                             disabled={timeRemaining.isExpired}
                         >

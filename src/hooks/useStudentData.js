@@ -217,7 +217,7 @@ export function useStudentData(user) {
                                     result: bestResult,
                                     attemptsCount: subAttemptsCount,
                                     maxAttempts: assign.maxAttempts || 1,
-                                    endDate: assign.endDate || null,
+                                    endDate: assign.deadline || assign.endDate || null,
                                     startDate: assign.startDate || null,
                                 };
                             }
@@ -283,7 +283,7 @@ export function useStudentData(user) {
 
                         const now = new Date();
                         const start = safeDate(assign.startDate);
-                        const end = safeDate(assign.endDate);
+                        const end = safeDate(assign.deadline || assign.endDate);
                         let status = 'open';
                         if (bestResult) status = 'completed';
                         else if (start && now < start) status = 'upcoming';

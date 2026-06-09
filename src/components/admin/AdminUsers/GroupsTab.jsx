@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Users, Search, Trash2, ArrowRight, UserPlus, Clock } from 'lucide-react';
 import { db } from '../../../firebase/firebase';
-import { addDoc, deleteDoc, doc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, deleteDoc, doc, collection, serverTimestamp, updateDoc } from 'firebase/firestore';
 import GroupDetailPanel from '../GroupDetailPanel';
 
 const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
@@ -42,6 +42,16 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
     const handleDeleteGroup = async (groupId) => {
         if (!window.confirm("Guruhni o'chirmoqchimisiz?")) return;
         try {
+            const targetGroup = groups.find(g => g.id === groupId);
+            if (targetGroup && targetGroup.studentIds && targetGroup.studentIds.length > 0) {
+                const updatePromises = targetGroup.studentIds.map(studentId =>
+                    updateDoc(doc(db, 'users', studentId), {
+                        groupId: null,
+                        studentType: 'public'
+                    })
+                );
+                await Promise.all(updatePromises);
+            }
             await deleteDoc(doc(db, 'groups', groupId));
             onRefresh();
         } catch (e) { console.error(e); }

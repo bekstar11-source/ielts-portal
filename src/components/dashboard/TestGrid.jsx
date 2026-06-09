@@ -63,7 +63,7 @@ const TestCardContent = ({ test, onStart, onReview, isPremium, onUpgradeClick })
     const isCompleted = status === 'completed';
     const isExpired = status === 'expired';
     const isUpcoming = status === 'upcoming';
-    const canStart = canRetake && !(isExpired && isStrict) && !isUpcoming;
+    const canStart = canRetake && !isExpired && !isUpcoming;
 
     useEffect(() => {
         if (user && status !== 'completed' && canRetake) {
@@ -300,7 +300,7 @@ const TestCardContent = ({ test, onStart, onReview, isPremium, onUpgradeClick })
                                     </motion.button>
                                 ) : (
                                     <div className="flex-1 py-3.5 rounded-xl bg-white/5 border border-white/5 text-gray-500 font-semibold text-xs transition-colors flex items-center justify-center gap-2 opacity-50 cursor-not-allowed text-center">
-                                        {isCompleted && !canRetake ? "Tugallangan" : (isExpired && isStrict ? "Muddati o'tgan" : (isUpcoming ? "Kutilmoqda" : "Urinishlar tugagan"))}
+                                        {isCompleted && !canRetake ? "Tugallangan" : (isExpired ? "Muddati o'tgan" : (isUpcoming ? "Kutilmoqda" : "Urinishlar tugagan"))}
                                     </div>
                                 )}
                             </>

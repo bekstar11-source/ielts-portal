@@ -5,13 +5,18 @@ import { motion } from 'framer-motion';
 import { hapticFeedback } from '../../utils/haptic';
 import ShareModal from '../common/ShareModal';
 import { useTranslation } from '../../context/LanguageContext';
-import { deriveQuestionTypesForCard, getActualQuestionCount } from '../../utils/TestUtils';
+import { deriveQuestionTypesForCard, getActualQuestionCount, getPassageNum } from '../../utils/TestUtils';
 import QuestionTypeTags from './QuestionTypeTags';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard, passageNumber: passageNumberProp }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const { userData } = useAuth();
+  const hasGroupId = userData?.groupId && userData?.groupId !== 'none';
+  const isReadingTest = test.type === 'reading';
+  const disableRetake = hasGroupId && isReadingTest;
   
   const isPremium = (() => {
     if (test.collectionAccessTier === 'free') return false;
@@ -48,43 +53,7 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
                     !test.thumbnail.includes('reading_passage_yellow') && 
                     !test.thumbnail.includes('listening_orange_headphones');
 
-  const pNum = (() => {
-    // 1. Explicit prop from parent (highest priority)
-    if (passageNumberProp) return Number(passageNumberProp);
-    // 2. Direct fields on the test object
-    if (test.passageNumber) return Number(test.passageNumber);
-    if (test.passage_number) return Number(test.passage_number);
-    // 3. Difficulty field mapping for Reading Single Passages
-    if (test.type === 'reading') {
-      const diff = String(test.difficulty || '').toLowerCase();
-      if (diff === 'easy') return 1;
-      if (diff === 'medium') return 2;
-      if (diff === 'hard') return 3;
-    }
-    // 4. Derive from title
-    const title = test.title?.toLowerCase() || '';
-    const match = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
-    if (match) return Number(match[1]);
-    // 4. Derive from minimum question ID (IELTS: Q1-13=P1, Q14-26=P2, Q27-40=P3)
-    if (test.questions && Array.isArray(test.questions) && test.questions.length > 0) {
-      const ids = [];
-      const extractIds = (obj) => {
-        if (!obj) return;
-        if (obj.id && !isNaN(parseInt(obj.id))) ids.push(parseInt(obj.id));
-        if (Array.isArray(obj.items)) obj.items.forEach(extractIds);
-        if (Array.isArray(obj.questions)) obj.questions.forEach(extractIds);
-        if (Array.isArray(obj.groups)) obj.groups.forEach(extractIds);
-      };
-      test.questions.forEach(extractIds);
-      if (ids.length > 0) {
-        const minId = Math.min(...ids);
-        if (minId <= 13) return 1;
-        if (minId <= 26) return 2;
-        if (minId <= 40) return 3;
-      }
-    }
-    return null;
-  })();
+  const pNum = getPassageNum(test, passageNumberProp);
 
   const passageLabel = test.type === 'reading' 
     ? (pNum ? `Passage ${pNum}` : 'Reading Passage')
@@ -251,12 +220,14 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
                   {t('practice.review')}
                 </button>
               )}
-              <button 
-                onClick={(e) => { e.stopPropagation(); isCompleted ? onStart(test) : handleClick(); }}
-                className="px-4 py-1.5 rounded-full bg-white text-zinc-900 hover:bg-zinc-100 font-bold text-[12px] shadow-md active:scale-95 transition-all flex items-center gap-1"
-              >
-                {isCompleted ? t('practice.retake') : t('practice.start')}
-              </button>
+              {(!isCompleted || !disableRetake) && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); isCompleted ? onStart(test) : handleClick(); }}
+                  className="px-4 py-1.5 rounded-full bg-white text-zinc-900 hover:bg-zinc-100 font-bold text-[12px] shadow-md active:scale-95 transition-all flex items-center gap-1"
+                >
+                  {isCompleted ? t('practice.retake') : t('practice.start')}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -287,13 +258,17 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
                 >
                   {t('practice.review')}
                 </button>
-                <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onStart(test); }} 
-                  className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-                >
-                  {t('practice.retake')}
-                </button>
+                {!disableRetake && (
+                  <>
+                    <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onStart(test); }} 
+                      className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                    >
+                      {t('practice.retake')}
+                    </button>
+                  </>
+                )}
               </>
             )}
           </div>

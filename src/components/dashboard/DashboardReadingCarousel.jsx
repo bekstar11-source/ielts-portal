@@ -9,7 +9,7 @@ import { collection, query, where, limit, getDocs, orderBy } from 'firebase/fire
 
 export default function DashboardReadingCarousel({ onStartTest }) {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, userData } = useAuth();
     const { assignments, loading: assignmentsLoading } = useStudentData(user);
     const { scrollRef, canLeft, canRight, handleScroll, updateScrollState } = usePracticeScroll();
     
@@ -67,7 +67,9 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                         img: test.thumbnail || fallbackImages[i % fallbackImages.length],
                         tag: test.tags?.[0] || "Reading",
                         delay: `${(i * 0.1) + 0.1}s`,
-                        type: test.type
+                        type: test.type,
+                        isCompleted: !!test.result,
+                        resultId: test.result?.id || null
                     };
                 });
 
@@ -146,12 +148,30 @@ export default function DashboardReadingCarousel({ onStartTest }) {
                                         </span>
                                     </div>
                                     <div className="pt-4">
-                                        <button 
-                                            onClick={() => onStartTest ? onStartTest(item) : navigate(`/test/${item.id}`)}
-                                            className="bg-[#0071e3] text-white text-[13px] font-bold px-5 py-2 rounded-lg hover:bg-[#0077ed] transition-all relative z-20 cursor-pointer"
-                                        >
-                                            {item.status === 'completed' ? 'Retake' : 'Start Test'}
-                                        </button>
+                                        {item.isCompleted ? (
+                                            userData?.groupId && userData?.groupId !== 'none' ? (
+                                                <button 
+                                                    onClick={() => item.resultId ? navigate(`/review/${item.resultId}`) : navigate('/my-results')}
+                                                    className="bg-zinc-100 dark:bg-zinc-800 text-zinc-950 dark:text-zinc-300 text-[13px] font-bold px-5 py-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all relative z-20 cursor-pointer"
+                                                >
+                                                    Review
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    onClick={() => onStartTest ? onStartTest(item) : navigate(`/test/${item.id}`)}
+                                                    className="bg-[#0071e3] text-white text-[13px] font-bold px-5 py-2 rounded-lg hover:bg-[#0077ed] transition-all relative z-20 cursor-pointer"
+                                                >
+                                                    Retake
+                                                </button>
+                                            )
+                                        ) : (
+                                            <button 
+                                                onClick={() => onStartTest ? onStartTest(item) : navigate(`/test/${item.id}`)}
+                                                className="bg-[#0071e3] text-white text-[13px] font-bold px-5 py-2 rounded-lg hover:bg-[#0077ed] transition-all relative z-20 cursor-pointer"
+                                            >
+                                                Start Test
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 

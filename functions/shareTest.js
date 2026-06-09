@@ -25,6 +25,99 @@ const setMetaTag = (htmlContent, propertyOrName, value, isProperty = true) => {
     }
 };
 
+// Helper to check if an image URL is a valid custom image (not placeholder/empty)
+const isValidTestImage = (imgUrl) => {
+    if (!imgUrl || typeof imgUrl !== "string") return false;
+    const trimmed = imgUrl.trim();
+    if (trimmed === "") return false;
+    if (trimmed.includes("ielts_mock_showcase.png") || trimmed.includes("ielts_reading_showcase.png")) {
+        return false;
+    }
+    return true;
+};
+
+// Helper to extract reading details
+function getReadingDetails(data, isMeta = true) {
+    let passageNumbers = [];
+    let questionTypes = new Set();
+
+    if (isMeta) {
+        // For metadata, passages is an object: { passage1: { title, qTypes: [...] }, passage2: ... }
+        if (data.passages && typeof data.passages === 'object') {
+            Object.keys(data.passages).forEach(key => {
+                const match = key.match(/passage(\d+)/i);
+                if (match) {
+                    passageNumbers.push(parseInt(match[1], 10));
+                }
+                const pData = data.passages[key];
+                if (pData && Array.isArray(pData.qTypes)) {
+                    pData.qTypes.forEach(qt => questionTypes.add(qt));
+                }
+            });
+        }
+        // Fallback to meta.questionTypes if set
+        if (questionTypes.size === 0 && Array.isArray(data.questionTypes)) {
+            data.questionTypes.forEach(qt => questionTypes.add(qt));
+        }
+    } else {
+        // For full test document, passages is an array of objects
+        if (Array.isArray(data.passages)) {
+            data.passages.forEach((p, idx) => {
+                let passNum = null;
+                const idMatch = String(p.id || "").match(/passage_?(\d+)/i);
+                if (idMatch) {
+                    passNum = parseInt(idMatch[1], 10);
+                } else {
+                    const titleMatch = String(p.title || "").match(/passage\s*:?\s*(\d)/i) || String(p.title || "").match(/\bp\s*(\d)\b/i);
+                    if (titleMatch) {
+                        passNum = parseInt(titleMatch[1], 10);
+                    } else {
+                        passNum = idx + 1;
+                    }
+                }
+                if (passNum !== null) {
+                    passageNumbers.push(passNum);
+                }
+            });
+        }
+        // Extract question types from questions array
+        if (Array.isArray(data.questions)) {
+            data.questions.forEach(q => {
+                if (q.type) {
+                    const t = q.type;
+                    const lower = t.toLowerCase();
+                    let formatted = t;
+                    if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) formatted = 'Multiple Choice';
+                    else if (lower.includes('matching_headings')) formatted = 'Matching Headings';
+                    else if (lower.includes('true_false') || lower.includes('yes_no')) formatted = 'TFNG/YNNG';
+                    else if (lower.includes('matching')) formatted = 'Matching';
+                    else if (lower.includes('table')) formatted = 'Table Completion';
+                    else if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary')) formatted = 'Completion';
+                    else formatted = t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    
+                    questionTypes.add(formatted);
+                }
+            });
+        }
+    }
+
+    // Fallback: extract passage number from title if we couldn't find any
+    if (passageNumbers.length === 0 && data.title) {
+        const titleMatch = String(data.title).match(/passage\s*:?\s*(\d)/i) || String(data.title).match(/\bp\s*(\d)\b/i);
+        if (titleMatch) {
+            passageNumbers.push(parseInt(titleMatch[1], 10));
+        }
+    }
+
+    // Deduplicate and sort passage numbers
+    passageNumbers = Array.from(new Set(passageNumbers)).sort((a, b) => a - b);
+
+    return {
+        passagesStr: passageNumbers.length > 0 ? passageNumbers.join(', ') : '',
+        qTypesStr: questionTypes.size > 0 ? Array.from(questionTypes).join(', ') : ''
+    };
+}
+
 async function shareTest(req, res) {
     const originalUrl = req.originalUrl || req.url || "";
     const urlPath = originalUrl.split("?")[0];
@@ -50,7 +143,7 @@ async function shareTest(req, res) {
         const db = admin.firestore();
         let title = "IELTS Test | ENGLEV";
         let description = "ENGLEV platformasida IELTS testlarini onlayn topshiring.";
-        let thumbnail = "https://englev.uz/ielts_mock_showcase.png";
+        let thumbnail = "https://englev.uz/englev-logo.png";
 
         if (routeType === "test") {
             // 1. Try to fetch from tests_metadata (lighter document)
@@ -59,13 +152,27 @@ async function shareTest(req, res) {
                 const meta = metaSnap.data();
                 title = meta.title || "IELTS Test";
                 const typeLabel = meta.type ? meta.type.charAt(0).toUpperCase() + meta.type.slice(1) : "";
-                description = typeLabel 
-                    ? `${typeLabel} testi. Ushbu IELTS testini ENGLEV platformasida onlayn topshiring.`
-                    : "ENGLEV platformasida ushbu IELTS testini onlayn topshiring.";
+                
+                let readingInfo = "";
+                if (meta.type === "reading") {
+                    const { passagesStr, qTypesStr } = getReadingDetails(meta, true);
+                    if (passagesStr) {
+                        readingInfo += `Passage ${passagesStr}.`;
+                    }
+                    if (qTypesStr) {
+                        readingInfo += (readingInfo ? " " : "") + `Savol turlari: ${qTypesStr}.`;
+                    }
+                }
+
+                description = meta.type === "reading"
+                    ? `Reading testi.${readingInfo ? " " + readingInfo : ""} Ushbu IELTS testini ENGLEV platformasida onlayn topshiring.`
+                    : typeLabel 
+                        ? `${typeLabel} testi. Ushbu IELTS testini ENGLEV platformasida onlayn topshiring.`
+                        : "ENGLEV platformasida ushbu IELTS testini onlayn topshiring.";
                 
                 // Read image/thumbnail from metadata if available
                 const metaImg = meta.image || meta.image_url || meta.imageUrl || meta.thumbnail;
-                if (metaImg) {
+                if (isValidTestImage(metaImg)) {
                     thumbnail = metaImg;
                 }
             } else {
@@ -75,13 +182,27 @@ async function shareTest(req, res) {
                     const test = testSnap.data();
                     title = test.title || "IELTS Test";
                     const typeLabel = test.type ? test.type.charAt(0).toUpperCase() + test.type.slice(1) : "";
-                    description = typeLabel 
-                        ? `${typeLabel} testi. Ushbu IELTS testini ENGLEV platformasida onlayn topshiring.`
-                        : "ENGLEV platformasida ushbu IELTS testini onlayn topshiring.";
+                    
+                    let readingInfo = "";
+                    if (test.type === "reading") {
+                        const { passagesStr, qTypesStr } = getReadingDetails(test, false);
+                        if (passagesStr) {
+                            readingInfo += `Passage ${passagesStr}.`;
+                        }
+                        if (qTypesStr) {
+                            readingInfo += (readingInfo ? " " : "") + `Savol turlari: ${qTypesStr}.`;
+                        }
+                    }
+
+                    description = test.type === "reading"
+                        ? `Reading testi.${readingInfo ? " " + readingInfo : ""} Ushbu IELTS testini ENGLEV platformasida onlayn topshiring.`
+                        : typeLabel 
+                            ? `${typeLabel} testi. Ushbu IELTS testini ENGLEV platformasida onlayn topshiring.`
+                            : "ENGLEV platformasida ushbu IELTS testini onlayn topshiring.";
                     
                     // Read image/thumbnail from full test doc
                     const testImg = test.image || test.image_url || test.imageUrl || test.thumbnail;
-                    if (testImg) {
+                    if (isValidTestImage(testImg)) {
                         thumbnail = testImg;
                     }
                 }
@@ -98,7 +219,7 @@ async function shareTest(req, res) {
                 
                 // Read image/thumbnail from result doc if available
                 const resultImg = result.image || result.image_url || result.imageUrl || result.thumbnail;
-                if (resultImg) {
+                if (isValidTestImage(resultImg)) {
                     thumbnail = resultImg;
                 }
             }

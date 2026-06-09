@@ -24,7 +24,7 @@ const ShowcaseCard = ({ test, onStart, isPremium, onUpgradeClick }) => {
     const isCompleted = status === 'completed';
     const isExpired = status === 'expired';
     const isUpcoming = status === 'upcoming';
-    const canStart = canRetake && !(isExpired && isStrict) && !isUpcoming;
+    const canStart = canRetake && !isExpired && !isUpcoming;
 
     return (
         <motion.div
@@ -93,7 +93,7 @@ const ShowcaseCard = ({ test, onStart, isPremium, onUpgradeClick }) => {
                 </button>
             ) : (
                 <div className="mt-6 w-full py-3 bg-vetra-grey/30 border border-vetra-grey/40 rounded-xl text-vetra-stone text-xs font-bold flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
-                    {isCompleted && !canRetake ? "Tugallangan" : (isExpired && isStrict ? "Muddati o'tgan" : (isUpcoming ? "Kutilmoqda" : "Urinishlar tugagan"))}
+                    {isCompleted && !canRetake ? "Tugallangan" : (isExpired ? "Muddati o'tgan" : (isUpcoming ? "Kutilmoqda" : "Urinishlar tugagan"))}
                 </div>
             )}
         </motion.div>

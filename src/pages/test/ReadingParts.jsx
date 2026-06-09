@@ -25,7 +25,7 @@ import BottomNav from "../../components/dashboard/BottomNav";
 import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
 import PracticeCard from "../../components/practice/PracticeCard";
-import { deriveQuestionTypesForCard, qTypeMatchesSelected, getActualQuestionCount } from "../../utils/TestUtils";
+import { deriveQuestionTypesForCard, qTypeMatchesSelected, getActualQuestionCount, getPassageNum } from "../../utils/TestUtils";
 
 const categories = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
@@ -34,31 +34,6 @@ const categories = [
   { id: 'speaking', label: 'Speaking', icon: Mic },
 ];
 
-const getPassageNum = (test) => {
-  if (!test) return null;
-  if (test.passageNumber) return Number(test.passageNumber);
-  if (test.passage_number) return Number(test.passage_number);
-  
-  // First check if passage key exists in test.passages (e.g. if key is passage1/passage2/passage3)
-  if (test.passages && typeof test.passages === 'object') {
-    const keys = Object.keys(test.passages);
-    if (keys.length === 1) {
-      const match = keys[0].match(/passage(\d)/i);
-      if (match) return Number(match[1]);
-    }
-  }
-
-  const title = test.title?.toLowerCase() || '';
-  const match = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
-  if (match) return Number(match[1]);
-
-  // Difficulty mapping fallback
-  const diff = String(test.difficulty || '').toLowerCase();
-  if (diff === 'easy') return 1;
-  if (diff === 'medium') return 2;
-  if (diff === 'hard') return 3;
-  return null;
-};
 
 export default function ReadingParts() {
   const { user, logout, userData } = useAuth();

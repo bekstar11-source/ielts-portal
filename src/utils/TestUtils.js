@@ -375,4 +375,72 @@ export const getActualQuestionCount = (test, partNumber = null) => {
     return 40;
 };
 
+/**
+ * Derives the passage/part number of a test using several prioritized heuristics:
+ * 1. Explicit prop from parent
+ * 2. Direct fields on the test object (passageNumber, passage_number)
+ * 3. Match from keys in passages object
+ * 4. Regex match from title (e.g., "Passage 1")
+ * 5. Minimum question ID range (Q1-13 = P1, Q14-26 = P2, Q27-40 = P3)
+ * 6. Index in set
+ * 7. Difficulty fallback (easy = 1, medium = 2, hard = 3)
+ */
+export const getPassageNum = (test, passageNumberProp = null, indexInSet = null) => {
+  if (!test) return null;
+
+  // 1. Explicit prop from parent (highest priority)
+  if (passageNumberProp != null) return Number(passageNumberProp);
+
+  // 2. Direct fields on the test object
+  if (test.passageNumber) return Number(test.passageNumber);
+  if (test.passage_number) return Number(test.passage_number);
+
+  // 3. Check if passage key exists in test.passages (e.g. if key is passage1/passage2/passage3)
+  if (test.passages && typeof test.passages === 'object') {
+    const keys = Object.keys(test.passages);
+    if (keys.length === 1) {
+      const match = keys[0].match(/passage(\d)/i);
+      if (match) return Number(match[1]);
+    }
+  }
+
+  // 4. Derive from title (e.g. "Passage 1", "Passage 2", "Passage 3")
+  const title = test.title?.toLowerCase() || '';
+  const titleMatch = title.match(/passage\s*:?\s*(\d)/i) || title.match(/\bp\s*(\d)\b/i);
+  if (titleMatch) return Number(titleMatch[1]);
+
+  // 5. Derive from minimum question ID (IELTS: Q1-13=P1, Q14-26=P2, Q27-40=P3)
+  if (test.questions && Array.isArray(test.questions) && test.questions.length > 0) {
+    const ids = [];
+    const extractIds = (obj) => {
+      if (!obj) return;
+      if (obj.id && !isNaN(parseInt(obj.id))) ids.push(parseInt(obj.id));
+      if (Array.isArray(obj.items)) obj.items.forEach(extractIds);
+      if (Array.isArray(obj.questions)) obj.questions.forEach(extractIds);
+      if (Array.isArray(obj.groups)) obj.groups.forEach(extractIds);
+    };
+    test.questions.forEach(extractIds);
+    if (ids.length > 0) {
+      const minId = Math.min(...ids);
+      if (minId <= 13) return 1;
+      if (minId <= 26) return 2;
+      if (minId <= 40) return 3;
+    }
+  }
+
+  // 6. Index in set (as fallback)
+  if (indexInSet != null) return indexInSet + 1;
+
+  // 7. Difficulty field mapping for Reading Single Passages (lowest priority/weak fallback)
+  if (test.type === 'reading') {
+    const diff = String(test.difficulty || '').toLowerCase();
+    if (diff === 'easy') return 1;
+    if (diff === 'medium') return 2;
+    if (diff === 'hard') return 3;
+  }
+
+  return null;
+};
+
+
 

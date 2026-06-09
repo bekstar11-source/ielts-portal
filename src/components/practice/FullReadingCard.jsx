@@ -3,11 +3,15 @@ import { Play, ArrowRight, Crown, Zap, BookOpen, FileText, Clock, Diamond, Share
 import { useNavigate } from 'react-router-dom';
 import ShareModal from '../common/ShareModal';
 import { useTranslation } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function FullReadingCard({ test, isCompleted, onReview, onStart, isPro, isStandard }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const { userData } = useAuth();
+  const hasGroupId = userData?.groupId && userData?.groupId !== 'none';
+  const disableRetake = hasGroupId;
   const passages = test.title?.split('/').map(s => s.trim()) || [test.title];
 
   const canAccess = isPro || isStandard || !!test.isFree;
@@ -121,17 +125,19 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
                       {t('practice.review')}
                     </button>
                   )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); isCompleted ? onStart(test) : handleClick(); }}
-                    className="flex items-center gap-3 group/btn z-10"
-                  >
-                    <span className="text-white text-[14px] font-bold opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300 flex items-center gap-1.5">
-                      {isCompleted ? t('practice.retake') : t('practice.startNow')}
-                    </span>
-                    <div className="w-12 h-12 rounded-full bg-white text-[#0071e3] flex items-center justify-center shadow-lg transform group-hover/btn:scale-110 transition-transform duration-300">
-                      <Play size={20} className="fill-current ml-1" />
-                    </div>
-                  </button>
+                  {(!isCompleted || !disableRetake) && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); isCompleted ? onStart(test) : handleClick(); }}
+                      className="flex items-center gap-3 group/btn z-10"
+                    >
+                      <span className="text-white text-[14px] font-bold opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300 flex items-center gap-1.5">
+                        {isCompleted ? t('practice.retake') : t('practice.startNow')}
+                      </span>
+                      <div className="w-12 h-12 rounded-full bg-white text-[#0071e3] flex items-center justify-center shadow-lg transform group-hover/btn:scale-110 transition-transform duration-300">
+                        <Play size={20} className="fill-current ml-1" />
+                      </div>
+                    </button>
+                  )}
                 </div>
               )}
             </div>

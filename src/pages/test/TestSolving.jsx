@@ -135,15 +135,23 @@ export default function TestSolving() {
         }
     };
 
-    // "Yes, Exit" bosilganda — testdan chiqish (natijalarni saqlamasdan, draftlarni o'chirish)
-    const handleConfirmExit = () => {
+    // "Yes, Exit" bosilganda — testdan chiqish (natijalarni saqlamasdan, draftlarni o'chirish yoki guruhdagilarga submit qilish)
+    const handleConfirmExit = async () => {
+        const hasGroupId = userData?.groupId && userData?.groupId !== 'none';
+        const isReading = test?.type?.toLowerCase() === 'reading';
+
         isExitingRef.current = true;
         setShowExitWarning(false);
-        if (user && test) {
-            clearTestStorage(user.uid, test.id, partNumber);
+
+        if (hasGroupId && isReading) {
+            await handleSubmit();
+        } else {
+            if (user && test) {
+                clearTestStorage(user.uid, test.id, partNumber);
+            }
+            // Hard redirect to break all history traps
+            window.location.href = returnPath;
         }
-        // Hard redirect to break all history traps
-        window.location.href = returnPath;
     };
 
     // "No, Continue" bosilganda — chiqish modalini yopish
@@ -412,10 +420,14 @@ export default function TestSolving() {
                         </div>
 
                         <h3 className="text-lg font-bold text-gray-900 mb-2">
-                            Exit Test
+                            {userData?.groupId && userData?.groupId !== 'none' && test?.type?.toLowerCase() === 'reading'
+                                ? "Ogohlantirish"
+                                : "Exit Test"}
                         </h3>
                         <p className="text-sm text-gray-500 leading-relaxed mb-6">
-                            Are you sure you want to exit? If you leave, your progress will not be saved and the test will not be submitted.
+                            {userData?.groupId && userData?.groupId !== 'none' && test?.type?.toLowerCase() === 'reading'
+                                ? "Siz chiqib ketsangiz bu testni qayta bajaraolmaysiz va natijangiz saqlanib qoladi"
+                                : "Are you sure you want to exit? If you leave, your progress will not be saved and the test will not be submitted."}
                         </p>
 
                         <div className="flex gap-3">
@@ -423,13 +435,17 @@ export default function TestSolving() {
                                 onClick={handleCancelExit}
                                 className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 text-gray-700 font-semibold text-sm transition-colors"
                             >
-                                No, Continue
+                                {userData?.groupId && userData?.groupId !== 'none' && test?.type?.toLowerCase() === 'reading'
+                                    ? "Qolish"
+                                    : "No, Continue"}
                             </button>
                             <button
                                 onClick={handleConfirmExit}
                                 className="flex-1 px-4 py-2.5 bg-[#0066cc] hover:bg-[#0052a3] text-white rounded-xl font-semibold text-sm transition-colors"
                             >
-                                Yes, Exit
+                                {userData?.groupId && userData?.groupId !== 'none' && test?.type?.toLowerCase() === 'reading'
+                                    ? "Chiqish"
+                                    : "Yes, Exit"}
                             </button>
                         </div>
                     </div>
