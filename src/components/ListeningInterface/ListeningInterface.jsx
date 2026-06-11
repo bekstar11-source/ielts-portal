@@ -80,11 +80,12 @@ export default function ListeningInterface({
 
   // Footer: Savol raqami bosilganda o'ng tarafdagi savolga scroll qilish
   const handleScrollToQuestion = (questionId) => {
+    if (!testData?.passages || !testData?.questions) return;
     // 1. Avval savol qaysi Partda ekanligini aniqlaymiz
     const questionPartIndex = testData.passages.findIndex(p =>
-      testData.questions.some(q => String(q.passageId) === String(p.id) &&
+      testData.questions.some(q => q && String(q.passageId) === String(p.id) &&
         (q.id === questionId || (q.items && q.items.some(i => i.id === questionId)) ||
-          (q.groups && q.groups.some(g => g.items.some(i => i.id === questionId))))
+          (q.groups && q.groups.some(g => g.items && g.items.some(i => i.id === questionId))))
       )
     );
 

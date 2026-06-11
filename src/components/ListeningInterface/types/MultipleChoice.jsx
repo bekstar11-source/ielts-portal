@@ -12,7 +12,7 @@ export const MultipleChoice = memo(({ group, userAnswers, onAnswerChange, isRevi
                         id={q.id} isReviewMode={isReviewMode} onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
                         onSeekTo={onSeekTo} timestamp={q.timestamp || q.timeStep} activePart={activePart}
                     />
-                    {q.text && <div className="font-semibold text-gray-900 leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text, q.id) }} />}
+                    {(q.text || q.question || q.sentence) && <div className="font-semibold text-gray-900 leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text || q.question || q.sentence, q.id) }} />}
                 </div>
                 <div className="flex flex-col gap-0 pl-2 sm:pl-10">
                     {options.map((opt, idx) => {

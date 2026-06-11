@@ -80,39 +80,76 @@ export default function PracticeFilters({
     return found ? found.label : t('practice.statusAll');
   };
 
-  const questionTypeGroups = [
-    {
-      title: 'COMPLETION',
-      options: [
-        { id: 'completion_gap_fill', label: t('practice.completion'), dbTypes: ['GAP FILL', 'SUMMARY', 'NOTES', 'TABLE', 'FLOW CHART', 'SENTENCE', 'FORM'] },
-        { id: 'map_plan_diagram', label: t('practice.mapPlanDiagram'), dbTypes: ['MAP', 'PLAN', 'DIAGRAM'] }
-      ]
-    },
-    {
-      title: 'MULTIPLE CHOICE',
-      options: [
-        { id: 'multiple_choice', label: t('practice.multipleChoice'), dbTypes: ['MCQ', 'SHORT ANSWER'] },
-        { id: 'multiple_choice_many', label: t('practice.multipleChoiceMany'), dbTypes: ['MULTI CHOICE'] }
-      ]
-    },
-    {
-      title: 'MATCHING',
-      options: [
-        { id: 'matching_names', label: t('practice.matchingNames'), dbTypes: ['PARA MATCH', 'MATCHING'] },
-        { id: 'matching_features', label: t('practice.matchingFeatures'), dbTypes: ['MATCHING'] },
-        { id: 'matching_sentence_endings', label: t('practice.matchingSentenceEndings'), dbTypes: ['SENTENCE', 'PARA MATCH'] },
-        { id: 'flow_chart_matching', label: t('practice.flowChartMatching'), dbTypes: ['FLOW CHART'] }
-      ]
-    },
-    {
-      title: 'IDENTIFICATION & HEADINGS',
-      options: [
-        { id: 'true_false_ng', label: t('practice.trueFalseNg'), dbTypes: ['TRUE/FALSE/NG'] },
-        { id: 'yes_no_ng', label: t('practice.yesNoNg'), dbTypes: ['YES/NO/NG'] },
-        { id: 'headings', label: t('practice.headings'), dbTypes: ['HEADINGS'] }
-      ]
+  const questionTypeGroups = React.useMemo(() => {
+    if (activeTab === 'listening') {
+      return [
+        {
+          title: 'COMPLETION',
+          options: [
+            { id: 'form_completion', label: t('practice.formCompletion'), dbTypes: ['FORM'] },
+            { id: 'note_completion', label: t('practice.noteCompletion'), dbTypes: ['NOTES', 'GAP FILL'] },
+            { id: 'table_completion', label: t('practice.tableCompletion'), dbTypes: ['TABLE'] },
+            { id: 'flowchart_completion', label: t('practice.flowChartCompletion'), dbTypes: ['FLOW CHART'] },
+            { id: 'summary_completion', label: t('practice.summaryCompletion'), dbTypes: ['SUMMARY'] },
+            { id: 'sentence_completion', label: t('practice.sentenceCompletion'), dbTypes: ['SENTENCE'] }
+          ]
+        },
+        {
+          title: 'MULTIPLE CHOICE',
+          options: [
+            { id: 'multiple_choice', label: t('practice.multipleChoice'), dbTypes: ['MCQ'] },
+            { id: 'pick_two', label: t('practice.pickTwo'), dbTypes: ['MULTI CHOICE'] },
+            { id: 'short_answer', label: t('practice.shortAnswer'), dbTypes: ['SHORT ANSWER'] }
+          ]
+        },
+        {
+          title: 'MATCHING',
+          options: [
+            { id: 'matching', label: t('practice.matching') || 'Matching', dbTypes: ['MATCHING'] },
+            { id: 'map_plan_diagram', label: t('practice.mapPlanDiagram'), dbTypes: ['MAP', 'PLAN', 'DIAGRAM'] }
+          ]
+        }
+      ];
     }
-  ];
+    return [
+      {
+        title: 'COMPLETION',
+        options: [
+          { id: 'note_completion', label: t('practice.noteCompletion'), dbTypes: ['NOTES', 'GAP FILL'] },
+          { id: 'table_completion', label: t('practice.tableCompletion'), dbTypes: ['TABLE'] },
+          { id: 'flowchart_completion', label: t('practice.flowChartCompletion'), dbTypes: ['FLOW CHART'] },
+          { id: 'summary_completion', label: t('practice.summaryCompletion'), dbTypes: ['SUMMARY'] },
+          { id: 'sentence_completion', label: t('practice.sentenceCompletion'), dbTypes: ['SENTENCE'] }
+        ]
+      },
+      {
+        title: 'MULTIPLE CHOICE',
+        options: [
+          { id: 'multiple_choice', label: t('practice.multipleChoice'), dbTypes: ['MCQ'] },
+          { id: 'pick_two', label: t('practice.pickTwo'), dbTypes: ['MULTI CHOICE'] },
+          { id: 'short_answer', label: t('practice.shortAnswer'), dbTypes: ['SHORT ANSWER'] }
+        ]
+      },
+      {
+        title: 'MATCHING',
+        options: [
+          { id: 'matching_names', label: t('practice.matchingNames'), dbTypes: ['PARA MATCH', 'MATCHING'] },
+          { id: 'matching_features', label: t('practice.matchingFeatures'), dbTypes: ['MATCHING'] },
+          { id: 'matching_sentence_endings', label: t('practice.matchingSentenceEndings'), dbTypes: ['SENTENCE', 'PARA MATCH'] },
+          { id: 'flow_chart_matching', label: t('practice.flowChartMatching'), dbTypes: ['FLOW CHART'] },
+          { id: 'map_plan_diagram', label: t('practice.mapPlanDiagram'), dbTypes: ['MAP', 'PLAN', 'DIAGRAM'] }
+        ]
+      },
+      {
+        title: 'IDENTIFICATION & HEADINGS',
+        options: [
+          { id: 'true_false_ng', label: t('practice.trueFalseNg'), dbTypes: ['TRUE/FALSE/NG'] },
+          { id: 'yes_no_ng', label: t('practice.yesNoNg'), dbTypes: ['YES/NO/NG'] },
+          { id: 'headings', label: t('practice.headings'), dbTypes: ['HEADINGS'] }
+        ]
+      }
+    ];
+  }, [activeTab, t]);
 
   const getSelectedOptionsCount = () => {
     let count = 0;

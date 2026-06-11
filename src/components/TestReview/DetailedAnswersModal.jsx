@@ -23,9 +23,10 @@ export default function DetailedAnswersModal({
         const list = [];
         const scoredIds = new Set();
 
-        const walk = (obj, parentType) => {
+        const walk = (obj, parentType, currentOptions = null) => {
             if (!obj) return;
             const currentType = obj.type || parentType;
+            const options = obj.options || currentOptions;
 
             const answer = obj.answer || obj.correct_answer || obj.correctAnswer || obj.correct_answer_value;
             if (obj.id && answer) {
@@ -56,11 +57,39 @@ export default function DetailedAnswersModal({
                         isCorrect = checkAnswer(answer, uAns);
                     }
 
+                    // Resolve answer and user answer from letter to full text if matching
+                    let displayCorrectAnswer = answer;
+                    let displayUserAnswer = uAns;
+                    const isMatchingType = currentType && String(currentType).toLowerCase().includes('matching') && !String(currentType).toLowerCase().includes('headings');
+
+                    if (isMatchingType && options && options.length > 0) {
+                        const resolveText = (val) => {
+                            if (!val) return "";
+                            const valList = String(val).split(/[\/|,]/).map(a => a.trim()).filter(Boolean);
+                            return valList.map(v => {
+                                const foundIdx = options.findIndex((o, idx) => {
+                                    const l = (o.label || String.fromCharCode(65 + idx));
+                                    return String(l).trim().toLowerCase() === String(v).trim().toLowerCase();
+                                });
+                                if (foundIdx !== -1) {
+                                    const opt = options[foundIdx];
+                                    const optText = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : "");
+                                    const textStr = String(optText).trim();
+                                    return textStr.replace(/^\s*[A-Z][\.\)\-]\s+/, '').trim() || textStr;
+                                }
+                                return v;
+                            }).join(' / ');
+                        };
+
+                        if (answer) displayCorrectAnswer = resolveText(answer);
+                        if (uAns) displayUserAnswer = resolveText(uAns);
+                    }
+
                     list.push({
                         id: obj.id,
                         qNumber: parseInt(obj.id) || obj.id,
-                        correctAnswer: answer,
-                        userAnswer: uAns,
+                        correctAnswer: displayCorrectAnswer,
+                        userAnswer: displayUserAnswer,
                         type: currentType || 'input',
                         questionText: obj.questionText || obj.question || obj.title || obj.label || '',
                         passageId: obj.passageId || '',
@@ -75,9 +104,9 @@ export default function DetailedAnswersModal({
             for (const key of CONTAINER_KEYS) {
                 const val = obj[key];
                 if (val && Array.isArray(val)) {
-                    val.forEach(child => walk(child, currentType));
+                    val.forEach(child => walk(child, currentType, options));
                 } else if (val && typeof val === 'object') {
-                    walk(val, currentType);
+                    walk(val, currentType, options);
                 }
             }
         };

@@ -178,7 +178,7 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
 // ──────────────────────────────────────────────
 // RESULT MODAL
 // ──────────────────────────────────────────────
-export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, initialDuration, isReviewing, setIsReviewing, onExit, userAnswers, partNumber = null, resultId = null, navigate = null, fromNewsfeed = false }) => {
+export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, initialDuration, isReviewing, setIsReviewing, onExit, userAnswers, partNumber = null, resultId = null, navigate = null, fromNewsfeed = false, from = null }) => {
     const { t } = useTranslation();
     const { userData } = useAuth();
     const [showPricingModal, setShowPricingModal] = useState(false);
@@ -401,7 +401,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                         onClick={() => {
                             if (canReview) {
                                 if (resultId && navigate) {
-                                    navigate(`/review/${resultId}`, { state: { fromNewsfeed } });
+                                    navigate(`/review/${resultId}`, { state: { fromNewsfeed, from } });
                                 } else {
                                     setIsReviewing(true);
                                 }

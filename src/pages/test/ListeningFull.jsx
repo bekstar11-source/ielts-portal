@@ -316,6 +316,10 @@ export default function ListeningFull() {
                         setSelectedSet={setSelectedSet}
                         isPro={isPro}
                         isStandard={isStandard}
+                        searchQuery={searchQuery}
+                        selectedStatus={selectedStatus}
+                        selectedQuestionTypes={selectedQuestionTypes}
+                        freeOnly={freeOnly}
                     />
                 </motion.div>
             </AnimatePresence>

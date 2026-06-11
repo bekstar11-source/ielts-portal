@@ -30,14 +30,15 @@ export default function TestSolving() {
 
     // Dynamically determine the originating/return path
     const returnPath = React.useMemo(() => {
+        if (location.state?.from) return location.state.from;
+        if (location.state?.fromNewsfeed) return "/dashboard";
+        
         if (userData?.role === 'admin') {
-            return location.state?.from || "/admin/tests";
+            return "/admin/tests";
         }
         if (userData?.role === 'teacher') {
-            return location.state?.from || "/teacher/tests";
+            return "/teacher/tests";
         }
-        if (location.state?.fromNewsfeed) return "/dashboard";
-        if (location.state?.from) return location.state.from;
         if (!test) return "/practice";
 
         const type = test.type?.toLowerCase();
@@ -149,8 +150,8 @@ export default function TestSolving() {
             if (user && test) {
                 clearTestStorage(user.uid, test.id, partNumber);
             }
-            // Hard redirect to break all history traps
-            window.location.href = returnPath;
+            // Client-side navigate to avoid screen turning white
+            navigate(returnPath);
         }
     };
 
@@ -504,6 +505,7 @@ export default function TestSolving() {
                     resultId={resultId}
                     navigate={navigate}
                     fromNewsfeed={!!location.state?.fromNewsfeed}
+                    from={location.state?.from || returnPath}
                 />
 
                 {/* INTERFACE RENDERING */}

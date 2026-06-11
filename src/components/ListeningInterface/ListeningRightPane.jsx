@@ -87,7 +87,7 @@ const ListeningRightPane = memo(({
     React.useEffect(() => {
         if (isReviewMode || testMode === 'practice') return;
         introEndFiredRef.current = false; // reset when test starts
-        const duration = Number(testData.introDuration) || 10;
+        const duration = Number(testData?.introDuration) || 10;
 
         // Agar ikkinchi oyna yashirilgan bo'lsa (Masalan MockExam da Volume Check bo'lsa)
         if (hideSecondaryIntro) {
@@ -117,7 +117,7 @@ const ListeningRightPane = memo(({
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [testData.introDuration, isReviewMode, testMode, hideSecondaryIntro]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [testData?.introDuration, isReviewMode, testMode, hideSecondaryIntro]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Guard Clause
     if (!testData?.questions || !testData?.passages) {
@@ -179,8 +179,64 @@ const ListeningRightPane = memo(({
         return <MultipleChoice group={normalizedGroup} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
     };
 
-    const currentPassage = testData.passages[activePart];
-    const questionsForPart = testData.questions.filter(g => String(g.passageId) === String(currentPassage?.id));
+    const currentPassage = testData?.passages?.[activePart];
+    
+    const questionsForPart = React.useMemo(() => {
+        const raw = (testData?.questions || []).filter(g => g && String(g.passageId) === String(currentPassage?.id));
+        
+        const normalizeQuestion = (q) => {
+            if (!q) return q;
+            return {
+                ...q,
+                text: q.text || q.question || q.sentence || "",
+            };
+        };
+
+        return raw.map(group => {
+            if (!group) return group;
+            
+            const groupText = group.text || group.question || group.sentence || "";
+            
+            let normalizedQuestions = undefined;
+            if (Array.isArray(group.questions)) {
+                normalizedQuestions = group.questions.map(normalizeQuestion);
+            }
+            
+            let normalizedItems = undefined;
+            if (Array.isArray(group.items)) {
+                normalizedItems = group.items.map(normalizeQuestion);
+            }
+
+            let normalizedGroups = undefined;
+            if (Array.isArray(group.groups)) {
+                normalizedGroups = group.groups.map(sub => {
+                    const subText = sub.text || sub.question || sub.sentence || "";
+                    let subQuestions = undefined;
+                    if (Array.isArray(sub.questions)) {
+                        subQuestions = sub.questions.map(normalizeQuestion);
+                    }
+                    let subItems = undefined;
+                    if (Array.isArray(sub.items)) {
+                        subItems = sub.items.map(normalizeQuestion);
+                    }
+                    return {
+                        ...sub,
+                        text: subText,
+                        ...(subQuestions !== undefined && { questions: subQuestions }),
+                        ...(subItems !== undefined && { items: subItems })
+                    };
+                });
+            }
+
+            return {
+                ...group,
+                text: groupText,
+                ...(normalizedQuestions !== undefined && { questions: normalizedQuestions }),
+                ...(normalizedItems !== undefined && { items: normalizedItems }),
+                ...(normalizedGroups !== undefined && { groups: normalizedGroups })
+            };
+        });
+    }, [testData?.questions, currentPassage?.id]);
 
     return (
         <div
@@ -208,6 +264,7 @@ const ListeningRightPane = memo(({
                 let partMaxId = -Infinity;
 
                 questionsForPart.forEach(group => {
+                    if (!group) return;
                     let items = [];
                     if (Array.isArray(group.groups)) {
                         group.groups.forEach(sub => {
@@ -236,6 +293,7 @@ const ListeningRightPane = memo(({
                 const partNum = (() => {
                     let minId = Infinity;
                     questionsForPart.forEach(group => {
+                        if (!group) return;
                         const checkId = (idStr) => {
                             if (!idStr) return;
                             const matches = String(idStr).match(/\d+/g);

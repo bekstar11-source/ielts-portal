@@ -149,6 +149,7 @@ export default function TestReview() {
                 isSaving={isSaving}
                 navigate={navigate}
                 fromNewsfeed={!!location.state?.fromNewsfeed}
+                from={location.state?.from}
                 isAnswersListOpen={isAnswersListOpen}
                 setIsAnswersListOpen={setIsAnswersListOpen}
                 isPremium={effectiveIsPremium}

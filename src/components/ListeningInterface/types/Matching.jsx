@@ -33,7 +33,7 @@ const DraggableOption = ({ label, text, isReviewMode }) => {
             {...listeners}
             {...attributes}
             className={`
-                px-3 min-h-[28px] py-1 border border-gray-400 rounded-[4px] cursor-grab active:cursor-grabbing
+                px-3 min-h-[24px] py-0.5 border border-gray-400 rounded-[4px] cursor-grab active:cursor-grabbing
                 select-none flex items-center justify-start w-fit max-w-full transition-all shadow-sm
                 ${isDragging ? 'opacity-40 ring-2 ring-blue-500 shadow-xl scale-105 z-[1000] bg-white border-transparent' : 'bg-white hover:border-gray-600'}
                 ${isReviewMode ? 'cursor-default opacity-100 grayscale-0' : ''}
@@ -63,8 +63,8 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
                 if (!isReviewMode) onToggleMenu();
             }}
             className={`
-                min-w-[150px] w-fit max-w-[400px] min-h-[28px] border rounded-[4px] flex items-center justify-center relative
-                px-3 py-1 group/slot cursor-pointer
+                min-w-[150px] w-fit max-w-[400px] min-h-[24px] border rounded-[4px] flex items-center justify-center relative
+                px-3 py-0.5 group/slot cursor-pointer
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')
@@ -125,19 +125,26 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
             )}
 
             {isReviewMode && !isCorrect && (
-                <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap bg-emerald-50 text-emerald-700 text-[13px] px-2 py-0.5 rounded-[4px] border border-emerald-200 font-black shadow-sm select-none">
-                    ✓ {(() => {
-                        if (!correctAnswer) return "N/A";
-                        const answers = String(correctAnswer).split(/[\/|,]/).map(a => a.trim()).filter(Boolean);
-                        return answers.map(ans => {
-                            const foundIdx = options.findIndex((o, idx) => {
-                                const l = (o.label || String.fromCharCode(65 + idx));
-                                return String(l).trim().toLowerCase() === String(ans).trim().toLowerCase();
-                            });
-                            if (foundIdx !== -1) return options[foundIdx].label || String.fromCharCode(65 + foundIdx);
-                            return ans;
-                        }).join(' / ');
-                    })()}
+                <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[12px] px-2 py-0.5 rounded-[4px] border border-emerald-200 font-black shadow-sm select-none whitespace-nowrap">
+                    <span className="text-emerald-600">✓</span>
+                    <span>
+                        {(() => {
+                            if (!correctAnswer) return "N/A";
+                            const answers = String(correctAnswer).split(/[\/|,]/).map(a => a.trim()).filter(Boolean);
+                            return answers.map(ans => {
+                                const foundIdx = options.findIndex((o, idx) => {
+                                    const l = (o.label || String.fromCharCode(65 + idx));
+                                    return String(l).trim().toLowerCase() === String(ans).trim().toLowerCase();
+                                });
+                                if (foundIdx !== -1) {
+                                    const opt = options[foundIdx];
+                                    const optText = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : "");
+                                    return stripLeadingOptionLabel(optText);
+                                }
+                                return ans;
+                            }).join(' / ');
+                        })()}
+                    </span>
                 </div>
             )}
         </div>
@@ -214,6 +221,14 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                             const cleanText = String(qText).replace('[DROP]', '').trim();
                             return (
                                 <div key={q.id} className={`flex flex-wrap items-center gap-3 py-1.5 transition-all w-full ${isReviewMode ? 'pr-0 md:pr-24' : ''}`}>
+                                    <QuestionBadge 
+                                        id={q.id} 
+                                        isReviewMode={isReviewMode} 
+                                        onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
+                                        onSeekTo={onSeekTo}
+                                        timestamp={q.timestamp ?? q.timeStep ?? q.time_step ?? q['time step']}
+                                        activePart={activePart}
+                                    />
                                     <div className="font-normal text-black text-[1.1em] shrink-0 max-w-full" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
                                     <DroppableSlot
                                         id={q.id} value={userAnswers[q.id]} options={options} isReviewMode={isReviewMode} isCorrect={isCorrect}

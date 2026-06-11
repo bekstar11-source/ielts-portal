@@ -9,7 +9,7 @@ import {
     TouchSensor
 } from '@dnd-kit/core';
 import { checkAnswer, stripLeadingId, stripLeadingOptionLabel } from '../ListeningUtils';
-import { ListeningTextInput } from '../ListeningComponents';
+import { ListeningTextInput, QuestionBadge } from '../ListeningComponents';
 
 const FlowDraggableOption = ({ label, text, isReviewMode }) => {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -33,8 +33,8 @@ const FlowDraggableOption = ({ label, text, isReviewMode }) => {
             {...listeners}
             {...attributes}
             className={`
-                w-full px-3 py-2 border border-black rounded-none cursor-grab active:cursor-grabbing
-                select-none flex items-start transition-all
+                w-full px-3 py-0.5 min-h-[24px] h-[24px] border border-gray-400 rounded-[4px] cursor-grab active:cursor-grabbing
+                select-none flex items-center transition-all
                 ${isDragging ? 'opacity-40 ring-1 ring-blue-500 shadow-xl scale-105 z-[1000] bg-white border-blue-400' : 'bg-white hover:border-gray-800 hover:shadow-sm'}
             `}
         >
@@ -58,7 +58,7 @@ const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correc
                 if (!isReviewMode) onToggleMenu();
             }}
             className={`
-                relative min-h-[30px] w-[160px] mx-1 inline-flex items-center justify-center border transition-all rounded-none group cursor-pointer
+                relative min-h-[24px] h-[24px] w-[160px] mx-1 inline-flex items-center justify-center border transition-all rounded-[4px] group cursor-pointer
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')
@@ -84,7 +84,7 @@ const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correc
                     )}
                 </div>
             ) : (
-                <span className="text-[12px] font-medium text-gray-600 uppercase tracking-wider">{id} Drop</span>
+                <span className="text-[13px] font-bold text-gray-600 tracking-wider">{id}</span>
             )}
 
             {isMenuOpen && !isReviewMode && (
@@ -186,6 +186,16 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
             const cleanBefore = stripLeadingId(parts[0], item.id);
             content = (
                 <div className="font-normal text-gray-800 leading-[1.8] flex flex-wrap items-baseline justify-center text-center">
+                    {hasOptions && (
+                        <QuestionBadge 
+                            id={item.id} 
+                            isReviewMode={isReviewMode} 
+                            onClick={() => isReviewMode && handleLocationClick(item.locationId)} 
+                            onSeekTo={onSeekTo}
+                            timestamp={item.timestamp ?? item.timeStep ?? item.time_step ?? item['time step']}
+                            activePart={activePart}
+                        />
+                    )}
                     {cleanBefore && <span className="mr-2" dangerouslySetInnerHTML={{ __html: cleanBefore }} />}
                     {hasOptions ? (
                         <DroppableFlowSlot 

@@ -40,10 +40,16 @@ export const stripLeadingId = (val, id) => {
     if (!val) return "";
     const text = (typeof val === 'object') ? (val.text || val.label || val.content || "") : val;
     if (id == null) return text;
+    
+    const idStr = String(id).trim();
+    const escapedId = idStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const startBoundary = /^\w/.test(idStr) ? '\\b' : '';
+    const endBoundary = /\w$/.test(idStr) ? '\\b' : '';
+
     const cleaned = String(text)
-        .replace(new RegExp(`^\\s*${id}\\b\\.?\\s*`), '') // Start of string
-        .replace(new RegExp(`\\b${id}\\.?\\s*(?=\\[INPUT\\])`), '') // Before [INPUT] placeholder
-        .replace(new RegExp(`\\b${id}\\.?\\s*$`), '') // End of string
+        .replace(new RegExp(`^\\s*${startBoundary}${escapedId}${endBoundary}\\.?\\s*`), '') // Start of string
+        .replace(new RegExp(`${startBoundary}${escapedId}${endBoundary}\\.?\\s*(?=\\[INPUT\\])`), '') // Before [INPUT] placeholder
+        .replace(new RegExp(`${startBoundary}${escapedId}${endBoundary}\\.?\\s*$`), '') // End of string
         .trim();
     return cleaned;
 };

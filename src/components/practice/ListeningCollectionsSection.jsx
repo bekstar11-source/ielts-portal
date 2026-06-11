@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, Headphones, BookOpen, Crown, List, Zap, Sparkles } from 'lucide-react';
 import PracticeCard from './PracticeCard';
+import { useTranslation } from '../../context/LanguageContext';
 
 const getColDescription = (name) => {
   if (!name) return "Curated collection of high-yield IELTS listening exams.";
@@ -30,8 +31,24 @@ export default function ListeningCollectionsSection({
   handleStartTest,
   setSelectedSet,
   isPro,
-  isStandard
+  isStandard,
+  searchQuery,
+  selectedStatus,
+  selectedQuestionTypes,
+  freeOnly
 }) {
+  const { t } = useTranslation();
+  const [visibleCount, setVisibleCount] = useState(9);
+
+  // Reset pagination when the selected collection or filters change
+  useEffect(() => {
+    setVisibleCount(9);
+  }, [selectedCollectionId, searchQuery, selectedStatus, JSON.stringify(selectedQuestionTypes), freeOnly]);
+
+  const handleShowMore = () => {
+    setVisibleCount(prev => prev + 9);
+  };
+
   const visibleCollections = collections.filter(col => (collectionCounts[col.id] || 0) > 0);
   return (
     <div className="space-y-6 pt-12 border-t border-zinc-100" ref={collectionsSectionRef}>
@@ -88,7 +105,7 @@ export default function ListeningCollectionsSection({
                                     Full Mock Tests ({collectionProcessedTests.fullTestsList.length})
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                    {collectionProcessedTests.fullTestsList.map(test => (
+                                    {collectionProcessedTests.fullTestsList.slice(0, visibleCount).map(test => (
                                         <PracticeCard 
                                             key={test.id} 
                                             test={test} 
@@ -101,6 +118,19 @@ export default function ListeningCollectionsSection({
                                         />
                                     ))}
                                 </div>
+
+                                {/* Show More Button */}
+                                {collectionProcessedTests.fullTestsList.length > visibleCount && (
+                                    <div className="flex justify-center items-center pt-10 pb-8">
+                                        <button
+                                            onClick={handleShowMore}
+                                            className="group relative flex items-center gap-3 px-8 py-3.5 bg-[#1d1d1f] hover:bg-black dark:bg-[#f5f5f7] dark:hover:bg-white dark:text-[#1d1d1f] text-white rounded-full font-semibold transition-all active:scale-95 text-[13px] shadow-sm"
+                                        >
+                                            {t('practice.showMore') || "Show More"}
+                                            <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

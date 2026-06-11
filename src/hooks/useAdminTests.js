@@ -21,15 +21,58 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
     const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
     
     // States for sorting, filtering, and pagination
-    const [searchTerm, setSearchTerm] = useState("");
-    const [filterType, setFilterType] = useState("All");
-    const [filterCollection, setFilterCollection] = useState("All");
-    const [filterStatus, setFilterStatus] = useState("All"); // All, Public, Private
-    const [filterAccess, setFilterAccess] = useState("All"); // All, Free, Paid
-    const [filterTag, setFilterTag] = useState("All"); // All, Tag name
-    const [sortBy, setSortBy] = useState("createdAt"); // createdAt, title, difficulty
-    const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
-    const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_searchTerm");
+        return (saved && saved !== "null" && saved !== "undefined") ? saved : "";
+    });
+    const [filterType, setFilterType] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_filterType");
+        return (saved && saved !== "null" && saved !== "undefined") ? saved : "All";
+    });
+    const [filterCollection, setFilterCollection] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_filterCollection");
+        return (saved && saved !== "null" && saved !== "undefined") ? saved : "All";
+    });
+    const [filterStatus, setFilterStatus] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_filterStatus");
+        return (saved && saved !== "null" && saved !== "undefined") ? saved : "All";
+    });
+    const [filterAccess, setFilterAccess] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_filterAccess");
+        return (saved && saved !== "null" && saved !== "undefined") ? saved : "All";
+    });
+    const [filterTag, setFilterTag] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_filterTag");
+        return (saved && saved !== "null" && saved !== "undefined") ? saved : "All";
+    });
+    const [sortBy, setSortBy] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_sortBy");
+        return (saved && saved !== "null" && saved !== "undefined") ? saved : "createdAt";
+    });
+    const [sortOrder, setSortOrder] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_sortOrder");
+        return (saved && saved !== "null" && saved !== "undefined") ? saved : "desc";
+    });
+    const [currentPage, setCurrentPage] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_currentPage");
+        if (saved) {
+            const parsed = Number(saved);
+            return isNaN(parsed) || parsed < 1 ? 1 : parsed;
+        }
+        return 1;
+    });
+
+    useEffect(() => {
+        sessionStorage.setItem("admin_tests_searchTerm", searchTerm || "");
+        sessionStorage.setItem("admin_tests_filterType", filterType || "All");
+        sessionStorage.setItem("admin_tests_filterCollection", filterCollection || "All");
+        sessionStorage.setItem("admin_tests_filterStatus", filterStatus || "All");
+        sessionStorage.setItem("admin_tests_filterAccess", filterAccess || "All");
+        sessionStorage.setItem("admin_tests_filterTag", filterTag || "All");
+        sessionStorage.setItem("admin_tests_sortBy", sortBy || "createdAt");
+        sessionStorage.setItem("admin_tests_sortOrder", sortOrder || "desc");
+        sessionStorage.setItem("admin_tests_currentPage", String(currentPage || 1));
+    }, [searchTerm, filterType, filterCollection, filterStatus, filterAccess, filterTag, sortBy, sortOrder, currentPage]);
 
     const fetchCollections = async () => {
         try {
@@ -530,6 +573,10 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         loading,
         totalTestCount,
         currentPage,
+        searchTerm,
+        filterType,
+        filterCollection,
+        filterStatus,
         filterAccess,
         filterTag,
         allAvailableTags,

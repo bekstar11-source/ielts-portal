@@ -33,7 +33,7 @@ const MapDraggableOption = ({ label, text, isReviewMode }) => {
             {...listeners}
             {...attributes}
             className={`
-                px-3 py-1.5 border border-black rounded-none cursor-grab active:cursor-grabbing
+                px-3 py-0.5 min-h-[24px] h-[24px] border border-gray-400 rounded-[4px] cursor-grab active:cursor-grabbing
                 select-none flex items-center justify-start w-fit transition-all
                 ${isDragging ? 'opacity-40 ring-1 ring-blue-500 shadow-xl scale-105 z-[1000] bg-white border-blue-400' : 'bg-white hover:border-gray-800 hover:shadow-sm'}
                 ${isReviewMode ? 'cursor-default opacity-100 grayscale-0' : ''}
@@ -63,8 +63,8 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
                 if (!isReviewMode) onToggleMenu();
             }}
             className={`
-                min-w-[140px] md:min-w-[180px] min-h-[32px] border rounded-none flex items-center justify-center relative
-                px-3 py-1 group/slot cursor-pointer
+                min-w-[140px] md:min-w-[180px] min-h-[24px] h-[24px] border rounded-[4px] flex items-center justify-center relative
+                px-3 py-0.5 group/slot cursor-pointer
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')
@@ -92,7 +92,7 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
                     )}
                 </div>
             ) : (
-                <span className="text-gray-600 text-[12px] font-medium uppercase tracking-wider">{id} Drop</span>
+                <span className="text-gray-600 text-[13px] font-bold tracking-wider">{id}</span>
             )}
 
             {isMenuOpen && !isReviewMode && (
@@ -125,21 +125,24 @@ const MapDroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correct
             )}
 
             {isReviewMode && !isCorrect && (
-                <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap bg-emerald-50 text-emerald-700 text-[13px] px-2 py-0.5 rounded-[4px] border border-emerald-200 font-black shadow-sm select-none">
-                    ✓ {(() => {
-                        if (!correctAnswer) return "N/A";
-                        const answers = String(correctAnswer).split(/[\/|,]/).map(a => a.trim()).filter(Boolean);
-                        return answers.map(ans => {
-                            const foundIdx = options.findIndex((o, idx) => {
-                                const l = (o.label || String.fromCharCode(65 + idx));
-                                return String(l).trim().toLowerCase() === String(ans).trim().toLowerCase();
-                            });
-                            if (foundIdx !== -1) {
-                                return options[foundIdx].label || String.fromCharCode(65 + foundIdx);
-                            }
-                            return ans;
-                        }).join(' / ');
-                    })()}
+                <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[12px] px-2 py-0.5 rounded-[4px] border border-emerald-200 font-black shadow-sm select-none whitespace-nowrap">
+                    <span className="text-emerald-600">✓</span>
+                    <span>
+                        {(() => {
+                            if (!correctAnswer) return "N/A";
+                            const answers = String(correctAnswer).split(/[\/|,]/).map(a => a.trim()).filter(Boolean);
+                            return answers.map(ans => {
+                                const foundIdx = options.findIndex((o, idx) => {
+                                    const l = (o.label || String.fromCharCode(65 + idx));
+                                    return String(l).trim().toLowerCase() === String(ans).trim().toLowerCase();
+                                });
+                                if (foundIdx !== -1) {
+                                    return options[foundIdx].label || String.fromCharCode(65 + foundIdx);
+                                }
+                                return ans;
+                            }).join(' / ');
+                        })()}
+                    </span>
                 </div>
             )}
         </div>

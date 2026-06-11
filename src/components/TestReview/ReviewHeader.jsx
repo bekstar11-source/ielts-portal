@@ -15,7 +15,8 @@ const ReviewHeader = ({
     fromNewsfeed = false,
     isAnswersListOpen,
     setIsAnswersListOpen,
-    isPremium
+    isPremium,
+    from = null
 }) => {
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const { t } = useTranslation();
@@ -28,6 +29,8 @@ const ReviewHeader = ({
                     onClick={() => {
                         if (fromNewsfeed) {
                             navigate('/dashboard');
+                        } else if (from) {
+                            navigate(from);
                         } else {
                             navigate(userData?.role === 'admin' || userData?.role === 'teacher' ? '/admin/results' : '/my-results');
                         }
