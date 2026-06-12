@@ -248,12 +248,52 @@ const ListeningRightPane = memo(({
         >
             {/* INTRO BLUR */}
             {introTimeLeft > 0 && !isReviewMode && !hideSecondaryIntro && (
-                <div className="fixed inset-0 z-[3000] bg-white/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500">
-                    <div className="text-6xl mb-1 animate-bounce">🎧</div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Test is about to start</h2>
-                    <p className="text-gray-500 font-medium mb-2">Please put on your headphones</p>
-                    <div className="w-24 h-24 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shadow-lg">
-                        <span className="text-3xl font-bold text-blue-600 animate-pulse">{introTimeLeft}</span>
+                <div className="fixed inset-0 z-[3000] bg-white/98 backdrop-blur-xl flex flex-col items-center justify-center transition-all duration-500 select-none">
+                    <div className="max-w-sm w-full text-center space-y-6 px-6">
+                        {/* Clean Headphones Icon */}
+                        <div className="w-16 h-16 bg-zinc-50 border border-zinc-100 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                            <svg className="w-8 h-8 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" />
+                            </svg>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h2 className="text-xl font-bold tracking-tight text-zinc-900 uppercase">Test is starting</h2>
+                            <p className="text-zinc-500 text-sm font-medium leading-relaxed">
+                                Please put on your headphones. The listening section will begin shortly.
+                            </p>
+                        </div>
+
+                        {/* Minimalistic Circular Timer */}
+                        <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+                            {/* Thin outer ring */}
+                            <svg className="absolute w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                <circle 
+                                    className="text-zinc-100" 
+                                    strokeWidth="3" 
+                                    stroke="currentColor" 
+                                    fill="transparent" 
+                                    r="44" 
+                                    cx="50" 
+                                    cy="50" 
+                                />
+                                <circle 
+                                    className="text-zinc-900 transition-all duration-1000 ease-linear" 
+                                    strokeWidth="3" 
+                                    strokeDasharray="276.4"
+                                    strokeDashoffset={276.4 * (1 - introTimeLeft / (Number(testData?.introDuration) || 10))}
+                                    strokeLinecap="round" 
+                                    stroke="currentColor" 
+                                    fill="transparent" 
+                                    r="44" 
+                                    cx="50" 
+                                    cy="50" 
+                                />
+                            </svg>
+                            <span className="text-3xl font-extrabold text-zinc-900 tabular-nums">
+                                {introTimeLeft}
+                            </span>
+                        </div>
                     </div>
                 </div>
             )}

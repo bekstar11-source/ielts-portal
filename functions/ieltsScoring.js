@@ -6,6 +6,29 @@ const calculateBandScore = (score, type, totalQuestions = 40) => {
 
     if (t === 'listening' || t === 'reading') {
         if (!totalQuestions || totalQuestions <= 0) return 0;
+        if (score <= 0) return 0;
+
+        // Part testlar uchun (masalan, bitta passage 13-14 savol yoki listening qismi 10 savol)
+        // Xatolar soniga ko'ra band hisoblanadi (scaling orqali gapi-shashlik bo'lmasligi uchun)
+        if (totalQuestions >= 10 && totalQuestions <= 15) {
+            const mistakes = totalQuestions - score;
+            if (mistakes <= 0) return 9.0;
+            if (mistakes === 1) return 8.5;
+            if (mistakes === 2) return 8.0;
+            if (mistakes === 3) return 7.5;
+            if (mistakes === 4) return 7.0;
+            if (mistakes === 5) return 6.5;
+            if (mistakes === 6) return 6.0;
+            if (mistakes === 7) return 5.5;
+            if (mistakes === 8) return 5.0;
+            if (mistakes === 9) return 4.5;
+            if (mistakes === 10) return 4.0;
+            if (mistakes === 11) return 3.5;
+            if (mistakes === 12) return 3.0;
+            if (mistakes === 13) return 2.5;
+            if (mistakes === 14) return 2.0;
+            return 1.0;
+        }
 
         let scaledScore;
         if (totalQuestions === 40) {

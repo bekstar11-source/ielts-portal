@@ -54,6 +54,24 @@ export default function ListeningParts() {
   
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
+  const [collectionsMap, setCollectionsMap] = useState({});
+
+  useEffect(() => {
+    const fetchCollectionsMap = async () => {
+      try {
+        const snap = await getDocs(query(collection(db, 'test_collections'), where('type', '==', 'listening')));
+        const mapping = {};
+        snap.docs.forEach(d => {
+          mapping[d.id] = d.data().name;
+        });
+        setCollectionsMap(mapping);
+      } catch (err) {
+        console.error("Error fetching collections map:", err);
+      }
+    };
+    fetchCollectionsMap();
+  }, []);
+  
   // Library Pagination State
   const [libraryTests, setLibraryTests] = useState([]);
   const [lastVisible, setLastVisible] = useState(null);
@@ -268,6 +286,8 @@ export default function ListeningParts() {
             isFree: !!test.isFree,
             duration: 10,
             thumbnail: partData.thumbnail || test.thumbnail || null,
+            collectionId: test.collectionId,
+            collectionName: test.collectionName || collectionsMap[test.collectionId] || "",
             audioUrl: partData.audioUrl || test.audioUrl || "",
             startTime: partData.startSec || 0,
             endTime: partData.endSec || 0,
@@ -293,6 +313,8 @@ export default function ListeningParts() {
             isFree: !!test.isFree,
             duration: 10,
             thumbnail: test.thumbnail || null,
+            collectionId: test.collectionId,
+            collectionName: test.collectionName || collectionsMap[test.collectionId] || "",
             audioUrl: test.audioUrl || "",
             startTime: 0,
             endTime: 0,
@@ -314,7 +336,7 @@ export default function ListeningParts() {
     });
 
     return resultList;
-  }, [rawAssignments, userResults]);
+  }, [rawAssignments, userResults, collectionsMap]);
 
   const allQuestionTypes = useMemo(() => {
     const types = new Set();

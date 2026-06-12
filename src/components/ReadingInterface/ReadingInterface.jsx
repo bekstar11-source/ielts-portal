@@ -455,7 +455,7 @@ export default function ReadingInterface({
         </DragOverlay>
       </DndContext>
 
-      <div className="fixed bottom-0 left-0 w-full h-[50px] bg-white border-t border-gray-200 z-[2000] shadow-md">
+      <div className="fixed bottom-0 left-0 w-full h-[50px] bg-white z-[2000]">
         <ReadingFooter 
           testData={testData} 
           activePassage={activePassage} 

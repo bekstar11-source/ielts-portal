@@ -1244,7 +1244,9 @@ export default function DashboardHeader({
       </AnimatePresence>
 
       {/* Search Overlay */}
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <AnimatePresence>
+        {isSearchOpen && <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />}
+      </AnimatePresence>
     </>
   );
 }

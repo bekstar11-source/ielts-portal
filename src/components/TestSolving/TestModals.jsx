@@ -9,7 +9,7 @@ import DetailedAnswersModal from '../TestReview/DetailedAnswersModal';
 
 // ──────────────────────────────────────────────
 // AUDIO PRELOADER HOOK
-// Berilgan URL-lar ro'yxatini fetch() + blob URL orqali keshga oladi
+// CORS-safe audio preloading using HTML5 Audio element
 // ──────────────────────────────────────────────
 function useAudioPreloader(audioUrls) {
     const [progress, setProgress] = useState(0);   // 0..100
@@ -27,35 +27,68 @@ function useAudioPreloader(audioUrls) {
         let cancelled = false;
         let loaded = 0;
 
-        const load = async (url) => {
-            try {
-                const res = await fetch(url, { cache: 'force-cache' });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const blob = await res.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                blobUrls.current[url] = blobUrl;
-            } catch (e) {
-                console.warn('Audio preload failed for:', url, e.message);
-                // Xato bo'lsa ham davom etamiz — original URL ishlatiladi
-                blobUrls.current[url] = url;
-            }
+        const load = (url) => {
+            return new Promise((resolve) => {
+                const audio = new Audio();
+                audio.preload = "auto";
+                
+                const onCanPlayThrough = () => {
+                    if (cancelled) return;
+                    blobUrls.current[url] = url; // Use original URL directly (browser will read from cache)
+                    resolve();
+                };
+                
+                const onError = (e) => {
+                    if (cancelled) return;
+                    console.warn('Audio preload failed/blocked for:', url, e);
+                    blobUrls.current[url] = url; // Fallback to original URL
+                    resolve();
+                };
+                
+                audio.addEventListener('canplaythrough', onCanPlayThrough);
+                audio.addEventListener('error', onError);
+                
+                // 15 seconds timeout per file to prevent hanging
+                const timer = setTimeout(() => {
+                    if (!cancelled) {
+                        cleanup();
+                        resolve();
+                    }
+                }, 15000);
+                
+                const cleanup = () => {
+                    clearTimeout(timer);
+                    audio.removeEventListener('canplaythrough', onCanPlayThrough);
+                    audio.removeEventListener('error', onError);
+                };
 
+                audio.src = url;
+                audio.load();
+            });
+        };
+
+        const loadAll = async () => {
+            for (let i = 0; i < audioUrls.length; i++) {
+                if (cancelled) break;
+                await load(audioUrls[i]);
+                if (!cancelled) {
+                    loaded++;
+                    setProgress(Math.round((loaded / audioUrls.length) * 100));
+                }
+            }
             if (!cancelled) {
-                loaded++;
-                setProgress(Math.round((loaded / audioUrls.length) * 100));
-                if (loaded === audioUrls.length) setDone(true);
+                setDone(true);
             }
         };
 
-        Promise.all(audioUrls.map(url => load(url))).catch(e => {
-            if (!cancelled) setError(e.message);
-        });
+        loadAll();
 
         return () => { cancelled = true; };
     }, [audioUrls.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return { progress, done, error, blobUrls: blobUrls.current };
 }
+
 
 // ──────────────────────────────────────────────
 // MODE SELECTION MODAL

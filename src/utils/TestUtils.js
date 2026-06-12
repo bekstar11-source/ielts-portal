@@ -202,7 +202,7 @@ export const mergeTestsLogic = (selectedTestObjects, mergeTitle) => {
     };
 };
 
-export const clearTestStorage = (userId, testId, partNumber = null) => {
+export const clearTestStorage = (userId, testId, partNumber = null, keepHighlightsAndNotes = false) => {
     if (!testId) return;
 
     // 1. Remove draft answers & modes (localStorage)
@@ -218,21 +218,26 @@ export const clearTestStorage = (userId, testId, partNumber = null) => {
     localStorage.removeItem(`ielts_reading_session_${testId}`);
     localStorage.removeItem(`ielts_writing_session_${testId}`);
 
-    // 3. Remove reading highlights & notes (localStorage)
-    localStorage.removeItem(`reading_rp_hl_${testId}`);
-    localStorage.removeItem(`reading_highlights_${testId}`);
-    localStorage.removeItem(`reading_notes_${testId}`);
+    if (!keepHighlightsAndNotes) {
+        // 3. Remove reading highlights & notes (localStorage)
+        localStorage.removeItem(`reading_rp_hl_${testId}`);
+        localStorage.removeItem(`reading_highlights_${testId}`);
+        localStorage.removeItem(`reading_notes_${testId}`);
 
-    // 4. Remove passage-specific HTML states (localStorage)
-    for (let i = 0; i <= 10; i++) {
-        localStorage.removeItem(`reading_session_${testId}_passage_${i}`);
+        // 4. Remove passage-specific HTML states (localStorage)
+        for (let i = 0; i <= 10; i++) {
+            localStorage.removeItem(`reading_session_${testId}_passage_${i}`);
+        }
     }
 
     // 5. Remove timer & listening highlights (sessionStorage)
     sessionStorage.removeItem(`timer_${userId}_${testId}${suffix}`);
     sessionStorage.removeItem(`timer_${userId}_${testId}`);
-    for (let i = 0; i <= 10; i++) {
-        sessionStorage.removeItem(`listening_hl_${testId}_p${i}`);
+
+    if (!keepHighlightsAndNotes) {
+        for (let i = 0; i <= 10; i++) {
+            sessionStorage.removeItem(`listening_hl_${testId}_p${i}`);
+        }
     }
 };
 

@@ -222,6 +222,7 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                     sensors={sensors}
                     onDragStart={handleDragStart}
                     onDragEnd={isReviewMode ? undefined : handleDragEnd}
+                    autoScroll={false}
                 >
                     <div className="flex flex-col gap-8 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                         <div className="flex flex-col gap-4">

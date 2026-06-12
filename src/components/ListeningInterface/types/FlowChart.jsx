@@ -58,7 +58,7 @@ const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correc
                 if (!isReviewMode) onToggleMenu();
             }}
             className={`
-                relative min-h-[24px] h-[24px] w-[160px] mx-1 inline-flex items-center justify-center border transition-all rounded-[4px] group cursor-pointer
+                relative min-h-[24px] h-[24px] w-[160px] mx-1 inline-flex items-center justify-center border rounded-[4px] group cursor-pointer
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')
@@ -72,7 +72,7 @@ const DroppableFlowSlot = ({ id, value, options, isReviewMode, isCorrect, correc
             `}
         >
             {value ? (
-                <div className="flex items-center w-full px-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center w-full px-2">
                     <span className="text-[14px] font-normal text-gray-900 line-clamp-1 flex-1 leading-tight text-center">{stripLeadingOptionLabel(selectedOption?.text || value)}</span>
                     {!isReviewMode && (
                         <button
@@ -251,7 +251,7 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
     if (hasOptions) {
         const usedLabels = allQuestionItems.map(q => userAnswers[q.id]).filter(Boolean);
         return (
-            <DndContext id={`dnd-fc-${group.id || 'fc'}`} sensors={sensors} onDragStart={handleDragStart} onDragEnd={isReviewMode ? undefined : handleDragEnd}>
+            <DndContext id={`dnd-fc-${group.id || 'fc'}`} sensors={sensors} onDragStart={handleDragStart} onDragEnd={isReviewMode ? undefined : handleDragEnd} autoScroll={false}>
                 <div className="mb-10 flex flex-col lg:flex-row justify-center items-start gap-8 lg:gap-14 w-full max-w-6xl mx-auto">
                     <div className="flex-1 w-full max-w-2xl"><FlowChartBody /></div>
                     <div className="w-full lg:w-[280px] shrink-0 lg:sticky lg:top-4">

@@ -256,6 +256,21 @@ export default function CreateTest() {
         }
     };
 
+    const handleIntroDurationChange = (value) => {
+        const numericVal = value === "" ? "" : Number(value);
+        setTestData(prev => ({ ...prev, introDuration: numericVal }));
+
+        try {
+            if (jsonInput) {
+                const parsed = JSON.parse(jsonInput);
+                parsed.introDuration = numericVal;
+                setJsonInput(JSON.stringify(parsed, null, 2));
+            }
+        } catch (e) {
+            console.warn("JSON sync skipped due to parsing error:", e.message);
+        }
+    };
+
     if (loading && !testData.title) return (
         <div className="flex h-screen items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -358,6 +373,7 @@ export default function CreateTest() {
                             uploadingPart={uploadingPart}
                             isDark={isDark}
                             onPassageTimeChange={handlePassageTimeChange}
+                            onIntroDurationChange={handleIntroDurationChange}
                         />
 
                         {testData.type === 'writing' && (

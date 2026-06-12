@@ -210,6 +210,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
             sensors={sensors}
             onDragStart={handleDragStart}
             onDragEnd={isReviewMode ? undefined : handleDragEnd}
+            autoScroll={false}
         >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 mb-10 mt-4 items-start ielts-font">
                 <div className="flex flex-col gap-4">

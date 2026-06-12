@@ -52,7 +52,9 @@ export function useListeningCollections(userResults, userData) {
             return {
               id: d.id,
               ...data,
-              collectionAccessTier: parentCol?.accessTier || 'pro'
+              collectionAccessTier: parentCol?.accessTier || 'pro',
+              collectionName: parentCol?.name,
+              collectionId: data.collectionId || parentCol?.id || ""
             };
           })
           .filter(t => t.type === 'listening');
@@ -93,7 +95,9 @@ export function useListeningCollections(userResults, userData) {
               return {
                 id: d.id,
                 ...data,
-                collectionAccessTier: parentCol?.accessTier || 'pro'
+                collectionAccessTier: parentCol?.accessTier || 'pro',
+                collectionName: parentCol?.name,
+                collectionId: data.collectionId || parentCol?.id || ""
               };
             })
             .filter(t => t.type === 'listening');
@@ -151,7 +155,9 @@ export function useListeningCollections(userResults, userData) {
 
       const docs = Array.from(mergedMap.values()).map(doc => ({
         ...doc,
-        collectionAccessTier: colTier
+        collectionAccessTier: colTier,
+        collectionName: parentCol?.name,
+        collectionId: doc.collectionId || colId
       }));
       // Sort so that free ones appear first
       docs.sort((a, b) => {
@@ -239,6 +245,8 @@ export function useListeningCollections(userResults, userData) {
             partNumber: partNum,
             isFree: !!test.isFree,
             collectionAccessTier: test.collectionAccessTier,
+            collectionName: test.collectionName,
+            collectionId: test.collectionId,
             duration: 10,
             audioUrl: partData.audioUrl || test.audioUrl || "",
             startTime: partData.startSec || 0,
@@ -264,6 +272,8 @@ export function useListeningCollections(userResults, userData) {
             partNumber: partNum,
             isFree: !!test.isFree,
             collectionAccessTier: test.collectionAccessTier,
+            collectionName: test.collectionName,
+            collectionId: test.collectionId,
             duration: 10,
             audioUrl: test.audioUrl || "",
             startTime: 0,

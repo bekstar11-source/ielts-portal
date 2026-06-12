@@ -1,11 +1,11 @@
 // src/components/ReadingInterface/ReadingFooter.jsx
 import React from "react";
 
-export default function ReadingFooter({ 
-    testData, 
-    activePassage, 
-    setActivePassage, 
-    userAnswers, 
+export default function ReadingFooter({
+    testData,
+    activePassage,
+    setActivePassage,
+    userAnswers,
     scrollToQuestionDiv,
     isMobile,
     setMobileActiveTab,
@@ -19,7 +19,7 @@ export default function ReadingFooter({
         if (!item || item.id == null) return false;
         if (item.answer) return true;
         const idStr = String(item.id).trim();
-        if (idStr.includes('-') || idStr.includes('–') || idStr.includes('_')) return false; // Don't count ranges as single questions here
+        if (idStr.includes('-') || idStr.includes('–') || idStr.includes('_')) return false;
         return !isNaN(idStr) && idStr !== "";
     };
 
@@ -40,29 +40,18 @@ export default function ReadingFooter({
         const isMultiThree = type.includes('pick_three') || type.includes('multi_three');
 
         let rawItems = [];
-
         if (group.items && Array.isArray(group.items)) {
             rawItems = group.items;
         } else if (group.questions && Array.isArray(group.questions)) {
             rawItems = group.questions;
         } else if ((group.type === 'table_completion' || group.type === 'table') && group.rows) {
             group.rows.forEach(row => {
-                let cellsToIterate = [];
-                if (Array.isArray(row)) {
-                    cellsToIterate = row;
-                } else if (row.cells && Array.isArray(row.cells)) {
-                    cellsToIterate = row.cells;
-                }
-                cellsToIterate.forEach(cell => {
+                let cells = Array.isArray(row) ? row : (row.cells || []);
+                cells.forEach(cell => {
                     if (cell.id && !cell.isMultiQuestion && !cell.isMixed) rawItems.push(cell);
-                    
-                    if (cell.isMultiQuestion && cell.content) {
-                        rawItems.push(...cell.content);
-                    }
+                    if (cell.isMultiQuestion && cell.content) rawItems.push(...cell.content);
                     if (cell.isMixed && cell.parts) {
-                        cell.parts.forEach(part => {
-                            if (part.type === 'input') rawItems.push(part);
-                        });
+                        cell.parts.forEach(part => { if (part.type === 'input') rawItems.push(part); });
                     }
                 });
             });
@@ -86,19 +75,12 @@ export default function ReadingFooter({
             return [str];
         };
 
-        if ((isMultiTwo || isMultiThree)) {
+        if (isMultiTwo || isMultiThree) {
             rawItems.forEach(q => {
                 const count = isMultiThree ? 3 : 2;
                 const ids = parseMultiIds(q.id, count);
                 ids.forEach((splitId, i) => {
-                    questions.push({
-                        ...q,
-                        id: splitId,
-                        displayId: splitId,
-                        multiIndex: i,
-                        isMulti: true,
-                        parentQuestionId: q.id
-                    });
+                    questions.push({ ...q, id: splitId, displayId: splitId, multiIndex: i, isMulti: true, parentQuestionId: q.id });
                 });
             });
         } else {
@@ -108,88 +90,155 @@ export default function ReadingFooter({
         return questions;
     };
 
+    const [activeQuestionId, setActiveQuestionId] = React.useState(null);
+
+    const activePassageGroups = testData.questions
+        ? testData.questions.filter(g => String(g.passageId) === String(testData.passages[activePassage]?.id))
+        : [];
+    const activePassageQuestions = activePassageGroups
+        .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
+        .filter(isRealQuestion)
+        .filter((q, i, self) => i === self.findIndex(t => String(t.id) === String(q.id)));
+
+    const firstQuestionId = activePassageQuestions[0]?.id || null;
+
+    React.useEffect(() => {
+        if (firstQuestionId) setActiveQuestionId(firstQuestionId);
+    }, [activePassage, firstQuestionId]);
+
+    React.useEffect(() => {
+        const handleDocumentClick = (e) => {
+            let target = e.target;
+            while (target && target !== document.body) {
+                if (target.id && target.id.startsWith('q-')) {
+                    const qId = target.id.replace('q-', '');
+                    if (activePassageQuestions.some(pq => String(pq.id) === String(qId))) {
+                        setActiveQuestionId(qId);
+                        break;
+                    }
+                }
+                target = target.parentNode;
+            }
+        };
+        document.addEventListener('click', handleDocumentClick);
+        return () => document.removeEventListener('click', handleDocumentClick);
+    }, [activePassageQuestions]);
+
+    // ── Precompute per-passage data ──────────────────────────────────────
+    const passageData = testData.passages.map((passage, idx) => {
+        if (partNumber && idx !== partNumber - 1) return null;
+        const groups = testData.questions
+            ? testData.questions.filter(g => String(g.passageId) === String(passage.id))
+            : [];
+        const questions = groups
+            .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
+            .filter(isRealQuestion)
+            .filter((q, i, self) => i === self.findIndex(t => String(t.id) === String(q.id)));
+        const answeredCount = questions.filter(q => checkIfAnswered(q, userAnswers)).length;
+        return { passage, idx, questions, qCount: questions.length, answeredCount };
+    }).filter(Boolean);
+
+    // ── Total question count for green-bar width calculation ─────────────
+    const totalQ = passageData.reduce((s, d) => s + d.qCount, 0);
+
     return (
-        <div className="h-full w-full flex bg-white z-[2000]">
-            <div className="flex w-full h-full">
-                {testData.passages.map((passage, idx) => {
-                    if (partNumber && idx !== partNumber - 1) return null;
-                    const isActive = activePassage === idx;
-                    
-                    const passageGroups = testData.questions 
-                        ? testData.questions.filter(g => String(g.passageId) === String(passage.id)) 
-                        : [];
+        <div className="h-full w-full flex flex-col bg-white select-none">
 
-                    const passageQuestions = passageGroups
-                        .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
-                        .filter(isRealQuestion)
-                        .filter((q, index, self) => 
-                            index === self.findIndex((t) => String(t.id) === String(q.id))
-                        );
+            {/* ── TOP INDICATOR LINE (full-width gray + green segment) ──────── */}
+            <div className="relative w-full h-[3px] bg-[#d1d5db] shrink-0">
+                {passageData.map((d) => {
+                    const isActive = activePassage === d.idx;
+                    if (!isActive) return null;
 
-                    const qCount = passageQuestions.length;
-                    const answeredCount = passageQuestions.filter(q => checkIfAnswered(q, userAnswers)).length;
+                    const before = passageData
+                        .filter(x => x.idx < d.idx)
+                        .reduce((s, x) => s + x.qCount, 0);
+                    const leftPct  = totalQ > 0 ? (before / totalQ) * 100 : 0;
+                    const widthPct = totalQ > 0 ? (d.qCount / totalQ) * 100 : 100;
 
                     return (
-                        <div 
-                            key={passage.id} 
-                            onClick={() => setActivePassage(idx)}
-                            className={`
-                                flex-1 h-full flex items-center px-3 cursor-pointer border-r border-gray-200 
-                                transition-all duration-200 overflow-hidden
-                                ${isActive 
-                                    ? 'bg-white border-t-[3px] border-t-ielts-blue -mt-[1px]' 
-                                    : 'bg-gray-50 hover:bg-gray-100'
-                                }
-                            `}
-                        >
-                            <div className="flex items-center shrink-0 mr-2">
-                                <span className={`font-bold text-xs whitespace-nowrap ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                                    Part {passage.partNumber ?? (idx + 1)}
-                                </span>
-                            </div>
-
-                            {isActive ? (
-                                qCount > 0 && (
-                                    <div className="flex gap-1 h-full items-center overflow-x-auto hide-scrollbar w-full">
-                                        {passageQuestions.map(q => {
-                                            const label = getDisplayLabel(q);
-                                            const isAnswered = checkIfAnswered(q, userAnswers);
-                                            return (
-                                                <button 
-                                                    key={q.id} 
-                                                    onClick={(e) => { 
-                                                        e.stopPropagation(); 
-                                                        if (isMobile && setMobileActiveTab) {
-                                                            setMobileActiveTab('questions');
-                                                        }
-                                                        scrollToQuestionDiv(q.parentQuestionId || q.id); 
-                                                    }}
-                                                    className={`
-                                                        min-w-[22px] w-auto px-1 h-[22px] flex items-center justify-center rounded 
-                                                        text-[10px] font-bold shrink-0 transition-all border shadow-sm
-                                                        ${isAnswered 
-                                                            ? 'bg-ielts-blue text-white border-ielts-blue' 
-                                                            : 'bg-white border-gray-300 text-gray-700 hover:border-ielts-blue hover:text-ielts-blue hover:-translate-y-[1px]' 
-                                                        }
-                                                    `}
-                                                >
-                                                    {label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )
-                            ) : (
-                                <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
-                                    {answeredCount} of {qCount}
-                                </span>
-                            )}
-                        </div>
+                        <div
+                            key={d.idx}
+                            className="absolute top-0 h-full bg-[#3c763d] transition-all duration-300"
+                            style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                        />
                     );
                 })}
             </div>
 
+            {/* ── PARTS ROW ─────────────────────────────────────────────────── */}
+            <div className="flex flex-1 items-stretch overflow-x-auto overflow-y-hidden">
+                {passageData.map((d) => {
+                    const { passage, idx, questions, qCount, answeredCount } = d;
+                    const isActive = activePassage === idx;
+                    const partNum = passage.partNumber ?? (idx + 1);
 
+                    if (isActive) {
+                        return (
+                            <div
+                                key={passage.id}
+                                className="flex-initial h-full flex items-center bg-white"
+                                style={{ borderRight: passageData.length > 1 ? '1px solid #e5e7eb' : 'none' }}
+                            >
+                                {/* Part label */}
+                                <div className="h-full flex items-center pl-4 pr-3 shrink-0">
+                                    <span className="font-bold text-[13px] text-gray-900 whitespace-nowrap">
+                                        Part {partNum}
+                                    </span>
+                                </div>
+
+                                {/* Question number buttons */}
+                                <div className="flex items-center h-full gap-[3px] overflow-x-auto pr-3 flex-initial">
+                                    {questions.map(q => {
+                                        const label = getDisplayLabel(q);
+                                        const isAnswered = checkIfAnswered(q, userAnswers);
+                                        const isActiveQ = String(activeQuestionId) === String(q.id);
+
+                                        return (
+                                            <button
+                                                key={q.id}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (isMobile && setMobileActiveTab) setMobileActiveTab('questions');
+                                                    setActiveQuestionId(q.id);
+                                                    scrollToQuestionDiv(q.parentQuestionId || q.id);
+                                                }}
+                                                className="flex items-center justify-center min-w-[26px] h-[26px] px-0.5 text-[12px] font-semibold rounded transition-all"
+                                                style={{
+                                                    color: isActiveQ ? '#1a56db' : '#374151',
+                                                    border: isActiveQ ? '1.5px solid #1a56db' : '1.5px solid transparent',
+                                                    textDecoration: isAnswered ? 'underline' : 'none',
+                                                    textUnderlineOffset: '2px',
+                                                }}
+                                            >
+                                                {label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    } else {
+                        return (
+                            <div
+                                key={passage.id}
+                                onClick={() => setActivePassage(idx)}
+                                className="flex-1 h-full flex items-center justify-center gap-2 cursor-pointer bg-white hover:bg-gray-50 transition-colors"
+                                style={{ borderRight: '1px solid #e5e7eb' }}
+                            >
+                                <span className="font-bold text-[12px] text-gray-700 whitespace-nowrap">
+                                    Part {partNum}
+                                </span>
+                                <span className="text-[11px] text-gray-400 font-semibold whitespace-nowrap">
+                                    {answeredCount} of {qCount}
+                                </span>
+                            </div>
+                        );
+                    }
+                })}
+
+
+            </div>
         </div>
     );
 }

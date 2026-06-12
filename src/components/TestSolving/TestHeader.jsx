@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatTime } from '../../utils/ieltsScoring';
 import CustomAudioPlayer from './CustomAudioPlayer';

@@ -9,6 +9,12 @@ import { deriveQuestionTypesForCard, getActualQuestionCount, getPassageNum } fro
 import QuestionTypeTags from './QuestionTypeTags';
 import { useAuth } from '../../context/AuthContext';
 
+// Preload Set 1 thumbnail image for instant rendering across all cards
+if (typeof window !== 'undefined') {
+  const preloadImg = new Image();
+  preloadImg.src = "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/thumbnails%2FGemini_Generated_Image_vx0h6mvx0h6mvx0h-squished.webp?alt=media&token=03a2fab5-c0db-46c9-af03-dd556fb08fde";
+}
+
 export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard, passageNumber: passageNumberProp }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -36,22 +42,30 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
      test.type === 'listening' ? (isListeningFull ? 40 : 10) : 
      test.type === 'writing' ? 60 : 60);
 
-  const cardImage = test.thumbnail || (
-    test.type === 'listening'
-      ? '/images/dashboard/listening_orange_headphones.jpg'
-      : test.type === 'reading'
-      ? '/images/dashboard/reading_passage_yellow_card.png'
-      : test.type === 'writing'
-      ? 'https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=800'
-      : test.type === 'speaking'
-      ? 'https://images.unsplash.com/photo-1506784926709-22f1ec395907?q=80&w=800'
-      : 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800'
+  const isSet1Listening = test.type === 'listening' && (
+    (test.collectionName && String(test.collectionName).toLowerCase().trim() === 'set 1') ||
+    (test.collectionId && String(test.collectionId).toLowerCase().trim() === 'set 1')
   );
 
-  const hasVisual = typeof test.thumbnail === 'string' && 
+  const cardImage = isSet1Listening
+    ? "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/thumbnails%2FGemini_Generated_Image_vx0h6mvx0h6mvx0h-squished.webp?alt=media&token=03a2fab5-c0db-46c9-af03-dd556fb08fde"
+    : (test.thumbnail || (
+        test.type === 'listening'
+          ? '/images/dashboard/listening_orange_headphones.jpg'
+          : test.type === 'reading'
+          ? '/images/dashboard/reading_passage_yellow_card.png'
+          : test.type === 'writing'
+          ? 'https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=800'
+          : test.type === 'speaking'
+          ? 'https://images.unsplash.com/photo-1506784926709-22f1ec395907?q=80&w=800'
+          : 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800'
+      ));
+
+  const hasVisual = isSet1Listening || (
+                    typeof test.thumbnail === 'string' && 
                     test.thumbnail.trim() !== '' && 
                     !test.thumbnail.includes('reading_passage_yellow') && 
-                    !test.thumbnail.includes('listening_orange_headphones');
+                    !test.thumbnail.includes('listening_orange_headphones'));
 
   const pNum = getPassageNum(test, passageNumberProp);
 

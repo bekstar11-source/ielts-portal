@@ -124,8 +124,7 @@ export default function ListeningInterface({
 
 
       {/* --- MAIN SPLIT CONTENT --- */}
-      {/* 👇 O'ZGARISH: pb-[60px] yoki 45px dan -> pb-[36px] ga */}
-      <div className="flex w-full h-full overflow-hidden relative pb-[36px]">
+      <div className="flex w-full h-full overflow-hidden relative pb-[48px]">
 
         {/* 1-muammo yechimi: Chap taraf va Resizer FAQAT Review paytida ko'rinadi */}
         {isReviewMode && (
@@ -245,8 +244,7 @@ export default function ListeningInterface({
       </div>
 
       {/* --- FOOTER (Navigation) --- */}
-      {/* 👇 O'ZGARISH: h-[60px] yoki 45px dan -> h-[36px] ga */}
-      <div className="absolute bottom-0 left-0 w-full h-[36px] bg-white border-t border-gray-200 z-[50] shadow-sm">
+      <div className="absolute bottom-0 left-0 w-full h-[48px] bg-white z-[50]">
         <ListeningFooter
           testData={testData}
           activePart={effectiveActivePart}

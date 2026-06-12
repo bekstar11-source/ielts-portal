@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db } from "../../firebase/firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, startAfter } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
     BookOpen, Search, ChevronRight, Clock, User, 
@@ -28,6 +28,9 @@ export default function Articles() {
     const navigate = useNavigate();
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [lastVisible, setLastVisible] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeCategory, setActiveCategory] = useState("All");
     const [categoriesExpanded, setCategoriesExpanded] = useState(false);
@@ -42,23 +45,69 @@ export default function Articles() {
     const popularArticles = useMemo(() => getPopularArticles(articles, 5), [articles]);
 
     useEffect(() => {
-        fetchArticles();
+        fetchArticles(true);
     }, []);
 
-    const fetchArticles = async () => {
-        setLoading(true);
+    const fetchArticles = async (isInitial = false) => {
+        if (isInitial) {
+            setLoading(true);
+            setLastVisible(null);
+            setHasMore(true);
+        } else {
+            setLoadingMore(true);
+        }
         try {
-            const q = query(collection(db, "articles"), orderBy("createdAt", "desc"));
+            let q = query(
+                collection(db, "articles"),
+                orderBy("createdAt", "desc"),
+                limit(12)
+            );
+            if (!isInitial && lastVisible) {
+                q = query(
+                    collection(db, "articles"),
+                    orderBy("createdAt", "desc"),
+                    startAfter(lastVisible),
+                    limit(12)
+                );
+            }
             const snap = await getDocs(q);
-            setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            if (snap.empty) {
+                setHasMore(false);
+                if (isInitial) setArticles([]);
+            } else {
+                const fetched = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setLastVisible(snap.docs[snap.docs.length - 1]);
+                if (snap.docs.length < 12) {
+                    setHasMore(false);
+                }
+                if (isInitial) {
+                    setArticles(fetched);
+                } else {
+                    setArticles(prev => {
+                        const existing = new Set(prev.map(a => a.id));
+                        const unique = fetched.filter(a => !existing.has(a.id));
+                        return [...prev, ...unique];
+                    });
+                }
+            }
         } catch (err) {
             console.error("Error fetching articles:", err);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
 
-    const categories = ["All", ...extractArticleCategories(articles)];
+    const categories = useMemo(() => {
+        const defaultCats = ["All", "Reading", "Listening", "Vocabulary", "Grammar", "Speaking", "Writing", "Tips"];
+        const loadedCats = extractArticleCategories(articles);
+        const merged = new Set([...defaultCats, ...loadedCats]);
+        return Array.from(merged).sort((a, b) => {
+            if (a === "All") return -1;
+            if (b === "All") return 1;
+            return a.localeCompare(b);
+        });
+    }, [articles]);
     const hasMoreCategories = categories.length > CATEGORY_INITIAL_LIMIT;
     const primaryCategories = hasMoreCategories
         ? categories.slice(0, CATEGORY_INITIAL_LIMIT)
@@ -415,6 +464,24 @@ export default function Articles() {
                             </div>
                         )}
                     </AnimatePresence>
+                    {hasMore && !loading && (
+                        <div className="flex justify-center pt-8">
+                            <button
+                                onClick={() => fetchArticles(false)}
+                                disabled={loadingMore}
+                                className="bg-white dark:bg-zinc-950 border border-black/5 dark:border-white/10 text-gray-800 dark:text-zinc-200 px-6 py-2.5 rounded-full text-xs font-bold shadow-sm hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {loadingMore ? (
+                                    <>
+                                        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                        <span>Yuklanmoqda...</span>
+                                    </>
+                                ) : (
+                                    <span>Yana yuklash</span>
+                                )}
+                            </button>
+                        </div>
+                    )}
                 </div>
                 </div>
 

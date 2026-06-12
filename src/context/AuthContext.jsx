@@ -197,7 +197,15 @@ export function AuthProvider({ children }) {
         setLoading(false);
       } else {
         try {
-          const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+          let docSnap;
+          try {
+            docSnap = await getDoc(doc(db, "users", currentUser.uid));
+          } catch (readErr) {
+            console.warn("Temporary Firestore read failure, retrying in 300ms...", readErr);
+            await new Promise(resolve => setTimeout(resolve, 300));
+            docSnap = await getDoc(doc(db, "users", currentUser.uid));
+          }
+
           if (docSnap.exists()) {
             const processed = await processUserData(currentUser.uid, docSnap.data());
             setUserData(processed);
@@ -221,13 +229,19 @@ export function AuthProvider({ children }) {
                 lastActiveAt: serverTimestamp(),
                 isOnline: true
               };
-              await setDoc(docRef, newUserData);
+              try {
+                await setDoc(docRef, newUserData);
+              } catch (writeErr) {
+                console.warn("Temporary Firestore write failure, retrying in 300ms...", writeErr);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                await setDoc(docRef, newUserData);
+              }
               setUserData(newUserData);
             }
             setLoading(false);
           }
         } catch (error) {
-          console.error("Firestore user data loading error:", error);
+          console.error("Firestore user data loading error (permanent):", error);
           setLoading(false);
         }
       }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase/firebase';
-import { collection, query, where, getDocs, orderBy, doc, setDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, setDoc, updateDoc, increment, serverTimestamp, limit } from 'firebase/firestore';
 
 export function useStories(user) {
     const [stories, setStories] = useState([]);
@@ -19,7 +19,8 @@ export function useStories(user) {
                 const q = query(
                     collection(db, 'stories'),
                     where('active', '==', true),
-                    orderBy('createdAt', 'desc')
+                    orderBy('createdAt', 'desc'),
+                    limit(15)
                 );
                 
                 const snap = await getDocs(q);

@@ -144,7 +144,7 @@ export function useTestLogic() {
                 setBandScore(res.bandScore);
                 setResultId(res.resultId);
                 setShowResult(true);
-                clearTestStorage(user.uid, test.id, partNumber);
+                clearTestStorage(user.uid, test.id, partNumber, true);
                 // Note: We don't remove reading highlights here so they are available in Review mode.
                 // They will be cleared if the user explicitly restarts the test.
             }
