@@ -556,16 +556,15 @@ export default function AdminTests() {
             />
 
             <div className="flex-1 flex flex-col h-full overflow-hidden">
-                <AdminTestsToolbar 
+                <AdminTestsToolbar
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
                     viewMode={viewMode}
                     setViewMode={setViewMode}
                     selectedCount={selectedTests.length}
-                    onBulkAssign={() => setBulkAssignModalOpen(true)} 
-                    onMerge={handleOpenMerge} 
+                    onBulkAssign={() => setBulkAssignModalOpen(true)}
+                    onMerge={handleOpenMerge}
                     onCreate={() => navigate("/admin/create-test")}
-                    isDark={isDark}
                     collections={collections}
                     filterCollection={filterCollection}
                     setFilterCollection={setFilterCollection}
@@ -573,12 +572,10 @@ export default function AdminTests() {
                     setFilterType={setFilterType}
                     totalTestCount={totalTestCount}
                     mergedCount={mergedCount}
-                    onAddCollection={handleOpenAddCollection} 
+                    onAddCollection={handleOpenAddCollection}
                     onEditCollection={handleOpenEditCollection}
                     onMigrate={handleMigrateMetadata}
                     isMigrating={isMigrating}
-
-                    // Sorting and filtering states
                     filterStatus={filterStatus}
                     setFilterStatus={setFilterStatus}
                     filterAccess={filterAccess}
@@ -590,31 +587,28 @@ export default function AdminTests() {
                     setSortBy={setSortBy}
                     sortOrder={sortOrder}
                     setSortOrder={setSortOrder}
-
-                    // Bulk Action Handlers
                     onBulkDelete={handleBulkDelete}
                     onBulkStatusChange={handleBulkStatusChange}
                     onBulkAccessChange={handleBulkAccessChange}
                     onImport={() => document.getElementById("import-json-file").click()}
                     onExportJSON={handleExportJSON}
-                                     onOpenQuestionBank={() => setQuestionBankOpen(true)}
-                    showStats={showStats}
-                    toggleStats={toggleStats}
+                    onExportCSV={handleExportCSV}
+                    onOpenQuestionBank={() => setQuestionBankOpen(true)}
                 />
  
                 {/* Dashboard stats panel */}
                 {stats && showStats && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-2 px-6 pt-3 pb-1.5 shrink-0 select-none">
                         {[
-                            { title: "Jami Testlar", value: stats.total, icon: <Layers size={11} />, color: "from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25" },
-                            { title: "Mocklar", value: stats.mockCount, icon: <Award size={11} />, color: "from-rose-500/10 to-pink-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25" },
+                            { title: "Tests", value: stats.total, icon: <Layers size={11} />, color: "from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25" },
+                            { title: "Mock", value: stats.mockCount, icon: <Award size={11} />, color: "from-rose-500/10 to-pink-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25" },
                             { title: "Reading", value: stats.readingCount, icon: <BookOpen size={11} />, color: "from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" },
                             { title: "Listening", value: stats.listeningCount, icon: <Headphones size={11} />, color: "from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25" },
                             { title: "Writing", value: stats.writingCount, icon: <PenTool size={11} />, color: "from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400 border-violet-500/25" },
                             { title: "Speaking", value: stats.speakingCount, icon: <Mic2 size={11} />, color: "from-fuchsia-500/10 to-pink-500/10 text-fuchsia-600 dark:text-fuchsia-400 border-fuchsia-500/25" },
-                            { title: "Ommaviy", value: stats.publicCount, icon: <Globe size={11} />, color: "from-teal-500/10 to-green-500/10 text-teal-600 dark:text-teal-400 border-teal-500/25" },
-                            { title: "Shaxsiy", value: stats.privateCount, icon: <Lock size={11} />, color: "from-zinc-500/10 to-neutral-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/25" },
-                            { title: "Bepul", value: stats.freeCount, icon: <Sparkles size={11} />, color: "from-cyan-500/10 to-sky-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25" }
+                            { title: "Public", value: stats.publicCount, icon: <Globe size={11} />, color: "from-teal-500/10 to-green-500/10 text-teal-600 dark:text-teal-400 border-teal-500/25" },
+                            { title: "Private", value: stats.privateCount, icon: <Lock size={11} />, color: "from-zinc-500/10 to-neutral-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/25" },
+                            { title: "Free", value: stats.freeCount, icon: <Sparkles size={11} />, color: "from-cyan-500/10 to-sky-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25" }
                         ].map((card, i) => (
                             <div key={i} className={`py-1.5 px-2.5 rounded-lg border bg-gradient-to-br ${card.color} shadow-sm flex items-center justify-between hover:scale-[1.02] transition-transform duration-200`}>
                                 <div className="flex items-center gap-1.5 min-w-0">
@@ -719,30 +713,23 @@ export default function AdminTests() {
                                 );
                             })()}
 
-                            <AdminTestsList 
+                            <AdminTestsList
                                 tests={filteredTests}
                                 selectedTests={selectedTests}
                                 onToggleSelect={handleToggleSelect}
                                 onSelectAll={(checked) => {
-                                    if (checked) {
-                                        setSelectedTests(filteredTests.map(t => t.id));
-                                    } else {
-                                        setSelectedTests([]);
-                                    }
+                                    if (checked) setSelectedTests(filteredTests.map(t => t.id));
+                                    else setSelectedTests([]);
                                 }}
                                 onDelete={handleConfirmDeleteTest}
                                 onDuplicate={handleDuplicateTest}
                                 onEdit={(id) => {
                                     const test = tests.find(t => t.id === id);
-                                    if (test && test.type === 'mock') {
-                                        handleOpenEditMockExam(test);
-                                    } else {
-                                        navigate(`/admin/edit-test/${id}`);
-                                    }
+                                    if (test && test.type === 'mock') handleOpenEditMockExam(test);
+                                    else navigate(`/admin/edit-test/${id}`);
                                 }}
                                 onQuickEdit={handleOpenQuickEdit}
                                 onView={(id) => navigate(`/test/${id}`, { state: { from: "/admin/tests" } })}
-                                isDark={isDark}
                             />
 
                             <div className="mt-8 border-t pt-6 border-zinc-100 dark:border-white/5">
@@ -762,19 +749,14 @@ export default function AdminTests() {
                 isOpen={questionBankOpen}
                 onClose={() => setQuestionBankOpen(false)}
                 allAvailableTests={allAvailableTests}
-                isDark={isDark}
             />
 
             {/* COLLECTION MODAL (ADD / EDIT) */}
             <CollectionModal
                 isOpen={collectionModalOpen}
-                onClose={() => {
-                    setCollectionModalOpen(false);
-                    setEditingCol(null);
-                }}
+                onClose={() => { setCollectionModalOpen(false); setEditingCol(null); }}
                 editingCol={editingCol}
                 allAvailableTests={allAvailableTests}
-                isDark={isDark}
                 addCollection={addCollection}
                 updateCollection={updateCollection}
                 onDelete={handleDeleteCollection}
@@ -783,14 +765,10 @@ export default function AdminTests() {
             {/* EDIT MOCK EXAM MODAL */}
             <MockExamModal
                 isOpen={mockExamModalOpen}
-                onClose={() => {
-                    setMockExamModalOpen(false);
-                    setEditingMock(null);
-                }}
+                onClose={() => { setMockExamModalOpen(false); setEditingMock(null); }}
                 editingMock={editingMock}
                 collections={collections}
                 allAvailableTests={allAvailableTests}
-                isDark={isDark}
                 onSaved={() => fetchInitial(filterType, filterCollection)}
             />
 
@@ -800,7 +778,6 @@ export default function AdminTests() {
                 onClose={() => setBulkAssignModalOpen(false)}
                 selectedTests={selectedTests}
                 collections={collections}
-                isDark={isDark}
                 bulkAssignToCollection={bulkAssignToCollection}
                 onSaved={() => setSelectedTests([])}
             />
@@ -811,23 +788,15 @@ export default function AdminTests() {
                 onClose={() => setMergeModalOpen(false)}
                 selectedTests={selectedTests}
                 tests={allTests}
-                isDark={isDark}
-                onSaved={() => {
-                    setSelectedTests([]);
-                    fetchInitial(filterType, filterCollection);
-                }}
+                onSaved={() => { setSelectedTests([]); fetchInitial(filterType, filterCollection); }}
             />
 
             {/* QUICK EDIT MODAL */}
             <QuickEditModal
                 isOpen={quickEditModalOpen}
-                onClose={() => {
-                    setQuickEditModalOpen(false);
-                    setEditingTest(null);
-                }}
+                onClose={() => { setQuickEditModalOpen(false); setEditingTest(null); }}
                 editingTest={editingTest}
                 collections={collections}
-                isDark={isDark}
                 updateTestMetadata={updateTestMetadata}
                 onSaved={() => {}}
             />
@@ -842,7 +811,6 @@ export default function AdminTests() {
                 cancelText={confirmModal.cancelText}
                 onConfirm={confirmModal.onConfirm}
                 type={confirmModal.type}
-                isDark={isDark}
             />
         </div>
     );

@@ -3,32 +3,32 @@ import { Folder, X, Image as ImageIcon, Upload, Loader2 } from "lucide-react";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "../../../firebase/firebase";
 import toast from "react-hot-toast";
+import { useTheme } from "../../../context/ThemeContext";
 
 export default function CollectionModal({
     isOpen,
     onClose,
     editingCol,
     allAvailableTests,
-    isDark,
     addCollection,
     updateCollection,
     onDelete
 }) {
-    // Local state for modal fields
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
     const [colName, setColName] = useState("");
     const [colThumbnail, setColThumbnail] = useState("");
     const [colType, setColType] = useState("reading");
-    const [accessTier, setAccessTier] = useState("pro"); // 'pro' | 'standard' | 'free'
+    const [accessTier, setAccessTier] = useState("pro");
     const [isPublic, setIsPublic] = useState(true);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [isSavingCol, setIsSavingCol] = useState(false);
 
-    // Sub-tests for mock packages
     const [colReadingId, setColReadingId] = useState("");
     const [colListeningId, setColListeningId] = useState("");
     const [colWritingId, setColWritingId] = useState("");
 
-    // Initialize values when editingCol changes or modal opens
     useEffect(() => {
         if (isOpen) {
             if (editingCol) {
@@ -41,14 +41,9 @@ export default function CollectionModal({
                 setAccessTier(editingCol.accessTier || "pro");
                 setIsPublic(editingCol.isPublic !== undefined ? editingCol.isPublic : true);
             } else {
-                setColName("");
-                setColThumbnail("");
-                setColType("reading");
-                setColReadingId("");
-                setColListeningId("");
-                setColWritingId("");
-                setAccessTier("pro");
-                setIsPublic(true);
+                setColName(""); setColThumbnail(""); setColType("reading");
+                setColReadingId(""); setColListeningId(""); setColWritingId("");
+                setAccessTier("pro"); setIsPublic(true);
             }
         }
     }, [isOpen, editingCol]);
@@ -59,7 +54,7 @@ export default function CollectionModal({
         if (!colName.trim()) return;
         setIsSavingCol(true);
         try {
-            const subTests = colType === 'mock' 
+            const subTests = colType === 'mock'
                 ? { readingId: colReadingId, listeningId: colListeningId, writingId: colWritingId }
                 : null;
 
@@ -84,17 +79,12 @@ export default function CollectionModal({
         if (!file) return;
         setUploadingImage(true);
         try {
-            const path = `test_collection_covers/${Date.now()}_${file.name}`;
-            const sRef = ref(storage, path);
+            const sRef = ref(storage, `test_collection_covers/${Date.now()}_${file.name}`);
             const uploadTask = uploadBytesResumable(sRef, file);
-
             uploadTask.on(
                 "state_changed",
                 null,
-                (err) => { 
-                    toast.error("Rasm yuklashda xatolik: " + err.message); 
-                    setUploadingImage(false); 
-                },
+                (err) => { toast.error("Rasm yuklashda xatolik: " + err.message); setUploadingImage(false); },
                 async () => {
                     const url = await getDownloadURL(uploadTask.snapshot.ref);
                     setColThumbnail(url);
@@ -108,114 +98,69 @@ export default function CollectionModal({
         }
     };
 
+    const btnBase = `flex items-center justify-center gap-1.5 p-2.5 rounded-xl border font-bold text-xs transition-all`;
+    const btnActive = 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/10';
+    const btnInactive = isDark ? 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10' : 'bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100';
+    const labelClass = `text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`;
+    const inputClass = `w-full border p-3 rounded-xl outline-none transition-all font-bold text-sm ${
+        isDark ? 'bg-white/5 border-white/10 focus:border-blue-500 text-white' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500 text-zinc-900'
+    }`;
+    const selectClass = `w-full border p-2.5 rounded-lg outline-none text-xs font-semibold ${
+        isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-zinc-200 text-zinc-800'
+    }`;
+
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div 
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
-                onClick={onClose} 
-            />
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="collection-modal-title"
+        >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
             <div className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border ${
                 isDark ? 'bg-[#1e1e1e] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
             }`}>
                 <div className={`p-6 border-b flex justify-between items-center ${
                     isDark ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50/50'
                 }`}>
-                    <h2 className="font-bold text-lg flex items-center gap-2">
+                    <h2 id="collection-modal-title" className="font-bold text-lg flex items-center gap-2">
                         <Folder className={isDark ? 'text-blue-400' : 'text-blue-600'} size={20} />
                         {editingCol ? "Edit Collection" : "New Collection"}
                     </h2>
-                    <button 
-                        onClick={onClose} 
-                        className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-zinc-200'}`}
-                    >
+                    <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-zinc-200'}`} aria-label="Close">
                         <X size={20} />
                     </button>
                 </div>
                 <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
                     <div>
-                        <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                            Collection Name
-                        </label>
-                        <input 
-                            className={`w-full border p-3 rounded-xl outline-none transition-all font-bold text-sm ${
-                                isDark ? 'bg-white/5 border-white/10 focus:border-blue-500 text-white' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500 text-zinc-900'
-                            }`}
-                            placeholder="Enter collection name..."
-                            value={colName}
-                            onChange={e => setColName(e.target.value)}
-                        />
+                        <label htmlFor="col-name" className={labelClass}>Collection Name</label>
+                        <input id="col-name" className={inputClass} placeholder="Enter collection name..." value={colName} onChange={e => setColName(e.target.value)} />
                     </div>
                     <div>
-                        <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                            To'plam Turi (Collection Type)
-                        </label>
+                        <label className={labelClass}>To'plam Turi (Collection Type)</label>
                         <div className="grid grid-cols-3 gap-2">
                             {["reading", "listening", "mock"].map((type) => (
-                                <button
-                                    key={type}
-                                    type="button"
-                                    onClick={() => setColType(type)}
-                                    className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border font-bold text-xs transition-all ${
-                                        colType === type
-                                            ? 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/10'
-                                            : isDark 
-                                                ? 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
-                                                : 'bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100'
-                                    }`}
-                                >
+                                <button key={type} type="button" onClick={() => setColType(type)} className={`${btnBase} ${colType === type ? btnActive : btnInactive}`}>
                                     {type === "reading" ? "📖 Reading" : type === "listening" ? "🎧 Listening" : "🎓 Mock"}
                                 </button>
                             ))}
                         </div>
                     </div>
                     <div>
-                        <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                            Obuna Darajasi (Access Tier)
-                        </label>
+                        <label className={labelClass}>Obuna Darajasi (Access Tier)</label>
                         <div className="grid grid-cols-3 gap-2">
-                            {[
-                                { id: "free", label: "🎁 Free" },
-                                { id: "standard", label: "⚡ Standard" },
-                                { id: "pro", label: "👑 Pro" }
-                            ].map((tier) => (
-                                <button
-                                    key={tier.id}
-                                    type="button"
-                                    onClick={() => setAccessTier(tier.id)}
-                                    className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border font-bold text-xs transition-all ${
-                                        accessTier === tier.id
-                                            ? 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/10'
-                                            : isDark 
-                                                ? 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
-                                                : 'bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100'
-                                    }`}
-                                >
+                            {[{ id: "free", label: "🎁 Free" }, { id: "standard", label: "⚡ Standard" }, { id: "pro", label: "👑 Pro" }].map((tier) => (
+                                <button key={tier.id} type="button" onClick={() => setAccessTier(tier.id)} className={`${btnBase} ${accessTier === tier.id ? btnActive : btnInactive}`}>
                                     {tier.label}
                                 </button>
                             ))}
                         </div>
                     </div>
                     <div>
-                        <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                            Ko'rinuvchanlik (Visibility)
-                        </label>
+                        <label className={labelClass}>Ko'rinuvchanlik (Visibility)</label>
                         <div className="grid grid-cols-2 gap-2">
-                            {[
-                                { id: true, label: "🌐 Public (Dashboardda ko'rinadi)" },
-                                { id: false, label: "🔒 Private (Yashirin)" }
-                            ].map((option) => (
-                                <button
-                                    key={String(option.id)}
-                                    type="button"
-                                    onClick={() => setIsPublic(option.id)}
-                                    className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border font-bold text-xs transition-all ${
-                                        isPublic === option.id
-                                            ? 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/10'
-                                            : isDark 
-                                                ? 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
-                                                : 'bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100'
-                                    }`}
-                                >
+                            {[{ id: true, label: "🌐 Public (Dashboardda ko'rinadi)" }, { id: false, label: "🔒 Private (Yashirin)" }].map((option) => (
+                                <button key={String(option.id)} type="button" onClick={() => setIsPublic(option.id)} className={`${btnBase} ${isPublic === option.id ? btnActive : btnInactive}`}>
                                     {option.label}
                                 </button>
                             ))}
@@ -225,65 +170,33 @@ export default function CollectionModal({
                         <div className="space-y-4 p-4 rounded-xl border border-dashed border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-white/5 animate-in slide-in-from-top-2 duration-200">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">Birlashtiriluvchi Skill Testlar</h4>
                             <div>
-                                <label className={`text-[10px] font-black uppercase tracking-widest mb-1.5 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                                    1. Reading Test
-                                </label>
-                                <select
-                                    className={`w-full border p-2.5 rounded-lg outline-none text-xs font-semibold ${
-                                        isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-zinc-200 text-zinc-800'
-                                    }`}
-                                    value={colReadingId}
-                                    onChange={e => setColReadingId(e.target.value)}
-                                >
+                                <label className={labelClass}>1. Reading Test</label>
+                                <select className={selectClass} value={colReadingId} onChange={e => setColReadingId(e.target.value)}>
                                     <option value="">Tanlang...</option>
-                                    {(allAvailableTests?.reading || []).map(t => (
-                                        <option key={t.id} value={t.id}>{t.title}</option>
-                                    ))}
+                                    {(allAvailableTests?.reading || []).map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className={`text-[10px] font-black uppercase tracking-widest mb-1.5 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                                    2. Listening Test
-                                </label>
-                                <select
-                                    className={`w-full border p-2.5 rounded-lg outline-none text-xs font-semibold ${
-                                        isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-zinc-200 text-zinc-800'
-                                    }`}
-                                    value={colListeningId}
-                                    onChange={e => setColListeningId(e.target.value)}
-                                >
+                                <label className={labelClass}>2. Listening Test</label>
+                                <select className={selectClass} value={colListeningId} onChange={e => setColListeningId(e.target.value)}>
                                     <option value="">Tanlang...</option>
-                                    {(allAvailableTests?.listening || []).map(t => (
-                                        <option key={t.id} value={t.id}>{t.title}</option>
-                                    ))}
+                                    {(allAvailableTests?.listening || []).map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className={`text-[10px] font-black uppercase tracking-widest mb-1.5 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                                    3. Writing Test
-                                </label>
-                                <select
-                                    className={`w-full border p-2.5 rounded-lg outline-none text-xs font-semibold ${
-                                        isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-zinc-200 text-zinc-800'
-                                    }`}
-                                    value={colWritingId}
-                                    onChange={e => setColWritingId(e.target.value)}
-                                >
+                                <label className={labelClass}>3. Writing Test</label>
+                                <select className={selectClass} value={colWritingId} onChange={e => setColWritingId(e.target.value)}>
                                     <option value="">Tanlang...</option>
-                                    {(allAvailableTests?.writing || []).map(t => (
-                                        <option key={t.id} value={t.id}>{t.title}</option>
-                                    ))}
+                                    {(allAvailableTests?.writing || []).map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
                                 </select>
                             </div>
                         </div>
                     )}
                     <div>
-                        <label className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                            Cover Image (URL or Upload)
-                        </label>
+                        <label className={labelClass}>Cover Image (URL or Upload)</label>
                         <div className="flex gap-3">
                             <div className="flex-1 space-y-2">
-                                <input 
+                                <input
                                     className={`w-full border p-3 rounded-xl outline-none transition-all text-xs ${
                                         isDark ? 'bg-white/5 border-white/10 focus:border-blue-500 text-white' : 'bg-zinc-50 border-zinc-200 focus:border-blue-500 text-zinc-900'
                                     }`}
@@ -292,14 +205,8 @@ export default function CollectionModal({
                                     onChange={e => setColThumbnail(e.target.value)}
                                 />
                                 <div className="relative">
-                                    <input 
-                                        type="file" 
-                                        id="col-upload" 
-                                        hidden 
-                                        accept="image/*"
-                                        onChange={e => handleUploadImage(e.target.files[0])}
-                                    />
-                                    <label 
+                                    <input type="file" id="col-upload" hidden accept="image/*" onChange={e => handleUploadImage(e.target.files[0])} />
+                                    <label
                                         htmlFor="col-upload"
                                         className={`flex items-center justify-center gap-2 w-full py-2 border border-dashed rounded-xl text-xs font-bold cursor-pointer transition-all ${
                                             isDark ? 'bg-white/5 border-white/15 text-zinc-400 hover:border-blue-500 hover:text-blue-400' : 'bg-white border-zinc-300 text-zinc-500 hover:border-blue-500 hover:text-blue-600'
@@ -324,21 +231,16 @@ export default function CollectionModal({
                 </div>
                 <div className={`p-6 pt-0 flex gap-3 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
                     {editingCol && (
-                        <button 
-                            onClick={onDelete} 
-                            className="px-4 py-3 text-rose-500 font-bold text-sm hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors"
-                        >
+                        <button onClick={onDelete} className="px-4 py-3 text-rose-500 font-bold text-sm hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors">
                             Delete
                         </button>
                     )}
-                    <button 
-                        onClick={handleSaveCollection} 
+                    <button
+                        onClick={handleSaveCollection}
                         disabled={isSavingCol || !colName.trim()}
                         className={`flex-1 font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${
                             isSavingCol ? 'opacity-70 cursor-not-allowed' : ''
-                        } ${
-                            isDark ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/10' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20'
-                        }`}
+                        } bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20`}
                     >
                         {isSavingCol && <Loader2 size={16} className="animate-spin" />}
                         Save Changes

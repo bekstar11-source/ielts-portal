@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import toast from "react-hot-toast";
 import { db, storage } from "../firebase/firebase";
 import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -368,7 +369,7 @@ export const useTestEditor = (id) => {
     }, [audioMode, singleAudioUrl, partAudios]);
 
     const handleSave = async (bypass = false) => {
-        if (!testData.title) return alert("Test nomini yozing!");
+        if (!testData.title) { toast.error("Test nomini yozing!"); return; }
         setLoading(true);
         try {
             // Duplicate check logic should ideally be here too or passed as a helper
@@ -413,7 +414,7 @@ export const useTestEditor = (id) => {
                 await updateDoc(doc(db, "tests", id), payload);
                 const metadata = compileMetadata(id, payload);
                 await setDoc(doc(db, "tests_metadata", id), metadata);
-                alert("Test yangilandi!");
+                toast.success("Test muvaffaqiyatli yangilandi!");
             } else {
                 payload.createdAt = new Date().toISOString();
                 const docRef = await addDoc(collection(db, "tests"), payload);
@@ -438,12 +439,12 @@ export const useTestEditor = (id) => {
                     }
                 }
 
-                alert("Test yaratildi!");
+                toast.success("Test muvaffaqiyatli yaratildi!");
             }
             navigate("/admin/tests");
-        } catch (error) { 
-            console.error("Firestore Save Error:", error); 
-            alert("Xato: " + (error.message || "Bilinmagan xato yuz berdi")); 
+        } catch (error) {
+            console.error("Firestore Save Error:", error);
+            toast.error("Xato: " + (error.message || "Bilinmagan xato yuz berdi"));
         }
         setLoading(false);
     };

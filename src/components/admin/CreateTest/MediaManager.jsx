@@ -76,7 +76,7 @@ const MediaManager = ({
                                                 {uploading && uploadingPart === i ? (
                                                     <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                                 ) : (
-                                                    <span className="text-[9px] font-bold">UP</span>
+                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                                 )}
                                             </label>
                                         </div>
@@ -158,7 +158,7 @@ const MediaManager = ({
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <div>
-                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Start Time</span>
+                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Boshlash vaqti</span>
                                             <input
                                                 type="text"
                                                 className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
@@ -168,7 +168,7 @@ const MediaManager = ({
                                             />
                                         </div>
                                         <div>
-                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">End Time</span>
+                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Tugash vaqti</span>
                                             <input
                                                 type="text"
                                                 className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}

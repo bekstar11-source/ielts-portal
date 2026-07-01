@@ -86,6 +86,12 @@ const getTestTypeTag = (testType) => {
     } else if (t.includes('mock') || t.includes('full')) {
         label = 'Mock Exam';
         bgClasses = 'bg-purple-50 dark:bg-purple-950/40 border-purple-100 dark:border-purple-900/30 text-purple-600 dark:text-purple-400';
+    } else if (t.includes('podcast')) {
+        label = 'Podcast';
+        bgClasses = 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-100 dark:border-indigo-900/30 text-indigo-600 dark:text-indigo-400';
+    } else if (t.includes('article')) {
+        label = 'Maqola';
+        bgClasses = 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400';
     }
     
     return (
@@ -95,8 +101,18 @@ const getTestTypeTag = (testType) => {
     );
 };
 
+const getTestIconAndColor = (type) => {
+    const t = (type || '').toLowerCase();
+    if (t.includes('reading')) return { icon: <BookOpen size={16} className="text-blue-500 dark:text-blue-400" />, colorClass: 'bg-blue-50 dark:bg-blue-950/40 text-blue-550 dark:text-blue-400' };
+    if (t.includes('listening')) return { icon: <Volume2 size={16} className="text-pink-500 dark:text-pink-400" />, colorClass: 'bg-pink-50 dark:bg-pink-950/40 text-pink-550 dark:text-pink-400' };
+    if (t.includes('writing')) return { icon: <MessageSquare size={16} className="text-orange-500 dark:text-orange-400" />, colorClass: 'bg-orange-50 dark:bg-orange-950/40 text-orange-555 dark:text-orange-400' };
+    if (t.includes('podcast')) return { icon: <Volume2 size={16} className="text-indigo-500 dark:text-indigo-400" />, colorClass: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-550 dark:text-indigo-400' };
+    if (t.includes('article')) return { icon: <BookOpen size={16} className="text-emerald-500 dark:text-emerald-400" />, colorClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-555 dark:text-emerald-400' };
+    return { icon: <Flame size={16} className="text-purple-500 dark:text-purple-400" />, colorClass: 'bg-purple-50 dark:bg-purple-950/40 text-purple-550 dark:text-purple-400' };
+};
 
-export default function FeedPostCard({ post, user, userData, onLike, onCommentAdded, onDelete }) {
+
+export default function FeedPostCard({ post, user, userData, assignments = [], onLike, onCommentAdded, onDelete }) {
     const navigate = useNavigate();
     const [showComments, setShowComments] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -106,6 +122,7 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
         return 1.777; // Default to landscape instead of 4:3 to prevent initial tall stretching
     });
     const [showPodcastConfirm, setShowPodcastConfirm] = useState(false);
+    const [testConfirm, setTestConfirm] = useState(null); // { id, title, type }
 
     const { setCurrentTrack, setIsExpanded, setIsPlaying } = usePodcast();
 
@@ -209,6 +226,10 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
         ? (post.teacherName ? post.teacherName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : "US")
         : "IP";
 
+    const isTestCompleted = (testId) => {
+        return assignments.some(a => String(a.id).trim() === String(testId).trim() && a.status === 'completed');
+    };
+
     // Format relative time (e.g. "3 soat oldin")
     const getRelativeTime = (date) => {
         if (!date) return "";
@@ -222,6 +243,18 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
         if (diffMins < 60) return `${diffMins} daqiqa oldin`;
         if (diffHours < 24) return `${diffHours} soat oldin`;
         return `${diffDays} kun oldin`;
+    };
+
+    const navigateToTest = ({ id, type, title }) => {
+        if (type === 'mock_full') {
+            navigate('/mock-exam', { state: { mockData: { id, title, type: 'mock_full' } } });
+        } else if (type === 'podcast') {
+            navigate(`/share/podcast/${id}`);
+        } else if (type === 'article') {
+            navigate(`/article/${id}`);
+        } else {
+            navigate(`/test/${id}`);
+        }
     };
 
     const handleShare = () => {
@@ -271,105 +304,155 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                 }
             }
 
+            const priorityColor = {
+                high: 'from-rose-500 to-orange-500',
+                medium: 'from-amber-400 to-yellow-500',
+                low: 'from-emerald-400 to-teal-500',
+            }[(post.priority || 'medium').toLowerCase()] || 'from-amber-400 to-yellow-500';
+
             return (
-                <div className="px-4 py-2 flex flex-col gap-3">
-                    <div className="p-6 rounded-3xl border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/5 dark:bg-indigo-950/5 flex flex-col gap-5 text-left shadow-sm hover:shadow-md transition-all duration-300">
-                        {/* Tags & Urgency Indicators */}
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                            <div className="flex items-center gap-2">
-                                {getTestTypeTag(post.testType)}
-                                {getPriorityBadge(post.priority)}
-                            </div>
-                        </div>
+                <div className="px-3 py-2">
+                    {/* Main assignment card */}
+                    <div className="relative rounded-2xl overflow-hidden border border-gray-100 dark:border-white/[0.06] bg-white dark:bg-zinc-900 shadow-sm">
+                        {/* Colored top accent bar */}
+                        <div className={`h-1 w-full bg-gradient-to-r ${priorityColor}`} />
 
-                        {/* Title */}
-                        <h4 className="text-base font-bold text-gray-900 dark:text-zinc-100 tracking-tight leading-snug">
-                            {post.content || post.testTitle || 'Vazifa testi'}
-                        </h4>
-
-                        {/* Teacher Instructions Box */}
-                        {post.teacherNote && (
-                            <div className="p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/20 bg-indigo-50/10 dark:bg-indigo-950/10 text-xs text-gray-600 dark:text-zinc-400 flex items-start gap-3 relative overflow-hidden">
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-l-2xl" />
-                                <MessageSquare size={16} className="text-indigo-500 shrink-0 mt-0.5" />
-                                <div className="space-y-1">
-                                    <span className="font-bold text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">Ustoz ko'rsatmasi:</span>
-                                    <p className="italic leading-relaxed whitespace-pre-wrap">{post.teacherNote}</p>
+                        <div className="p-4 flex flex-col gap-4">
+                            {/* Header: badges + title */}
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {post.tests && post.tests.length > 0 ? (
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
+                                            {post.tests.length} ta vazifa
+                                        </span>
+                                    ) : (
+                                        getTestTypeTag(post.testType)
+                                    )}
+                                    {getPriorityBadge(post.priority)}
                                 </div>
+                                <h4 className="text-[15px] font-bold text-gray-900 dark:text-zinc-50 leading-snug tracking-tight">
+                                    {post.content || post.testTitle || 'Yangi vazifa tayinlandi'}
+                                </h4>
                             </div>
-                        )}
 
-                        {/* Metadata Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                            {/* Max Attempts */}
-                            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-100 dark:border-white/5">
-                                <RotateCcw size={15} className="text-gray-400 dark:text-zinc-500 shrink-0" />
-                                <div className="min-w-0">
-                                    <span className="text-[10px] font-semibold text-gray-400 dark:text-zinc-500 block uppercase tracking-wider">Urinishlar</span>
-                                    <span className="text-xs font-bold text-gray-700 dark:text-zinc-300 mt-0.5 block">{post.maxAttempts || 1} marta</span>
+                            {/* Teacher note */}
+                            {post.teacherNote && (
+                                <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border-l-2 border-indigo-400 dark:border-indigo-500">
+                                    <MessageSquare size={13} className="text-indigo-500 shrink-0 mt-0.5" />
+                                    <p className="text-[12px] text-indigo-700 dark:text-indigo-300 italic leading-relaxed">{post.teacherNote}</p>
                                 </div>
+                            )}
+
+                            {/* Metadata row */}
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-zinc-400 font-medium">
+                                    <RotateCcw size={12} className="text-gray-400 dark:text-zinc-500" />
+                                    <span>{post.maxAttempts || 1} ta urinish</span>
+                                </div>
+                                <span className="text-gray-200 dark:text-zinc-700">·</span>
+                                <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-zinc-400 font-medium">
+                                    <Calendar size={12} className="text-gray-400 dark:text-zinc-500" />
+                                    <span>{formattedDeadline || "Cheksiz"}</span>
+                                </div>
+                                {post.deadline && (
+                                    <>
+                                        <span className="text-gray-200 dark:text-zinc-700">·</span>
+                                        <div className={`flex items-center gap-1.5 text-[11px] font-bold ${
+                                            timeRemaining.isExpired ? 'text-rose-500' : timeRemaining.isUrgent ? 'text-amber-500' : 'text-gray-500 dark:text-zinc-400'
+                                        }`}>
+                                            <Hourglass size={12} className={timeRemaining.isUrgent && !timeRemaining.isExpired ? 'animate-pulse' : ''} />
+                                            <span>{timeRemaining.text}</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
-                            {/* Deadline Date */}
-                            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-100 dark:border-white/5">
-                                <Calendar size={15} className="text-gray-400 dark:text-zinc-500 shrink-0" />
-                                <div className="min-w-0">
-                                    <span className="text-[10px] font-semibold text-gray-400 dark:text-zinc-500 block uppercase tracking-wider">Muddati</span>
-                                    <span className="text-xs font-bold text-gray-700 dark:text-zinc-300 mt-0.5 truncate block">
-                                        {formattedDeadline || "Cheksiz"}
+                            {/* Tasks list or single CTA */}
+                            {post.tests && post.tests.length > 0 ? (
+                                <div className="flex flex-col gap-2">
+                                    <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">
+                                        Topshiriqlar ro'yxati:
                                     </span>
-                                </div>
-                            </div>
+                                    <div className="flex flex-col gap-2">
+                                        {post.tests.map((test) => {
+                                            const completed = isTestCompleted(test.id);
+                                            const { icon, colorClass } = getTestIconAndColor(test.type);
 
-                            {/* Remaining Time */}
-                            <div className={`flex items-center gap-2.5 p-3 rounded-2xl border ${
-                                timeRemaining.isExpired 
-                                    ? 'bg-rose-50/30 dark:bg-rose-950/10 border-rose-100 dark:border-rose-900/20' 
-                                    : timeRemaining.isUrgent
-                                        ? 'bg-amber-50/30 dark:bg-amber-950/10 border-amber-100 dark:border-amber-900/20'
-                                        : 'bg-gray-50/50 dark:bg-zinc-900/30 border-gray-100 dark:border-white/5'
-                            }`}>
-                                <Hourglass size={15} className={`shrink-0 ${
-                                    timeRemaining.isExpired 
-                                        ? 'text-rose-500' 
-                                        : timeRemaining.isUrgent 
-                                            ? 'text-amber-500 animate-pulse' 
-                                            : 'text-gray-400 dark:text-zinc-500'
-                                }`} />
-                                <div className="min-w-0">
-                                    <span className="text-[10px] font-semibold text-gray-400 dark:text-zinc-500 block uppercase tracking-wider">Qolgan vaqt</span>
-                                    <span className={`text-xs font-black mt-0.5 truncate block ${
-                                        timeRemaining.isExpired 
-                                            ? 'text-rose-500' 
-                                            : timeRemaining.isUrgent 
-                                                ? 'text-amber-500' 
-                                                : 'text-gray-700 dark:text-zinc-300'
-                                    }`}>
-                                        {timeRemaining.text}
-                                    </span>
+                                            return (
+                                                <div
+                                                    key={test.id}
+                                                    className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-200 ${
+                                                        completed
+                                                            ? 'bg-emerald-50/60 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/20'
+                                                            : 'bg-gray-50/60 dark:bg-zinc-800/40 border-gray-100 dark:border-white/[0.05]'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
+                                                            {icon}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-[13px] font-semibold text-gray-800 dark:text-zinc-100 truncate leading-tight">
+                                                                {test.title}
+                                                            </p>
+                                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                                <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-medium uppercase tracking-wide">
+                                                                    {test.type === 'mock_full' ? 'Mock Exam' : test.type}
+                                                                </span>
+                                                                {completed && (
+                                                                    <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-px rounded uppercase tracking-wide">
+                                                                        Bajarildi
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => setTestConfirm({ id: test.id, title: test.title, type: test.type })}
+                                                        disabled={timeRemaining.isExpired}
+                                                        className={`shrink-0 flex items-center gap-1 font-bold text-[11px] px-3 py-2 rounded-lg active:scale-[0.96] transition-all duration-150 ${
+                                                            timeRemaining.isExpired
+                                                                ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed'
+                                                                : completed
+                                                                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                                                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-500/20'
+                                                        }`}
+                                                    >
+                                                        {timeRemaining.isExpired
+                                                            ? "Tugagan"
+                                                            : completed
+                                                                ? <>Qaytadan <ArrowRight size={11} /></>
+                                                                : <>Bajarish <ArrowRight size={11} /></>
+                                                        }
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <button
+                                    onClick={() => setTestConfirm({ id: post.testId, title: post.content || post.testTitle, type: post.testType })}
+                                    disabled={timeRemaining.isExpired}
+                                    className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-3 rounded-xl active:scale-[0.98] transition-all duration-150 ${
+                                        timeRemaining.isExpired
+                                            ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed'
+                                            : isTestCompleted(post.testId)
+                                                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200'
+                                                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-500/20'
+                                    }`}
+                                >
+                                    {timeRemaining.isExpired
+                                        ? "Muddati tugagan"
+                                        : isTestCompleted(post.testId)
+                                            ? "Qaytadan topshirish"
+                                            : "Vazifani bajarish"
+                                    }
+                                    {!timeRemaining.isExpired && <ArrowRight size={14} />}
+                                </button>
+                            )}
                         </div>
-
-                        {/* CTA button */}
-                        <button
-                            onClick={() => {
-                                if (post.testType === 'mock_full') {
-                                    navigate('/mock-exam', { state: { mockData: { id: post.testId, title: post.content || post.testTitle, type: 'mock_full' } } });
-                                } else {
-                                    navigate(`/test/${post.testId}`);
-                                }
-                            }}
-                            className={`w-full flex items-center justify-center gap-2 font-bold text-xs py-3.5 rounded-2xl active:scale-[0.98] transition-all duration-200 shadow-sm shrink-0 border ${
-                                timeRemaining.isExpired
-                                    ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600 border-gray-200 dark:border-white/5 cursor-not-allowed'
-                                    : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-650 hover:border-indigo-700 text-white shadow-indigo-500/10 hover:shadow-indigo-500/20'
-                            }`}
-                            disabled={timeRemaining.isExpired}
-                        >
-                            {timeRemaining.isExpired ? "Topshirish muddati tugagan" : "Vazifani bajarish"}
-                            {!timeRemaining.isExpired && <ArrowRight size={14} />}
-                        </button>
                     </div>
                 </div>
             );
@@ -741,6 +824,62 @@ export default function FeedPostCard({ post, user, userData, onLike, onCommentAd
                                 >
                                     Ha
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Test boshlash confirmation modal */}
+            <AnimatePresence>
+                {testConfirm && (
+                    <div className="fixed inset-0 flex items-center justify-center z-[110] p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setTestConfirm(null)}
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.97, y: 8 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.97, y: 8 }}
+                            transition={{ duration: 0.18, ease: "easeOut" }}
+                            className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-[320px] border border-gray-100 dark:border-zinc-800 z-10 overflow-hidden"
+                        >
+                            {/* Top accent */}
+                            <div className="h-1 w-full bg-gradient-to-r from-indigo-500 to-violet-500" />
+                            <div className="p-6 flex flex-col items-center text-center gap-3">
+                                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+                                    <BookOpen size={22} className="text-indigo-600 dark:text-indigo-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-gray-900 dark:text-zinc-50 tracking-tight">
+                                        Testni boshlaysizmi?
+                                    </h3>
+                                    <p className="text-[12px] text-gray-500 dark:text-zinc-400 mt-1 leading-relaxed px-2">
+                                        <span className="font-semibold text-gray-700 dark:text-zinc-200">"{testConfirm.title}"</span> testini boshlashga tayyormisiz?
+                                    </p>
+                                </div>
+                                <div className="flex gap-2.5 w-full mt-1">
+                                    <button
+                                        onClick={() => setTestConfirm(null)}
+                                        className="flex-1 py-2.5 rounded-xl font-bold text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all text-sm"
+                                    >
+                                        Bekor
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const t = testConfirm;
+                                            setTestConfirm(null);
+                                            navigateToTest(t);
+                                        }}
+                                        className="flex-1 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all text-sm shadow-sm shadow-indigo-500/30 active:scale-[0.97]"
+                                    >
+                                        Boshlash
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>

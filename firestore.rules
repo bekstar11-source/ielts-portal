@@ -138,7 +138,7 @@ service cloud.firestore {
 
     // PODCAST ATTEMPTS
     match /podcastAttempts/{attemptId} {
-      allow read: if isAuth() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isAuth() && (resource == null || resource.data.userId == request.auth.uid || isAdmin() || isTeacher());
       allow create: if isAuth();
       allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();

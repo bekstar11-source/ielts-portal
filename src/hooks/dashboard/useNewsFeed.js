@@ -7,7 +7,7 @@ import {
 
 const PAGE_SIZE = 5;
 
-export function useNewsFeed(user, userData) {
+export function useNewsFeed(user, userData, groupIds = []) {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -52,9 +52,13 @@ export function useNewsFeed(user, userData) {
                     createdAt: d.data().createdAt?.seconds ? new Date(d.data().createdAt.seconds * 1000) : new Date()
                 }));
 
+                const allGroupIds = new Set([
+                    ...(groupIds || []),
+                    ...(userData?.groupId && userData.groupId !== 'none' ? [userData.groupId] : [])
+                ]);
                 const filteredPosts = fetchedPosts.filter(post => {
                     if (!post.groupId) return true;
-                    return userData?.groupId === post.groupId;
+                    return allGroupIds.has(post.groupId);
                 });
 
                 lastDocRef.current = snap.docs[snap.docs.length - 1];
@@ -84,7 +88,7 @@ export function useNewsFeed(user, userData) {
 
     useEffect(() => {
         fetchPosts(true);
-    }, [user, userData?.groupId]);
+    }, [user, userData?.groupId, groupIds.join(',')]);
 
     const handleLike = async (postId, isLiked) => {
         if (!user) return;

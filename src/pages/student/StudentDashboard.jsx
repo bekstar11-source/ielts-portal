@@ -24,7 +24,7 @@ export default function StudentDashboard() {
     const navigate = useNavigate();
     
     // 🔥 DATA HOOKS
-    const { assignments: rawAssignments, userResults, loading, refresh } = useStudentData(user);
+    const { assignments: rawAssignments, userResults, groupIds, loading, refresh } = useStudentData(user);
     const { stats: analyticsStats } = useAnalytics(user?.uid, userResults);
     const { checkLimit, incrementUsage } = useDailyLimit(userData);
 
@@ -110,7 +110,7 @@ export default function StudentDashboard() {
                     {/* Left Column: Stories & Feed */}
                     <div className="flex-1 max-w-[630px] w-full flex flex-col gap-2">
                         {/* Instagram-like news feed */}
-                        <NewsFeed user={user} userData={userData} />
+                        <NewsFeed user={user} userData={userData} assignments={rawAssignments} groupIds={groupIds} />
                     </div>
 
                     {/* Right Column: Profile Sidebar */}

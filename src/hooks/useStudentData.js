@@ -101,7 +101,7 @@ export function useStudentData(user) {
             if (!user) return { assignments: [], userResults: [] };
 
             // 1. Firestore dan yuklash
-            const [uSnap, gSnap, resultsSnap] = await Promise.all([
+            const [uSnap, gSnap, resultsSnap, podcastAttemptsSnap] = await Promise.all([
                 getDoc(doc(db, 'users', user.uid)),
                 getDocs(query(collection(db, 'groups'), where('studentIds', 'array-contains', user.uid))),
                 getDocs(query(
@@ -109,11 +109,16 @@ export function useStudentData(user) {
                     where('userId', '==', user.uid),
                     orderBy('createdAt', 'desc'),
                     limit(50)
-                ))
+                )),
+                getDocs(query(
+                    collection(db, 'podcastAttempts'),
+                    where('userId', '==', user.uid)
+                )).catch(() => ({ docs: [] }))
             ]);
 
             const userData = uSnap.data() || {};
             const userAssignments = userData.assignedTests || [];
+            const awardedItems = userData.awardedItems || [];
             
             const groupAssignments = [];
             gSnap.docs.forEach(doc => {
@@ -124,6 +129,7 @@ export function useStudentData(user) {
             });
 
             const myResults = resultsSnap?.docs?.map(d => ({ id: d.id, ...d.data() })) || [];
+            const podcastAttempts = podcastAttemptsSnap?.docs?.map(d => ({ id: d.id, ...d.data() })) || [];
 
             // 2. Assignment normalizatsiya
             const normalizeAssignment = (assign) => {
@@ -144,15 +150,26 @@ export function useStudentData(user) {
             // 3. Testlar va Set larni BATCH bilan fetch qilish
             const directTestIds = [];
             const setIdsToFetch = [];
+            const podcastIdsToFetch = [];
+            const articleIdsToFetch = [];
             allAssignments.forEach(assign => {
-                if (assign.type === 'set') { setIdsToFetch.push(assign.id); }
-                else if (assign.id && !assign.id.startsWith('MOCK_')) { directTestIds.push(assign.id); }
+                if (assign.type === 'set') { 
+                    setIdsToFetch.push(assign.id); 
+                } else if (assign.type === 'podcast') {
+                    podcastIdsToFetch.push(assign.id);
+                } else if (assign.type === 'article') {
+                    articleIdsToFetch.push(assign.id);
+                } else if (assign.id && !assign.id.startsWith('MOCK_')) { 
+                    directTestIds.push(assign.id); 
+                }
             });
 
-            // Parallel fetch sets and direct tests
-            const [setsMap, directTestsMap] = await Promise.all([
+            // Parallel fetch sets, direct tests, podcasts, and articles
+            const [setsMap, directTestsMap, podcastsMap, articlesMap] = await Promise.all([
                 fetchDocumentsByIds('testSets', setIdsToFetch),
-                fetchDocumentsByIds('tests', directTestIds)
+                fetchDocumentsByIds('tests', directTestIds),
+                fetchDocumentsByIds('podcasts', podcastIdsToFetch),
+                fetchDocumentsByIds('articles', articleIdsToFetch)
             ]);
 
             // Now check if we need more tests from the sets
@@ -237,12 +254,49 @@ export function useStudentData(user) {
                             totalQuestions: subTests.reduce((sum, t) => sum + (getActualQuestionCount(t.questions) || t.totalQuestions || 0), 0)
                         });
                     }
+                } else if (assign.type === 'podcast') {
+                    const podcastData = podcastsMap[assign.id];
+                    if (podcastData) {
+                        const attempt = podcastAttempts.find(a => a.podcastId === assign.id);
+                        const isCompleted = awardedItems.includes(assign.id) || !!attempt?.completedAt;
+                        
+                        processedList.push({
+                            ...podcastData,
+                            ...assign,
+                            id: assign.id,
+                            title: podcastData.title || assign.title || 'Podcast Episode',
+                            type: 'podcast',
+                            status: isCompleted ? 'completed' : 'open',
+                            result: attempt ? {
+                                id: attempt.id,
+                                bandScore: attempt.ieltsBands?.overall || attempt.score || null,
+                                score: attempt.ieltsBands?.overall || attempt.score || null,
+                                date: attempt.completedAt?.toDate ? attempt.completedAt.toDate() : attempt.completedAt,
+                            } : null
+                        });
+                    }
+                } else if (assign.type === 'article') {
+                    const articleData = articlesMap[assign.id];
+                    if (articleData) {
+                        const isCompleted = awardedItems.includes(assign.id);
+                        processedList.push({
+                            ...articleData,
+                            ...assign,
+                            id: assign.id,
+                            title: articleData.title || assign.title || 'Article',
+                            type: 'article',
+                            status: isCompleted ? 'completed' : 'open',
+                            result: isCompleted ? {
+                                id: assign.id,
+                                bandScore: null,
+                                score: null,
+                                date: assign.date || null,
+                            } : null
+                        });
+                    }
                 } else {
                     const testDataFromDb = testsMap[assign.id];
                     if (testDataFromDb) {
-                        const bestResult = findBestResult(assign.id, myResults);
-                        const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim()).length;
-                        
                         const typeMap = {
                             'mcq': 'MCQ', 'multiple_choice': 'MCQ', 'gap_fill': 'GAP FILL',
                             'notes_completion': 'NOTES', 'summary_completion': 'SUMMARY',
@@ -255,7 +309,7 @@ export function useStudentData(user) {
                             'diagram_labeling': 'DIAGRAM', 'heading_matching': 'HEADINGS',
                             'paragraph_matching': 'PARA MATCH',
                         };
-                        
+
                         const questionTypes = [];
                         if (testDataFromDb.questions && Array.isArray(testDataFromDb.questions)) {
                             const seen = new Set();
@@ -269,7 +323,51 @@ export function useStudentData(user) {
 
                         let totalQuestions = testDataFromDb.totalQuestions || 0;
                         if (!totalQuestions && testDataFromDb.questions) totalQuestions = getActualQuestionCount(testDataFromDb.questions);
-                        
+
+                        const now = new Date();
+                        const start = safeDate(assign.startDate);
+                        const end = safeDate(assign.deadline || assign.endDate);
+
+                        const tLow = (testDataFromDb.type || '').toLowerCase();
+                        const isListening = tLow.includes('listening');
+
+                        // Part-specific assignment: expand into one entry per selected part
+                        if (isListening && Array.isArray(assign.selectedParts) && assign.selectedParts.length > 0) {
+                            assign.selectedParts.forEach(partNum => {
+                                const partResult = myResults.find(r =>
+                                    String(r.testId).trim() === String(assign.id).trim() &&
+                                    Number(r.partNumber) === partNum
+                                ) || null;
+                                const partAttemptsCount = myResults.filter(r =>
+                                    String(r.testId).trim() === String(assign.id).trim() &&
+                                    Number(r.partNumber) === partNum
+                                ).length;
+
+                                let status = 'open';
+                                if (partResult) status = 'completed';
+                                else if (start && now < start) status = 'upcoming';
+                                else if (end && now > end) status = 'expired';
+
+                                processedList.push({
+                                    ...testDataFromDb,
+                                    ...assign,
+                                    id: assign.id,
+                                    partNumber: partNum,
+                                    title: `${testDataFromDb?.title || assign.title || 'IELTS Test'} · Part ${partNum}`,
+                                    type: testDataFromDb?.type || assign.type || 'listening',
+                                    attemptsCount: partAttemptsCount,
+                                    questionTypes,
+                                    totalQuestions,
+                                    status,
+                                    result: partResult,
+                                });
+                            });
+                            return;
+                        }
+
+                        const bestResult = findBestResult(assign.id, myResults);
+                        const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim()).length;
+
                         const finalTestData = {
                             ...testDataFromDb,
                             ...assign,
@@ -281,9 +379,6 @@ export function useStudentData(user) {
                             totalQuestions
                         };
 
-                        const now = new Date();
-                        const start = safeDate(assign.startDate);
-                        const end = safeDate(assign.deadline || assign.endDate);
                         let status = 'open';
                         if (bestResult) status = 'completed';
                         else if (start && now < start) status = 'upcoming';
@@ -294,14 +389,18 @@ export function useStudentData(user) {
                 }
             });
 
-            const uniqueTests = processedList.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+            // Dedup: part entries share the same id but differ by partNumber
+            const uniqueTests = processedList.filter((v, i, a) =>
+                a.findIndex(t => t.id === v.id && (t.partNumber ?? null) === (v.partNumber ?? null)) === i
+            );
             uniqueTests.sort((a, b) => {
                 const dA = safeDate(a.assignedAt) || safeDate(a.createdAt);
                 const dB = safeDate(b.assignedAt) || safeDate(b.createdAt);
                 return (dB ? dB.getTime() : 0) - (dA ? dA.getTime() : 0);
             });
 
-            return { assignments: uniqueTests, userResults: myResults };
+            const groupIds = gSnap.docs.map(d => d.id);
+            return { assignments: uniqueTests, userResults: myResults, groupIds };
         }
     });
 
@@ -309,12 +408,13 @@ export function useStudentData(user) {
         return queryClient.invalidateQueries({ queryKey });
     };
 
-    return { 
-        assignments: data?.assignments || [], 
-        userResults: data?.userResults || [], 
-        loading: isLoading, 
+    return {
+        assignments: data?.assignments || [],
+        userResults: data?.userResults || [],
+        groupIds: data?.groupIds || [],
+        loading: isLoading,
         isFetching,
-        error: error?.message, 
+        error: error?.message,
         refresh 
     };
 }

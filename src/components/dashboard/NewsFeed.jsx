@@ -5,11 +5,11 @@ import StoriesContainer from './StoriesContainer';
 import { db } from '../../firebase/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 
-export default function NewsFeed({ user, userData }) {
-    const { 
-        posts, loading, loadingMore, hasMore, 
-        fetchNextPage, handleLike, handleCommentAdded, handlePostDeleted 
-    } = useNewsFeed(user, userData);
+export default function NewsFeed({ user, userData, assignments, groupIds = [] }) {
+    const {
+        posts, loading, loadingMore, hasMore,
+        fetchNextPage, handleLike, handleCommentAdded, handlePostDeleted
+    } = useNewsFeed(user, userData, groupIds);
 
     const loaderRef = useRef(null);
 
@@ -86,6 +86,7 @@ export default function NewsFeed({ user, userData }) {
                         post={post}
                         user={user}
                         userData={userData}
+                        assignments={assignments}
                         onLike={handleLike}
                         onCommentAdded={() => handleCommentAdded(post.id)}
                         onDelete={handleDeletePost}

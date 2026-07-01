@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, ChevronDown, Check, X, Bookmark, Layers, HelpCircle, RotateCcw } from 'lucide-react';
+import { Search, ChevronDown, Check, X, Bookmark, Layers, HelpCircle, RotateCcw, ArrowUpAZ, ArrowDownAZ } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../../context/LanguageContext';
 
@@ -26,7 +26,9 @@ export default function PracticeFilters({
   isStandalonePage = false,
   freeOnly = false,
   setFreeOnly,
-  showFreeFilter = false
+  showFreeFilter = false,
+  sortOrder = 'desc',
+  setSortOrder
 }) {
   const { t } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -400,6 +402,18 @@ export default function PracticeFilters({
                   )}
                 </AnimatePresence>
               </div>
+            )}
+
+            {/* Sort Order Toggle (Listening only) */}
+            {activeTab === 'listening' && setSortOrder && (
+              <button
+                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                title={sortOrder === 'desc' ? 'Z → A (20, 19, 18...)' : 'A → Z (14, 15, 16...)'}
+              >
+                {sortOrder === 'desc' ? <ArrowDownAZ size={14} /> : <ArrowUpAZ size={14} />}
+                <span>{sortOrder === 'desc' ? 'Z → A' : 'A → Z'}</span>
+              </button>
             )}
 
             {/* DROPDOWN 3: Question Types */}

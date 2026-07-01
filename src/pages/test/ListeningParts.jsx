@@ -51,6 +51,7 @@ export default function ListeningParts() {
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
   const [activePartFilter, setActivePartFilter] = useState('all');
   const [freeOnly, setFreeOnly] = useState(false);
+  const [sortOrder, setSortOrder] = useState('desc');
   
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
@@ -84,15 +85,7 @@ export default function ListeningParts() {
   const rawAssignments = useMemo(() => {
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
-    let combined = [...assignments, ...uniqueLibrary];
-
-    // Sort combined tests so free tests are at the beginning
-    combined.sort((a, b) => {
-      if (a.isFree && !b.isFree) return -1;
-      if (!a.isFree && b.isFree) return 1;
-      return 0;
-    });
-    return combined;
+    return [...assignments, ...uniqueLibrary];
   }, [assignments, libraryTests]);
 
   const fetchLibraryPage = async (isFirstPage = false) => {
@@ -328,11 +321,22 @@ export default function ListeningParts() {
       }
     });
 
-    // Sort so that free ones appear first
+    const getBookNum = (title) => {
+      const match = (title || '').match(/cambridge\s*(\d+)/i);
+      return match ? parseInt(match[1], 10) : null;
+    };
+
     resultList.sort((a, b) => {
       if (a.isFree && !b.isFree) return -1;
       if (!a.isFree && b.isFree) return 1;
-      return 0;
+
+      const bookA = getBookNum(a.title);
+      const bookB = getBookNum(b.title);
+      if (bookA !== null && bookB !== null && bookA !== bookB) {
+        return bookB - bookA; // descending: 20, 19, 18...
+      }
+
+      return (a.title || '').localeCompare(b.title || '', undefined, { numeric: true, sensitivity: 'base' });
     });
 
     return resultList;
@@ -350,23 +354,43 @@ export default function ListeningParts() {
 
   const filteredVirtualParts = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return partTestsList.filter(part => {
+    const filtered = partTestsList.filter(part => {
       const matchesSearch = !q || part.title?.toLowerCase().includes(q);
       const isDone = !!part.result;
-      const matchesStatus = selectedStatus === 'all' || 
-                           (selectedStatus === 'completed' && isDone) || 
+      const matchesStatus = selectedStatus === 'all' ||
+                           (selectedStatus === 'completed' && isDone) ||
                            (selectedStatus === 'not_completed' && !isDone);
-      
-      const matchesType = selectedQuestionTypes.length === 0 || 
+
+      const matchesType = selectedQuestionTypes.length === 0 ||
                           (part.questionTypes && part.questionTypes.some(t => qTypeMatchesSelected(t, selectedQuestionTypes)));
-      
+
       const matchesPartTab = activePartFilter === 'all' || String(part.partNumber) === activePartFilter;
       const matchesPartFilter = selectedParts.length === 0 || selectedParts.includes(part.partNumber);
       const matchesFree = !freeOnly || !!part.isFree;
 
       return matchesSearch && matchesStatus && matchesType && matchesPartTab && matchesPartFilter && matchesFree;
     });
-  }, [partTestsList, searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter, selectedParts, freeOnly]);
+
+    const getBookNum = (title) => {
+      const match = (title || '').match(/cambridge\s*(\d+)/i);
+      return match ? parseInt(match[1], 10) : null;
+    };
+
+    filtered.sort((a, b) => {
+      if (a.isFree && !b.isFree) return -1;
+      if (!a.isFree && b.isFree) return 1;
+
+      const bookA = getBookNum(a.title);
+      const bookB = getBookNum(b.title);
+      if (bookA !== null && bookB !== null && bookA !== bookB) {
+        return sortOrder === 'asc' ? bookA - bookB : bookB - bookA;
+      }
+      const cmp = (a.title || '').localeCompare(b.title || '', undefined, { numeric: true, sensitivity: 'base' });
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+
+    return filtered;
+  }, [partTestsList, searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter, selectedParts, freeOnly, sortOrder]);
 
   const handleStartTest = (test) => { 
     if (test.isFree) {
@@ -479,6 +503,8 @@ export default function ListeningParts() {
           freeOnly={freeOnly}
           setFreeOnly={setFreeOnly}
           showFreeFilter={!isPro && !isStandard}
+          sortOrder={sortOrder}
+          setSortOrder={setSortOrder}
         />
 
         <div className="max-w-[1440px] mx-auto px-6">

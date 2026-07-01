@@ -125,6 +125,19 @@ export function useStudentDashboard(user, userData, rawAssignments, userResults,
             navigate('/mock-exam', { state: { mockData: test } });
             return;
         }
+        if (test.type === 'podcast') {
+            const isSpotify = test.mode === 'spotify' || test.podcastType === 'spotify';
+            navigate(isSpotify ? `/podcast/spotify/${test.id}` : `/podcast/${test.id}`);
+            return;
+        }
+        if (test.type === 'article') {
+            navigate(`/article/${test.id}`);
+            return;
+        }
+        if (test.partNumber) {
+            navigate(`/test/${test.id || test.testId}?part=${test.partNumber}`);
+            return;
+        }
         navigate(`/test/${test.id || test.testId}`);
     };
 

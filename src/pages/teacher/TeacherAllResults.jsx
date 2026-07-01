@@ -120,10 +120,16 @@ export default function TeacherAllResults() {
           // Duration calculation
           let durationStr = "-";
           let timeSpentSeconds = 0;
-          if (d.timeSpent) {
-            timeSpentSeconds = d.timeSpent;
-            const mins = Math.floor(d.timeSpent / 60);
-            const secs = d.timeSpent % 60;
+          let dbTimeSpent = d.timeSpent;
+          if (dbTimeSpent === undefined && d.attempts && Array.isArray(d.attempts) && d.attempts.length > 0) {
+            const lastAttempt = d.attempts[d.attempts.length - 1];
+            dbTimeSpent = lastAttempt.timeSpent;
+          }
+
+          if (dbTimeSpent) {
+            timeSpentSeconds = dbTimeSpent;
+            const mins = Math.floor(dbTimeSpent / 60);
+            const secs = dbTimeSpent % 60;
             durationStr = `${mins} daq ${secs} sek`;
           } else if (d.duration) {
             timeSpentSeconds = d.duration * 60;

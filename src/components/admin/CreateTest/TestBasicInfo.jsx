@@ -1,7 +1,34 @@
 import React from "react";
 import TagSelector from "../../ui/TagSelector";
 
-const TestBasicInfo = ({ testData, setTestData, collections, isDark }) => {
+const Toggle = ({ label, hint, value, onChange, isDark }) => (
+    <div className="flex items-center justify-between py-2.5">
+        <div>
+            <span className={`text-xs font-bold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{label}</span>
+            {hint && <p className="text-[10px] opacity-40 mt-0.5">{hint}</p>}
+        </div>
+        <button
+            onClick={() => onChange(!value)}
+            className={`w-10 h-5 rounded-full p-1 transition-all duration-300 shrink-0 ${value ? 'bg-blue-600' : 'bg-gray-400'}`}
+        >
+            <div className={`w-3 h-3 bg-white rounded-full transition-transform duration-300 ${value ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
+    </div>
+);
+
+const TestBasicInfo = ({
+    testData,
+    setTestData,
+    collections,
+    isDark,
+    isFree,
+    setIsFree,
+    isMockMode,
+    setIsMockMode,
+    publishToFeed,
+    setPublishToFeed,
+    isEditMode,
+}) => {
     const handleTagsChange = (tags) => {
         setTestData(prev => ({ ...prev, tags }));
     };
@@ -42,17 +69,17 @@ const TestBasicInfo = ({ testData, setTestData, collections, isDark }) => {
                     >
                         {testData.type === 'listening' ? (
                             <>
-                                <option value="full">Full Test (1-40)</option>
-                                <option value="part 1">Part 1</option>
-                                <option value="part 2">Part 2</option>
-                                <option value="part 3">Part 3</option>
-                                <option value="part 4">Part 4</option>
+                                <option value="full">To'liq Test (1-40)</option>
+                                <option value="part 1">1-qism</option>
+                                <option value="part 2">2-qism</option>
+                                <option value="part 3">3-qism</option>
+                                <option value="part 4">4-qism</option>
                             </>
                         ) : (
                             <>
-                                <option value="easy">Passage 1 (Easy)</option>
-                                <option value="medium">Passage 2 (Medium)</option>
-                                <option value="hard">Passage 3 (Hard)</option>
+                                <option value="easy">1-matn (Oson)</option>
+                                <option value="medium">2-matn (O'rta)</option>
+                                <option value="hard">3-matn (Qiyin)</option>
                             </>
                         )}
                     </select>
@@ -73,6 +100,36 @@ const TestBasicInfo = ({ testData, setTestData, collections, isDark }) => {
                 <div className="md:col-span-2">
                     <label className="text-xs font-bold mb-1.5 block opacity-60">Taglar</label>
                     <TagSelector selectedTags={testData.tags || []} onChange={handleTagsChange} />
+                </div>
+            </div>
+
+            {/* Test Sozlamalari */}
+            <div className={`mt-5 pt-4 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                <h4 className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1">Test Sozlamalari</h4>
+                <div className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
+                    <Toggle
+                        label="Bepulmi?"
+                        hint="Barcha foydalanuvchilar bepul ochishi mumkin"
+                        value={isFree}
+                        onChange={setIsFree}
+                        isDark={isDark}
+                    />
+                    <Toggle
+                        label="Eksklyuzivmi?"
+                        hint="Mock imtihon sifatida ko'rsatiladi"
+                        value={isMockMode}
+                        onChange={setIsMockMode}
+                        isDark={isDark}
+                    />
+                    {!isEditMode && (
+                        <Toggle
+                            label="Feedga post qilish?"
+                            hint="Saqlanganda yangilik sifatida e'lon qilinadi"
+                            value={publishToFeed}
+                            onChange={setPublishToFeed}
+                            isDark={isDark}
+                        />
+                    )}
                 </div>
             </div>
         </div>

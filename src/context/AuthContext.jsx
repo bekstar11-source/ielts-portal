@@ -196,6 +196,7 @@ export function AuthProvider({ children }) {
         setUserData(null);
         setLoading(false);
       } else {
+        setLoading(true); // Firestore fetch boshlanishidan oldin loading=true bo'lishini kafolatlash
         try {
           let docSnap;
           try {
@@ -237,8 +238,29 @@ export function AuthProvider({ children }) {
                 await setDoc(docRef, newUserData);
               }
               setUserData(newUserData);
+              setLoading(false);
+            } else {
+              // Password user — doc may not exist yet due to signup race condition
+              // (onAuthStateChanged fires before setDoc completes in signup()).
+              // Retry with backoff before giving up.
+              let found = false;
+              for (let attempt = 0; attempt < 5; attempt++) {
+                await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+                try {
+                  const retrySnap = await getDoc(doc(db, "users", currentUser.uid));
+                  if (retrySnap.exists()) {
+                    const processed = await processUserData(currentUser.uid, retrySnap.data());
+                    setUserData(processed);
+                    found = true;
+                    break;
+                  }
+                } catch (e) { /* retry */ }
+              }
+              if (!found) {
+                console.warn("Password user Firestore doc not found after retries.");
+              }
+              setLoading(false);
             }
-            setLoading(false);
           }
         } catch (error) {
           console.error("Firestore user data loading error (permanent):", error);
