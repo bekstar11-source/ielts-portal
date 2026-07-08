@@ -468,7 +468,7 @@ export default function ReadingInterface({
         />
       </div>
 
-      {/* {isReviewMode && <VocabSynonymCanvas captureData={captureData} onClearCapture={onClearCapture} userId={userId} testId={testId} testTitle={testData?.title || testName || testId} />} */}
+      {isReviewMode && <VocabSynonymCanvas captureData={captureData} onClearCapture={onClearCapture} userId={userId} testId={testId} testTitle={testData?.title || testName || testId} />}
 
       <ReadingNotesSidePanel 
         isVisible={isNotesVisible}

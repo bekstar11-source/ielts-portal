@@ -170,6 +170,8 @@ export default function TeacherDashboard() {
         boxShadow: isDark
             ? '0 4px 24px rgba(0,0,0,0.3)'
             : '0 4px 24px rgba(0,0,0,0.06)',
+        transform: 'translateZ(0)',
+        willChange: 'transform',
     };
 
     return (
@@ -203,6 +205,7 @@ export default function TeacherDashboard() {
                             color: isDark ? '#f9a8d4' : '#be123c',
                             border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)',
                             backdropFilter: 'blur(8px)',
+                            willChange: 'backdrop-filter',
                         }}
                     >
                         <Sparkle size={14} weight="fill" />
@@ -248,6 +251,7 @@ export default function TeacherDashboard() {
                             color: isDark ? '#fff' : '#0a0a0a',
                             border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
                             backdropFilter: 'blur(8px)',
+                            willChange: 'backdrop-filter',
                         }}
                     >
                         Barcha guruhlar
@@ -260,6 +264,7 @@ export default function TeacherDashboard() {
                             color: isDark ? '#FDE047' : '#CA8A04',
                             border: isDark ? '1px solid rgba(234,179,8,0.3)' : '1px solid rgba(250,204,21,0.5)',
                             backdropFilter: 'blur(8px)',
+                            willChange: 'backdrop-filter',
                         }}
                     >
                         <Crown size={18} weight="fill" />
@@ -273,6 +278,7 @@ export default function TeacherDashboard() {
                             color: isDark ? '#60A5FA' : '#2563EB',
                             border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.5)',
                             backdropFilter: 'blur(8px)',
+                            willChange: 'backdrop-filter',
                         }}
                     >
                         <Monitor size={18} weight="fill" />
@@ -333,6 +339,7 @@ export default function TeacherDashboard() {
                                     background: card.bg,
                                     backdropFilter: 'blur(8px)',
                                     WebkitBackdropFilter: 'blur(8px)',
+                                    willChange: 'backdrop-filter',
                                     border: isDark
                                         ? '1px solid rgba(255,255,255,0.06)'
                                         : '1px solid rgba(255,255,255,0.6)',

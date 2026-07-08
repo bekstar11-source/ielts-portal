@@ -9,7 +9,7 @@ import {
     FlowChartQuestion,
     QuestionExplanation
 } from '../ReadingQuestionTypes';
-import { getRangeLabel, cleanInstructions, toRoman } from './RightPaneUtils';
+import { getRangeLabel, cleanInstructions, getHeadingOptionLabels } from './RightPaneUtils';
 
 const QuestionGroup = ({ 
     group, 
@@ -93,34 +93,29 @@ const QuestionGroup = ({
                             List of Headings
                         </p>
                         <div className="flex flex-col gap-2">
-                            {group.options.map((opt, idx) => {
-                                const optText = typeof opt === 'object' ? opt.text : opt;
-                                let optLabel = typeof opt === 'object' ? (opt.label || opt.id) : null;
-                                
-                                if (!optLabel) {
-                                    const match = String(optText).trim().match(/^([ivx\d]+)[\.\)\s]+/i);
-                                    if (match) {
-                                        optLabel = match[1].toLowerCase();
-                                    } else {
-                                        optLabel = toRoman(idx + 1);
-                                    }
-                                }
+                            {(() => {
+                                const headingLabels = getHeadingOptionLabels(group.options);
+                                return group.options.map((opt, idx) => {
+                                    const optText = typeof opt === 'object' ? opt.text : opt;
+                                    const optLabel = headingLabels[idx];
 
-                                const questions = group.items || [];
-                                const isUsed = questions.some(q => userAnswers[q.id] === optLabel);
+                                    const questions = group.items || [];
+                                    const isUsed = questions.some(q => userAnswers[q.id] === optLabel);
 
-                                if (isUsed && !isReviewMode) return null;
+                                    if (isUsed && !isReviewMode) return null;
 
-                                return (
-                                    <ReadingDraggableHeading
-                                        key={idx}
-                                        label={optLabel}
-                                        text={optText}
-                                        isUsed={isUsed}
-                                        isReviewMode={isReviewMode}
-                                    />
-                                );
-                            })}
+                                    return (
+                                        <ReadingDraggableHeading
+                                            key={idx}
+                                            optionKey={idx}
+                                            label={optLabel}
+                                            text={optText}
+                                            isUsed={isUsed}
+                                            isReviewMode={isReviewMode}
+                                        />
+                                    );
+                                });
+                            })()}
                             {!isReviewMode && (group.items || []).length > 0 && 
                              (group.items || []).every(q => userAnswers[q.id]) && (
                                 <div className="text-center py-4 text-gray-400 text-[12px] border-2 border-dashed border-gray-100 rounded-lg italic">

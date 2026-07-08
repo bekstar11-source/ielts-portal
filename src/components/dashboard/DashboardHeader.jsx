@@ -28,7 +28,8 @@ import {
   Sun,
   LayoutDashboard,
   FilePlus,
-  Plus
+  Plus,
+  Award
 } from 'lucide-react';
 import SearchOverlay from './SearchOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -293,6 +294,7 @@ export default function DashboardHeader({
       { id: 't_create_writing', label: "Writing Yaratish", path: '/teacher/create-writing', icon: Plus },
       { id: 't_writing_review', label: "Writing Tekshirish", path: '/teacher/writing-review', icon: PenTool },
       { id: 't_stats', label: "Guruh Statistikasi", path: '/teacher/group-stats', icon: BarChart2 },
+      { id: 't_my_results', label: "Mening Natijalarim", path: '/my-results', icon: Award },
       { id: 't_results', label: "Barcha Natijalar", path: '/teacher/results', icon: ClipboardList },
       { id: 't_subscription', label: "Obuna & To'lovlar", path: '/teacher/subscription', icon: CreditCard }
     ];

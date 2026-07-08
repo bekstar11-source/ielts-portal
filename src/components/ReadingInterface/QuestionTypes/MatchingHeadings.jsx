@@ -2,10 +2,11 @@ import React from "react";
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { Check } from 'lucide-react';
 import { stripRomanNumerals } from './CommonComponents';
+import { getHeadingOptionLabels } from '../RightPane/RightPaneUtils';
 
-export const ReadingDraggableHeading = ({ label, text, isUsed, isReviewMode }) => {
+export const ReadingDraggableHeading = ({ optionKey, label, text, isUsed, isReviewMode }) => {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `reading-heading-${label}`,
+        id: `reading-heading-${optionKey}`,
         disabled: isUsed || isReviewMode,
         data: { label, text }
     });
@@ -45,23 +46,11 @@ export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewM
 
     const cleanStr = (s) => String(s || "").trim().toLowerCase().replace(/\.$/, '');
 
+    const headingLabels = React.useMemo(() => getHeadingOptionLabels(options), [options]);
+
     const selectedOption = options?.find((opt, idx) => {
-        const toRomanLocal = (n) => {
-            const lookup = { m: 1000, cm: 900, d: 500, cd: 400, c: 100, xc: 90, l: 50, xl: 40, x: 10, ix: 9, v: 5, iv: 4, i: 1 };
-            let roman = '', i;
-            for (i in lookup) { while (n >= lookup[i]) { roman += i; n -= lookup[i]; } }
-            return roman;
-        };
-
         const optText = typeof opt === 'object' ? opt.text : opt;
-        let optLabel = typeof opt === 'object' ? (opt.label || opt.id) : null;
-        
-        if (!optLabel) {
-            const match = String(optText).trim().match(/^([ivx\d]+)[\.\)\s]+/i);
-            optLabel = match ? match[1].toLowerCase() : toRomanLocal(idx + 1);
-        }
-
-        return cleanStr(optLabel) === cleanStr(value) || cleanStr(optText) === cleanStr(value);
+        return cleanStr(headingLabels[idx]) === cleanStr(value) || cleanStr(optText) === cleanStr(value);
     });
 
     const getOptionFullContent = () => {
@@ -140,19 +129,8 @@ export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewM
                     <span className="opacity-80 mr-1">Correct:</span>
                     {(() => {
                         const found = options?.find((o, idx) => {
-                            const toRomanLocal = (n) => {
-                                const lookup = { m: 1000, cm: 900, d: 500, cd: 400, c: 100, xc: 90, l: 50, xl: 40, x: 10, ix: 9, v: 5, iv: 4, i: 1 };
-                                let roman = '', i;
-                                for (i in lookup) { while (n >= lookup[i]) { roman += i; n -= lookup[i]; } }
-                                return roman;
-                            };
                             const optText = typeof o === 'object' ? o.text : o;
-                            let optLabel = typeof o === 'object' ? (o.label || o.id) : null;
-                            if (!optLabel) {
-                                const match = String(optText).trim().match(/^([ivx\d]+)[\.\)\s]+/i);
-                                optLabel = match ? match[1].toLowerCase() : toRomanLocal(idx + 1);
-                            }
-                            return cleanStr(optLabel) === cleanStr(correctAnswer) || cleanStr(optText) === cleanStr(correctAnswer);
+                            return cleanStr(headingLabels[idx]) === cleanStr(correctAnswer) || cleanStr(optText) === cleanStr(correctAnswer);
                         });
                         const finalText = found ? (typeof found === 'object' ? found.text : found) : correctAnswer;
                         return stripRomanNumerals(finalText);
@@ -171,11 +149,7 @@ export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewM
                             {options?.map((opt, idx) => {
                                 const optText = typeof opt === 'object' ? opt.text : opt;
                                 const cleanText = stripRomanNumerals(optText);
-                                let optLabel = typeof opt === 'object' ? (opt.label || opt.id) : null;
-                                if (!optLabel) {
-                                    const match = String(optText).trim().match(/^([ivx\d]+)[\.\)\s]+/i);
-                                    optLabel = match ? match[1].toLowerCase() : (idx + 1); 
-                                }
+                                const optLabel = headingLabels[idx];
 
                                 // Check if this option is used elsewhere
                                 const isUsedElsewhere = userAnswers && Object.entries(userAnswers).some(([qId, ans]) => qId !== questionId && cleanStr(ans) === cleanStr(optLabel));

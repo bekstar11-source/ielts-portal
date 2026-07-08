@@ -14,6 +14,38 @@ export const toRoman = (num) => {
     return roman;
 };
 
+// Derives a stable, collision-free label ("i", "ii", ...) for each heading option.
+// Only treats a leading "i"/"v"/"x"/digit run as a numeral marker when it's followed by
+// "." or ")" (a real list marker) — a bare space after "I"/"V"/"X" is almost always just
+// the start of an English sentence, not a numeral, so it must not be matched here.
+export const getHeadingOptionLabels = (options) => {
+    if (!Array.isArray(options)) return [];
+    const used = new Set();
+
+    return options.map((opt, idx) => {
+        const optText = typeof opt === 'object' ? opt.text : opt;
+        let label = typeof opt === 'object' ? (opt.label || opt.id) : null;
+
+        if (!label) {
+            const match = String(optText || '').trim().match(/^([ivx\d]+)[\.\)]/i);
+            label = match ? match[1].toLowerCase() : null;
+        }
+
+        let candidate = label ? String(label).toLowerCase() : null;
+        if (!candidate || used.has(candidate)) {
+            let fallbackNum = idx + 1;
+            candidate = toRoman(fallbackNum);
+            while (used.has(candidate)) {
+                fallbackNum += 1;
+                candidate = toRoman(fallbackNum);
+            }
+        }
+
+        used.add(candidate);
+        return candidate;
+    });
+};
+
 export const getRangeLabel = (group) => {
     let allItems = group.items ? [...group.items] : [];
     if (group.questions) allItems = [...allItems, ...group.questions];

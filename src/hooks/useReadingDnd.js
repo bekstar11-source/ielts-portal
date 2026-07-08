@@ -26,11 +26,13 @@ export const useReadingDnd = (testData, activePassage, parentAnswers, handleDual
 
         const activeId = String(active.id);
         const overId = String(over.id);
-        
+
         if (!activeId.startsWith('reading-heading-') || !overId.startsWith('reading-drop-')) return;
 
-        const headingLabel = activeId.replace('reading-heading-', '');
+        const headingLabel = active.data?.current?.label;
         const questionId = overId.replace('reading-drop-', '');
+
+        if (!headingLabel) return;
 
         const currentPassageId = testData?.passages?.[activePassage]?.id;
         const matchingGroup = testData?.questions?.find(g => {

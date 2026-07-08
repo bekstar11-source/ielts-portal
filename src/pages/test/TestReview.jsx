@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -35,6 +35,15 @@ export default function TestReview() {
     const [flaggedQuestions] = useState(new Set());
 
     const [readingActivePart, setReadingActivePart] = useState(0);
+
+    // --- WORDBANK / KEYWORD CAPTURE ---
+    const [captureData, setCaptureData] = useState(null);
+    const handleAddToWordBank = useCallback((word, source, context) => {
+        setCaptureData({ word, source, context, timestamp: Date.now() });
+    }, []);
+    const handleClearCapture = useCallback(() => {
+        setCaptureData(null);
+    }, []);
 
     const {
         loading, testData, resultData,
@@ -180,6 +189,9 @@ export default function TestReview() {
                             partNumber={resultData.partNumber}
                             activePart={readingActivePart}
                             setActivePart={setReadingActivePart}
+                            onAddToWordBank={handleAddToWordBank}
+                            captureData={captureData}
+                            onClearCapture={handleClearCapture}
                         />
                     ) : testData.type?.toLowerCase() === 'listening' ? (
                         <div className="flex flex-col w-full h-full bg-gray-50">
