@@ -93,7 +93,7 @@ const ReviewHeader = ({
 
                 {/* Audio Player (Listening) */}
                 {(testData.type?.toLowerCase() === 'listening' || (resultData.type === 'mock_full' && activeMockPart === 'listening')) && (
-                    <div className="flex items-center gap-3 flex-1 max-w-[400px]">
+                    <div className="flex items-center gap-3 flex-1 max-w-[650px]">
                         <div className="flex-1">
                             {testData.passages?.map((passage, index) => {
                                 const src = passage.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file;

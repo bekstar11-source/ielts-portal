@@ -410,6 +410,17 @@ export default function AdminTests() {
                                 duration = 60;
                             }
 
+                            let combinedContent = "";
+                            if (payload.passages && Array.isArray(payload.passages)) {
+                                payload.passages.forEach(p => {
+                                    if (p.title) combinedContent += p.title + " ";
+                                    if (p.content) {
+                                        const cleanText = p.content.replace(/<[^>]*>/g, ' ');
+                                        combinedContent += cleanText + " ";
+                                    }
+                                });
+                            }
+
                             const metadata = {
                                 id: testId,
                                 title: payload.title || "",
@@ -425,7 +436,8 @@ export default function AdminTests() {
                                 questionTypes: payload.questionTypes || getQuestionTypesFromQuestions(payload.questions || []),
                                 collectionId: payload.collectionId && payload.collectionId !== "None" ? payload.collectionId : null,
                                 thumbnail: payload.thumbnail || "",
-                                isMerged: payload.isMerged || payload.title?.toLowerCase().startsWith("merged:") || false
+                                isMerged: payload.isMerged || payload.title?.toLowerCase().startsWith("merged:") || false,
+                                combinedContent: combinedContent.trim()
                             };
 
                             if (payload.type === 'listening') {
@@ -715,6 +727,7 @@ export default function AdminTests() {
 
                             <AdminTestsList
                                 tests={filteredTests}
+                                searchTerm={searchTerm}
                                 selectedTests={selectedTests}
                                 onToggleSelect={handleToggleSelect}
                                 onSelectAll={(checked) => {

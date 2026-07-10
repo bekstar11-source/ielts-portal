@@ -1,5 +1,116 @@
-import React from "react";
-import { getFileNameFromUrl } from "./CreateTestUtils";
+import React, { useRef, useState, useEffect } from "react";
+import { getFileNameFromUrl, toMMSS, processTime } from "./CreateTestUtils";
+
+const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark }) => {
+    const audioRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const progressInterval = useRef(null);
+
+    const start = processTime(startTimeStr);
+    const end = processTime(endTimeStr);
+
+    useEffect(() => {
+        return () => {
+            if (progressInterval.current) clearInterval(progressInterval.current);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (audioRef.current) {
+            const total = (end > start) ? (end - start) : (audioRef.current.duration - start);
+            setDuration(total > 0 && isFinite(total) ? total : 0);
+        }
+    }, [start, end]);
+
+    const togglePlay = () => {
+        if (!audioUrl) return;
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        if (isPlaying) {
+            audio.pause();
+        } else {
+            // Pause all other preview audio elements to prevent overlapping
+            document.querySelectorAll('audio[id^="preview-audio-"]').forEach(a => {
+                if (a !== audio && !a.paused) {
+                    a.pause();
+                }
+            });
+
+            // Set start time
+            audio.currentTime = start;
+            audio.play().then(() => {
+                setIsPlaying(true);
+                if (progressInterval.current) clearInterval(progressInterval.current);
+                progressInterval.current = setInterval(() => {
+                    if (audio.currentTime >= end && end > start) {
+                        audio.pause();
+                        clearInterval(progressInterval.current);
+                    }
+                    setCurrentTime(Math.max(0, audio.currentTime - start));
+                }, 100);
+            }).catch(e => {
+                console.error("Error playing preview:", e);
+            });
+        }
+    };
+
+    const handlePause = () => {
+        setIsPlaying(false);
+        if (progressInterval.current) clearInterval(progressInterval.current);
+    };
+
+    const handlePlay = () => {
+        setIsPlaying(true);
+    };
+
+    return (
+        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-white/5">
+            <audio 
+                id={`preview-audio-${index}`}
+                ref={audioRef} 
+                src={audioUrl} 
+                onEnded={handlePause}
+                onPause={handlePause}
+                onPlay={handlePlay}
+                preload="metadata"
+                onLoadedMetadata={() => {
+                    if (audioRef.current) {
+                        const total = (end > start) ? (end - start) : (audioRef.current.duration - start);
+                        setDuration(total > 0 && isFinite(total) ? total : 0);
+                    }
+                }}
+            />
+            <button 
+                onClick={togglePlay}
+                type="button"
+                disabled={!audioUrl}
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition shrink-0 ${
+                    !audioUrl ? 'opacity-30 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'
+                }`}
+                title={isPlaying ? "Pauza" : "Eshitib ko'rish (Preview)"}
+            >
+                {isPlaying ? (
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                ) : (
+                    <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                )}
+            </button>
+            <div className="flex-1 flex items-center gap-1.5 text-[9px] font-mono tabular-nums opacity-60">
+                <span>{toMMSS(currentTime)}</span>
+                <div className={`flex-1 h-1 rounded-full relative ${isDark ? 'bg-white/10' : 'bg-gray-100'}`}>
+                    <div 
+                        className="h-full bg-blue-500 rounded-full transition-all duration-75" 
+                        style={{ width: `${duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0}%` }}
+                    />
+                </div>
+                <span>{toMMSS(duration)}</span>
+            </div>
+        </div>
+    );
+};
 
 const MediaManager = ({ 
     testData, setTestData, 
@@ -146,19 +257,21 @@ const MediaManager = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[...Array(listeningPartCount)].map((_, i) => {
                             const passage = testData.passages?.[i] || {};
+                            const partAudioUrl = audioMode === 'single' ? singleAudioUrl : (partAudios[i] || passage.audio || "");
                             return (
                                 <div key={i} className={`p-3 rounded-xl border ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-[10px] font-bold uppercase opacity-40">Part {i + 1} Vaqti</span>
-                                        {(passage.startTime || passage.endTime) && (
+                                        {(passage.startTime || passage.endTime || passage.extraSilentTime) && (
                                             <span className="text-[9px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">
                                                 {passage.startTime || "0:00"} - {passage.endTime || "0:00"}
+                                                {passage.extraSilentTime ? ` (+${passage.extraSilentTime}s)` : ""}
                                             </span>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-3 gap-2">
                                         <div>
-                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Boshlash vaqti</span>
+                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Boshlash</span>
                                             <input
                                                 type="text"
                                                 className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
@@ -168,7 +281,7 @@ const MediaManager = ({
                                             />
                                         </div>
                                         <div>
-                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Tugash vaqti</span>
+                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Tugash</span>
                                             <input
                                                 type="text"
                                                 className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
@@ -177,7 +290,25 @@ const MediaManager = ({
                                                 onChange={e => onPassageTimeChange(i, 'endTime', e.target.value)}
                                             />
                                         </div>
+                                        <div>
+                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1" title="Part tugagandan keyin keyingi partgacha necha soniya sukunat qo'shilishi">Kutish (sek)</span>
+                                            <input
+                                                type="number"
+                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
+                                                placeholder="0"
+                                                min="0"
+                                                value={passage.extraSilentTime !== undefined ? passage.extraSilentTime : ""}
+                                                onChange={e => onPassageTimeChange(i, 'extraSilentTime', e.target.value === "" ? "" : Number(e.target.value))}
+                                            />
+                                        </div>
                                     </div>
+                                    <AudioSegmentPlayer
+                                        index={i}
+                                        audioUrl={partAudioUrl}
+                                        startTimeStr={passage.startTime || ""}
+                                        endTimeStr={passage.endTime || ""}
+                                        isDark={isDark}
+                                    />
                                 </div>
                             );
                         })}

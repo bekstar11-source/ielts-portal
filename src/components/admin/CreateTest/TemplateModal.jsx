@@ -44,10 +44,10 @@ const TEMPLATES = [
             audio_url: "",
             introDuration: 10,
             passages: [
-                { id: 101, title: "Part 1", content: "", audio: "" },
-                { id: 102, title: "Part 2", content: "", audio: "" },
-                { id: 103, title: "Part 3", content: "", audio: "" },
-                { id: 104, title: "Part 4", content: "", audio: "" }
+                { id: 101, title: "Part 1", content: "", audio: "", extraSilentTime: 0 },
+                { id: 102, title: "Part 2", content: "", audio: "", extraSilentTime: 0 },
+                { id: 103, title: "Part 3", content: "", audio: "", extraSilentTime: 0 },
+                { id: 104, title: "Part 4", content: "", audio: "", extraSilentTime: 0 }
             ],
             questions: []
         }

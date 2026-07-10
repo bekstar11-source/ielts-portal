@@ -37,6 +37,17 @@ export function useMergeTests({ onSaved, onClose }) {
             if (mergedPayload.type === 'listening') duration = 30;
             else if (mergedPayload.type === 'reading') duration = 60;
 
+            let combinedContent = "";
+            if (mergedPayload.passages && Array.isArray(mergedPayload.passages)) {
+                mergedPayload.passages.forEach(p => {
+                    if (p.title) combinedContent += p.title + " ";
+                    if (p.content) {
+                        const cleanText = p.content.replace(/<[^>]*>/g, ' ');
+                        combinedContent += cleanText + " ";
+                    }
+                });
+            }
+
             const metadata = {
                 id: newTestId,
                 title: mergedPayload.title || "",
@@ -55,6 +66,7 @@ export function useMergeTests({ onSaved, onClose }) {
                     : null,
                 isMerged: true,
                 mergedSourceIds: selectedTests,
+                combinedContent: combinedContent.trim()
             };
 
             if (mergedPayload.type === 'listening') {

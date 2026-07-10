@@ -24,11 +24,14 @@ export const getHeadingOptionLabels = (options) => {
 
     return options.map((opt, idx) => {
         const optText = typeof opt === 'object' ? opt.text : opt;
-        let label = typeof opt === 'object' ? (opt.label || opt.id) : null;
+        
+        // Try to extract from text first (must have . or ) after the numeral to be safe)
+        const match = String(optText || '').trim().match(/^([ivx\d]+)[\.\)]/i);
+        let label = match ? match[1].toLowerCase() : null;
 
-        if (!label) {
-            const match = String(optText || '').trim().match(/^([ivx\d]+)[\.\)]/i);
-            label = match ? match[1].toLowerCase() : null;
+        // Fall back to the object's label/id if no numeral found in text
+        if (!label && typeof opt === 'object') {
+            label = opt.label || opt.id || null;
         }
 
         let candidate = label ? String(label).toLowerCase() : null;

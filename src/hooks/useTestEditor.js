@@ -21,6 +21,17 @@ const compileMetadata = (testId, payload) => {
         duration = 60;
     }
 
+    let combinedContent = "";
+    if (payload.passages && Array.isArray(payload.passages)) {
+        payload.passages.forEach(p => {
+            if (p.title) combinedContent += p.title + " ";
+            if (p.content) {
+                const cleanText = p.content.replace(/<[^>]*>/g, ' ');
+                combinedContent += cleanText + " ";
+            }
+        });
+    }
+
     const metadata = {
         id: testId,
         title: payload.title || "",
@@ -36,6 +47,7 @@ const compileMetadata = (testId, payload) => {
         questionTypes: payload.questionTypes || [],
         collectionId: payload.collectionId && payload.collectionId !== "None" ? payload.collectionId : null,
         thumbnail: payload.thumbnail || "",
+        combinedContent: combinedContent.trim(),
     };
 
     if (payload.type === 'listening') {

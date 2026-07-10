@@ -180,7 +180,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             const termLower = searchTerm.toLowerCase().trim();
             list = list.filter(t => 
                 (t.title || "").toLowerCase().includes(termLower) ||
-                t.id.toLowerCase().includes(termLower)
+                t.id.toLowerCase().includes(termLower) ||
+                (t.combinedContent || "").toLowerCase().includes(termLower)
             );
         }
 
@@ -384,6 +385,17 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             delete newTestData.mergedSourceIds;
             batch.set(newTestDocRef, newTestData);
 
+            let combinedContent = "";
+            if (origData.passages && Array.isArray(origData.passages)) {
+                origData.passages.forEach(p => {
+                    if (p.title) combinedContent += p.title + " ";
+                    if (p.content) {
+                        const cleanText = p.content.replace(/<[^>]*>/g, ' ');
+                        combinedContent += cleanText + " ";
+                    }
+                });
+            }
+
             let newMetaData = {};
             if (metaSnap.exists()) {
                 newMetaData = {
@@ -392,7 +404,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     title: newTitle,
                     createdAt: nowIso,
                     updatedAt: nowIso,
-                    thumbnail: origData.thumbnail || ""
+                    thumbnail: origData.thumbnail || "",
+                    combinedContent: combinedContent.trim()
                 };
                 delete newMetaData.isMerged;
                 delete newMetaData.isMergedSource;
@@ -410,7 +423,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     updatedAt: nowIso,
                     collectionId: origData.collectionId || null,
                     questionTypes: origData.questionTypes || [],
-                    thumbnail: origData.thumbnail || ""
+                    thumbnail: origData.thumbnail || "",
+                    combinedContent: combinedContent.trim()
                 };
             }
             batch.set(doc(db, "tests_metadata", newId), newMetaData);
@@ -455,6 +469,17 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                 };
                 batch.set(newTestDocRef, newTestData);
 
+                let combinedContent = "";
+                if (newTestData.passages && Array.isArray(newTestData.passages)) {
+                    newTestData.passages.forEach(p => {
+                        if (p.title) combinedContent += p.title + " ";
+                        if (p.content) {
+                            const cleanText = p.content.replace(/<[^>]*>/g, ' ');
+                            combinedContent += cleanText + " ";
+                        }
+                    });
+                }
+
                 const newMetaData = {
                     id: newId,
                     title: newTestData.title,
@@ -468,7 +493,8 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     questionTypes: test.questionTypes || getQuestionTypesFromQuestions(newTestData.questions),
                     createdAt: nowIso,
                     updatedAt: nowIso,
-                    thumbnail: test.thumbnail || ""
+                    thumbnail: test.thumbnail || "",
+                    combinedContent: combinedContent.trim()
                 };
                 batch.set(doc(db, "tests_metadata", newId), newMetaData);
                 importedMetadataList.push(newMetaData);

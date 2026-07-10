@@ -25,8 +25,40 @@ const formatQuestionType = (type) => {
     return raw.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
 };
 
+const getMatchSnippet = (content, term) => {
+    if (!term || !content) return null;
+    const cleanTerm = term.trim().toLowerCase();
+    if (cleanTerm.length < 2) return null;
+    
+    const cleanContent = content.replace(/\s+/g, ' ');
+    const idx = cleanContent.toLowerCase().indexOf(cleanTerm);
+    if (idx === -1) return null;
+
+    const start = Math.max(0, idx - 45);
+    const end = Math.min(cleanContent.length, idx + cleanTerm.length + 45);
+    let snippet = cleanContent.slice(start, end);
+    if (start > 0) snippet = '...' + snippet;
+    if (end < cleanContent.length) snippet = snippet + '...';
+
+    const regex = new RegExp(`(${cleanTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+    const parts = snippet.split(regex);
+    
+    return (
+        <span className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5 inline-flex items-center gap-1 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 px-2 py-1 rounded max-w-xl break-all">
+            <span className="font-semibold text-amber-600 dark:text-amber-400 shrink-0 text-[10px] uppercase tracking-wider">Matnda:</span>
+            <span>
+                {parts.map((part, i) => 
+                    part.toLowerCase() === cleanTerm 
+                        ? <mark key={i} className="bg-amber-200 dark:bg-amber-950 text-zinc-950 dark:text-amber-250 font-bold px-0.5 rounded">{part}</mark> 
+                        : part
+                )}
+            </span>
+        </span>
+    );
+};
+
 const AdminTestsList = ({
-    tests = [], selectedTests = [], onToggleSelect, onSelectAll, onDelete, onEdit, onQuickEdit, onView, onDuplicate
+    tests = [], selectedTests = [], onToggleSelect, onSelectAll, onDelete, onEdit, onQuickEdit, onView, onDuplicate, searchTerm = ""
 }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -182,6 +214,7 @@ const AdminTestsList = ({
                                                     </span>
                                                 )}
                                             </div>
+                                            {searchTerm && getMatchSnippet(test.combinedContent, searchTerm)}
 
                                             <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
                                                 <div className="flex items-center gap-1 select-none">
@@ -251,25 +284,13 @@ const AdminTestsList = ({
                                 <td className="py-4 px-4">
                                     <div className="flex flex-wrap gap-1 max-w-[200px]">
                                         {qTypes.length > 0 ? (
-                                            <>
-                                                {qTypes.slice(0, 3).map((type, i) => (
-                                                    <span key={i} className={`text-[9px] px-2 py-0.5 rounded-full border font-bold ${
-                                                        isDark ? 'bg-white/5 border-white/5 text-zinc-400' : 'bg-zinc-50 border-zinc-150 text-zinc-600'
-                                                    }`}>
-                                                        {formatQuestionType(type)}
-                                                    </span>
-                                                ))}
-                                                {qTypes.length > 3 && (
-                                                    <span
-                                                        title={qTypes.slice(3).map(formatQuestionType).join(', ')}
-                                                        className={`text-[9px] px-2 py-0.5 rounded-full border font-bold cursor-default ${
-                                                            isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-100 text-blue-600'
-                                                        }`}
-                                                    >
-                                                        +{qTypes.length - 3}
-                                                    </span>
-                                                )}
-                                            </>
+                                            qTypes.map((type, i) => (
+                                                <span key={i} className={`text-[9px] px-2 py-0.5 rounded-sm border font-bold ${
+                                                    isDark ? 'bg-white/5 border-white/5 text-zinc-400' : 'bg-zinc-50 border-zinc-150 text-zinc-600'
+                                                }`}>
+                                                    {formatQuestionType(type)}
+                                                </span>
+                                            ))
                                         ) : <span className="text-[10px] text-zinc-400 font-medium italic">No types defined</span>}
                                     </div>
                                 </td>

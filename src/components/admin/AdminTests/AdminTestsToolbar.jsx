@@ -194,6 +194,21 @@ const AdminTestsToolbar = ({
                                 <Upload size={12} className="text-amber-500" />
                                 <span className="hidden sm:inline">JSON Import</span>
                             </button>
+
+                            {onMigrate && (
+                                <button
+                                    onClick={onMigrate}
+                                    disabled={isMigrating}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border disabled:opacity-50 ${
+                                        isDark 
+                                            ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/25' 
+                                            : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-100/50'
+                                    }`}
+                                >
+                                    {isMigrating ? <Loader2 size={12} className="animate-spin text-rose-500" /> : <RefreshCw size={12} className="text-rose-500" />}
+                                    <span>Migrate Metadata</span>
+                                </button>
+                            )}
                         </div>
                     )}
 

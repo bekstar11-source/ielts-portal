@@ -245,6 +245,19 @@ const CustomAudioPlayer = forwardRef(({
         }
     };
 
+    const skipBackward = () => {
+        if (isExam || !audioRef.current) return;
+        const targetTime = Math.max(startTime, audioRef.current.currentTime - 5);
+        audioRef.current.currentTime = targetTime;
+    };
+
+    const skipForward = () => {
+        if (isExam || !audioRef.current) return;
+        const maxTime = (endTime && endTime > startTime) ? endTime : (audioRef.current.duration || Infinity);
+        const targetTime = Math.min(maxTime, audioRef.current.currentTime + 5);
+        audioRef.current.currentTime = targetTime;
+    };
+
     const calculateTime = useCallback((e) => {
         const rect = progressRef.current?.getBoundingClientRect();
         if (!rect || !duration) return null;
@@ -319,8 +332,25 @@ const CustomAudioPlayer = forwardRef(({
             {audioElement}
             {isVisible && (
                 <div className={containerClass}>
+                    {/* Skip Backward (5s) */}
+                    {!isExam && (
+                        <button
+                            type="button"
+                            onClick={skipBackward}
+                            className={btnClass}
+                            title="Rewind 5s"
+                        >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                <path d="M3 3v5h5" />
+                                <text x="12" y="15.5" fontSize="9" fontFamily="sans-serif" fontWeight="900" textAnchor="middle" fill="currentColor" stroke="none">5</text>
+                            </svg>
+                        </button>
+                    )}
+
                     {/* Play / Pause */}
                     <button
+                        type="button"
                         onClick={togglePlay}
                         disabled={isExam}
                         className={btnClass}
@@ -337,6 +367,22 @@ const CustomAudioPlayer = forwardRef(({
                             </svg>
                         )}
                     </button>
+
+                    {/* Skip Forward (5s) */}
+                    {!isExam && (
+                        <button
+                            type="button"
+                            onClick={skipForward}
+                            className={btnClass}
+                            title="Forward 5s"
+                        >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                                <path d="M21 3v5h-5" />
+                                <text x="12" y="15.5" fontSize="9" fontFamily="sans-serif" fontWeight="900" textAnchor="middle" fill="currentColor" stroke="none">5</text>
+                            </svg>
+                        </button>
+                    )}
 
                     {/* Progress Bar & Time */}
                     <div className="flex-1 flex items-center gap-2">

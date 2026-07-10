@@ -1,704 +1,432 @@
 {
-  "questionTypes": [
-    "Completion",
-    "Multiple Choice",
-    "Matching"
-  ],
-  "type": "listening",
-  "title": "Cambridge 15 Test 3",
-  "thumbnail": "",
-  "difficulty": "full",
-  "writingTasks": [
-    {
-      "id": 1,
-      "prompt": "",
-      "minWords": 150,
-      "title": "Task 1",
-      "image": ""
-    },
-    {
-      "minWords": 250,
-      "title": "Task 2",
-      "image": "",
-      "id": 2,
-      "prompt": ""
-    }
-  ],
-  "tags": [
-    "cam"
-  ],
-  "passage": "",
-  "passages": [
-    {
-      "extraSilentTime": 0,
-      "title": "Part 1",
-      "id": "part_1",
-      "content": "<p>SALLY: Good morning. Thanks for coming in to see us here at the agency, Joe. I’m one of the agency representatives, and my name’s Sally Baker.</p><p>JOE: Hi Sally. I think we spoke on the phone, didn’t we?</p><p>SALLY: That’s right, we did. So thank you for sending in your CV. We’ve had quite a careful look at it and I think we have two jobs that might be suitable for you.</p><p>JOE: OK.</p><p>SALLY: The first one is in a company based in North London. They’re looking for an administrative assistant.</p><p>JOE: OK. What sort of company is it?</p><p>SALLY: They’re called Home Solutions and they design and make <span id='loc_1'>furniture</span>.</p><p>JOE: Oh, I don’t know much about that, but it sounds interesting.</p><p>SALLY: Yes, well as I said, they want someone in their office, and looking at your past experience it does look as if you fit quite a few of the requirements. So on your CV it appears you’ve done some data entry?</p><p>JOE: Yes.</p><p>SALLY: So that’s one skill they want. Then they expect the person they appoint to attend <span id='loc_2'>meetings</span> and take notes there …</p><p>JOE: OK. I’ve done that before, yes.</p><p>SALLY: And you’d need to be able to cope with general admin.</p><p>JOE: Filling, and keeping records and so on? That should be OK. And in my last job I also had to manage the <span id='loc_3'>diary</span>.</p><p>SALLY: Excellent. That’s something they want here too. I’d suggest you add it to your CV – I don’t think you mentioned that, did you?</p><p>JOE: No.</p><p>SALLY: So as far as the requirements go, they want good computer skills, of course, and they particularly mention spreadsheets.</p><p>JOE: That should be fine.</p><p>SALLY: And interpersonal skills – which would be something they’d check with your references.</p><p>JOE: I think that should be OK, yes.</p><p>SALLY: Then they mention that they want someone who is careful and takes care with <span id='loc_4'>details</span> – just looking at your CV, I’d say you’re probably alright there.</p><p>JOE: I think so, yes. Do they want any special experience?</p><p>SALLY: I think they wanted some experience of teleconferencing.</p><p>JOE: I’ve got three years’ experience of that.</p><p>SALLY: let’s see, yes, good. In fact they’re only asking for at least <span id='loc_5'>one year</span>, so that’s great. So is that something that might interest you?</p><p>JOE: It is, yes. The only thing is, you said they were in North London so it would be quite a long commute for me.</p><p>SALLY: OK.</p><p>SALLY: So the second position might suit you better as far as the location goes; that’s for a warehouse assistant and that’s in South London.</p><p>JOE: Yes, that would be a lot closer.</p><p>SALLY: And you’ve worked in a warehouse before, haven’t you?</p><p>JOE: Yes.</p><p>SALLY: So as far as the responsibilities for this position go, they want someone who can manage the stock, obviously, and also <span id='loc_6'>deliveries</span>.</p><p>JOE: That should be OK. You’ve got to keep track of stuff, but I’ve always been quite good with numbers.</p><p>SALLY: Good, that’s their first requirement. And they want someone who’s computer literate, which we know you are.</p><p>JOE: Sure.</p><p>SALLY: Then they mention organisational skills. They want someone who’s well organised.</p><p>JOE: Yes, I think I am.</p><p>SALLY: And <span id='loc_7'>tidy</span>?</p><p>JOE: Yes, they go together really, don’t they?</p><p>SALLY: Sure. Then the usual stuff; they want someone who can communicate well both orally and in writing.</p><p>JOE: OK. And for the last warehouse job I had, one of the things I enjoyed most was being part of a <span id='loc_8'>team</span>. I found that was really essential for the job.</p><p>SALLY: Excellent. Yes, they do mention that they want someone who’s used to that, yes. Now when you were working in a warehouse last time, what sorts of items were you dealing with?</p><p>JOE: It was mostly bathroom and kitchen equipment, sinks and stoves and fridges.</p><p>SALLY: So you’re OK moving <span id='loc_9'>heavy</span> things?</p><p>JOE: Sure. I’m quite strong, and I’ve had the training.</p><p>SALLY: Good. Now as far as experience goes, they mention they want someone with a licence, and that you have experience of driving in London – so you can cope with the traffic and so on.</p><p>JOE: Yes, no problem.</p><p>SALLY: And you’ve got experience of warehouse work … and the final thing they mention is <span id='loc_10'>customer</span> service. I think looking at your CV you’ve OK there.</p><p>JOE: Right. So what about pay? Can you tell me a bit more about that, please …</p>",
-      "audio": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1779091355945_IELTS15_test3_audio1-compressed.mp3?alt=media&token=47da9585-8218-41d1-b351-f5b2e8c34ef3"
-    },
-    {
-      "id": "part_2",
-      "audio": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1779091359324_IELTS15_test3_audio2-compressed.mp3?alt=media&token=3b0602f7-6d35-4eee-96df-066408575ab2",
-      "content": "<p>PRESENTER: My guest on the show today is Alice Riches who started the Street Play Scheme where she lives in Beechwood Road. For those of you that don’t already know – Street Play involves local residents closing off their street for a few hours so that children have a chance to play in the street safely. She started it in her own street, Beechwood Road, and the idea caught on, and there are now Street Play Schemes all over the city. So when did you actually start the scheme, Alice?</p><p>ALICE: Well, I first had the idea when my oldest child was still a toddler, so that’s about six years ago now – but it took at least two years of campaigning before we were actually able to make it happen. So the <span id='loc_11'>scheme’s been up and running for three years now</span>. We’d love to be able to close our road for longer – for the whole weekend, from Saturday morning until Sunday evening, for example. At the moment it’s just <span id='loc_12'>once a week</span>. But when we started it was only once a month. But we’re working on it.</p><p>PRESENTER: So what actually happens when Beechwood Road is closed?</p><p>ALICE: We have <span id='loc_13'>volunteer wardens</span>, mostly parents but some elderly residents too, who block off our road at either end. The council have provided special signs but there’s always a volunteer there to explain what’s happening to any motorists. Generally, they’re fine about it – we’ve only had to get the police involved once or twice.</p><p>Now I should explain that the road isn’t completely closed to cars. But only residents’ cars are allowed. If people really need to get in or out of Beechwood Road, it’s not a problem – as long as they <span id='loc_14'>drive at under 20 kilometres per hour</span>. But most people just decide not to use their cars during this time, or they park in another street. The wardens are only there to stop through traffic.</p><p>PRESENTER: So can anyone apply to get involved in Street Play?</p><p>ALICE: Absolutely – we want to include all kids in the city – especially those who <span id='loc_15'>live on busy roads</span>. It’s here that demand is greatest. Obviously, there isn’t such demand in wealthier areas where the children have access to parks or large gardens – or in the suburbs where there are usually more places for children to play outside.</p><p>I’d recommend that anyone listening who likes the idea should just give it a go. We’ve been surprised by the positive reaction of residents all over the city. And that’s not just parents. There are always a few who complain but they’re a tiny minority. On the whole everyone is very supportive and say they’re <span id='loc_16'>very happy to see children out on the street</span> – even if it does get quite noisy.</p><p>ALICE: There have been so many benefits of Street Play for the kids. Parents really like the fact that the kids are getting fresh air instead of sitting staring at a computer screen, even if they’re not doing anything particularly energetic. And of course it’s great that kids can play with their friends outside without being supervised by their parents – but for me the biggest advantage is that kids <span id='loc_17'>develop confidence in themselves</span> to be outside without their parents. The other really fantastic thing is that children <span id='loc_18'>get to know the adults in the street</span> – it’s like having a big extended family.</p><p>PRESENTER: It certainly does have a lot of benefits. I want to move on now and ask you about a related project in King Street.</p><p>ALICE: Right. Well this was an experiment I was involved in where local residents decided to try and reduce the traffic along King Street, which is the busiest main road in our area, by persuading people not to use their cars for one day. We thought about making people pay more for parking – but we decided that would be really unpopular – so instead we just stopped people from parking on King Street but left the other car parks open.</p><p>It was surprising how much of a difference all this made. As we’d predicted, air quality was significantly better but what I hadn’t expected was <span id='loc_19'>how much quieter it would be</span> – even with the buses still running. Of course everyone said they felt safer but we were actually amazed that <span id='loc_20'>sales in the shops went up considerably</span> that day – we thought there’d be fewer people out shopping – not more.</p><p>PRESENTER: That’s really interesting so the fact that …</p>",
-      "extraSilentTime": 0,
-      "title": "Part 2"
-    },
-    {
-      "title": "Part 3",
-      "extraSilentTime": 0,
-      "audio": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1779091362828_IELTS15_test3_audio3-compressed.mp3?alt=media&token=4d716548-206b-47d3-a5de-a8318feec11c",
-      "content": "<p>HAZEL: Tom, could I ask you for some advice, please?</p><p>TOM: Yes of course, if you think I can help. What’s it about?</p><p>HAZEL: It’s my first media studies assignment, and I’m not sure how to go about it. You must have done it last year.</p><p>TOM: Is that the one comparing the coverage of a particular story in a range of newspapers?</p><p>HAZEL: That’s right.</p><p>TOM: Oh yes, I really enjoyed writing it.</p><p>HAZEL: So what sort of things do I need to compare?</p><p>TOM: Well, there are several things. For example, there’s the question of which <span id='loc_21'>page</span> of the newspaper the item appears on.</p><p>HAZEL: You mean, because there’s a big difference between having it on the front page and the bottom of page ten, for instance?</p><p>TOM: Exactly. And that shows how important the editor thinks the story is. Then there’s the <span id='loc_22'>size</span> – how many column inches the story is given, how many columns it spreads over.</p><p>HAZEL: And I suppose that includes the headline.</p><p>TOM: It certainly does. It’s all part of attracting the reader’s attention.</p><p>HAZEL: What about <span id='loc_23'>graphics</span> – whether there’s anything visual in addition to the text?</p><p>TOM: Yes, you need to consider those, too, because they can have a big effect on the reader’s understanding of the story – sometimes a bigger effect than the text itself. Then you’ll need to look at how the item is put together: what <span id='loc_24'>structure</span> is it given? Bear in mind that not many people read beyond the first paragraph, so what has the journalist put at the beginning? And if, say, three are conflicting opinions about something, does one appear near the end, where people probably won’t read it?</p><p>HAZEL: And newspapers sometimes give wrong or misleading information, don’t they? Either deliberately or by accident. Should I be looking at that, too?</p><p>TOM: Yes, if you can. Compare what’s in different versions, and as far as possible, try and work out what’s true and what isn’t. And that relates to a very important point: what’s the writer’s <span id='loc_25'>purpose</span>, or at least the most important one, if they have several. It may seem to be to inform the public, but often it’s that they want to create fear, or controversy, or to make somebody look ridiculous.</p><p>HAZEL: Gosh, I see what you mean. And I suppose the writer may make <span id='loc_26'>assumptions</span> about the reader.</p><p>TOM: That’s right – about their knowledge of the subject, their attitudes, and their level of education, which means writing so that the readers understand without feeling patronised. All of that will make a difference to how story is presented.</p><p>HAZEL: Does it matter what type of story I write about?</p><p>TOM: No – national or international politics, the arts … Anything, as long as it’s covered in two or three newspaper. Though of course it’ll be easier and more fun if it’s something you’re interested in and know something about.</p><p>HAZEL: And on that basis a national news item would be worth analysing – I’m quite keen on politics, so I’ll try and <span id='loc_27'>find a suitable topic</span>. What did you choose for your analysis, Tom?</p><p>TOM: I was interested in how newspapers express their opinions explicitly, so I wanted to compare editorials in different papers, but when I started looking. I couldn’t find two on the same topic that I felt like analysing.</p><p>HAZEL: In that case, I <span id='loc_28'>won’t even bother to look</span>.</p><p>TOM: So in the end I chose a human interest story – a terribly emotional story about a young girl who was very ill, and lots of other people – mostly strangers – raised money so she could go abroad for treatment. Actually, I was surprised – some papers just wrote about how wonderful everyone was, but others considered the broader picture, like why treatment wasn’t available here.</p><p>HAZEL: Hmm, I usually find stories like that raise quite strong feelings in me! I’ll <span id='loc_29'>avoid that</span>. Perhaps I’ll choose an arts topic, like different reviews of a film, or something about funding for the arts – I’ll <span id='loc_30'>think about that</span>.</p><p>TOM: Yes, that might be interesting.</p><p>HAZEL: OK, well thanks a lot for your help, Tom. It’s been really useful.</p><p>TOM: You’re welcome. Good luck with the assignment, Hazel.</p>",
-      "id": "part_3"
-    },
-    {
-      "audio": "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/part_audios%2F1779091366037_IELTS15_test3_audio4-compressed.mp3?alt=media&token=7f85ddec-e559-467c-97fd-718f3f46a880",
-      "content": "<p>Nowadays, we use different products for personal cleanliness, laundry, dishwashing and household cleaning, but this is very much a 20th-century development.</p><p>The origins of cleanliness date back to prehistoric times. Since water is essential for life, the earliest people lived near water and knew something about its cleansing properties – at least that it rinsed <span id='loc_31'>mud</span> off their hands.</p><p>During the excavation of ancient Babylon, evidence was found that soapmaking was known as early as 2800 BC. Archaeologists discovered cylinders made of <span id='loc_32'>clay</span>, with inscriptions on them saying that fats were boiled with askes. This is a method of making soap, though there’s no reference to the purpose of this material.</p><p>The early Greeks bathed for aesthetic reasons and apparently didn’t use soap. Instead, they cleaned their bodies with blocks of sand, pumice and ashes, then anointed themselves with oil, and scraped off the oil and dirt with a metal instrument known as a strigil. They also used oil mixed with ashes. Clothes were washed without soap in streams. The ancient Germans and Gauls are also credited with discovering how to make a substance called ‘soap’, made of melted animal fat and ashes. They used this mixture to tint their <span id='loc_34'>hair</span> red.</p><p>Soap got its name, according to an ancient Roman legend, from Mount Sapo, where animals were sacrificed, leaving deposits of animal fat. Rain washed these deposits, along with wood ashes, down into the clay soil along the River Tiber. Women found that this mixture greatly reduced the effort required to wash their clothes.</p><p>As Roman civilisation advance, so did bathing. The first of the famous Roman <span id='loc_35'>baths</span>, supplied with water from their aqueducts, was built around 312 BC. The baths were luxurious, and bathing became very popular. And by the second century AD, the Greek physician Galen recommended soap for both medicinal and cleaning purposes.</p><p>After the fall of Rome in 467 AD and the resulting decline in bathing habits, much of Europe felt the impact of filth on public health. This lack of personal cleanliness and related unsanitary living conditions were major factors in the outbreaks of <span id='loc_36'>disease</span> in the Middle Ages, and especially the Black Death of the 14th century.</p><p>Nevertheless, soapmaking became an established craft in Europe, and associations of soapmakers guarded their trade secrets closely. Vegetable and animal oils were used with ashes of plants, along with <span id='loc_37'>perfume</span>, apparently for the first time. Gradually more varieties of soap became available for shaving and shampooing, as well as bathing and laundering.</p><p>A major step toward large-scale commercial soapmaking occurred in 1791, when a French chemist, Nicholas Leblanc, patented a process for turning <span id='loc_38'>salt</span> into soda ash, or sodium carbonate. Soda ash is the alkali obtained from ashes that combines with fat to form soap. The Leblanc process yielded quantities of good-quality, inexpensive soda ash.</p><p>Modern soapmaking was born some 20 years later, in the early 19th century, with the discovery by Michel Eugène Chevreul, another French chemist, of the chemical nature and relationship of fats, glycerine and fatty acids. His studies established the basis for both fat and soap chemistry, and soapmaking became a <span id='loc_39'>science</span>. Further developments during the 19th century made it easier and cheaper to manufacture soap.</p><p>Until the 19th century, soap was regarded as a luxury item, and was heavily taxed in several countries. As it became more readily available, it became an everyday necessity, a development that was reinforced when the high <span id='loc_40'>tax</span> was removed. Soap was then something ordinary people could afford, and cleanliness standards improved. With this widespread use came the development of milder soaps for bathing and soaps for use in the washing machines that were available to consumers by the turn of the 20th century.</p>",
-      "id": "part_4",
-      "title": "Part 4",
-      "extraSilentTime": 0
-    }
-  ],
-  "createdAt": "2026-05-18T08:10:40.018Z",
-  "introDuration": 10,
-  "collectionId": "qYEDQRrDSRMTaUOvoXyO",
-  "keywordTable": [],
-  "updatedAt": "2026-05-18T08:10:40.018Z",
+  "createdAt": "2026-04-13T04:24:02.676Z",
+  "updatedAt": "2026-04-13T04:24:02.676Z",
   "questions": [
     {
-      "instruction": "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.",
-      "groups": [
+      "type": "true_false",
+      "id": "1–6",
+      "instruction": "Questions 1–6\n\nDo the following statements agree with the information given in the reading passage?\nWrite\n\nTRUE if the statement agrees with the information\nFALSE if the statement contradicts the information\nNOT GIVEN if there is no information on this",
+      "passageId": "1",
+      "items": [
         {
-          "header": "Employment Agency: Possible Jobs",
-          "items": [
-            {
-              "type": "heading",
-              "text": "First Job"
-            },
-            {
-              "timestamp": 15,
-              "type": "question",
-              "id": 1,
-              "answer": "furniture",
-              "text": "Administrative assistant in a company that produces 1 [INPUT] (North London)",
-              "locationId": "loc_1"
-            },
-            {
-              "type": "heading",
-              "text": "Responsibilities"
-            },
-            {
-              "type": "text",
-              "text": "• data entry"
-            },
-            {
-              "locationId": "loc_2",
-              "text": "• go to 2 [INPUT] and take notes",
-              "answer": "meetings",
-              "id": 2,
-              "type": "question",
-              "timestamp": 35
-            },
-            {
-              "type": "text",
-              "text": "• general admin"
-            },
-            {
-              "type": "question",
-              "answer": "diary",
-              "id": 3,
-              "text": "• management of 3 [INPUT]",
-              "locationId": "loc_3",
-              "timestamp": 45
-            },
-            {
-              "type": "heading",
-              "text": "Requirements"
-            },
-            {
-              "type": "text",
-              "text": "• good computer skills including spreadsheets"
-            },
-            {
-              "type": "text",
-              "text": "• good interpersonal skills"
-            },
-            {
-              "locationId": "loc_4",
-              "text": "• attention to 4 [INPUT]",
-              "id": 4,
-              "answer": "details",
-              "type": "question",
-              "timestamp": 70
-            },
-            {
-              "type": "heading",
-              "text": "Experience"
-            },
-            {
-              "answer": "1 year / one year",
-              "id": 5,
-              "type": "question",
-              "locationId": "loc_5",
-              "text": "• need a minimum of 5 [INPUT] of experience of teleconferencing",
-              "timestamp": 90
-            }
-          ]
+          "text": "Some people believe that modern electronic media only have a negative effect on young people.",
+          "passageId": "1",
+          "locationId": "loc_1",
+          "answer": "NOT GIVEN",
+          "id": "1"
         },
         {
-          "header": "Second Job",
-          "items": [
-            {
-              "type": "text",
-              "text": "Warehouse assistant in South London"
-            },
-            {
-              "type": "heading",
-              "text": "Responsibilities"
-            },
-            {
-              "type": "text",
-              "text": "• stock management"
-            },
-            {
-              "timestamp": 125,
-              "answer": "deliveries",
-              "id": 6,
-              "type": "question",
-              "locationId": "loc_6",
-              "text": "• managing 6 [INPUT]"
-            },
-            {
-              "type": "heading",
-              "text": "Requirements"
-            },
-            {
-              "type": "text",
-              "text": "• ability to work with numbers"
-            },
-            {
-              "type": "text",
-              "text": "• good computer skills"
-            },
-            {
-              "timestamp": 150,
-              "text": "• very organised and 7 [INPUT]",
-              "locationId": "loc_7",
-              "type": "question",
-              "answer": "tidy",
-              "id": 7
-            },
-            {
-              "type": "text",
-              "text": "• good communication skills"
-            },
-            {
-              "text": "• used to working in a 8 [INPUT]",
-              "locationId": "loc_8",
-              "type": "question",
-              "answer": "team",
-              "id": 8,
-              "timestamp": 165
-            },
-            {
-              "locationId": "loc_9",
-              "text": "• able to cope with items that are 9 [INPUT]",
-              "id": 9,
-              "answer": "heavy",
-              "type": "question",
-              "timestamp": 185
-            },
-            {
-              "type": "heading",
-              "text": "Need experience of"
-            },
-            {
-              "type": "text",
-              "text": "• driving in London"
-            },
-            {
-              "type": "text",
-              "text": "• warehouse work"
-            },
-            {
-              "answer": "customer",
-              "id": 10,
-              "type": "question",
-              "locationId": "loc_10",
-              "text": "• 10 [INPUT] service",
-              "timestamp": 210
-            }
-          ]
+          "id": "2",
+          "locationId": "loc_2",
+          "passageId": "1",
+          "answer": "NOT GIVEN",
+          "text": "Nicholas Carr's book on the subject is a bestseller."
+        },
+        {
+          "passageId": "1",
+          "locationId": "loc_3",
+          "answer": "TRUE",
+          "text": "Nicholas Carr believes that electronic media have affected his enjoyment of reading books.",
+          "id": "3"
+        },
+        {
+          "passageId": "1",
+          "locationId": "loc_4",
+          "answer": "TRUE",
+          "text": "Gary Small's research supports Nicholas Carr's beliefs.",
+          "id": "4"
+        },
+        {
+          "locationId": "loc_5",
+          "passageId": "1",
+          "answer": "FALSE",
+          "text": "Management beliefs on multi-tasking are proved correct by scientific research.",
+          "id": "5"
+        },
+        {
+          "passageId": "1",
+          "locationId": "loc_6",
+          "answer": "NOT GIVEN",
+          "text": "David Meyer's views on the limitations of the brain have caused controversy.",
+          "id": "6"
         }
-      ],
-      "type": "note_completion",
-      "passageId": "part_1"
+      ]
     },
     {
-      "questions": [
+      "instruction": "Questions 7–10\n\nComplete the notes below.\nChoose NO MORE THAN TWO WORDS AND/OR A NUMBER from the passage for each answer.",
+      "id": "7–10",
+      "type": "note_completion",
+      "passageId": "1",
+      "items": [
         {
-          "answer": "B",
-          "id": 11,
+          "text": "<b>Vigdor and Ladd's research</b><br/>• looked at over [INPUT]<br/>",
+          "locationId": "loc_7",
+          "passageId": "1",
+          "answer": "100,000 children",
+          "id": "7"
+        },
+        {
+          "id": "8",
+          "answer": "test scores",
+          "passageId": "1",
+          "locationId": "loc_8",
+          "text": "• found that lower [INPUT] and home computer use were linked<br/>"
+        },
+        {
+          "text": "• indicated that the effects of greater home computer use could not be described as [INPUT]<br/>",
+          "passageId": "1",
+          "locationId": "loc_9",
+          "answer": "positive",
+          "id": "9"
+        },
+        {
+          "id": "10",
+          "locationId": "loc_10",
+          "passageId": "1",
+          "answer": "parents",
+          "text": "• concluded that [INPUT] should be involved in home computer use"
+        }
+      ]
+    },
+    {
+      "passageId": "1",
+      "items": [
+        {
+          "id": "11",
+          "text": "Which invention was criticised by an 18th century French politician? [INPUT]",
           "locationId": "loc_11",
-          "text": "When did the Street Play Scheme first take place?",
-          "options": [
-            {
-              "text": "two years ago",
-              "label": "A"
-            },
-            {
-              "text": "three years ago",
-              "label": "B"
-            },
-            {
-              "text": "six years ago",
-              "label": "C"
-            }
-          ],
-          "timestamp": 15
+          "passageId": "1",
+          "answer": "the newspaper / newspaper"
         },
         {
-          "locationId": "loc_12",
-          "text": "How often is Beechwood Road closed to traffic now?",
-          "id": 12,
-          "answer": "A",
-          "options": [
-            {
-              "text": "once a week",
-              "label": "A"
-            },
-            {
-              "text": "on Saturdays and Sundays",
-              "label": "B"
-            },
-            {
-              "label": "C",
-              "text": "once a month"
-            }
-          ],
-          "timestamp": 25
+          "id": "12",
+          "text": "According to studies that can be trusted, what is the maximum amount of time per day that children spend looking at screens? [INPUT]",
+          "answer": "four hours / 4 hours",
+          "passageId": "1",
+          "locationId": "loc_12"
         },
         {
-          "options": [
-            {
-              "label": "A",
-              "text": "a council official"
-            },
-            {
-              "text": "the police",
-              "label": "B"
-            },
-            {
-              "label": "C",
-              "text": "local wardens"
-            }
-          ],
-          "timestamp": 40,
+          "id": "13",
+          "text": "Which products have become more popular recently? [INPUT]",
+          "passageId": "1",
           "locationId": "loc_13",
-          "text": "Who is responsible for closing the road?",
-          "id": 13,
-          "answer": "C"
-        },
+          "answer": "children's books"
+        }
+      ],
+      "type": "short_answer",
+      "id": "11–13",
+      "instruction": "Questions 11–13\n\nAnswer the questions below.\nChoose NO MORE THAN TWO WORDS AND/OR A NUMBER from the passage for each answer."
+    },
+    {
+      "type": "mcq",
+      "instruction": "Questions 14–17\n\nChoose the correct letter, A, B, C or D.\nWrite the correct letter in boxes 27-30 on your answer sheet.",
+      "id": "14–17",
+      "items": [
         {
+          "id": "14",
+          "answer": "B",
+          "passageId": "2",
+          "locationId": "loc_27",
           "options": [
-            {
-              "label": "A",
-              "text": "have to park in another street."
-            },
-            {
-              "label": "B",
-              "text": "must drive very slowly."
-            },
-            {
-              "label": "C",
-              "text": "need permission from a warden."
-            }
+            "A fear and stress are different feelings",
+            "B most humans develop strategies for dealing with fear.",
+            "C business situations cause more fear than others.",
+            "D some people never experience fear."
           ],
-          "timestamp": 65,
-          "text": "Residents who want to use their cars",
-          "locationId": "loc_14",
-          "id": 14,
-          "answer": "B"
+          "text": "In the first paragraph, the writer points out that"
         },
         {
-          "locationId": "loc_15",
-          "text": "Alice says that Street Play Schemes are most needed in",
-          "id": 15,
           "answer": "C",
+          "passageId": "2",
+          "locationId": "loc_28",
           "options": [
-            {
-              "text": "wealthy areas.",
-              "label": "A"
-            },
-            {
-              "text": "quiet suburban areas.",
-              "label": "B"
-            },
-            {
-              "label": "C",
-              "text": "areas with heavy traffic."
-            }
+            "A they react more quickly to fear than humans.",
+            "B they are more influenced by fear than humans.",
+            "C their mental growth resembles that of humans.",
+            "D their brains work more slowly than those of humans."
           ],
-          "timestamp": 90
+          "text": "When discussing the use of rhesus monkeys as experimental subjects, the writer notes that",
+          "id": "15"
         },
         {
-          "id": 16,
-          "answer": "B",
-          "locationId": "loc_16",
-          "text": "What has been the reaction of residents who are not parents?",
-          "options": [
-            {
-              "label": "A",
-              "text": "Many of them were unhappy at first."
-            },
-            {
-              "label": "B",
-              "text": "They like seeing children play in the street."
-            },
-            {
-              "label": "C",
-              "text": "They are surprised by the lack of noise."
-            }
-          ],
-          "timestamp": 120
-        }
-      ],
-      "passageId": "part_2",
-      "instruction": "Choose the correct letter, A, B or C.",
-      "type": "multiple_choice",
-      "text": "Street Play Scheme"
-    },
-    {
-      "text": "Which TWO benefits for children does Alice think are the most important?",
-      "type": "pick_two",
-      "instruction": "Choose TWO letters, A-E.",
-      "options": [
-        {
-          "text": "increased physical activity",
-          "label": "A"
-        },
-        {
-          "label": "B",
-          "text": "increased sense of independence"
-        },
-        {
-          "text": "opportunity to learn new games",
-          "label": "C"
-        },
-        {
-          "label": "D",
-          "text": "opportunity to be part of a community"
-        },
-        {
-          "label": "E",
-          "text": "opportunity to make new friends"
-        }
-      ],
-      "questions": [
-        {
-          "id": 17,
-          "answer": "B",
-          "timestamp": 155,
-          "locationId": "loc_17"
-        },
-        {
-          "locationId": "loc_18",
-          "id": 18,
+          "id": "16",
           "answer": "D",
-          "timestamp": 160
-        }
-      ],
-      "passageId": "part_2"
-    },
-    {
-      "passageId": "part_2",
-      "options": [
-        {
-          "label": "A",
-          "text": "more shoppers"
-        },
-        {
-          "text": "improved safety",
-          "label": "B"
-        },
-        {
-          "text": "less air pollution",
-          "label": "C"
-        },
-        {
-          "label": "D",
-          "text": "more relaxed atmosphere"
-        },
-        {
-          "label": "E",
-          "text": "less noise pollution"
-        }
-      ],
-      "questions": [
-        {
-          "locationId": "loc_19",
-          "id": 19,
-          "answer": "E",
-          "timestamp": 210
-        },
-        {
-          "locationId": "loc_20",
-          "id": 20,
-          "answer": "A",
-          "timestamp": 215
-        }
-      ],
-      "instruction": "Choose TWO letters, A-E.",
-      "type": "pick_two",
-      "text": "Which TWO results of the King Street experiment surprised Alice?"
-    },
-    {
-      "groups": [
-        {
-          "header": "What Hazel should analyse about items in newspapers:",
-          "items": [
-            {
-              "timestamp": 20,
-              "answer": "page",
-              "id": 21,
-              "type": "question",
-              "locationId": "loc_21",
-              "text": "• what 21 [INPUT] the item is on"
-            },
-            {
-              "timestamp": 30,
-              "text": "• the 22 [INPUT] of the item, including the headline",
-              "locationId": "loc_22",
-              "type": "question",
-              "answer": "size",
-              "id": 22
-            },
-            {
-              "text": "• any 23 [INPUT] accompanying the item",
-              "locationId": "loc_23",
-              "type": "question",
-              "answer": "graphics",
-              "id": 23,
-              "timestamp": 45
-            },
-            {
-              "text": "• the 24 [INPUT] of the item, e.g. what's made prominent",
-              "locationId": "loc_24",
-              "type": "question",
-              "answer": "structure",
-              "id": 24,
-              "timestamp": 60
-            },
-            {
-              "locationId": "loc_25",
-              "text": "• the writer's main 25 [INPUT]",
-              "id": 25,
-              "answer": "purpose",
-              "type": "question",
-              "timestamp": 95
-            },
-            {
-              "timestamp": 115,
-              "locationId": "loc_26",
-              "text": "• the 26 [INPUT] the writer may make about the reader",
-              "id": 26,
-              "answer": "assumptions",
-              "type": "question"
-            }
+          "locationId": "loc_29",
+          "passageId": "2",
+          "text": "Which of the following did Kalin and Shelton outline as the second stage in their research project?",
+          "options": [
+            "A the identification of expressions of anxiety in monkeys",
+            "B the identification of situations that arouse stress in monkeys",
+            "C an analysis of brain development in monkeys",
+            "D the study of reactions to fear in monkeys of different ages"
           ]
+        },
+        {
+          "id": "17",
+          "locationId": "loc_30",
+          "passageId": "2",
+          "answer": "A",
+          "options": [
+            "A reflect common experiences for infant humans and monkeys.",
+            "B highlight the similarities between monkey and human infant care.",
+            "C were predicted to cause monkeys more distress than human infants.",
+            "D were graded in terms of their potential effect on young monkeys."
+          ],
+          "text": "In the fourth paragraph, the writer notes that the three related situations"
         }
       ],
-      "passageId": "part_3",
-      "type": "note_completion",
-      "instruction": "Complete the notes below. Write ONE WORD ONLY for each answer."
+      "passageId": "2"
+    },
+    {
+      "id": "18–22",
+      "instruction": "Questions 18–22\n\nLook at the following responses of monkeys (Questions 18–22) and the list of conditions below.\nMatch each statement with the correct condition, A-C.\nWrite the correct letter, A-C, in boxes 31-35 on your answer sheet.\nNB You may use any letter more than once.",
+      "type": "matching",
+      "items": [
+        {
+          "id": "18",
+          "locationId": "loc_31",
+          "passageId": "2",
+          "answer": "C",
+          "text": "aggressive facial expressions [DROP]"
+        },
+        {
+          "answer": "B",
+          "passageId": "2",
+          "locationId": "loc_32",
+          "text": "prolonged stillness [DROP]",
+          "id": "19"
+        },
+        {
+          "passageId": "2",
+          "locationId": "loc_33",
+          "answer": "C",
+          "text": "a combination of contradictory signals [DROP]",
+          "id": "20"
+        },
+        {
+          "id": "21",
+          "text": "appeals for maternal protection [DROP]",
+          "passageId": "2",
+          "answer": "A",
+          "locationId": "loc_34"
+        },
+        {
+          "passageId": "2",
+          "locationId": "loc_35",
+          "answer": "A",
+          "text": "the production of soft sounds [DROP]",
+          "id": "22"
+        }
+      ],
+      "passageId": "2",
+      "options": [
+        "A the alone condition",
+        "B the no-eye-contact condition",
+        "C the stare condition"
+      ]
     },
     {
       "items": [
         {
-          "timestamp": 155,
-          "text": "national news item",
-          "locationId": "loc_27",
-          "answer": "A",
-          "id": 27
+          "text": "Once they had identified three types of defensive behaviour, Kalin and Shelton grouped the monkeys according to their [INPUT], ",
+          "answer": "age",
+          "passageId": "2",
+          "locationId": "loc_36",
+          "id": "23"
         },
         {
-          "timestamp": 175,
-          "id": 28,
-          "answer": "C",
-          "text": "editorial",
-          "locationId": "loc_28"
+          "passageId": "2",
+          "answer": "two weeks old",
+          "locationId": "loc_37",
+          "text": "in order to discover precisely when they were able to respond appropriately to different fear-related cues. They videotaped their results and found that monkeys as young as [INPUT] ",
+          "id": "24"
         },
         {
-          "timestamp": 205,
-          "id": 29,
-          "answer": "C",
-          "locationId": "loc_29",
-          "text": "human interest"
+          "answer": "human beings",
+          "passageId": "2",
+          "locationId": "loc_38",
+          "text": "reacted to the cues but in a haphazard fashion. The researchers noted that they seemed to be unaware of the [INPUT] ",
+          "id": "25"
         },
         {
-          "timestamp": 215,
-          "answer": "B",
-          "id": 30,
-          "locationId": "loc_30",
-          "text": "arts"
+          "id": "26",
+          "text": "who were around them. Despite demonstrating [INPUT], ",
+          "passageId": "2",
+          "answer": "good motor control",
+          "locationId": "loc_39"
+        },
+        {
+          "text": "the monkeys in the middle groups failed to react in ways corresponding to the experimental situation. The oldest group, however, reacted in the same way as [INPUT] and the researchers concluded that monkeys are capable of selective responding between nine and 12 weeks old.",
+          "passageId": "2",
+          "locationId": "loc_40",
+          "answer": "mature monkeys",
+          "id": "27"
         }
       ],
-      "type": "matching",
-      "questionHeader": "Types of articles",
-      "optionHeader": "Actions",
-      "options": [
-        {
-          "text": "She will definitely look for a suitable article.",
-          "label": "A"
-        },
-        {
-          "text": "She may look for a suitable article.",
-          "label": "B"
-        },
-        {
-          "label": "C",
-          "text": "She definitely won't look for an article."
-        }
-      ],
-      "passageId": "part_3",
-      "instruction": "What does Hazel decide to do about each of the following types of articles? Write the correct letter, A, B or C, next to Questions 27-30."
+      "passageId": "2",
+      "instruction": "Questions 23–27\n\nComplete the summary below.\nChoose NO MORE THAN THREE WORDS AND/OR A NUMBER from the passage for each answer.\nWrite your answer in boxes 36-40 on your answer sheet.",
+      "id": "23–27",
+      "type": "summary"
     },
     {
-      "passageId": "part_4",
-      "type": "note_completion",
-      "groups": [
+      "options": [
+        "i A solution which helps both the environment and local people",
+        "ii The species of fish which have declined the most",
+        "iii Financial support for the fishing industry",
+        "iv Lessening the chance of catching the wrong species",
+        "v A key obstacle to the implementation of a scheme",
+        "vi Ways in which fish habitats are being damaged",
+        "vii Why the public may view the situation as less serious than it is",
+        "viii A way of keeping track of fishing activities",
+        "ix An unsuccessful method of maintaining fish stocks"
+      ],
+      "items": [
         {
-          "header": "Early history of keeping clean",
-          "items": [
-            {
-              "type": "heading",
-              "text": "Prehistoric times:"
-            },
-            {
-              "timestamp": 10,
-              "text": "• water was used to wash off 31 [INPUT]",
-              "locationId": "loc_31",
-              "type": "question",
-              "answer": "mud",
-              "id": 31
-            },
-            {
-              "type": "heading",
-              "text": "Ancient Babylon:"
-            },
-            {
-              "text": "• soap-like material found in 32 [INPUT] cylinders",
-              "locationId": "loc_32",
-              "type": "question",
-              "answer": "clay",
-              "id": 32,
-              "timestamp": 25
-            },
-            {
-              "type": "heading",
-              "text": "Ancient Greece:"
-            },
-            {
-              "type": "text",
-              "text": "• people cleaned themselves with sand and other substances"
-            },
-            {
-              "timestamp": 50,
-              "locationId": "loc_33",
-              "text": "• used a strigil – scraper made of 33 [INPUT]",
-              "id": 33,
-              "answer": "metal",
-              "type": "question"
-            },
-            {
-              "type": "text",
-              "text": "• washed clothes in streams"
-            },
-            {
-              "type": "heading",
-              "text": "Ancient Germany and Gaul:"
-            },
-            {
-              "timestamp": 70,
-              "type": "question",
-              "id": 34,
-              "answer": "hair",
-              "text": "• used soap to colour their 34 [INPUT]",
-              "locationId": "loc_34"
-            },
-            {
-              "type": "heading",
-              "text": "Ancient Rome:"
-            },
-            {
-              "type": "text",
-              "text": "• animal fat, ashes and clay mixed through action of rain, used for washing clothes"
-            },
-            {
-              "text": "• from about 312 BC, water carried to Roman 35 [INPUT] by aqueducts",
-              "locationId": "loc_35",
-              "type": "question",
-              "id": 35,
-              "answer": "baths",
-              "timestamp": 95
-            },
-            {
-              "type": "heading",
-              "text": "Europe in Middle Ages:"
-            },
-            {
-              "text": "• decline in bathing contributed to occurrence of 36 [INPUT]",
-              "locationId": "loc_36",
-              "type": "question",
-              "answer": "disease / diseases",
-              "id": 36,
-              "timestamp": 125
-            },
-            {
-              "timestamp": 145,
-              "text": "• 37 [INPUT] began to be added to soap",
-              "locationId": "loc_37",
-              "type": "question",
-              "answer": "perfume / perfumes",
-              "id": 37
-            },
-            {
-              "type": "heading",
-              "text": "Europe from 17th century:"
-            },
-            {
-              "type": "text",
-              "text": "• 1600s: cleanliness and bathing started becoming usual"
-            },
-            {
-              "timestamp": 175,
-              "type": "question",
-              "answer": "salt",
-              "id": 38,
-              "text": "• 1791: Leblanc invented a way of making soda ash from 38 [INPUT]",
-              "locationId": "loc_38"
-            },
-            {
-              "timestamp": 200,
-              "type": "question",
-              "answer": "science",
-              "id": 39,
-              "text": "• early 1800s: Chevreul turned soapmaking into a 39 [INPUT]",
-              "locationId": "loc_39"
-            },
-            {
-              "timestamp": 230,
-              "type": "question",
-              "id": 40,
-              "answer": "tax",
-              "text": "• from 1800s, there was no longer a 40 [INPUT] on soap",
-              "locationId": "loc_40"
-            }
-          ]
+          "id": "28",
+          "text": "Paragraph A [DROP]",
+          "answer": "iii",
+          "passageId": "3",
+          "locationId": "loc_14"
+        },
+        {
+          "text": "Paragraph B [DROP]",
+          "passageId": "3",
+          "answer": "vi",
+          "locationId": "loc_15",
+          "id": "29"
+        },
+        {
+          "text": "Paragraph C [DROP]",
+          "locationId": "loc_16",
+          "passageId": "3",
+          "answer": "i",
+          "id": "30"
+        },
+        {
+          "id": "31",
+          "answer": "v",
+          "passageId": "3",
+          "locationId": "loc_17",
+          "text": "Paragraph D [DROP]"
+        },
+        {
+          "id": "32",
+          "passageId": "3",
+          "answer": "viii",
+          "locationId": "loc_18",
+          "text": "Paragraph E [DROP]"
+        },
+        {
+          "locationId": "loc_19",
+          "passageId": "3",
+          "answer": "iv",
+          "text": "Paragraph F [DROP]",
+          "id": "33"
+        },
+        {
+          "passageId": "3",
+          "locationId": "loc_20",
+          "answer": "vii",
+          "text": "Paragraph G [DROP]",
+          "id": "34"
         }
       ],
-      "instruction": "Complete the notes below. Write ONE WORD ONLY for each answer."
+      "passageId": "3",
+      "type": "matching",
+      "instruction": "Questions 28–34\n\nReading Passage 2 has seven paragraphs, A-G.\n\nChoose the correct heading for each paragraph from the list of headings below.\nWrite the correct number, i-ix, in boxes 14-20 on your answer sheet.",
+      "id": "28–34"
+    },
+    {
+      "type": "pick_two",
+      "instruction": "Questions 35–36 and 22\n\nChoose TWO letters, A-E.\nWrite the correct letters in boxes 21 and 22 on your answer sheet.\nWhich TWO causes of decreasing fish numbers are mentioned by the writer of the text?",
+      "id": "35–36",
+      "options": [
+        "A Fish die because they swallow large pieces of plastic rubbish.",
+        "B Too many fish are caught before they can reproduce.",
+        "C There is a market for certain endangered species of fish.",
+        "D Great numbers of fish are killed by being caught unintentionally.",
+        "E Fish are being affected by rising sea temperatures."
+      ],
+      "items": [
+        {
+          "passageId": "3",
+          "answer": "D,E",
+          "locationId": "loc_21",
+          "text": "Which TWO causes of decreasing fish numbers are mentioned by the writer of the text?",
+          "id": "35–36"
+        }
+      ],
+      "passageId": "3"
+    },
+    {
+      "items": [
+        {
+          "id": "37",
+          "answer": "satellite",
+          "passageId": "3",
+          "locationId": "loc_23",
+          "text": "<b>How technology is helping maintain fish populations</b><br/><br/>Global Fishing Watch uses data from AIS, transmitted by means of [INPUT], "
+        },
+        {
+          "id": "38",
+          "passageId": "3",
+          "locationId": "loc_24",
+          "answer": "speed",
+          "text": "about the position, movements and [INPUT] of large vessels. "
+        },
+        {
+          "id": "39",
+          "text": "Global Fishing Watch puts this information on its [INPUT] in an initiative to make fishing more visible.<br/><br/>",
+          "passageId": "3",
+          "locationId": "loc_25",
+          "answer": "website"
+        },
+        {
+          "text": "Technology is also being used to address the problem of bycatch, which is when unwanted species are caught. One example is a safe chemical substance added to the bait, which discourages sharks from approaching. Another is a type of net which allows [INPUT] to free themselves if caught.",
+          "passageId": "3",
+          "locationId": "loc_26",
+          "answer": "turtles",
+          "id": "40"
+        }
+      ],
+      "passageId": "3",
+      "id": "37–40",
+      "instruction": "Questions 37–40\n\nComplete the summary below.\nChoose ONE WORD ONLY from the passage for each answer.\nWrite your answers in boxes 25-29 on your answer sheet.",
+      "type": "summary"
     }
   ],
-  "audio_url": "",
-  "isExclusive": false
+  "keywordTable": [],
+  "isExclusive": false,
+  "type": "reading",
+  "difficulty": "medium",
+  "passages": [
+    {
+      "partNumber": 1,
+      "extraSilentTime": 0,
+      "originalId": "passage_1",
+      "id": "1",
+      "audio": "",
+      "content": "<p><span id='loc_1'>The power of modern electronic media - the net, mobile phones and video games - to capture the attention of the human mind, particularly the young mind, and then distract it, has lately become a subject of concern. We are, say the worriers, losing the ability to apply ourselves properly to a single task, like reading a book in its entirety or mastering a piece of music on an instrument, with the result that our thinking is becoming shallower.</span></p><p>Nicholas Carr, the American science writer, has explored this theme for his new book, <span id='loc_2'>The Shallows</span>, in which he argues that new media are not just changing our habits but our brain too. It turns out that the mature human brain is not an immutable seat of personality and intellect but a changeable thing, subject to 'neuroplasticity'. When our activities alter, so does the architecture of our brain. 'I'm not thinking the way I used to think,' writes Carr. 'I feel it most strongly when I'm reading.' <span id='loc_3'>Years of internet use have, he suspects, dented his ability to read deeply, to absorb himself in books</span>: 'My brain wasn't just drifting. It was hungry. It was demanding to be fed the way the net fed it.' He describes getting fidgety when faced with a long text: 'When we go online, we enter an environment that promotes cursory reading, hurried and distracted thinking, and superficial learning.'</p><p><span id='loc_4'>Carr cites research by Gary Small, a professor of psychiatry at UCLA, who concluded that constant exposure to modern media strengthens new neural pathways while weakening older ones.</span> Just five hours of internet use is enough to awaken previously dormant parts of the brain's pre-fontal cortex, concluded Small. For Carr, this is proof that the net can rewire the mind. He sees dangers. Deep thought, the ability to immerse oneself in an area of study, to follow a narrative, to understand an argument and develop a critique, is giving way to skimming. Young users of the Internet are good at drawing together information for a school project, for example, but that does not mean they have digested it.</p><p>But is a changing mind a more stupid one? Jake Vigdor and Helen Ladd are researchers at Duke University, North Carolina. In a study spanning five years and <span id='loc_7'>involving more than 100,000 children</span>, they discovered a correlation between declining <span id='loc_8'>test scores</span> in both mathematics and reading and the spread of home computers and broadband. 'The decline in scores was in the order of one or two percent but it was statistically significant,' says Vigdor. 'The drop may not be that great but one can say that the increase in computer use was certainly not <span id='loc_9'>positive</span>.' The cut-off year for the study was 2005, when socialising was more primitive. Since then, social networking sites have become enormously powerful consumers of young people's time. Vigdor and Ladd concluded that the educational value of home computing was best realised when youngsters were actively supervised by <span id='loc_10'>parents</span>.</p><p>This tendency to skim is compounded by the temptation of new media users to 'multi-task'. Watch a youngster on a computer and he could be Facebook-ing while burning a CD or Tweeting on his mobile phone. <span id='loc_5'>Modern management tends to promote multi-tasking as an expression of increased efficiency. Science, on the other hand, does not.</span> The human brain is, it seems, not at all good at multi-tasking - unless it involves a highly developed skill like driving. <span id='loc_6'>David Meyer, a neuroscientist at the University of Michigan, says: 'The bottom line is that you can't simultaneously be thinking about your tax return and reading an essay, just as you can't talk to yourself about two things at once.</span> People may think otherwise but it's a myth. With complicated tasks, you will never, ever be able to overcome the inherent limitations in the brain.'</p><p>Paying attention is the prerequisite of memory: the sharper the attention, the sharper the memory. Cursory study born of the knowledge that information is easily available online results, say the worriers, in a failure to digest it. In addition, the brain needs rest and recovery time to consolidate thoughts. Teenagers who fill every moment with a text or Tweet are not allowing their minds necessary downtime. All rather worrying, but is it that bad?</p><p>We have been here before, of course. The Ancient Greeks lamented the replacement of the oral tradition with written text, and the explosion in book ownership resulting from the printing press was, for some, a disaster. <span id='loc_11'>In the 18th century, a French statesman railed against a new device that turned people into 'dispersed' individuals, isolated in 'sullen silence'. He was talking about the newspaper.</span></p><p>The net is supposed to consume the lives of young people, yet <span id='loc_12'>the only reliable studies about the time spent online, collated by the World Health Organization, suggest children spend between two and four hours in front of screens</span>, including television screens, and not six or seven, as often suggested. Moreover, there is evidence that youngsters who use social networking sites have more rewarding offline social lives than those who do not.</p><p>A study on children and new technology in the UK included a 'study of studies' by Professor David Buckingham of the University of London's Institute of Education. He concluded: 'Broadly speaking, the evidence about the effects of new media is weak and inconclusive - and this applies to both positive and negative effects.'</p><p>Certainly the 'old' media don't seem to be doing that badly. <span id='loc_13'>An annual survey shows that sales of children's books this year were 4.9 per cent greater than last year</span>, with more than 60 million sold. The damage, if any, done by excessive computer time may not be so much to do with what is being done online as</p>",
+      "title": "IS CONSTANT USE OF ELECTRONIC MEDIA CHANGING OUR MINDS?"
+    },
+    {
+      "title": "The Analysis of Fear",
+      "content": "<i>Researchers are investigating the processes in the brain that give rise to fear in animals. The results may lead to new ways to treat human anxiety</i><p><span id='loc_27'>Over the years, the majority of people acquire a range of skills for coping with frightening situations.</span> They will attempt to placate a vexed teacher or boss and will shout and run when chased by a hostile stranger. But some individuals become overwhelmed in circumstances others would consider only minimally stressful: fear of ridicule might cause them to shake uncontrollably when called on to speak in a group, or terror of strangers might lead them to hide at home, unable to work or shop for groceries. Why do certain people fall prey to excessive fear?</p><p><span id='loc_28'>Ned H. Kalin and Steven E. Shelton at the University of Wisconsin-Madison are addressing this problem by identifying specific brain processes that regulate fear and its associated behaviors. Despite the availability of non-invasive computer imaging techniques, such information is still extremely difficult to obtain in humans. Hence, they have turned their attention to another primate, the rhesus monkey. These animals undergo many of the same physiological and psychological developmental stages that humans do, but in a more compressed time span.</span> As we gain more insight into the nature and operation of neural circuits that modulate fear in monkeys, it should be possible to pinpoint the brain processes that cause inordinate anxiety in people, and to devise new therapies to counteract it. Effective interventions would be particularly valuable if they were applied at an early age, as growing evidence suggests overly fearful youngsters are at high risk of later emotional distress.</p><p>When they began their studies two decades ago, Kalin and Shelton knew that they would first have to find cues that elicit fear and identify behaviors that reflect different types of anxiety. <span id='loc_29'>With such information in hand, they could then proceed to determine the age at which monkeys begin to match defensive behaviors selectively to specific cues.</span> Finally, by determining the parts of the brain that reach maturity during the same time span, they could gain clues to the regions that underlie the regulation of fear and fear-related behavior.</p><p>The experiments were carried out at the University of Wisconsin-Madison. Kalin and Shelton discerned varied behaviors by exposing monkeys between six and 12 months old to three related situations. In the alone condition, an animal was separated from its mother and left by itself in a cage for ten minutes. In the no-eye-contact condition, a person stood motionless outside the cage and avoided looking at the solitary infant. In the stare condition, a person was again present and motionless but, assuming a neutral expression, peered directly at the animal. <span id='loc_30'>These positions are no more frightening than those that primates encounter frequently in the wild, or those that human infants encounter every time they are left at a day-care center.</span></p><p><span id='loc_35'>In the alone condition, most monkeys became very active and emitted frequent gentle 'coo' calls made with pursed lips.</span> <span id='loc_34'>More than 40 years ago it was deduced that when an infant monkey is separated from its mother, it yearns to regain the closeness and security provided by nearness to the parent. These responses help to draw the mother's attention.</span> <span id='loc_32'>In contrast, in the more frightening no-eye-contact situation, the monkeys reduced their activity greatly and sometimes froze for extended periods of time.</span> When an infant spots a potential predator, its goal shifts from attracting the mother to becoming inconspicuous. Inhibiting motion and freezing are common attempts to achieve this in many species. If the infant perceives that it has been detected, its aim shifts to warding off an attack. <span id='loc_31'>So the stare condition evoked a third set of responses. The monkeys made several hostile gestures: barking (forcing air from the abdomen through the vocal cords to emit a harsh, growl-like sound) and staring back.</span> <span id='loc_33'>Sometimes the animals mixed the threatening displays with submissive ones, such as fear grimaces, which look something like wary grins, or grinding of teeth.</span></p><p>Having identified three categories of defensive behaviors, Kalin and Shelton set about determining when infant monkeys first begin to apply them effectively. Several lines of work had led them to surmise that the ability to make such choices emerges when an infant is around two months old. To establish the critical period of development, <span id='loc_36'>they examined four groups of infant monkeys ranging in age up to 12 weeks old.</span> The babies were separated from their mothers, left to acclimatize to a cage, and then exposed to the alone, no-eye-contact and stare conditions. All sessions were videotaped for analysis. <span id='loc_37'>They found that the infants in the youngest group (no more than two weeks old) engaged in defensive behaviors.</span> <span id='loc_38'>But they lacked some motor control and seemed to act randomly, as if they had not noticed the human beings that were present.</span> <span id='loc_39'>Babies in the two intermediate-age groups had good motor control, but their actions seemed unrelated to the test condition.</span> <span id='loc_40'>Only animals in the oldest group (nine- to 12-week olds) conducted themselves differently in each situation, and their reactions were both appropriate and identical to those of mature monkeys.</span> This finding meant motor control was not the prime determinant of selective responding and that nine to 12 weeks is the critical age for the appearance of a monkeys ability to adaptively modulate its defensive activity to meet changing demands.</p>",
+      "audio": "",
+      "id": "2",
+      "originalId": "passage_1",
+      "extraSilentTime": 0,
+      "partNumber": 2
+    },
+    {
+      "extraSilentTime": 0,
+      "partNumber": 3,
+      "originalId": "passage_1",
+      "id": "3",
+      "audio": "",
+      "content": "<p><strong>A</strong> Recent figures indicate that the amount of seafood caught in the world's oceans has been dropping by 2% every year since 1996. Behind this global fishing crisis lies a catalogue of problems. First and foremost, there are simply too many fishing boats chasing fewer and fewer fish. <span id='loc_14'>This is partly because of subsidies and other perks: governments provide cheap fuel for boats, tax rebates, low-interest loans and other measures to maintain fisheries that would otherwise fail as fish become scarce.</span></p><p><strong>B</strong> <span id='loc_15'>Large fishing boats scrape heavy nets across the seabed, smashing delicate, centuries-old ecosystems.</span> <span id='loc_21'>Huge quantities of unwanted sea life are caught that have no market. This so-called 'bycatch' is usually thrown straight back into the sea, already dead or dying.</span> Added to this are the impacts of pollution and climate change. <span id='loc_22'>Warming seas are driving certain species towards the poles, rearranging ecosystems and causing coral reefs to bleach or die.</span> Meanwhile, carbon emissions are making oceans more acidic, which weakens shellfish and alters fish's hearing and behaviour. To make matters worse, fish that end up on our plates are also becoming filled with fragmented plastic.</p><p><strong>C</strong> Fixing all these problems is undeniably an immense task; they don't occur in isolation, but together, often worsening each other. Nevertheless, effective solutions are already available. <span id='loc_16'>One proven way of restoring fish populations is the use of marine reserves.</span> By excluding fishing from particular areas, reserves allow marine species to recover from previous exploitation. Research shows that reserves dramatically boost the density of marine species, by 166% on average; species diversity also goes up by about 20%. In addition to this, reserves keep habitats healthy and help make ecosystems more resilient to climate change. Benefits also spill out as adult fish and larvae move into unprotected zones, thereby replenishing the wider seascape. For example, following a 20-year fishing ban on the coral reefs around Apo Island in the Philippines, fishermen saw a 50% increase in their catches even outside the reserve.</p><p><strong>D</strong> The portion of the oceans that falls within some kind of marine reserve is gradually growing. <span id='loc_17'>A major problem, though, is enforcement. Many countries lack resources for patrols, especially in very large, remote reserves.</span> 'Here you have an activity that becomes invisible when it gets beyond the horizon,' says Jackie Savitz of the non-profit group Oceana. She is heading up a new project called Global Fishing Watch, which aims to make fishing more visible.</p><p><strong>E</strong> <span id='loc_18'>The initiative is a free online tool showing where fishing is happening anywhere in the world. It uses data from Automated Information Systems (AIS)</span>, required on many watercraft over a certain size to prevent them crashing into each other. AIS broadcasts public information <span id='loc_23'>via satellite</span> on the vessels' locations and <span id='loc_24'>speed</span> as well as where they're heading. This data is being used to detect which vessels are fishing, where and when. With the help of a multinational technology company, Global Fishing Watch uploads the big data generated, and analyses it to detect the characteristic patterns of fishing. <span id='loc_25'>The website currently follows over 35,000 fishing vessels in near-real time.</span> It's hoped governments will use this to enforce regulations to make fisheries sustainable, such as imposing closed seasons and marine reserves. Kiribati, a small island nation in the Pacific Ocean, has already used the data to fine a commercial vessel $1m for illegally fishing inside a protected area.</p><p><strong>F</strong> <span id='loc_19'>Technology is also being applied to deal with bycatch.</span> For example, a company in Florida has developed pellets of slow-release, non-toxic, biodegradable repellent which are inserted into the bait used on hooks. Tests show that these reduce the number of sharks that go for the bait and get accidentally snagged. Other equipment in development elsewhere includes devices which scare away seabirds, and <span id='loc_26'>trapdoors in trawl nets, making it possible for turtles to escape.</span> Meanwhile, in the Pacific, studies are underway to limit bycatch by testing various types of hooks in the tuna longline fishing industry.</p><p><strong>G</strong> <span id='loc_20'>When we see supermarket shelves still piled high with seafood, it can be difficult to make sense of reports of emptying seas.</span> It's true that management successes have allowed some stocks to recover. In the 1970s, North Sea stocks of herring dramatically collapsed. But then, after a ban on fishing, together with some excellent management approaches, stocks were eventually rebuilt. Today, however, seafood supplies are largely maintained by fishing in distant waters. Imports account for 90% of seafood eaten in the US and around 60% in Europe. This puts mounting pressure on other regions such as West Africa, where there is little supervision to prevent overfishing. This widening gap between plate and ocean makes it more important than ever for us all to care about where our seafood comes from.</p>",
+      "title": "The problem of declining fish populations"
+    }
+  ],
+  "title": "READING Full electronic media"
 }

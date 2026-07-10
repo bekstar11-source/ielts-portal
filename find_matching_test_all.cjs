@@ -12,7 +12,17 @@ function request(url) {
         }, (res) => {
             let data = '';
             res.on('data', chunk => data += chunk);
-            res.on('end', () => resolve(JSON.parse(data)));
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.error) {
+                        console.error("API Error:", parsed.error);
+                    }
+                    resolve(parsed);
+                } catch (e) {
+                    reject(e);
+                }
+            });
         }).on('error', reject);
     });
 }
@@ -56,7 +66,7 @@ async function run() {
     for (const d of allDocs) {
         const docId = d.name.split('/').pop();
         const str = JSON.stringify(d);
-        if (str.includes("national news item")) {
+        if (str.toLowerCase().includes("fishing") || str.toLowerCase().includes("bycatch")) {
             console.log(`\n>>> FOUND MATCHING TEST IN ALL! ID: ${docId}`);
             const fields = {};
             for (const k in d.fields) {
