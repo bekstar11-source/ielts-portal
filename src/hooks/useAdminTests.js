@@ -96,7 +96,50 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                 setLoading(true);
                 const snapAll = await getDocs(query(collection(db, "tests_metadata"), limit(1500)));
                 const allDocs = snapAll.docs.map(d => ({ id: d.id, ...d.data() }));
-                setAllTestsCache(allDocs);
+                
+                // Proactively clean up any orphaned isMergedSource flags in Firestore
+                const activeSourceIds = new Set();
+                const activeSourceTitles = new Set();
+                allDocs.forEach(t => {
+                    const titleLower = (t.title || "").toLowerCase().trim();
+                    const isMerged = t.isMerged || titleLower.startsWith("merged:");
+                    if (isMerged) {
+                        if (Array.isArray(t.mergedSourceIds)) {
+                            t.mergedSourceIds.forEach(id => activeSourceIds.add(id));
+                        }
+                        let content = t.title || "";
+                        if (titleLower.startsWith("merged:")) {
+                            content = content.slice(7).trim();
+                        }
+                        if (content) {
+                            const parts = content.split(" + ").map(p => p.trim()).filter(Boolean);
+                            parts.forEach(p => activeSourceTitles.add(p.toLowerCase()));
+                        }
+                    }
+                });
+
+                const orphans = allDocs.filter(t => {
+                    const isMergedTest = t.isMerged || (t.title?.toLowerCase().startsWith("merged:") && !t.isMergedSource);
+                    if (isMergedTest) return false;
+                    const isSrcId = activeSourceIds.has(t.id);
+                    const isSrcTitle = t.title && activeSourceTitles.has(t.title.toLowerCase().trim());
+                    return t.isMergedSource && !isSrcId && !isSrcTitle;
+                });
+
+                if (orphans.length > 0) {
+                    console.log(`[useAdminTests] Found ${orphans.length} orphaned source tests. Cleaning up in Firestore...`);
+                    const batch = writeBatch(db);
+                    orphans.forEach(o => {
+                        batch.update(doc(db, "tests", o.id), { isMergedSource: false });
+                        batch.update(doc(db, "tests_metadata", o.id), { isMergedSource: false });
+                    });
+                    await batch.commit();
+                    console.log("[useAdminTests] Cleaned up orphaned source tests in Firestore.");
+                    const orphanIdsSet = new Set(orphans.map(o => o.id));
+                    setAllTestsCache(allDocs.map(t => orphanIdsSet.has(t.id) ? { ...t, isMergedSource: false } : t));
+                } else {
+                    setAllTestsCache(allDocs);
+                }
             } catch (err) {
                 console.error("Proactive search cache warming failed:", err);
             } finally {
@@ -274,11 +317,42 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
     const handleDelete = async (id) => {
         try {
             const batch = writeBatch(db);
+            
+            // Find the test to be deleted to see if it is a merged test
+            const testToDelete = allTestsCache.find(t => t.id === id);
+            let unreferencedSourceIds = [];
+            
+            if (testToDelete && Array.isArray(testToDelete.mergedSourceIds)) {
+                // Find all other merged tests' source IDs
+                const otherMergedSourceIds = new Set();
+                allTestsCache.forEach(t => {
+                    if (t.id !== id && (t.isMerged || t.title?.toLowerCase().startsWith("merged:")) && Array.isArray(t.mergedSourceIds)) {
+                        t.mergedSourceIds.forEach(srcId => otherMergedSourceIds.add(srcId));
+                    }
+                });
+                
+                // Filter out those that are still referenced
+                unreferencedSourceIds = testToDelete.mergedSourceIds.filter(srcId => !otherMergedSourceIds.has(srcId));
+                
+                // Update Firestore for each unreferenced source test
+                unreferencedSourceIds.forEach(srcId => {
+                    batch.update(doc(db, "tests", srcId), { isMergedSource: false });
+                    batch.update(doc(db, "tests_metadata", srcId), { isMergedSource: false });
+                });
+            }
+            
             batch.delete(doc(db, "tests", id));
             batch.delete(doc(db, "tests_metadata", id));
             await batch.commit();
 
-            setAllTestsCache(prev => prev.filter(t => t.id !== id));
+            setAllTestsCache(prev => {
+                let updated = prev.filter(t => t.id !== id);
+                if (unreferencedSourceIds.length > 0) {
+                    const unreferencedSet = new Set(unreferencedSourceIds);
+                    updated = updated.map(t => unreferencedSet.has(t.id) ? { ...t, isMergedSource: false } : t);
+                }
+                return updated;
+            });
             return true;
         } catch (err) {
             console.error("Delete Error:", err);
@@ -289,13 +363,53 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
     const bulkDeleteTests = async (ids) => {
         try {
             const batch = writeBatch(db);
+            
+            // Find tests being deleted
+            const testsToDelete = allTestsCache.filter(t => ids.includes(t.id));
+            let unreferencedSourceIds = [];
+            
+            if (testsToDelete.length > 0) {
+                const deletedSourceIds = [];
+                testsToDelete.forEach(t => {
+                    if (Array.isArray(t.mergedSourceIds)) {
+                        deletedSourceIds.push(...t.mergedSourceIds);
+                    }
+                });
+                
+                if (deletedSourceIds.length > 0) {
+                    // Find all other merged tests' source IDs (not being deleted)
+                    const otherMergedSourceIds = new Set();
+                    allTestsCache.forEach(t => {
+                        if (!ids.includes(t.id) && (t.isMerged || t.title?.toLowerCase().startsWith("merged:")) && Array.isArray(t.mergedSourceIds)) {
+                            t.mergedSourceIds.forEach(srcId => otherMergedSourceIds.add(srcId));
+                        }
+                    });
+                    
+                    // Filter out those that are still referenced or are also being deleted
+                    unreferencedSourceIds = deletedSourceIds.filter(srcId => !ids.includes(srcId) && !otherMergedSourceIds.has(srcId));
+                    
+                    // Update Firestore for each unreferenced source test
+                    unreferencedSourceIds.forEach(srcId => {
+                        batch.update(doc(db, "tests", srcId), { isMergedSource: false });
+                        batch.update(doc(db, "tests_metadata", srcId), { isMergedSource: false });
+                    });
+                }
+            }
+            
             ids.forEach(id => {
                 batch.delete(doc(db, "tests", id));
                 batch.delete(doc(db, "tests_metadata", id));
             });
             await batch.commit();
 
-            setAllTestsCache(prev => prev.filter(t => !ids.includes(t.id)));
+            setAllTestsCache(prev => {
+                let updated = prev.filter(t => !ids.includes(t.id));
+                if (unreferencedSourceIds.length > 0) {
+                    const unreferencedSet = new Set(unreferencedSourceIds);
+                    updated = updated.map(t => unreferencedSet.has(t.id) ? { ...t, isMergedSource: false } : t);
+                }
+                return updated;
+            });
             return true;
         } catch (err) {
             console.error("Bulk Delete Error:", err);

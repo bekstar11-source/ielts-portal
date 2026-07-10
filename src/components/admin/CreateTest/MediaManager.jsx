@@ -11,6 +11,21 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark 
     const start = processTime(startTimeStr);
     const end = processTime(endTimeStr);
 
+    const handleProgressClick = (e) => {
+        if (!audioUrl) return;
+        const audio = audioRef.current;
+        if (!audio || duration <= 0) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const width = rect.width;
+        const percentage = clickX / width;
+        const targetRelativeTime = percentage * duration;
+
+        audio.currentTime = start + targetRelativeTime;
+        setCurrentTime(targetRelativeTime);
+    };
+
     useEffect(() => {
         return () => {
             if (progressInterval.current) clearInterval(progressInterval.current);
@@ -39,8 +54,10 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark 
                 }
             });
 
-            // Set start time
-            audio.currentTime = start;
+            // Set start time only if the playback is currently outside the segment range
+            if (audio.currentTime < start || audio.currentTime >= end) {
+                audio.currentTime = start;
+            }
             audio.play().then(() => {
                 setIsPlaying(true);
                 if (progressInterval.current) clearInterval(progressInterval.current);
@@ -100,9 +117,12 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark 
             </button>
             <div className="flex-1 flex items-center gap-1.5 text-[9px] font-mono tabular-nums opacity-60">
                 <span>{toMMSS(currentTime)}</span>
-                <div className={`flex-1 h-1 rounded-full relative ${isDark ? 'bg-white/10' : 'bg-gray-100'}`}>
+                <div 
+                    onClick={handleProgressClick}
+                    className={`flex-1 h-2 -my-0.5 rounded-full relative cursor-pointer ${isDark ? 'bg-white/10' : 'bg-gray-100'}`}
+                >
                     <div 
-                        className="h-full bg-blue-500 rounded-full transition-all duration-75" 
+                        className="h-full bg-blue-500 rounded-full pointer-events-none transition-all duration-75" 
                         style={{ width: `${duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0}%` }}
                     />
                 </div>

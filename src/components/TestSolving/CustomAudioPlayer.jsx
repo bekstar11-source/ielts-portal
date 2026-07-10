@@ -21,10 +21,16 @@ const CustomAudioPlayer = forwardRef(({
     shouldAutoPlay = false, // Only true when exam is fully ready to play
     volume = 1,
     resumeTime = 0,
+    extraSilentTime = 0,
 }, ref) => {
     const audioRef = useRef(null);
     const hasResumed = useRef(false);
     const hasPlayed = useRef(false);
+    const isSystemPausedRef = useRef(false);
+    const silentElapsedRef = useRef(0);
+    const silentTimerRef = useRef(null);
+    const [isSilentPeriod, setIsSilentPeriod] = useState(false);
+    const isSilentRef = useRef(false);
 
     // Allow parent to seek
     useImperativeHandle(ref, () => ({
@@ -60,8 +66,17 @@ const CustomAudioPlayer = forwardRef(({
                     }
                 });
 
+                // Reset silent period if any
+                isSilentRef.current = false;
+                setIsSilentPeriod(false);
+                if (silentTimerRef.current) {
+                    clearInterval(silentTimerRef.current);
+                    silentTimerRef.current = null;
+                }
+
                 // Play audio
                 console.log("[CustomAudioPlayer] Playing audio from:", audioRef.current.currentTime);
+                isSystemPausedRef.current = false;
                 audioRef.current.play().catch(err => {
                     console.error("[CustomAudioPlayer] Play error after seek:", err);
                 });
@@ -95,6 +110,61 @@ const CustomAudioPlayer = forwardRef(({
         ? `flex-shrink-0 w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full transition-colors focus:outline-none ${isExam ? 'text-white/20' : 'bg-white/10 hover:bg-white/20 text-white'}` 
         : `flex-shrink-0 w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full transition-colors focus:outline-none ${isExam ? 'bg-gray-100 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-black'}`;
 
+    const resumeSilentPeriod = useCallback((segmentDur) => {
+        if (silentTimerRef.current) clearInterval(silentTimerRef.current);
+
+        const totalSilence = Number(extraSilentTime) || 0;
+
+        silentTimerRef.current = setInterval(() => {
+            silentElapsedRef.current += 0.1;
+            if (silentElapsedRef.current >= totalSilence) {
+                clearInterval(silentTimerRef.current);
+                silentTimerRef.current = null;
+                isSilentRef.current = false;
+                setIsSilentPeriod(false);
+                setCurrentTime(segmentDur + totalSilence);
+                onEnded?.();
+            } else {
+                setCurrentTime(segmentDur + silentElapsedRef.current);
+            }
+        }, 100);
+    }, [extraSilentTime, onEnded]);
+
+    const startSilentPeriod = useCallback((segmentDur) => {
+        if (isSilentRef.current) return;
+        isSilentRef.current = true;
+        setIsSilentPeriod(true);
+        silentElapsedRef.current = 0;
+
+        resumeSilentPeriod(segmentDur);
+    }, [resumeSilentPeriod]);
+
+    // Separate useEffect to handle duration calculation dynamically
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        
+        const updateDuration = () => {
+            let segDur = 0;
+            if (endTime && endTime > startTime) {
+                segDur = endTime - startTime;
+            } else {
+                segDur = audio.duration || 0;
+            }
+            if (!isNaN(segDur) && segDur > 0) {
+                setDuration(segDur + (Number(extraSilentTime) || 0));
+            }
+        };
+
+        updateDuration();
+        audio.addEventListener('loadedmetadata', updateDuration);
+        audio.addEventListener('durationchange', updateDuration);
+        return () => {
+            audio.removeEventListener('loadedmetadata', updateDuration);
+            audio.removeEventListener('durationchange', updateDuration);
+        };
+    }, [startTime, endTime, extraSilentTime, src]);
+
     // Wire up audio events
     useEffect(() => {
         const audio = audioRef.current;
@@ -103,21 +173,29 @@ const CustomAudioPlayer = forwardRef(({
         const onPlay = () => {
             setIsPlaying(true);
             hasPlayed.current = true;
+            isSystemPausedRef.current = false;
+            setIsSilentPeriod(false);
+            isSilentRef.current = false;
+            if (silentTimerRef.current) {
+                clearInterval(silentTimerRef.current);
+                silentTimerRef.current = null;
+            }
         };
         const onPause = () => setIsPlaying(false);
         const onEnded_ = () => {
             setIsPlaying(false);
+            const segmentDur = (endTime && endTime > startTime) ? (endTime - startTime) : (audio.duration || 0);
             if (hasPlayed.current) {
-                onEnded?.();
+                const totalSilence = Number(extraSilentTime) || 0;
+                if (totalSilence > 0 && !isSilentRef.current) {
+                    startSilentPeriod(segmentDur);
+                } else {
+                    onEnded?.();
+                }
             }
         };
         
         const onLoaded = () => {
-            if (endTime && endTime > startTime) {
-                setDuration(endTime - startTime);
-            } else {
-                setDuration(audio.duration || 0);
-            }
             // Ensure we start at startTime safely when metadata loads
             if (audio.currentTime < startTime) {
                 audio.currentTime = startTime;
@@ -130,23 +208,33 @@ const CustomAudioPlayer = forwardRef(({
 
         const onTimeUpdate = () => {
             const relTime = audio.currentTime - startTime;
-            if (!isDragging) {
+            const segmentDur = (endTime && endTime > startTime) ? (endTime - startTime) : (audio.duration || 0);
+
+            if (!isDragging && !isSilentRef.current) {
                 setCurrentTime(Math.max(0, relTime));
             }
             if (isPlayingPart) setAudioTime?.(audio.currentTime);
 
             if (endTime && endTime > startTime && audio.currentTime >= endTime) {
                 const wasPlaying = isPlaying || !audio.paused;
+                isSystemPausedRef.current = true;
                 audio.pause();
                 if (wasPlaying) {
-                    onEnded_();
+                    const totalSilence = Number(extraSilentTime) || 0;
+                    if (totalSilence > 0 && !isSilentRef.current) {
+                        startSilentPeriod(segmentDur);
+                    } else {
+                        onEnded_();
+                    }
                 }
             }
         };
 
         const onPauseExam = (e) => {
-            // Only force-resume on the ACTIVE (playing) part
-            if (isExam && isPlayingPart && !e.target.ended) e.target.play().catch(() => {});
+            // Only force-resume on the ACTIVE (playing) part if not paused by the system and not in silent period
+            if (isExam && isPlayingPart && !e.target.ended && !isSystemPausedRef.current && !isSilentRef.current) {
+                e.target.play().catch(() => {});
+            }
         };
 
         audio.addEventListener('play', onPlay);
@@ -175,7 +263,7 @@ const CustomAudioPlayer = forwardRef(({
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('timeupdate', onTimeUpdate);
         };
-    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate, volume, isPlayingPart, src, index]);
+    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate, volume, isPlayingPart, src, index, extraSilentTime, startSilentPeriod]);
 
     // Resume logic: Seek to saved time once on init
     useEffect(() => {
@@ -196,13 +284,28 @@ const CustomAudioPlayer = forwardRef(({
         if (!isPlayingPart || isBuffering || !shouldAutoPlay) {
             // Pause if: wrong part, buffering, or not yet permitted to play
             if (!audio.paused) {
+                isSystemPausedRef.current = true;
                 audio.pause();
+            }
+            // Pause silent timer
+            if (silentTimerRef.current) {
+                clearInterval(silentTimerRef.current);
+                silentTimerRef.current = null;
             }
             return;
         }
 
+        // If we are in silent period, resume it
+        if (isSilentRef.current) {
+            const segmentDur = (endTime && endTime > startTime) ? (endTime - startTime) : (audio.duration || 0);
+            resumeSilentPeriod(segmentDur);
+            return;
+        }
+
         const attemptPlay = () => {
+            if (isSilentRef.current) return; // Do not auto-play during silent period
             if (audio && audio.paused && !audio.ended && audio.readyState >= 2) {
+                isSystemPausedRef.current = false;
                 audio.play()
                     .then(() => {
                         console.log(`[CustomAudioPlayer] Part ${index} successfully started auto-play.`);
@@ -228,31 +331,60 @@ const CustomAudioPlayer = forwardRef(({
             clearInterval(interval);
             events.forEach(event => document.removeEventListener(event, unlock));
         };
-    }, [isExam, isPlayingPart, isBuffering, shouldAutoPlay, index, src]);
+    }, [isExam, isPlayingPart, isBuffering, shouldAutoPlay, index, src, resumeSilentPeriod, startTime, endTime]);
 
     const togglePlay = () => {
         if (isExam) return;
         const audio = audioRef.current;
         if (!audio) return;
+
+        // Reset silent period if any
+        isSilentRef.current = false;
+        setIsSilentPeriod(false);
+        if (silentTimerRef.current) {
+            clearInterval(silentTimerRef.current);
+            silentTimerRef.current = null;
+        }
+
         if (audio.paused) {
             // To'xtatish kerak bo'lgan boshqa barcha audio elementlarni to'xtatamiz
             document.querySelectorAll('audio[id^="audio-part-"]').forEach(a => {
                 if (a !== audio && !a.paused) a.pause();
             });
+            isSystemPausedRef.current = false;
             audio.play().catch(() => { });
         } else {
+            isSystemPausedRef.current = true;
             audio.pause();
         }
     };
 
     const skipBackward = () => {
         if (isExam || !audioRef.current) return;
+
+        // Reset silent period if any
+        isSilentRef.current = false;
+        setIsSilentPeriod(false);
+        if (silentTimerRef.current) {
+            clearInterval(silentTimerRef.current);
+            silentTimerRef.current = null;
+        }
+
         const targetTime = Math.max(startTime, audioRef.current.currentTime - 5);
         audioRef.current.currentTime = targetTime;
     };
 
     const skipForward = () => {
         if (isExam || !audioRef.current) return;
+
+        // Reset silent period if any
+        isSilentRef.current = false;
+        setIsSilentPeriod(false);
+        if (silentTimerRef.current) {
+            clearInterval(silentTimerRef.current);
+            silentTimerRef.current = null;
+        }
+
         const maxTime = (endTime && endTime > startTime) ? endTime : (audioRef.current.duration || Infinity);
         const targetTime = Math.min(maxTime, audioRef.current.currentTime + 5);
         audioRef.current.currentTime = targetTime;
@@ -267,6 +399,15 @@ const CustomAudioPlayer = forwardRef(({
 
     const handlePointerDown = (e) => {
         if (isExam) return;
+
+        // Reset silent period if any
+        isSilentRef.current = false;
+        setIsSilentPeriod(false);
+        if (silentTimerRef.current) {
+            clearInterval(silentTimerRef.current);
+            silentTimerRef.current = null;
+        }
+
         setIsDragging(true);
         const newTime = calculateTime(e);
         if (newTime !== null) setCurrentTime(newTime);
@@ -312,6 +453,9 @@ const CustomAudioPlayer = forwardRef(({
         return () => {
             if (audio) {
                 audio.pause();
+            }
+            if (silentTimerRef.current) {
+                clearInterval(silentTimerRef.current);
             }
         };
     }, []);

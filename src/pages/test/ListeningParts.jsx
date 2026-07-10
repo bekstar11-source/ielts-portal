@@ -40,6 +40,7 @@ export default function ListeningParts() {
   const isStandard = userData?.accountType === 'standard';
   const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
                     userData?.role === 'admin' || userData?.role === 'teacher';
+  const isAdminOrTeacher = userData?.role === 'admin' || userData?.role === 'teacher';
 
   const { checkLimit, incrementUsage } = useDailyLimit(userData);
 
@@ -56,21 +57,28 @@ export default function ListeningParts() {
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
   const [collectionsMap, setCollectionsMap] = useState({});
+  const [privateColIds, setPrivateColIds] = useState(new Set());
 
   useEffect(() => {
-    const fetchCollectionsMap = async () => {
+    const fetchCollectionsData = async () => {
       try {
-        const snap = await getDocs(query(collection(db, 'test_collections'), where('type', '==', 'listening')));
+        const snap = await getDocs(collection(db, 'test_collections'));
         const mapping = {};
+        const privateIds = new Set();
         snap.docs.forEach(d => {
-          mapping[d.id] = d.data().name;
+          const data = d.data();
+          mapping[d.id] = data.name;
+          if (data.isPublic === false) {
+            privateIds.add(d.id);
+          }
         });
         setCollectionsMap(mapping);
+        setPrivateColIds(privateIds);
       } catch (err) {
-        console.error("Error fetching collections map:", err);
+        console.error("Error fetching collections data:", err);
       }
     };
-    fetchCollectionsMap();
+    fetchCollectionsData();
   }, []);
   
   // Library Pagination State
@@ -85,8 +93,15 @@ export default function ListeningParts() {
   const rawAssignments = useMemo(() => {
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
-    return [...assignments, ...uniqueLibrary];
-  }, [assignments, libraryTests]);
+    let combined = [...assignments, ...uniqueLibrary];
+
+    // Filter out tests in private collections for students
+    if (!isAdminOrTeacher && privateColIds.size > 0) {
+      combined = combined.filter(t => !t.collectionId || !privateColIds.has(t.collectionId));
+    }
+
+    return combined;
+  }, [assignments, libraryTests, privateColIds, isAdminOrTeacher]);
 
   const fetchLibraryPage = async (isFirstPage = false) => {
     if (loadingLibrary || (!hasMore && !isFirstPage)) return;

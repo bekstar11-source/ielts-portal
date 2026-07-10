@@ -8,7 +8,7 @@ import { db, functions } from "../../firebase/firebase";
 import { collection, query, where, doc, updateDoc, arrayUnion, getDocs } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { 
-  BookOpen, Headphones, PenTool, Mic, ChevronRight, Search, Loader2 
+  BookOpen, Headphones, PenTool, Mic, ChevronLeft, ChevronRight, Search, Loader2 
 } from 'lucide-react';
 import { limit, startAfter, getCountFromServer, orderBy, getDocsFromServer } from "firebase/firestore";
 
@@ -52,6 +52,7 @@ export default function ReadingParts() {
   const isPro = userData?.accountType === 'pro' || userData?.isPro || userData?.role === 'admin' || userData?.role === 'teacher';
   const isStandard = userData?.accountType === 'standard';
   const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+  const isAdminOrTeacher = userData?.role === 'admin' || userData?.role === 'teacher';
   
   const { assignments, loading, error: errorMsg, refresh } = useStudentData(user);
   
@@ -62,6 +63,7 @@ export default function ReadingParts() {
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [allTestsLoaded, setAllTestsLoaded] = useState(false);
+  const [privateColIds, setPrivateColIds] = useState(new Set());
   const PAGE_SIZE = 24;
 
   const rawAssignments = useMemo(() => {
@@ -69,6 +71,11 @@ export default function ReadingParts() {
     const assignedIds = new Set(assignments.map(a => a.id));
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
     let combined = [...assignments, ...uniqueLibrary];
+
+    // Filter out tests in private collections for students
+    if (!isAdminOrTeacher && privateColIds.size > 0) {
+      combined = combined.filter(t => !t.collectionId || !privateColIds.has(t.collectionId));
+    }
 
     // Filter combined tests based on plan
     // Sort combined tests so free tests are at the beginning
@@ -82,7 +89,7 @@ export default function ReadingParts() {
       ...test,
       questionTypes: test.questionTypes || deriveQuestionTypesForCard(test)
     }));
-  }, [assignments, libraryTests]);
+  }, [assignments, libraryTests, privateColIds, isAdminOrTeacher]);
 
   const fetchLibraryPage = async (isFirstPage = false) => {
     if (loadingLibrary || (!hasMore && !isFirstPage)) return;
@@ -217,6 +224,22 @@ export default function ReadingParts() {
   }, [debouncedSearchQuery, selectedStatus, selectedQuestionTypes, selectedPassages, freeOnly]);
 
   useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'test_collections'));
+        const privateIds = new Set();
+        snap.docs.forEach(d => {
+          const data = d.data();
+          if (data.isPublic === false) {
+            privateIds.add(d.id);
+          }
+        });
+        setPrivateColIds(privateIds);
+      } catch (err) {
+        console.error("Error fetching collections:", err);
+      }
+    };
+    fetchCollections();
     fetchLibraryPage(true);
   }, []);
 
@@ -232,20 +255,13 @@ export default function ReadingParts() {
 
   const { checkLimit, incrementUsage } = useDailyLimit(userData);
 
-  const [visibleCount, setVisibleCount] = useState(12);
+  const itemsPerPage = 12;
+  const [currentPage, setCurrentPage] = useState(1);
+  const passagesListRef = useRef(null);
 
   useEffect(() => {
-    setVisibleCount(12);
+    setCurrentPage(1);
   }, [searchQuery, selectedStatus, selectedQuestionTypes, selectedPassages, freeOnly]);
-
-  const handleShowMore = async () => {
-    if (filteredTests.length > visibleCount) {
-      setVisibleCount(prev => prev + 12);
-    } else if (hasMore) {
-      await fetchLibraryPage(false);
-      setVisibleCount(prev => prev + 12);
-    }
-  };
 
   const allQuestionTypes = useMemo(() => {
     const types = new Set();
@@ -304,6 +320,117 @@ export default function ReadingParts() {
     });
     return result;
   }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus, selectedPassages, freeOnly]);
+
+  const totalPages = useMemo(() => {
+    const hasActiveFilters = searchQuery.trim().length > 0 || 
+                             selectedStatus !== 'all' || 
+                             selectedQuestionTypes.length > 0 || 
+                             selectedPassages.length > 0 ||
+                             freeOnly;
+    if (hasActiveFilters || !hasMore) {
+      return Math.max(1, Math.ceil(filteredTests.length / itemsPerPage));
+    }
+    return Math.max(1, Math.ceil((totalLibraryCount || filteredTests.length) / itemsPerPage));
+  }, [filteredTests.length, totalLibraryCount, hasMore, searchQuery, selectedStatus, selectedQuestionTypes, selectedPassages, freeOnly]);
+
+  const handlePageChange = async (page) => {
+    setCurrentPage(page);
+    
+    // Smooth scroll to top of passages list
+    if (passagesListRef.current) {
+      const yOffset = -120;
+      const y = passagesListRef.current.getBoundingClientRect().top + window.scrollY + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+
+    // Check if we need to load more documents from Firestore
+    const neededItems = page * itemsPerPage;
+    const hasActiveFilters = searchQuery.trim().length > 0 || 
+                             selectedStatus !== 'all' || 
+                             selectedQuestionTypes.length > 0 || 
+                             selectedPassages.length > 0 ||
+                             freeOnly;
+
+    if (!hasActiveFilters && filteredTests.length < neededItems && hasMore && !loadingLibrary) {
+      setLoadingLibrary(true);
+      try {
+        let currentLastVisible = lastVisible;
+        let currentHasMore = hasMore;
+        let currentTests = [...libraryTests];
+        
+        // Helper to check if we met the required count of matching items
+        const getMatchingCount = (testsList) => {
+          const assignedIds = new Set(assignments.map(a => a.id));
+          const uniqueLibrary = testsList.filter(t => !assignedIds.has(t.id));
+          let combined = [...assignments, ...uniqueLibrary];
+
+          if (!isAdminOrTeacher && privateColIds.size > 0) {
+            combined = combined.filter(t => !t.collectionId || !privateColIds.has(t.collectionId));
+          }
+
+          let count = 0;
+          combined.forEach(item => {
+            if (item.type !== 'reading' || item.isSet) return;
+            
+            let passagesCount = 0;
+            if (item.passages) {
+              if (Array.isArray(item.passages)) {
+                passagesCount = item.passages.length;
+              } else if (typeof item.passages === 'object') {
+                passagesCount = Object.keys(item.passages).length;
+              }
+            }
+            if (passagesCount > 1) return;
+            if (passagesCount === 0) {
+              const qCount = getActualQuestionCount(item);
+              if (qCount > 14) return;
+            }
+            count++;
+          });
+          return count;
+        };
+
+        // Loop fetching one PAGE_SIZE block at a time until we have enough matching items
+        // or there are no more items left in the library.
+        while (getMatchingCount(currentTests) < neededItems && currentHasMore) {
+          const qAll = query(
+              collection(db, 'tests_metadata'),
+              where('type', '==', 'reading'),
+              orderBy('createdAt', 'desc'),
+              startAfter(currentLastVisible),
+              limit(PAGE_SIZE)
+          );
+          const snap = await getDocsFromServer(qAll);
+          const newTests = snap.docs.map(d => ({ id: d.id, ...d.data(), isPublic: true }));
+          
+          if (snap.docs.length > 0) {
+            currentLastVisible = snap.docs[snap.docs.length - 1];
+            currentHasMore = snap.docs.length === PAGE_SIZE;
+            
+            // Merge deduplicated
+            const mergedMap = new Map();
+            currentTests.forEach(t => mergedMap.set(t.id, t));
+            newTests.forEach(t => {
+                if (!mergedMap.has(t.id)) {
+                    mergedMap.set(t.id, t);
+                }
+            });
+            currentTests = Array.from(mergedMap.values());
+          } else {
+            currentHasMore = false;
+          }
+        }
+        
+        setLibraryTests(currentTests);
+        setLastVisible(currentLastVisible);
+        setHasMore(currentHasMore);
+      } catch (err) {
+        console.error("Error fetching library pages on page change:", err);
+      } finally {
+        setLoadingLibrary(false);
+      }
+    }
+  };
 
   const handleStartTest = (test) => { 
     if (test.isFree) {
@@ -437,14 +564,14 @@ export default function ReadingParts() {
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-10 pb-20"
                     >
-                        <div className="space-y-4">
+                        <div className="space-y-4" ref={passagesListRef}>
                             <div className="space-y-1">
                                 <h2 className="text-[32px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Reading Passages</h2>
                                 <p className="text-[#86868b] dark:text-zinc-450 text-[14px]">Displaying {filteredTests.length} passages</p>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8 pt-4">
-                                {filteredTests.slice(0, visibleCount).map((test) => (
+                                {filteredTests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
                                     <PracticeCard 
                                         key={test.id} 
                                         test={test} 
@@ -458,23 +585,92 @@ export default function ReadingParts() {
                                     />
                                 ))}
                             </div>
-                            {/* Show More Button */}
-                            {(filteredTests.length > visibleCount || hasMore) && (
-                                <div className="flex justify-center items-center pt-10 pb-8">
-                                    <button
-                                        onClick={handleShowMore}
-                                        disabled={loadingLibrary}
-                                        className="group relative flex items-center gap-3 px-8 py-3.5 bg-[#1d1d1f] hover:bg-black dark:bg-[#f5f5f7] dark:hover:bg-white dark:text-[#1d1d1f] text-white rounded-full font-semibold transition-all active:scale-95 disabled:opacity-50 text-[11.5px] shadow-sm"
-                                    >
-                                        {loadingLibrary ? (
-                                            <Loader2 size={14} className="animate-spin" />
-                                        ) : (
-                                            <>
-                                                {t('practice.showMore') || "Show More"}
-                                                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                                            </>
-                                        )}
-                                    </button>
+                            
+                            {/* Pagination UI */}
+                            {totalPages > 1 && (
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-12 pb-8 border-t border-gray-150 dark:border-zinc-800/80 mt-10">
+                                    <p className="text-[13px] text-[#86868b] dark:text-zinc-450 font-medium">
+                                        Showing <span className="font-semibold text-gray-900 dark:text-[#f5f5f7]">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(filteredTests.length, currentPage * itemsPerPage)}</span> of <span className="font-semibold text-gray-900 dark:text-[#f5f5f7]">{filteredTests.length}</span> passages
+                                    </p>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        {/* Prev Button */}
+                                        <button
+                                            onClick={() => handlePageChange(currentPage - 1)}
+                                            disabled={currentPage === 1 || loadingLibrary}
+                                            className="p-2.5 rounded-full bg-[#f5f5f7] hover:bg-gray-200 dark:bg-zinc-900/60 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#f5f5f7] dark:disabled:hover:bg-zinc-900/60 disabled:cursor-not-allowed transition-all active:scale-90"
+                                            aria-label="Previous page"
+                                        >
+                                            <ChevronLeft size={16} />
+                                        </button>
+
+                                        {/* Page Numbers */}
+                                        <div className="flex items-center gap-1.5">
+                                            {(() => {
+                                                const pages = [];
+                                                const delta = 1; // Show current, first, last, and delta around current
+                                                for (let i = 1; i <= totalPages; i++) {
+                                                    if (
+                                                        i === 1 ||
+                                                        i === totalPages ||
+                                                        (i >= currentPage - delta && i <= currentPage + delta)
+                                                    ) {
+                                                        pages.push(i);
+                                                    } else if (
+                                                        i === currentPage - delta - 1 ||
+                                                        i === currentPage + delta + 1
+                                                    ) {
+                                                        pages.push('...');
+                                                    }
+                                                }
+                                                // Filter consecutive ellipses
+                                                const uniquePages = pages.filter((p, index) => p !== '...' || pages[index - 1] !== '...');
+
+                                                return uniquePages.map((p, index) => {
+                                                    if (p === '...') {
+                                                        return (
+                                                            <span 
+                                                                key={`ellipsis-${index}`} 
+                                                                className="text-[#86868b] dark:text-zinc-500 px-1.5 text-[13px] select-none"
+                                                            >
+                                                                ...
+                                                            </span>
+                                                        );
+                                                    }
+
+                                                    const isActive = currentPage === p;
+                                                    return (
+                                                        <button
+                                                            key={p}
+                                                            onClick={() => handlePageChange(p)}
+                                                            disabled={loadingLibrary}
+                                                            className={`w-9 h-9 rounded-full text-[13px] font-semibold transition-all active:scale-95 flex items-center justify-center ${
+                                                                isActive
+                                                                    ? 'bg-[#1d1d1f] text-white dark:bg-[#f5f5f7] dark:text-[#1d1d1f] shadow-sm'
+                                                                    : 'bg-[#f5f5f7] text-[#1d1d1f] hover:bg-gray-200 dark:bg-zinc-900/40 dark:text-[#f5f5f7] dark:hover:bg-zinc-800'
+                                                            }`}
+                                                        >
+                                                            {p}
+                                                        </button>
+                                                    );
+                                                });
+                                            })()}
+                                        </div>
+
+                                        {/* Next Button */}
+                                        <button
+                                            onClick={() => handlePageChange(currentPage + 1)}
+                                            disabled={currentPage === totalPages || loadingLibrary}
+                                            className="p-2.5 rounded-full bg-[#f5f5f7] hover:bg-gray-200 dark:bg-zinc-900/60 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#f5f5f7] dark:disabled:hover:bg-zinc-900/60 disabled:cursor-not-allowed transition-all active:scale-90"
+                                            aria-label="Next page"
+                                        >
+                                            {loadingLibrary ? (
+                                                <Loader2 size={16} className="animate-spin" />
+                                            ) : (
+                                                <ChevronRight size={16} />
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>

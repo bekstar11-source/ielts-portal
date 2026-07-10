@@ -265,9 +265,10 @@ const TestHeader = ({
         finishedParts.current.add(index);
 
         if (test?.passages?.length && index < test.passages.length - 1) {
-            const currentPassage = test.passages[index];
-            const extraTimeMs = (Number(currentPassage?.extraSilentTime) || 0) * 1000;
-            const delay = extraTimeMs > 0 ? extraTimeMs : 500; // Small default delay
+            // Since CustomAudioPlayer now handles the extraSilentTime transition internally 
+            // (including updating the progress bar during the silence), 
+            // handleEnded should transition to the next part with a minimal default delay.
+            const delay = 500; 
 
             setTimeout(() => {
                 const nextIdx = index + 1;
@@ -410,6 +411,7 @@ const TestHeader = ({
                                     startTime={startTime}
                                     endTime={endTime}
                                     resumeTime={resumeAudioTime}
+                                    extraSilentTime={Number(passage.extraSilentTime) || 0}
                                 />
                             );
                         })}
