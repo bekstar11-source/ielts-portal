@@ -59,7 +59,7 @@ export default function MockPurchase() {
           id: doc.id,
           ...data,
           // Fallbacks for older/existing mocks
-          price: data.price !== undefined ? data.price : 20000,
+          price: data.price !== undefined ? data.price : 30000,
           description: data.description || (lang === 'uz' 
             ? "Reading, Listening va Writing bo'limlarini o'z ichiga olgan to'liq imtihon simulyatsiyasi." 
             : "Full exam simulation containing Reading, Listening and Writing modules.")

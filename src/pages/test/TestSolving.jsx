@@ -453,7 +453,6 @@ export default function TestSolving() {
                 </div>
             )}
 
-            {/* HEADER */}
             <TestHeader
                 test={test}
                 timeLeft={timeLeft}
@@ -475,6 +474,18 @@ export default function TestSolving() {
                 onOpenNotes={() => setIsNotesVisible(true)}
                 audioRefs={audioRefs}
                 partNumber={partNumber}
+                onTotalDurationCalculated={(totalDuration) => {
+                    const timerKey = `timer_${user?.uid}_${test?.id}${partNumber ? `_part_${partNumber}` : ''}`;
+                    const savedTime = sessionStorage.getItem(timerKey);
+                    if (!savedTime && test?.type?.toLowerCase() === 'listening') {
+                        setTimeLeft(totalDuration);
+                    }
+                }}
+                onAudioEnded={async () => {
+                    if (test?.type?.toLowerCase() === 'listening') {
+                        await handleSubmit();
+                    }
+                }}
             />
 
             {/* CONTENT AREA */}

@@ -322,7 +322,7 @@ async function handlePaymentStart(chatId, userId, planId, billing) {
       return;
     }
     const mockData = mockDoc.data();
-    const price = mockData.price !== undefined ? mockData.price : 20000;
+    const price = mockData.price !== undefined ? mockData.price : 30000;
     const formattedPrice = new Intl.NumberFormat("uz-UZ").format(price);
 
     await admin.firestore().collection("payment_sessions").doc(chatId.toString()).set({

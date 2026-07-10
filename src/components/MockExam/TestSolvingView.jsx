@@ -15,7 +15,8 @@ import VolumeCheckScreen from './VolumeCheckScreen';
 export const TestSolvingView = ({
     stage, tests, answers, handleAnswer, timeLeft, handleNextStage,
     textSize, setTextSize, activePart, setActivePart, setAudioTime,
-    setIsAudioReady, isFullScreen, audioTime, userName, resumeAudioTime, mockId
+    setIsAudioReady, isFullScreen, audioTime, userName, resumeAudioTime, mockId,
+    onTotalDurationCalculated, onAudioEnded
 }) => {
     const logicalStage = stage === 'listening_volume_check' ? 'listening' : stage;
     const [volume, setVolume] = useState(0.7);
@@ -93,7 +94,7 @@ export const TestSolvingView = ({
                 {/* Left: Student name + time */}
                 <div className="flex flex-col gap-0.5">
                     <span className="text-sm font-black text-zinc-900 leading-tight">{userName || 'Candidate'}</span>
-                    <span className="text-[11px] font-bold text-zinc-900 leading-none">{formatTime(timeLeft)}</span>
+                    <span className={`text-[11px] font-bold leading-none ${timeLeft <= 120 ? 'text-[#e31b23]' : 'text-zinc-900'}`}>{formatTime(timeLeft)}</span>
                 </div>
 
                 {/* Center: Audio status (only for listening) */}
@@ -243,6 +244,8 @@ export const TestSolvingView = ({
                     buttonText="Finish"
                     volume={volume}
                     resumeAudioTime={resumeAudioTime}
+                    onTotalDurationCalculated={onTotalDurationCalculated}
+                    onAudioEnded={onAudioEnded}
                 />
             </div>
 

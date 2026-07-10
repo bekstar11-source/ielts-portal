@@ -22,6 +22,7 @@ const CustomAudioPlayer = forwardRef(({
     volume = 1,
     resumeTime = 0,
     extraSilentTime = 0,
+    onDurationCalculated,
 }, ref) => {
     const audioRef = useRef(null);
     const hasResumed = useRef(false);
@@ -152,7 +153,9 @@ const CustomAudioPlayer = forwardRef(({
                 segDur = audio.duration || 0;
             }
             if (!isNaN(segDur) && segDur > 0) {
-                setDuration(segDur + (Number(extraSilentTime) || 0));
+                const calculatedDur = segDur + (Number(extraSilentTime) || 0);
+                setDuration(calculatedDur);
+                onDurationCalculated?.(calculatedDur);
             }
         };
 
@@ -163,7 +166,7 @@ const CustomAudioPlayer = forwardRef(({
             audio.removeEventListener('loadedmetadata', updateDuration);
             audio.removeEventListener('durationchange', updateDuration);
         };
-    }, [startTime, endTime, extraSilentTime, src]);
+    }, [startTime, endTime, extraSilentTime, src, onDurationCalculated]);
 
     // Wire up audio events
     useEffect(() => {
@@ -213,7 +216,13 @@ const CustomAudioPlayer = forwardRef(({
             if (!isDragging && !isSilentRef.current) {
                 setCurrentTime(Math.max(0, relTime));
             }
-            if (isPlayingPart) setAudioTime?.(audio.currentTime);
+            if (isPlayingPart) {
+                if (isSilentRef.current) {
+                    setAudioTime?.(startTime + segmentDur + silentElapsedRef.current);
+                } else {
+                    setAudioTime?.(audio.currentTime);
+                }
+            }
 
             if (endTime && endTime > startTime && audio.currentTime >= endTime) {
                 const wasPlaying = isPlaying || !audio.paused;
@@ -265,14 +274,23 @@ const CustomAudioPlayer = forwardRef(({
         };
     }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate, volume, isPlayingPart, src, index, extraSilentTime, startSilentPeriod]);
 
-    // Resume logic: Seek to saved time once on init
     useEffect(() => {
         if (!hasResumed.current && resumeTime > 0 && audioRef.current && isPlayingPart) {
             console.log("[CustomAudioPlayer] Resuming audio to:", resumeTime);
-            audioRef.current.currentTime = resumeTime;
+            const segmentDur = (endTime && endTime > startTime) ? (endTime - startTime) : (audioRef.current.duration || 0);
+            const actualEndTime = startTime + segmentDur;
+            if (actualEndTime > startTime && resumeTime >= actualEndTime) {
+                audioRef.current.currentTime = actualEndTime;
+                isSilentRef.current = true;
+                setIsSilentPeriod(true);
+                const elapsedSilence = resumeTime - actualEndTime;
+                silentElapsedRef.current = elapsedSilence;
+            } else {
+                audioRef.current.currentTime = resumeTime;
+            }
             hasResumed.current = true;
         }
-    }, [resumeTime, isPlayingPart]);
+    }, [resumeTime, isPlayingPart, startTime, endTime]);
 
     // Exam auto-play logic
     useEffect(() => {

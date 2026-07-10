@@ -299,7 +299,7 @@ export default function MockEntry() {
                                     {lang === 'uz' ? "Jami narxi:" : "Total Price:"}
                                 </span>
                                 <span className="text-lg font-black text-amber-400">
-                                    20 000 UZS
+                                    30 000 UZS
                                 </span>
                             </div>
                             <button

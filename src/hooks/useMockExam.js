@@ -24,6 +24,31 @@ function clearSession(mockId) {
     try { localStorage.removeItem(`${STORAGE_KEY}_${mockId}`); } catch (e) {}
 }
 
+export function getListeningDuration(listeningTest) {
+    if (!listeningTest?.passages) return 30 * 60;
+    let total = 0;
+    for (let i = 0; i < listeningTest.passages.length; i++) {
+        const passage = listeningTest.passages[i];
+        const partKey = `part${i + 1}`;
+        const partMeta = listeningTest.parts?.[partKey];
+        const defaultStart = passage.audio ? 0 : (i * 450);
+        const defaultEnd = passage.audio ? 0 : ((i + 1) * 450);
+        const startTime = (partMeta?.startSec !== undefined && partMeta?.startSec !== null)
+            ? Number(partMeta.startSec)
+            : (passage.startTime || defaultStart);
+        const endTime = (partMeta?.endSec !== undefined && partMeta?.endSec !== null)
+            ? Number(partMeta.endSec)
+            : (passage.endTime || defaultEnd);
+        
+        if (endTime && endTime > startTime) {
+            total += (endTime - startTime) + (Number(passage.extraSilentTime) || 0);
+        } else {
+            return 30 * 60;
+        }
+    }
+    return total > 0 ? total : 30 * 60;
+}
+
 export function useMockExam(mockData, user, userData, navigate) {
     const [stage, setStage] = useState('loading');
     const [tests, setTests] = useState({ listening: null, reading: null, writing: null });
@@ -33,6 +58,13 @@ export function useMockExam(mockData, user, userData, navigate) {
     const [finalResults, setFinalResults] = useState(null);
     const [completedModules, setCompletedModules] = useState([]);
     const [autoStartDeadline, setAutoStartDeadline] = useState(null);
+    const [listeningStartTime, setListeningStartTime] = useState(null);
+    const [listeningDuration, setListeningDuration] = useState(0);
+    
+    const listeningStartTimeRef = useRef(null);
+    useEffect(() => {
+        listeningStartTimeRef.current = listeningStartTime;
+    }, [listeningStartTime]);
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
     
     // Auto-set deadline for test_ended stage only (intro is managed by MockExamIntro)
@@ -80,6 +112,8 @@ export function useMockExam(mockData, user, userData, navigate) {
             activePart: activePartRef.current,
             autoStartDeadline,
             deadline: deadlineVal,
+            listeningStartTime,
+            listeningDuration,
             savedAt: getCurrentServerTime()
         });
 
@@ -103,7 +137,9 @@ export function useMockExam(mockData, user, userData, navigate) {
                 }
 
                 if (stage === 'listening' && !existingData.listeningStartTime) {
+                    const now = getCurrentServerTime();
                     updateData.listeningStartTime = serverTimestamp();
+                    setListeningStartTime(now);
                 } else if (stage === 'reading' && !existingData.readingStartTime) {
                     updateData.readingStartTime = serverTimestamp();
                 } else if (stage === 'writing' && !existingData.writingStartTime) {
@@ -138,6 +174,8 @@ export function useMockExam(mockData, user, userData, navigate) {
             activePart: activePartRef.current,
             autoStartDeadline,
             deadline: deadlineVal,
+            listeningStartTime,
+            listeningDuration,
             savedAt: getCurrentServerTime()
         });
 
@@ -240,6 +278,9 @@ export function useMockExam(mockData, user, userData, navigate) {
                             if (saved.listeningStartTime && typeof saved.listeningStartTime.toDate === 'function') {
                                 saved.listeningStartTime = saved.listeningStartTime.toDate().getTime();
                             }
+                            if (saved.listeningDuration) {
+                                saved.listeningDuration = Number(saved.listeningDuration);
+                            }
                             if (saved.readingStartTime && typeof saved.readingStartTime.toDate === 'function') {
                                 saved.readingStartTime = saved.readingStartTime.toDate().getTime();
                             }
@@ -273,6 +314,8 @@ export function useMockExam(mockData, user, userData, navigate) {
                     // Audio resume state
                     if (saved.audioTime) setResumeAudioTime(saved.audioTime);
                     if (saved.activePart) setResumeActivePart(saved.activePart);
+                    if (saved.listeningStartTime) setListeningStartTime(saved.listeningStartTime);
+                    if (saved.listeningDuration) setListeningDuration(saved.listeningDuration);
 
                     let currentStage = saved.stage;
                     let calculatedTimeLeft = 0;
@@ -281,7 +324,8 @@ export function useMockExam(mockData, user, userData, navigate) {
                     if (currentStage === 'listening') {
                         const startTime = saved.listeningStartTime || currentServerTime;
                         const elapsed = Math.floor((currentServerTime - startTime) / 1000);
-                        calculatedTimeLeft = Math.max(0, 30 * 60 - elapsed);
+                        const duration = saved.listeningDuration || getListeningDuration(loadedTests.listening);
+                        calculatedTimeLeft = Math.max(0, duration - elapsed);
                     } else if (currentStage === 'reading') {
                         const startTime = saved.readingStartTime || currentServerTime;
                         const elapsed = Math.floor((currentServerTime - startTime) / 1000);
@@ -344,7 +388,19 @@ export function useMockExam(mockData, user, userData, navigate) {
         const currentStage = stageRef.current;
         if (currentStage === 'listening_volume_check') {
             setStage('listening');
-            setTimeLeft(30 * 60);
+            const duration = getListeningDuration(tests.listening);
+            setTimeLeft(duration);
+            setListeningDuration(duration);
+            const now = getCurrentServerTime();
+            setListeningStartTime(now);
+            if (user?.uid && mockId) {
+                const sessionRef = doc(db, "users", user.uid, "mockSessions", mockId);
+                setDoc(sessionRef, {
+                    listeningStartTime: serverTimestamp(),
+                    listeningDuration: duration,
+                    updatedAt: serverTimestamp()
+                }, { merge: true }).catch(err => console.warn(err));
+            }
         }
         else if (currentStage === 'listening') {
             setCompletedModules(prev => [...new Set([...prev, 'listening'])]);
@@ -441,6 +497,31 @@ export function useMockExam(mockData, user, userData, navigate) {
         if (part !== undefined) activePartRef.current = part;
     }, []);
 
+    const updateListeningDuration = useCallback(async (duration) => {
+        if (stageRef.current !== 'listening') return;
+
+        setListeningDuration(duration);
+
+        // Adjust timeLeft based on elapsed time since listeningStartTime
+        const startTime = listeningStartTimeRef.current || getCurrentServerTime();
+        const elapsed = Math.floor((getCurrentServerTime() - startTime) / 1000);
+        const newTimeLeft = Math.max(0, duration - elapsed);
+        setTimeLeft(newTimeLeft);
+
+        if (user?.uid && mockId) {
+            try {
+                const sessionRef = doc(db, "users", user.uid, "mockSessions", mockId);
+                await setDoc(sessionRef, {
+                    listeningDuration: duration,
+                    timeLeft: newTimeLeft,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+            } catch (e) {
+                console.warn("Failed to sync listeningDuration to Firestore:", e);
+            }
+        }
+    }, [mockId, user?.uid]);
+
     return {
         stage, setStage, tests, answers, handleAnswer, 
         timeLeft, setTimeLeft, handleNextStage, finishExam,
@@ -449,6 +530,7 @@ export function useMockExam(mockData, user, userData, navigate) {
         resumeAudioTime, resumeActivePart, updateAudioProgress,
         tabSwitchCount,
         mockId,
-        clearExamSession
+        clearExamSession,
+        updateListeningDuration
     };
 }

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 // Hooks & Components
-import { useMockExam } from "../../hooks/useMockExam";
+import { useMockExam, getListeningDuration } from "../../hooks/useMockExam";
 import { useExamSecurity } from "../../hooks/useExamSecurity";
 import MockExamIntro from "../../components/MockExam/MockExamIntro";
 import MockExamResult from "../../components/MockExam/MockExamResult";
@@ -43,7 +43,8 @@ export default function MockExam() {
         timeLeft, setTimeLeft, handleNextStage, finishExam,
         finalResults, completedModules, autoStartDeadline, setAutoStartDeadline,
         resumeAudioTime, resumeActivePart, updateAudioProgress,
-        tabSwitchCount, mockId, clearExamSession
+        tabSwitchCount, mockId, clearExamSession,
+        updateListeningDuration
     } = useMockExam(mockData, user, userData, navigate);
 
     // UI States
@@ -109,7 +110,7 @@ export default function MockExam() {
             if (moduleType === 'listening') {
                 const waitTime = Number(tests.listening?.introDuration || 0);
                 setStage(waitTime > 0 ? 'listening_volume_check' : 'listening');
-                setTimeLeft(30 * 60);
+                setTimeLeft(tests.listening ? getListeningDuration(tests.listening) : 30 * 60);
             } else if (moduleType === 'reading') {
                 setStage('reading');
                 setTimeLeft(3600);
@@ -371,6 +372,8 @@ export default function MockExam() {
             audioTime={audioTime}
             userName={userData?.fullName || user?.email || 'Candidate'}
             resumeAudioTime={resumeAudioTime}
+            onTotalDurationCalculated={updateListeningDuration}
+            onAudioEnded={handleNextStage}
             mockId={mockId}
         />
         </>

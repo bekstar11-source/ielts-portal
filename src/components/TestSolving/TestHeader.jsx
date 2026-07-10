@@ -209,7 +209,9 @@ const TestHeader = ({
     volume: externalVolume,
     resumeAudioTime = 0,
     audioRefs,
-    partNumber = null
+    partNumber = null,
+    onTotalDurationCalculated,
+    onAudioEnded
 }) => {
     const { userData } = useAuth();
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -223,6 +225,28 @@ const TestHeader = ({
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [volume, setVolume] = useState(externalVolume !== undefined ? externalVolume : 1);
     const [playingPart, setPlayingPart] = useState(0);
+    const [partDurations, setPartDurations] = useState({});
+
+    const totalAudioDuration = useMemo(() => {
+        if (partNumber) {
+            return partDurations[partNumber - 1] || 0;
+        }
+        let total = 0;
+        const count = test?.passages?.length || 0;
+        for (let i = 0; i < count; i++) {
+            total += partDurations[i] || 0;
+        }
+        return total;
+    }, [partDurations, test, partNumber]);
+
+    useEffect(() => {
+        const expectedCount = partNumber ? 1 : (test?.passages?.length || 0);
+        if (expectedCount > 0 && Object.keys(partDurations).length === expectedCount) {
+            if (onTotalDurationCalculated) {
+                onTotalDurationCalculated(totalAudioDuration);
+            }
+        }
+    }, [partDurations, totalAudioDuration, test, partNumber, onTotalDurationCalculated]);
 
     // Sync external volume if provided
     useEffect(() => {
@@ -293,6 +317,10 @@ const TestHeader = ({
                     }
                 }, 400); // Slightly longer delay to ensure DOM is ready
             }, delay);
+        } else {
+            if (onAudioEnded) {
+                onAudioEnded();
+            }
         }
     };
 
@@ -346,7 +374,7 @@ const TestHeader = ({
                             {test?.title || test?.name || "IELTS Official Test"}
                         </span>
                         {!showResult && !showModeSelection && (
-                            <span className="text-[9px] md:text-[11px] font-medium text-gray-500 leading-none mt-0.5 tabular-nums whitespace-nowrap">
+                            <span className={`text-[9px] md:text-[11px] leading-none mt-0.5 tabular-nums whitespace-nowrap ${testMode === 'exam' && timeLeft <= 120 ? 'text-[#e31b23] font-bold' : 'text-gray-500 font-medium'}`}>
                                 {testMode === 'practice' 
                                     ? <span className="flex gap-1"><span>{Math.floor(timeLeft / 60)}</span><span className="hidden sm:inline">minutes past</span><span className="sm:hidden">min</span></span>
                                     : <span className="flex gap-1"><span>{Math.ceil(timeLeft / 60)}</span><span className="hidden sm:inline">minutes remaining</span><span className="sm:hidden">min left</span></span>
@@ -412,6 +440,12 @@ const TestHeader = ({
                                     endTime={endTime}
                                     resumeTime={resumeAudioTime}
                                     extraSilentTime={Number(passage.extraSilentTime) || 0}
+                                    onDurationCalculated={(dur) => {
+                                        setPartDurations(prev => {
+                                            if (prev[index] === dur) return prev;
+                                            return { ...prev, [index]: dur };
+                                        });
+                                    }}
                                 />
                             );
                         })}

@@ -265,7 +265,7 @@ export default function AdminMocks() {
 
     setIsSaving(true);
     try {
-      const priceVal = mockPrice ? Number(mockPrice) : 20000;
+      const priceVal = mockPrice ? Number(mockPrice) : 30000;
       const mockData = {
         title: mockTitle.trim(),
         description: mockDescription.trim(),
@@ -460,7 +460,7 @@ export default function AdminMocks() {
                       ? "bg-zinc-950 border-zinc-855 focus:border-zinc-700 text-zinc-100" 
                       : "bg-zinc-50 border-zinc-200 focus:border-zinc-350 text-zinc-800"
                   }`}
-                  placeholder="Masalan: 20000"
+                  placeholder="Masalan: 30000"
                   value={mockPrice}
                   onChange={e => setMockPrice(e.target.value)}
                 />
@@ -677,7 +677,7 @@ export default function AdminMocks() {
                         <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border shrink-0 ${
                           isDark ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400" : "bg-emerald-50 border-emerald-200 text-emerald-600"
                         }`}>
-                          {formatUZS(mock.price || 20000)}
+                          {formatUZS(mock.price || 30000)}
                         </span>
                       </div>
                       
