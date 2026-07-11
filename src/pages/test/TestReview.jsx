@@ -140,7 +140,7 @@ export default function TestReview() {
     if (userData !== null && userData !== undefined && !effectiveIsPremium && !testData.isFree) return null;
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100 overflow-hidden font-sans">
+        <div className="flex flex-col h-[100dvh] bg-gray-100 overflow-hidden font-sans">
             <ReviewHeader 
                 testData={testData}
                 resultData={resultData}

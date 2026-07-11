@@ -255,7 +255,7 @@ export default function ListeningFooter({
                             <div
                                 key={passage.id || idx}
                                 onClick={() => setActivePart(idx)}
-                                className="flex-1 h-full flex items-center justify-center gap-2 cursor-pointer bg-white hover:bg-gray-50 transition-colors"
+                                className="flex-1 shrink-0 min-w-[75px] h-full flex items-center justify-center gap-2 cursor-pointer bg-white hover:bg-gray-50 transition-colors"
                                 style={{ borderRight: 'none' }}
                             >
                                 <span className="font-bold text-[12px] text-gray-700 whitespace-nowrap">

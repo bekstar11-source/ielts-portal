@@ -360,7 +360,7 @@ export default function TestSolving() {
 
 
     return (
-        <div className={`flex flex-col h-screen bg-gray-50 font-sans select-none ${textSize}`}>
+        <div className={`flex flex-col h-[100dvh] bg-gray-50 font-sans select-none ${textSize}`}>
 
             {(saving || isSubmitting) && <ResultsCalculatingScreen />}
 

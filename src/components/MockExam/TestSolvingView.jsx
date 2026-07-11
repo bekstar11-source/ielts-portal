@@ -42,7 +42,7 @@ export const TestSolvingView = ({
     };
 
     return (
-        <div className={`flex flex-col h-screen bg-gray-50 overflow-hidden font-sans ${textSize}`} style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
+        <div className={`flex flex-col h-[100dvh] bg-gray-50 overflow-hidden font-sans ${textSize}`} style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
             {/* Resume Test Overlay for Autoplay Unlock */}
             <AnimatePresence>
                 {showResumeOverlay && (

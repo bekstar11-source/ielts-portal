@@ -124,7 +124,7 @@ export default function ListeningInterface({
 
 
       {/* --- MAIN SPLIT CONTENT --- */}
-      <div className="flex w-full h-full overflow-hidden relative pb-[48px]">
+      <div className={`flex w-full h-full overflow-hidden relative pb-[48px] ${isMobile ? 'pt-[48px]' : ''}`}>
 
         {/* 1-muammo yechimi: Chap taraf va Resizer FAQAT Review paytida ko'rinadi */}
         {isReviewMode && (

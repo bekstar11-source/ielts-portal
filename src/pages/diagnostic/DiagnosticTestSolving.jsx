@@ -62,7 +62,7 @@ export default function DiagnosticTestSolving() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-[#050505] text-white font-sans select-none">
+        <div className="flex flex-col h-[100dvh] bg-[#050505] text-white font-sans select-none">
             {saving && <ResultsCalculatingScreen accent="#f97316" />}
 
             {/* DIAGNOSTIC HEADER (Restricted) */}
