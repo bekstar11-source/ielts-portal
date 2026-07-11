@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoreHorizontal, Edit2, Edit3, Trash2, Globe, Lock, BookOpen, Headphones, PenTool, Mic2, Eye, Award, Copy } from 'lucide-react';
+import { MoreHorizontal, Edit2, Edit3, Trash2, Globe, Lock, BookOpen, Headphones, PenTool, Mic2, Eye, Award, Copy, Folder } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { normalizeTestSegments } from '../../../utils/normalizeTestSegments';
 
@@ -57,8 +57,39 @@ const getMatchSnippet = (content, term) => {
     );
 };
 
+const findParentMergedTest = (test, allTestsList) => {
+    if (!test.isMergedSource) return null;
+    const testTitleLower = (test.title || "").toLowerCase().trim();
+    
+    return allTestsList.find(t => {
+        const isMerged = t.isMerged || (t.title?.toLowerCase().startsWith("merged:") && !t.isMergedSource);
+        if (!isMerged) return false;
+        
+        // Match by mergedSourceIds
+        if (Array.isArray(t.mergedSourceIds) && t.mergedSourceIds.includes(test.id)) {
+            return true;
+        }
+        
+        // Match by title parsing (e.g. "Merged: Test A + Test B")
+        let content = t.title || "";
+        if (content.toLowerCase().startsWith("merged:")) {
+            content = content.slice(7).trim();
+        }
+        if (content) {
+            const parts = content.split(" + ").map(p => p.trim().toLowerCase());
+            if (parts.includes(testTitleLower)) {
+                return true;
+            }
+        }
+        
+        return false;
+    });
+};
+
 const AdminTestsList = ({
-    tests = [], selectedTests = [], onToggleSelect, onSelectAll, onDelete, onEdit, onQuickEdit, onView, onDuplicate, searchTerm = ""
+    tests = [], collections = [], allTests = [], onSelectCollection,
+    highlightedTestId = null, onHighlightTest,
+    selectedTests = [], onToggleSelect, onSelectAll, onDelete, onEdit, onQuickEdit, onView, onDuplicate, searchTerm = "", contentSearchTerm = ""
 }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -156,14 +187,19 @@ const AdminTestsList = ({
 
                         const segments = normalizeTestSegments(test);
                         const isSelected = selectedTests.includes(test.id);
+                        const isHighlighted = test.id === highlightedTestId;
 
                         return (
                             <tr
                                 key={test.id}
-                                className={`group transition-all duration-150 border-l-2 ${
+                                className={`group transition-all duration-300 border-l-2 ${
                                     isSelected
                                         ? (isDark ? 'bg-blue-500/10 border-blue-500/80' : 'bg-blue-500/5 border-blue-600')
-                                        : 'border-transparent hover:bg-zinc-50/80 dark:hover:bg-white/5'
+                                        : isHighlighted
+                                            ? (isDark 
+                                                ? 'bg-purple-650/30 border-purple-500 ring-2 ring-purple-500/30 scale-[1.005] shadow-lg shadow-purple-500/5 z-10' 
+                                                : 'bg-purple-50/85 border-purple-600 ring-2 ring-purple-500/20 scale-[1.005] shadow-lg shadow-purple-500/5 z-10')
+                                            : 'border-transparent hover:bg-zinc-50/80 dark:hover:bg-white/5'
                                 }`}
                             >
                                 <td className="py-4 pl-4 text-center">
@@ -201,20 +237,45 @@ const AdminTestsList = ({
                                                 {(test.isMerged || (test.title?.toLowerCase().startsWith("merged:") && !test.isMergedSource)) && (
                                                     <span className="text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-purple-600 text-white leading-none">MERGED</span>
                                                 )}
-                                                {test.isMergedSource && (
-                                                    <span
-                                                        className={`text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full flex items-center gap-1 leading-none ${
-                                                            isDark
-                                                                ? 'bg-purple-500/10 border border-purple-500/20 text-purple-400'
-                                                                : 'bg-purple-50 border border-purple-150 text-purple-600'
-                                                        }`}
-                                                        title="Birlashtirilgan test tarkibiy qismi (Manba test)"
-                                                    >
-                                                        <span className="text-[10px]">🔗</span> Source
-                                                    </span>
-                                                )}
+                                                {test.isMergedSource && (() => {
+                                                    const parent = findParentMergedTest(test, allTests);
+                                                    const parentCol = parent ? collections.find(c => c.id === parent.collectionId) : null;
+                                                    const tooltipTitle = parentCol 
+                                                        ? `Birlashtirilgan test to'plami: ${parentCol.name}. To'plamni ko'rish uchun bosing.` 
+                                                        : (parent ? "Birlashtirilgan test tarkibiy qismi. Birlashtirilgan testlarni ko'rish uchun bosing." : "Birlashtirilgan test tarkibiy qismi (Manba test)");
+                                                    
+                                                    const handleClick = (e) => {
+                                                        e.stopPropagation();
+                                                        if (parent) {
+                                                            if (onSelectCollection) {
+                                                                if (parent.collectionId) {
+                                                                    onSelectCollection(parent.collectionId);
+                                                                } else {
+                                                                    onSelectCollection("Merged");
+                                                                }
+                                                            }
+                                                            if (onHighlightTest) {
+                                                                onHighlightTest(parent.id);
+                                                            }
+                                                        }
+                                                    };
+
+                                                    return (
+                                                        <button
+                                                            onClick={handleClick}
+                                                            className={`text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full flex items-center gap-1 leading-none transition-all hover:scale-105 active:scale-95 ${
+                                                                isDark
+                                                                    ? 'bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400'
+                                                                    : 'bg-purple-50 hover:bg-purple-100 border border-purple-150 text-purple-600'
+                                                            }`}
+                                                            title={tooltipTitle}
+                                                        >
+                                                            <span className="text-[10px]">🔗</span> Source
+                                                        </button>
+                                                    );
+                                                })()}
                                             </div>
-                                            {searchTerm && getMatchSnippet(test.combinedContent, searchTerm)}
+                                            {contentSearchTerm && getMatchSnippet(test.combinedContent, contentSearchTerm)}
 
                                             <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
                                                 <div className="flex items-center gap-1 select-none">
@@ -228,7 +289,33 @@ const AdminTestsList = ({
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className="text-[10px] text-zinc-400 font-medium">ID: {test.id.slice(0, 8)}...</span>
+                                                {test.collectionId ? (
+                                                    (() => {
+                                                        const col = collections.find(c => c.id === test.collectionId);
+                                                        const isListening = col?.type === 'listening';
+                                                        const isReading = col?.type === 'reading';
+                                                        const isMock = col?.type === 'mock';
+                                                        return (
+                                                            <span
+                                                                title={`To'plam: ${col?.name || "Noma'lum"}`}
+                                                                className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border max-w-[150px] truncate select-none ${
+                                                                    isDark
+                                                                        ? 'text-blue-400 bg-blue-500/5 border-blue-500/10'
+                                                                        : 'text-blue-600 bg-blue-50 border border-blue-100'
+                                                                }`}
+                                                            >
+                                                                <Folder size={10} className={
+                                                                    isListening ? 'text-amber-500 shrink-0' :
+                                                                    isReading ? 'text-emerald-500 shrink-0' :
+                                                                    isMock ? 'text-blue-500 shrink-0' : 'text-zinc-400 shrink-0'
+                                                                } />
+                                                                <span className="truncate">{col?.name || "To'plam"}</span>
+                                                            </span>
+                                                        );
+                                                    })()
+                                                ) : (
+                                                    <span className="text-[10px] text-zinc-400 font-medium">ID: {test.id.slice(0, 8)}...</span>
+                                                )}
 
                                                 {(test.tags || []).map((tag, i) => (
                                                     <span key={i} className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full select-none ${

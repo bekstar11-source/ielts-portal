@@ -79,12 +79,30 @@ export default function AdminTests() {
     const [editingCol, setEditingCol] = useState(null); 
     const [editingMock, setEditingMock] = useState(null);
     const [editingTest, setEditingTest] = useState(null);
+    const [highlightedTestId, setHighlightedTestId] = useState(null);
+    const [previousFilterCollection, setPreviousFilterCollection] = useState(null);
+
+    const handleHighlightTest = (id) => {
+        setHighlightedTestId(id);
+        if (previousFilterCollection === null) {
+            setPreviousFilterCollection(filterCollection);
+        }
+        setTimeout(() => {
+            setHighlightedTestId(prev => prev === id ? null : prev);
+        }, 5000);
+    };
+
+    const handleSelectCollectionAndClearBack = (colId) => {
+        setFilterCollection(colId);
+        setPreviousFilterCollection(null);
+    };
     
     const {
         // States
         tests, collections, loading, totalTestCount, currentPage,
         isBackgroundRefreshing, stats, allTests,
         searchTerm, setSearchTerm,
+        contentSearchTerm, setContentSearchTerm,
         filterType, setFilterType,
         filterCollection, setFilterCollection,
         filterStatus, setFilterStatus,
@@ -571,6 +589,8 @@ export default function AdminTests() {
                 <AdminTestsToolbar
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
+                    contentSearchTerm={contentSearchTerm}
+                    setContentSearchTerm={setContentSearchTerm}
                     viewMode={viewMode}
                     setViewMode={setViewMode}
                     selectedCount={selectedTests.length}
@@ -579,7 +599,7 @@ export default function AdminTests() {
                     onCreate={() => navigate("/admin/create-test")}
                     collections={collections}
                     filterCollection={filterCollection}
-                    setFilterCollection={setFilterCollection}
+                    setFilterCollection={handleSelectCollectionAndClearBack}
                     filterType={filterType}
                     setFilterType={setFilterType}
                     totalTestCount={totalTestCount}
@@ -725,9 +745,37 @@ export default function AdminTests() {
                                 );
                             })()}
 
+                            {previousFilterCollection !== null && (
+                                <div className={`mb-4 flex items-center justify-between p-3.5 rounded-xl border transition-all ${
+                                    isDark 
+                                        ? 'bg-purple-500/5 border-purple-500/20 text-white' 
+                                        : 'bg-purple-50 border-purple-200 text-zinc-900'
+                                }`}>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] uppercase font-black tracking-widest px-2 py-0.5 rounded bg-purple-600 text-white">Navigatsiya</span>
+                                        <span className="text-xs font-bold opacity-80">Birlashtirilgan testga (Source) o'tildi. Oldingi ro'yxatga qaytishni xohlaysizmi?</span>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setFilterCollection(previousFilterCollection);
+                                            setPreviousFilterCollection(null);
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-sm transition-all active:scale-95"
+                                    >
+                                        ⬅️ Orqaga qaytish
+                                    </button>
+                                </div>
+                            )}
+
                             <AdminTestsList
                                 tests={filteredTests}
+                                collections={collections}
+                                allTests={allTests}
+                                onSelectCollection={setFilterCollection}
                                 searchTerm={searchTerm}
+                                contentSearchTerm={contentSearchTerm}
+                                highlightedTestId={highlightedTestId}
+                                onHighlightTest={handleHighlightTest}
                                 selectedTests={selectedTests}
                                 onToggleSelect={handleToggleSelect}
                                 onSelectAll={(checked) => {

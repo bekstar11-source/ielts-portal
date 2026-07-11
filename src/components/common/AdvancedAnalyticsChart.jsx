@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 
-export default function AdvancedAnalyticsChart({ data = [], height = 350, seriesConfig }) {
+export default function AdvancedAnalyticsChart({ data = [], height = 350, seriesConfig, title, headerActions, className = "" }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
@@ -78,69 +78,73 @@ export default function AdvancedAnalyticsChart({ data = [], height = 350, series
     };
 
     return (
-        <div className={`border rounded-[24px] p-6 flex flex-col md:flex-row gap-8 min-h-[400px] transition-all duration-300 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+        <div className={`border rounded-[24px] p-6 flex flex-col gap-6 min-h-[400px] transition-all duration-300 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'} ${className}`}>
+            {(title || headerActions) && (
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 dark:border-white/5 pb-4">
+                    {title && <h3 className="text-gray-900 dark:text-white font-medium text-lg">{title}</h3>}
+                    {headerActions}
+                </div>
+            )}
+            
+            <div className="flex flex-col md:flex-row gap-8 flex-1">
+                {/* LEGEND ON THE LEFT */}
+                <div className="w-full md:w-36 flex flex-col gap-6 pt-8">
+                    {config.map(s => (
+                        <SeriesToggle 
+                            key={s.key}
+                            label={s.label} 
+                            value={getDisplayTotal(s)} 
+                            color={s.color} 
+                            isActive={visibleSeries[s.key]} 
+                            onToggle={() => toggleSeries(s.key)} 
+                            format={(val) => formatNumber(val, s.type)}
+                            isAvg={s.type === 'decimal'}
+                            isDark={isDark}
+                        />
+                    ))}
+                </div>
 
-
-            {/* LEGEND ON THE LEFT */}
-            <div className="w-full md:w-36 flex flex-col gap-6 pt-8">
-                {config.map(s => (
-                    <SeriesToggle 
-                        key={s.key}
-                        label={s.label} 
-                        value={getDisplayTotal(s)} 
-                        color={s.color} 
-                        isActive={visibleSeries[s.key]} 
-                        onToggle={() => toggleSeries(s.key)} 
-                        format={(val) => formatNumber(val, s.type)}
-                        isAvg={s.type === 'decimal'}
-                        isDark={isDark}
-                    />
-                ))}
-
-            </div>
-
-            {/* CHART AREA */}
-            <div className="flex-1 min-w-0 flex flex-col">
-                <div style={{ width: '100%', height: height }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
-                            <XAxis 
-                                dataKey="name" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fill: isDark ? '#ffffff50' : '#9CA3AF', fontSize: 11 }}
-                                dy={10}
-                            />
-                            <YAxis 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fill: isDark ? '#ffffff50' : '#9CA3AF', fontSize: 11 }}
-                                tickFormatter={(val) => formatNumber(val, 'count')}
-                            />
-                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: isDark ? '#ffffff20' : '#e5e7eb', strokeWidth: 1 }} />
-
-                            
-                            {config.map(s => visibleSeries[s.key] && (
-                                <Line 
-                                    key={s.key}
-                                    type="linear" 
-                                    dataKey={s.key} 
-                                    name={s.label}
-                                    stroke={s.color} 
-                                    strokeWidth={2} 
-                                    dot={{ fill: s.color, r: 4, strokeWidth: 0 }}
-                                    activeDot={{ r: 6, strokeWidth: 0 }}
-                                    yAxisId={0} // We can use dual axis if needed, but for now single
+                {/* CHART AREA */}
+                <div className="flex-1 min-w-0 flex flex-col">
+                    <div style={{ width: '100%', height: height }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
+                                <XAxis 
+                                    dataKey="name" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: isDark ? '#ffffff50' : '#9CA3AF', fontSize: 11 }}
+                                    dy={10}
                                 />
-                            ))}
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-                <div className={`text-center text-[10px] font-medium uppercase tracking-widest mt-2 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
-                    Analitika (kunlik tahlil)
-                </div>
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: isDark ? '#ffffff50' : '#9CA3AF', fontSize: 11 }}
+                                    tickFormatter={(val) => formatNumber(val, 'count')}
+                                />
+                                <Tooltip content={<CustomTooltip />} cursor={{ stroke: isDark ? '#ffffff20' : '#e5e7eb', strokeWidth: 1 }} />
 
+                                {config.map(s => visibleSeries[s.key] && (
+                                    <Line 
+                                        key={s.key}
+                                        type="linear" 
+                                        dataKey={s.key} 
+                                        name={s.label}
+                                        stroke={s.color} 
+                                        strokeWidth={2} 
+                                        dot={{ fill: s.color, r: 4, strokeWidth: 0 }}
+                                        activeDot={{ r: 6, strokeWidth: 0 }}
+                                        yAxisId={0} // We can use dual axis if needed, but for now single
+                                    />
+                                ))}
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className={`text-center text-[10px] font-medium uppercase tracking-widest mt-2 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+                        Analitika (kunlik tahlil)
+                    </div>
+                </div>
             </div>
         </div>
     );

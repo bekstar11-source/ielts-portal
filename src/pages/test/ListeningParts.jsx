@@ -87,8 +87,11 @@ export default function ListeningParts() {
   const [hasMore, setHasMore] = useState(true);
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [allTestsLoaded, setAllTestsLoaded] = useState(false);
   const PAGE_SIZE = 24;
+
+  const isInitialLoading = loading || isFirstLoad;
 
   const rawAssignments = useMemo(() => {
     const assignedIds = new Set(assignments.map(a => a.id));
@@ -180,6 +183,7 @@ export default function ListeningParts() {
         console.error("Error fetching library tests:", err);
     } finally {
         setLoadingLibrary(false);
+        setIsFirstLoad(false);
     }
   };
 
@@ -479,7 +483,7 @@ export default function ListeningParts() {
         user={user} userData={userData}
         activeTab="listening"
         onLogoutClick={() => setShowLogoutConfirm(true)}
-        loading={loading}
+        loading={isInitialLoading}
       />
 
       <main className="w-full pb-24 md:pb-0">
@@ -487,7 +491,7 @@ export default function ListeningParts() {
           activeTab="listening" 
           subType="parts"
           categories={categories} 
-          totalCount={loading ? 0 : (totalLibraryCount * 4 || partTestsList.length)}
+          totalCount={isInitialLoading ? 0 : (totalLibraryCount * 4 || partTestsList.length)}
           filteredCount={filteredVirtualParts.length}
         />
 
@@ -523,7 +527,7 @@ export default function ListeningParts() {
         />
 
         <div className="max-w-[1440px] mx-auto px-6">
-        {loading ? (
+        {isInitialLoading ? (
             <div className="flex justify-center py-40">
                 <div className="w-8 h-8 border-2 border-gray-200 border-t-[#0066cc] rounded-full animate-spin" />
             </div>

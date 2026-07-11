@@ -25,6 +25,10 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         const saved = sessionStorage.getItem("admin_tests_searchTerm");
         return (saved && saved !== "null" && saved !== "undefined") ? saved : "";
     });
+    const [contentSearchTerm, setContentSearchTerm] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_contentSearchTerm");
+        return (saved && saved !== "null" && saved !== "undefined") ? saved : "";
+    });
     const [filterType, setFilterType] = useState(() => {
         const saved = sessionStorage.getItem("admin_tests_filterType");
         return (saved && saved !== "null" && saved !== "undefined") ? saved : "All";
@@ -64,6 +68,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
 
     useEffect(() => {
         sessionStorage.setItem("admin_tests_searchTerm", searchTerm || "");
+        sessionStorage.setItem("admin_tests_contentSearchTerm", contentSearchTerm || "");
         sessionStorage.setItem("admin_tests_filterType", filterType || "All");
         sessionStorage.setItem("admin_tests_filterCollection", filterCollection || "All");
         sessionStorage.setItem("admin_tests_filterStatus", filterStatus || "All");
@@ -72,7 +77,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         sessionStorage.setItem("admin_tests_sortBy", sortBy || "createdAt");
         sessionStorage.setItem("admin_tests_sortOrder", sortOrder || "desc");
         sessionStorage.setItem("admin_tests_currentPage", String(currentPage || 1));
-    }, [searchTerm, filterType, filterCollection, filterStatus, filterAccess, filterTag, sortBy, sortOrder, currentPage]);
+    }, [searchTerm, contentSearchTerm, filterType, filterCollection, filterStatus, filterAccess, filterTag, sortBy, sortOrder, currentPage]);
 
     const fetchCollections = async () => {
         try {
@@ -218,12 +223,19 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             list = list.filter(t => Array.isArray(t.tags) && t.tags.includes(filterTag));
         }
 
-        // 5. Search filter
+        // 5. Search filter (by Title/ID)
         if (searchTerm.trim().length >= 2) {
             const termLower = searchTerm.toLowerCase().trim();
             list = list.filter(t => 
                 (t.title || "").toLowerCase().includes(termLower) ||
-                t.id.toLowerCase().includes(termLower) ||
+                t.id.toLowerCase().includes(termLower)
+            );
+        }
+
+        // 5b. Search inside text (content/JSON) filter
+        if (contentSearchTerm.trim().length >= 2) {
+            const termLower = contentSearchTerm.toLowerCase().trim();
+            list = list.filter(t => 
                 (t.combinedContent || "").toLowerCase().includes(termLower)
             );
         }
@@ -714,6 +726,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         totalTestCount,
         currentPage,
         searchTerm,
+        contentSearchTerm,
         filterType,
         filterCollection,
         filterStatus,
@@ -728,6 +741,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
 
         // Setters
         setSearchTerm,
+        setContentSearchTerm,
         setFilterType,
         setFilterCollection,
         setFilterStatus,

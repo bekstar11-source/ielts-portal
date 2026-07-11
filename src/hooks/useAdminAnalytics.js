@@ -55,7 +55,10 @@ export function useAdminAnalytics() {
                     getDocs(collection(db, "tests_metadata"))
                 ]);
 
-                const results = resultsSnap.docs.map(d => ({ ...d.data(), createdAt: safeToDate(d.data().createdAt) })).reverse();
+                const results = resultsSnap.docs.map(d => {
+                    const data = d.data();
+                    return { ...data, createdAt: safeToDate(data.date || data.createdAt) };
+                }).reverse();
                 const users = usersSnap.docs.filter(d => d.data().role !== 'admin');
                 const tests = testsSnap.docs;
 
@@ -73,28 +76,43 @@ export function useAdminAnalytics() {
                 };
                 setStats(statsData);
 
-                // 2. ACTIVITY CHART (Last 7 Days)
-                const last7Days = [...Array(7)].map((_, i) => {
+                // 2. ACTIVITY CHART (Last 30 Days)
+                const last30Days = [...Array(30)].map((_, i) => {
                     const d = new Date();
-                    d.setDate(d.getDate() - (6 - i));
+                    d.setDate(d.getDate() - (29 - i));
                     return d.toISOString().split('T')[0];
                 });
 
-                const activityMap = last7Days.reduce((acc, date) => {
-                    acc[date] = 0;
-                    return acc;
-                }, {});
+                const activityDataMap = last30Days.reduce((acc, date) => ({
+                    ...acc, [date]: { name: date, tests: 0, score: 0, users: 0, totalScore: 0 }
+                }), {});
 
                 results.forEach(r => {
                     if (r.createdAt) {
-                        const date = r.createdAt.toISOString().split('T')[0];
-                        if (activityMap.hasOwnProperty(date)) activityMap[date]++;
+                        const dateKey = r.createdAt.toISOString().split('T')[0];
+                        if (activityDataMap[dateKey]) {
+                            activityDataMap[dateKey].tests++;
+                            activityDataMap[dateKey].totalScore += parseFloat(r.bandScore || r.score || 0);
+                        }
                     }
                 });
 
-                const finalActivityData = Object.entries(activityMap).map(([date, count]) => ({
-                    date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-                    tests: count
+                Object.values(activityDataMap).forEach(day => {
+                    if (day.tests > 0) day.score = day.totalScore / day.tests;
+                });
+
+                users.forEach(d => {
+                    const u = d.data();
+                    const dateObj = safeToDate(u.createdAt);
+                    if (dateObj) {
+                        const dateKey = dateObj.toISOString().split('T')[0];
+                        if (activityDataMap[dateKey]) activityDataMap[dateKey].users++;
+                    }
+                });
+
+                const finalActivityData = Object.values(activityDataMap).map(item => ({
+                    ...item,
+                    name: new Date(item.name).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                 }));
                 setActivityData(finalActivityData);
 

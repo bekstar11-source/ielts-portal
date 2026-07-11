@@ -259,6 +259,14 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
               <FileText size={11} className="text-zinc-500 dark:text-zinc-400" />
               {t('practice.questionsCount').replace('{count}', questionCount)}
             </span>
+            {test.collectionName && (
+              <>
+                <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
+                <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium text-[9.5px] uppercase tracking-wide leading-none">
+                  {test.collectionName}
+                </span>
+              </>
+            )}
             {isCompleted && (
               <>
                 <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>

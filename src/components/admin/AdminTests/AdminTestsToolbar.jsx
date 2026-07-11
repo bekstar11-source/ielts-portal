@@ -7,7 +7,9 @@ import {
 import { useTheme } from '../../../context/ThemeContext';
 
 const AdminTestsToolbar = ({
-    searchTerm, setSearchTerm, viewMode, setViewMode,
+    searchTerm, setSearchTerm,
+    contentSearchTerm, setContentSearchTerm,
+    viewMode, setViewMode,
     selectedCount, onBulkAssign, onMerge, onCreate,
     collections = [],
     filterCollection = "All",
@@ -112,15 +114,27 @@ const AdminTestsToolbar = ({
                         <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? (isDark ? 'bg-white/10 text-white' : 'bg-white shadow-sm text-zinc-900') : 'text-zinc-400 hover:text-zinc-600'}`}><List size={14} /></button>
                     </div>
 
-                    {/* Search Box */}
-                    <div className="relative w-full max-w-[200px] shrink-0">
+                    {/* Search by Title Box */}
+                    <div className="relative w-full max-w-[180px] shrink-0">
                         <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`} size={12} />
                         <input
                             type="text"
-                            placeholder="Search tests..."
+                            placeholder="Nomi bo'yicha qidirish..."
                             className={`w-full border-none pl-8 pr-3 py-1.5 rounded-lg text-xs outline-none transition-all ${isDark ? 'bg-white/5 focus:bg-white/10 text-white' : 'bg-zinc-100 focus:bg-zinc-200/50'}`}
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Search by Content Box */}
+                    <div className="relative w-full max-w-[180px] shrink-0">
+                        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`} size={12} />
+                        <input
+                            type="text"
+                            placeholder="Matn bo'yicha qidirish..."
+                            className={`w-full border-none pl-8 pr-3 py-1.5 rounded-lg text-xs outline-none transition-all ${isDark ? 'bg-white/5 focus:bg-white/10 text-white' : 'bg-zinc-100 focus:bg-zinc-200/50'}`}
+                            value={contentSearchTerm}
+                            onChange={e => setContentSearchTerm(e.target.value)}
                         />
                     </div>
                 </div>

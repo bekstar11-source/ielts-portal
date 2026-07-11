@@ -62,9 +62,13 @@ export default function ReadingParts() {
   const [hasMore, setHasMore] = useState(true);
   const [totalLibraryCount, setTotalLibraryCount] = useState(0);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [allTestsLoaded, setAllTestsLoaded] = useState(false);
   const [privateColIds, setPrivateColIds] = useState(new Set());
+  const [collectionsMap, setCollectionsMap] = useState({});
   const PAGE_SIZE = 24;
+
+  const isInitialLoading = loading || isFirstLoad;
 
   const rawAssignments = useMemo(() => {
     // Deduplicate between assignments and library tests
@@ -87,9 +91,10 @@ export default function ReadingParts() {
 
     return combined.map(test => ({
       ...test,
+      collectionName: test.collectionName || collectionsMap[test.collectionId] || "",
       questionTypes: test.questionTypes || deriveQuestionTypesForCard(test)
     }));
-  }, [assignments, libraryTests, privateColIds, isAdminOrTeacher]);
+  }, [assignments, libraryTests, privateColIds, isAdminOrTeacher, collectionsMap]);
 
   const fetchLibraryPage = async (isFirstPage = false) => {
     if (loadingLibrary || (!hasMore && !isFirstPage)) return;
@@ -170,6 +175,7 @@ export default function ReadingParts() {
         console.error("Error fetching library tests:", err);
     } finally {
         setLoadingLibrary(false);
+        setIsFirstLoad(false);
     }
   };
 
@@ -227,13 +233,16 @@ export default function ReadingParts() {
     const fetchCollections = async () => {
       try {
         const snap = await getDocs(collection(db, 'test_collections'));
+        const mapping = {};
         const privateIds = new Set();
         snap.docs.forEach(d => {
           const data = d.data();
+          mapping[d.id] = data.name;
           if (data.isPublic === false) {
             privateIds.add(d.id);
           }
         });
+        setCollectionsMap(mapping);
         setPrivateColIds(privateIds);
       } catch (err) {
         console.error("Error fetching collections:", err);
@@ -498,7 +507,7 @@ export default function ReadingParts() {
         user={user} userData={userData}
         activeTab="reading"
         onLogoutClick={() => setShowLogoutConfirm(true)}
-        loading={loading}
+        loading={isInitialLoading}
       />
 
 
@@ -508,7 +517,7 @@ export default function ReadingParts() {
           activeTab="reading" 
           subType="parts"
           categories={categories} 
-          totalCount={loading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading' && !t.title?.includes('/') && !t.isSet).length)}
+          totalCount={isInitialLoading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading' && !t.title?.includes('/') && !t.isSet).length)}
           filteredCount={filteredTests.length}
         />
 
@@ -543,7 +552,7 @@ export default function ReadingParts() {
         />
 
         <div className="max-w-[1440px] mx-auto px-6">
-        {loading ? (
+        {isInitialLoading ? (
             <div className="flex justify-center py-40">
                 <div className="w-8 h-8 border-2 border-gray-200 border-t-[#0066cc] rounded-full animate-spin" />
             </div>
