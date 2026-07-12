@@ -11,6 +11,31 @@ const safeDate = (dateVal) => {
     return isNaN(d.getTime()) ? null : d;
 };
 
+const getAttemptsCountForTest = (testId, results, maxAttempts, partNum = null) => {
+    const allAttempts = [];
+    results.forEach(r => {
+        const matchesId = String(r.testId).trim() === String(testId).trim();
+        if (!matchesId) return;
+        if (partNum !== null && Number(r.partNumber) !== partNum) return;
+        
+        if (r.attempts && Array.isArray(r.attempts)) {
+            allAttempts.push(...r.attempts);
+        } else {
+            allAttempts.push(r);
+        }
+    });
+
+    const numMax = Number(maxAttempts) || 1;
+    if (numMax === 1 || numMax === 2) {
+        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+        return allAttempts.filter(att => {
+            const dateVal = safeDate(att.createdAt || att.date);
+            return dateVal && dateVal >= threeDaysAgo;
+        }).length;
+    }
+    return allAttempts.length;
+};
+
 // PERF: Cache question counts to avoid repeated heavy calculations
 const questionCountCache = new Map();
 
@@ -227,13 +252,14 @@ export function useStudentData(user) {
                             const testDetail = testsMap[cleanId];
                             if (testDetail) {
                                 const bestResult = findBestResult(cleanId, myResults);
-                                const subAttemptsCount = myResults.filter(r => String(r.testId).trim() === cleanId).length;
+                                const maxAtts = assign.maxAttempts || 1;
+                                const subAttemptsCount = getAttemptsCountForTest(cleanId, myResults, maxAtts);
                                 return {
                                     ...testDetail,
                                     status: bestResult ? 'completed' : 'open',
                                     result: bestResult,
                                     attemptsCount: subAttemptsCount,
-                                    maxAttempts: assign.maxAttempts || 1,
+                                    maxAttempts: maxAtts,
                                     endDate: assign.deadline || assign.endDate || null,
                                     startDate: assign.startDate || null,
                                 };
@@ -338,10 +364,8 @@ export function useStudentData(user) {
                                     String(r.testId).trim() === String(assign.id).trim() &&
                                     Number(r.partNumber) === partNum
                                 ) || null;
-                                const partAttemptsCount = myResults.filter(r =>
-                                    String(r.testId).trim() === String(assign.id).trim() &&
-                                    Number(r.partNumber) === partNum
-                                ).length;
+                                const maxAtts = assign.maxAttempts || 1;
+                                const partAttemptsCount = getAttemptsCountForTest(assign.id, myResults, maxAtts, partNum);
 
                                 let status = 'open';
                                 if (partResult) status = 'completed';
@@ -366,7 +390,8 @@ export function useStudentData(user) {
                         }
 
                         const bestResult = findBestResult(assign.id, myResults);
-                        const attemptsCount = myResults.filter(r => String(r.testId).trim() === String(assign.id).trim()).length;
+                        const maxAtts = assign.maxAttempts || 1;
+                        const attemptsCount = getAttemptsCountForTest(assign.id, myResults, maxAtts);
 
                         const finalTestData = {
                             ...testDataFromDb,
@@ -375,6 +400,7 @@ export function useStudentData(user) {
                             title: testDataFromDb?.title || assign.title || 'IELTS Test',
                             type: testDataFromDb?.type || assign.type || 'unknown',
                             attemptsCount,
+                            maxAttempts: maxAtts,
                             questionTypes,
                             totalQuestions
                         };

@@ -5,6 +5,7 @@ export default function HighlightMenu({ position, onHighlight, onClear, onClearA
     const [isAdded, setIsAdded] = useState(false);
     const [isWBAdded, setIsWBAdded] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     // Reset state when position changes (new selection)
     useEffect(() => {
@@ -12,6 +13,14 @@ export default function HighlightMenu({ position, onHighlight, onClear, onClearA
         setIsWBAdded(false);
         setIsProcessing(false);
     }, [position]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     if (!position) return null;
 
@@ -85,8 +94,12 @@ export default function HighlightMenu({ position, onHighlight, onClear, onClearA
 
     return (
         <div
-            className="absolute z-[1000] flex items-center gap-1 bg-gray-900/90 backdrop-blur-md text-white px-1.5 py-1 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2 touch-none transition-all duration-75 ease-out"
-            style={{
+            className={`${isMobile ? 'fixed px-1.5 py-1 rounded-xl' : 'absolute px-2 py-1.5 rounded-xl'} z-[2005] flex items-center gap-1 bg-gray-900/90 backdrop-blur-md text-white shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2 touch-none transition-all duration-75 ease-out`}
+            style={isMobile ? {
+                bottom: '100px',
+                left: '50%',
+                top: 'auto'
+            } : {
                 top: position.top,
                 left: position.left
             }}
@@ -94,38 +107,38 @@ export default function HighlightMenu({ position, onHighlight, onClear, onClearA
         >
             <div className="flex items-center gap-0">
                 <button
-                    className="flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group"
+                    className={`flex items-center justify-center ${isMobile ? 'w-8 h-8' : 'w-7 h-7'} hover:bg-white/10 rounded-lg transition-all active:scale-95 group`}
                     onPointerDown={(e) => { e.preventDefault(); triggerHaptic(); onHighlight('yellow'); }}
                     title="Highlight"
                 >
-                    <div className="w-3.5 h-3.5 rounded-full bg-yellow-300 border border-yellow-400 group-hover:scale-110 shadow-sm transition-transform"></div>
+                    <div className={`${isMobile ? 'w-[18px] h-[18px]' : 'w-[14px] h-[14px]'} rounded-full bg-yellow-300 border border-yellow-400 group-hover:scale-110 shadow-sm transition-transform`}></div>
                 </button>
             </div>
 
             <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
 
             <button
-                className="flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group text-yellow-400"
+                className={`flex items-center justify-center ${isMobile ? 'w-8 h-8' : 'w-7 h-7'} hover:bg-white/10 rounded-lg transition-all active:scale-95 group text-yellow-400`}
                 onPointerDown={(e) => { e.preventDefault(); triggerHaptic(); handleAddNote(e); }}
                 title="Note qo'shish"
             >
-                <StickyNote size={16} className="group-hover:scale-110 transition-transform" />
+                <StickyNote size={isMobile ? 18 : 16} className="group-hover:scale-110 transition-transform" />
             </button>
 
             <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
 
             <button
-                className={`flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group ${isAdded ? 'text-green-400' : 'text-blue-400'}`}
+                className={`flex items-center justify-center ${isMobile ? 'w-8 h-8' : 'w-7 h-7'} hover:bg-white/10 rounded-lg transition-all active:scale-95 group ${isAdded ? 'text-green-400' : 'text-blue-400'}`}
                 onPointerDown={(e) => { e.preventDefault(); triggerHaptic(); handleAddDict(e); }}
                 title="Lug'atga qo'shish"
                 disabled={isAdded || isProcessing}
             >
                 {isAdded ? (
-                    <Check size={16} />
+                    <Check size={isMobile ? 18 : 16} />
                 ) : isProcessing && !isWBAdded ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={isMobile ? 18 : 16} className="animate-spin" />
                 ) : (
-                    <BookPlus size={16} className="group-hover:scale-110 transition-transform" />
+                    <BookPlus size={isMobile ? 18 : 16} className="group-hover:scale-110 transition-transform" />
                 )}
             </button>
 
@@ -134,17 +147,17 @@ export default function HighlightMenu({ position, onHighlight, onClear, onClearA
                 <>
                     <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
                     <button
-                        className={`flex items-center justify-center w-7 h-7 hover:bg-white/10 rounded-lg transition-all active:scale-95 group ${isWBAdded ? 'text-green-400' : 'text-emerald-400'}`}
+                        className={`flex items-center justify-center ${isMobile ? 'w-8 h-8' : 'w-7 h-7'} hover:bg-white/10 rounded-lg transition-all active:scale-95 group ${isWBAdded ? 'text-green-400' : 'text-emerald-400'}`}
                         onPointerDown={(e) => { e.preventDefault(); triggerHaptic(); handleAddToWB(e); }}
                         title="Paraphrase Map'ga qo'shish"
                         disabled={isWBAdded || isProcessing}
                     >
                         {isWBAdded ? (
-                            <Check size={16} />
+                            <Check size={isMobile ? 18 : 16} />
                         ) : isProcessing && isWBAdded ? (
-                            <Loader2 size={16} className="animate-spin" />
+                            <Loader2 size={isMobile ? 18 : 16} className="animate-spin" />
                         ) : (
-                            <ArrowRightLeft size={16} className="group-hover:scale-110 transition-transform" />
+                            <ArrowRightLeft size={isMobile ? 18 : 16} className="group-hover:scale-110 transition-transform" />
                         )}
                     </button>
                 </>
@@ -153,7 +166,7 @@ export default function HighlightMenu({ position, onHighlight, onClear, onClearA
             <div className="w-[1px] h-4 bg-white/20 mx-0"></div>
 
             <button
-                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors ml-0"
+                className={`${isMobile ? 'w-8 h-8' : 'w-6 h-6'} flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors ml-0`}
                 onPointerDown={(e) => { e.preventDefault(); triggerHaptic(); onClear(); }}
                 title="Menyuni yopish"
             >

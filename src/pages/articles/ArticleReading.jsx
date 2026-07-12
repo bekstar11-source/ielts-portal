@@ -46,6 +46,15 @@ export default function ArticleReading() {
   const [isWordBankAdded, setIsWordBankAdded] = useState(false);
   const articleContainerRef = useRef(null);
   
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Interaction states
   const [claps, setClaps] = useState(0);
   const [hasClapped, setHasClapped] = useState(false);
@@ -736,8 +745,12 @@ export default function ArticleReading() {
         >
           {selectionMenu && (
             <div
-              className="article-selection-menu absolute z-[1000] flex items-center gap-1.5 bg-gray-900/95 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2 touch-none select-none border border-white/[0.08]"
-              style={{
+              className={`article-selection-menu ${isMobile ? 'fixed' : 'absolute'} z-[1000] flex items-center gap-1.5 bg-gray-900/95 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2 touch-none select-none border border-white/[0.08]`}
+              style={isMobile ? {
+                bottom: '32px',
+                left: '50%',
+                top: 'auto'
+              } : {
                 top: selectionMenu.top,
                 left: selectionMenu.left
               }}

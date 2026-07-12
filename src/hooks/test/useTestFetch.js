@@ -3,6 +3,13 @@ import { db, functions } from "../../firebase/firebase";
 import { doc, getDoc, getDocs, collection, query, where, limit } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 
+const safeDate = (dateVal) => {
+    if (!dateVal) return null;
+    if (dateVal.seconds) return new Date(dateVal.seconds * 1000);
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? null : d;
+};
+
 export function useTestFetch(testId, user, userData, navigate) {
     const [test, setTest] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -40,7 +47,6 @@ export function useTestFetch(testId, user, userData, navigate) {
                         where('userId', '==', user.uid),
                         where('testId', '==', cleanId)
                     ));
-                    const attemptsCount = resultsSnap.size;
 
                     // Fetch user's groups to find teacher assignments
                     const groupsSnap = await getDocs(query(
@@ -87,6 +93,25 @@ export function useTestFetch(testId, user, userData, navigate) {
                     }
 
                     // 2. Attempts check
+                    const resultsDocs = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    let attemptsList = [];
+                    resultsDocs.forEach(d => {
+                        if (d.attempts && Array.isArray(d.attempts)) {
+                            attemptsList.push(...d.attempts);
+                        } else {
+                            attemptsList.push(d);
+                        }
+                    });
+
+                    let attemptsCount = attemptsList.length;
+                    if (maxAttempts === 1 || maxAttempts === 2) {
+                        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+                        attemptsCount = attemptsList.filter(att => {
+                            const dateVal = safeDate(att.createdAt || att.date);
+                            return dateVal && dateVal >= threeDaysAgo;
+                        }).length;
+                    }
+
                     if (attemptsCount >= maxAttempts) {
                         alert(`Siz bu testni topshirish limitiga yetgansiz! Maksimal urinishlar soni: ${maxAttempts}`);
                         navigate("/dashboard");
