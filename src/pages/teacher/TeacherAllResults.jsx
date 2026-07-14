@@ -599,6 +599,26 @@ export default function TeacherAllResults() {
                             }`}>
                               {res.type === 'mock_full' ? 'Mock Exam' : res.type}
                             </span>
+                            {res.type === 'mock_full' && res.scores && (
+                              <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-700 border-indigo-100'}`} title="Listening">
+                                  L: {res.scores.listeningBand ?? res.scores.listening_band ?? '-'}
+                                </span>
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isDark ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-sky-50 text-sky-700 border-sky-100'}`} title="Reading">
+                                  R: {res.scores.readingBand ?? res.scores.reading_band ?? '-'}
+                                </span>
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                                  (res.scores.writingBand ?? res.writingBand) 
+                                    ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100')
+                                    : (isDark ? 'bg-amber-500/10 text-amber-450 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse')
+                                }`} title="Writing">
+                                  W: {res.scores.writingBand ?? res.writingBand ?? 'kutilmoqda'}
+                                </span>
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-100'}`} title="Speaking">
+                                  S: {res.scores.speakingBand ?? res.speakingBand ?? '-'}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </td>
 

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, CheckCircle2, XCircle, AlertCircle, Lock, Zap, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { checkAnswer, isMultiAnswerType, scoreMultiAnswer } from '../../utils/ieltsScoring';
+import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, isChoiceQuestionType } from '../../utils/ieltsScoring';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function PremiumLockedReview({
@@ -50,7 +50,7 @@ export default function PremiumLockedReview({
                             partialText = `${scoreRes.matches}/${scoreRes.weight}`;
                         }
                     } else {
-                        isCorrect = checkAnswer(answer, uAns);
+                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType));
                     }
 
                     list.push({

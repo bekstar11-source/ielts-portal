@@ -99,14 +99,33 @@ export const normalizeString = (str) => {
         .trim();
 };
 
+// Savol turi variant-tanlash (MCQ/TFNG/Matching) asosidami, yoki erkin matn (gap-fill) asosidami?
+// Faqat variant-tanlash turlarida "C" kabi bitta harf javobni "C. To'liq matn" ko'rinishidagi
+// to'g'ri javobga solishtirish xavfsiz — chunki u yerda javob har doim variant harfini bildiradi.
+// Gap-fill/short-answer javoblarida esa bu solishtirish xato bo'lishi mumkin (masalan to'g'ri javob
+// "C. elegans" yoki "A rare bird" bo'lsa, foydalanuvchi shunchaki "C"/"A" deb yozib qo'ysa ham
+// noto'g'ri ravishda "to'g'ri" deb hisoblanib qolardi).
+export const isChoiceQuestionType = (type) => {
+    if (!type) return false;
+    const t = String(type).toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ');
+    return t.includes('mcq') ||
+           t.includes('choice') ||
+           t.includes('tfng') ||
+           t.includes('true false') ||
+           t.includes('yesno') ||
+           t.includes('yes no') ||
+           t.includes('matching');
+};
+
 // JAVOBNI TEKSHIRISH FUNKSIYASI
-export const checkAnswer = (correct, user) => {
+export const checkAnswer = (correct, user, isChoiceType = false) => {
     if (correct === undefined || correct === null) return false;
 
     // Support single letter answers matched against prefix-style correct answers (e.g., user: "C", correct: "C. Text")
+    // Faqat variant-tanlash (MCQ/TFNG/Matching) turlarida yoqiladi — gap-fill javoblarida yolg'on-ijobiy xato bermasligi uchun.
     const correctStr = String(correct).trim();
     const userStr = String(user || '').trim().toUpperCase();
-    if (userStr.length === 1 && /^[A-Z]$/.test(userStr)) {
+    if (isChoiceType && userStr.length === 1 && /^[A-Z]$/.test(userStr)) {
         const match = correctStr.match(/^([A-Z])[\.\)\s]/i);
         if (match && match[1].toUpperCase() === userStr) {
             return true;
@@ -257,7 +276,7 @@ export const calculateSectionScore = (testData, sectionAnswers) => {
                 if (o.id && ans) {
                     groupItems.push(o);
                 }
-                const subKeys = ['questions', 'items', 'rows', 'cells', 'content'];
+                const subKeys = ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'];
                 for (const sk of subKeys) {
                     if (o[sk] && Array.isArray(o[sk])) {
                         o[sk].forEach(collectItems);
@@ -303,7 +322,7 @@ export const calculateSectionScore = (testData, sectionAnswers) => {
                 scoredIds.add(idStr);
             } else {
                 const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
-                const isCorrect = checkAnswer(answer, userResp);
+                const isCorrect = checkAnswer(answer, userResp, isChoiceQuestionType(currentType));
                 if (isCorrect) correctCount++;
                 totalQ++;
                 scoredIds.add(idStr);

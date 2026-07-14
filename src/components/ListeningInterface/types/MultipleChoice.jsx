@@ -18,7 +18,7 @@ export const MultipleChoice = memo(({ group, userAnswers, onAnswerChange, isRevi
                     {options.map((opt, idx) => {
                         const isSelected = String(userAnswers[q.id]) === String(opt.label);
                         const correctVal = q.answer || q.correct_answer || q.correctAnswer;
-                        const isCorrect = isReviewMode ? checkAnswer(opt.label, correctVal) : false;
+                        const isCorrect = isReviewMode ? checkAnswer(opt.label, correctVal, true) : false;
                         const containerStyle = getStatusStyles(isReviewMode, isCorrect, isSelected, 'container');
 
                         return (

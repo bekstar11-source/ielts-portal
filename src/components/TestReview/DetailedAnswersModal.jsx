@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Search, CheckCircle2, XCircle, ArrowRight, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { checkAnswer, isMultiAnswerType, scoreMultiAnswer } from '../../utils/ieltsScoring';
+import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, calculateSectionScore, calculateBandScore, isChoiceQuestionType } from '../../utils/ieltsScoring';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function DetailedAnswersModal({
@@ -54,7 +54,7 @@ export default function DetailedAnswersModal({
                             partialText = `${scoreRes.matches}/${scoreRes.weight}`;
                         }
                     } else {
-                        isCorrect = checkAnswer(answer, uAns);
+                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType));
                     }
 
                     // Resolve answer and user answer from letter to full text if matching
@@ -127,6 +127,31 @@ export default function DetailedAnswersModal({
         });
     }, [testData, userAnswers]);
 
+    const { computedScore, computedTotal } = useMemo(() => {
+        if (!testData || !userAnswers) return { computedScore: 0, computedTotal: 0 };
+        const res = calculateSectionScore(testData, userAnswers);
+        return {
+            computedScore: res.correct,
+            computedTotal: res.total
+        };
+    }, [testData, userAnswers]);
+
+    const scoreNum = score !== undefined && score !== null ? Number(score) : NaN;
+    const displayScore = (!isNaN(scoreNum) && scoreNum > 0) ? scoreNum : computedScore;
+    const displayTotal = computedTotal || questionsList.length || 40;
+
+    const bandScoreNum = bandScore !== undefined && bandScore !== null ? Number(bandScore) : NaN;
+    const displayBandScore = useMemo(() => {
+        const calculated = calculateBandScore(displayScore, testData?.type, displayTotal);
+        if (calculated !== null && calculated !== undefined && calculated > 0) {
+            return calculated;
+        }
+        if (!isNaN(bandScoreNum) && bandScoreNum > 0) {
+            return bandScoreNum;
+        }
+        return 0;
+    }, [bandScoreNum, displayScore, testData?.type, displayTotal]);
+
     const filteredQuestions = useMemo(() => {
         return questionsList.filter(q => {
             const matchesSearch = String(q.qNumber).includes(searchTerm) || 
@@ -191,7 +216,7 @@ export default function DetailedAnswersModal({
                                 {t('testSolving.answers') || 'Javoblar'}
                             </span>
                             <span className="text-base font-black text-zinc-800 dark:text-zinc-200 mt-0.5">
-                                {score} / {questionsList.length}
+                                {displayScore} / {displayTotal}
                             </span>
                         </div>
                         
@@ -200,16 +225,16 @@ export default function DetailedAnswersModal({
                                 {t('testSolving.correct') || 'To\'g\'ri'}
                             </span>
                             <span className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                {score}
+                                {displayScore}
                             </span>
                         </div>
 
                         <div className="bg-rose-50/40 dark:bg-rose-950/20 p-2.5 rounded-lg border border-rose-100/60 dark:border-rose-900/30 flex flex-col justify-center">
-                            <span className="text-[9px] font-black text-rose-500 dark:text-rose-450 uppercase tracking-wider">
+                            <span className="text-[9px] font-black text-rose-500 dark:text-rose-455 uppercase tracking-wider">
                                 {t('testSolving.mistake') || 'Xato'}
                             </span>
                             <span className="text-base font-black text-rose-500 dark:text-rose-400 mt-0.5">
-                                {Math.max(0, questionsList.length - score)}
+                                {Math.max(0, displayTotal - displayScore)}
                             </span>
                         </div>
 
@@ -218,7 +243,7 @@ export default function DetailedAnswersModal({
                                 {t('testSolving.bandScore') || 'Band Score'}
                             </span>
                             <span className="text-base font-black text-blue-600 dark:text-blue-400 mt-0.5">
-                                {bandScore ? Number(bandScore).toFixed(1) : '0.0'}
+                                {displayBandScore ? Number(displayBandScore).toFixed(1) : '0.0'}
                             </span>
                         </div>
                     </div>

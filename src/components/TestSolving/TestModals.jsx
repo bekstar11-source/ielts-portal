@@ -1,6 +1,6 @@
 // src/components/TestSolving/TestModals.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { calculateBandScore, formatTime, checkAnswer, scoreMultiAnswer, isMultiAnswerType } from '../../utils/ieltsScoring';
+import { calculateBandScore, formatTime, checkAnswer, scoreMultiAnswer, isMultiAnswerType, isChoiceQuestionType } from '../../utils/ieltsScoring';
 import { Icons } from '../Icons';
 import { useAuth } from '../../context/AuthContext';
 import PricingModal from '../dashboard/PricingModal';
@@ -259,7 +259,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                         if (o.id && ans) {
                             groupItems.push(o);
                         }
-                        const subKeys = ['questions', 'items', 'rows', 'cells', 'content'];
+                        const subKeys = ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'];
                         for (const sk of subKeys) {
                             if (o[sk] && Array.isArray(o[sk])) {
                                 o[sk].forEach(collectItems);
@@ -304,7 +304,7 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                         scoredIds.add(idStr);
                     } else {
                         const userResp = userAnswers[idStr] || userAnswers[id] || "";
-                        const isCorrect = checkAnswer(answer, userResp);
+                        const isCorrect = checkAnswer(answer, userResp, isChoiceQuestionType(currentType));
                         if (isCorrect) correctCount++;
                         totalQ++;
                         scoredIds.add(idStr);

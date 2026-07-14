@@ -89,7 +89,7 @@ export const MatchingGridQuestion = ({
                     <tbody>
                         {items.map((q, qIdx) => {
                             const val = String(userAnswers[q.id] || "").toUpperCase();
-                            const isCorrect = checkAnswer(val, q.answer);
+                            const isCorrect = checkAnswer(val, q.answer, true);
                             const cleanText = String(q.text || "").replace(/\[DROP\]|\[INPUT\]/gi, "").trim();
 
                             return (

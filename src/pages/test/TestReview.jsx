@@ -267,8 +267,8 @@ export default function TestReview() {
                     onClose={() => setIsAnswersListOpen(false)}
                     testData={testData}
                     userAnswers={currentAnswers}
-                    score={resultData?.score || 0}
-                    bandScore={resultData?.bandScore || 0}
+                    score={getSectionScoreAndBand().score}
+                    bandScore={getSectionScoreAndBand().bandScore}
                     onJumpToQuestion={handleJumpToQuestion}
                 />
             )}

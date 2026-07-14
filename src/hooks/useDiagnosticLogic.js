@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, addDoc, collection, updateDoc, increment, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
-import { calculateBandScore, checkAnswer, scoreMultiAnswer } from "../utils/ieltsScoring";
+import { calculateBandScore, checkAnswer, scoreMultiAnswer, isChoiceQuestionType } from "../utils/ieltsScoring";
 import { logAction } from "../utils/logger";
 
 export function useDiagnosticLogic() {
@@ -132,7 +132,7 @@ export function useDiagnosticLogic() {
                         } else {
                             totalQ++; // id bo'lgan har qanday savol hisoblanadi
                             if (!correct) return; // javob kaliti yo'q — to'g'ri hisoblanmaydi
-                            if (checkAnswer(correct, userResp)) {
+                            if (checkAnswer(correct, userResp, isChoiceQuestionType(groupType))) {
                                 correctCount++;
                             }
                         }

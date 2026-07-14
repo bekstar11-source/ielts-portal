@@ -62,8 +62,12 @@ export const useWritingReview = (userData) => {
                 }
             }
 
+            const cleanWritings = writingResults.filter(
+                r => !(r.type === 'writing' && (r.parentResultId || r.mockKey))
+            );
+
             setStudents(allStudents);
-            setWritings(writingResults.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0)));
+            setWritings(cleanWritings.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0)));
         } catch (e) {
             console.error(e);
         } finally {

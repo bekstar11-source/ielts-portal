@@ -31,7 +31,13 @@ const QuestionGroup = ({
     const instr = String(group.instruction || "").toLowerCase();
     
     const isChoiceType = ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => type.includes(t));
-    const isMultiSelect = type.includes('pick_two') || type.includes('pick_three') || type.includes('multi');
+    const isMultiSelect = type.includes('pick_two') || 
+                          type.includes('pick_three') || 
+                          (type.includes('multi') && 
+                           !type.includes('multiple_choice') && 
+                           !type.includes('multiple choice') && 
+                           !type.includes('multi_choice') && 
+                           !type.includes('multi choice'));
     const isMatching = type.includes('matching') || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));
     const isSummary = (type === 'gap_fill' || type.includes('summary') || type === 'summary_box') && !type.includes('note') && !type.includes('flow');
     const isFlowChart = type.includes('flow') || instr.includes('flow-chart') || instr.includes('flow chart');
@@ -66,9 +72,15 @@ const QuestionGroup = ({
     };
 
     const isMatchingHeading = type.includes('matching') && (
-        instr.includes('heading') || 
+        instr.includes('heading') ||
         type.includes('heading') ||
-        (Array.isArray(group.options) && group.options.some(opt => {
+        // Fallback heuristic for instructions that don't literally say "heading": long option text
+        // + "paragraph" wording. Guarded with !isMatchingParagraph so genuine "match information/
+        // features to paragraphs" questions (instr mentions "contain"/"mention"/"paragraph" with
+        // long descriptive options) aren't misclassified as heading-matching — that mismatch caused
+        // heading-style (roman-numeral) answers to be stored/compared against a letter-based answer
+        // key, marking correct answers wrong.
+        (!isMatchingParagraph && Array.isArray(group.options) && group.options.some(opt => {
             const t = String(typeof opt === 'object' ? opt.text : opt).toLowerCase();
             return t.length > 15;
         }) && instr.includes('paragraph'))

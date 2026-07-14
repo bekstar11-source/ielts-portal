@@ -106,7 +106,9 @@ export default function TeacherDashboard() {
                 });
 
                 const pending = allResults.filter(r =>
-                    (r.type === 'writing' || r.type === 'mock_full') && !r.teacherFeedback && !r.writingBand
+                    (r.type === 'writing' || r.type === 'mock_full') && 
+                    !(r.type === 'writing' && (r.parentResultId || r.mockKey)) &&
+                    !r.teacherFeedback && !r.writingBand
                 );
                 console.log("TeacherDashboard: Found " + pending.length + " pending writings.");
                 setPendingWritings(pending.length);

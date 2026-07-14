@@ -7,6 +7,10 @@ const WritingReview = ({
 }) => {
     const [activeTab, setActiveTab] = useState(1);
 
+    const writingBand = resultData.writingBand ?? resultData.scores?.writingBand;
+    const teacherFeedback = resultData.teacherFeedback ?? resultData.scores?.writingFeedback;
+    const hasTeacherEvaluation = (writingBand !== undefined && writingBand !== null && writingBand !== "") || !!teacherFeedback;
+
     useEffect(() => {
         if (testData?.writingTasks?.length > 0) {
             setActiveTab(testData.writingTasks[0].id);
@@ -132,6 +136,90 @@ const WritingReview = ({
                             </div>
                         );
                     })}
+
+                    {/* TEACHER EVALUATION CARD */}
+                    {hasTeacherEvaluation && (
+                        <div className="bg-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col gap-6 relative overflow-hidden animate-fadeIn">
+                            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 to-teal-500 opacity-80"></div>
+                            
+                            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                                        <span className="text-emerald-500 text-sm">✍️</span>
+                                    </div>
+                                    <h3 className="font-bold text-[#1d1d1f] text-sm uppercase tracking-widest">Teacher Evaluation</h3>
+                                </div>
+                                {writingBand && (
+                                    <span className="bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-base font-black tracking-tight">
+                                        Band {Number(writingBand).toFixed(1)}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Task 1 Breakdown */}
+                                {resultData.task1Band && (
+                                    <div className="bg-[#F5F5F7]/50 rounded-2xl p-5 border border-gray-100">
+                                        <div className="flex justify-between items-center mb-4 border-b border-dashed pb-2 border-gray-200">
+                                            <h4 className="text-xs font-black uppercase tracking-wider text-blue-600">Task 1 Details</h4>
+                                            <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-md">Band {resultData.task1Band}</span>
+                                        </div>
+                                        <div className="space-y-2.5 text-xs">
+                                            {[
+                                                { key: 'ta', label: 'Task Achievement (TA)' },
+                                                { key: 'cc', label: 'Coherence & Cohesion (CC)' },
+                                                { key: 'lr', label: 'Lexical Resource (LR)' },
+                                                { key: 'gra', label: 'Grammar Accuracy (GRA)' }
+                                            ].map(crit => {
+                                                const score = resultData.task1Details?.[crit.key];
+                                                return (
+                                                    <div key={crit.key} className="flex justify-between items-center">
+                                                        <span className="text-gray-500 font-medium">{crit.label}</span>
+                                                        <span className="font-bold text-gray-800">{score || '-'}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Task 2 Breakdown */}
+                                {resultData.task2Band && (
+                                    <div className="bg-[#F5F5F7]/50 rounded-2xl p-5 border border-gray-100">
+                                        <div className="flex justify-between items-center mb-4 border-b border-dashed pb-2 border-gray-200">
+                                            <h4 className="text-xs font-black uppercase tracking-wider text-purple-600">Task 2 Details</h4>
+                                            <span className="text-xs font-bold bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-md">Band {resultData.task2Band}</span>
+                                        </div>
+                                        <div className="space-y-2.5 text-xs">
+                                            {[
+                                                { key: 'tr', label: 'Task Response (TR)' },
+                                                { key: 'cc', label: 'Coherence & Cohesion (CC)' },
+                                                { key: 'lr', label: 'Lexical Resource (LR)' },
+                                                { key: 'gra', label: 'Grammar Accuracy (GRA)' }
+                                            ].map(crit => {
+                                                const score = resultData.task2Details?.[crit.key];
+                                                return (
+                                                    <div key={crit.key} className="flex justify-between items-center">
+                                                        <span className="text-gray-500 font-medium">{crit.label}</span>
+                                                        <span className="font-bold text-gray-800">{score || '-'}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {teacherFeedback && (
+                                <div className="mt-2 pt-4 border-t border-gray-100">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Teacher Feedback</h4>
+                                    <p className="text-[14px] text-gray-700 leading-relaxed whitespace-pre-wrap font-medium bg-[#F5F5F7]/30 p-4 rounded-2xl border border-gray-100">
+                                        {teacherFeedback}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* TEACHER GRADING ACCESS */}
                     {isAdminOrTeacher && (

@@ -1,19 +1,19 @@
 import { checkAnswer as centralCheckAnswer } from '../../utils/ieltsScoring';
 
-export const checkAnswer = (userVal, correctVal) => {
+export const checkAnswer = (userVal, correctVal, isChoiceType = false) => {
     if (!correctVal || (Array.isArray(correctVal) && correctVal.length === 0)) return false;
     if (!userVal) return false;
 
     if (Array.isArray(correctVal)) {
-        return correctVal.some(val => centralCheckAnswer(val, userVal));
+        return correctVal.some(val => centralCheckAnswer(val, userVal, isChoiceType));
     }
 
     const correctList = String(correctVal).split(/[\/|,]/).map(c => c.trim()).filter(Boolean);
     if (correctList.length > 1) {
-        return correctList.some(val => centralCheckAnswer(val, userVal));
+        return correctList.some(val => centralCheckAnswer(val, userVal, isChoiceType));
     }
 
-    return centralCheckAnswer(correctVal, userVal);
+    return centralCheckAnswer(correctVal, userVal, isChoiceType);
 };
 
 export const getStatusStyles = (isReviewMode, isCorrect, isSelected = false, type = 'border') => {

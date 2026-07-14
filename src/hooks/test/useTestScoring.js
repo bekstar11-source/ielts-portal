@@ -1,4 +1,4 @@
-import { calculateBandScore, checkAnswer, scoreMultiAnswer, isMultiAnswerType } from "../../utils/ieltsScoring";
+import { calculateBandScore, checkAnswer, scoreMultiAnswer, isMultiAnswerType, isChoiceQuestionType } from "../../utils/ieltsScoring";
 
 export function useTestScoring() {
     const calculateScore = (test, userAnswers) => {
@@ -40,7 +40,9 @@ export function useTestScoring() {
                     const allCorrect = groupItems.map(i => getAnswer(i)).join(', ');
                     const allUser = groupItems.map(i => userAnswers[String(i.id)] || "").join(', ');
                     let weight = groupItems.length;
-                    if (currentType.includes('three')) weight = 3;
+                    if (currentType.includes('five')) weight = 5;
+                    else if (currentType.includes('four')) weight = 4;
+                    else if (currentType.includes('three')) weight = 3;
                     else if (currentType.includes('two')) weight = 2;
 
                     const result = scoreMultiAnswer(allCorrect, allUser, weight);
@@ -72,7 +74,7 @@ export function useTestScoring() {
                         }
                     } else {
                         totalQ++;
-                        if (checkAnswer(itemAns, userResp)) correctCount++;
+                        if (checkAnswer(itemAns, userResp, isChoiceQuestionType(currentType))) correctCount++;
                         else if (userResp.trim()) mistakes.push({ questionId: idStr, userResponse: userResp, correctAnswer: itemAns });
                     }
                 }

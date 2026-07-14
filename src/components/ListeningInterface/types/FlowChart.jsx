@@ -200,7 +200,7 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
                     {hasOptions ? (
                         <DroppableFlowSlot 
                             id={item.id} value={userAnswers[item.id] || ""} options={options} isReviewMode={isReviewMode} 
-                            isCorrect={isReviewMode ? checkAnswer(userAnswers[item.id], correctVal) : false} correctAnswer={correctVal} onClear={() => onAnswerChange(item.id, "")}
+                            isCorrect={isReviewMode ? checkAnswer(userAnswers[item.id], correctVal, true) : false} correctAnswer={correctVal} onClear={() => onAnswerChange(item.id, "")}
                             onSelect={(label) => {
                                 onAnswerChange(item.id, label);
                                 setOpenMenuId(null);

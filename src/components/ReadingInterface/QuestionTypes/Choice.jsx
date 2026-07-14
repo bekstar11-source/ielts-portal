@@ -27,7 +27,7 @@ export const ChoiceQuestion = ({
     }
 
     const correctAnswersList = String(q.answer || "").split(',').map(s => getOptionValue(s.trim()).toLowerCase());
-    const isCorrect = checkAnswer(val, q.answer);
+    const isCorrect = checkAnswer(val, q.answer, true);
 
     return (
         <div id={`q-${q.id}`} className="flex gap-3 items-start mb-5">
@@ -91,7 +91,7 @@ export const ChoiceQuestion = ({
                 <div className="mt-2 flex flex-col gap-1.5 pl-0">
                     {itemOptions.map((opt, idx) => {
                         const rawText = typeof opt === 'object' ? opt.text : opt;
-                        const optId = typeof opt === 'object' ? (opt.id || rawText) : opt;
+                        const optId = typeof opt === 'object' ? (opt.label || opt.id || rawText) : opt;
                         const currentLetter = letters[idx] || letters[0];
                         const finalValue = getOptionValue(String(optId));
                         const isSelected = isMultiSelect

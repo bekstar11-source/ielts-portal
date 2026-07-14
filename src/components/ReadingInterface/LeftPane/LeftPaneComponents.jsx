@@ -145,7 +145,7 @@ export const PassageWithDropZones = memo(({
     }, [questions, paragraphs]);
 
     const checkAnswer = (userVal, correctVal) => {
-        return centralCheckAnswer(correctVal, userVal);
+        return centralCheckAnswer(correctVal, userVal, true);
     };
 
     return (

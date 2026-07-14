@@ -60,8 +60,8 @@ export const getOptionValue = (text) => {
     return match ? match[1].trim() : text;
 };
 
-export const checkAnswer = (userVal, correctVal) => {
-    return centralCheckAnswer(correctVal, userVal);
+export const checkAnswer = (userVal, correctVal, isChoiceType = false) => {
+    return centralCheckAnswer(correctVal, userVal, isChoiceType);
 };
 
 // --- COMPONENTS ---
