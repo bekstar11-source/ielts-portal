@@ -73,7 +73,7 @@ export default function AdminResults() {
                     items={currentItems}
                     onDelete={handleDelete}
                     onReview={(res) => {
-                        if (res.type === 'writing' || res.type === 'mock_full') navigate('/admin/writing-review', { state: { selectedId: res.id } });
+                        if (res.type === 'writing') navigate('/admin/writing-review', { state: { selectedId: res.id } });
                         else navigate(`/review/${res.id}`);
                     }}
                     isDark={isDark}

@@ -115,14 +115,16 @@ export const checkAnswer = (correct, user) => {
 
     // 1. Tozalash
     let cleanCorrect = normalizeString(correct);
-    let cleanUser = normalizeString(user);
+    
+    // 2. "v. long text" muammosini hal qilish (Roman numerals with dot)
+    const rawUser = String(user || '').trim().toLowerCase();
+    let cleanUser = rawUser;
+    if (/^[ivx]+[\.\)\s]/.test(rawUser)) {
+        cleanUser = rawUser.split(/[\.\)\s]/)[0].trim();
+    }
+    cleanUser = normalizeString(cleanUser);
 
     if (!cleanUser) return false;
-
-    // 2. "v. long text" muammosini hal qilish (Roman numerals with dot)
-    if (/^[ivx]+\./.test(cleanUser)) {
-        cleanUser = cleanUser.split('.')[0].trim();
-    }
 
     // 3. Qavslar ichidagi ixtiyoriy so'zlar (e.g. "in (the) school")
     // Biz ixtiyoriy so'zlarni olib tashlangan va bor holatini tekshiramiz
@@ -167,7 +169,7 @@ export const scoreMultiAnswer = (correct, user, weight) => {
         
         // Single letters split (A, B, C) - Only if items are clearly single letters
         if (/^[A-Z, /|\s]+$/i.test(s)) {
-            const parts = s.split(/[,/|\s]+/).map(p => p.trim().toLowerCase()).filter(p => p.length === 1);
+            const parts = s.split(/[,/|\s]+/).map(p => p.trim().toLowerCase()).filter(p => p.length === 1 || /^[ivx]+$/i.test(p));
             if (parts.length > 0) return parts;
         }
 
@@ -229,10 +231,10 @@ export const calculateSectionScore = (testData, sectionAnswers) => {
 
     const getWeight = (id) => {
         if (!id) return 1;
-        const s = String(id);
-        if (s.includes('-')) {
-            const [start, end] = s.split('-').map(Number);
-            return (end - start) + 1;
+        const s = String(id).trim();
+        const parts = s.split(/[\-–—_]/).map(Number);
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            return Math.abs(parts[1] - parts[0]) + 1;
         }
         if (s.includes(',')) {
             return s.split(',').length;

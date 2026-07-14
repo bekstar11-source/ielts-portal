@@ -1,5 +1,6 @@
 import React from "react";
 import { Lock, Zap } from 'lucide-react';
+import { checkAnswer as centralCheckAnswer } from "../../../utils/ieltsScoring";
 
 // --- UTILS ---
 export const stripRomanNumerals = (text) => {
@@ -60,10 +61,7 @@ export const getOptionValue = (text) => {
 };
 
 export const checkAnswer = (userVal, correctVal) => {
-    if (!userVal || !correctVal) return false;
-    const userClean = String(userVal).trim().toLowerCase();
-    const correctOptions = String(correctVal).split('/').map(opt => opt.trim().toLowerCase());
-    return correctOptions.includes(userClean);
+    return centralCheckAnswer(correctVal, userVal);
 };
 
 // --- COMPONENTS ---

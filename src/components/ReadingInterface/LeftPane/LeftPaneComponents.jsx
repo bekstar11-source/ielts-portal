@@ -1,5 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { ReadingDroppableSlot } from "../ReadingQuestionTypes";
+import { checkAnswer as centralCheckAnswer } from "../../../utils/ieltsScoring";
 
 export const ContentDisplay = memo(({ content, onClick }) => {
     return (
@@ -144,8 +145,7 @@ export const PassageWithDropZones = memo(({
     }, [questions, paragraphs]);
 
     const checkAnswer = (userVal, correctVal) => {
-        if (!userVal || !correctVal) return false;
-        return String(userVal).trim().toLowerCase() === String(correctVal).trim().toLowerCase();
+        return centralCheckAnswer(correctVal, userVal);
     };
 
     return (

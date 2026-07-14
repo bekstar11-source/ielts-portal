@@ -232,10 +232,10 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
 
         const getWeight = (id) => {
             if (!id) return 1;
-            const s = String(id);
-            if (s.includes('-')) {
-                const [start, end] = s.split('-').map(Number);
-                return (end - start) + 1;
+            const s = String(id).trim();
+            const parts = s.split(/[\-–—_]/).map(Number);
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                return Math.abs(parts[1] - parts[0]) + 1;
             }
             if (s.includes(',')) {
                 return s.split(',').length;

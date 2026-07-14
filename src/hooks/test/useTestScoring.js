@@ -10,11 +10,9 @@ export function useTestScoring() {
         const getWeight = (id) => {
             if (!id) return 1;
             const s = String(id).trim();
-            if (s.includes('-')) {
-                const parts = s.split('-').map(n => parseInt(n));
-                if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                    return Math.abs(parts[1] - parts[0]) + 1;
-                }
+            const parts = s.split(/[\-–—_]/).map(Number);
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                return Math.abs(parts[1] - parts[0]) + 1;
             }
             if (s.includes(',')) return s.split(',').length;
             return 1;

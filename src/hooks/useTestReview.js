@@ -91,11 +91,11 @@ export const useTestReview = (id, user, userData, navigate) => {
 
             if (rData.type === 'mock_full' && rData.scores) {
                 if (activeMockPart === 'writing') {
-                    existingScore = rData.scores.writing;
-                    existingFeedback = rData.scores.writingFeedback;
+                    existingScore = rData.scores.writingBand ?? rData.scores.writing ?? rData.writingBand ?? "";
+                    existingFeedback = rData.scores.writingFeedback ?? rData.feedback ?? "";
                 } else if (activeMockPart === 'speaking') {
-                    existingScore = rData.scores.speaking;
-                    existingFeedback = rData.scores.speakingFeedback;
+                    existingScore = rData.scores.speakingBand ?? rData.scores.speaking ?? rData.speakingBand ?? "";
+                    existingFeedback = rData.scores.speakingFeedback ?? rData.feedback ?? "";
                 }
             }
 
@@ -165,8 +165,16 @@ export const useTestReview = (id, user, userData, navigate) => {
                     if (activeMockPart === 'reading') { newScores.reading = sectionResults.correct; newScores.readingBand = band; }
                     else { newScores.listening = sectionResults.correct; newScores.listeningBand = band; }
                 }
-                if (activeMockPart === 'writing') { newScores.writingBand = scoreVal; newScores.writingFeedback = adminFeedback; }
-                if (activeMockPart === 'speaking') { newScores.speakingBand = scoreVal; newScores.speakingFeedback = adminFeedback; }
+                if (activeMockPart === 'writing') { 
+                    newScores.writingBand = scoreVal; 
+                    newScores.writing = scoreVal; 
+                    newScores.writingFeedback = adminFeedback; 
+                }
+                if (activeMockPart === 'speaking') { 
+                    newScores.speakingBand = scoreVal; 
+                    newScores.speaking = scoreVal; 
+                    newScores.speakingFeedback = adminFeedback; 
+                }
 
                 const sections = [];
                 const check = (val) => val !== undefined && val !== null && !isNaN(Number(val));

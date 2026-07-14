@@ -221,6 +221,10 @@ export default function TestReview() {
                             isPremium={effectiveIsPremium}
                             onAICheck={handleAICheck}
                             isAiLoading={isAiLoading}
+                            isAdminOrTeacher={userData?.role === 'admin' || userData?.role === 'teacher'}
+                            resultId={id}
+                            userData={userData}
+                            navigate={navigate}
                         />
                     ) : testData.type?.toLowerCase() === 'speaking' ? (
                         <SpeakingReview 
@@ -228,6 +232,13 @@ export default function TestReview() {
                             currentAnswers={currentAnswers}
                             resultData={resultData}
                             isPremium={effectiveIsPremium}
+                            isAdminOrTeacher={userData?.role === 'admin' || userData?.role === 'teacher'}
+                            adminScore={adminScore}
+                            setAdminScore={setAdminScore}
+                            adminFeedback={adminFeedback}
+                            setAdminFeedback={setAdminFeedback}
+                            onSaveGrade={handleSaveGrade}
+                            isSaving={isSaving}
                         />
                     ) : (
                         <div className="p-10 text-center opacity-30">Test turi aniqlanmadi</div>

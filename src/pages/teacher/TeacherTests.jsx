@@ -1799,7 +1799,7 @@ export default function TeacherTests() {
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                if (monitoringTest.type === 'writing' || monitoringTest.type === 'mock_full') {
+                                                                if (monitoringTest.type === 'writing') {
                                                                     navigate('/teacher/writing-review', { state: { selectedId: resDoc.id } });
                                                                 } else {
                                                                     navigate(`/review/${resDoc.id}`);

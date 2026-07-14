@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Zap, ArrowRight } from 'lucide-react';
 
-const WritingReview = ({ testData, currentAnswers, resultData, isPremium, onAICheck, isAiLoading }) => {
+const WritingReview = ({ 
+    testData, currentAnswers, resultData, isPremium, onAICheck, isAiLoading,
+    isAdminOrTeacher, resultId, userData, navigate
+}) => {
     const [activeTab, setActiveTab] = useState(1);
 
     useEffect(() => {
@@ -129,6 +132,33 @@ const WritingReview = ({ testData, currentAnswers, resultData, isPremium, onAICh
                             </div>
                         );
                     })}
+
+                    {/* TEACHER GRADING ACCESS */}
+                    {isAdminOrTeacher && (
+                        <div className="bg-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden animate-fadeIn">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 opacity-80"></div>
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-650 flex items-center justify-center text-xl shrink-0 font-bold">
+                                    📝
+                                </div>
+                                <div className="text-left">
+                                    <h4 className="font-bold text-[#1d1d1f] text-[15px]">Writing Baholash Tizimi</h4>
+                                    <p className="text-xs text-gray-500 font-medium mt-1 leading-relaxed">
+                                        Inshoni baholash, kriteriyalar bo'yicha tahlil qilish va fikr-mulohazalar yozish uchun baholash sahifasiga o'ting.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const targetPath = userData?.role === 'admin' ? '/admin/writing-review' : '/teacher/writing-review';
+                                    navigate(targetPath, { state: { selectedId: resultId } });
+                                }}
+                                className="px-5 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-blue-550/15 transition active:scale-[0.98] shrink-0"
+                            >
+                                Writing Baholash <ArrowRight size={14} className="stroke-[2.5]" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

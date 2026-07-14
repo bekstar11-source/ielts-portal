@@ -663,7 +663,7 @@ export default function TeacherAllResults() {
                           <div className="flex items-center justify-center">
                             <button
                               onClick={() => {
-                                if (res.type === 'writing' || res.type === 'mock_full') {
+                                if (res.type === 'writing') {
                                   navigate('/teacher/writing-review', { state: { selectedId: res.id } });
                                 } else {
                                   navigate(`/review/${res.id}`);

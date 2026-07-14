@@ -94,14 +94,27 @@ const normalizeString = (str) => {
 const checkAnswer = (correct, user) => {
     if (correct === undefined || correct === null) return false;
 
+    // Support single letter answers matched against prefix-style correct answers (e.g., user: "C", correct: "C. Text")
+    const correctStr = String(correct).trim();
+    const userStr = String(user || '').trim().toUpperCase();
+    if (userStr.length === 1 && /^[A-Z]$/.test(userStr)) {
+        const match = correctStr.match(/^([A-Z])[\.\)\s]/i);
+        if (match && match[1].toUpperCase() === userStr) {
+            return true;
+        }
+    }
+
     let cleanCorrect = normalizeString(correct);
-    let cleanUser = normalizeString(user);
+
+    // "v. long text" muammosini hal qilish (Roman numerals with dot)
+    const rawUser = String(user || '').trim().toLowerCase();
+    let cleanUser = rawUser;
+    if (/^[ivx]+[\.\)\s]/.test(rawUser)) {
+        cleanUser = rawUser.split(/[\.\)\s]/)[0].trim();
+    }
+    cleanUser = normalizeString(cleanUser);
 
     if (!cleanUser) return false;
-
-    if (/^[ivx]+\./.test(cleanUser)) {
-        cleanUser = cleanUser.split('.')[0].trim();
-    }
 
     const checkWithOptional = (correctStr, userStr) => {
         if (correctStr === userStr) return true;
@@ -136,7 +149,7 @@ const scoreMultiAnswer = (correct, user, weight) => {
         const s = String(str).trim();
         
         if (/^[A-Z, /|\s]+$/i.test(s)) {
-            const parts = s.split(/[,/|\s]+/).map(p => p.trim().toLowerCase()).filter(p => p.length === 1);
+            const parts = s.split(/[,/|\s]+/).map(p => p.trim().toLowerCase()).filter(p => p.length === 1 || /^[ivx]+$/i.test(p));
             if (parts.length > 0) return parts;
         }
 
@@ -191,11 +204,9 @@ const evaluateTest = (testData, userAnswers, partNumber = null) => {
     const getWeight = (id) => {
         if (!id) return 1;
         const s = String(id).trim();
-        if (s.includes('-')) {
-            const parts = s.split('-').map(n => parseInt(n));
-            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                return Math.abs(parts[1] - parts[0]) + 1;
-            }
+        const parts = s.split(/[\-–—_]/).map(Number);
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            return Math.abs(parts[1] - parts[0]) + 1;
         }
         if (s.includes(',')) return s.split(',').length;
         return 1;
