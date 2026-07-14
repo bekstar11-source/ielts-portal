@@ -25,9 +25,6 @@ export default function ListeningInterface({
   hasStarted,       // Test boshlandimi?
   activePart,       // State lifted to TestSolving
   setActivePart,    // State setter lifted to TestSolving
-  playingPartIndex,
-  isPlaying,
-  onPlayPartAudio,
   onIntroEnd,        // <-- Exam modeda intro tugagach audio play triggerini yuboradi
   hideSecondaryIntro,
   isPremium,
@@ -252,9 +249,6 @@ export default function ListeningInterface({
           userAnswers={userAnswers}
           isReviewMode={isReviewMode}
           scrollToQuestionDiv={handleScrollToQuestion} // Scroll funksiyasi
-          playingPartIndex={playingPartIndex}
-          isPlaying={isPlaying}
-          onPlayPartAudio={onPlayPartAudio}
           partNumber={partNumber}
         />
       </div>

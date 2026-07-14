@@ -4,6 +4,17 @@ import { collection, doc, getDoc, getDocs, query, where, updateDoc } from 'fireb
 import { httpsCallable } from 'firebase/functions';
 import { calculateOverallBand } from '../utils/ieltsScoring';
 
+// Results store `date` either as a Firestore Timestamp or an ISO string
+// (submitMockExam/submitTestAnswers use new Date().toISOString()), so both
+// shapes need to be normalized before comparing.
+export const dateToMillis = (d) => {
+    if (!d) return 0;
+    if (typeof d.toDate === 'function') return d.toDate().getTime();
+    if (typeof d.seconds === 'number') return d.seconds * 1000;
+    const t = new Date(d).getTime();
+    return isNaN(t) ? 0 : t;
+};
+
 export const useWritingReview = (userData) => {
     const [writings, setWritings] = useState([]);
     const [students, setStudents] = useState([]);
@@ -55,9 +66,11 @@ export const useWritingReview = (userData) => {
                         const sSnaps = await Promise.all(sChunks.map(chunk => getDocs(query(collection(db, 'users'), where('__name__', 'in', chunk)))));
                         allStudents = sSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-                        // Fetch results
-                        const rSnaps = await Promise.all(sChunks.map(chunk => getDocs(query(collection(db, 'results'), where('userId', 'in', chunk), where('type', 'in', ['writing', 'mock_full'])))));
-                        writingResults = rSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                        // Fetch results (filter by type client-side to avoid requiring a
+                        // composite index for the userId+type "in" combination)
+                        const rSnaps = await Promise.all(sChunks.map(chunk => getDocs(query(collection(db, 'results'), where('userId', 'in', chunk)))));
+                        writingResults = rSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
+                            .filter(r => r.type === 'writing' || r.type === 'mock_full');
                     }
                 }
             }
@@ -67,7 +80,7 @@ export const useWritingReview = (userData) => {
             );
 
             setStudents(allStudents);
-            setWritings(cleanWritings.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0)));
+            setWritings(cleanWritings.sort((a, b) => dateToMillis(b.date) - dateToMillis(a.date)));
         } catch (e) {
             console.error(e);
         } finally {

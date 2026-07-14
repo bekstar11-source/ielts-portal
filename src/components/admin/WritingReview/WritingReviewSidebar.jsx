@@ -1,8 +1,15 @@
 import React from 'react';
 import { MagnifyingGlass } from '@phosphor-icons/react';
+import { dateToMillis } from '../../../hooks/useWritingReview';
 
-const WritingReviewSidebar = ({ 
-    writings, students, filter, setFilter, searchTerm, setSearchTerm, selectedId, setSelectedId, isDark 
+const formatSubmissionDate = (d) => {
+    const ms = dateToMillis(d);
+    if (!ms) return '';
+    return new Date(ms).toLocaleDateString('uz-UZ', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const WritingReviewSidebar = ({
+    writings, students, filter, setFilter, searchTerm, setSearchTerm, selectedId, setSelectedId, isDark
 }) => {
     const getStudentName = (w) => students.find(s => s.id === w.userId)?.fullName || w.userName || 'O\'quvchi';
 
@@ -37,6 +44,12 @@ const WritingReviewSidebar = ({
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-3 pt-0 space-y-1.5">
+                {filtered.length === 0 && (
+                    <div className="flex flex-col items-center justify-center text-center gap-1 py-16 opacity-40">
+                        <p className="text-xs font-semibold">Hech narsa topilmadi</p>
+                        <p className="text-[11px]">{searchTerm ? 'Qidiruvga mos topshiriq yo\'q' : 'Bu bo\'limda topshiriqlar yo\'q'}</p>
+                    </div>
+                )}
                 {filtered.map((w) => {
                     const isSelected = selectedId === w.id;
                     const initials = getStudentName(w).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -50,7 +63,10 @@ const WritingReviewSidebar = ({
                                 <h3 className="text-sm font-semibold truncate">{getStudentName(w)}</h3>
                                 <p className="text-[11px] text-gray-400 truncate">{w.testTitle || 'Untitled'}</p>
                             </div>
-                            {w.writingBand && <div className="text-sm font-bold text-emerald-500">{w.writingBand}</div>}
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                                <span className="text-[10px] text-gray-400 whitespace-nowrap">{formatSubmissionDate(w.date)}</span>
+                                {w.writingBand && <div className="text-sm font-bold text-emerald-500">{w.writingBand}</div>}
+                            </div>
                         </button>
                     );
                 })}

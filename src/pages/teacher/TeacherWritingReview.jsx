@@ -144,24 +144,24 @@ export default function TeacherWritingReview() {
                 searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedId={selectedId} setSelectedId={setSelectedId} isDark={isDark}
             />
 
-            <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
                 {activeWriting ? (
                     <>
-                        <WritingReviewWorkspace 
-                            activeWriting={activeWriting} 
+                        <WritingReviewWorkspace
+                            activeWriting={activeWriting}
                             studentName={students.find(s => s.id === activeWriting.userId)?.fullName || activeWriting.userName || 'O\'quvchi'}
                             isDark={isDark}
                         />
 
-                        {/* Collapsible Grading Drawer */}
-                        <div className={`absolute bottom-0 left-0 right-0 border-t backdrop-blur-xl transition-all duration-300 z-20 ${
-                            isPanelExpanded ? 'h-auto max-h-[70%]' : 'h-12'
+                        {/* Collapsible Grading Drawer — docked in the flex column so it never covers the essay text */}
+                        <div className={`shrink-0 flex flex-col border-t backdrop-blur-xl transition-all duration-300 z-20 overflow-hidden ${
+                            isPanelExpanded ? 'max-h-[55vh]' : 'h-12'
                         } ${isDark ? 'bg-[#1E1E1E]/95 border-white/5 text-white' : 'bg-white/95 border-gray-200 text-slate-800 shadow-2xl'}`}>
                             
                             {/* Drawer Header Toggle */}
-                            <div 
+                            <div
                                 onClick={() => setIsPanelExpanded(!isPanelExpanded)}
-                                className={`h-12 px-6 flex items-center justify-between cursor-pointer border-b ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'}`}
+                                className={`shrink-0 h-12 px-6 flex items-center justify-between cursor-pointer border-b ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'}`}
                             >
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs font-black uppercase tracking-wider text-emerald-500">Baholash va Sharh Paneli</span>
@@ -177,7 +177,7 @@ export default function TeacherWritingReview() {
 
                             {/* Expanded Panel Content */}
                             {isPanelExpanded && (
-                                <div className="p-6 overflow-y-auto max-h-[320px] custom-scrollbar space-y-6">
+                                <div className="p-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-6">
                                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                                         
                                         {/* Criteria Grading Columns */}

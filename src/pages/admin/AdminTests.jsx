@@ -8,6 +8,8 @@ import toast from "react-hot-toast";
 import { useAdminTests } from "../../hooks/useAdminTests";
 import AdminTestsToolbar from "../../components/admin/AdminTests/AdminTestsToolbar";
 import AdminTestsList from "../../components/admin/AdminTests/AdminTestsList";
+import AdminTestsGrid from "../../components/admin/AdminTests/AdminTestsGrid";
+import BulkActionBar from "../../components/admin/AdminTests/BulkActionBar";
 import Pagination from "../../components/common/Pagination";
 import { Loader2, Layers, Award, BookOpen, Headphones, PenTool, Mic2, Globe, Lock, Sparkles, Settings, Folder } from "lucide-react";
 
@@ -593,9 +595,6 @@ export default function AdminTests() {
                     setContentSearchTerm={setContentSearchTerm}
                     viewMode={viewMode}
                     setViewMode={setViewMode}
-                    selectedCount={selectedTests.length}
-                    onBulkAssign={() => setBulkAssignModalOpen(true)}
-                    onMerge={handleOpenMerge}
                     onCreate={() => navigate("/admin/create-test")}
                     collections={collections}
                     filterCollection={filterCollection}
@@ -619,35 +618,32 @@ export default function AdminTests() {
                     setSortBy={setSortBy}
                     sortOrder={sortOrder}
                     setSortOrder={setSortOrder}
-                    onBulkDelete={handleBulkDelete}
-                    onBulkStatusChange={handleBulkStatusChange}
-                    onBulkAccessChange={handleBulkAccessChange}
                     onImport={() => document.getElementById("import-json-file").click()}
-                    onExportJSON={handleExportJSON}
-                    onExportCSV={handleExportCSV}
                     onOpenQuestionBank={() => setQuestionBankOpen(true)}
+                    showStats={showStats}
+                    onToggleStats={toggleStats}
                 />
  
                 {/* Dashboard stats panel */}
                 {stats && showStats && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-2 px-6 pt-3 pb-1.5 shrink-0 select-none">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-2.5 px-6 pt-4 pb-2 shrink-0 select-none">
                         {[
-                            { title: "Tests", value: stats.total, icon: <Layers size={11} />, color: "from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25" },
-                            { title: "Mock", value: stats.mockCount, icon: <Award size={11} />, color: "from-rose-500/10 to-pink-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25" },
-                            { title: "Reading", value: stats.readingCount, icon: <BookOpen size={11} />, color: "from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" },
-                            { title: "Listening", value: stats.listeningCount, icon: <Headphones size={11} />, color: "from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25" },
-                            { title: "Writing", value: stats.writingCount, icon: <PenTool size={11} />, color: "from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400 border-violet-500/25" },
-                            { title: "Speaking", value: stats.speakingCount, icon: <Mic2 size={11} />, color: "from-fuchsia-500/10 to-pink-500/10 text-fuchsia-600 dark:text-fuchsia-400 border-fuchsia-500/25" },
-                            { title: "Public", value: stats.publicCount, icon: <Globe size={11} />, color: "from-teal-500/10 to-green-500/10 text-teal-600 dark:text-teal-400 border-teal-500/25" },
-                            { title: "Private", value: stats.privateCount, icon: <Lock size={11} />, color: "from-zinc-500/10 to-neutral-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/25" },
-                            { title: "Free", value: stats.freeCount, icon: <Sparkles size={11} />, color: "from-cyan-500/10 to-sky-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25" }
+                            { title: "Tests", value: stats.total, icon: <Layers size={13} />, color: "from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25" },
+                            { title: "Mock", value: stats.mockCount, icon: <Award size={13} />, color: "from-rose-500/10 to-pink-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25" },
+                            { title: "Reading", value: stats.readingCount, icon: <BookOpen size={13} />, color: "from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" },
+                            { title: "Listening", value: stats.listeningCount, icon: <Headphones size={13} />, color: "from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25" },
+                            { title: "Writing", value: stats.writingCount, icon: <PenTool size={13} />, color: "from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400 border-violet-500/25" },
+                            { title: "Speaking", value: stats.speakingCount, icon: <Mic2 size={13} />, color: "from-fuchsia-500/10 to-pink-500/10 text-fuchsia-600 dark:text-fuchsia-400 border-fuchsia-500/25" },
+                            { title: "Public", value: stats.publicCount, icon: <Globe size={13} />, color: "from-teal-500/10 to-green-500/10 text-teal-600 dark:text-teal-400 border-teal-500/25" },
+                            { title: "Private", value: stats.privateCount, icon: <Lock size={13} />, color: "from-zinc-500/10 to-neutral-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/25" },
+                            { title: "Free", value: stats.freeCount, icon: <Sparkles size={13} />, color: "from-cyan-500/10 to-sky-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25" }
                         ].map((card, i) => (
-                            <div key={i} className={`py-1.5 px-2.5 rounded-lg border bg-gradient-to-br ${card.color} shadow-sm flex items-center justify-between hover:scale-[1.02] transition-transform duration-200`}>
-                                <div className="flex items-center gap-1.5 min-w-0">
+                            <div key={i} className={`py-2 px-3 rounded-xl border bg-gradient-to-br ${card.color} shadow-sm flex items-center justify-between hover:scale-[1.02] transition-transform duration-200`}>
+                                <div className="flex items-center gap-2 min-w-0">
                                     <span className="opacity-70 shrink-0">{card.icon}</span>
-                                    <span className="text-[9px] font-black uppercase tracking-widest opacity-60 truncate">{card.title}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60 truncate">{card.title}</span>
                                 </div>
-                                <span className="text-xs font-black tracking-tight shrink-0 ml-2">{card.value}</span>
+                                <span className="text-sm font-black tracking-tight shrink-0 ml-2">{card.value}</span>
                             </div>
                         ))}
                     </div>
@@ -767,34 +763,39 @@ export default function AdminTests() {
                                 </div>
                             )}
 
-                            <AdminTestsList
-                                tests={filteredTests}
-                                collections={collections}
-                                allTests={allTests}
-                                onSelectCollection={setFilterCollection}
-                                searchTerm={searchTerm}
-                                contentSearchTerm={contentSearchTerm}
-                                highlightedTestId={highlightedTestId}
-                                onHighlightTest={handleHighlightTest}
-                                selectedTests={selectedTests}
-                                onToggleSelect={handleToggleSelect}
-                                onSelectAll={(checked) => {
-                                    if (checked) setSelectedTests(filteredTests.map(t => t.id));
-                                    else setSelectedTests([]);
-                                }}
-                                onDelete={handleConfirmDeleteTest}
-                                onDuplicate={handleDuplicateTest}
-                                onEdit={(id) => {
-                                    const test = tests.find(t => t.id === id);
-                                    if (test && test.type === 'mock') handleOpenEditMockExam(test);
-                                    else navigate(`/admin/edit-test/${id}`);
-                                }}
-                                onQuickEdit={handleOpenQuickEdit}
-                                onView={(id) => navigate(`/test/${id}`, { state: { from: "/admin/tests" } })}
-                            />
+                            {(() => {
+                                const listProps = {
+                                    tests: filteredTests,
+                                    collections,
+                                    allTests,
+                                    onSelectCollection: setFilterCollection,
+                                    searchTerm,
+                                    contentSearchTerm,
+                                    highlightedTestId,
+                                    onHighlightTest: handleHighlightTest,
+                                    selectedTests,
+                                    onToggleSelect: handleToggleSelect,
+                                    onSelectAll: (checked) => {
+                                        if (checked) setSelectedTests(filteredTests.map(t => t.id));
+                                        else setSelectedTests([]);
+                                    },
+                                    onDelete: handleConfirmDeleteTest,
+                                    onDuplicate: handleDuplicateTest,
+                                    onEdit: (id) => {
+                                        const test = tests.find(t => t.id === id);
+                                        if (test && test.type === 'mock') handleOpenEditMockExam(test);
+                                        else navigate(`/admin/edit-test/${id}`);
+                                    },
+                                    onQuickEdit: handleOpenQuickEdit,
+                                    onView: (id) => navigate(`/test/${id}`, { state: { from: "/admin/tests" } })
+                                };
+                                return viewMode === 'grid'
+                                    ? <AdminTestsGrid {...listProps} />
+                                    : <AdminTestsList {...listProps} />;
+                            })()}
 
                             <div className="mt-8 border-t pt-6 border-zinc-100 dark:border-white/5">
-                                <Pagination 
+                                <Pagination
                                     currentPage={currentPage}
                                     totalPages={totalPages}
                                     onPageChange={handlePageChange}
@@ -804,6 +805,18 @@ export default function AdminTests() {
                     )}
                 </main>
             </div>
+
+            <BulkActionBar
+                selectedCount={selectedTests.length}
+                onClear={() => setSelectedTests([])}
+                onBulkAssign={() => setBulkAssignModalOpen(true)}
+                onMerge={handleOpenMerge}
+                onBulkStatusChange={handleBulkStatusChange}
+                onBulkAccessChange={handleBulkAccessChange}
+                onExportJSON={handleExportJSON}
+                onExportCSV={handleExportCSV}
+                onBulkDelete={handleBulkDelete}
+            />
 
             {/* QUESTION BANK MODAL */}
             <QuestionBankModal

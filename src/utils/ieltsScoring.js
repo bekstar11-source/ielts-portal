@@ -94,7 +94,10 @@ export const normalizeString = (str) => {
     return String(str || "")
         .trim()
         .toLowerCase()
-        .replace(/[.,'":;?!]/g, ' ')
+        // Vergulni bo'sh joy bilan emas, hech nima bilan almashtiramiz — aks holda "9,000" kabi
+        // minglik ajratkichli sonlar "9 000" ga aylanib, foydalanuvchining "9000" javobiga mos kelmay qolardi.
+        .replace(/,/g, '')
+        .replace(/[.'":;?!]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 };

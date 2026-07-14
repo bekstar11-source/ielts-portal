@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    Search, LayoutGrid, List, Plus, FolderPlus, GitMerge, ChevronDown,
+    Search, LayoutGrid, List, Plus, GitMerge, ChevronDown,
     Folder, BookOpen, Headphones, PenTool, Mic2, Layers, Award, Edit2, Loader2,
-    Upload, Download, Trash2, Shield, Globe, Lock, ArrowUpDown, RefreshCw, Eye, Hash
+    Upload, Globe, Lock, ArrowUpDown, RefreshCw, Hash, MoreHorizontal, BarChart3
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -10,7 +10,7 @@ const AdminTestsToolbar = ({
     searchTerm, setSearchTerm,
     contentSearchTerm, setContentSearchTerm,
     viewMode, setViewMode,
-    selectedCount, onBulkAssign, onMerge, onCreate,
+    onCreate,
     collections = [],
     filterCollection = "All",
     setFilterCollection,
@@ -33,13 +33,10 @@ const AdminTestsToolbar = ({
     setSortBy,
     sortOrder = "desc",
     setSortOrder,
-    onBulkDelete,
-    onBulkStatusChange,
-    onBulkAccessChange,
     onImport,
-    onExportJSON,
-    onExportCSV,
-    onOpenQuestionBank
+    onOpenQuestionBank,
+    showStats = true,
+    onToggleStats
 }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -47,12 +44,15 @@ const AdminTestsToolbar = ({
     // Single dropdown state: which dropdown is open, or null
     const [openDropdown, setOpenDropdown] = useState(null);
     const containerRef = useRef(null);
+    const actionsRef = useRef(null);
 
     const toggleDropdown = (name) => setOpenDropdown(prev => prev === name ? null : name);
 
     useEffect(() => {
         const handleOutsideClick = (e) => {
-            if (containerRef.current && !containerRef.current.contains(e.target)) {
+            const inFilters = containerRef.current && containerRef.current.contains(e.target);
+            const inActions = actionsRef.current && actionsRef.current.contains(e.target);
+            if (!inFilters && !inActions) {
                 setOpenDropdown(null);
             }
         };
@@ -93,140 +93,100 @@ const AdminTestsToolbar = ({
     const dropdownItemBase = `w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-left`;
     const dropdownItemActive = isDark ? 'bg-white/10 text-white' : 'bg-zinc-100 text-zinc-950';
     const dropdownItemInactive = isDark ? 'text-zinc-400 hover:bg-white/5 hover:text-white' : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950';
-    const filterBtnClass = (isActive) => `flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition-all select-none ${
+    const filterBtnClass = (isActive) => `flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all select-none ${
         isActive
             ? isDark
-                ? 'bg-blue-500/15 border-blue-500/40 text-blue-400'
-                : 'bg-blue-50 border-blue-300 text-blue-700'
+                ? 'bg-blue-500/25 border-blue-500/60 text-blue-300 shadow-sm shadow-blue-500/10'
+                : 'bg-blue-100 border-blue-400 text-blue-800 shadow-sm shadow-blue-500/10'
             : isDark
                 ? 'bg-white/5 border-white/10 text-zinc-200 hover:bg-white/10'
                 : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100 text-zinc-700'
     }`;
+    const secondaryBtnClass = `flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${
+        isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-zinc-200' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100 text-zinc-700'
+    }`;
 
     return (
-        <header className={`border-b flex flex-col px-6 py-3 shrink-0 transition-colors z-45 gap-3.5 ${isDark ? 'bg-[#1e1e1e] border-white/5' : 'bg-white border-zinc-200'}`}>
+        <header className={`border-b flex flex-col px-6 py-3.5 shrink-0 transition-colors z-45 gap-4 ${isDark ? 'bg-[#1e1e1e] border-white/5' : 'bg-white border-zinc-200'}`}>
             {/* Top Row: Search & Actions */}
-            <div className="flex items-center justify-between gap-4 flex-wrap md:flex-nowrap">
-                <div className="flex items-center gap-2.5 flex-1 min-w-[240px]">
+            <div className="flex items-end justify-between gap-4 flex-wrap md:flex-nowrap">
+                <div className="flex items-end gap-3 flex-1 min-w-[260px]">
                     {/* View Mode Toggle */}
                     <div className={`flex p-1 rounded-lg shrink-0 ${isDark ? 'bg-white/5' : 'bg-zinc-100'}`}>
-                        <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? (isDark ? 'bg-white/10 text-white' : 'bg-white shadow-sm text-zinc-900') : 'text-zinc-400 hover:text-zinc-600'}`}><LayoutGrid size={14} /></button>
-                        <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? (isDark ? 'bg-white/10 text-white' : 'bg-white shadow-sm text-zinc-900') : 'text-zinc-400 hover:text-zinc-600'}`}><List size={14} /></button>
+                        <button onClick={() => setViewMode('grid')} title="Grid ko'rinish" className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? (isDark ? 'bg-white/10 text-white' : 'bg-white shadow-sm text-zinc-900') : 'text-zinc-400 hover:text-zinc-600'}`}><LayoutGrid size={14} /></button>
+                        <button onClick={() => setViewMode('list')} title="Ro'yxat ko'rinish" className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? (isDark ? 'bg-white/10 text-white' : 'bg-white shadow-sm text-zinc-900') : 'text-zinc-400 hover:text-zinc-600'}`}><List size={14} /></button>
                     </div>
 
                     {/* Search by Title Box */}
-                    <div className="relative w-full max-w-[180px] shrink-0">
-                        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`} size={12} />
-                        <input
-                            type="text"
-                            placeholder="Nomi bo'yicha qidirish..."
-                            className={`w-full border-none pl-8 pr-3 py-1.5 rounded-lg text-xs outline-none transition-all ${isDark ? 'bg-white/5 focus:bg-white/10 text-white' : 'bg-zinc-100 focus:bg-zinc-200/50'}`}
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
+                    <div className="flex flex-col gap-1 w-full max-w-[220px] shrink-0">
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-0.5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Nomi</span>
+                        <div className="relative">
+                            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`} size={13} />
+                            <input
+                                type="text"
+                                placeholder="Nomi bo'yicha qidirish..."
+                                className={`w-full border-none pl-8 pr-3 py-2 rounded-lg text-sm outline-none transition-all ${isDark ? 'bg-white/5 focus:bg-white/10 text-white' : 'bg-zinc-100 focus:bg-zinc-200/50'}`}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
                     </div>
 
                     {/* Search by Content Box */}
-                    <div className="relative w-full max-w-[180px] shrink-0">
-                        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`} size={12} />
-                        <input
-                            type="text"
-                            placeholder="Matn bo'yicha qidirish..."
-                            className={`w-full border-none pl-8 pr-3 py-1.5 rounded-lg text-xs outline-none transition-all ${isDark ? 'bg-white/5 focus:bg-white/10 text-white' : 'bg-zinc-100 focus:bg-zinc-200/50'}`}
-                            value={contentSearchTerm}
-                            onChange={e => setContentSearchTerm(e.target.value)}
-                        />
+                    <div className="flex flex-col gap-1 w-full max-w-[220px] shrink-0">
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-0.5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Matn</span>
+                        <div className="relative">
+                            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`} size={13} />
+                            <input
+                                type="text"
+                                placeholder="Matn bo'yicha qidirish..."
+                                className={`w-full border-none pl-8 pr-3 py-2 rounded-lg text-sm outline-none transition-all ${isDark ? 'bg-white/5 focus:bg-white/10 text-white' : 'bg-zinc-100 focus:bg-zinc-200/50'}`}
+                                value={contentSearchTerm}
+                                onChange={e => setContentSearchTerm(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
 
                 {/* Actions Section */}
-                <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                    {selectedCount > 0 ? (
-                        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-                            <button onClick={onBulkAssign} title="Guruhli ko'chirish" className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-zinc-500 hover:text-blue-500 transition-all text-xs font-bold ${isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}>
-                                <FolderPlus size={13} />
-                                <span className="hidden sm:inline">Ko'chir</span>
-                            </button>
-                            {selectedCount >= 2 && (
-                                <button onClick={onMerge} title="Testlarni birlashtirish" className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-zinc-500 hover:text-emerald-500 transition-all text-xs font-bold ${isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}>
-                                    <GitMerge size={13} />
-                                    <span className="hidden sm:inline">Birlashtir</span>
-                                </button>
-                            )}
-                            <button onClick={() => onBulkStatusChange(true)} title="Public qilish" className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-zinc-500 hover:text-emerald-500 transition-all text-xs font-bold ${isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}>
-                                <Globe size={13} />
-                                <span className="hidden sm:inline">Public</span>
-                            </button>
-                            <button onClick={() => onBulkStatusChange(false)} title="Private qilish" className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-zinc-500 hover:text-zinc-700 transition-all text-xs font-bold ${isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}>
-                                <Lock size={13} />
-                                <span className="hidden sm:inline">Private</span>
-                            </button>
-                            <button onClick={() => onBulkAccessChange(true)} title="Bepul (Free) qilish" className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-zinc-500 hover:text-emerald-500 transition-all text-xs font-bold ${isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}>
-                                <Globe size={13} className="text-emerald-500" />
-                                <span className="hidden sm:inline">Free</span>
-                            </button>
-                            <button onClick={() => onBulkAccessChange(false)} title="Premium (Paid) qilish" className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-zinc-500 hover:text-blue-500 transition-all text-xs font-bold ${isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}>
-                                <Shield size={13} className="text-blue-500" />
-                                <span className="hidden sm:inline">Premium</span>
-                            </button>
+                <div ref={actionsRef} className="flex items-center gap-2 shrink-0 relative">
+                    <button onClick={onOpenQuestionBank} className={secondaryBtnClass}>
+                        <BookOpen size={12} className="text-blue-500" />
+                        <span className="hidden sm:inline">Savollar banki</span>
+                    </button>
 
-                            <div className="h-5 w-px bg-zinc-250 dark:bg-white/10 mx-0.5" />
+                    <button onClick={onImport} className={secondaryBtnClass}>
+                        <Upload size={12} className="text-amber-500" />
+                        <span className="hidden sm:inline">JSON Import</span>
+                    </button>
 
-                            <button onClick={onExportJSON} title="JSON formatda yuklash" className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-zinc-500 hover:text-amber-500 transition-all text-xs font-bold ${isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}>
-                                <Download size={13} />
-                                <span className="hidden sm:inline">JSON</span>
-                            </button>
-                            <button onClick={onExportCSV} title="CSV ro'yxatni yuklash" className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-zinc-500 hover:text-blue-500 transition-all text-xs font-bold ${isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}>
-                                <Download size={13} />
-                                <span className="hidden sm:inline">CSV</span>
-                            </button>
-                            <button onClick={onBulkDelete} title="Guruhli o'chirish" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 transition-all text-xs font-bold">
-                                <Trash2 size={13} />
-                                <span className="hidden sm:inline">O'chir</span>
-                            </button>
-
-                            <div className="h-5 w-px bg-zinc-250 dark:bg-white/10 mx-0.5" />
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-1 md:gap-2">
+                    {onMigrate && (
+                        <div className="relative">
                             <button
-                                onClick={onOpenQuestionBank}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                                    isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-zinc-200' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100 text-zinc-700'
-                                }`}
+                                onClick={() => toggleDropdown('overflow')}
+                                title="Qo'shimcha amallar"
+                                className={`p-2 rounded-lg border transition-all ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-zinc-300' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100 text-zinc-600'}`}
                             >
-                                <BookOpen size={12} className="text-blue-500" />
-                                <span className="hidden sm:inline">Savollar banki</span>
+                                <MoreHorizontal size={14} />
                             </button>
-
-                            <button
-                                onClick={onImport}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                                    isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-zinc-200' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100 text-zinc-700'
-                                }`}
-                            >
-                                <Upload size={12} className="text-amber-500" />
-                                <span className="hidden sm:inline">JSON Import</span>
-                            </button>
-
-                            {onMigrate && (
-                                <button
-                                    onClick={onMigrate}
-                                    disabled={isMigrating}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border disabled:opacity-50 ${
-                                        isDark 
-                                            ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/25' 
-                                            : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-100/50'
-                                    }`}
-                                >
-                                    {isMigrating ? <Loader2 size={12} className="animate-spin text-rose-500" /> : <RefreshCw size={12} className="text-rose-500" />}
-                                    <span>Migrate Metadata</span>
-                                </button>
+                            {openDropdown === 'overflow' && (
+                                <div className={`${dropdownBase} w-56 right-0 left-auto`}>
+                                    <button
+                                        onClick={() => { onMigrate(); closeDropdown(); }}
+                                        disabled={isMigrating}
+                                        className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold transition-all text-left disabled:opacity-50 ${
+                                            isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-600 hover:bg-rose-50'
+                                        }`}
+                                    >
+                                        {isMigrating ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                                        Migrate Metadata
+                                    </button>
+                                </div>
                             )}
                         </div>
                     )}
 
-                    <button onClick={onCreate} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0 ${isDark ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                    <button onClick={onCreate} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0 ${isDark ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
                         <Plus size={12} />
                         <span>Create Test</span>
                     </button>
@@ -234,7 +194,7 @@ const AdminTestsToolbar = ({
             </div>
 
             {/* Bottom Row: Filters & Sort */}
-            <div ref={containerRef} className="flex items-center justify-between gap-3 pt-2.5 border-t border-zinc-100 dark:border-white/5 flex-wrap">
+            <div ref={containerRef} className="flex items-center justify-between gap-3 pt-3 border-t border-zinc-100 dark:border-white/5 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-[10px] font-black uppercase tracking-widest mr-1.5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Filters:</span>
 
@@ -346,18 +306,6 @@ const AdminTestsToolbar = ({
                                 >
                                     <Plus size={12} /> Add Collection
                                 </button>
-                                {onMigrate && (
-                                    <>
-                                        <div className="h-px bg-zinc-150 dark:bg-white/5 my-1" />
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onMigrate(); closeDropdown(); }}
-                                            disabled={isMigrating}
-                                            className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-rose-500 dark:text-rose-400 hover:bg-rose-500/5 transition-colors disabled:opacity-50"
-                                        >
-                                            {isMigrating ? <Loader2 size={8} className="animate-spin" /> : "Migrate Metadata"}
-                                        </button>
-                                    </>
-                                )}
                             </div>
                         )}
                     </div>
@@ -400,7 +348,7 @@ const AdminTestsToolbar = ({
                                         className={`${dropdownItemBase} ${filterAccess === access ? dropdownItemActive : dropdownItemInactive}`}
                                     >
                                         {access === 'Free' && <Globe size={12} className="text-emerald-500" />}
-                                        {access === 'Paid' && <Shield size={12} className="text-blue-500" />}
+                                        {access === 'Paid' && <Award size={12} className="text-blue-500" />}
                                         {access === 'All' ? 'All Access' : access === 'Free' ? 'Free Only' : 'Paid Only'}
                                     </button>
                                 ))}
@@ -468,8 +416,21 @@ const AdminTestsToolbar = ({
                     </div>
                 </div>
 
-                <div className={`text-[10px] font-black uppercase tracking-widest shrink-0 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                    Jami: <span className="text-blue-600 dark:text-blue-400 font-black">{totalTestCount} ta test</span>
+                <div className="flex items-center gap-3 shrink-0">
+                    <button
+                        onClick={onToggleStats}
+                        title={showStats ? "Statistikani yashirish" : "Statistikani ko'rsatish"}
+                        className={`p-1.5 rounded-lg border transition-all ${
+                            showStats
+                                ? (isDark ? 'bg-blue-500/15 border-blue-500/30 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600')
+                                : (isDark ? 'bg-white/5 border-white/10 text-zinc-500 hover:text-zinc-300' : 'bg-zinc-50 border-zinc-200 text-zinc-400 hover:text-zinc-600')
+                        }`}
+                    >
+                        <BarChart3 size={13} />
+                    </button>
+                    <div className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        Jami: <span className="text-blue-600 dark:text-blue-400 font-black">{totalTestCount} ta test</span>
+                    </div>
                 </div>
             </div>
         </header>

@@ -4,19 +4,36 @@ import { getStatusStyles, stripLeadingOptionLabel } from '../ListeningUtils';
 export const SelectionBox = ({ group, userAnswers, onAnswerChange, isReviewMode }) => {
     const questions = group.questions || group.items || [];
     const options = group.options || [];
-    if (questions.length === 0 || options.length === 0) return null;
-
     const questionIds = questions.map((q) => q.id);
     const maxSelection = questionIds.length;
     const currentSelectedValues = questionIds.map((id) => userAnswers[id]).filter(Boolean);
 
+    // Tanlash tartibini alohida saqlaymiz — chunki javoblar slotlarga alifbo bo'yicha
+    // saralangan holda yoziladi, shuning uchun userAnswers dan "birinchi tanlangan"ni bilib bo'lmaydi.
+    // Bu FIFO eviction (max tanlovga yetganda eng eski tanlovni chiqarib tashlash) to'g'ri ishlashi uchun kerak.
+    // Hook har doim (early returndan oldin) chaqirilishi kerak — Rules of Hooks talabi.
+    const selectionOrderRef = React.useRef(null);
+    if (selectionOrderRef.current === null) {
+        selectionOrderRef.current = [...currentSelectedValues];
+    }
+
+    if (questions.length === 0 || options.length === 0) return null;
+
     const handleToggle = (optionLabel) => {
         if (isReviewMode) return;
         let newSelection = [...currentSelectedValues];
-        if (newSelection.includes(optionLabel)) newSelection = newSelection.filter((val) => val !== optionLabel);
-        else {
-            if (newSelection.length >= maxSelection) newSelection.shift();
+        if (newSelection.includes(optionLabel)) {
+            newSelection = newSelection.filter((val) => val !== optionLabel);
+            selectionOrderRef.current = selectionOrderRef.current.filter((v) => v !== optionLabel);
+        } else {
+            if (newSelection.length >= maxSelection) {
+                let oldest = selectionOrderRef.current[0];
+                if (oldest === undefined || !newSelection.includes(oldest)) oldest = newSelection[0];
+                newSelection = newSelection.filter((v) => v !== oldest);
+                selectionOrderRef.current = selectionOrderRef.current.filter((v) => v !== oldest);
+            }
             newSelection.push(optionLabel);
+            selectionOrderRef.current.push(optionLabel);
         }
         newSelection.sort();
         questionIds.forEach((id, index) => onAnswerChange(id, newSelection[index] || ""));

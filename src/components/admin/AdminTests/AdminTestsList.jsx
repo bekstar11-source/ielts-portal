@@ -1,90 +1,8 @@
 import React from 'react';
-import { MoreHorizontal, Edit2, Edit3, Trash2, Globe, Lock, BookOpen, Headphones, PenTool, Mic2, Eye, Award, Copy, Folder } from 'lucide-react';
+import { MoreHorizontal, Edit2, Edit3, Trash2, Globe, Lock, Eye, Copy, Folder } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { normalizeTestSegments } from '../../../utils/normalizeTestSegments';
-
-const QTYPE_LABELS = {
-    'multiple_choice': 'MCQ', 'multi_choice': 'MCQ', 'multipleChoice': 'MCQ', 'Multiple Choice': 'MCQ',
-    'true_false': 'TFNG', 'trueFalse': 'TFNG', 'TFNG/YNNG': 'TFNG',
-    'yes_no': 'YNNG', 'yesNo': 'YNNG',
-    'matching_headings': 'Match Heads', 'matchingHeadings': 'Match Heads', 'Matching Headings': 'Match Heads',
-    'matching': 'Matching',
-    'gap_fill': 'Gap Fill', 'gapFill': 'Gap Fill',
-    'note_completion': 'Completion', 'sentence_completion': 'Completion', 'summary_completion': 'Completion',
-    'table_completion': 'Table', 'tableCompletion': 'Table', 'Table Completion': 'Table',
-    'short_answer': 'Short Ans', 'shortAnswer': 'Short Ans', 'Short Answer': 'Short Ans',
-    'flow_chart': 'Flow Chart', 'flowChart': 'Flow Chart',
-    'map_labeling': 'Map/Diag', 'mapLabeling': 'Map/Diag', 'Map/Diagram': 'Map/Diag',
-    'pick_two': 'Pick Two', 'pickTwo': 'Pick Two',
-    'diagram_labeling': 'Diagram',
-};
-
-const formatQuestionType = (type) => {
-    const raw = typeof type === 'string' ? type : (type?.name || type?.type || String(type ?? ''));
-    if (QTYPE_LABELS[raw]) return QTYPE_LABELS[raw];
-    return raw.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
-};
-
-const getMatchSnippet = (content, term) => {
-    if (!term || !content) return null;
-    const cleanTerm = term.trim().toLowerCase();
-    if (cleanTerm.length < 2) return null;
-    
-    const cleanContent = content.replace(/\s+/g, ' ');
-    const idx = cleanContent.toLowerCase().indexOf(cleanTerm);
-    if (idx === -1) return null;
-
-    const start = Math.max(0, idx - 45);
-    const end = Math.min(cleanContent.length, idx + cleanTerm.length + 45);
-    let snippet = cleanContent.slice(start, end);
-    if (start > 0) snippet = '...' + snippet;
-    if (end < cleanContent.length) snippet = snippet + '...';
-
-    const regex = new RegExp(`(${cleanTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
-    const parts = snippet.split(regex);
-    
-    return (
-        <span className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5 inline-flex items-center gap-1 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 px-2 py-1 rounded max-w-xl break-all">
-            <span className="font-semibold text-amber-600 dark:text-amber-400 shrink-0 text-[10px] uppercase tracking-wider">Matnda:</span>
-            <span>
-                {parts.map((part, i) => 
-                    part.toLowerCase() === cleanTerm 
-                        ? <mark key={i} className="bg-amber-200 dark:bg-amber-950 text-zinc-950 dark:text-amber-250 font-bold px-0.5 rounded">{part}</mark> 
-                        : part
-                )}
-            </span>
-        </span>
-    );
-};
-
-const findParentMergedTest = (test, allTestsList) => {
-    if (!test.isMergedSource) return null;
-    const testTitleLower = (test.title || "").toLowerCase().trim();
-    
-    return allTestsList.find(t => {
-        const isMerged = t.isMerged || (t.title?.toLowerCase().startsWith("merged:") && !t.isMergedSource);
-        if (!isMerged) return false;
-        
-        // Match by mergedSourceIds
-        if (Array.isArray(t.mergedSourceIds) && t.mergedSourceIds.includes(test.id)) {
-            return true;
-        }
-        
-        // Match by title parsing (e.g. "Merged: Test A + Test B")
-        let content = t.title || "";
-        if (content.toLowerCase().startsWith("merged:")) {
-            content = content.slice(7).trim();
-        }
-        if (content) {
-            const parts = content.split(" + ").map(p => p.trim().toLowerCase());
-            if (parts.includes(testTitleLower)) {
-                return true;
-            }
-        }
-        
-        return false;
-    });
-};
+import { formatQuestionType, getMatchSnippet, findParentMergedTest, getTypeMeta, getTestStructure } from './testListHelpers';
 
 const AdminTestsList = ({
     tests = [], collections = [], allTests = [], onSelectCollection,
@@ -136,58 +54,11 @@ const AdminTestsList = ({
                             </td>
                         </tr>
                     ) : tests.map(test => {
-                        const hasFullPassages = Array.isArray(test.passages) && test.passages.length > 0;
-
-                        let qTypes = [];
-                        let passageCount = 0;
-                        let totalGroups = 0;
-
-                        if (hasFullPassages) {
-                            const flatQuestions = test.questions || [];
-                            const passageQuestions = test.passages.flatMap(p => p.questions || []);
-                            const allQuestions = [...flatQuestions, ...passageQuestions];
-                            qTypes = Array.from(new Set(allQuestions.map(q => q.questionType || q.type))).filter(Boolean);
-                            passageCount = test.type === 'writing'
-                                ? (test.writingTasks?.length || 2)
-                                : test.passages.length;
-                            totalGroups = allQuestions.length;
-                        } else {
-                            qTypes = test.questionTypes || [];
-                            if (test.type === 'mock') {
-                                passageCount = 3;
-                                qTypes = ["Reading", "Listening", "Writing"];
-                            } else if (test.type === 'listening' && test.parts) {
-                                const partKeys = Array.isArray(test.parts)
-                                    ? test.parts
-                                    : Object.keys(test.parts);
-                                passageCount = Array.isArray(partKeys) ? partKeys.length : partKeys.length;
-                                if (!Array.isArray(test.parts)) {
-                                    partKeys.forEach(k => {
-                                        (test.parts[k].qTypes || []).forEach(t => {
-                                            if (!qTypes.includes(t)) qTypes.push(t);
-                                        });
-                                    });
-                                }
-                            } else if (test.type === 'reading' && test.passages && !Array.isArray(test.passages)) {
-                                const passKeys = Object.keys(test.passages);
-                                passageCount = passKeys.length;
-                                passKeys.forEach(k => {
-                                    (test.passages[k].qTypes || []).forEach(t => {
-                                        if (!qTypes.includes(t)) qTypes.push(t);
-                                    });
-                                });
-                            } else if (test.type === 'writing') {
-                                passageCount = test.writingTasks?.length || 2;
-                            } else if (test.type === 'speaking') {
-                                passageCount = test.parts ? Object.keys(test.parts).length : 3;
-                            } else {
-                                passageCount = test.type === 'listening' ? 4 : (test.type === 'reading' ? 3 : 0);
-                            }
-                        }
-
+                        const { qTypes, passageCount, totalGroups, unitLabel } = getTestStructure(test);
                         const segments = normalizeTestSegments(test);
                         const isSelected = selectedTests.includes(test.id);
                         const isHighlighted = test.id === highlightedTestId;
+                        const { Icon: TypeIcon, tile } = getTypeMeta(test.type);
 
                         return (
                             <tr
@@ -212,30 +83,17 @@ const AdminTestsList = ({
                                 </td>
                                 <td className="py-4 pl-4">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${
-                                            test.type === 'reading'
-                                                ? (isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-100 text-emerald-600')
-                                                : test.type === 'listening'
-                                                    ? (isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-100 text-amber-600')
-                                                    : test.type === 'writing'
-                                                        ? (isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-100 text-blue-600')
-                                                        : test.type === 'mock'
-                                                            ? (isDark ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-rose-55/10 border-rose-100 text-rose-600')
-                                                            : (isDark ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' : 'bg-purple-50 border-purple-100 text-purple-600')
-                                        }`}>
-                                            {test.type === 'reading' ? <BookOpen size={16} /> :
-                                             test.type === 'listening' ? <Headphones size={16} /> :
-                                             test.type === 'writing' ? <PenTool size={16} /> :
-                                             test.type === 'mock' ? <Award size={16} /> : <Mic2 size={16} />}
+                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${isDark ? tile.dark : tile.light}`}>
+                                            <TypeIcon size={16} />
                                         </div>
                                         <div>
                                             <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 flex-wrap">
                                                 <span>{test.title || "Untitled Test"}</span>
                                                 {test.isFree && (
-                                                    <span className="text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-white leading-none">FREE</span>
+                                                    <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-white leading-none">FREE</span>
                                                 )}
                                                 {(test.isMerged || (test.title?.toLowerCase().startsWith("merged:") && !test.isMergedSource)) && (
-                                                    <span className="text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-purple-600 text-white leading-none">MERGED</span>
+                                                    <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-purple-600 text-white leading-none">MERGED</span>
                                                 )}
                                                 {test.isMergedSource && (() => {
                                                     const parent = findParentMergedTest(test, allTests);
@@ -263,7 +121,7 @@ const AdminTestsList = ({
                                                     return (
                                                         <button
                                                             onClick={handleClick}
-                                                            className={`text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full flex items-center gap-1 leading-none transition-all hover:scale-105 active:scale-95 ${
+                                                            className={`text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full flex items-center gap-1 leading-none transition-all hover:scale-105 active:scale-95 ${
                                                                 isDark
                                                                     ? 'bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400'
                                                                     : 'bg-purple-50 hover:bg-purple-100 border border-purple-150 text-purple-600'
@@ -318,7 +176,7 @@ const AdminTestsList = ({
                                                 )}
 
                                                 {(test.tags || []).map((tag, i) => (
-                                                    <span key={i} className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full select-none ${
+                                                    <span key={i} className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full select-none ${
                                                         isDark ? 'bg-blue-500/10 text-blue-400 border border-blue-500/10' : 'bg-blue-50 text-blue-600 border border-blue-100'
                                                     }`}>
                                                         #{tag}
@@ -332,12 +190,7 @@ const AdminTestsList = ({
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex flex-col">
                                             <span className={`text-xs font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
-                                                {passageCount}{" "}{
-                                                test.type === 'listening' ? (passageCount === 1 ? 'Part' : 'Parts') :
-                                                test.type === 'writing' ? (passageCount === 1 ? 'Task' : 'Tasks') :
-                                                test.type === 'mock' ? (passageCount === 1 ? 'Module' : 'Modules') :
-                                                (passageCount === 1 ? 'Passage' : 'Passages')
-                                            }
+                                                {passageCount} {unitLabel}
                                             </span>
                                             {totalGroups > 0 && (
                                                 <span className="text-[10px] text-zinc-400 font-medium mt-0.5">
@@ -351,7 +204,7 @@ const AdminTestsList = ({
                                                     <span
                                                         key={i}
                                                         title={`${seg.title} ${seg.exists ? '(Mavjud)' : '(Mavjud emas)'}`}
-                                                        className={`text-[9px] font-black px-2 py-0.5 rounded border transition-all select-none ${
+                                                        className={`text-[10px] font-black px-2 py-0.5 rounded border transition-all select-none ${
                                                             seg.exists
                                                                 ? (isDark
                                                                     ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
@@ -372,7 +225,7 @@ const AdminTestsList = ({
                                     <div className="flex flex-wrap gap-1 max-w-[200px]">
                                         {qTypes.length > 0 ? (
                                             qTypes.map((type, i) => (
-                                                <span key={i} className={`text-[9px] px-2 py-0.5 rounded-sm border font-bold ${
+                                                <span key={i} className={`text-[10px] px-2 py-0.5 rounded-sm border font-bold ${
                                                     isDark ? 'bg-white/5 border-white/5 text-zinc-400' : 'bg-zinc-50 border-zinc-150 text-zinc-600'
                                                 }`}>
                                                     {formatQuestionType(type)}

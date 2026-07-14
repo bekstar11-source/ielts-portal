@@ -288,8 +288,10 @@ const TestHeader = ({
         if (finishedParts.current.has(index)) return;
         finishedParts.current.add(index);
 
-        if (test?.passages?.length && index < test.passages.length - 1) {
-            // Since CustomAudioPlayer now handles the extraSilentTime transition internally 
+        // partNumber berilgan bo'lsa, foydalanuvchi faqat bitta partni alohida mashq qilyapti —
+        // bu holda "keyingi part" mavjud emas, hatto test.passages da boshqa partlar bo'lsa ham.
+        if (!partNumber && test?.passages?.length && index < test.passages.length - 1) {
+            // Since CustomAudioPlayer now handles the extraSilentTime transition internally
             // (including updating the progress bar during the silence), 
             // handleEnded should transition to the next part with a minimal default delay.
             const delay = 500; 

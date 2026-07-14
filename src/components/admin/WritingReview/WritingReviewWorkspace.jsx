@@ -35,7 +35,7 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark }) => {
     const task2Content = answers.task2 || "";
 
     return (
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <div className={`px-8 py-3.5 flex items-center justify-between border-b ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full border border-gray-200 bg-[#FBFBFD] flex items-center justify-center text-slate-700 text-base font-medium shadow-sm">
@@ -52,7 +52,7 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark }) => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar pb-40">
+            <div className="flex-1 min-h-0 overflow-y-auto p-8 space-y-8 custom-scrollbar">
                 <div className="max-w-5xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-8">
                     {/* Task 1 */}
                     <div className={`rounded-2xl p-6 border ${isDark ? 'bg-[#1F1F1F] border-white/5 shadow-2xl' : 'bg-white border-gray-200 shadow-sm'}`}>

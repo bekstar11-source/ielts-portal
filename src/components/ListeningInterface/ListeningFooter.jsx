@@ -6,8 +6,6 @@ export default function ListeningFooter({
     setActivePart,
     userAnswers,
     scrollToQuestionDiv,
-    playingPartIndex,
-    isPlaying,
     partNumber = null
 }) {
     if (!testData || !testData.passages) return null;
@@ -201,7 +199,6 @@ export default function ListeningFooter({
                 {passageData.map((d) => {
                     const { passage, idx, questions, qCount, answeredCount } = d;
                     const isActive = activePart === idx;
-                    const isAudioPlaying = playingPartIndex === idx && isPlaying;
                     const partNum = passage.partNumber ?? (idx + 1);
 
                     if (isActive) {
@@ -216,9 +213,6 @@ export default function ListeningFooter({
                                     <span className="font-bold text-[13px] text-gray-900 whitespace-nowrap">
                                         Part {partNum}
                                     </span>
-                                    {isAudioPlaying && (
-                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                                    )}
                                 </div>
 
                                 {/* Question number buttons */}
