@@ -38,11 +38,18 @@ export default function PracticeFilters({
   const keepVisibleOnScroll = isStandalonePage;
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > (keepVisibleOnScroll ? 120 : 380));
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > (keepVisibleOnScroll ? 120 : 380));
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
     handleScroll();
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [keepVisibleOnScroll]);
 
@@ -174,7 +181,7 @@ export default function PracticeFilters({
   return (
     <div 
       ref={containerRef}
-      className={`sticky z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-black/[0.04] dark:border-white/[0.05] mb-6 py-3 transition-shadow duration-300 ${
+      className={`sticky z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-black/[0.04] dark:border-white/[0.05] mb-6 py-3 transition-shadow duration-300 gpu-accelerated ${
         keepVisibleOnScroll ? 'top-0 md:top-12' : 'top-[44px]'
       } ${
         keepVisibleOnScroll || !isScrolled ? 'opacity-100' : 'opacity-0 pointer-events-none'

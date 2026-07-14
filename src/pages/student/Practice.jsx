@@ -153,33 +153,42 @@ export default function Practice() {
   useEffect(() => {
     if (activeTab !== 'reading') return;
 
-    const handleScrollEvent = () => {
-      const scrollPosition = window.scrollY + 200; 
-      const sections = [
-        { id: 'passages', ref: passagesSectionRef },
-        { id: 'full_test', ref: fullTestSectionRef },
-        { id: 'set', ref: setSectionRef }
-      ];
+    let ticking = false;
 
-      let currentSection = sections[0].id;
-      for (const section of sections) {
-        if (section.ref.current) {
-          const absoluteTop = window.scrollY + section.ref.current.getBoundingClientRect().top;
-          if (scrollPosition >= absoluteTop) {
-            currentSection = section.id;
+    const handleScrollEvent = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (isManualScrollingRef.current) {
+            clearTimeout(scrollTimeoutRef.current);
+            scrollTimeoutRef.current = setTimeout(() => {
+                isManualScrollingRef.current = false;
+            }, 150);
+            ticking = false;
+            return;
           }
-        }
+
+          const scrollPosition = window.scrollY + 200; 
+          const sections = [
+            { id: 'passages', ref: passagesSectionRef },
+            { id: 'full_test', ref: fullTestSectionRef },
+            { id: 'set', ref: setSectionRef }
+          ];
+
+          let currentSection = sections[0].id;
+          for (const section of sections) {
+            if (section.ref.current) {
+              const absoluteTop = window.scrollY + section.ref.current.getBoundingClientRect().top;
+              if (scrollPosition >= absoluteTop) {
+                currentSection = section.id;
+              }
+            }
+          }
+          
+          setActiveSubTab(prev => prev !== currentSection ? currentSection : prev);
+          ticking = false;
+        });
+        ticking = true;
       }
-      
-      if (isManualScrollingRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = setTimeout(() => {
-            isManualScrollingRef.current = false;
-        }, 150);
-        return;
-      }
-      
-      setActiveSubTab(prev => prev !== currentSection ? currentSection : prev);
     };
 
     window.addEventListener('scroll', handleScrollEvent, { passive: true });

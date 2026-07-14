@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
     Play, Pause, Download, PlusCircle, MoreHorizontal, ChevronLeft, Share2
@@ -35,6 +35,28 @@ export default function SpotifyEpisodeDetails() {
     const [scrollOpacity, setScrollOpacity] = useState(0);
     const [openSection, setOpenSection] = useState(null); // 'exercises' or 'transcript'
     const [isShareOpen, setIsShareOpen] = useState(false);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+
+        let ticking = false;
+        const handleScroll = (e) => {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const scrollTop = e.target.scrollTop;
+                    const opacity = Math.min(1, Math.max(0, scrollTop / 120));
+                    setScrollOpacity(opacity);
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        };
+
+        el.addEventListener('scroll', handleScroll, { passive: true });
+        return () => el.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const handlePlay = () => {
         if (currentTrack?.id !== podcast.id) {
@@ -49,18 +71,14 @@ export default function SpotifyEpisodeDetails() {
         handleSeek(target);
     };
 
-    const handleScroll = (e) => {
-        const scrollTop = e.target.scrollTop;
-        const opacity = Math.min(1, Math.max(0, scrollTop / 120));
-        setScrollOpacity(opacity);
-    };
+
 
     const isPlayingThis = currentTrack?.id === podcast?.id && isPlaying;
     const exercises = podcast?.questions || [];
     const transcript = podcast?.transcript || [];
 
     return (
-        <div onScroll={handleScroll} className={`h-screen w-full flex flex-col font-sans select-none overflow-y-auto custom-scrollbar relative transition-colors duration-300 ${isDark ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
+        <div ref={containerRef} className={`h-screen w-full flex flex-col font-sans select-none overflow-y-auto custom-scrollbar relative transition-colors duration-300 gpu-accelerated ${isDark ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
             {/* Top Header */}
             <div className={`sticky top-0 z-50 px-6 md:px-10 py-4 flex items-center justify-between border-b transition-colors ${isDark ? 'bg-[#121212] border-white/5' : 'bg-white border-zinc-100'}`}>
                 <div className="flex items-center gap-4">

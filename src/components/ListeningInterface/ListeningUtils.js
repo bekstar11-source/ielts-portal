@@ -8,7 +8,7 @@ export const checkAnswer = (userVal, correctVal, isChoiceType = false) => {
         return correctVal.some(val => centralCheckAnswer(val, userVal, isChoiceType));
     }
 
-    const correctList = String(correctVal).split(/[\/|,]/).map(c => c.trim()).filter(Boolean);
+    const correctList = String(correctVal).split(/[\/|]/).map(c => c.trim()).filter(Boolean);
     if (correctList.length > 1) {
         return correctList.some(val => centralCheckAnswer(val, userVal, isChoiceType));
     }

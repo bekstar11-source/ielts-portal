@@ -55,7 +55,7 @@ export function useTestLogic() {
     const [audioTime, setAudioTime] = useState(0);
 
     // Modularized Logic
-    const { test, loading } = useTestFetch(cleanTestId, user, userData, navigate);
+    const { test, loading, locked, lockedMeta } = useTestFetch(cleanTestId, user, userData, navigate);
     const { userAnswers, setUserAnswers, writingEssay, setWritingEssay, flaggedQuestions, handleSelectAnswer, toggleFlag } = useTestAnswers();
     const initialDuration = useMemo(() => {
         if (partNumber) return 10 * 60; // 10 minutes per part practice
@@ -175,7 +175,7 @@ export function useTestLogic() {
     };
 
     return {
-        test, loading, testMode, setTestMode, showModeSelection, setShowModeSelection,
+        test, loading, locked, lockedMeta, testMode, setTestMode, showModeSelection, setShowModeSelection,
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,

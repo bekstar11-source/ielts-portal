@@ -155,7 +155,7 @@ export default function PublicDashboard() {
                 setPodcastsCount(pSnap.data().count);
 
                 // Fetch fallback tests for Roadmap
-                const qF = query(collection(db, "tests"), where("type", "==", "reading"), limit(5));
+                const qF = query(collection(db, "tests_metadata"), where("type", "==", "reading"), limit(5));
                 const snapF = await getDocs(qF);
                 setPublicTestsFallback(snapF.docs.map(d => ({ id: d.id, ...d.data() })));
             } catch (err) {

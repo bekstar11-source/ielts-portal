@@ -13,12 +13,16 @@ const safeDate = (dateVal) => {
 export function useTestFetch(testId, user, userData, navigate) {
     const [test, setTest] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [locked, setLocked] = useState(false);
+    const [lockedMeta, setLockedMeta] = useState(null);
 
     useEffect(() => {
         if (!testId || !user) return;
 
         const fetchTest = async () => {
             setLoading(true);
+            setLocked(false);
+            setLockedMeta(null);
             try {
                 let testData = null;
                 const isStaff = userData?.role === 'admin' || userData?.role === 'teacher';
@@ -122,8 +126,20 @@ export function useTestFetch(testId, user, userData, navigate) {
                 setTest(testData);
             } catch (err) {
                 console.error(err);
-                alert("Testni yuklashda xatolik yuz berdi.");
-                navigate("/dashboard");
+                if (err.code === 'functions/permission-denied') {
+                    const cleanId = testId.split('_part_')[0];
+                    try {
+                        const metaSnap = await getDoc(doc(db, "tests_metadata", cleanId));
+                        setLockedMeta(metaSnap.exists() ? { id: metaSnap.id, ...metaSnap.data() } : null);
+                    } catch (metaErr) {
+                        console.error(metaErr);
+                        setLockedMeta(null);
+                    }
+                    setLocked(true);
+                } else {
+                    alert("Testni yuklashda xatolik yuz berdi.");
+                    navigate("/dashboard");
+                }
             } finally {
                 setLoading(false);
             }
@@ -132,5 +148,5 @@ export function useTestFetch(testId, user, userData, navigate) {
         fetchTest();
     }, [testId, user, userData?.role, userData?.groupId, userData?.assignedTests]);
 
-    return { test, loading };
+    return { test, loading, locked, lockedMeta };
 }

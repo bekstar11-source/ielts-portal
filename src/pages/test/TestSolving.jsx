@@ -8,6 +8,7 @@ const SpeakingInterface = lazy(() => import("../../components/SpeakingInterface/
 import TestHeader from "../../components/TestSolving/TestHeader";
 import { ModeSelectionModal, ResultModal } from "../../components/TestSolving/TestModals";
 import ResultsCalculatingScreen from "../../components/TestSolving/ResultsCalculatingScreen";
+import TestLockedScreen from "../../components/TestSolving/TestLockedScreen";
 import { useTestLogic } from "../../hooks/useTestLogic";
 import { useAuth } from "../../context/AuthContext";
 import { clearTestStorage, deriveQuestionTypesForCard, getActualQuestionCount } from "../../utils/TestUtils";
@@ -20,7 +21,7 @@ export default function TestSolving() {
     
     // Logic hookdan barcha kerakli state va funksiyalarni olamiz
     const {
-        test, loading, testMode, setTestMode, showModeSelection, setShowModeSelection,
+        test, loading, locked, lockedMeta, testMode, setTestMode, showModeSelection, setShowModeSelection,
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
@@ -227,6 +228,10 @@ export default function TestSolving() {
             </div>
         );
     }
+    if (locked) {
+        return <TestLockedScreen meta={lockedMeta} onBack={() => navigate(returnPath)} />;
+    }
+
     if (!test) return <div className="flex h-screen items-center justify-center font-bold text-red-500">Test topilmadi.</div>;
 
     const testType = test?.type?.toLowerCase();

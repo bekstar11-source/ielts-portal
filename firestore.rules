@@ -34,9 +34,11 @@ service cloud.firestore {
 
     // TESTS
     match /tests/{testId} {
-      // Allow listing tests in the library (metadata queries)
-      allow list: if isAuth();
-      
+      // Raw test documents contain answer keys — only staff may list/query them.
+      // Students browse via /tests_metadata (answer-free) and fetch sanitized
+      // content through the getSanitizedTest Cloud Function.
+      allow list: if isAdmin() || isTeacher();
+
       // Secure direct reads of raw test documents containing answers
       allow get: if isAuth() && (
         isAdmin() || 

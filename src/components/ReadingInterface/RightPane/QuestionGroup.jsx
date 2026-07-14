@@ -54,7 +54,7 @@ const QuestionGroup = ({
     });
     
     const isMatchingParagraph = (type.includes('matching') && (type.includes('paragraph') || instr.includes('paragraph') || instr.includes('contain') || instr.includes('mention')));
-    const showStaticOptions = ((type.includes('matching') && !isMatchingParagraph) || type === 'summary_box') && Array.isArray(group.options) && group.options.length > 0 && !isJustLetters;
+    const showStaticOptions = ((type.includes('matching') && !isMatchingParagraph) || isSummary || isFlowChart) && Array.isArray(group.options) && group.options.length > 0 && !isJustLetters;
 
     const commonProps = {
         group,

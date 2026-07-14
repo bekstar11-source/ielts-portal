@@ -34,10 +34,17 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 20);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -54,7 +61,7 @@ const Navbar = () => {
   return (
     <>
       <div
-        className={`fixed z-50 top-0 left-0 right-0 w-full flex justify-center pointer-events-none transition-[padding] duration-500 ease-in-out ${
+        className={`fixed z-50 top-0 left-0 right-0 w-full flex justify-center pointer-events-none transition-[padding] duration-500 ease-in-out gpu-accelerated ${
           isScrolled ? "pt-4 px-4" : "pt-0 px-0"
         }`}
       >
@@ -62,7 +69,7 @@ const Navbar = () => {
           initial={{ y: -100 }}
           animate={{ y: 0 }}
           transition={{ duration: 0.6, ease: "circOut" }}
-          className={`pointer-events-auto flex items-center justify-between backdrop-blur-xl border w-full transition-[padding,max-width,border-radius,background-color,border-color,box-shadow] duration-500 ease-in-out ${
+          className={`pointer-events-auto flex items-center justify-between backdrop-blur-xl border w-full transition-[padding,max-width,border-radius,background-color,border-color,box-shadow] duration-500 ease-in-out gpu-accelerated ${
             isScrolled
               ? "max-w-6xl rounded-2xl border-gray-200/80 bg-white/95 shadow-[0_12px_30px_rgba(0,0,0,0.06)] py-2.5 px-6 md:px-8"
               : "max-w-full rounded-none border-transparent border-b-gray-100 bg-white/80 py-4 px-6 md:px-12"

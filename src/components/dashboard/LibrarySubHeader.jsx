@@ -7,10 +7,17 @@ export default function LibrarySubHeader({ activeTab, scrolledContent }) {
   const [isScrolled, setIsScrolled] = React.useState(() => typeof window !== 'undefined' ? window.scrollY > 380 : false);
 
   React.useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 380);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 380);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -27,7 +34,7 @@ export default function LibrarySubHeader({ activeTab, scrolledContent }) {
   };
 
   return (
-    <div className="sticky top-12 z-[55] w-full bg-[#F5F5F7]/80 backdrop-blur-[20px] h-[52px] border-b border-black/5 flex items-center justify-center">
+    <div className="sticky top-12 z-[55] w-full bg-[#F5F5F7]/80 backdrop-blur-[20px] h-[52px] border-b border-black/5 flex items-center justify-center gpu-accelerated">
       <div className="w-full max-w-[1440px] px-8 flex items-center">
         <div className="flex items-center gap-8">
           <div className="relative h-10 w-14">

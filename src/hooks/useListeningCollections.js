@@ -126,7 +126,8 @@ export function useListeningCollections(userResults, userData) {
       const parentCol = collections.find(c => c.id === colId);
       const colTier = parentCol?.accessTier || 'pro';
 
-      // 1. Fetch from tests_metadata
+      // Fetch from tests_metadata (answer-free; raw `tests` docs contain
+      // answer keys and are not queryable by students — see firestore.rules)
       const qMeta = query(
         collection(db, 'tests_metadata'),
         where('collectionId', '==', colId)
@@ -134,26 +135,7 @@ export function useListeningCollections(userResults, userData) {
       const snapMeta = await getDocs(qMeta);
       let metaDocs = snapMeta.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');
 
-      // 2. Fetch from tests
-      const qTests = query(
-        collection(db, 'tests'),
-        where('collectionId', '==', colId)
-      );
-      const snapTests = await getDocs(qTests);
-      let testDocs = snapTests.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'listening');
-
-      // 3. Merge by ID to guarantee we capture all tests in the collection
-      const mergedMap = new Map();
-      testDocs.forEach(t => mergedMap.set(t.id, t));
-      metaDocs.forEach(t => {
-        if (mergedMap.has(t.id)) {
-          mergedMap.set(t.id, { ...mergedMap.get(t.id), ...t });
-        } else {
-          mergedMap.set(t.id, t);
-        }
-      });
-
-      const docs = Array.from(mergedMap.values()).map(doc => ({
+      const docs = metaDocs.map(doc => ({
         ...doc,
         collectionAccessTier: colTier,
         collectionName: parentCol?.name,
