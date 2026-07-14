@@ -181,6 +181,7 @@ export default function WritingInterface({
                                 data-enable-grammarly="false"
                                 disabled={isReviewMode}
                                 placeholder={`Type your response for ${currentTask?.title.toLowerCase()}...`}
+                                style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
                                 className={`relative h-full w-full p-6 md:p-10 border-2 rounded-[32px] font-serif text-lg md:text-xl leading-relaxed resize-none focus:outline-none focus:ring-0 transition-all ${isReviewMode
                                     ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
                                     : 'bg-white border-zinc-200 focus:border-zinc-900 shadow-sm'

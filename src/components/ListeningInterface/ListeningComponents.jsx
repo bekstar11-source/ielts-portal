@@ -90,6 +90,7 @@ export const ListeningTextInput = ({ id, answer, locationId, userAnswers, onAnsw
                 disabled={isReviewMode}
                 autoComplete="off"
                 spellCheck={false}
+                style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
             />
             {isReviewMode && !isCorrect && (
                 <span className="ml-1.5 px-2 py-0.5 text-[0.75em] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[4px] whitespace-nowrap inline-flex items-center gap-1 shadow-sm select-none transition-all">
