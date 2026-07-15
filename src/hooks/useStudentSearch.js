@@ -14,6 +14,7 @@ export function useStudentSearch(localStudents, searchTerm) {
         }
 
         const term = searchTerm.trim();
+        let cancelled = false;
         const searchDb = async () => {
             setIsSearchingDb(true);
             try {
@@ -41,16 +42,19 @@ export function useStudentSearch(localStudents, searchTerm) {
                 p1.forEach(d => resultsMap.set(d.id, { id: d.id, ...d.data() }));
 
                 const finalResults = Array.from(resultsMap.values()).filter(user => user.role !== 'admin' && user.role !== 'teacher');
-                setDbSearchResults(finalResults);
+                if (!cancelled) setDbSearchResults(finalResults);
             } catch (e) {
                 console.error(e);
             } finally {
-                setIsSearchingDb(false);
+                if (!cancelled) setIsSearchingDb(false);
             }
         };
 
         const timer = setTimeout(searchDb, 600);
-        return () => clearTimeout(timer);
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
     }, [searchTerm]);
 
     const combinedStudents = useMemo(() => {

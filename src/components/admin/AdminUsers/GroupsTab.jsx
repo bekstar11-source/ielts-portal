@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { Plus, Users, Search, Trash2, ArrowRight, UserPlus, Clock } from 'lucide-react';
+import { Plus, Users, Search, Trash2, ArrowRight, UserPlus, Clock, FolderSearch } from 'lucide-react';
 import { db } from '../../../firebase/firebase';
 import { addDoc, deleteDoc, doc, collection, serverTimestamp, updateDoc } from 'firebase/firestore';
 import GroupDetailPanel from '../GroupDetailPanel';
 
-const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
+const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, theme }) => {
     const isDark = theme === 'dark';
     const [searchTerm, setSearchTerm] = useState("");
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newGroupName, setNewGroupName] = useState("");
     const [selectedTeacherId, setSelectedTeacherId] = useState("");
     const [isCreating, setIsCreating] = useState(false);
+    const [deletingGroupId, setDeletingGroupId] = useState(null);
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [showDetailPanel, setShowDetailPanel] = useState(false);
 
@@ -41,6 +42,7 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
 
     const handleDeleteGroup = async (groupId) => {
         if (!window.confirm("Guruhni o'chirmoqchimisiz?")) return;
+        setDeletingGroupId(groupId);
         try {
             const targetGroup = groups.find(g => g.id === groupId);
             if (targetGroup && targetGroup.studentIds && targetGroup.studentIds.length > 0) {
@@ -54,7 +56,11 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
             }
             await deleteDoc(doc(db, 'groups', groupId));
             onRefresh();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setDeletingGroupId(null);
+        }
     };
 
     return (
@@ -78,8 +84,30 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
                 </button>
             </div>
 
+            {filteredGroups.length === 0 && (
+                <div className={`flex-1 flex flex-col items-center justify-center gap-3 py-20 rounded-2xl border border-dashed ${isDark ? 'border-white/10 text-gray-500' : 'border-gray-200 text-gray-400'}`}>
+                    <FolderSearch size={40} className="opacity-40" />
+                    <p className="text-sm font-medium">
+                        {searchTerm ? "Qidiruvga mos guruh topilmadi" : "Hali guruhlar mavjud emas"}
+                    </p>
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm("")}
+                            className={`text-xs font-bold px-3 py-1.5 rounded-lg transition ${isDark ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+                        >
+                            Qidiruvni tozalash
+                        </button>
+                    )}
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar pb-6">
-                {filteredGroups.map(group => (
+                {filteredGroups.map(group => {
+                    const memberPreview = (group.studentIds || [])
+                        .slice(0, 3)
+                        .map(id => students.find(s => s.id === id));
+
+                    return (
                     <div
                         key={group.id}
                         className={`group relative p-6 rounded-2xl border transition-all duration-300 hover:shadow-xl ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-blue-500/30' : 'bg-white border-gray-100 hover:border-blue-200 shadow-sm'}`}
@@ -90,9 +118,12 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
                             </div>
                             <button
                                 onClick={() => handleDeleteGroup(group.id)}
-                                className={`p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${isDark ? 'hover:bg-red-500/10 text-red-400' : 'hover:bg-red-50 text-red-500'}`}
+                                disabled={deletingGroupId === group.id}
+                                className={`p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-100 ${isDark ? 'hover:bg-red-500/10 text-red-400' : 'hover:bg-red-50 text-red-500'}`}
                             >
-                                <Trash2 size={16} />
+                                {deletingGroupId === group.id
+                                    ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                                    : <Trash2 size={16} />}
                             </button>
                         </div>
 
@@ -107,9 +138,9 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
                                 <span className="text-lg font-black">{group.studentIds?.length || 0}</span>
                             </div>
                             <div className="flex -space-x-2">
-                                {[...Array(Math.min(3, group.studentIds?.length || 0))].map((_, i) => (
-                                    <div key={i} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${isDark ? 'bg-zinc-800 border-zinc-900 text-gray-500' : 'bg-gray-200 border-white text-gray-400'}`}>
-                                        U
+                                {memberPreview.map((st, i) => (
+                                    <div key={i} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${isDark ? 'bg-zinc-800 border-zinc-900 text-gray-300' : 'bg-gray-200 border-white text-gray-500'}`}>
+                                        {st?.fullName ? st.fullName.charAt(0).toUpperCase() : '?'}
                                     </div>
                                 ))}
                                 {(group.studentIds?.length || 0) > 3 && (
@@ -127,7 +158,8 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
                             <UserPlus size={14} /> Boshqarish
                         </button>
                     </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Create Group Modal */}
@@ -158,13 +190,16 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
                                     {teachers.map(t => <option key={t.id} value={t.id}>{t.fullName}</option>)}
                                 </select>
                             </div>
+                            {(!newGroupName.trim() || !selectedTeacherId) && (newGroupName || selectedTeacherId) && (
+                                <p className="text-xs text-red-500 font-medium">Guruh nomi va o'qituvchi tanlanishi shart.</p>
+                            )}
                         </div>
                         <div className="flex gap-3 mt-8">
                             <button onClick={() => setShowCreateModal(false)} className={`flex-1 h-12 rounded-xl font-bold text-sm ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>Bekor qilish</button>
                             <button
                                 onClick={handleCreateGroup}
-                                disabled={isCreating}
-                                className="flex-1 h-12 rounded-xl bg-blue-600 text-white font-bold text-sm flex items-center justify-center gap-2"
+                                disabled={isCreating || !newGroupName.trim() || !selectedTeacherId}
+                                className="flex-1 h-12 rounded-xl bg-blue-600 text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 {isCreating ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus size={18} />}
                                 Yaratish
@@ -178,8 +213,9 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, theme }) => {
                 group={selectedGroup ? groups.find(g => g.id === selectedGroup.id) : null}
                 isOpen={showDetailPanel}
                 onClose={() => { setShowDetailPanel(false); setSelectedGroup(null); }}
-                onUpdate={onRefresh}
+                onUpdate={onRefreshGroups || onRefresh}
                 allStudents={students}
+                teachers={teachers}
             />
         </div>
     );

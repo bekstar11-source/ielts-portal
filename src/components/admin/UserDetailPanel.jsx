@@ -74,6 +74,13 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
     };
 
     const handleSave = async () => {
+        const isPromotingToTeacher = user.role !== 'teacher' && formData.role === 'teacher';
+        if (isPromotingToTeacher && !window.confirm(
+            `${user.fullName || 'Foydalanuvchi'}ni "Teacher" roliga o'tkazasizmi? Bu unga o'qituvchi huquqlarini beradi.`
+        )) {
+            return;
+        }
+
         setSaving(true);
         try {
             const dataToSave = { ...formData };

@@ -3,6 +3,7 @@ import {
   Bell, 
   ChevronDown, 
   ChevronRight, 
+  ChevronsUpDown,
   Search, 
   Settings, 
   LogOut, 
@@ -833,23 +834,19 @@ export default function DashboardHeader({
             </AnimatePresence>
           </button>
         </div>
-      </header>
-
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex fixed top-0 left-0 bottom-0 w-60 bg-white dark:bg-[#09090b] border-r border-zinc-200/50 dark:border-zinc-800/80 z-[60] flex-col justify-between p-3 select-none overflow-y-auto hide-scrollbar font-sans">
-        <div className="flex flex-col">
-          {/* Logo header */}
-          <div className="flex items-center pt-0.5 pb-2 mb-3 px-1.5 border-b border-zinc-200/50 dark:border-zinc-800/80">
-            <div className="cursor-pointer flex items-center select-none" onClick={() => navigate('/dashboard')}>
-              <span className="text-2xl tracking-tight font-normal text-zinc-900 dark:text-zinc-50 font-sans">
-                eng<span className="font-bold">lev.</span>
-              </span>
-            </div>
+      </header>      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex fixed top-0 left-0 bottom-0 w-60 bg-white dark:bg-[#09090b] border-r border-zinc-200/50 dark:border-zinc-800/80 z-[60] flex-col justify-between select-none font-sans">
+        {/* Fixed Logo Header */}
+        <div className="flex items-center pt-3.5 pb-2.5 px-[18px] flex-shrink-0">
+          <div className="cursor-pointer flex items-center select-none" onClick={() => navigate('/dashboard')}>
+            <span className="text-2xl tracking-tight font-normal text-zinc-900 dark:text-zinc-50 font-sans">
+              eng<span className="font-bold">lev.</span>
+            </span>
           </div>
+        </div>
 
-
-          
-          {/* Core Items (Home, Mock Exam, Results, Reyting) */}
+        {/* Scrollable sidebar content */}
+        <div className="flex-1 overflow-y-auto hide-scrollbar p-3 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             {userData?.role === 'admin' && (
               <button
@@ -862,52 +859,6 @@ export default function DashboardHeader({
             )}
             {userData?.role !== 'teacher' && coreItems.map(renderMenuItem)}
           </div>
-
-          {/* Starred Collapsible Section (quick access) */}
-          {userData?.role !== 'teacher' && (
-            <div className="mt-4">
-              <button
-                onClick={() => setIsStarredOpen(!isStarredOpen)}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1 px-2.5 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors w-full text-left select-none"
-              >
-                {t('dashboard.starred')}
-                <ChevronDown size={11} className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 ${isStarredOpen ? '' : '-rotate-90'}`} />
-              </button>
-
-              <AnimatePresence initial={false}>
-                {isStarredOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden space-y-0.5 mt-1 flex flex-col"
-                  >
-                    <button
-                      onClick={() => navigate('/speaking-ai')}
-                      className="w-full text-left text-[13px] font-normal text-zinc-700 dark:text-zinc-300 py-1.5 px-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white transition-all flex items-center gap-2.5"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 ml-1 mr-0.5"></span>
-                      {t('dashboard.speaking')}
-                    </button>
-                    {/* <button
-                      onClick={() => navigate('/roadmap')}
-                      className="w-full text-left text-[13px] font-normal text-zinc-700 dark:text-zinc-300 py-1.5 px-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white transition-all flex items-center gap-2.5"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0 ml-1 mr-0.5"></span>
-                      {t('dashboard.roadmap')}
-                    </button> */}
-                    <button
-                      onClick={() => navigate('/settings')}
-                      className="w-full text-left text-[13px] font-normal text-zinc-700 dark:text-zinc-300 py-1.5 px-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white transition-all flex items-center gap-2.5"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 ml-1 mr-0.5"></span>
-                      {t('dashboard.settings')}
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
 
           {/* Teacher Section */}
           {renderTeacherSection(false)}
@@ -949,7 +900,7 @@ export default function DashboardHeader({
               >
                 <div className="flex-1 min-w-0 pr-1.5">
                   <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-black dark:group-hover:text-white">{t('dashboard.upgradeTitle')}</p>
-                  <p className="text-[11px] font-normal text-zinc-450 dark:text-zinc-550 mt-0.5 group-hover:text-zinc-550 dark:group-hover:text-zinc-400">{t('dashboard.upgradeSubtitle')}</p>
+                  <p className="text-[11px] font-normal text-zinc-450 dark:text-zinc-550 mt-0.5 group-hover:text-zinc-555 dark:group-hover:text-zinc-400">{t('dashboard.upgradeSubtitle')}</p>
                 </div>
                 <ChevronRight size={12} className="text-zinc-455 shrink-0 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -964,26 +915,56 @@ export default function DashboardHeader({
               {t('dashboard.logout')}
             </button>
           </div>
+
+          {/* BOTTOM CONTAINER (UPGRADE CARD) */}
+          {!isPremium && userData?.role !== 'teacher' && (
+            <div className="bg-[#f4f5f8] dark:bg-zinc-900/70 border border-zinc-200/10 dark:border-zinc-800/40 rounded-xl p-3.5 text-center flex flex-col items-center gap-3 mt-4 shrink-0 font-sans">
+              <div className="w-8 h-8 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center border border-zinc-200/80 dark:border-zinc-700/80 shadow-sm text-zinc-700 dark:text-zinc-300">
+                <ArrowUp size={14} strokeWidth={2} />
+              </div>
+              <p className="text-[11.5px] text-zinc-650 dark:text-zinc-400 font-normal leading-normal px-0.5">
+                {t('dashboard.upgradePrompt')}
+              </p>
+              <button 
+                onClick={onPremiumClick || (() => navigate('/pricing'))}
+                className="w-full bg-[#0071e3] hover:bg-[#0071e3]/90 active:scale-95 text-white font-medium py-1.5 rounded-lg text-xs transition-all shadow-md shadow-blue-500/10"
+              >
+                {t('dashboard.viewPlans')}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* BOTTOM CONTAINER (UPGRADE CARD) */}
-        {!isPremium && userData?.role !== 'teacher' && (
-          <div className="bg-[#f4f5f8] dark:bg-zinc-900/70 border border-zinc-200/10 dark:border-zinc-800/40 rounded-xl p-3.5 text-center flex flex-col items-center gap-3 mt-4 shrink-0 font-sans">
-            <div className="w-8 h-8 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center border border-zinc-200/80 dark:border-zinc-700/80 shadow-sm text-zinc-700 dark:text-zinc-300">
-              <ArrowUp size={14} strokeWidth={2} />
+        {/* Fixed Footer: Profile Widget */}
+        <div className="p-3 border-t border-zinc-150 dark:border-zinc-800/50 bg-white dark:bg-[#09090b] flex-shrink-0">
+          <div 
+            onClick={() => navigate('/settings')}
+            className="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-all duration-200 select-none"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shrink-0">
+                <img
+                  src={userData?.photoURL || user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${userData?.fullName || 'student'}`;
+                  }}
+                />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                  {userData?.fullName || user?.displayName || "IELTS Candidate"}
+                </span>
+                <span className="text-xs text-zinc-450 dark:text-zinc-550 truncate leading-none mt-0.5">
+                  {user?.email || userData?.email || ""}
+                </span>
+              </div>
             </div>
-            <p className="text-[11.5px] text-zinc-650 dark:text-zinc-400 font-normal leading-normal px-0.5">
-              {t('dashboard.upgradePrompt')}
-            </p>
-            <button 
-              onClick={onPremiumClick || (() => navigate('/pricing'))}
-              className="w-full bg-[#0071e3] hover:bg-[#0071e3]/90 active:scale-95 text-white font-medium py-1.5 rounded-lg text-xs transition-all shadow-md shadow-blue-500/10"
-            >
-              {t('dashboard.viewPlans')}
-            </button>
+            <ChevronsUpDown size={15} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
           </div>
-        )}
-      </aside>
+        </div>
+      </aside>e>
 
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 left-0 right-0 h-12 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-900/80 z-[60] flex items-center justify-between px-4">
@@ -1120,51 +1101,7 @@ export default function DashboardHeader({
                   {userData?.role !== 'teacher' && coreItems.map(renderMobileMenuItem)}
                 </div>
 
-                {/* Starred Collapsible Section (quick access) */}
-                {userData?.role !== 'teacher' && (
-                  <div className="mt-3">
-                    <button
-                      onClick={() => setIsStarredOpen(!isStarredOpen)}
-                      className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1 px-2.5 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors w-full text-left select-none"
-                    >
-                      {t('dashboard.starred')}
-                      <ChevronDown size={11} className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 ${isStarredOpen ? '' : '-rotate-90'}`} />
-                    </button>
 
-                    <AnimatePresence initial={false}>
-                      {isStarredOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden space-y-0.5 mt-1 flex flex-col"
-                        >
-                          <button
-                            onClick={() => { navigate('/speaking-ai'); setIsMobileMenuOpen(false); }}
-                            className="w-full text-left text-xs font-medium text-zinc-500 dark:text-zinc-405 hover:text-zinc-900 dark:hover:text-zinc-200 py-1 px-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-all flex items-center gap-2"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-                            {t('dashboard.speaking')}
-                          </button>
-                          {/* <button
-                            onClick={() => { navigate('/roadmap'); setIsMobileMenuOpen(false); }}
-                            className="w-full text-left text-xs font-medium text-zinc-500 dark:text-zinc-405 hover:text-zinc-900 dark:hover:text-zinc-200 py-1 px-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-all flex items-center gap-2"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
-                            {t('dashboard.roadmap')}
-                          </button> */}
-                          <button
-                            onClick={() => { navigate('/settings'); setIsMobileMenuOpen(false); }}
-                            className="w-full text-left text-xs font-medium text-zinc-500 dark:text-zinc-405 hover:text-zinc-900 dark:hover:text-zinc-200 py-1 px-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-all flex items-center gap-2"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                            {t('dashboard.settings')}
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
 
                 {/* Teacher Section */}
                 {renderTeacherSection(true)}
