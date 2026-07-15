@@ -6,18 +6,11 @@ import StudentDashboard from '../../pages/student/StudentDashboard';
 
 export const LoadingScreen = () => {
   return (
-    <div className="flex h-screen flex-col items-center justify-center bg-[#050505] text-white font-sans select-none">
-      <div className="relative flex items-center justify-center">
-        {/* Outer glowing ring */}
-        <div className="absolute w-16 h-16 rounded-full bg-[#FF5520]/10 border border-[#FF5520]/20 animate-ping opacity-75"></div>
-        {/* Middle spinning ring */}
-        <div className="w-14 h-14 rounded-full border-2 border-zinc-800 border-t-[#FF5520] animate-spin"></div>
-        {/* Inner static dot */}
-        <div className="absolute w-2 h-2 rounded-full bg-[#FF5520]"></div>
-      </div>
-      <p className="mt-6 text-[11px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase animate-pulse">
-        Yuklanmoqda...
-      </p>
+    <div className="flex h-screen flex-col items-center justify-center bg-white select-none">
+      <span className="text-3xl md:text-4xl font-sans tracking-tight text-black lowercase animate-pulse">
+        <span className="font-normal">eng</span>
+        <span className="font-bold">lev.</span>
+      </span>
     </div>
   );
 };

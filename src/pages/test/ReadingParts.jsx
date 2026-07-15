@@ -502,7 +502,7 @@ export default function ReadingParts() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#09090b] font-sans text-gray-900 dark:text-[#f5f5f7] overflow-x-hidden transition-colors duration-200">
+    <div className="min-h-screen bg-white dark:bg-[#18181b] font-sans text-gray-900 dark:text-[#f5f5f7] overflow-x-hidden transition-colors duration-200">
       <DashboardHeader
         user={user} userData={userData}
         activeTab="reading"
@@ -573,12 +573,12 @@ export default function ReadingParts() {
                         className="space-y-10 pb-20"
                     >
                         <div className="space-y-4" ref={passagesListRef}>
-                            <div className="space-y-1">
-                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Reading Passages</h2>
-                                <p className="text-[#86868b] dark:text-zinc-450 text-[14px]">Displaying {filteredTests.length} passages</p>
+                            <div className="space-y-1.5">
+                                <h2 className="text-[32px] md:text-[48px] font-medium text-[#0a1317] dark:text-[#f5f5f7] tracking-tight leading-[1.17]">Reading Passages</h2>
+                                <p className="text-[#8595a4] dark:text-zinc-450 text-[14px]">Displaying {filteredTests.length} passages</p>
                             </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8 pt-4">
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 pt-4">
                                 {filteredTests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
                                     <PracticeCard 
                                         key={test.id} 
@@ -596,17 +596,17 @@ export default function ReadingParts() {
                             
                             {/* Pagination UI */}
                             {totalPages > 1 && (
-                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-12 pb-8 border-t border-gray-150 dark:border-zinc-800/80 mt-10">
-                                    <p className="text-[13px] text-[#86868b] dark:text-zinc-450 font-medium">
-                                        Showing <span className="font-semibold text-gray-900 dark:text-[#f5f5f7]">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(filteredTests.length, currentPage * itemsPerPage)}</span> of <span className="font-semibold text-gray-900 dark:text-[#f5f5f7]">{filteredTests.length}</span> passages
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 pb-8 border-t border-[#dee3e9] dark:border-zinc-800/80 mt-10">
+                                    <p className="text-[14px] text-[#5d6c7b] dark:text-zinc-450">
+                                        Showing <span className="font-bold text-[#1c1e21] dark:text-[#f5f5f7]">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(filteredTests.length, currentPage * itemsPerPage)}</span> of <span className="font-bold text-[#1c1e21] dark:text-[#f5f5f7]">{filteredTests.length}</span> passages
                                     </p>
-                                    
+
                                     <div className="flex items-center gap-2">
                                         {/* Prev Button */}
                                         <button
                                             onClick={() => handlePageChange(currentPage - 1)}
                                             disabled={currentPage === 1 || loadingLibrary}
-                                            className="p-2.5 rounded-full bg-[#f5f5f7] hover:bg-gray-200 dark:bg-zinc-900/60 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#f5f5f7] dark:disabled:hover:bg-zinc-900/60 disabled:cursor-not-allowed transition-all active:scale-90"
+                                            className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900/60 border border-[#ced0d4] dark:border-zinc-700 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800 text-[#8595a4] dark:text-zinc-300 disabled:opacity-40 disabled:hover:bg-white dark:disabled:hover:bg-zinc-900/60 disabled:cursor-not-allowed transition-all active:scale-90 flex items-center justify-center"
                                             aria-label="Previous page"
                                         >
                                             <ChevronLeft size={16} />
@@ -637,9 +637,9 @@ export default function ReadingParts() {
                                                 return uniquePages.map((p, index) => {
                                                     if (p === '...') {
                                                         return (
-                                                            <span 
-                                                                key={`ellipsis-${index}`} 
-                                                                className="text-[#86868b] dark:text-zinc-500 px-1.5 text-[13px] select-none"
+                                                            <span
+                                                                key={`ellipsis-${index}`}
+                                                                className="text-[#8595a4] dark:text-zinc-500 px-1.5 text-[14px] select-none"
                                                             >
                                                                 ...
                                                             </span>
@@ -652,10 +652,10 @@ export default function ReadingParts() {
                                                             key={p}
                                                             onClick={() => handlePageChange(p)}
                                                             disabled={loadingLibrary}
-                                                            className={`w-9 h-9 rounded-full text-[13px] font-semibold transition-all active:scale-95 flex items-center justify-center ${
+                                                            className={`w-10 h-10 rounded-full text-[14px] font-bold transition-all active:scale-95 flex items-center justify-center ${
                                                                 isActive
-                                                                    ? 'bg-[#1d1d1f] text-white dark:bg-[#f5f5f7] dark:text-[#1d1d1f] shadow-sm'
-                                                                    : 'bg-[#f5f5f7] text-[#1d1d1f] hover:bg-gray-200 dark:bg-zinc-900/40 dark:text-[#f5f5f7] dark:hover:bg-zinc-800'
+                                                                    ? 'bg-[#0a1317] text-white dark:bg-[#f5f5f7] dark:text-[#0a1317] shadow-sm'
+                                                                    : 'bg-white text-[#1c1e21] border border-[#ced0d4] hover:bg-[#f1f4f7] dark:bg-zinc-900/40 dark:border-zinc-700 dark:text-[#f5f5f7] dark:hover:bg-zinc-800'
                                                             }`}
                                                         >
                                                             {p}
@@ -669,7 +669,7 @@ export default function ReadingParts() {
                                         <button
                                             onClick={() => handlePageChange(currentPage + 1)}
                                             disabled={currentPage === totalPages || loadingLibrary}
-                                            className="p-2.5 rounded-full bg-[#f5f5f7] hover:bg-gray-200 dark:bg-zinc-900/60 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#f5f5f7] dark:disabled:hover:bg-zinc-900/60 disabled:cursor-not-allowed transition-all active:scale-90"
+                                            className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900/60 border border-[#ced0d4] dark:border-zinc-700 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800 text-[#1c1e21] dark:text-zinc-300 disabled:opacity-40 disabled:hover:bg-white dark:disabled:hover:bg-zinc-900/60 disabled:cursor-not-allowed transition-all active:scale-90 flex items-center justify-center"
                                             aria-label="Next page"
                                         >
                                             {loadingLibrary ? (

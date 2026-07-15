@@ -10,6 +10,7 @@ import { useStudentDashboard } from "../../hooks/dashboard/useStudentDashboard";
 // COMPONENTS
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import NewsFeed from "../../components/dashboard/NewsFeed";
+import CatalogDashboard from "../../components/dashboard/CatalogDashboard";
 import DashboardModals from "../../components/dashboard/DashboardModals";
 import PricingModal from "../../components/dashboard/PricingModal";
 import SettingsTab from "../../components/dashboard/SettingsTab";
@@ -105,8 +106,18 @@ export default function StudentDashboard() {
         }
 
         if (dashboard.activeTab === 'dashboard') {
+            const hasGroup = userData?.groupId && userData.groupId !== 'none';
+
+            if (!hasGroup) {
+                return (
+                    <CatalogDashboard
+                        onPremiumClick={() => dashboard.setShowPricingModal(true)}
+                    />
+                );
+            }
+
             return (
-                <div className="w-full max-w-[1000px] mx-auto px-4 pt-0 pb-6 flex flex-row gap-12 justify-center items-start bg-white dark:bg-[#09090b] transition-colors">
+                <div className="w-full max-w-[1000px] mx-auto px-4 pt-0 pb-6 flex flex-row gap-12 justify-center items-start bg-white dark:bg-[#18181b] transition-colors">
                     {/* Left Column: Stories & Feed */}
                     <div className="flex-1 max-w-[630px] w-full flex flex-col gap-2">
                         {/* Instagram-like news feed */}
@@ -132,7 +143,7 @@ export default function StudentDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-white dark:bg-[#09090b] font-sans text-[#1d1d1f] dark:text-[#f5f5f7] antialiased selection:bg-black selection:text-white overflow-x-hidden transition-colors duration-200">
+        <div className="min-h-screen bg-white dark:bg-[#18181b] font-sans text-[#1d1d1f] dark:text-[#f5f5f7] antialiased selection:bg-black selection:text-white overflow-x-hidden transition-colors duration-200">
             <DashboardHeader
                 user={user} userData={userData}
                 activeTab={dashboard.activeTab} setActiveTab={dashboard.setActiveTab}

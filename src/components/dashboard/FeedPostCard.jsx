@@ -713,7 +713,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
     };
 
     return (
-        <div className="w-full bg-white dark:bg-[#09090b] border-b border-gray-150 dark:border-white/5 py-4 transition-colors">
+        <div className="w-full bg-white dark:bg-[#18181b] border-b border-gray-150 dark:border-white/5 py-4 transition-colors">
             {/* Header */}
             <div className="flex justify-between items-center px-4 pb-2">
                 <div className="flex items-center gap-2.5">

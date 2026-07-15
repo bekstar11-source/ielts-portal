@@ -120,7 +120,7 @@ export default function MockPurchase() {
 
   return (
     <div className={`min-h-screen font-['Plus_Jakarta_Sans'] flex flex-col transition-colors duration-200 select-none ${
-      isDark ? "bg-[#09090b] text-zinc-150" : "bg-white text-gray-800"
+      isDark ? "bg-[#18181b] text-zinc-150" : "bg-white text-gray-800"
     }`}>
       <DashboardHeader
         user={user}
@@ -131,7 +131,7 @@ export default function MockPurchase() {
 
       {/* MOBILE STICKY HEADER */}
       <header className={`w-full border-b px-6 py-3 sticky top-0 z-50 md:hidden flex justify-between items-center ${
-        isDark ? "bg-[#09090b] border-zinc-800" : "bg-white border-gray-300"
+        isDark ? "bg-[#18181b] border-zinc-800" : "bg-white border-gray-300"
       }`}>
         <div className="flex items-center gap-3">
           <button 

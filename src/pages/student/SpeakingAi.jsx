@@ -129,7 +129,7 @@ export default function SpeakingAi() {
                                     <circle cx="50" cy="8" r="4" fill="#3b82f6" />
                                     
                                     {/* Eyes Visor Screen */}
-                                    <rect x="32" y="38" width="36" height="16" rx="8" fill={isDark ? "#09090b" : "#1e293b"} />
+                                    <rect x="32" y="38" width="36" height="16" rx="8" fill={isDark ? "#18181b" : "#1e293b"} />
                                     
                                     {/* Glowing Eyes */}
                                     <motion.circle 

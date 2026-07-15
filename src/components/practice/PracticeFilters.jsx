@@ -191,9 +191,9 @@ export default function PracticeFilters({
                             freeOnly;
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className={`sticky z-40 w-full bg-white dark:bg-zinc-900 border-b border-black/[0.04] dark:border-white/[0.05] mb-6 py-3 transition-shadow duration-300 ${
+      className={`sticky z-40 w-full bg-white dark:bg-zinc-900 border-b border-[#dee3e9] dark:border-white/[0.05] mb-6 py-4 transition-shadow duration-300 ${
         keepVisibleOnScroll ? 'top-0 md:top-12' : 'top-[44px]'
       } ${
         keepVisibleOnScroll ? '' : 'opacity-100'
@@ -265,10 +265,10 @@ export default function PracticeFilters({
             {showFreeFilter && setFreeOnly && (
               <button
                 onClick={() => setFreeOnly(!freeOnly)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none free-filter-glow ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none free-filter-glow ${
                   freeOnly
                     ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-250 dark:border-amber-800 text-amber-600 dark:text-amber-400'
-                    : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                    : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
                 }`}
               >
                 <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
@@ -286,13 +286,13 @@ export default function PracticeFilters({
             <div className="relative">
               <button
                 onClick={() => toggleDropdown('status')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none ${
                   selectedStatus !== 'all'
                     ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
-                    : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                    : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
                 }`}
               >
-                <Bookmark size={14} className="opacity-75" />
+                <Bookmark size={15} className="opacity-75" />
                 <span>{t('practice.filterStatus')}: {getStatusLabel()}</span>
                 <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'status' ? 'rotate-180' : ''}`} />
               </button>
@@ -328,13 +328,13 @@ export default function PracticeFilters({
               <div className="relative">
                 <button
                   onClick={() => toggleDropdown('passages')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none ${
                     selectedPassages.length > 0
                       ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
-                      : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                      : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
                   }`}
                 >
-                  <Layers size={14} className="opacity-75" />
+                  <Layers size={15} className="opacity-75" />
                   <span>{t('practice.filterPassages')}: {selectedPassages.length > 0 ? selectedPassages.map(n => t('practice.passageNum').replace('{num}', n)).join(', ') : t('practice.statusAll')}</span>
                   <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'passages' ? 'rotate-180' : ''}`} />
                 </button>
@@ -377,13 +377,13 @@ export default function PracticeFilters({
               <div className="relative">
                 <button
                   onClick={() => toggleDropdown('parts')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none ${
                     selectedParts.length > 0
                       ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
-                      : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                      : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
                   }`}
                 >
-                  <Layers size={14} className="opacity-75" />
+                  <Layers size={15} className="opacity-75" />
                   <span>{t('practice.filterParts')}: {selectedParts.length > 0 ? selectedParts.map(p => t('practice.partNum').replace('{num}', p)).join(', ') : t('practice.statusAll')}</span>
                   <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'parts' ? 'rotate-180' : ''}`} />
                 </button>
@@ -425,7 +425,7 @@ export default function PracticeFilters({
             {activeTab === 'listening' && setSortOrder && (
               <button
                 onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                className="flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50"
                 title={sortOrder === 'desc' ? 'Z → A (20, 19, 18...)' : 'A → Z (14, 15, 16...)'}
               >
                 {sortOrder === 'desc' ? <ArrowDownAZ size={14} /> : <ArrowUpAZ size={14} />}
@@ -437,13 +437,13 @@ export default function PracticeFilters({
             <div className="relative">
               <button
                 onClick={() => toggleDropdown('types')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] font-semibold transition-all duration-200 select-none ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none ${
                   selectedQuestionTypes.length > 0
                     ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
-                    : 'bg-white dark:bg-zinc-900 border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                    : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
                 }`}
               >
-                <HelpCircle size={14} className="opacity-75" />
+                <HelpCircle size={15} className="opacity-75" />
                 <span>{getSelectedOptionsCount() > 0 ? t('practice.filterQuestionTypesCount').replace('{count}', getSelectedOptionsCount()) : `${t('practice.filterQuestionTypes')}: ${t('practice.statusAll')}`}</span>
                 <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'types' ? 'rotate-180' : ''}`} />
               </button>
@@ -506,7 +506,7 @@ export default function PracticeFilters({
             {hasAnyFilterActive && (
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-400 text-[12px] font-bold transition-all duration-200"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-400 text-[13px] font-bold transition-all duration-200"
               >
                 <RotateCcw size={12} />
                 <span>{t('practice.clearFilters')}</span>
@@ -515,19 +515,19 @@ export default function PracticeFilters({
           </div>
 
           {/* RIGHT: Search Input */}
-          <div className="flex items-center bg-[#f5f5f7] dark:bg-zinc-800/70 hover:bg-[#e8e8ed] dark:hover:bg-zinc-800 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 border border-transparent rounded-lg px-3 py-1.5 transition-all duration-350 w-full lg:w-[240px] shrink-0">
-            <Search size={14} className="text-gray-400 mr-2 shrink-0" />
-            <input 
-              type="text" 
-              placeholder={t('practice.searchPlaceholder')} 
+          <div className="flex items-center h-10 bg-[#f1f4f7] dark:bg-zinc-800/70 hover:bg-[#e8e8ed] dark:hover:bg-zinc-800 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 border border-transparent rounded-full px-4 transition-all duration-350 w-full lg:w-[240px] shrink-0">
+            <Search size={15} className="text-[#5d6c7b] mr-2 shrink-0" />
+            <input
+              type="text"
+              placeholder={t('practice.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none outline-none w-full text-[13px] text-[#1d1d1f] dark:text-white placeholder-gray-450 dark:placeholder-gray-500 py-0"
+              className="bg-transparent border-none outline-none w-full text-[14px] text-[#1c1e21] dark:text-white placeholder-[#5d6c7b] dark:placeholder-gray-500 py-0"
             />
             {searchQuery && (
-              <button 
+              <button
                 onClick={() => setSearchQuery("")}
-                className="text-gray-450 hover:text-black dark:hover:text-white p-0.5 rounded-full"
+                className="text-[#5d6c7b] hover:text-black dark:hover:text-white p-0.5 rounded-full"
               >
                 <X size={13} />
               </button>

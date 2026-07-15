@@ -6,7 +6,7 @@ const SiteFooter = () => {
   const { t, lang, setLang } = useTranslation();
 
   return (
-    <footer className="bg-[#f5f5f7] dark:bg-[#09090b] border-t border-[#d2d2d7] dark:border-zinc-800/80 text-[#424245] dark:text-[#a1a1a6] text-[12px] font-sans pt-10 pb-6 w-full transition-colors duration-200">
+    <footer className="bg-[#f5f5f7] dark:bg-[#18181b] border-t border-[#d2d2d7] dark:border-zinc-800/80 text-[#424245] dark:text-[#a1a1a6] text-[12px] font-sans pt-10 pb-6 w-full transition-colors duration-200">
       <style>{`
         .dark footer h3, .dark footer .font-semibold {
           color: #f5f5f7 !important;

@@ -53,7 +53,7 @@ export default function NewsFeed({ user, userData, assignments, groupIds = [] })
     const renderSkeletons = () => (
         <div className="space-y-6 px-4 w-full max-w-[470px]">
             {[1, 2].map((i) => (
-                <div key={i} className="bg-white dark:bg-[#09090b] rounded-3xl border border-gray-150 dark:border-white/5 p-4 space-y-4 animate-pulse">
+                <div key={i} className="bg-white dark:bg-[#18181b] rounded-3xl border border-gray-150 dark:border-white/5 p-4 space-y-4 animate-pulse">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-white/10" />
                         <div className="space-y-2">
@@ -72,7 +72,7 @@ export default function NewsFeed({ user, userData, assignments, groupIds = [] })
     );
 
     return (
-        <div className="w-full max-w-[630px] mx-auto bg-white dark:bg-[#09090b] min-h-screen pb-16 transition-colors flex flex-col items-start">
+        <div className="w-full max-w-[630px] mx-auto bg-white dark:bg-[#18181b] min-h-screen pb-16 transition-colors flex flex-col items-start">
             {/* Top Stories */}
             <div className="w-[calc(100%+2rem)] -mx-4 md:w-full md:mx-0 lg:-ml-20 lg:w-[calc(100%+80px)] border-b border-gray-100 dark:border-white/5 md:border-none">
                 <StoriesContainer user={user} userData={userData} />

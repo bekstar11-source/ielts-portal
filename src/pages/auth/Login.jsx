@@ -62,20 +62,12 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     try {
+      setError("");
       setLoading(true);
-      await signInWithGoogle();
-      const user = auth.currentUser;
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const userData = docSnap.data();
-          if (userData.role === 'admin') navigate('/admin');
-          else navigate('/dashboard');
-        } else {
-          navigate('/dashboard');
-        }
-      }
+      const result = await signInWithGoogle();
+      if (!result) return; // user closed the popup — nothing to do
+      // Google popup resolves synchronously; the `user` effect above also
+      // handles navigation once auth state propagates.
     } catch (err) {
       setError(t('auth.errorGoogle'));
       console.error(err);

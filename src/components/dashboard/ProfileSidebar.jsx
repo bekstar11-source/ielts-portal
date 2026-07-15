@@ -151,7 +151,7 @@ export default function ProfileSidebar({
                     </div>
 
                     {/* Skills Container */}
-                    <div className="bg-zinc-50 dark:bg-[#09090b]/40 rounded-xl border border-zinc-150 dark:border-zinc-800/60 overflow-hidden mb-5">
+                    <div className="bg-zinc-50 dark:bg-[#18181b]/40 rounded-xl border border-zinc-150 dark:border-zinc-800/60 overflow-hidden mb-5">
                         {/* Listening */}
                         <div className="flex items-center justify-between px-3.5 py-3 border-b border-zinc-150 dark:border-zinc-800/60">
                             <div className="flex items-center gap-2">

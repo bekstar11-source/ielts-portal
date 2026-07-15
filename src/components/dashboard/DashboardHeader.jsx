@@ -72,30 +72,10 @@ export default function DashboardHeader({
   };
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isStarredOpen, setIsStarredOpen] = useState(true);
-  const [isPracticeOpen, setIsPracticeOpen] = useState(true);
-  const [isResourcesOpen, setIsResourcesOpen] = useState(true);
-  const [isIeltsOpen, setIsIeltsOpen] = useState(true);
   const [isTeacherSectionOpen, setIsTeacherSectionOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const isMac = typeof window !== 'undefined' && navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
-  const [isFullTestsOpen, setIsFullTestsOpen] = useState(() => {
-    return (
-      location.pathname === '/reading/full' ||
-      location.pathname === '/listening/full' ||
-      (location.pathname === '/practice' && location.search.includes('type=full'))
-    );
-  });
-
-  const [isPartTestsOpen, setIsPartTestsOpen] = useState(() => {
-    return (
-      location.pathname === '/reading/parts' ||
-      location.pathname === '/listening/parts' ||
-      (location.pathname === '/practice' && location.search.includes('type=part')) ||
-      location.pathname === '/library'
-    );
-  });
 
   useEffect(() => {
     // Add layout shift class to body when sidebar is active
@@ -122,12 +102,6 @@ export default function DashboardHeader({
     // { id: 'leaderboard', label: 'Reyting', path: '/leaderboard', icon: TrendingUp },
   ];
 
-  const practiceItems = [
-    { id: 'full_tests', label: 'Full Tests', icon: ClipboardList },
-    { id: 'part_tests', label: 'Part Tests', icon: Layers },
-    { id: 'speaking', label: 'Speaking', path: '/speaking-ai', icon: Mic },
-  ];
-
   const resourceItems = [
     { id: 'podcasts', label: 'Podcasts', path: '/podcasts', icon: Headphones, iconColor: 'text-red-500' },
     { id: 'articles', label: 'Articles', path: '/articles', icon: Newspaper, iconColor: 'text-emerald-500' },
@@ -139,7 +113,7 @@ export default function DashboardHeader({
     const isFullReadingActive = location.pathname === '/reading/full';
     const isFullListeningActive = location.pathname === '/listening/full';
     const isFullWritingActive = location.pathname.startsWith('/practice') && location.search.includes('tab=writing') && location.search.includes('type=full');
-    
+
     const isPartReadingActive = location.pathname === '/reading/parts';
     const isPartListeningActive = location.pathname === '/listening/parts';
     const isPartWritingActive = location.pathname.startsWith('/practice') && location.search.includes('tab=writing') && location.search.includes('type=part');
@@ -153,134 +127,68 @@ export default function DashboardHeader({
       }
     };
 
-    const textClass = isMobile ? 'text-[12px]' : 'text-[13px]';
     const subTextClass = isMobile ? 'text-[12px] py-1' : 'text-[13px] py-1';
     const iconSize = isMobile ? 13 : 14;
+
+    const skillRow = (Icon, iconColor, label, active, onClick) => (
+      <button
+        onClick={onClick}
+        className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
+          active
+            ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
+            : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white dark:hover:bg-zinc-900/60'
+        }`}
+      >
+        <Icon size={iconSize} style={{ color: active ? undefined : iconColor }} className={active ? 'text-[#0066cc] dark:text-[#3894ff]' : ''} />
+        {label}
+      </button>
+    );
 
     return (
       <div className={isMobile ? "mt-3 flex flex-col gap-2.5" : "mt-4 flex flex-col gap-3"}>
         {/* IELTS Group Header */}
+        <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2.5 select-none">
+          IELTS
+        </div>
+
+        {/* Full Tests card */}
+        <div className="flex flex-col gap-1.5 bg-zinc-50 dark:bg-zinc-900/60 rounded-2xl p-3">
+          <div className="flex items-center gap-2 px-1 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider select-none">
+            <ClipboardList size={13} />
+            <span>{t('dashboard.fullTests')}</span>
+          </div>
+          <div className="flex flex-col">
+            {skillRow(BookOpen, '#31a24c', t('dashboard.reading'), isFullReadingActive, () => handleSubItemClick('/reading/full'))}
+            {skillRow(Headphones, '#f2a918', t('dashboard.listening'), isFullListeningActive, () => handleSubItemClick('/listening/full'))}
+            {skillRow(PenTool, '#0071e3', t('dashboard.writing'), isFullWritingActive, () => handleSubItemClick('/practice?tab=writing&type=full'))}
+          </div>
+        </div>
+
+        {/* Part Tests card */}
+        <div className="flex flex-col gap-1.5 bg-white dark:bg-zinc-900/30 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-3">
+          <div className="flex items-center gap-2 px-1 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider select-none">
+            <Layers size={13} />
+            <span>{t('dashboard.partTests')}</span>
+          </div>
+          <div className="flex flex-col">
+            {skillRow(BookOpen, '#31a24c', t('dashboard.reading'), isPartReadingActive, () => handleSubItemClick('/reading/parts'))}
+            {skillRow(Headphones, '#f2a918', t('dashboard.listening'), isPartListeningActive, () => handleSubItemClick('/listening/parts'))}
+            {skillRow(PenTool, '#0071e3', t('dashboard.writing'), isPartWritingActive, () => handleSubItemClick('/practice?tab=writing&type=part'))}
+          </div>
+        </div>
+
+        {/* Speaking */}
         <button
-          onClick={() => setIsIeltsOpen(!isIeltsOpen)}
-          className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2.5 select-none hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors w-full text-left"
+          onClick={() => handleSubItemClick('/speaking-ai')}
+          className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-normal transition-all ${
+            isSpeakingActive
+              ? 'bg-[#e8f3ff] dark:bg-blue-950/30 text-[#0066cc] dark:text-[#3894ff]'
+              : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white'
+          }`}
         >
-          <span>IELTS</span>
-          <ChevronDown size={11} className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 ${isIeltsOpen ? '' : '-rotate-90'}`} />
+          <Mic size={15} style={{ color: isSpeakingActive ? undefined : '#e41e3f' }} className={isSpeakingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : ''} />
+          <span>{t('dashboard.speaking')}</span>
         </button>
-
-        <AnimatePresence initial={false}>
-          {isIeltsOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className={`overflow-hidden flex flex-col ${isMobile ? "gap-2.5" : "gap-3"}`}
-            >
-              {/* To'liq testlar (Full Tests) */}
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2 px-2.5 py-0.5 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider select-none">
-                  <ClipboardList size={13} className="text-zinc-400 dark:text-zinc-550" />
-                  <span>{t('dashboard.fullTests')}</span>
-                </div>
-                
-                <div className="pl-3.5 ml-3.5 border-l border-zinc-200 dark:border-zinc-800/80 mt-1 space-y-0.5 flex flex-col">
-                  <button
-                    onClick={() => handleSubItemClick('/reading/full')}
-                    className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                      isFullReadingActive
-                        ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                        : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                    }`}
-                  >
-                    <BookOpen size={iconSize} className={isFullReadingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                    {t('dashboard.reading')}
-                  </button>
-                  <button
-                    onClick={() => handleSubItemClick('/listening/full')}
-                    className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                      isFullListeningActive
-                        ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                        : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                    }`}
-                  >
-                    <Headphones size={iconSize} className={isFullListeningActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                    {t('dashboard.listening')}
-                  </button>
-                  <button
-                    onClick={() => handleSubItemClick('/practice?tab=writing&type=full')}
-                    className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                      isFullWritingActive
-                        ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                        : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                    }`}
-                  >
-                    <PenTool size={iconSize} className={isFullWritingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                    {t('dashboard.writing')}
-                  </button>
-                </div>
-              </div>
-
-              {/* Qisqa testlar (Part Tests) */}
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2 px-2.5 py-0.5 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider select-none">
-                  <Layers size={13} className="text-zinc-400 dark:text-zinc-555" />
-                  <span>{t('dashboard.partTests')}</span>
-                </div>
-                
-                <div className="pl-3.5 ml-3.5 border-l border-zinc-200 dark:border-zinc-800/80 mt-1 space-y-0.5 flex flex-col">
-                  <button
-                    onClick={() => handleSubItemClick('/reading/parts')}
-                    className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                      isPartReadingActive
-                        ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                        : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                    }`}
-                  >
-                    <BookOpen size={iconSize} className={isPartReadingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                    {t('dashboard.reading')}
-                  </button>
-                  <button
-                    onClick={() => handleSubItemClick('/listening/parts')}
-                    className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                      isPartListeningActive
-                        ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                        : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                    }`}
-                  >
-                    <Headphones size={iconSize} className={isPartListeningActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                    {t('dashboard.listening')}
-                  </button>
-                  <button
-                    onClick={() => handleSubItemClick('/practice?tab=writing&type=part')}
-                    className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                      isPartWritingActive
-                        ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                        : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                    }`}
-                  >
-                    <PenTool size={iconSize} className={isPartWritingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                    {t('dashboard.writing')}
-                  </button>
-                </div>
-              </div>
-
-              {/* Speaking */}
-              <div className="flex flex-col">
-                <button
-                  onClick={() => handleSubItemClick('/speaking-ai')}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg ${textClass} font-normal transition-all ${
-                    isSpeakingActive
-                      ? 'bg-[#e8f3ff] dark:bg-blue-950/30 text-[#0066cc] dark:text-[#3894ff]'
-                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white'
-                  }`}
-                >
-                  <Mic size={15} className={isSpeakingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-550 dark:text-zinc-400'} />
-                  <span>{t('dashboard.speaking')}</span>
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     );
   };
@@ -357,100 +265,19 @@ export default function DashboardHeader({
   const renderMenuItem = (item) => {
     const active = isTabActive(item);
     const Icon = item.icon;
-    
-    if (item.id === 'full_tests' || item.id === 'part_tests') {
-      const isOpen = item.id === 'full_tests' ? isFullTestsOpen : isPartTestsOpen;
-      const isFull = item.id === 'full_tests';
-
-      const isReadingActive = location.pathname.startsWith('/reading') && 
-        ((isFull && location.pathname.includes('/full')) || (!isFull && location.pathname.includes('/parts')));
-      
-      const isListeningActive = location.pathname.startsWith('/listening') && 
-        ((isFull && location.search.includes('full_test')) || (!isFull && location.search.includes('parts')));
-
-      const isWritingActive = location.pathname.startsWith('/practice') && location.search.includes('tab=writing') && 
-        ((isFull && location.search.includes('type=full')) || (!isFull && location.search.includes('type=part')));
-
-      return (
-        <div key={item.id} className="flex flex-col">
-          <button
-            onClick={() => handleNavigation(item)}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[13px] font-normal transition-all ${
-              active 
-                ? 'bg-[#e8f3ff] dark:bg-blue-950/30 text-[#0066cc] dark:text-[#3894ff]' 
-                : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Icon size={15} className={active ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-550 dark:text-zinc-400'} />
-              <span>{getLabel(item.id, item.label)}</span>
-            </div>
-            <ChevronRight 
-              size={11} 
-              className={`text-zinc-450 dark:text-zinc-500 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} 
-            />
-          </button>
-
-          <AnimatePresence initial={false}>
-            {isOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden pl-5 pr-1 mt-0.5 space-y-1 flex flex-col"
-              >
-                <button
-                  onClick={() => navigate(isFull ? '/reading/full' : '/reading/parts')}
-                  className={`w-full text-left px-2.5 py-1 text-[12px] rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                    isReadingActive
-                      ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                      : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                  }`}
-                >
-                  <BookOpen size={13} className={isReadingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                  {t('dashboard.reading')}
-                </button>
-                <button
-                  onClick={() => navigate(isFull ? '/listening/full' : '/listening/parts')}
-                  className={`w-full text-left px-2.5 py-1 text-[12px] rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                    isListeningActive
-                      ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                      : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                  }`}
-                >
-                  <Headphones size={13} className={isListeningActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                  {t('dashboard.listening')}
-                </button>
-                <button
-                  onClick={() => navigate(isFull ? '/practice?tab=writing&type=full' : '/practice?tab=writing&type=part')}
-                  className={`w-full text-left px-2.5 py-1 text-[12px] rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                    isWritingActive
-                      ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                      : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                  }`}
-                >
-                  <PenTool size={13} className={isWritingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                  {t('dashboard.writing')}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      );
-    }
-
     const isMock = item.id === 'mock';
 
-    let buttonClasses = active 
-      ? 'bg-[#e8f3ff] dark:bg-blue-950/30 text-[#0066cc] dark:text-[#3894ff]' 
-      : (isMock
-          ? 'bg-blue-50/40 dark:bg-zinc-900/30 text-zinc-700 dark:text-zinc-300 hover:bg-blue-50/70 dark:hover:bg-zinc-900/60 hover:text-black dark:hover:text-white'
-          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white'
-        );
-    
-    let iconClasses = active 
-      ? 'text-[#0066cc] dark:text-[#3894ff]' 
-      : (isMock ? 'text-blue-500 dark:text-[#3894ff]' : 'text-zinc-550 dark:text-zinc-400');
+    let buttonClasses = isMock
+      ? 'mock-exam-shimmer'
+      : active
+        ? 'bg-[#e8f3ff] dark:bg-blue-950/30 text-[#0066cc] dark:text-[#3894ff]'
+        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white';
+
+    let iconClasses = isMock
+      ? 'text-[#c5a880] transition-colors'
+      : active
+        ? 'text-[#0066cc] dark:text-[#3894ff]'
+        : 'text-zinc-550 dark:text-zinc-400';
 
     if (item.iconColor) {
       if (active) {
@@ -476,17 +303,10 @@ export default function DashboardHeader({
       <button
         key={item.id}
         onClick={() => handleNavigation(item)}
-        className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-normal transition-all relative overflow-hidden ${
-          isMock ? 'mock-pulse-glow' : ''
-        } ${buttonClasses}`}
+        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-normal transition-all ${buttonClasses}`}
       >
         <Icon size={15} className={iconClasses} />
         {getLabel(item.id, item.label)}
-        {isMock && (
-          <div className="absolute inset-0 w-full h-full overflow-hidden rounded-lg pointer-events-none">
-            <div className="shimmer-sweep absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/15 to-transparent skew-x-[-20deg]" />
-          </div>
-        )}
       </button>
     );
   };
@@ -494,100 +314,19 @@ export default function DashboardHeader({
   const renderMobileMenuItem = (item) => {
     const active = isTabActive(item);
     const Icon = item.icon;
-    
-    if (item.id === 'full_tests' || item.id === 'part_tests') {
-      const isOpen = item.id === 'full_tests' ? isFullTestsOpen : isPartTestsOpen;
-      const isFull = item.id === 'full_tests';
-
-      const isReadingActive = location.pathname.startsWith('/reading') && 
-        ((isFull && location.pathname.includes('/full')) || (!isFull && location.pathname.includes('/parts')));
-      
-      const isListeningActive = location.pathname.startsWith('/listening') && 
-        ((isFull && location.search.includes('full_test')) || (!isFull && location.search.includes('parts')));
-
-      const isWritingActive = location.pathname.startsWith('/practice') && location.search.includes('tab=writing') && 
-        ((isFull && location.search.includes('type=full')) || (!isFull && location.search.includes('type=part')));
-
-      return (
-        <div key={item.id} className="flex flex-col">
-          <button
-            onClick={() => handleNavigation(item)}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              active 
-                ? 'bg-[#e8f3ff] dark:bg-blue-950/40 text-[#0066cc] dark:text-[#3894ff]' 
-                : 'text-zinc-650 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Icon size={14} className={active ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-400 dark:text-zinc-500'} />
-              <span>{getLabel(item.id, item.label)}</span>
-            </div>
-            <ChevronRight 
-              size={11} 
-              className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} 
-            />
-          </button>
-
-          <AnimatePresence initial={false}>
-            {isOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden pl-5 pr-1 mt-0.5 space-y-1 flex flex-col"
-              >
-                <button
-                  onClick={() => { navigate(isFull ? '/reading/full' : '/reading/parts'); setIsMobileMenuOpen(false); }}
-                  className={`w-full text-left px-2.5 py-1 text-[11px] rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                    isReadingActive
-                      ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                      : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                  }`}
-                >
-                  <BookOpen size={12} className={isReadingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                  {t('dashboard.reading')}
-                </button>
-                <button
-                  onClick={() => { navigate(isFull ? '/listening/full' : '/listening/parts'); setIsMobileMenuOpen(false); }}
-                  className={`w-full text-left px-2.5 py-1 text-[11px] rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                    isListeningActive
-                      ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                      : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                  }`}
-                >
-                  <Headphones size={12} className={isListeningActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                  {t('dashboard.listening')}
-                </button>
-                <button
-                  onClick={() => { navigate(isFull ? '/practice?tab=writing&type=full' : '/practice?tab=writing&type=part'); setIsMobileMenuOpen(false); }}
-                  className={`w-full text-left px-2.5 py-1 text-[11px] rounded-lg transition-all flex items-center gap-2 font-normal group ${
-                    isWritingActive
-                      ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-                      : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
-                  }`}
-                >
-                  <PenTool size={12} className={isWritingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors'} />
-                  {t('dashboard.writing')}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      );
-    }
-
     const isMock = item.id === 'mock';
 
-    let buttonClasses = active 
-      ? 'bg-[#e8f3ff] dark:bg-blue-950/40 text-[#0066cc] dark:text-[#3894ff]' 
-      : (isMock
-          ? 'bg-blue-50/40 dark:bg-zinc-900/30 text-zinc-650 dark:text-zinc-400 hover:bg-blue-50/70 dark:hover:bg-zinc-900/60 hover:text-black dark:hover:text-white'
-          : 'text-zinc-650 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white'
-        );
-    
-    let iconClasses = active 
-      ? 'text-[#0066cc] dark:text-[#3894ff]' 
-      : (isMock ? 'text-blue-500 dark:text-[#3894ff]' : 'text-zinc-400 dark:text-zinc-500');
+    let buttonClasses = isMock
+      ? 'mock-exam-shimmer'
+      : active
+        ? 'bg-[#e8f3ff] dark:bg-blue-950/40 text-[#0066cc] dark:text-[#3894ff]'
+        : 'text-zinc-650 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white';
+
+    let iconClasses = isMock
+      ? 'text-[#c5a880] transition-colors'
+      : active
+        ? 'text-[#0066cc] dark:text-[#3894ff]'
+        : 'text-zinc-400 dark:text-zinc-500';
 
     if (item.iconColor) {
       if (active) {
@@ -613,17 +352,10 @@ export default function DashboardHeader({
       <button
         key={item.id}
         onClick={() => { handleNavigation(item); setIsMobileMenuOpen(false); }}
-        className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all relative overflow-hidden ${
-          isMock ? 'mock-pulse-glow' : ''
-        } ${buttonClasses}`}
+        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${buttonClasses}`}
       >
         <Icon size={14} className={iconClasses} />
         {getLabel(item.id, item.label)}
-        {isMock && (
-          <div className="absolute inset-0 w-full h-full overflow-hidden rounded-lg pointer-events-none">
-            <div className="shimmer-sweep absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/15 to-transparent skew-x-[-20deg]" />
-          </div>
-        )}
       </button>
     );
   };
@@ -637,24 +369,6 @@ export default function DashboardHeader({
     if (item.id === 'dashboard') {
       return activeTab === 'dashboard' || location.pathname === '/dashboard';
     }
-    if (item.id === 'full_tests') {
-      return !location.search.includes('tab=speaking') && (
-        location.pathname === '/reading/full' ||
-        (location.pathname === '/listening' && location.search.includes('section=full_test')) ||
-        (location.pathname === '/practice' && location.search.includes('type=full'))
-      );
-    }
-    if (item.id === 'part_tests') {
-      return !location.search.includes('tab=speaking') && (
-        location.pathname === '/reading/parts' ||
-        (location.pathname === '/listening' && !location.search.includes('section=full_test')) ||
-        (location.pathname === '/practice' && location.search.includes('type=part')) ||
-        location.pathname === '/library'
-      );
-    }
-    if (item.id === 'speaking') {
-      return location.pathname === '/speaking-ai';
-    }
     if (item.path) {
       return location.pathname === item.path || location.pathname.startsWith(item.path);
     }
@@ -662,14 +376,6 @@ export default function DashboardHeader({
   };
 
   const handleNavigation = (item) => {
-    if (item.id === 'full_tests') {
-      setIsFullTestsOpen(!isFullTestsOpen);
-      return;
-    }
-    if (item.id === 'part_tests') {
-      setIsPartTestsOpen(!isPartTestsOpen);
-      return;
-    }
     if (item.id === 'logout') {
       if (onLogoutClick) {
         onLogoutClick();
@@ -753,7 +459,7 @@ export default function DashboardHeader({
   return (
     <>
       {/* Desktop Content Header */}
-      <header className="hidden md:flex fixed top-0 left-60 right-0 h-12 bg-white dark:bg-[#09090b] border-b border-zinc-200/50 dark:border-zinc-800/80 items-center justify-between px-6 z-50">
+      <header className="hidden md:flex fixed top-0 left-60 right-0 h-12 bg-white dark:bg-[#18181b] border-b border-zinc-200/50 dark:border-zinc-800/80 items-center justify-between px-6 z-50">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-1.5 text-[13px] font-normal text-zinc-400 dark:text-zinc-550 select-none">
           <span className="text-zinc-650 dark:text-zinc-300 font-medium">
@@ -866,28 +572,14 @@ export default function DashboardHeader({
           {/* IELTS Section */}
           {renderIeltsSection(false)}
 
-          {/* Resources Section Collapsible */}
+          {/* Resources Section */}
           <div className="mt-4">
-            <button
-              onClick={() => setIsResourcesOpen(!isResourcesOpen)}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1 px-2.5 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors w-full text-left select-none"
-            >
+            <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1 px-2.5 select-none">
               {t('dashboard.resources')}
-              <ChevronDown size={11} className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 ${isResourcesOpen ? '' : '-rotate-90'}`} />
-            </button>
-
-            <AnimatePresence initial={false}>
-              {isResourcesOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden mt-1 gap-1 flex flex-col"
-                >
-                  {resourceItems.map(renderMenuItem)}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            </div>
+            <div className="mt-1 gap-1 flex flex-col">
+              {resourceItems.map(renderMenuItem)}
+            </div>
           </div>
 
           {/* Account footer group */}
@@ -936,13 +628,13 @@ export default function DashboardHeader({
         </div>
 
         {/* Fixed Footer: Profile Widget */}
-        <div className="p-3 border-t border-zinc-150 dark:border-zinc-800/50 bg-white dark:bg-[#09090b] flex-shrink-0">
+        <div className="p-2 bg-white dark:bg-[#09090b] flex-shrink-0">
           <div 
             onClick={() => navigate('/settings')}
-            className="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-all duration-200 select-none"
+            className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-all duration-200 select-none"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-lg overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shrink-0">
                 <img
                   src={userData?.photoURL || user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
                   alt="Avatar"
@@ -953,21 +645,21 @@ export default function DashboardHeader({
                 />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                   {userData?.fullName || user?.displayName || "IELTS Candidate"}
                 </span>
-                <span className="text-xs text-zinc-450 dark:text-zinc-550 truncate leading-none mt-0.5">
+                <span className="text-[11px] text-zinc-450 dark:text-zinc-550 truncate leading-none mt-0.5">
                   {user?.email || userData?.email || ""}
                 </span>
               </div>
             </div>
-            <ChevronsUpDown size={15} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
+            <ChevronsUpDown size={13} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
           </div>
         </div>
-      </aside>e>
+      </aside>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 left-0 right-0 h-12 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-900/80 z-[60] flex items-center justify-between px-4">
+      <header className="md:hidden sticky top-0 left-0 right-0 h-12 bg-white dark:bg-[#18181b] border-b border-zinc-100 dark:border-zinc-900/80 z-[60] flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
@@ -1109,28 +801,14 @@ export default function DashboardHeader({
                 {/* IELTS Section */}
                 {renderIeltsSection(true)}
 
-                {/* Resources Section Collapsible */}
+                {/* Resources Section */}
                 <div className="mt-3">
-                  <button
-                    onClick={() => setIsResourcesOpen(!isResourcesOpen)}
-                    className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1 px-2.5 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors w-full text-left select-none"
-                  >
+                  <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1 px-2.5 select-none">
                     {t('dashboard.resources')}
-                    <ChevronDown size={11} className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 ${isResourcesOpen ? '' : '-rotate-90'}`} />
-                  </button>
-
-                  <AnimatePresence initial={false}>
-                    {isResourcesOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden mt-1 gap-1 flex flex-col"
-                      >
-                        {resourceItems.map(renderMobileMenuItem)}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  </div>
+                  <div className="mt-1 gap-1 flex flex-col">
+                    {resourceItems.map(renderMobileMenuItem)}
+                  </div>
                 </div>
 
                 {/* Account footer group */}

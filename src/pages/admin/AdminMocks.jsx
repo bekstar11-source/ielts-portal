@@ -368,7 +368,7 @@ export default function AdminMocks() {
 
   return (
     <div className={`min-h-screen font-sans transition-colors duration-200 p-4 sm:p-6 md:p-8 ${
-      isDark ? "bg-[#09090b] text-zinc-150" : "bg-[#fafafa] text-zinc-800"
+      isDark ? "bg-[#18181b] text-zinc-150" : "bg-[#fafafa] text-zinc-800"
     }`}>
       
       {/* HEADER */}

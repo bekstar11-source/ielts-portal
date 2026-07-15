@@ -155,10 +155,10 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
         hapticFeedback('light');
         handleClick();
       }}
-      className="group w-full bg-white dark:bg-zinc-950 rounded-lg overflow-hidden transition-all duration-[400ms] hover:shadow-lg flex flex-col h-full cursor-pointer border border-zinc-200/80 dark:border-zinc-800/80"
+      className="group w-full bg-white dark:bg-zinc-950 rounded-[32px] overflow-hidden transition-all duration-[400ms] hover:shadow-lg flex flex-col h-full cursor-pointer border border-[#dee3e9] dark:border-zinc-800/80"
     >
       {/* Top Visual Section */}
-      <div className="relative aspect-[1.75/1] w-full overflow-hidden rounded-t-lg bg-[#f5f5f7] dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-900">
+      <div className="relative aspect-[1.75/1] w-full overflow-hidden bg-[#f1f4f7] dark:bg-zinc-900">
         {hasVisual ? (
           <img src={cardImage} alt={test.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
         ) : (
@@ -174,26 +174,26 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
         {/* Inner Content of Visual Section */}
         <div className="absolute inset-0 p-4 flex flex-col justify-between text-white select-none">
           {/* Top Row with Badges */}
-          <div className="flex justify-between items-center">
-            <span className="px-2.5 py-0.5 rounded bg-black/25 backdrop-blur-md text-white/90 text-[10px] font-bold tracking-wide uppercase border border-white/10">
+          <div className="flex justify-between items-start">
+            <span className="px-3 py-1 rounded-full bg-[#0a1317]/55 backdrop-blur-md text-white text-[11px] font-bold tracking-wide uppercase whitespace-nowrap shrink-0">
               {passageLabel}
             </span>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 flex-wrap justify-end max-w-[60%]">
               {test.collectionAccessTier === 'free' || (test.isFree && !test.collectionAccessTier) ? (
-                <span className="px-2.5 py-0.5 rounded bg-emerald-500 text-white text-[10px] font-bold tracking-wide uppercase shadow-sm">
+                <span className="px-2.5 py-1 rounded-full bg-[#31a24c] text-white text-[11px] font-bold tracking-wide whitespace-nowrap shrink-0 shadow-sm">
                   FREE
                 </span>
               ) : test.collectionAccessTier === 'standard' ? (
-                <span className="px-2.5 py-0.5 rounded bg-blue-600 text-white text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 shadow-sm">
+                <span className="px-2.5 py-1 rounded-full bg-[#0064e0] text-white text-[11px] font-bold tracking-wide flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm">
                   <Zap size={9} fill="currentColor" /> STANDARD
                 </span>
               ) : test.collectionAccessTier === 'pro' || (isPremium && !test.collectionAccessTier) ? (
-                <span className="px-2.5 py-0.5 rounded bg-[#ffd43b] text-[#1d1d1f] text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 shadow-sm">
+                <span className="px-2.5 py-1 rounded-full bg-[#f7b928] text-[#0a1317] text-[11px] font-bold tracking-wide flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm">
                   <Crown size={9} fill="currentColor" /> PRO
                 </span>
               ) : null}
               {isCompleted && (
-                <span className="px-2.5 py-0.5 rounded bg-[#34c759] text-white text-[10px] font-bold tracking-wide uppercase shadow-sm">
+                <span className="px-2.5 py-1 rounded-full bg-[#31a24c] text-white text-[11px] font-bold tracking-wide whitespace-nowrap shrink-0 shadow-sm">
                   {t('practice.statusCompleted')}
                 </span>
               )}
@@ -220,26 +220,26 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
           </button>
           
           {showGetAccess ? (
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); navigate('/pricing'); }}
-              className="px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-[12.5px] flex items-center gap-1 shadow-md active:scale-95 transition-all"
+              className="px-6 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-[12.5px] flex items-center gap-1 shadow-md active:scale-95 transition-all"
             >
               <Zap size={12} fill="currentColor" /> Go Pro
             </button>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               {isCompleted && (
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); onReview(test); }}
-                  className="px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-[12px] border border-white/20 active:scale-95 transition-all"
+                  className="px-6 py-3 rounded-full bg-white/90 hover:bg-white text-[#1c1e21] font-bold text-[13px] active:scale-95 transition-all"
                 >
                   {t('practice.review')}
                 </button>
               )}
               {(!isCompleted || !disableRetake) && (
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); isCompleted ? onStart(test) : handleClick(); }}
-                  className="px-4 py-1.5 rounded-full bg-white text-zinc-900 hover:bg-zinc-100 font-bold text-[12px] shadow-md active:scale-95 transition-all flex items-center gap-1"
+                  className="px-7 py-3.5 rounded-full bg-[#0a1317] text-white hover:bg-black font-bold text-[13px] shadow-md active:scale-95 transition-all flex items-center gap-1"
                 >
                   {isCompleted ? t('practice.retake') : t('practice.start')}
                 </button>
@@ -249,53 +249,47 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
         </div>
       </div>
 
-      {/* Footer Info Section (Figma Community Style) */}
-      <div className="p-3 bg-white dark:bg-zinc-950 flex-1">
-        {/* Text Content */}
-        <div className="w-full">
-          <h4 className="text-[13.5px] font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-[#0066cc] dark:group-hover:text-[#3894ff] transition-colors line-clamp-1 leading-snug">
-            {test.title}
-          </h4>
-          <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 flex items-center flex-wrap gap-1.5">
-            <span className="flex items-center gap-0.5">
-              <FileText size={11} className="text-zinc-500 dark:text-zinc-400" />
-              {t('practice.questionsCount').replace('{count}', questionCount)}
+      {/* Footer Info Section */}
+      <div className="p-[18px] bg-white dark:bg-zinc-950 flex-1 flex flex-col gap-2">
+        <h4 className="text-[20px] font-medium leading-[1.3] text-[#0a1317] dark:text-zinc-100 group-hover:text-[#0066cc] dark:group-hover:text-[#3894ff] transition-colors line-clamp-1">
+          {test.title}
+        </h4>
+        <div className="text-[14px] leading-[1.43] tracking-[-0.14px] text-[#5d6c7b] dark:text-zinc-400 flex items-center flex-wrap gap-1.5">
+          <span className="flex items-center gap-1">
+            <FileText size={14} className="text-[#5d6c7b] dark:text-zinc-400" />
+            {t('practice.questionsCount').replace('{count}', questionCount)}
+          </span>
+          {test.collectionName && (
+            <span className="px-2 py-0.5 rounded-[6px] bg-[#f1f4f7] dark:bg-zinc-900 text-[#5d6c7b] dark:text-zinc-400 font-bold text-[12px]">
+              {test.collectionName}
             </span>
-            {test.collectionName && (
-              <>
-                <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
-                <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium text-[9.5px] uppercase tracking-wide leading-none">
-                  {test.collectionName}
-                </span>
-              </>
-            )}
-            {isCompleted && (
-              <>
-                <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
-                <span className="text-[#34c759]">
-                  {t('practice.result')}: {test.result.score}/{test.result.totalQuestions || test.totalQuestions || 40}
-                </span>
-                <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onReview(test); }} 
-                  className="text-[#0071e3] dark:text-[#3894ff] hover:underline"
-                >
-                  {t('practice.review')}
-                </button>
-                {!disableRetake && (
-                  <>
-                    <span className="text-zinc-300 dark:text-zinc-800 select-none">•</span>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); onStart(test); }} 
-                      className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-                    >
-                      {t('practice.retake')}
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-          </div>
+          )}
+          {isCompleted && (
+            <>
+              <span className="select-none">•</span>
+              <span className="text-[#31a24c] font-bold">
+                {t('practice.result')}: {test.result.score}/{test.result.totalQuestions || test.totalQuestions || 40}
+              </span>
+              <span className="select-none">•</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); onReview(test); }}
+                className="text-[#385898] dark:text-[#3894ff] hover:underline"
+              >
+                {t('practice.review')}
+              </button>
+              {!disableRetake && (
+                <>
+                  <span className="select-none">•</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onStart(test); }}
+                    className="text-[#385898] dark:text-[#3894ff] hover:underline"
+                  >
+                    {t('practice.retake')}
+                  </button>
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
       

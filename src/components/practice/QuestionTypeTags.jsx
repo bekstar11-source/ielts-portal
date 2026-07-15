@@ -6,8 +6,8 @@ const DEFAULT_LIMIT = 2;
 export default function QuestionTypeTags({
   types = [],
   limit = DEFAULT_LIMIT,
-  tagClassName = 'px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-white text-[9px] font-semibold tracking-wide border border-white/15 uppercase shadow-sm',
-  moreButtonClassName = 'px-2 py-0.5 rounded bg-black/40 backdrop-blur-md text-white/90 text-[9px] font-semibold tracking-wide border border-white/20 uppercase shadow-sm hover:bg-black/55 transition-colors',
+  tagClassName = 'px-3 py-1 rounded-full bg-[#0a1317]/60 backdrop-blur-md text-white text-[10px] font-bold tracking-wide uppercase shadow-sm',
+  moreButtonClassName = 'px-3 py-1 rounded-full bg-[#0a1317]/40 backdrop-blur-md text-white/90 text-[10px] font-bold tracking-wide uppercase shadow-sm hover:bg-[#0a1317]/55 transition-colors',
   className = 'relative z-10 flex flex-wrap gap-1',
 }) {
   const { t } = useTranslation();

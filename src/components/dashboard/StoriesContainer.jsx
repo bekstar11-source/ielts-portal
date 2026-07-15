@@ -28,7 +28,7 @@ export default function StoriesContainer({ user, userData }) {
     };
 
     return (
-        <div className="w-full bg-white dark:bg-[#09090b] py-4 transition-colors">
+        <div className="w-full bg-white dark:bg-[#18181b] py-4 transition-colors">
             <div className="flex gap-4 px-4 overflow-x-auto scrollbar-none">
                 {stories.map((story, index) => {
                     const isViewed = viewedStoryIds.has(story.id);
@@ -44,7 +44,7 @@ export default function StoriesContainer({ user, userData }) {
                                     ? 'bg-gray-200 dark:bg-zinc-800' 
                                     : 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600'
                             }`}>
-                                <div className="p-[2.5px] rounded-full bg-white dark:bg-[#09090b]">
+                                <div className="p-[2.5px] rounded-full bg-white dark:bg-[#18181b]">
                                     {story.mediaType === 'text' ? (
                                         <div className="w-[68px] h-[68px] rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold p-2.5 text-center select-none overflow-hidden leading-tight">
                                             {story.text?.slice(0, 18)}...

@@ -468,7 +468,7 @@ export default function PostFormModal({
                         </div>
 
                         {/* Mock App Screen */}
-                        <div className="flex-1 flex flex-col bg-white dark:bg-[#09090b] overflow-y-auto overflow-x-hidden p-3 relative scrollbar-none text-left">
+                        <div className="flex-1 flex flex-col bg-white dark:bg-[#18181b] overflow-y-auto overflow-x-hidden p-3 relative scrollbar-none text-left">
                             
                             {/* Mock Post Card */}
                             <div className="w-full border border-gray-150 dark:border-white/5 rounded-2xl p-3 bg-white dark:bg-zinc-900/60 shadow-sm flex flex-col gap-2.5">

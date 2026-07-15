@@ -307,7 +307,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
   }, [results, searchTerm, filterType]);
 
   return (
-    <div className={`min-h-screen bg-parchment dark:bg-[#09090b] text-ink dark:text-[#f5f5f7] selection:bg-action-blue selection:text-white transition-colors duration-250 ${isComponent ? 'min-h-0 bg-transparent' : ''}`}>
+    <div className={`min-h-screen bg-parchment dark:bg-[#18181b] text-ink dark:text-[#f5f5f7] selection:bg-action-blue selection:text-white transition-colors duration-250 ${isComponent ? 'min-h-0 bg-transparent' : ''}`}>
       {!isComponent && (
         <div className="sticky top-0 z-[100] w-full">
           <DashboardHeader
@@ -317,7 +317,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
               setActiveTab={setActiveTab}
               onLogoutClick={() => setShowLogoutConfirm(true)}
           />
-            <nav className="w-full h-[52px] bg-stone-50/80 dark:bg-[#09090b]/80 backdrop-blur-xl flex items-center border-b border-divider-soft dark:border-zinc-800/80">
+            <nav className="w-full h-[52px] bg-stone-50/80 dark:bg-[#18181b]/80 backdrop-blur-xl flex items-center border-b border-divider-soft dark:border-zinc-800/80">
               <div className="w-full px-8 h-full flex items-center justify-between">
                 <div className="flex items-center gap-x-8">
                   <span className="text-lg font-semibold text-neutral-900 dark:text-white">{t('myResults.title')}</span>
@@ -343,7 +343,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
       )}
 
       {!isComponent && (
-        <div className="md:hidden sticky top-0 z-[100] w-full bg-stone-50 dark:bg-[#09090b] border-b border-divider-soft dark:border-zinc-800 flex items-center justify-between px-6 h-14">
+        <div className="md:hidden sticky top-0 z-[100] w-full bg-stone-50 dark:bg-[#18181b] border-b border-divider-soft dark:border-zinc-800 flex items-center justify-between px-6 h-14">
           <span className="text-lg font-bold text-neutral-900 dark:text-white">{t('myResults.title')}</span>
           <div className="flex items-center gap-4">
              <Search size={20} className="text-neutral-500 dark:text-zinc-400" />
@@ -586,7 +586,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
 
         {!isComponent && (
           <>
-            <section className="w-full bg-white dark:bg-[#09090b] py-section border-t border-hairline dark:border-zinc-850">
+            <section className="w-full bg-white dark:bg-[#18181b] py-section border-t border-hairline dark:border-zinc-850">
               <div className="max-w-6xl mx-auto px-8">
                 <div className="flex flex-col items-center text-center mb-16">
                   <span className="text-action-blue font-semibold tracking-widest uppercase text-xs mb-4">{t('myResults.motivationTitle')}</span>

@@ -8,11 +8,9 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   GoogleAuthProvider,
-  signInWithPopup,
   browserSessionPersistence,
   setPersistence,
-  signInWithRedirect,
-  getRedirectResult
+  signInWithPopup
 } from "firebase/auth";
 import { logAction } from "../utils/logger"; // Import logger
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -152,7 +150,6 @@ export function AuthProvider({ children }) {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      // Use popup for immediate sign-in to avoid redirect flow issues
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       if (user) {
@@ -182,6 +179,10 @@ export function AuthProvider({ children }) {
       }
       return result;
     } catch (error) {
+      // User simply closed the popup or opened a second one — not a real error.
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        return null;
+      }
       console.error("Google Sign In Error", error);
       throw error;
     }
@@ -268,41 +269,6 @@ export function AuthProvider({ children }) {
         }
       }
     });
-
-    // 2. Handle Google Sign-in redirect result in parallel (non-blocking for guests)
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          const user = result.user;
-          const docRef = doc(db, "users", user.uid);
-          const docSnap = await getDoc(docRef);
-
-          if (!docSnap.exists()) {
-            const newUserData = {
-              uid: user.uid,
-              email: user.email,
-              fullName: user.displayName,
-              photoURL: user.photoURL,
-              role: "student",
-              accountType: "public",
-              onboardingCompleted: false,
-              createdAt: new Date().toISOString(),
-              lastActiveAt: serverTimestamp(),
-              isOnline: true
-            };
-            await setDoc(docRef, newUserData);
-            setUserData(newUserData);
-            logAction(user.uid, 'USER_REGISTER', { email: user.email, method: 'google' });
-          } else {
-            logAction(user.uid, 'USER_LOGIN', { email: user.email, method: 'google' });
-          }
-        }
-      } catch (error) {
-        console.error("Google Redirect Result handling error:", error);
-      }
-    };
-    handleRedirect();
 
     return () => unsubscribe();
   }, []);

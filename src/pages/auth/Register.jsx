@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, motionValue, useAnimationFrame } from 'framer-motion';
 import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
-import { db, auth } from "../../firebase/firebase";
+import { db } from "../../firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -73,25 +73,32 @@ export default function Register() {
   const [step, setStep] = useState(1); // 1: Name & Email, 2: Password
   const { t } = useTranslation();
 
-  const { signup, signInWithGoogle } = useAuth();
+  const { signup, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      const redirectAfterGoogleLogin = async () => {
+        try {
+          const docRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists() && docSnap.data().role === 'admin') navigate('/admin');
+          else navigate('/dashboard');
+        } catch (err) {
+          console.error("Error checking redirect after Google sign-in:", err);
+          navigate('/dashboard');
+        }
+      };
+      redirectAfterGoogleLogin();
+    }
+  }, [user, navigate]);
 
   const handleGoogleLogin = async () => {
     try {
+      setError("");
       setLoading(true);
       await signInWithGoogle();
-      const user = auth.currentUser;
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const userData = docSnap.data();
-          if (userData.role === 'admin') navigate('/admin');
-          else navigate('/dashboard');
-        } else {
-          navigate('/dashboard');
-        }
-      }
+      // The `user` effect above handles navigation once auth state propagates.
     } catch (err) {
       setError(t('auth.errorGoogle'));
       console.error(err);

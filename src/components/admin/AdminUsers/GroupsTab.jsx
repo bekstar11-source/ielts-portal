@@ -4,7 +4,7 @@ import { db } from '../../../firebase/firebase';
 import { addDoc, deleteDoc, doc, collection, serverTimestamp, updateDoc } from 'firebase/firestore';
 import GroupDetailPanel from '../GroupDetailPanel';
 
-const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, theme }) => {
+const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, onUpdateStudentLocal, theme }) => {
     const isDark = theme === 'dark';
     const [searchTerm, setSearchTerm] = useState("");
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -214,6 +214,7 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, the
                 isOpen={showDetailPanel}
                 onClose={() => { setShowDetailPanel(false); setSelectedGroup(null); }}
                 onUpdate={onRefreshGroups || onRefresh}
+                onUpdateStudentLocal={onUpdateStudentLocal}
                 allStudents={students}
                 teachers={teachers}
             />

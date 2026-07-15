@@ -92,6 +92,7 @@ export default function AdminUsers() {
                             students={students}
                             onRefresh={refreshData}
                             onRefreshGroups={refreshGroups}
+                            onUpdateStudentLocal={updateStudentLocal}
                             theme={theme}
                         />
                     )}

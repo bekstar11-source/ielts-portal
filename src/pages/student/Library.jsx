@@ -61,7 +61,7 @@ export default function Library() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] font-sans text-zinc-900 dark:text-[#f5f5f7] antialiased transition-colors duration-200 pb-24 md:pb-12">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#18181b] font-sans text-zinc-900 dark:text-[#f5f5f7] antialiased transition-colors duration-200 pb-24 md:pb-12">
       <DashboardHeader
         user={user}
         userData={userData}

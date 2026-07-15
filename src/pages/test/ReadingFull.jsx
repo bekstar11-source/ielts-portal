@@ -222,7 +222,7 @@ export default function ReadingFull() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#09090b] font-sans text-gray-900 dark:text-[#f5f5f7] overflow-x-hidden transition-colors duration-200">
+    <div className="min-h-screen bg-white dark:bg-[#18181b] font-sans text-gray-900 dark:text-[#f5f5f7] overflow-x-hidden transition-colors duration-200">
       <DashboardHeader
         user={user} userData={userData}
         activeTab="reading"
