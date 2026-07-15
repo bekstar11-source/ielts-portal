@@ -31,18 +31,30 @@ export default function PracticeFilters({
   setSortOrder
 }) {
   const { t } = useTranslation();
-  const [isScrolled, setIsScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null); // 'status' | 'passages' | 'parts' | 'types' | null
   
   const containerRef = useRef(null);
   const keepVisibleOnScroll = isStandalonePage;
+  const isScrolledRef = useRef(false);
 
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          setIsScrolled(window.scrollY > (keepVisibleOnScroll ? 120 : 380));
+          const threshold = keepVisibleOnScroll ? 120 : 380;
+          const scrolled = window.scrollY > threshold;
+          if (scrolled !== isScrolledRef.current) {
+            isScrolledRef.current = scrolled;
+            if (containerRef.current) {
+              if (keepVisibleOnScroll) {
+                containerRef.current.classList.toggle('shadow-sm', scrolled);
+              } else {
+                containerRef.current.classList.toggle('opacity-0', scrolled);
+                containerRef.current.classList.toggle('pointer-events-none', scrolled);
+              }
+            }
+          }
           ticking = false;
         });
         ticking = true;
@@ -181,12 +193,10 @@ export default function PracticeFilters({
   return (
     <div 
       ref={containerRef}
-      className={`sticky z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-black/[0.04] dark:border-white/[0.05] mb-6 py-3 transition-shadow duration-300 gpu-accelerated ${
+      className={`sticky z-40 w-full bg-white dark:bg-zinc-900 border-b border-black/[0.04] dark:border-white/[0.05] mb-6 py-3 transition-shadow duration-300 ${
         keepVisibleOnScroll ? 'top-0 md:top-12' : 'top-[44px]'
       } ${
-        keepVisibleOnScroll || !isScrolled ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      } ${
-        keepVisibleOnScroll && isScrolled ? 'shadow-sm' : ''
+        keepVisibleOnScroll ? '' : 'opacity-100'
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-6">

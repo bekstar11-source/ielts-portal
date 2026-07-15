@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStudentData } from "../../hooks/useStudentData";
@@ -534,7 +534,7 @@ export default function ListeningParts() {
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
         ) : (
-            <AnimatePresence mode="wait">
+            <>
                 {filteredVirtualParts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-4 duration-700" key="no-parts">
                         <div className="w-16 h-16 bg-[#f5f5f7] dark:bg-zinc-800 rounded-full flex items-center justify-center mb-6">
@@ -546,9 +546,8 @@ export default function ListeningParts() {
                 ) : (
                     <motion.div 
                         key="parts"
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={false}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
                         className="space-y-16 pb-20"
                     >
                         <ListeningPartsSection
@@ -567,7 +566,7 @@ export default function ListeningParts() {
                         />
                     </motion.div>
                 )}
-            </AnimatePresence>
+            </>
         )}
         </div>
       </main>

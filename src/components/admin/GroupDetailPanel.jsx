@@ -5,11 +5,12 @@ import { doc, updateDoc, arrayRemove, arrayUnion, getDoc, query, collection, whe
 import { db } from '../../firebase/firebase';
 import { useStudentSearch } from '../../hooks/useStudentSearch';
 
-export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, allStudents }) {
+export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, allStudents, teachers = [] }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
     const [groupName, setGroupName] = useState('');
+    const [selectedTeacherId, setSelectedTeacherId] = useState('');
     const [searchStudent, setSearchStudent] = useState('');
     const [saving, setSaving] = useState(false);
 
@@ -19,6 +20,7 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
     useEffect(() => {
         if (group) {
             setGroupName(group.name || '');
+            setSelectedTeacherId(group.teacherId || '');
         }
     }, [group]);
 
@@ -54,13 +56,18 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
 
     const getStudent = (id) => allStudents.find(s => s.id === id) || extraStudents[id];
 
-    const handleSaveName = async () => {
-        if (!groupName.trim()) return;
+    const handleSaveSettings = async () => {
+        if (!groupName.trim() || !selectedTeacherId) return;
         setSaving(true);
         try {
-            await updateDoc(doc(db, 'groups', group.id), { name: groupName });
+            const teacher = teachers.find(t => t.id === selectedTeacherId);
+            await updateDoc(doc(db, 'groups', group.id), {
+                name: groupName,
+                teacherId: selectedTeacherId,
+                teacherName: teacher?.fullName || group.teacherName || 'Noma\'lum'
+            });
             onUpdate();
-            alert("Guruh nomi saqlandi!");
+            alert("Guruh sozlamalari saqlandi!");
         } catch (error) {
             alert("Xatolik: " + error.message);
         } finally {
@@ -84,8 +91,23 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
         }
     };
 
-    const handleAddStudent = async (studentId) => {
+    const handleAddStudent = async (student) => {
+        const studentId = student.id;
+        const previousGroupId = student.groupId;
+
+        if (previousGroupId && previousGroupId !== group.id) {
+            const confirmMove = window.confirm(
+                `Bu o'quvchi allaqachon boshqa guruhga biriktirilgan. Uni shu guruhga ko'chirmoqchimisiz?`
+            );
+            if (!confirmMove) return;
+        }
+
         try {
+            if (previousGroupId && previousGroupId !== group.id) {
+                await updateDoc(doc(db, 'groups', previousGroupId), {
+                    studentIds: arrayRemove(studentId)
+                });
+            }
             await updateDoc(doc(db, 'groups', group.id), {
                 studentIds: arrayUnion(studentId)
             });
@@ -142,23 +164,32 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
                 {/* Content */}
                 <div className="h-[calc(100vh-64px)] overflow-y-auto p-6 space-y-8 custom-scrollbar">
 
-                    {/* Guruh Nomi */}
+                    {/* Guruh Nomi va O'qituvchi */}
                     <div className="space-y-4">
                         <h4 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Asosiy so'zlamalar</h4>
-                        <div className="flex gap-2">
+                        <div className="space-y-2">
                             <input
                                 type="text"
                                 value={groupName}
                                 onChange={e => setGroupName(e.target.value)}
-                                className={`flex-1 p-2.5 rounded-xl border outline-none transition text-sm ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
+                                className={`w-full p-2.5 rounded-xl border outline-none transition text-sm ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
                                 placeholder="Guruh nomi..."
                             />
+                            <select
+                                value={selectedTeacherId}
+                                onChange={e => setSelectedTeacherId(e.target.value)}
+                                className={`w-full p-2.5 rounded-xl border outline-none transition text-sm appearance-none ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
+                            >
+                                <option value="">O'qituvchini tanlang...</option>
+                                {teachers.map(t => <option key={t.id} value={t.id}>{t.fullName}</option>)}
+                            </select>
                             <button
-                                onClick={handleSaveName}
-                                disabled={saving}
-                                className="px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center"
+                                onClick={handleSaveSettings}
+                                disabled={saving || !groupName.trim() || !selectedTeacherId}
+                                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 text-sm font-bold"
                             >
                                 {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={16} />}
+                                Saqlash
                             </button>
                         </div>
                     </div>
@@ -212,9 +243,14 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, all
                             {searchStudent && (
                                 <div className={`rounded-xl border max-h-40 overflow-y-auto custom-scrollbar ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-white'}`}>
                                     {searchFilteredAvailable.length > 0 ? searchFilteredAvailable.map(st => (
-                                        <div key={st.id} className={`flex justify-between items-center p-3 border-b last:border-0 hover:bg-white/5 transition cursor-pointer ${isDark ? 'border-white/5' : 'border-gray-100'}`} onClick={() => handleAddStudent(st.id)}>
-                                            <span className="text-sm font-medium">{st.fullName}</span>
-                                            <Plus size={14} className="text-blue-500" />
+                                        <div key={st.id} className={`flex justify-between items-center p-3 border-b last:border-0 hover:bg-white/5 transition cursor-pointer ${isDark ? 'border-white/5' : 'border-gray-100'}`} onClick={() => handleAddStudent(st)}>
+                                            <div className="min-w-0">
+                                                <span className="text-sm font-medium truncate block">{st.fullName}</span>
+                                                {st.groupId && st.groupId !== group.id && (
+                                                    <span className="text-[10px] text-amber-500 font-semibold">Boshqa guruhda</span>
+                                                )}
+                                            </div>
+                                            <Plus size={14} className="text-blue-500 shrink-0" />
                                         </div>
                                     )) : (
                                         <p className="text-xs opacity-50 p-3 text-center">Topilmadi</p>

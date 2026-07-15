@@ -47,6 +47,7 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                     if (isPlaying) {
                         event.target.playVideo();
                     }
+                    startInterval();
                 },
                 onStateChange: (event) => {
                     if (event.data === window.YT.PlayerState.PLAYING) {
@@ -70,7 +71,6 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
             }
         });
         youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
-        startInterval();
     }, [podcast, isPlaying, setIsPlaying, setDuration, startInterval, youtubePlayerRef, setIsLoading]);
 
     useEffect(() => {

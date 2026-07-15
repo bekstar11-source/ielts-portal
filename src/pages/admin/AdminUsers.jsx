@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Users, GraduationCap, Target, Layers } from 'lucide-react';
+import { Users, GraduationCap } from 'lucide-react';
 
 // Hooks
 import { useAdminUsers } from '../../hooks/useAdminUsers';
@@ -8,8 +8,6 @@ import { useAdminUsers } from '../../hooks/useAdminUsers';
 // Components
 import StudentsTab from '../../components/admin/AdminUsers/StudentsTab';
 import GroupsTab from '../../components/admin/AdminUsers/GroupsTab';
-import AssignTab from '../../components/admin/AdminUsers/AssignTab';
-import SetsTab from '../../components/admin/AdminUsers/SetsTab';
 import { TabButton } from '@/components/admin/AdminUsers/AdminUsersUtils';
 
 export default function AdminUsers() {
@@ -22,19 +20,17 @@ export default function AdminUsers() {
         students,
         teachers,
         groups,
-        allTests,
-        testSets,
         hasMoreStudents,
         totalStudents,
         refreshData,
-        loadMoreStudents
+        refreshGroups,
+        loadMoreStudents,
+        updateStudentLocal
     } = useAdminUsers(activeTab);
 
     const tabs = [
         { id: 'students', label: 'Students', icon: GraduationCap },
         { id: 'groups', label: 'Groups', icon: Users },
-        { id: 'assign', label: 'Assign', icon: Target },
-        { id: 'sets', label: 'Sets', icon: Layers },
     ];
 
     if (loading && students.length === 0) return (
@@ -79,38 +75,23 @@ export default function AdminUsers() {
                     {activeTab === 'students' && (
                         <StudentsTab
                             students={students}
+                            groups={groups}
                             totalCount={totalStudents}
                             onRefresh={refreshData}
+                            onUpdateLocal={updateStudentLocal}
                             theme={theme}
                             hasMore={hasMoreStudents}
                             onLoadMore={loadMoreStudents}
                         />
                     )}
-                    
+
                     {activeTab === 'groups' && (
                         <GroupsTab
                             groups={groups}
                             teachers={teachers}
                             students={students}
                             onRefresh={refreshData}
-                            theme={theme}
-                        />
-                    )}
-
-                    {activeTab === 'assign' && (
-                        <AssignTab
-                            groups={groups}
-                            students={students}
-                            allTests={allTests}
-                            theme={theme}
-                        />
-                    )}
-
-                    {activeTab === 'sets' && (
-                        <SetsTab
-                            testSets={testSets}
-                            allTests={allTests}
-                            onRefresh={refreshData}
+                            onRefreshGroups={refreshGroups}
                             theme={theme}
                         />
                     )}

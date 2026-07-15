@@ -445,7 +445,7 @@ export default function Practice() {
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
         ) : (
-            <AnimatePresence mode="wait">
+            <>
               {filteredTests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
                    <div className="w-16 h-16 bg-[#f5f5f7] rounded-full flex items-center justify-center mb-6">
@@ -457,9 +457,8 @@ export default function Practice() {
               ) : (
                   <motion.div 
                     key={`${activeTab}`}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={false}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }}
                     className="space-y-10 pb-20"
                   >
@@ -644,7 +643,7 @@ export default function Practice() {
                         })()}
                   </motion.div>
               )}
-            </AnimatePresence>
+            </>
         )}
         </div>
       </main>

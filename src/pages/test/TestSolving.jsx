@@ -145,7 +145,8 @@ export default function TestSolving() {
         isExitingRef.current = true;
         setShowExitWarning(false);
 
-        if (hasGroupId && isReading) {
+        const isAssignment = !!test?.isAssignment;
+        if (hasGroupId && isReading && isAssignment) {
             await handleSubmit();
         } else {
             if (user && test) {

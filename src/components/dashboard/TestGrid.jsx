@@ -52,12 +52,15 @@ const TestCard = ({ test, onStart, onReview, isPremium, onUpgradeClick }) => {
 };
 
 const TestCardContent = ({ test, onStart, onReview, isPremium, onUpgradeClick }) => {
-    const { user } = useAuth(); // Import useAuth
+    const { user, userData } = useAuth(); // Import useAuth
     const [hasDraft, setHasDraft] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
-    const { type, title, duration, questionsCount, status, result, attemptsCount = 0, maxAttempts = 1, isStrict, endDate } = test;
-    const canRetake = attemptsCount < maxAttempts;
+    const { type, title, duration, questionsCount, status, result, attemptsCount = 0, isStrict, endDate } = test;
+    const isAssignment = !!test.isAssignment;
+    const hasGroupId = userData?.groupId && userData?.groupId !== 'none';
+    const maxAttempts = test.maxAttempts !== undefined ? test.maxAttempts : (hasGroupId ? (isAssignment ? 1 : Infinity) : 5);
+    const canRetake = isAssignment ? (attemptsCount < maxAttempts) : true;
 
     // Status checks
     const isCompleted = status === 'completed';
@@ -228,7 +231,7 @@ const TestCardContent = ({ test, onStart, onReview, isPremium, onUpgradeClick })
                     </div>
 
                     {/* Urinishlar ko'rsatkichi */}
-                    {!isPremium && (
+                    {isAssignment && (
                         <div className="mt-3 flex flex-col gap-1">
                             <div className={`text-[11px] font-bold uppercase tracking-wider ${attemptsCount >= maxAttempts ? 'text-red-400' : 'text-blue-400'}`}>
                                 Urinishlar: {attemptsCount} / {maxAttempts}

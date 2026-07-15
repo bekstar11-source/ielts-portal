@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStudentData } from "../../hooks/useStudentData";
@@ -300,12 +300,11 @@ export default function ListeningFull() {
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
         ) : (
-            <AnimatePresence mode="wait">
+            <>
                 <motion.div 
                     key="collections"
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={false}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
                     className="space-y-16 pb-20"
                 >
                     <ListeningCollectionsSection
@@ -322,7 +321,7 @@ export default function ListeningFull() {
                         freeOnly={freeOnly}
                     />
                 </motion.div>
-            </AnimatePresence>
+            </>
         )}
         </div>
       </main>

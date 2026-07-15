@@ -34,7 +34,7 @@ export default function LibrarySubHeader({ activeTab, scrolledContent }) {
   };
 
   return (
-    <div className="sticky top-12 z-[55] w-full bg-[#F5F5F7]/80 backdrop-blur-[20px] h-[52px] border-b border-black/5 flex items-center justify-center gpu-accelerated">
+    <div className="sticky top-12 z-[55] w-full bg-[#F5F5F7] dark:bg-[#121212] h-[52px] border-b border-black/5 dark:border-white/5 flex items-center justify-center">
       <div className="w-full max-w-[1440px] px-8 flex items-center">
         <div className="flex items-center gap-8">
           <div className="relative h-10 w-14">

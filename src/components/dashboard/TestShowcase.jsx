@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Star, Zap, Clock, ChevronRight, ChevronLeft, Crown } from 'lucide-react';
 
 const ShowcaseCard = ({ test, onStart, isPremium, onUpgradeClick }) => {
-    const { user } = useAuth();
+    const { user, userData } = useAuth();
     const [hasDraft, setHasDraft] = useState(false);
 
     useEffect(() => {
@@ -19,8 +19,11 @@ const ShowcaseCard = ({ test, onStart, isPremium, onUpgradeClick }) => {
     const isMock = test.type === 'mock_full';
 
     // TestGrid bilan bir xil tekshiruvlar
-    const { status, attemptsCount = 0, maxAttempts = 1, isStrict, endDate } = test;
-    const canRetake = attemptsCount < maxAttempts;
+    const { status, attemptsCount = 0, isStrict, endDate } = test;
+    const isAssignment = !!test.isAssignment;
+    const hasGroupId = userData?.groupId && userData?.groupId !== 'none';
+    const maxAttempts = test.maxAttempts !== undefined ? test.maxAttempts : (hasGroupId ? (isAssignment ? 1 : Infinity) : 5);
+    const canRetake = isAssignment ? (attemptsCount < maxAttempts) : true;
     const isCompleted = status === 'completed';
     const isExpired = status === 'expired';
     const isUpcoming = status === 'upcoming';
@@ -62,7 +65,7 @@ const ShowcaseCard = ({ test, onStart, isPremium, onUpgradeClick }) => {
                     <span className="flex items-center gap-1"><Star size={12} className="text-yellow-500" /> {test.difficulty || 'Medium'}</span>
                 </div>
 
-                {!isPremium && (
+                {isAssignment && (
                     <div className="mt-4 flex flex-col gap-1">
                         <div className={`text-[11px] font-bold uppercase tracking-wider ${attemptsCount >= maxAttempts ? 'text-red-500' : 'text-blue-600'}`}>
                             Urinishlar: {attemptsCount} / {maxAttempts}

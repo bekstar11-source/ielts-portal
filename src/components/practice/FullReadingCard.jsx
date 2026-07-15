@@ -11,7 +11,10 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
   const [isShareOpen, setIsShareOpen] = useState(false);
   const { userData } = useAuth();
   const hasGroupId = userData?.groupId && userData?.groupId !== 'none';
-  const disableRetake = hasGroupId;
+  const isAssignment = !!test.isAssignment;
+  const attemptsCount = test.attemptsCount || 0;
+  const maxAttempts = test.maxAttempts || 1;
+  const disableRetake = hasGroupId && isAssignment && (attemptsCount >= maxAttempts);
   const passages = test.title?.split('/').map(s => s.trim()) || [test.title];
 
   const canAccess = isPro || isStandard || !!test.isFree;

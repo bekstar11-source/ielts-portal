@@ -164,10 +164,13 @@ export function useStudentData(user) {
                 return null;
             };
 
-            const normalizedUserAssignments = userAssignments.map(normalizeAssignment).filter(Boolean);
+            const normalizedUserAssignments = userAssignments.map(a => {
+                const norm = normalizeAssignment(a);
+                return norm ? { ...norm, isAssignment: true } : null;
+            }).filter(Boolean);
             const normalizedGroupAssignments = groupAssignments.map(a => {
                 const norm = normalizeAssignment(a);
-                return norm ? { ...norm, groupId: a.groupId, groupName: a.groupName } : null;
+                return norm ? { ...norm, groupId: a.groupId, groupName: a.groupName, isAssignment: true } : null;
             }).filter(Boolean);
 
             const allAssignments = [...normalizedUserAssignments, ...normalizedGroupAssignments];
@@ -192,7 +195,7 @@ export function useStudentData(user) {
             // Parallel fetch sets, direct tests, podcasts, and articles
             const [setsMap, directTestsMap, podcastsMap, articlesMap] = await Promise.all([
                 fetchDocumentsByIds('testSets', setIdsToFetch),
-                fetchDocumentsByIds('tests', directTestIds),
+                fetchDocumentsByIds('tests_metadata', directTestIds),
                 fetchDocumentsByIds('podcasts', podcastIdsToFetch),
                 fetchDocumentsByIds('articles', articleIdsToFetch)
             ]);
@@ -208,7 +211,7 @@ export function useStudentData(user) {
                 }
             });
 
-            const indirectTestsMap = await fetchDocumentsByIds('tests', indirectTestIds);
+            const indirectTestsMap = await fetchDocumentsByIds('tests_metadata', indirectTestIds);
             const testsMap = { ...directTestsMap, ...indirectTestsMap };
 
             // 4. Processlanib chiqarish
@@ -262,6 +265,7 @@ export function useStudentData(user) {
                                     maxAttempts: maxAtts,
                                     endDate: assign.deadline || assign.endDate || null,
                                     startDate: assign.startDate || null,
+                                    isAssignment: true,
                                 };
                             }
                             return null;

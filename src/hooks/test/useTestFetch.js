@@ -79,10 +79,13 @@ export function useTestFetch(testId, user, userData, navigate) {
                     if (assignment) {
                         maxAttempts = Number(assignment.maxAttempts) || 1;
                         deadline = assignment.deadline || assignment.endDate || null;
-                    } else if (hasGroupId && testData.type === 'reading') {
-                        maxAttempts = 1; // Default for grouped reading tests
+                        testData.isAssignment = true;
+                    } else if (hasGroupId) {
+                        maxAttempts = Infinity;
+                        testData.isAssignment = false;
                     } else {
-                        maxAttempts = 5; // Default limit for public/standard tests
+                        maxAttempts = 5;
+                        testData.isAssignment = false;
                     }
 
                     // 1. Deadline check

@@ -278,9 +278,11 @@ export default function DashboardModals({
                                                             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border border-solid ${getBadgeStyle(sub.type, isDark)}`}>
                                                                 {sub.type?.toUpperCase()}
                                                             </span>
-                                                            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border border-solid ${attemptsCount >= maxAttempts ? 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900' : 'bg-[#E4E2E3]/30 dark:bg-zinc-800 text-[#A8AAAC] dark:text-zinc-400 border-[#E4E2E3] dark:border-zinc-700'}`}>
-                                                                {attemptsCount} / {maxAttempts} URINISH
-                                                            </span>
+                                                            {sub.isAssignment && (
+                                                                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border border-solid ${attemptsCount >= maxAttempts ? 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900' : 'bg-[#E4E2E3]/30 dark:bg-zinc-800 text-[#A8AAAC] dark:text-zinc-400 border-[#E4E2E3] dark:border-zinc-700'}`}>
+                                                                    {attemptsCount} / {maxAttempts} URINISH
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         
                                                         {sub.endDate && (

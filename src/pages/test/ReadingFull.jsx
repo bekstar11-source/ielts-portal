@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStudentData } from "../../hooks/useStudentData";
@@ -276,7 +276,7 @@ export default function ReadingFull() {
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
         ) : (
-            <AnimatePresence mode="wait">
+            <>
                 {(() => {
                     if (activeSubTab === 'full_test') {
                         const fullTests = filteredTests.filter(t => !t.isSet && getQuestionCount(t) > 14);
@@ -291,9 +291,8 @@ export default function ReadingFull() {
                         return (
                           <motion.div 
                                 key="full_test"
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={false}
                                 animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
                                 className="space-y-4 pb-20"
                                 ref={fullTestSectionRef}
                             >
@@ -325,9 +324,8 @@ export default function ReadingFull() {
                         return (
                             <motion.div 
                                 key="collections"
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={false}
                                 animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
                                 className="space-y-16 pb-20"
                             >
                                 <ReadingCollectionsSection
@@ -346,7 +344,7 @@ export default function ReadingFull() {
 
                     return null;
                 })()}
-            </AnimatePresence>
+            </>
         )}
         </div>
       </main>

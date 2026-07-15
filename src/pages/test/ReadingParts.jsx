@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStudentData } from "../../hooks/useStudentData";
@@ -559,7 +559,7 @@ export default function ReadingParts() {
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
         ) : (
-             <AnimatePresence mode="wait">
+             <>
                 {filteredTests.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-40 text-center" key="no-passages">
                         <Search size={24} className="text-gray-300 dark:text-zinc-600 mb-6" />
@@ -568,9 +568,8 @@ export default function ReadingParts() {
                 ) : (
                     <motion.div 
                         key="passages"
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={false}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
                         className="space-y-10 pb-20"
                     >
                         <div className="space-y-4" ref={passagesListRef}>
@@ -685,7 +684,7 @@ export default function ReadingParts() {
                         </div>
                     </motion.div>
                 )}
-            </AnimatePresence>
+            </>
         )}
         </div>
       </main>

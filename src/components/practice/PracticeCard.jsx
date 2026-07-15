@@ -15,14 +15,16 @@ if (typeof window !== 'undefined') {
   preloadImg.src = "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/thumbnails%2FGemini_Generated_Image_vx0h6mvx0h6mvx0h-squished.webp?alt=media&token=03a2fab5-c0db-46c9-af03-dd556fb08fde";
 }
 
-export default function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard, passageNumber: passageNumberProp }) {
+const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard, passageNumber: passageNumberProp }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const { userData } = useAuth();
   const hasGroupId = userData?.groupId && userData?.groupId !== 'none';
-  const isReadingTest = test.type === 'reading';
-  const disableRetake = hasGroupId && isReadingTest;
+  const isAssignment = !!test.isAssignment;
+  const attemptsCount = test.attemptsCount || 0;
+  const maxAttempts = test.maxAttempts || 1;
+  const disableRetake = hasGroupId && isAssignment && (attemptsCount >= maxAttempts);
   
   const isPremium = (() => {
     if (test.collectionAccessTier === 'free') return false;
@@ -308,4 +310,6 @@ export default function PracticeCard({ test, isCompleted, onReview, onStart, onS
       />
     </motion.div>
   );
-}
+});
+
+export default PracticeCard;

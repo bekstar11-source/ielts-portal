@@ -9,8 +9,6 @@ export const useAdminUsers = (activeTab = 'students') => {
     const [students, setStudents] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [groups, setGroups] = useState([]);
-    const [allTests, setAllTests] = useState([]);
-    const [testSets, setTestSets] = useState([]);
     const [lastDoc, setLastDoc] = useState(null);
     const [hasMoreStudents, setHasMoreStudents] = useState(true);
     const [totalStudents, setTotalStudents] = useState(0);
@@ -29,15 +27,10 @@ export const useAdminUsers = (activeTab = 'students') => {
             ]);
 
             const allFetchedUsers = u.docs.map(d => ({ id: d.id, ...d.data() }));
-            allFetchedUsers.sort((a, b) => {
-                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                return dateB - dateA;
-            });
-            
+
             setTotalStudents(countSnap.data().count);
             const studentList = allFetchedUsers.filter(user => user.role !== 'admin' && user.role !== 'teacher');
-            
+
             setStudents(studentList);
             setLastDoc(u.docs[u.docs.length - 1]);
             setHasMoreStudents(u.docs.length === 100);
@@ -66,33 +59,13 @@ export const useAdminUsers = (activeTab = 'students') => {
         }
     };
 
-    const fetchTests = async () => {
-        try {
-            const snap = await getDocs(query(collection(db, 'tests_metadata'), orderBy('createdAt', 'desc')));
-            setAllTests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        } catch (e) {
-            console.error("Error fetching tests:", e);
-        }
-    };
-
-    const fetchTestSets = async () => {
-        try {
-            const snap = await getDocs(query(collection(db, 'testSets'), orderBy('createdAt', 'desc')));
-            setTestSets(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        } catch (e) {
-            console.error("Error fetching test sets:", e);
-        }
-    };
-
     const refreshData = useCallback(async () => {
         setLoading(true);
         try {
             const promises = [fetchStudents()];
-            
+
             if (activeTab === 'groups' || teachers.length > 0) promises.push(fetchTeachers());
-            if (activeTab === 'groups' || activeTab === 'assign' || groups.length > 0) promises.push(fetchGroups());
-            if (activeTab === 'assign' || activeTab === 'sets' || allTests.length > 0) promises.push(fetchTests());
-            if (activeTab === 'sets' || testSets.length > 0) promises.push(fetchTestSets());
+            if (activeTab === 'groups' || groups.length > 0) promises.push(fetchGroups());
 
             await Promise.all(promises);
         } catch (e) {
@@ -100,7 +73,19 @@ export const useAdminUsers = (activeTab = 'students') => {
         } finally {
             setLoading(false);
         }
-    }, [activeTab, teachers.length, groups.length, allTests.length, testSets.length]);
+    }, [activeTab, teachers.length, groups.length]);
+
+    // Lightweight refresh used after group mutations (add/remove student, rename, etc.)
+    // so we don't re-fetch the whole student list on every small edit.
+    const refreshGroups = useCallback(async () => {
+        await fetchGroups();
+    }, []);
+
+    // Optimistically patch a single student in local state after an edit,
+    // avoiding a full refetch of the student list.
+    const updateStudentLocal = useCallback((studentId, patch) => {
+        setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...patch } : s));
+    }, []);
 
     const loadMoreStudents = useCallback(async () => {
         if (!lastDoc || !hasMoreStudents) return;
@@ -115,14 +100,14 @@ export const useAdminUsers = (activeTab = 'students') => {
             const snap = await getDocs(nextQuery);
             const newUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             const newStudents = newUsers.filter(user => user.role !== 'admin' && user.role !== 'teacher');
-            
+
             setStudents(prev => [...prev, ...newStudents]);
             setLastDoc(snap.docs[snap.docs.length - 1]);
             setHasMoreStudents(snap.docs.length === 100);
-        } catch (e) { 
-            console.error(e); 
-        } finally { 
-            setLoading(false); 
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
         }
     }, [lastDoc, hasMoreStudents]);
 
@@ -141,24 +126,6 @@ export const useAdminUsers = (activeTab = 'students') => {
                     await Promise.all(promises);
                     setLoading(false);
                 }
-            } else if (activeTab === 'assign') {
-                const promises = [];
-                if (groups.length === 0) promises.push(fetchGroups());
-                if (allTests.length === 0) promises.push(fetchTests());
-                if (promises.length > 0) {
-                    setLoading(true);
-                    await Promise.all(promises);
-                    setLoading(false);
-                }
-            } else if (activeTab === 'sets') {
-                const promises = [];
-                if (testSets.length === 0) promises.push(fetchTestSets());
-                if (allTests.length === 0) promises.push(fetchTests());
-                if (promises.length > 0) {
-                    setLoading(true);
-                    await Promise.all(promises);
-                    setLoading(false);
-                }
             }
         };
 
@@ -170,11 +137,11 @@ export const useAdminUsers = (activeTab = 'students') => {
         students,
         teachers,
         groups,
-        allTests,
-        testSets,
         hasMoreStudents,
         totalStudents,
         refreshData,
+        refreshGroups,
+        updateStudentLocal,
         loadMoreStudents
     };
 };
