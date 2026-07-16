@@ -26,7 +26,7 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
   const maxAttempts = test.maxAttempts || 1;
   const disableRetake = hasGroupId && isAssignment && (attemptsCount >= maxAttempts);
   
-  const isPremium = (() => {
+  const isPremiumContent = (() => {
     if (test.collectionAccessTier === 'free') return false;
     if (test.collectionAccessTier === 'standard' || test.collectionAccessTier === 'pro') return true;
     return (test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening') && !test.isFree;
@@ -78,6 +78,7 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
     : (test.type === 'mock_full' ? 'Full Mock' : 'IELTS Test');
 
   const canAccess = (() => {
+    if (userData?.role === 'admin' || userData?.role === 'teacher' || userData?.isPremium) return true;
     if (test.collectionAccessTier === 'free') return true;
     if (test.collectionAccessTier === 'standard') return isStandard || isPro;
     if (test.collectionAccessTier === 'pro') return isPro;
@@ -89,14 +90,14 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
       onReview(test);
     } else if (test.isSet) {
       onSelectSet(test);
-    } else if (!canAccess && isPremium) {
+    } else if (!canAccess && isPremiumContent) {
       navigate('/pricing');
     } else {
       onStart(test);
     }
   };
 
-  const showGetAccess = !canAccess && isPremium && !isCompleted && !test.isSet;
+  const showGetAccess = !canAccess && isPremiumContent && !isCompleted && !test.isSet;
 
   const derivedQuestionTypes = deriveQuestionTypesForCard(test);
 
@@ -187,7 +188,7 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
                 <span className="px-2.5 py-1 rounded-full bg-[#0064e0] text-white text-[11px] font-bold tracking-wide flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm">
                   <Zap size={9} fill="currentColor" /> STANDARD
                 </span>
-              ) : test.collectionAccessTier === 'pro' || (isPremium && !test.collectionAccessTier) ? (
+              ) : test.collectionAccessTier === 'pro' || (isPremiumContent && !test.collectionAccessTier) ? (
                 <span className="px-2.5 py-1 rounded-full bg-[#f7b928] text-[#0a1317] text-[11px] font-bold tracking-wide flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm">
                   <Crown size={9} fill="currentColor" /> PRO
                 </span>

@@ -363,10 +363,6 @@ export default function Practice() {
   };
 
   const handleReview = (test) => {
-    if (!isPremium) {
-      setShowPricingModal(true);
-      return;
-    }
     const resultId = test.result?.id;
     if (!resultId) {
       alert(t('practice.resultNotFound'));

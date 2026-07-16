@@ -3,6 +3,7 @@ import { ChevronRight, Crown, Zap, BookOpen, FileText, Diamond } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../context/LanguageContext';
 import QuestionTypeTags from './QuestionTypeTags';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ReadingSetCard({ set, index, isCompleted, onReview, onSelectSet, isPro, isStandard }) {
   const navigate = useNavigate();
@@ -10,8 +11,9 @@ export default function ReadingSetCard({ set, index, isCompleted, onReview, onSe
   const accentColors = ['bg-[#0a84ff]', 'bg-[#bf5af2]', 'bg-[#30d158]', 'bg-[#ff9f0a]'];
   const subCount = set.subTests?.length || 3;
   const glowColor = accentColors[index % accentColors.length];
+  const { userData } = useAuth();
 
-  const canAccess = isPro || isStandard;
+  const canAccess = isPro || isStandard || userData?.role === 'admin' || userData?.role === 'teacher' || userData?.isPremium;
   const showGetAccess = !canAccess && !isCompleted;
 
   const handleClick = () => {

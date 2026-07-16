@@ -17,7 +17,7 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
   const disableRetake = hasGroupId && isAssignment && (attemptsCount >= maxAttempts);
   const passages = test.title?.split('/').map(s => s.trim()) || [test.title];
 
-  const canAccess = isPro || isStandard || !!test.isFree;
+  const canAccess = isPro || isStandard || !!test.isFree || userData?.role === 'admin' || userData?.role === 'teacher' || userData?.isPremium;
 
   const handleClick = () => {
     if (isCompleted) {

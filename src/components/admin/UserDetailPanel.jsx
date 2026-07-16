@@ -86,7 +86,9 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
             const dataToSave = { ...formData };
             if (dataToSave.accountType === 'pro' || dataToSave.accountType === 'standard') {
                 if (dataToSave.subscriptionEnd) {
-                    dataToSave.subscriptionEnd = new Date(dataToSave.subscriptionEnd);
+                    const endOfExpiryDate = new Date(dataToSave.subscriptionEnd);
+                    endOfExpiryDate.setHours(23, 59, 59, 999);
+                    dataToSave.subscriptionEnd = endOfExpiryDate;
                 } else {
                     const defaultEnd = new Date();
                     defaultEnd.setDate(defaultEnd.getDate() + 30);

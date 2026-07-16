@@ -491,11 +491,7 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                       ['admin', 'teacher'].includes(userData?.role);
 
     const handleReviewClick = () => {
-        if (isPremium) {
-            navigate(`/review/${test.resultId || test.id}`);
-        } else {
-            window.dispatchEvent(new CustomEvent('open-pricing'));
-        }
+        navigate(`/review/${test.resultId || test.id}`);
     };
 
     if (tab === 'past') {

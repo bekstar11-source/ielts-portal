@@ -80,8 +80,11 @@ export function AuthProvider({ children }) {
       const expiryDate = data.subscriptionEnd.seconds 
         ? new Date(data.subscriptionEnd.seconds * 1000) 
         : new Date(data.subscriptionEnd);
+      
+      const endOfExpiryDate = new Date(expiryDate);
+      endOfExpiryDate.setHours(23, 59, 59, 999);
         
-      if (new Date() > expiryDate) {
+      if (new Date() > endOfExpiryDate) {
         const updatedFields = {
           accountType: 'public',
           isPro: false,
