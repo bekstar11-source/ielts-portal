@@ -72,7 +72,7 @@ export function useMergeTests({ onSaved, onClose }) {
             if (mergedPayload.type === 'listening') {
                 const parts = {};
                 (mergedPayload.passages || []).forEach((passage, idx) => {
-                    const partNum = getPassageOrPartNum(passage, idx, 'listening', mergedPayload.questions || []);
+                    const partNum = passage.partNumber || (idx + 1);
                     const partKey = `part${partNum}`;
                     const passageQuestions = (mergedPayload.questions || []).filter(
                         q => String(q.passageId) === String(passage.id)
@@ -102,7 +102,7 @@ export function useMergeTests({ onSaved, onClose }) {
             } else if (mergedPayload.type === 'reading') {
                 const passages = {};
                 (mergedPayload.passages || []).forEach((passage, idx) => {
-                    const passNum = getPassageOrPartNum(passage, idx, 'reading', mergedPayload.questions || []);
+                    const passNum = passage.partNumber || (idx + 1);
                     const passKey = `passage${passNum}`;
                     const passageQuestions = (mergedPayload.questions || []).filter(
                         q => String(q.passageId) === String(passage.id)

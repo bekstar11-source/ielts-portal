@@ -165,7 +165,7 @@ export default function TestReview() {
             />
 
             <div className="flex flex-col flex-1 overflow-hidden relative">
-                <div className="flex-1 overflow-y-auto no-scrollbar relative bg-gray-50/30">
+                <div className="flex-1 overflow-hidden relative bg-gray-50/30">
                     {!effectiveIsPremium && (testData.type?.toLowerCase() === 'reading' || testData.type?.toLowerCase() === 'listening') ? (
                         <PremiumLockedReview
                             testData={testData}

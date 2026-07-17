@@ -59,7 +59,7 @@ function ReadingPreview({ testData }) {
     }));
 
     const currentPassageRaw = passages[activePassage];
-    const storageKey = `preview_reading_passage_${activePassage}`;
+    const storageKey = null; // Disable local storage cache for previews so we always see live JSON changes
 
     // Passage label (1-3)
     const passageQuestions = questions.filter(g => String(g.passageId) === String(currentPassageRaw?.id)) || [];

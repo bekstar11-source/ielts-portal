@@ -282,7 +282,7 @@ export default function ReadingInterface({
   return (
     <div 
         className={`flex flex-col w-full bg-ielts-bg text-black overflow-hidden relative ${textSize || 'text-base'}`} 
-        style={{ height: '100dvh' }} 
+        style={{ height: '100%' }} 
         ref={rootRef}
     >
       <style>{readingInterfaceStyles}</style>

@@ -7,6 +7,12 @@ import { AuthProvider } from './context/AuthContext'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LanguageProvider } from './context/LanguageContext'
 
+// Handle chunk loading errors (usually happens after a new deployment)
+window.addEventListener('vite:preloadError', (event) => {
+  // Reload the page to fetch the new scripts
+  window.location.reload()
+})
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

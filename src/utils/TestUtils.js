@@ -161,12 +161,28 @@ export const mergeTestsLogic = (selectedTestObjects, mergeTitle) => {
                     }
                     
                     if (updated.id && !Array.isArray(updated.items) && !Array.isArray(updated.questions)) {
-                        if (/^\d+$/.test(String(updated.id))) {
+                        const idStr = String(updated.id);
+                        if (/^\d+$/.test(idStr)) {
                             updated.id = String(questionIdCounter++);
+                        } else if (/^\d+\s*[\-–_]\s*\d+$/.test(idStr)) {
+                            const parts = idStr.split(/[\-–_]/);
+                            const start = parseInt(parts[0], 10);
+                            const end = parseInt(parts[1], 10);
+                            if (!isNaN(start) && !isNaN(end)) {
+                                const count = Math.abs(end - start) + 1;
+                                const newStart = questionIdCounter;
+                                const newEnd = questionIdCounter + count - 1;
+                                updated.id = `${newStart}-${newEnd}`;
+                                questionIdCounter += count;
+                            }
+                        } else if (/^(\d+\s*,\s*)+\d+$/.test(idStr)) {
+                            const parts = idStr.split(',');
+                            const newIds = parts.map(() => String(questionIdCounter++));
+                            updated.id = newIds.join(',');
                         }
                     }
                     
-                    for (const key of ['items', 'questions', 'groups']) {
+                    for (const key of ['items', 'questions', 'groups', 'rows', 'cells', 'content', 'parts']) {
                         if (updated[key]) updated[key] = walkAndReindex(updated[key]);
                     }
                     return updated;
@@ -333,8 +349,25 @@ export const getActualQuestionCount = (test, partNumber = null) => {
     const ids = new Set();
     const extract = (obj) => {
         if (!obj) return;
-        if (obj.id && !isNaN(parseInt(obj.id))) {
-            ids.add(parseInt(obj.id));
+        if (obj.id) {
+            const idStr = String(obj.id);
+            if (/^\d+\s*[\-–_]\s*\d+$/.test(idStr)) {
+                const parts = idStr.split(/[\-–_]/);
+                const start = parseInt(parts[0], 10);
+                const end = parseInt(parts[1], 10);
+                if (!isNaN(start) && !isNaN(end)) {
+                    for (let n = Math.min(start, end); n <= Math.max(start, end); n++) {
+                        ids.add(n);
+                    }
+                }
+            } else if (/^(\d+\s*,\s*)+\d+$/.test(idStr)) {
+                idStr.split(',').forEach(p => {
+                    const num = parseInt(p, 10);
+                    if (!isNaN(num)) ids.add(num);
+                });
+            } else if (!isNaN(parseInt(idStr))) {
+                ids.add(parseInt(idStr));
+            }
         }
         if (obj.rows && Array.isArray(obj.rows)) {
             obj.rows.forEach(row => {

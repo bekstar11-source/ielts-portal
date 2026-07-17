@@ -76,8 +76,8 @@ export default function ReadingParts() {
     const uniqueLibrary = libraryTests.filter(t => !assignedIds.has(t.id));
     let combined = [...assignments, ...uniqueLibrary];
 
-    // Filter out tests in private collections for students
-    if (!isAdminOrTeacher && privateColIds.size > 0) {
+    // Filter out tests in private collections (even for admins)
+    if (privateColIds.size > 0) {
       combined = combined.filter(t => !t.collectionId || !privateColIds.has(t.collectionId));
     }
 
@@ -373,7 +373,7 @@ export default function ReadingParts() {
           const uniqueLibrary = testsList.filter(t => !assignedIds.has(t.id));
           let combined = [...assignments, ...uniqueLibrary];
 
-          if (!isAdminOrTeacher && privateColIds.size > 0) {
+          if (privateColIds.size > 0) {
             combined = combined.filter(t => !t.collectionId || !privateColIds.has(t.collectionId));
           }
 

@@ -89,7 +89,7 @@ export default function ReadingCollectionsSection({
                                     <BookOpen size={20} className="text-[#0066cc]" />
                                     Full Mock Tests ({collectionProcessedTests.fullTestsList.length})
                                 </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                                     {collectionProcessedTests.fullTestsList.map(test => (
                                         <PracticeCard 
                                             key={test.id} 
