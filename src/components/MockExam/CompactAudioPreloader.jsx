@@ -41,7 +41,8 @@ export default function CompactAudioPreloader({ test, onReady }) {
             const pollId = setInterval(() => {
                 const audioEl = document.getElementById(`preload-audio-${idx}`);
                 if (!audioEl) return;
-                if (audioEl.readyState >= 3 || audioEl.error) {
+                // Since we changed to metadata preload, we just need HAVE_METADATA (1) instead of HAVE_FUTURE_DATA (3)
+                if (audioEl.readyState >= 1 || audioEl.error) {
                     clearInterval(pollId);
                     checkLoaded();
                 }
@@ -72,7 +73,7 @@ export default function CompactAudioPreloader({ test, onReady }) {
                 const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
                 if (!src) return null;
                 return (
-                    <audio key={idx} id={`preload-audio-${idx}`} src={src} preload="auto" style={{ display: 'none' }} />
+                    <audio key={idx} id={`preload-audio-${idx}`} src={src} preload="metadata" style={{ display: 'none' }} />
                 );
             })}
 

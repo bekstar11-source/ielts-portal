@@ -83,6 +83,45 @@ export default function AdminTests() {
     const [editingTest, setEditingTest] = useState(null);
     const [highlightedTestId, setHighlightedTestId] = useState(null);
     const [previousFilterCollection, setPreviousFilterCollection] = useState(null);
+    const [audioSearch, setAudioSearch] = useState("");
+    const [audioSearchResult, setAudioSearchResult] = useState(null);
+
+    const handleAudioSearch = async () => {
+        if (!audioSearch.trim()) return;
+        setAudioSearchResult("Qidirilmoqda...");
+        try {
+            const { getDocs, collection } = await import("firebase/firestore");
+            const querySnapshot = await getDocs(collection(db, "tests"));
+            let results = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.audioUrl && data.audioUrl.includes(audioSearch)) {
+                    results.push(`✅ Test ID: ${doc.id} | Sarlavha: ${data.title} (Umumiy audio)`);
+                }
+                if (data.passages && Array.isArray(data.passages)) {
+                    data.passages.forEach((p, idx) => {
+                        if ((p.audio && p.audio.includes(audioSearch)) || (p.audioUrl && p.audioUrl.includes(audioSearch))) {
+                            results.push(`✅ Test ID: ${doc.id} | Sarlavha: ${data.title} | Part: ${idx + 1}`);
+                        }
+                    });
+                }
+            });
+            const podcastsSnap = await getDocs(collection(db, "podcasts"));
+            podcastsSnap.forEach((doc) => {
+                const data = doc.data();
+                if (data.audioUrl && data.audioUrl.includes(audioSearch)) {
+                    results.push(`🎙️ Podcast ID: ${doc.id} | Sarlavha: ${data.title}`);
+                }
+            });
+            if (results.length > 0) {
+                setAudioSearchResult(results.join("\n"));
+            } else {
+                setAudioSearchResult("❌ Hech qanday test yoki podcast topilmadi.");
+            }
+        } catch (error) {
+            setAudioSearchResult("Xatolik yuz berdi: " + error.message);
+        }
+    };
 
     const handleHighlightTest = (id) => {
         setHighlightedTestId(id);
@@ -624,6 +663,35 @@ export default function AdminTests() {
                     onToggleStats={toggleStats}
                 />
  
+                {/* Vaqtincha audio qidirish UI */}
+                <div className={`mx-6 mt-4 p-4 rounded-xl border ${isDark ? 'bg-zinc-800/50 border-zinc-700' : 'bg-white border-zinc-200'} shrink-0`}>
+                    <div className="flex gap-2 items-center">
+                        <input 
+                            type="text" 
+                            placeholder="Audio URL yoki fayl nomini qidiring (masalan: 170564...)" 
+                            value={audioSearch}
+                            onChange={(e) => setAudioSearch(e.target.value)}
+                            className={`flex-1 px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-zinc-900 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                        />
+                        <button 
+                            onClick={handleAudioSearch}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                        >
+                            Qidirish
+                        </button>
+                        {audioSearchResult && (
+                            <button onClick={() => setAudioSearchResult(null)} className="px-3 py-2 bg-red-100 text-red-600 hover:bg-red-200 text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
+                                Tozalash
+                            </button>
+                        )}
+                    </div>
+                    {audioSearchResult && (
+                        <pre className={`mt-3 p-3 rounded-lg text-xs whitespace-pre-wrap ${isDark ? 'bg-zinc-900 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}>
+                            {audioSearchResult}
+                        </pre>
+                    )}
+                </div>
+
                 {/* Dashboard stats panel */}
                 {stats && showStats && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-2.5 px-6 pt-4 pb-2 shrink-0 select-none">

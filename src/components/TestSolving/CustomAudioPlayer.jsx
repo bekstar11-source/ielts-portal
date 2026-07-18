@@ -189,8 +189,10 @@ const CustomAudioPlayer = forwardRef(({
             setIsPlaying(false);
             const segmentDur = (endTime && endTime > startTime) ? (endTime - startTime) : (audio.duration || 0);
             if (hasPlayed.current) {
+                if (isSilentRef.current) return; // Silent period is handling the end
+
                 const totalSilence = Number(extraSilentTime) || 0;
-                if (totalSilence > 0 && !isSilentRef.current) {
+                if (totalSilence > 0) {
                     startSilentPeriod(segmentDur);
                 } else {
                     onEnded?.();
@@ -225,6 +227,8 @@ const CustomAudioPlayer = forwardRef(({
             }
 
             if (endTime && endTime > startTime && audio.currentTime >= endTime) {
+                if (isSilentRef.current) return; // Already entered silent period
+
                 const wasPlaying = isPlaying || !audio.paused;
                 isSystemPausedRef.current = true;
                 audio.pause();
@@ -484,7 +488,7 @@ const CustomAudioPlayer = forwardRef(({
             ref={audioRef}
             id={`audio-part-${index}`}
             src={src}
-            preload="auto"
+            preload="metadata"
             style={{ display: 'none' }}
         />
     ), [src, index]);

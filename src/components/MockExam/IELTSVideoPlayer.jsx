@@ -117,7 +117,7 @@ const IELTSVideoPlayer = ({ storagePath, onWatched }) => {
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
                     onEnded={handleEnded}
-                    preload="auto"
+                    preload="metadata"
                     playsInline
                     crossOrigin="anonymous"
                 />
