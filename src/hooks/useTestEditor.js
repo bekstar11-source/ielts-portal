@@ -323,9 +323,7 @@ export const useTestEditor = (id) => {
         return new Promise((resolve, reject) => {
             setUploadProgress(0);
             const storageRef = ref(storage, `${folderName}/${Date.now()}_${file.name}`);
-            const metadata = folderName === 'thumbnails' || file.type.startsWith('image/')
-                ? { cacheControl: 'public,max-age=31536000' }
-                : undefined;
+            const metadata = { cacheControl: 'public,max-age=31536000' };
             const uploadTask = uploadBytesResumable(storageRef, file, metadata);
 
             uploadTask.on(

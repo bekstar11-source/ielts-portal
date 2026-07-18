@@ -132,7 +132,8 @@ export default function TeacherCreateWriting() {
             let task1ImageUrl = "";
             if (task1Image) {
                 const imageRef = ref(storage, `writing_images/${Date.now()}_${task1Image.name}`);
-                await uploadBytes(imageRef, task1Image);
+                const metadata = { cacheControl: 'public,max-age=31536000' };
+                await uploadBytes(imageRef, task1Image, metadata);
                 task1ImageUrl = await getDownloadURL(imageRef);
             } else if (selectedTemplateId) {
                 task1ImageUrl = templates.find(t => t.id === selectedTemplateId)?.task1ImageUrl || "";

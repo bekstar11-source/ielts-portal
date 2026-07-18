@@ -90,7 +90,8 @@ export const useAdminArticles = () => {
         setProcessing(true);
         try {
             const storageRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
-            const uploadTask = await uploadBytesResumable(storageRef, file);
+            const metadata = { cacheControl: 'public,max-age=31536000' };
+            const uploadTask = await uploadBytesResumable(storageRef, file, metadata);
             const downloadURL = await getDownloadURL(uploadTask.ref);
             return downloadURL;
         } catch (err) {

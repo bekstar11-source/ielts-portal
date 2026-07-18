@@ -161,7 +161,8 @@ export default function PostFormModal({
                     // Upload multiple images
                     const uploadPromises = Array.from(postForm.mediaFiles).map(async (file) => {
                         const fileRef = ref(storage, `feed_posts/${Date.now()}_${file.name}`);
-                        const uploadSnap = await uploadBytes(fileRef, file);
+                        const metadata = { cacheControl: 'public,max-age=31536000' };
+                        const uploadSnap = await uploadBytes(fileRef, file, metadata);
                         return getDownloadURL(uploadSnap.ref);
                     });
                     mediaUrls = await Promise.all(uploadPromises);
@@ -169,7 +170,8 @@ export default function PostFormModal({
                 } else if (postForm.mediaFile) {
                     // Single media fallback
                     const fileRef = ref(storage, `feed_posts/${Date.now()}_${postForm.mediaFile.name}`);
-                    const uploadSnap = await uploadBytes(fileRef, postForm.mediaFile);
+                    const metadata = { cacheControl: 'public,max-age=31536000' };
+                    const uploadSnap = await uploadBytes(fileRef, postForm.mediaFile, metadata);
                     const singleUrl = await getDownloadURL(uploadSnap.ref);
                     mediaUrls = [singleUrl];
                     mediaType = postForm.mediaFile.type.startsWith('video/') ? 'video' : 'image';

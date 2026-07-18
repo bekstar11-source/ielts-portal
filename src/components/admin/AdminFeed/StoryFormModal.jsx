@@ -134,7 +134,8 @@ export default function StoryFormModal({
 
             if (storyForm.mediaFile && storyForm.mediaType !== 'text') {
                 const fileRef = ref(storage, `stories/${Date.now()}_${storyForm.mediaFile.name}`);
-                const uploadSnap = await uploadBytes(fileRef, storyForm.mediaFile);
+                const metadata = { cacheControl: 'public,max-age=31536000' };
+                const uploadSnap = await uploadBytes(fileRef, storyForm.mediaFile, metadata);
                 mediaUrl = await getDownloadURL(uploadSnap.ref);
             }
 
