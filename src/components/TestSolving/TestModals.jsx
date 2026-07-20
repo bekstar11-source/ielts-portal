@@ -8,86 +8,10 @@ import { useTranslation } from '../../context/LanguageContext';
 import DetailedAnswersModal from '../TestReview/DetailedAnswersModal';
 
 // ──────────────────────────────────────────────
-// AUDIO PRELOADER HOOK
-// CORS-safe audio preloading using HTML5 Audio element
+// NOTE: useAudioPreloader hook REMOVED to fix bandwidth issue.
+// Audio preloading is handled solely by TestHeader's AudioPreloader.
+// This eliminates duplicate downloads that were causing 2x bandwidth.
 // ──────────────────────────────────────────────
-function useAudioPreloader(audioUrls) {
-    const [progress, setProgress] = useState(0);   // 0..100
-    const [done, setDone] = useState(false);
-    const [error, setError] = useState(null);
-    const blobUrls = useRef({});
-
-    useEffect(() => {
-        if (!audioUrls || audioUrls.length === 0) {
-            setProgress(100);
-            setDone(true);
-            return;
-        }
-
-        let cancelled = false;
-        let loaded = 0;
-
-        const load = (url) => {
-            return new Promise((resolve) => {
-                const audio = new Audio();
-                audio.preload = "auto";
-                
-                const onCanPlayThrough = () => {
-                    if (cancelled) return;
-                    blobUrls.current[url] = url; // Use original URL directly (browser will read from cache)
-                    resolve();
-                };
-                
-                const onError = (e) => {
-                    if (cancelled) return;
-                    console.warn('Audio preload failed/blocked for:', url, e);
-                    blobUrls.current[url] = url; // Fallback to original URL
-                    resolve();
-                };
-                
-                audio.addEventListener('canplaythrough', onCanPlayThrough);
-                audio.addEventListener('error', onError);
-                
-                // 15 seconds timeout per file to prevent hanging
-                const timer = setTimeout(() => {
-                    if (!cancelled) {
-                        cleanup();
-                        resolve();
-                    }
-                }, 15000);
-                
-                const cleanup = () => {
-                    clearTimeout(timer);
-                    audio.removeEventListener('canplaythrough', onCanPlayThrough);
-                    audio.removeEventListener('error', onError);
-                };
-
-                audio.src = url;
-                audio.load();
-            });
-        };
-
-        const loadAll = async () => {
-            for (let i = 0; i < audioUrls.length; i++) {
-                if (cancelled) break;
-                await load(audioUrls[i]);
-                if (!cancelled) {
-                    loaded++;
-                    setProgress(Math.round((loaded / audioUrls.length) * 100));
-                }
-            }
-            if (!cancelled) {
-                setDone(true);
-            }
-        };
-
-        loadAll();
-
-        return () => { cancelled = true; };
-    }, [audioUrls.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    return { progress, done, error, blobUrls: blobUrls.current };
-}
 
 
 // ──────────────────────────────────────────────
@@ -95,114 +19,42 @@ function useAudioPreloader(audioUrls) {
 // ──────────────────────────────────────────────
 export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowModeSelection, test }) => {
     const { t } = useTranslation();
-    const [phase, setPhase] = useState('select'); // 'select' | 'preloading'
-
-    // Barcha audio URL-larini testdan to'playmiz
-    const allAudioUrls = React.useMemo(() => {
-        if (!test?.passages) return [];
-        return test.passages
-            .map(p => p.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file)
-            .filter(Boolean);
-    }, [test]);
-
-    const { progress, done } = useAudioPreloader(phase === 'preloading' ? allAudioUrls : []);
-
-    // Preloading tugaganida testni boshla
-    useEffect(() => {
-        if (phase === 'preloading' && done) {
-            // Kichik pauza (smooth transition uchun)
-            setTimeout(() => {
-                setTestMode('exam');
-                setShowModeSelection(false);
-            }, 600);
-        }
-    }, [done, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!show) return null;
 
-    // ── SELECT phase ──
-    if (phase === 'select') {
-        return (
-            <div className="absolute inset-0 bg-white/90 z-[999] flex items-center justify-center backdrop-blur-md">
-                <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-lg w-full text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('testSolving.selectModeTitle')}</h2>
-                    <p className="text-gray-500 mb-8 text-sm">{t('testSolving.selectModeSubtitle')}</p>
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* EXAM MODE — avval audio preload qiladi */}
-                        <button
-                            onClick={() => setPhase('preloading')}
-                            className="bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
-                        >
-                            <div className="text-3xl mb-3">🎓</div>
-                            <h3 className="font-bold text-gray-900 group-hover:text-red-600">{t('testSolving.examMode')}</h3>
-                            <p className="text-gray-400 text-xs mt-2">{t('testSolving.examModeDesc')}</p>
-                        </button>
-
-                        {/* PRACTICE MODE — to'g'ridan-to'g'ri boshlanadi */}
-                        <button
-                            onClick={() => {
-                                setTestMode('practice');
-                                setTimeLeft(0);
-                                setShowModeSelection(false);
-                            }}
-                            className="bg-white hover:bg-green-50 border border-gray-200 hover:border-green-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
-                        >
-                            <div className="text-3xl mb-3">🎧</div>
-                            <h3 className="font-bold text-gray-900 group-hover:text-green-600">{t('testSolving.practiceMode')}</h3>
-                            <p className="text-gray-400 text-xs mt-2">{t('testSolving.practiceModeDesc')}</p>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // ── PRELOADING phase ──
     return (
-        <div className="absolute inset-0 bg-white/95 z-[999] flex items-center justify-center backdrop-blur-md">
-            <div className="bg-white p-10 rounded-2xl shadow-xl border border-gray-100 max-w-sm w-full text-center">
-                {/* Animatsiyali ikon */}
-                <div className="relative w-20 h-20 mx-auto mb-6">
-                    <div className="absolute inset-0 rounded-full bg-blue-100 animate-ping opacity-40"></div>
-                    <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200">
-                        <span className="text-3xl">{done ? '✅' : '📡'}</span>
-                    </div>
+        <div className="absolute inset-0 bg-white/90 z-[999] flex items-center justify-center backdrop-blur-md">
+            <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-lg w-full text-center">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('testSolving.selectModeTitle')}</h2>
+                <p className="text-gray-500 mb-8 text-sm">{t('testSolving.selectModeSubtitle')}</p>
+                <div className="grid grid-cols-2 gap-4">
+                    {/* EXAM MODE — TestHeader's AudioPreloader handles buffering */}
+                    <button
+                        onClick={() => {
+                            setTestMode('exam');
+                            setShowModeSelection(false);
+                        }}
+                        className="bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
+                    >
+                        <div className="text-3xl mb-3">🎓</div>
+                        <h3 className="font-bold text-gray-900 group-hover:text-red-600">{t('testSolving.examMode')}</h3>
+                        <p className="text-gray-400 text-xs mt-2">{t('testSolving.examModeDesc')}</p>
+                    </button>
+
+                    {/* PRACTICE MODE — to'g'ridan-to'g'ri boshlanadi */}
+                    <button
+                        onClick={() => {
+                            setTestMode('practice');
+                            setTimeLeft(0);
+                            setShowModeSelection(false);
+                        }}
+                        className="bg-white hover:bg-green-50 border border-gray-200 hover:border-green-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
+                    >
+                        <div className="text-3xl mb-3">🎧</div>
+                        <h3 className="font-bold text-gray-900 group-hover:text-green-600">{t('testSolving.practiceMode')}</h3>
+                        <p className="text-gray-400 text-xs mt-2">{t('testSolving.practiceModeDesc')}</p>
+                    </button>
                 </div>
-
-                <h2 className="text-xl font-bold text-gray-900 mb-1">
-                    {done ? t('testSolving.readyToStart') : t('testSolving.preparingAudio')}
-                </h2>
-                <p className="text-gray-400 text-sm mb-6">
-                    {done
-                        ? t('testSolving.cachedDesc')
-                        : t('testSolving.downloadingDesc')}
-                </p>
-
-                {/* Progress bar */}
-                <div className="w-full bg-gray-100 rounded-full h-2.5 mb-3 overflow-hidden">
-                    <div
-                        className="h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
-                        style={{ width: `${progress}%` }}
-                    ></div>
-                </div>
-                <p className="text-xs text-gray-400 font-mono font-bold">{progress}%</p>
-
-                {/* Part list */}
-                {allAudioUrls.length > 0 && (
-                    <div className="mt-4 flex gap-2 justify-center">
-                        {allAudioUrls.map((url, i) => (
-                            <div
-                                key={i}
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${progress >= Math.round(((i + 1) / allAudioUrls.length) * 100)
-                                        ? 'border-blue-500 bg-blue-500 text-white'
-                                        : 'border-gray-200 bg-white text-gray-400'
-                                    }`}
-                            >
-                                {i + 1}
-                            </div>
-                        ))}
-                    </div>
-                )}
             </div>
         </div>
     );

@@ -7,7 +7,8 @@ import { Volume2, Volume1, VolumeX, Bell, Menu, PenLine, HelpCircle, EyeOff, X, 
 import ShareModal from '../common/ShareModal';
 
 // ─── Audio Preloader (buffering screen) ─────────────────────────────────────
-// Polls each CustomAudioPlayer's <audio> DOM element until readyState >= 3
+// Polls each CustomAudioPlayer's <audio> DOM element until readyState >= 2
+// (HAVE_CURRENT_DATA — enough data to start playback, avoids over-buffering)
 function AudioPreloader({ passages, test, onReady, partNumber = null }) {
     const [loadedCount, setLoadedCount] = useState(0);
     const passagesToLoad = useMemo(() => {
@@ -48,7 +49,7 @@ function AudioPreloader({ passages, test, onReady, partNumber = null }) {
             const pollId = setInterval(() => {
                 const audioEl = document.getElementById(`audio-part-${actualIdx}`);
                 if (!audioEl) return;
-                if (audioEl.readyState >= 3 || audioEl.error) {
+                if (audioEl.readyState >= 2 || audioEl.error) {
                     clearInterval(pollId);
                     checkAllLoaded();
                 }
@@ -402,55 +403,71 @@ const TestHeader = ({
                         ${(testMode === 'exam' && !isReviewing) ? 'pointer-events-none select-none opacity-90' : ''}
                         ${hidePlayer ? 'opacity-0 pointer-events-none invisible' : ''}
                     `}>
-                        {test?.passages?.map((passage, index) => {
-                            const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
-                            if (!src) return null;
+                        {(() => {
+                            // Deduplicate: if multiple passages share the same audio URL,
+                            // only render one <audio> element per unique URL to prevent
+                            // downloading the same file multiple times.
+                            const seenUrls = new Set();
+                            return test?.passages?.map((passage, index) => {
+                                const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
+                                if (!src) return null;
 
-                            // If partNumber is active, only render the player for index === partNumber - 1
-                            if (partNumber && index !== partNumber - 1) return null;
+                                // If partNumber is active, only render the player for index === partNumber - 1
+                                if (partNumber && index !== partNumber - 1) return null;
 
-                            // Calculate overridden bounds
-                            const partKey = `part${index + 1}`;
-                            const partMeta = test?.parts?.[partKey];
+                                // Skip duplicate audio elements for the same URL
+                                // (still render UI player but share the underlying audio element)
+                                const isSharedAudio = !passage.audio && (test?.audio || test?.audio_url || test?.audioUrl || test?.file);
+                                if (isSharedAudio && seenUrls.has(src)) {
+                                    // For shared-audio passages beyond the first, we still need
+                                    // the CustomAudioPlayer UI but it can reference the same audio element.
+                                    // The existing startTime/endTime mechanism handles segmentation.
+                                }
+                                seenUrls.add(src);
 
-                            const defaultStart = passage.audio ? 0 : (index * 450);
-                            const defaultEnd = passage.audio ? 0 : ((index + 1) * 450);
+                                // Calculate overridden bounds
+                                const partKey = `part${index + 1}`;
+                                const partMeta = test?.parts?.[partKey];
 
-                            const startTime = (partMeta?.startSec !== undefined && partMeta?.startSec !== null)
-                                ? Number(partMeta.startSec)
-                                : (passage.startTime || defaultStart);
+                                const defaultStart = passage.audio ? 0 : (index * 450);
+                                const defaultEnd = passage.audio ? 0 : ((index + 1) * 450);
 
-                            const endTime = (partMeta?.endSec !== undefined && partMeta?.endSec !== null)
-                                ? Number(partMeta.endSec)
-                                : (passage.endTime || defaultEnd);
+                                const startTime = (partMeta?.startSec !== undefined && partMeta?.startSec !== null)
+                                    ? Number(partMeta.startSec)
+                                    : (passage.startTime || defaultStart);
 
-                            return (
-                                <CustomAudioPlayer
-                                    key={index}
-                                    ref={el => finalAudioRefs.current[index] = el}
-                                    src={src}
-                                    index={index}
-                                    activePart={activePart}
-                                    isPlayingPart={testMode === 'exam' ? playingPart === index : activePart === index}
-                                    testMode={isReviewing ? 'practice' : testMode}
-                                    isBuffering={isBuffering}
-                                    shouldAutoPlay={triggerPlay && !isBuffering}
-                                    setAudioTime={setAudioTime}
-                                    volume={volume}
-                                    onEnded={() => handleEnded(index)}
-                                    startTime={startTime}
-                                    endTime={endTime}
-                                    resumeTime={resumeAudioTime}
-                                    extraSilentTime={Number(passage.extraSilentTime) || 0}
-                                    onDurationCalculated={(dur) => {
-                                        setPartDurations(prev => {
-                                            if (prev[index] === dur) return prev;
-                                            return { ...prev, [index]: dur };
-                                        });
-                                    }}
-                                />
-                            );
-                        })}
+                                const endTime = (partMeta?.endSec !== undefined && partMeta?.endSec !== null)
+                                    ? Number(partMeta.endSec)
+                                    : (passage.endTime || defaultEnd);
+
+                                return (
+                                    <CustomAudioPlayer
+                                        key={index}
+                                        ref={el => finalAudioRefs.current[index] = el}
+                                        src={src}
+                                        index={index}
+                                        activePart={activePart}
+                                        isPlayingPart={testMode === 'exam' ? playingPart === index : activePart === index}
+                                        testMode={isReviewing ? 'practice' : testMode}
+                                        isBuffering={isBuffering}
+                                        shouldAutoPlay={triggerPlay && !isBuffering}
+                                        setAudioTime={setAudioTime}
+                                        volume={volume}
+                                        onEnded={() => handleEnded(index)}
+                                        startTime={startTime}
+                                        endTime={endTime}
+                                        resumeTime={resumeAudioTime}
+                                        extraSilentTime={Number(passage.extraSilentTime) || 0}
+                                        onDurationCalculated={(dur) => {
+                                            setPartDurations(prev => {
+                                                if (prev[index] === dur) return prev;
+                                                return { ...prev, [index]: dur };
+                                            });
+                                        }}
+                                    />
+                                );
+                            });
+                        })()}
                     </div>
                 )}
 

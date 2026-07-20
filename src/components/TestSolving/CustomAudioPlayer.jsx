@@ -483,15 +483,18 @@ const CustomAudioPlayer = forwardRef(({
     }, []);
 
     // Memoize the audio element to keep it stable and prevent re-creation
+    // In practice mode for non-active parts, use preload="none" to avoid loading audio data
+    // that the user hasn't navigated to yet, saving significant bandwidth.
+    const effectivePreload = isExam ? "metadata" : (isVisible ? "metadata" : "none");
     const audioElement = useMemo(() => (
         <audio
             ref={audioRef}
             id={`audio-part-${index}`}
             src={src}
-            preload="metadata"
+            preload={effectivePreload}
             style={{ display: 'none' }}
         />
-    ), [src, index]);
+    ), [src, index, effectivePreload]);
 
     return (
         <div className={isVisible ? "" : "hidden"} style={{ display: isVisible ? 'block' : 'none' }}>
