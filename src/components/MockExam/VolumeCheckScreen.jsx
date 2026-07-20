@@ -83,6 +83,29 @@ export default function VolumeCheckScreen({ test, onStart }) {
         }
     };
 
+    const handleBlobsReady = (newUrls) => {
+        if (!test) return;
+        
+        // Replace audio URLs in the test object with blob URLs
+        if (test.passages) {
+            test.passages.forEach(passage => {
+                const src = passage.audio || test.audio || test.audio_url || test.audioUrl || test.file;
+                if (src && newUrls[src]) {
+                    // Update only the passage's audio if it has one, 
+                    // otherwise it relies on the root audio URL which we'll update below
+                    if (passage.audio) {
+                        passage.audio = newUrls[passage.audio] || passage.audio;
+                    }
+                }
+            });
+        }
+
+        if (test.audio && newUrls[test.audio]) test.audio = newUrls[test.audio];
+        if (test.audio_url && newUrls[test.audio_url]) test.audio_url = newUrls[test.audio_url];
+        if (test.audioUrl && newUrls[test.audioUrl]) test.audioUrl = newUrls[test.audioUrl];
+        if (test.file && newUrls[test.file]) test.file = newUrls[test.file];
+    };
+
     const canStart = audioReady;
 
     return (
@@ -166,7 +189,7 @@ export default function VolumeCheckScreen({ test, onStart }) {
 
                 {/* Footer button */}
                 <div className="p-3 bg-gray-50 border-t border-gray-100 flex flex-col gap-2">
-                    <CompactAudioPreloader test={test} onReady={() => setAudioReady(true)} />
+                    <CompactAudioPreloader test={test} onReady={() => setAudioReady(true)} onBlobsReady={handleBlobsReady} />
                     <button 
                         onClick={onStart}
                         disabled={!canStart || !hasConfirmed}

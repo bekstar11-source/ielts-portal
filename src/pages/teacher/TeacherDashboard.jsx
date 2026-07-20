@@ -273,6 +273,20 @@ export default function TeacherDashboard() {
                         Obuna & To'lovlar
                     </button>
                     <button
+                        onClick={() => navigate('/teacher/students')}
+                        className="px-8 py-3.5 rounded-full font-semibold text-sm transition-all hover:opacity-90 active:scale-95 flex items-center gap-2"
+                        style={{
+                            background: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.2)',
+                            color: isDark ? '#34D399' : '#059669',
+                            border: isDark ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(16,185,129,0.5)',
+                            backdropFilter: 'blur(8px)',
+                            willChange: 'backdrop-filter',
+                        }}
+                    >
+                        <Users size={18} weight="fill" />
+                        O'quvchilarni Boshqarish
+                    </button>
+                    <button
                         onClick={() => navigate('/mock')}
                         className="px-8 py-3.5 rounded-full font-semibold text-sm transition-all hover:opacity-90 active:scale-95 flex items-center gap-2"
                         style={{

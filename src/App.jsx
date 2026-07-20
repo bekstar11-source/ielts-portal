@@ -24,6 +24,7 @@ const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const TeacherTests = lazy(() => import('./pages/teacher/TeacherTests'));
 const TeacherWritingReview = lazy(() => import('./pages/teacher/TeacherWritingReview'));
 const TeacherGroupStats = lazy(() => import('./pages/teacher/TeacherGroupStats'));
+const TeacherStudents = lazy(() => import('./pages/teacher/TeacherStudents'));
 const TeacherAllResults = lazy(() => import('./pages/teacher/TeacherAllResults'));
 const TeacherCreateWriting = lazy(() => import('./pages/teacher/TeacherCreateWriting'));
 const TeacherSubscription = lazy(() => import('./pages/teacher/TeacherSubscription'));
@@ -176,6 +177,7 @@ function App() {
               <Route path="writing-review" element={<TeacherWritingReview />} />
               <Route path="create-writing" element={<TeacherCreateWriting />} />
               <Route path="group-stats" element={<TeacherGroupStats />} />
+              <Route path="students" element={<TeacherStudents />} />
               <Route path="results" element={<TeacherAllResults />} />
               <Route path="articles" element={<AdminArticles />} />
               <Route path="browse-articles" element={<Articles />} />

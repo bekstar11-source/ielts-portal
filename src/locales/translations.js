@@ -759,6 +759,30 @@ export const translations = {
       onlyCorrect: "Faqat to'g'rilar",
       noAnswer: "Javob berilmagan",
       jumpToQuestion: "O'tish"
+    },
+    teacherStudents: {
+      title: "O'quvchilarni Boshqarish",
+      description: "O'zingizga biriktirilgan guruhlardagi o'quvchilarni ko'rish, qo'shish va ularni guruhdan o'chirish.",
+      backBtn: "Orqaga qaytish",
+      noGroups: "Guruhlar topilmadi",
+      noGroupsDesc: "Sizga hozircha hech qanday guruh biriktirilmagan.",
+      selectGroup: "Guruhni tanlang",
+      studentsCount: "o'quvchi",
+      addStudent: "Yangi O'quvchi Qo'shish",
+      searchPlaceholder: "Ism yoki email orqali qidiring...",
+      searching: "Qidirilmoqda...",
+      noResults: "Hech narsa topilmadi",
+      alreadyInGroup: "Guruhda mavjud",
+      addBtn: "Qo'shish",
+      studentsList: "O'quvchilar ro'yxati",
+      emptyGroup: "Bu guruhda hozircha o'quvchilar yo'q.",
+      emptyGroupHint: "Chap tomondagi qidiruv orqali qo'shishingiz mumkin.",
+      unnamed: "Ismsiz o'quvchi",
+      removeBtn: "O'chirish",
+      removeConfirm: "{name}ni ushbu guruhdan o'chirmoqchimisiz?",
+      studentAdded: "O'quvchi qo'shildi: {name}",
+      studentRemoved: "O'quvchi guruhdan olib tashlandi",
+      errorOccurred: "Xatolik yuz berdi"
     }
   },
   en: {
@@ -1519,6 +1543,30 @@ export const translations = {
        onlyCorrect: "Only Correct",
        noAnswer: "No Answer",
        jumpToQuestion: "Go to"
+     },
+     teacherStudents: {
+       title: "Manage Students",
+       description: "View, add, and remove students from your assigned groups.",
+       backBtn: "Back to Home",
+       noGroups: "No groups found",
+       noGroupsDesc: "You don't have any groups assigned yet.",
+       selectGroup: "Select Group",
+       studentsCount: "students",
+       addStudent: "Add New Student",
+       searchPlaceholder: "Search by name or email...",
+       searching: "Searching...",
+       noResults: "No results found",
+       alreadyInGroup: "Already in group",
+       addBtn: "Add",
+       studentsList: "Students List",
+       emptyGroup: "There are no students in this group yet.",
+       emptyGroupHint: "You can add them using the search on the left.",
+       unnamed: "Unnamed student",
+       removeBtn: "Remove",
+       removeConfirm: "Are you sure you want to remove {name} from this group?",
+       studentAdded: "Student added: {name}",
+       studentRemoved: "Student removed from the group",
+       errorOccurred: "An error occurred"
      }
    }
  };

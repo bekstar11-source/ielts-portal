@@ -16,7 +16,7 @@ export default function TeacherLayout() {
     
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-    const isFullWidthPage = location.pathname.includes('writing-review') || location.pathname.includes('browse-articles');
+    const isFullWidthPage = location.pathname.includes('writing-review') || location.pathname.includes('browse-articles') || location.pathname.includes('students');
 
     const handleTabChange = (tabId) => {
         const pathMap = {
