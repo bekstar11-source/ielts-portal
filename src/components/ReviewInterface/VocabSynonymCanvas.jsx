@@ -12,7 +12,7 @@ import { saveSynonymPairs, getSynonymPairs, deleteSynonymPair, batchAddWordsToBa
  *   testId         – string
  *   testTitle      – string  (WordBank da nom uchun)
  */
-export default function VocabSynonymCanvas({ captureData, onClearCapture, userId, testId, testTitle }) {
+export default function VocabSynonymCanvas({ captureData, onClearCapture, userId, testId, testTitle, onWordClick }) {
     const [isOpen, setIsOpen] = useState(true);
     const [step, setStep] = useState(0);
     const [passageData, setPassageData] = useState(null);
@@ -32,6 +32,7 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
         setIsLoading(true);
         getSynonymPairs(userId, testId)
             .then((data) => {
+                // Fetch returns them in descending order now, so no need to reverse
                 setPairs(data);
                 setUnsavedIds(new Set());
             })
@@ -39,26 +40,66 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
             .finally(() => setIsLoading(false));
     }, [userId, testId]);
 
+    // Warn before leaving if there are unsaved pairs
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (unsavedIds.size > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [unsavedIds.size]);
+
     // Handle incoming capture data
     useEffect(() => {
         if (!captureData) return;
         setIsOpen(true);
-        if (captureData.source === "passage" || (!passageData && captureData.source !== "question")) {
-            setPassageData(captureData);
+        
+        // Clean word from punctuation and spaces
+        const cleanWord = captureData.word ? captureData.word.trim().replace(/[.,!?;:()]/g, '') : "";
+        const cData = { ...captureData, word: cleanWord };
+
+        if (!passageData && !questionData) {
+            if (cData.source === "passage") {
+                setPassageData(cData);
+            } else {
+                setQuestionData(cData);
+            }
             setStep(1);
-        } else if (captureData.source === "question") {
-            if (passageData) {
-                setQuestionData(captureData);
+        } else if (passageData && !questionData) {
+            if (cData.source === "question") {
+                setQuestionData(cData);
                 setStep(2);
             } else {
-                setPassageData({ ...captureData, source: "passage" });
-                setStep(1);
+                setPassageData(cData);
+            }
+        } else if (!passageData && questionData) {
+            if (cData.source === "passage") {
+                setPassageData(cData);
+                setStep(2);
+            } else {
+                setQuestionData(cData);
             }
         }
+        
         onClearCapture();
     }, [captureData]); // eslint-disable-line
 
     const handleAddPair = (relation) => {
+        const isDuplicate = pairs.some(p => 
+            p.passageWord?.toLowerCase() === passageData?.word?.toLowerCase() && 
+            p.questionWord?.toLowerCase() === questionData?.word?.toLowerCase()
+        );
+        
+        if (isDuplicate) {
+            setPassageData(null);
+            setQuestionData(null);
+            setStep(0);
+            return;
+        }
+
         const newPair = {
             id: `local_${Date.now()}`,
             passageWord: passageData?.word,
@@ -102,6 +143,7 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
 
             // Prepare wordbank entries
             const wordbankEntries = withRealIds.map((p) => ({
+                id: p.id,
                 passageWord: p.passageWord || '',
                 questionWord: p.questionWord || '',
                 type: p.type || 'synonym',
@@ -260,8 +302,15 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                                         </span>
                                         <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Qulflandi</span>
                                     </div>
-                                    <p className="text-base font-bold text-white mb-2 underline decoration-blue-500/30 underline-offset-4">{passageData?.word}</p>
-                                    <p className="text-xs mt-1" style={{ color: 'rgba(147,197,253,0.75)' }}>Savoldagi sinonim · antonimni belgilang →</p>
+                                    <p className="text-base font-bold text-white mb-2 underline decoration-blue-500/30 underline-offset-4">
+                                        {passageData ? passageData.word : questionData?.word}
+                                    </p>
+                                    <p className="text-xs mt-1" style={{ color: 'rgba(147,197,253,0.75)' }}>
+                                        {passageData 
+                                            ? "Savoldagi sinonim · antonimni belgilang →"
+                                            : "Matndagi sinonim · antonimni belgilang →"
+                                        }
+                                    </p>
                                 </motion.div>
                             )}
 
@@ -346,7 +395,13 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                                         }}
                                     >
                                         <div className="flex items-center gap-2 min-w-0 flex-1 py-0.5">
-                                            <span className="text-[13px] font-bold text-white leading-snug break-words flex-1 text-right">{pair.passageWord}</span>
+                                            <button 
+                                                onClick={() => onWordClick && onWordClick(pair.passageWord, 'passage')}
+                                                className="text-[13px] font-bold text-white leading-snug break-words flex-1 text-right hover:text-blue-300 transition-colors cursor-pointer"
+                                                title="Matndan izlash"
+                                            >
+                                                {pair.passageWord}
+                                            </button>
                                             <div className="shrink-0 flex flex-col items-center gap-1 mx-1">
                                                 <div className="h-2 w-[1px] bg-white/10 group-hover:bg-white/20 transition-colors"></div>
                                                 <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider border ${cfg.badgeClass}`}>
@@ -354,7 +409,13 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                                                 </span>
                                                 <div className="h-2 w-[1px] bg-white/10 group-hover:bg-white/20 transition-colors"></div>
                                             </div>
-                                            <span className={`text-[13px] leading-snug break-words flex-1 text-left ${cfg.wordClass}`}>{pair.questionWord}</span>
+                                            <button 
+                                                onClick={() => onWordClick && onWordClick(pair.questionWord, 'question')}
+                                                className={`text-[13px] leading-snug break-words flex-1 text-left ${cfg.wordClass} hover:opacity-75 transition-opacity cursor-pointer`}
+                                                title="Savoldan izlash"
+                                            >
+                                                {pair.questionWord}
+                                            </button>
                                             {isUnsaved && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" title="Saqlanmagan" />}
                                         </div>
                                         <button

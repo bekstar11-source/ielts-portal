@@ -143,6 +143,7 @@ const ReadingRightPane = memo(({
     return (
         <div className="h-full relative flex flex-col">
             <div
+                id="reading-right-pane-content"
                 className={`flex-1 overflow-y-auto pt-10 px-6 pb-20 box-border relative select-text bg-white text-black reading-pane-scroll`}
                 style={{
                     fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',

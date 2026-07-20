@@ -164,6 +164,71 @@ export default function ReadingInterface({
     setHighlightTrigger(prev => prev + 1);
   };
 
+  const handleWordClick = useCallback((word, source = 'passage') => {
+    if (!word) return;
+    if (isMobile) {
+      if (source === 'passage' && mobileActiveTab !== 'passage') {
+        setMobileActiveTab('passage');
+      } else if (source === 'question' && mobileActiveTab !== 'questions') {
+        setMobileActiveTab('questions');
+      }
+    }
+
+    setTimeout(() => {
+        const containerId = source === 'question' ? 'reading-right-pane-content' : 'reading-content-display';
+        const contentDiv = document.getElementById(containerId);
+        
+        if (!contentDiv) {
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            window.find(word, false, false, true, false);
+            return;
+        }
+
+        // Remove old transient highlights
+        document.querySelectorAll('.vocab-transient-hl').forEach(el => {
+            const parent = el.parentNode;
+            if (parent) {
+                while(el.firstChild) parent.insertBefore(el.firstChild, el);
+                parent.removeChild(el);
+                parent.normalize();
+            }
+        });
+
+        // Find text nodes containing the word
+        const walker = document.createTreeWalker(contentDiv, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        let found = false;
+        const searchStr = word.toLowerCase();
+
+        while ((node = walker.nextNode())) {
+            const idx = node.nodeValue.toLowerCase().indexOf(searchStr);
+            if (idx >= 0) {
+                const range = document.createRange();
+                range.setStart(node, idx);
+                range.setEnd(node, idx + searchStr.length);
+                
+                const span = document.createElement('span');
+                span.className = 'vocab-transient-hl bg-yellow-300 text-black transition-colors duration-1000';
+                try {
+                    range.surroundContents(span);
+                    span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    found = true;
+                    break;
+                } catch(e) {}
+            }
+        }
+        
+        if (!found) {
+            // Fallback to native window.find
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            window.find(word, false, false, true, false);
+        }
+    }, 50);
+  }, [isMobile, mobileActiveTab]);
+
   const handleScrollToQuestion = (questionId) => {
     // Switch to questions tab on mobile
     if (isMobile && mobileActiveTab !== 'questions') {
@@ -468,7 +533,7 @@ export default function ReadingInterface({
         />
       </div>
 
-      {isReviewMode && <VocabSynonymCanvas captureData={captureData} onClearCapture={onClearCapture} userId={userId} testId={testId} testTitle={testData?.title || testName || testId} />}
+      {isReviewMode && <VocabSynonymCanvas captureData={captureData} onClearCapture={onClearCapture} userId={userId} testId={testId} testTitle={testData?.title || testName || testId} onWordClick={handleWordClick} />}
 
       <ReadingNotesSidePanel 
         isVisible={isNotesVisible}

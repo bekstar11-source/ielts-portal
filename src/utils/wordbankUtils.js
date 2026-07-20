@@ -55,7 +55,7 @@ export async function batchAddWordsToBank(userId, wordsArray) {
     const batch = writeBatch(db);
 
     wordsArray.forEach((wordData) => {
-        const ref = doc(collection(db, "users", userId, "wordbank"));
+        const ref = wordData.id ? doc(db, "users", userId, "wordbank", wordData.id) : doc(collection(db, "users", userId, "wordbank"));
         batch.set(ref, {
             passageWord: wordData.passageWord,
             questionWord: wordData.questionWord,
@@ -103,7 +103,7 @@ export async function saveSynonymPairs(userId, testId, pairs) {
 export async function getSynonymPairs(userId, testId) {
     if (!userId || !testId) return [];
     const ref = collection(db, "users", userId, "synonymPairs", testId, "pairs");
-    const snapshot = await getDocs(query(ref, orderBy("createdAt", "asc")));
+    const snapshot = await getDocs(query(ref, orderBy("createdAt", "desc")));
     return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
@@ -133,5 +133,9 @@ export async function getSynonymPairCounts(userId, testIds) {
  */
 export async function deleteSynonymPair(userId, testId, pairId) {
     const ref = doc(db, "users", userId, "synonymPairs", testId, "pairs", pairId);
-    await deleteDoc(ref);
+    const wordbankRef = doc(db, "users", userId, "wordbank", pairId);
+    await Promise.all([
+        deleteDoc(ref),
+        deleteDoc(wordbankRef)
+    ]).catch(err => console.error("Error deleting pair:", err));
 }
