@@ -12,16 +12,41 @@ export const useAdminResults = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
 
-    const fetchData = async () => {
+    const fetchData = async (force = false) => {
         setLoading(true);
         try {
+            // Check SessionStorage cache (10 min TTL)
+            if (!force) {
+                const cachedTime = sessionStorage.getItem("admin_results_time");
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 10 * 60 * 1000);
+                if (isCacheValid) {
+                    const cached = sessionStorage.getItem("admin_results_data");
+                    if (cached) {
+                        try {
+                            const parsed = JSON.parse(cached);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                // Restore Date objects
+                                const restored = parsed.map(r => ({
+                                    ...r,
+                                    date: r.date ? new Date(r.date) : null
+                                }));
+                                setResults(restored);
+                                setFilteredResults(restored);
+                                setLoading(false);
+                                return;
+                            }
+                        } catch { /* corrupted cache */ }
+                    }
+                }
+            }
+
             const q = query(collection(db, "results"), orderBy("date", "desc"), limit(300));
             const querySnapshot = await getDocs(q);
             
-            const testsSnapshot = await getDocs(query(collection(db, "tests_metadata"), limit(500)));
+            const testsSnapshot = await getDocs(query(collection(db, "tests_metadata"), limit(200)));
             const validTestIds = new Set(testsSnapshot.docs.map(doc => doc.id));
 
-            const podcastResultsSnapshot = await getDocs(query(collection(db, "podcastResults"), orderBy("createdAt", "desc"), limit(200)));
+            const podcastResultsSnapshot = await getDocs(query(collection(db, "podcastResults"), orderBy("createdAt", "desc"), limit(100)));
             const podcastData = podcastResultsSnapshot.docs.map((docSnap) => {
                 const d = docSnap.data();
                 return {
@@ -80,6 +105,12 @@ export const useAdminResults = () => {
             const allResults = [...data, ...podcastData].sort((a, b) => (b.date || 0) - (a.date || 0));
             setResults(allResults);
             setFilteredResults(allResults);
+
+            // Cache to SessionStorage
+            try {
+                sessionStorage.setItem("admin_results_data", JSON.stringify(allResults));
+                sessionStorage.setItem("admin_results_time", Date.now().toString());
+            } catch { /* sessionStorage full */ }
         } catch (error) {
             console.error("Error fetching results:", error);
         } finally {
@@ -130,7 +161,7 @@ export const useAdminResults = () => {
         searchTerm, setSearchTerm, typeFilter, setTypeFilter,
         statusFilter, setStatusFilter, currentPage, setCurrentPage,
         totalPages, indexOfFirstItem, indexOfLastItem, handleDelete,
-        refresh: fetchData
+        refresh: () => fetchData(true)
     };
 };
 

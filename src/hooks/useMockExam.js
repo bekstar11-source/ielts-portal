@@ -93,7 +93,8 @@ export function useMockExam(mockData, user, userData, navigate) {
     useEffect(() => { completedRef.current = completedModules; }, [completedModules]);
     useEffect(() => { tabSwitchCountRef.current = tabSwitchCount; }, [tabSwitchCount]);
 
-    // ─── Persist state to Firestore and localStorage on stage transitions ───
+    // ─── Unified Persist: localStorage (immediate) + Firestore (smart debounce) ───
+    const prevStageRef = useRef(stage);
     useEffect(() => {
         const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended', 'saving', 'result'];
         if (!activeStages.includes(stage) || stage === 'loading' || !user?.uid) return;
@@ -102,6 +103,7 @@ export function useMockExam(mockData, user, userData, navigate) {
             ? getCurrentServerTime() + timeLeft * 1000
             : null;
 
+        // Always save to localStorage immediately
         saveSession(mockId, {
             stage,
             answers,
@@ -117,85 +119,70 @@ export function useMockExam(mockData, user, userData, navigate) {
             savedAt: getCurrentServerTime()
         });
 
-        const updateStageFirestore = async () => {
+        // Determine if this is a stage change (write immediately) or just answers/time (debounce)
+        const isStageChange = prevStageRef.current !== stage;
+        prevStageRef.current = stage;
+
+        const writeToFirestore = async () => {
             try {
                 const sessionRef = doc(db, "users", user.uid, "mockSessions", mockId);
-                const sessionSnap = await getDoc(sessionRef);
-                const existingData = sessionSnap.exists() ? sessionSnap.data() : {};
 
-                const updateData = {
-                    stage,
-                    completedModules,
-                    tabSwitchCount: tabSwitchCountRef.current,
-                    audioTime: audioTimeRef.current,
-                    activePart: activePartRef.current,
-                    updatedAt: serverTimestamp()
-                };
+                if (isStageChange) {
+                    // Stage transitions: write immediately with full metadata
+                    const sessionSnap = await getDoc(sessionRef);
+                    const existingData = sessionSnap.exists() ? sessionSnap.data() : {};
 
-                if (autoStartDeadline) {
-                    updateData.autoStartDeadline = new Date(autoStartDeadline);
+                    const updateData = {
+                        stage,
+                        answers,
+                        timeLeft,
+                        completedModules,
+                        tabSwitchCount: tabSwitchCountRef.current,
+                        audioTime: audioTimeRef.current,
+                        activePart: activePartRef.current,
+                        updatedAt: serverTimestamp()
+                    };
+
+                    if (autoStartDeadline) {
+                        updateData.autoStartDeadline = new Date(autoStartDeadline);
+                    }
+
+                    if (stage === 'listening' && !existingData.listeningStartTime) {
+                        const now = getCurrentServerTime();
+                        updateData.listeningStartTime = serverTimestamp();
+                        setListeningStartTime(now);
+                    } else if (stage === 'reading' && !existingData.readingStartTime) {
+                        updateData.readingStartTime = serverTimestamp();
+                    } else if (stage === 'writing' && !existingData.writingStartTime) {
+                        updateData.writingStartTime = serverTimestamp();
+                    }
+
+                    await setDoc(sessionRef, updateData, { merge: true });
+                } else {
+                    // Answer/time updates: just sync the essentials
+                    await setDoc(sessionRef, {
+                        answers,
+                        timeLeft,
+                        audioTime: audioTimeRef.current,
+                        activePart: activePartRef.current,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
                 }
-
-                if (stage === 'listening' && !existingData.listeningStartTime) {
-                    const now = getCurrentServerTime();
-                    updateData.listeningStartTime = serverTimestamp();
-                    setListeningStartTime(now);
-                } else if (stage === 'reading' && !existingData.readingStartTime) {
-                    updateData.readingStartTime = serverTimestamp();
-                } else if (stage === 'writing' && !existingData.writingStartTime) {
-                    updateData.writingStartTime = serverTimestamp();
-                }
-
-                await setDoc(sessionRef, updateData, { merge: true });
             } catch (err) {
-                console.warn("Failed to save stage/metadata to Firestore:", err);
+                console.warn("Failed to sync to Firestore:", err);
             }
         };
 
-        updateStageFirestore();
-    }, [stage, completedModules, user?.uid, mockId, autoStartDeadline]);
+        if (isStageChange) {
+            // Stage changes write to Firestore immediately
+            writeToFirestore();
+            return;
+        }
 
-    // ─── Debounced Save for Answers & time/audio progress to Firestore ───
-    useEffect(() => {
-        const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended', 'saving', 'result'];
-        if (!activeStages.includes(stage) || stage === 'loading' || !user?.uid) return;
-
-        const deadlineVal = ['listening', 'reading', 'writing'].includes(stage) && timeLeft > 0
-            ? getCurrentServerTime() + timeLeft * 1000
-            : null;
-
-        saveSession(mockId, {
-            stage,
-            answers,
-            timeLeft,
-            completedModules,
-            tabSwitchCount: tabSwitchCountRef.current,
-            audioTime: audioTimeRef.current,
-            activePart: activePartRef.current,
-            autoStartDeadline,
-            deadline: deadlineVal,
-            listeningStartTime,
-            listeningDuration,
-            savedAt: getCurrentServerTime()
-        });
-
-        const timeoutId = setTimeout(async () => {
-            try {
-                const sessionRef = doc(db, "users", user.uid, "mockSessions", mockId);
-                await setDoc(sessionRef, {
-                    answers,
-                    timeLeft,
-                    audioTime: audioTimeRef.current,
-                    activePart: activePartRef.current,
-                    updatedAt: serverTimestamp()
-                }, { merge: true });
-            } catch (err) {
-                console.warn("Failed to sync answers to Firestore:", err);
-            }
-        }, 2000);
-
+        // Answer/time changes: debounce Firestore writes to 10 seconds
+        const timeoutId = setTimeout(writeToFirestore, 10000);
         return () => clearTimeout(timeoutId);
-    }, [answers, timeLeft, stage, user?.uid, mockId]);
+    }, [stage, answers, timeLeft, completedModules, user?.uid, mockId, autoStartDeadline]);
 
     // ─── Warn before page unload & Auto-submit logic ───
     useEffect(() => {

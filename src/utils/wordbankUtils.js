@@ -11,7 +11,29 @@ import {
     orderBy,
     serverTimestamp,
     writeBatch,
+    Timestamp,
 } from "firebase/firestore";
+
+function toFirestoreTimestamp(val, fallbackMillis = Date.now()) {
+    if (!val) return Timestamp.fromMillis(fallbackMillis);
+    if (val instanceof Timestamp) return val;
+    if (typeof val.toMillis === "function") return Timestamp.fromMillis(val.toMillis());
+    if (typeof val.seconds === "number") {
+        return new Timestamp(val.seconds, val.nanoseconds || 0);
+    }
+    if (typeof val === "number") return Timestamp.fromMillis(val);
+    if (val instanceof Date) return Timestamp.fromDate(val);
+    return Timestamp.fromMillis(fallbackMillis);
+}
+
+function getMillis(val) {
+    if (!val) return 0;
+    if (typeof val === "number") return val;
+    if (typeof val.toMillis === "function") return val.toMillis();
+    if (typeof val.seconds === "number") return val.seconds * 1000 + Math.floor((val.nanoseconds || 0) / 1000000);
+    if (val instanceof Date) return val.getTime();
+    return 0;
+}
 
 /**
  * Bitta so'z juftligini WordBank'ga qo'shish
@@ -24,7 +46,7 @@ export async function addWordToBank(userId, wordData) {
         type: wordData.type || "synonym", // "synonym" | "antonym"
         testId: wordData.testId || "",
         testName: wordData.testName || "",
-        createdAt: serverTimestamp(),
+        createdAt: toFirestoreTimestamp(wordData.createdAt),
     });
     return docRef.id;
 }
@@ -54,15 +76,17 @@ export async function batchAddWordsToBank(userId, wordsArray) {
     if (!wordsArray || wordsArray.length === 0) return;
     const batch = writeBatch(db);
 
-    wordsArray.forEach((wordData) => {
+    const baseTime = Date.now();
+    wordsArray.forEach((wordData, index) => {
         const ref = wordData.id ? doc(db, "users", userId, "wordbank", wordData.id) : doc(collection(db, "users", userId, "wordbank"));
+        const createdAt = toFirestoreTimestamp(wordData.createdAt, baseTime - index * 10);
         batch.set(ref, {
             passageWord: wordData.passageWord,
             questionWord: wordData.questionWord,
             type: wordData.type || "synonym",
             testId: wordData.testId || "",
             testName: wordData.testName || "",
-            createdAt: serverTimestamp(),
+            createdAt,
         });
     });
 
@@ -82,14 +106,16 @@ export async function saveSynonymPairs(userId, testId, pairs) {
     if (!userId || !testId || !pairs || pairs.length === 0) return;
     const batch = writeBatch(db);
 
-    pairs.forEach((pair) => {
+    const baseTime = Date.now();
+    pairs.forEach((pair, index) => {
         const ref = doc(db, "users", userId, "synonymPairs", testId, "pairs", pair.id);
+        const createdAt = toFirestoreTimestamp(pair.createdAt, baseTime - index * 10);
         batch.set(ref, {
             passageWord: pair.passageWord || "",
             questionWord: pair.questionWord || "",
             type: pair.type || "synonym",
             testId,
-            createdAt: serverTimestamp(),
+            createdAt,
         }, { merge: true });
     });
 
@@ -104,7 +130,12 @@ export async function getSynonymPairs(userId, testId) {
     if (!userId || !testId) return [];
     const ref = collection(db, "users", userId, "synonymPairs", testId, "pairs");
     const snapshot = await getDocs(query(ref, orderBy("createdAt", "desc")));
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return list.sort((a, b) => {
+        const diff = getMillis(b.createdAt) - getMillis(a.createdAt);
+        if (diff !== 0) return diff;
+        return (b.id || "").localeCompare(a.id || "");
+    });
 }
 
 /**

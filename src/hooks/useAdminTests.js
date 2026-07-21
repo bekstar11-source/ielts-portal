@@ -14,8 +14,13 @@ import {
     serverTimestamp
 } from 'firebase/firestore';
 
+const ADMIN_TESTS_CACHE_KEY = "admin_tests_data";
+const ADMIN_TESTS_CACHE_TIME_KEY = "admin_tests_data_time";
+const ADMIN_TESTS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
 export const useAdminTests = (PAGE_SIZE = 12) => {
     const [allTestsCache, setAllTestsCache] = useState([]); // full client-side cache
+    const [contentCache, setContentCache] = useState(null); // lazy-loaded combinedContent map
     const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
@@ -94,13 +99,37 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    // Warm the cache on mount
+    // Warm the cache on mount — with SessionStorage to avoid redundant Firestore reads
     useEffect(() => {
         const warmCache = async () => {
             try {
                 setLoading(true);
+
+                // Check SessionStorage cache first
+                const cachedTime = sessionStorage.getItem(ADMIN_TESTS_CACHE_TIME_KEY);
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < ADMIN_TESTS_CACHE_TTL);
+
+                if (isCacheValid) {
+                    const cached = sessionStorage.getItem(ADMIN_TESTS_CACHE_KEY);
+                    if (cached) {
+                        try {
+                            const parsed = JSON.parse(cached);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                setAllTestsCache(parsed);
+                                setLoading(false);
+                                return;
+                            }
+                        } catch { /* corrupted cache, proceed to fetch */ }
+                    }
+                }
+
                 const snapAll = await getDocs(query(collection(db, "tests_metadata"), limit(1500)));
-                const allDocs = snapAll.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Strip combinedContent to save bandwidth on cache — it's loaded lazily for content search
+                const allDocs = snapAll.docs.map(d => {
+                    const data = d.data();
+                    const { combinedContent, ...rest } = data;
+                    return { id: d.id, ...rest };
+                });
                 
                 // Proactively clean up any orphaned isMergedSource flags in Firestore
                 const activeSourceIds = new Set();
@@ -131,6 +160,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     return t.isMergedSource && !isSrcId && !isSrcTitle;
                 });
 
+                let finalDocs = allDocs;
                 if (orphans.length > 0) {
                     console.log(`[useAdminTests] Found ${orphans.length} orphaned source tests. Cleaning up in Firestore...`);
                     const batch = writeBatch(db);
@@ -141,10 +171,16 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
                     await batch.commit();
                     console.log("[useAdminTests] Cleaned up orphaned source tests in Firestore.");
                     const orphanIdsSet = new Set(orphans.map(o => o.id));
-                    setAllTestsCache(allDocs.map(t => orphanIdsSet.has(t.id) ? { ...t, isMergedSource: false } : t));
-                } else {
-                    setAllTestsCache(allDocs);
+                    finalDocs = allDocs.map(t => orphanIdsSet.has(t.id) ? { ...t, isMergedSource: false } : t);
                 }
+
+                setAllTestsCache(finalDocs);
+
+                // Persist to SessionStorage (without combinedContent, safe size)
+                try {
+                    sessionStorage.setItem(ADMIN_TESTS_CACHE_KEY, JSON.stringify(finalDocs));
+                    sessionStorage.setItem(ADMIN_TESTS_CACHE_TIME_KEY, Date.now().toString());
+                } catch { /* sessionStorage full — silently skip */ }
             } catch (err) {
                 console.error("Proactive search cache warming failed:", err);
             } finally {
@@ -154,6 +190,15 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         warmCache();
         fetchCollections();
     }, []);
+
+    // Keep SessionStorage in sync when allTestsCache changes (CRUD operations)
+    useEffect(() => {
+        if (allTestsCache.length === 0) return;
+        try {
+            sessionStorage.setItem(ADMIN_TESTS_CACHE_KEY, JSON.stringify(allTestsCache));
+            sessionStorage.setItem(ADMIN_TESTS_CACHE_TIME_KEY, Date.now().toString());
+        } catch { /* sessionStorage full — silently skip */ }
+    }, [allTestsCache]);
 
     // Filter, sort, and search list reactively
     const { filteredAndSortedTests, totalTestCount } = useMemo(() => {
@@ -232,11 +277,11 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             );
         }
 
-        // 5b. Search inside text (content/JSON) filter
-        if (contentSearchTerm.trim().length >= 2) {
+        // 5b. Search inside text (content/JSON) filter — uses lazily loaded contentCache
+        if (contentSearchTerm.trim().length >= 2 && contentCache) {
             const termLower = contentSearchTerm.toLowerCase().trim();
             list = list.filter(t => 
-                (t.combinedContent || "").toLowerCase().includes(termLower)
+                (contentCache[t.id] || "").toLowerCase().includes(termLower)
             );
         }
 
@@ -264,7 +309,28 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         });
 
         return { filteredAndSortedTests: list, totalTestCount: list.length };
-    }, [allTestsCache, filterType, filterCollection, filterStatus, filterAccess, filterTag, searchTerm, sortBy, sortOrder]);
+    }, [allTestsCache, contentCache, filterType, filterCollection, filterStatus, filterAccess, filterTag, searchTerm, contentSearchTerm, sortBy, sortOrder]);
+
+    // Lazy-load combinedContent only when content search is triggered
+    useEffect(() => {
+        if (contentSearchTerm.trim().length < 2 || contentCache) return;
+        let cancelled = false;
+        const loadContent = async () => {
+            try {
+                const snapAll = await getDocs(query(collection(db, "tests_metadata"), limit(1500)));
+                const map = {};
+                snapAll.docs.forEach(d => {
+                    const data = d.data();
+                    if (data.combinedContent) map[d.id] = data.combinedContent;
+                });
+                if (!cancelled) setContentCache(map);
+            } catch (err) {
+                console.error("Content search cache load failed:", err);
+            }
+        };
+        loadContent();
+        return () => { cancelled = true; };
+    }, [contentSearchTerm, contentCache]);
 
     // Current page slice
     const tests = useMemo(() => {

@@ -1,11 +1,19 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { getCdnUrl } from '../../utils/cdnUtils';
 
-/**
- * CustomAudioPlayer Component
- * 
- * Multi-part listening tests uchun maxsus audio player.
- * Har bir 'part' uchun alohida audio element bo'ladi, lekin faqat active part UI ko'rinadi.
- */
+const processTimeStr = (val) => {
+    if (val === undefined || val === null || val === '') return 0;
+    if (typeof val === 'string' && val.includes(':')) {
+        const parts = val.split(':').map(Number);
+        if (parts.length === 2) {
+            return (parts[0] || 0) * 60 + (parts[1] || 0);
+        } else if (parts.length === 3) {
+            return (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0);
+        }
+    }
+    return Number(val) || 0;
+};
+
 const CustomAudioPlayer = forwardRef(({ 
     src, 
     index, 
@@ -33,31 +41,30 @@ const CustomAudioPlayer = forwardRef(({
     const [isSilentPeriod, setIsSilentPeriod] = useState(false);
     const isSilentRef = useRef(false);
 
+    const parsedStartTime = useMemo(() => processTimeStr(startTime), [startTime]);
+    const parsedEndTime = useMemo(() => processTimeStr(endTime), [endTime]);
+
     // Allow parent to seek
     useImperativeHandle(ref, () => ({
         seekTo: (time) => {
             console.log("[CustomAudioPlayer] seekTo called with time:", time);
             if (audioRef.current) {
-                let targetTime = 0;
-                
-                // Parse time if it's a string like "1:30" or "01:30"
-                if (typeof time === 'string' && time.includes(':')) {
-                    const parts = time.split(':').map(Number);
-                    if (parts.length === 2) {
-                        targetTime = parts[0] * 60 + parts[1];
-                    } else if (parts.length === 3) {
-                        targetTime = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                    }
-                } else {
-                    targetTime = Number(time);
-                }
+                let targetTime = processTimeStr(time);
 
                 if (isNaN(targetTime)) targetTime = 0;
 
-                console.log("[CustomAudioPlayer] Parsed targetTime:", targetTime, "startTime:", startTime);
+                console.log("[CustomAudioPlayer] Parsed targetTime:", targetTime, "startTime:", parsedStartTime);
 
-                // Set time relative to the passage's startTime
-                audioRef.current.currentTime = startTime + targetTime;
+                // Smart absolute/relative detection:
+                // If targetTime is less than parsedStartTime, the admin likely provided a relative timestamp.
+                // If targetTime is greater than or equal to parsedStartTime, they likely provided an absolute timestamp.
+                let finalTime = targetTime;
+                if (parsedStartTime > 0 && targetTime < parsedStartTime) {
+                    finalTime = parsedStartTime + targetTime;
+                }
+
+                // Set time safely
+                audioRef.current.currentTime = finalTime;
                 
                 // Pause all other audio elements to prevent overlapping audio
                 document.querySelectorAll('audio[id^="audio-part-"]').forEach(a => {
@@ -147,8 +154,8 @@ const CustomAudioPlayer = forwardRef(({
         
         const updateDuration = () => {
             let segDur = 0;
-            if (endTime && endTime > startTime) {
-                segDur = endTime - startTime;
+            if (parsedEndTime && parsedEndTime > parsedStartTime) {
+                segDur = parsedEndTime - parsedStartTime;
             } else {
                 segDur = audio.duration || 0;
             }
@@ -166,7 +173,7 @@ const CustomAudioPlayer = forwardRef(({
             audio.removeEventListener('loadedmetadata', updateDuration);
             audio.removeEventListener('durationchange', updateDuration);
         };
-    }, [startTime, endTime, extraSilentTime, src, onDurationCalculated]);
+    }, [parsedStartTime, parsedEndTime, extraSilentTime, src, onDurationCalculated]);
 
     // Wire up audio events
     useEffect(() => {
@@ -187,7 +194,7 @@ const CustomAudioPlayer = forwardRef(({
         const onPause = () => setIsPlaying(false);
         const onEnded_ = () => {
             setIsPlaying(false);
-            const segmentDur = (endTime && endTime > startTime) ? (endTime - startTime) : (audio.duration || 0);
+            const segmentDur = (parsedEndTime && parsedEndTime > parsedStartTime) ? (parsedEndTime - parsedStartTime) : (audio.duration || 0);
             if (hasPlayed.current) {
                 if (isSilentRef.current) return; // Silent period is handling the end
 
@@ -202,8 +209,8 @@ const CustomAudioPlayer = forwardRef(({
         
         const onLoaded = () => {
             // Ensure we start at startTime safely when metadata loads
-            if (audio.currentTime < startTime) {
-                audio.currentTime = startTime;
+            if (audio.currentTime < parsedStartTime) {
+                audio.currentTime = parsedStartTime;
             }
             // Apply current playback rate on load
             audio.playbackRate = playbackRate;
@@ -212,21 +219,21 @@ const CustomAudioPlayer = forwardRef(({
         };
 
         const onTimeUpdate = () => {
-            const relTime = audio.currentTime - startTime;
-            const segmentDur = (endTime && endTime > startTime) ? (endTime - startTime) : (audio.duration || 0);
+            const relTime = audio.currentTime - parsedStartTime;
+            const segmentDur = (parsedEndTime && parsedEndTime > parsedStartTime) ? (parsedEndTime - parsedStartTime) : (audio.duration || 0);
 
             if (!isDragging && !isSilentRef.current) {
                 setCurrentTime(Math.max(0, relTime));
             }
             if (isPlayingPart) {
                 if (isSilentRef.current) {
-                    setAudioTime?.(startTime + segmentDur + silentElapsedRef.current);
+                    setAudioTime?.(parsedStartTime + segmentDur + silentElapsedRef.current);
                 } else {
                     setAudioTime?.(audio.currentTime);
                 }
             }
 
-            if (endTime && endTime > startTime && audio.currentTime >= endTime) {
+            if (parsedEndTime && parsedEndTime > parsedStartTime && audio.currentTime >= parsedEndTime) {
                 if (isSilentRef.current) return; // Already entered silent period
 
                 const wasPlaying = isPlaying || !audio.paused;
@@ -263,8 +270,8 @@ const CustomAudioPlayer = forwardRef(({
 
         // Ensure we start at startTime safely if metadata is already loaded
         if (audio.readyState >= 1) {
-            if (audio.currentTime < startTime) {
-                audio.currentTime = startTime;
+            if (audio.currentTime < parsedStartTime) {
+                audio.currentTime = parsedStartTime;
             }
         }
 
@@ -276,14 +283,14 @@ const CustomAudioPlayer = forwardRef(({
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('timeupdate', onTimeUpdate);
         };
-    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, startTime, endTime, playbackRate, volume, isPlayingPart, src, index, extraSilentTime, startSilentPeriod]);
+    }, [isVisible, isDragging, isExam, setAudioTime, onEnded, parsedStartTime, parsedEndTime, playbackRate, volume, isPlayingPart, src, index, extraSilentTime, startSilentPeriod]);
 
     useEffect(() => {
         if (!hasResumed.current && resumeTime > 0 && audioRef.current && isPlayingPart) {
             console.log("[CustomAudioPlayer] Resuming audio to:", resumeTime);
-            const segmentDur = (endTime && endTime > startTime) ? (endTime - startTime) : (audioRef.current.duration || 0);
-            const actualEndTime = startTime + segmentDur;
-            if (actualEndTime > startTime && resumeTime >= actualEndTime) {
+            const segmentDur = (parsedEndTime && parsedEndTime > parsedStartTime) ? (parsedEndTime - parsedStartTime) : (audioRef.current.duration || 0);
+            const actualEndTime = parsedStartTime + segmentDur;
+            if (actualEndTime > parsedStartTime && resumeTime >= actualEndTime) {
                 audioRef.current.currentTime = actualEndTime;
                 isSilentRef.current = true;
                 setIsSilentPeriod(true);
@@ -294,7 +301,7 @@ const CustomAudioPlayer = forwardRef(({
             }
             hasResumed.current = true;
         }
-    }, [resumeTime, isPlayingPart, startTime, endTime]);
+    }, [resumeTime, isPlayingPart, parsedStartTime, parsedEndTime]);
 
     // Exam auto-play logic
     useEffect(() => {
@@ -319,7 +326,7 @@ const CustomAudioPlayer = forwardRef(({
 
         // If we are in silent period, resume it
         if (isSilentRef.current) {
-            const segmentDur = (endTime && endTime > startTime) ? (endTime - startTime) : (audio.duration || 0);
+            const segmentDur = (parsedEndTime && parsedEndTime > parsedStartTime) ? (parsedEndTime - parsedStartTime) : (audio.duration || 0);
             resumeSilentPeriod(segmentDur);
             return;
         }
@@ -353,7 +360,7 @@ const CustomAudioPlayer = forwardRef(({
             clearInterval(interval);
             events.forEach(event => document.removeEventListener(event, unlock));
         };
-    }, [isExam, isPlayingPart, isBuffering, shouldAutoPlay, index, src, resumeSilentPeriod, startTime, endTime]);
+    }, [isExam, isPlayingPart, isBuffering, shouldAutoPlay, index, src, resumeSilentPeriod, parsedStartTime, parsedEndTime]);
 
     const togglePlay = () => {
         if (isExam) return;
@@ -392,7 +399,7 @@ const CustomAudioPlayer = forwardRef(({
             silentTimerRef.current = null;
         }
 
-        const targetTime = Math.max(startTime, audioRef.current.currentTime - 5);
+        const targetTime = Math.max(parsedStartTime, audioRef.current.currentTime - 5);
         audioRef.current.currentTime = targetTime;
     };
 
@@ -407,7 +414,7 @@ const CustomAudioPlayer = forwardRef(({
             silentTimerRef.current = null;
         }
 
-        const maxTime = (endTime && endTime > startTime) ? endTime : (audioRef.current.duration || Infinity);
+        const maxTime = (parsedEndTime && parsedEndTime > parsedStartTime) ? parsedEndTime : (audioRef.current.duration || Infinity);
         const targetTime = Math.min(maxTime, audioRef.current.currentTime + 5);
         audioRef.current.currentTime = targetTime;
     };
@@ -448,7 +455,7 @@ const CustomAudioPlayer = forwardRef(({
         if (newTime !== null) {
             setCurrentTime(newTime);
             if (audioRef.current) {
-                audioRef.current.currentTime = startTime + newTime;
+                audioRef.current.currentTime = parsedStartTime + newTime;
             }
         }
     };
@@ -490,7 +497,7 @@ const CustomAudioPlayer = forwardRef(({
         <audio
             ref={audioRef}
             id={`audio-part-${index}`}
-            src={src}
+            src={getCdnUrl(src)}
             preload={effectivePreload}
             style={{ display: 'none' }}
         />

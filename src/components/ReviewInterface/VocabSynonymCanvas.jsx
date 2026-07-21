@@ -133,12 +133,20 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
 
         setIsSaving(true);
         try {
-            // Generate stable IDs for unsaved pairs
+            // Generate stable IDs for unsaved pairs preserving creation order
+            const baseNow = Date.now();
             const idMap = {};
-            const withRealIds = toSave.map((p) => {
-                const newId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            const withRealIds = toSave.map((p, index) => {
+                const createdAt = typeof p.createdAt === 'number'
+                    ? p.createdAt
+                    : (p.createdAt?.toMillis ? p.createdAt.toMillis() : baseNow - index * 10);
+
+                const newId = p.id?.startsWith('local_')
+                    ? `${createdAt}_${Math.random().toString(36).slice(2, 7)}`
+                    : p.id;
+
                 idMap[p.id] = newId;
-                return { ...p, id: newId };
+                return { ...p, id: newId, createdAt };
             });
 
             // Prepare wordbank entries
@@ -149,6 +157,7 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                 type: p.type || 'synonym',
                 testId: testId,
                 testName: testTitle || testId,
+                createdAt: p.createdAt,
             }));
 
             // Save to synonymPairs and WordBank in parallel

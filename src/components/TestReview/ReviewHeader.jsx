@@ -156,6 +156,7 @@ const ReviewHeader = ({
                                             index={index}
                                             variant="light"
                                             activePart={listeningActivePart}
+                                            isPlayingPart={listeningActivePart === index}
                                             testMode="practice"
                                             setAudioTime={setAudioTime}
                                             volume={volume}
@@ -171,6 +172,7 @@ const ReviewHeader = ({
                                         index={0}
                                         variant="light"
                                         activePart={listeningActivePart}
+                                        isPlayingPart={listeningActivePart === 0}
                                         testMode="practice"
                                         setAudioTime={setAudioTime}
                                         volume={volume}

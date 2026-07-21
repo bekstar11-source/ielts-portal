@@ -29,7 +29,7 @@ export function useAdminAnalytics() {
             try {
                 // Check Cache
                 const cachedTime = sessionStorage.getItem("admin_analytics_time");
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 5 * 60 * 1000);
+                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < 30 * 60 * 1000);
 
                 if (isCacheValid) {
                     const cachedStats = sessionStorage.getItem("admin_analytics_stats");
@@ -50,9 +50,9 @@ export function useAdminAnalytics() {
                 }
 
                 const [resultsSnap, usersSnap, testsSnap] = await Promise.all([
-                    getDocs(query(collection(db, "results"), orderBy("createdAt", "desc"), limit(1000))),
-                    getDocs(query(collection(db, "users"), limit(1000))),
-                    getDocs(collection(db, "tests_metadata"))
+                    getDocs(query(collection(db, "results"), orderBy("createdAt", "desc"), limit(500))),
+                    getDocs(query(collection(db, "users"), limit(500))),
+                    getDocs(query(collection(db, "tests_metadata"), limit(500)))
                 ]);
 
                 const results = resultsSnap.docs.map(d => {

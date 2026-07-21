@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from "react";
 import { db } from "../firebase/firebase";
 import { collection, addDoc, deleteDoc, doc, query, where, getDocs, onSnapshot, updateDoc, increment, setDoc } from "firebase/firestore";
+import { getCdnUrl } from "../utils/cdnUtils";
 
 const PodcastContext = createContext();
 
@@ -176,10 +177,10 @@ export const PodcastProvider = ({ children }) => {
         }}>
             {children}
             {currentTrack && (currentTrack.mediaType !== 'youtube' || currentTrack.audioUrl) && (
-                currentTrack.mediaType === 'video' ? (
+                currentTrack.isVideo ? (
                     <video 
                         ref={audioRef}
-                        src={currentTrack.audioUrl}
+                        src={getCdnUrl(currentTrack.audioUrl)}
                         onTimeUpdate={handleTimeUpdate}
                         onLoadedMetadata={handleLoadedMetadata}
                         onEnded={() => setIsPlaying(false)}
@@ -195,7 +196,7 @@ export const PodcastProvider = ({ children }) => {
                 ) : (
                     <audio 
                         ref={audioRef}
-                        src={currentTrack.audioUrl}
+                        src={getCdnUrl(currentTrack.audioUrl)}
                         onTimeUpdate={handleTimeUpdate}
                         onLoadedMetadata={handleLoadedMetadata}
                         onEnded={() => setIsPlaying(false)}

@@ -109,7 +109,7 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
     return (
         <div className={`rounded-xl border h-full flex flex-col overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
             {/* Toolbar */}
-            <div className={`p-3 md:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50/50'}`}>
+            <div className={`p-3 md:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors shrink-0 ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50/50'}`}>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
                     <div className={`flex items-center px-4 py-2.5 rounded-xl transition-all group ${isDark ? 'bg-white/5 focus-within:bg-white/[0.08]' : 'bg-white border border-gray-200 focus-within:border-blue-400'}`}>
                         {isSearchingDb ? (
@@ -156,7 +156,7 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
 
             {/* Bulk action bar */}
             {selectedIds.length > 0 && (
-                <div className={`px-3 md:px-4 py-2.5 border-b flex flex-wrap items-center gap-3 transition-colors ${isDark ? 'border-white/5 bg-blue-500/10' : 'border-blue-100 bg-blue-50'}`}>
+                <div className={`px-3 md:px-4 py-2.5 border-b flex flex-wrap items-center gap-3 transition-colors shrink-0 ${isDark ? 'border-white/5 bg-blue-500/10' : 'border-blue-100 bg-blue-50'}`}>
                     <span className={`text-xs font-bold ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>{selectedIds.length} ta tanlandi</span>
                     <div className="flex items-center gap-2 flex-wrap">
                         <select
@@ -194,7 +194,7 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
             )}
 
             {/* Table */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
                     <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#1E1E1E]' : 'bg-white'}`}>
                         <tr>
@@ -292,7 +292,7 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
             </div>
 
             {hasMore && (
-                <div className={`p-4 border-t flex justify-center transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50'}`}>
+                <div className={`p-4 border-t flex justify-center transition-colors shrink-0 ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50'}`}>
                     <button
                         onClick={handleLoadMore}
                         disabled={isLoadingMore}

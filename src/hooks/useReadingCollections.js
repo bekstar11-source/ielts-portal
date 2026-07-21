@@ -115,25 +115,19 @@ export function useReadingCollections(userResults, userData) {
     }
   };
 
-  const fetchCollectionTests = async (colId) => {
+  const fetchCollectionTests = (colId) => {
     setLoadingCollectionTests(true);
     try {
       const parentCol = collections.find(c => c.id === colId);
       const colTier = parentCol?.accessTier || 'pro';
 
-      // Fetch from tests_metadata (answer-free; raw `tests` docs contain
-      // answer keys and are not queryable by students — see firestore.rules)
-      const qMeta = query(
-        collection(db, 'tests_metadata'),
-        where('collectionId', '==', colId)
-      );
-      const snapMeta = await getDocs(qMeta);
-      let metaDocs = snapMeta.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.type === 'reading');
-
-      const docs = metaDocs.map(doc => ({
-        ...doc,
-        collectionAccessTier: colTier
-      }));
+      // Use already-loaded allCollectionsTests instead of a new Firestore query
+      let docs = allCollectionsTests
+        .filter(t => t.collectionId === colId)
+        .map(doc => ({
+          ...doc,
+          collectionAccessTier: colTier
+        }));
       // Sort so that free ones appear first
       docs.sort((a, b) => {
         if (a.isFree && !b.isFree) return -1;
@@ -142,7 +136,7 @@ export function useReadingCollections(userResults, userData) {
       });
       setCollectionTests(docs);
     } catch (e) {
-      console.error("Error fetching collection tests:", e);
+      console.error("Error filtering collection tests:", e);
     } finally {
       setLoadingCollectionTests(false);
     }
@@ -150,7 +144,7 @@ export function useReadingCollections(userResults, userData) {
 
   useEffect(() => {
     fetchCollections();
-  }, [userData]);
+  }, []);
 
   const collectionProcessedTests = useMemo(() => {
     const fullTestsList = [];
