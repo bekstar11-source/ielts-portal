@@ -581,6 +581,7 @@ export default function TestSolving() {
                                     onAnswerChange={handleSelectAnswer}
                                     isReviewMode={isReviewing}
                                     textSize={textSize}
+                                    disableInternalSession={true}
                                 />
                             </div>
                         ) : isSpeaking ? (

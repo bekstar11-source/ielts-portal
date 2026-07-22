@@ -91,7 +91,8 @@ export default function AdminPodcasts() {
         try {
             const path = `collection_covers/${Date.now()}_${file.name}`;
             const sRef = ref(storage, path);
-            const uploadTask = uploadBytesResumable(sRef, file);
+            const metadata = { cacheControl: 'public, max-age=31536000' };
+            const uploadTask = uploadBytesResumable(sRef, file, metadata);
 
             uploadTask.on(
                 "state_changed",

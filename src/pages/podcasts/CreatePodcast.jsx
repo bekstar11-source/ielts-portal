@@ -86,7 +86,8 @@ export default function CreatePodcast() {
             setTranscribeStatus("Audio yuklanmoqda...");
 
             const storageRef = ref(storage, `podcasts/${podRef.id}/audio.mp3`);
-            const uploadTask = uploadBytesResumable(storageRef, file);
+            const metadata = { cacheControl: 'public, max-age=31536000' };
+            const uploadTask = uploadBytesResumable(storageRef, file, metadata);
 
             uploadTask.on(
                 "state_changed",

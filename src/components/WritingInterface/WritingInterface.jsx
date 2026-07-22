@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTestSession } from "../../hooks/useTestSession";
+import { FiWifi, FiBell, FiMenu, FiEdit, FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 
 export default function WritingInterface({
     testData,
@@ -21,6 +22,45 @@ export default function WritingInterface({
     } = useTestSession(disableInternalSession ? null : `ielts_writing_session_${currentTestId || 'default'}`);
 
     const [activeTask, setActiveTask] = useState(1);
+    const [leftWidth, setLeftWidth] = useState(50);
+    const [isDragging, setIsDragging] = useState(false);
+    const textareaRef = React.useRef(null);
+
+    const currentAnswer = parentAnswers?.[`task${activeTask}`] || "";
+
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = `${Math.max(260, textareaRef.current.scrollHeight)}px`;
+        }
+    }, [currentAnswer, activeTask]);
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        const newLeftWidth = (e.clientX / window.innerWidth) * 100;
+        if (newLeftWidth > 20 && newLeftWidth < 80) {
+            setLeftWidth(newLeftWidth);
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    useEffect(() => {
+        if (isDragging) {
+            document.addEventListener("mousemove", handleMouseMove);
+            document.addEventListener("mouseup", handleMouseUp);
+            document.body.style.userSelect = "none";
+        } else {
+            document.body.style.userSelect = "";
+        }
+        return () => {
+            document.removeEventListener("mousemove", handleMouseMove);
+            document.removeEventListener("mouseup", handleMouseUp);
+            document.body.style.userSelect = "";
+        };
+    }, [isDragging]);
 
     // Dual update: session + parent
     const handleDualAnswerChange = (taskId, value) => {
@@ -84,113 +124,125 @@ export default function WritingInterface({
 
     const tasks = normalizedTestData.writingTasks;
     const currentTask = tasks.find(t => t.id === activeTask);
-    const currentAnswer = parentAnswers?.[`task${activeTask}`] || "";
     const wordCount = getWordCount(currentAnswer);
     const minWords = currentTask?.minWords || 150;
 
     return (
-        <div className={`flex flex-col h-full w-full bg-white overflow-hidden ${textSize || 'text-base'}`}>
-
-            {/* Task Tabs */}
-            <div className="bg-[#f8f9fa] border-b px-6 py-2.5 flex justify-between items-center shadow-sm z-10">
-                <div className="flex gap-2">
-                    {tasks.map(task => (
-                        <button
-                            key={task.id}
-                            onClick={() => setActiveTask(task.id)}
-                            disabled={isReviewMode}
-                            className={`px-6 py-2 text-sm font-bold rounded-lg transition-all active:scale-[0.98] ${activeTask === task.id
-                                ? 'bg-zinc-900 text-white shadow-md'
-                                : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'
-                                } ${isReviewMode ? 'cursor-not-allowed opacity-60' : ''}`}
-                        >
-                            {task.title}
-                        </button>
-                    ))}
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Writing Section</div>
-                </div>
+        <div className={`flex flex-col h-full w-full bg-white text-[#111] overflow-hidden ${textSize || 'text-base'} font-sans`}>
+            
+            {/* Instruction Bar */}
+            <div className="bg-[#f0f0f0] px-4 py-3 mx-4 my-3 border border-[#e0e0e0] shrink-0">
+                <h2 className="font-bold text-[14px] mb-1">Part {activeTask}</h2>
+                <p className="text-[14px] text-[#333]">
+                    You should spend about {activeTask === 1 ? '20' : '40'} minutes on this task. Write at least {minWords} words.
+                </p>
             </div>
 
-            {/* Main Content */}
-            <div className={`flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden ${isMockExam ? 'pb-[50px]' : ''}`}>
-
-                {/* Left: Task Prompt */}
-                <div className="w-full md:w-1/2 bg-white border-b md:border-b-0 md:border-r border-gray-100 overflow-y-visible md:overflow-y-auto p-6 md:p-10">
-                    <div className="max-w-2xl mx-auto h-full flex flex-col">
-                        <div className="mb-6 md:mb-8">
-                            <h2 className="text-2xl md:text-3xl font-black text-zinc-900 mb-3 tracking-tight">{currentTask?.title}</h2>
-                            <div className="flex flex-wrap gap-4 text-[13px] font-bold">
-                                <span className="text-zinc-400 uppercase tracking-wider">⏱️ Spend about {currentTask?.id === 1 ? '20' : '40'} mins</span>
-                                <span className="text-zinc-400 uppercase tracking-wider">✍️ Min {minWords} words</span>
+            {/* Main Split Content */}
+            <div className="flex-1 flex overflow-hidden w-full relative">
+                
+                {/* Left pane (Prompt) */}
+                <div 
+                    className="h-full overflow-y-auto px-6 py-4 flex flex-col"
+                    style={{ width: `${leftWidth}%` }}
+                >
+                    <div className="max-w-[700px] w-full mx-auto">
+                        {activeTask === 2 && (
+                            <div className="text-[17px] font-normal mb-6 text-[#111]">
+                                Write about the following topic:
                             </div>
+                        )}
+                        <div className="text-[17px] font-bold mb-6 whitespace-pre-wrap leading-[1.6] text-[#111]">
+                            {currentTask?.prompt}
                         </div>
-
-                        <div className="flex-1">
-                            <div className="bg-zinc-50 border-l-[6px] border-zinc-900 p-6 md:p-10 rounded-xl mb-6 md:mb-8 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)]">
-                                <p className="text-zinc-800 leading-relaxed whitespace-pre-wrap text-lg md:text-xl font-semibold italic">
-                                    "{currentTask?.prompt}"
-                                </p>
+                        {activeTask === 2 && (
+                            <div className="text-[17px] font-normal mb-6 text-[#111]">
+                                Give reasons for your answer and include any relevant examples from your own knowledge or experience.
                             </div>
-
-                            {currentTask?.image && (
-                                <div className="mb-6 md:mb-8 group">
-                                    <img
-                                        src={currentTask.image}
-                                        alt="Task visual"
-                                        className="w-full rounded-2xl border border-gray-100 shadow-xl transition-all group-hover:shadow-2xl"
-                                    />
-                                </div>
-                            )}
-                        </div>
+                        )}
                         
-                        <div className="mt-auto pt-8 border-t border-gray-50 hidden md:block">
-                            <p className="text-[11px] text-gray-400 font-medium uppercase tracking-[0.2em]">End of prompt area</p>
-                        </div>
+                        {currentTask?.image && (
+                            <div className="mb-6 group text-left">
+                                <img
+                                    src={currentTask.image}
+                                    alt="Task visual"
+                                    className="max-w-full inline-block"
+                                    style={{ maxHeight: '500px' }}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Right: Answer Area */}
-                <div className="w-full md:w-1/2 bg-[#fdfdfd] p-6 md:p-10 flex flex-col min-h-[450px] md:min-h-0">
-                    <div className="max-w-2xl mx-auto w-full h-full flex flex-col">
-                        <div className="mb-5 flex justify-between items-end">
-                            <div className="flex flex-col">
-                                <h3 className="text-sm font-black text-zinc-900 uppercase tracking-widest mb-1">Response</h3>
-                                <div className="h-1 w-8 bg-zinc-900 rounded-full"></div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Word count</span>
-                                <div className="px-4 py-1.5 rounded-full bg-zinc-900 text-white text-xs font-black shadow-lg shadow-zinc-900/10">
-                                    {wordCount}
-                                </div>
-                            </div>
-                        </div>
+                {/* Resizer Divider */}
+                <div 
+                    className="w-[16px] bg-[#a6a6a6] flex flex-col items-center justify-center cursor-col-resize relative z-10 shrink-0 hover:bg-[#999] transition-colors"
+                    onMouseDown={() => setIsDragging(true)}
+                >
+                    <div className="absolute top-1/2 -translate-y-1/2 bg-white border border-gray-400 w-7 h-5 flex items-center justify-center shadow-sm">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 8l4 4-4 4" />
+                            <path d="M7 8l-4 4 4 4" />
+                            <path d="M3 12h18" />
+                        </svg>
+                    </div>
+                </div>
 
-                        <div className="flex-1 relative group min-h-[300px] md:min-h-0">
-                            <div className="absolute inset-0 bg-zinc-900/5 rounded-[32px] translate-x-1 translate-y-1 transition-transform group-focus-within:translate-x-1.5 group-focus-within:translate-y-1.5"></div>
-                            <textarea
-                                value={currentAnswer}
-                                onChange={(e) => handleDualAnswerChange(activeTask, e.target.value)}
-                                onPaste={(e) => !isReviewMode && e.preventDefault()}
-                                onContextMenu={(e) => !isReviewMode && e.preventDefault()}
-                                onCopy={(e) => !isReviewMode && e.preventDefault()}
-                                onCut={(e) => !isReviewMode && e.preventDefault()}
-                                spellCheck={false}
-                                data-gramm="false"
-                                data-enable-grammarly="false"
-                                disabled={isReviewMode}
-                                placeholder={`Type your response for ${currentTask?.title.toLowerCase()}...`}
-                                style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
-                                className={`relative h-full w-full p-6 md:p-10 border-2 rounded-[32px] font-serif text-lg md:text-xl leading-relaxed resize-none focus:outline-none focus:ring-0 transition-all ${isReviewMode
-                                    ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
-                                    : 'bg-white border-zinc-200 focus:border-zinc-900 shadow-sm'
-                                    } min-h-[300px] md:min-h-[400px]`}
-                            />
+                {/* Right pane (Textarea & Navigation) */}
+                <div className="h-full overflow-y-auto flex flex-col pt-4 pb-12 pl-6 pr-10" style={{ width: `${100 - leftWidth}%` }}>
+                    {/* Textarea + Word count */}
+                    <div className="flex flex-col">
+                        <textarea
+                            ref={textareaRef}
+                            value={currentAnswer}
+                            onChange={(e) => handleDualAnswerChange(activeTask, e.target.value)}
+                            onPaste={(e) => !isReviewMode && e.preventDefault()}
+                            onContextMenu={(e) => !isReviewMode && e.preventDefault()}
+                            onCopy={(e) => !isReviewMode && e.preventDefault()}
+                            onCut={(e) => !isReviewMode && e.preventDefault()}
+                            spellCheck={false}
+                            data-gramm="false"
+                            data-enable-grammarly="false"
+                            disabled={isReviewMode}
+                            style={{ userSelect: 'text', WebkitUserSelect: 'text', minHeight: '260px', overflowY: 'hidden' }}
+                            className={`w-full border border-[#555] p-4 text-[15px] leading-relaxed resize-none focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 ${isReviewMode ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
+                        />
+                        <div className="text-right text-[17px] text-black mt-6 font-bold">
+                            Words: {wordCount}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Bottom Footer */}
+            <footer className="bg-white border-t border-[#ccc] h-[46px] flex shrink-0">
+                {/* Part 1 Tab */}
+                <button 
+                    onClick={() => setActiveTask(1)}
+                    className={`w-1/2 flex items-center justify-start px-6 transition-colors border-r border-[#ccc] ${
+                        activeTask === 1 ? 'bg-[#f0f0f0]' : 'bg-white hover:bg-gray-50'
+                    }`}
+                >
+                    <div className={`w-[22px] h-[22px] rounded flex items-center justify-center mr-3 ${activeTask === 1 ? 'bg-[#e2e2e2]' : 'bg-transparent'}`}>
+                        {activeTask === 1 && <FiCheck size={14} className="text-[#333]" />}
+                    </div>
+                    <span className="font-bold text-[14px] text-[#333]">Part 1</span>
+                </button>
+
+                {/* Part 2 Tab */}
+                <button 
+                    onClick={() => setActiveTask(2)}
+                    className={`w-1/2 flex items-center justify-end px-6 transition-colors ${
+                        activeTask === 2 ? 'bg-[#f0f0f0]' : 'bg-white hover:bg-gray-50'
+                    }`}
+                >
+                    <span className="font-bold text-[14px] text-[#333] mr-4">Part 2</span>
+                    <div className={`w-[22px] h-[22px] rounded flex items-center justify-center ml-4 ${activeTask === 2 ? 'bg-[#e2e2e2]' : 'bg-transparent'}`}>
+                        {activeTask === 2 && <FiCheck size={14} className="text-[#333]" />}
+                    </div>
+                </button>
+            </footer>
         </div>
     );
 }
+

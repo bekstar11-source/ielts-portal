@@ -80,7 +80,8 @@ export default function CollectionModal({
         setUploadingImage(true);
         try {
             const sRef = ref(storage, `test_collection_covers/${Date.now()}_${file.name}`);
-            const uploadTask = uploadBytesResumable(sRef, file);
+            const metadata = { cacheControl: 'public, max-age=31536000' };
+            const uploadTask = uploadBytesResumable(sRef, file, metadata);
             uploadTask.on(
                 "state_changed",
                 null,

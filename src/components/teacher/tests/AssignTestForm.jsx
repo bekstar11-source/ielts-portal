@@ -1,6 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { ArrowLeft, CheckCircle, X } from '@phosphor-icons/react';
-// Note: You will need to add the other Phosphor icons and Firebase imports later
+import { 
+    ArrowLeft, ArrowsCounterClockwise, CaretDown, CheckCircle, 
+    CheckSquare, Clock, Flame, Lightning, ListChecks, Minus, 
+    Plus, MagnifyingGlass as SearchIcon, ShieldWarning, Square, Users, Warning, X 
+} from '@phosphor-icons/react';
+import { getTestIconAndColor } from './TeacherTestHelpers';
+import { formatQType, getReadingPassages, getListeningParts } from '../../../utils/TestUtils';
 
 export default function AssignTestForm({ 
     isDark, toast, showToast,
