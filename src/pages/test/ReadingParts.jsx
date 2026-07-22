@@ -66,7 +66,7 @@ export default function ReadingParts() {
   const [allTestsLoaded, setAllTestsLoaded] = useState(false);
   const [privateColIds, setPrivateColIds] = useState(new Set());
   const [collectionsMap, setCollectionsMap] = useState({});
-  const PAGE_SIZE = 24;
+  const PAGE_SIZE = 500;
 
   const isInitialLoading = loading || isFirstLoad;
 
@@ -165,11 +165,12 @@ export default function ReadingParts() {
             });
         }
         
-        if (snap && snap.docs.length > 0) {
+        if (snap && snap.docs.length === PAGE_SIZE) {
             setLastVisible(snap.docs[snap.docs.length - 1]);
-            setHasMore(snap.docs.length === PAGE_SIZE);
-        } else if (isFirstPage) {
+            setHasMore(true);
+        } else {
             setHasMore(false);
+            setAllTestsLoaded(true);
         }
     } catch (err) {
         console.error("Error fetching library tests:", err);
@@ -331,16 +332,8 @@ export default function ReadingParts() {
   }, [rawAssignments, searchQuery, selectedQuestionTypes, selectedStatus, selectedPassages, freeOnly]);
 
   const totalPages = useMemo(() => {
-    const hasActiveFilters = searchQuery.trim().length > 0 || 
-                             selectedStatus !== 'all' || 
-                             selectedQuestionTypes.length > 0 || 
-                             selectedPassages.length > 0 ||
-                             freeOnly;
-    if (hasActiveFilters || !hasMore) {
-      return Math.max(1, Math.ceil(filteredTests.length / itemsPerPage));
-    }
-    return Math.max(1, Math.ceil((totalLibraryCount || filteredTests.length) / itemsPerPage));
-  }, [filteredTests.length, totalLibraryCount, hasMore, searchQuery, selectedStatus, selectedQuestionTypes, selectedPassages, freeOnly]);
+    return Math.max(1, Math.ceil(filteredTests.length / itemsPerPage));
+  }, [filteredTests.length, itemsPerPage]);
 
   const handlePageChange = async (page) => {
     setCurrentPage(page);
@@ -517,7 +510,17 @@ export default function ReadingParts() {
           activeTab="reading" 
           subType="parts"
           categories={categories} 
-          totalCount={isInitialLoading ? 0 : (totalLibraryCount || rawAssignments.filter(t => t.type === 'reading' && !t.title?.includes('/') && !t.isSet).length)}
+          totalCount={isInitialLoading ? 0 : rawAssignments.filter(item => {
+            if (item.type !== 'reading' || item.isSet) return false;
+            let passagesCount = 0;
+            if (item.passages) {
+              if (Array.isArray(item.passages)) passagesCount = item.passages.length;
+              else if (typeof item.passages === 'object') passagesCount = Object.keys(item.passages).length;
+            }
+            if (passagesCount > 1) return false;
+            if (passagesCount === 0 && getQuestionCount(item) > 14) return false;
+            return true;
+          }).length}
           filteredCount={filteredTests.length}
         />
 

@@ -725,6 +725,12 @@ export const translations = {
       keywordsCount: "{count} ta kalit so'z"
     },
     testSolving: {
+      resumeTitle: "Davom ettirasizmi?",
+      resumeSubtitle: "Sizda avvalgi chala ishlangan test qoralamasi bor. Qanday davom ettiramiz?",
+      continueTest: "Davom ettirish",
+      continueTestDesc: "Eski javoblaringiz bilan davom etish",
+      startFresh: "Yangi boshlash",
+      startFreshDesc: "Hamma javoblarni o'chirib noldan boshlash",
       selectModeTitle: "Test rejimini tanlang",
       selectModeSubtitle: "Ushbu testni qanday topshirmoqchi ekanligingizni tanlang",
       examMode: "Imtihon rejimi",
@@ -1509,6 +1515,12 @@ export const translations = {
        keywordsCount: "{count} keywords"
      },
      testSolving: {
+       resumeTitle: "Resume Test?",
+       resumeSubtitle: "You have a previously saved test draft. How would you like to proceed?",
+       continueTest: "Continue",
+       continueTestDesc: "Continue with your saved answers",
+       startFresh: "Start Fresh",
+       startFreshDesc: "Delete all answers and start from scratch",
        selectModeTitle: "Select Test Mode",
        selectModeSubtitle: "Choose how you want to take this test",
        examMode: "Exam Mode",

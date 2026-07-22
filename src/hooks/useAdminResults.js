@@ -43,7 +43,7 @@ export const useAdminResults = () => {
             const q = query(collection(db, "results"), orderBy("date", "desc"), limit(300));
             const querySnapshot = await getDocs(q);
             
-            const testsSnapshot = await getDocs(query(collection(db, "tests_metadata"), limit(200)));
+            const testsSnapshot = await getDocs(collection(db, "tests_metadata"));
             const validTestIds = new Set(testsSnapshot.docs.map(doc => doc.id));
 
             const podcastResultsSnapshot = await getDocs(query(collection(db, "podcastResults"), orderBy("createdAt", "desc"), limit(100)));

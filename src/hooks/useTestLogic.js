@@ -38,6 +38,8 @@ export function useTestLogic() {
     // UI & Navigation States
     const [testMode, setTestMode] = useState(null);
     const [showModeSelection, setShowModeSelection] = useState(true);
+    const [showResumeModal, setShowResumeModal] = useState(false);
+    const [draftData, setDraftData] = useState(null);
     const [showResult, setShowResult] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [score, setScore] = useState(0);
@@ -95,19 +97,48 @@ export function useTestLogic() {
         const savedMode = localStorage.getItem(`mode_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`);
 
         if (savedDraft) {
-            try { setUserAnswers(JSON.parse(savedDraft)); } catch { setWritingEssay(savedDraft); }
-        }
-
-        if (['reading', 'listening', 'writing'].includes(type)) {
-            if (savedMode && savedDraft) {
-                setTestMode(savedMode);
+            setDraftData({ draft: savedDraft, mode: savedMode });
+            setShowResumeModal(true);
+            setShowModeSelection(false); // Hide mode selection while resume modal is up
+        } else {
+            // No draft, normal flow
+            if (['reading', 'listening', 'writing'].includes(type)) {
+                setShowModeSelection(true);
+            } else {
+                setTestMode('exam');
                 setShowModeSelection(false);
             }
+        }
+    }, [test, partNumber]);
+
+    const handleResumeContinue = () => {
+        if (draftData) {
+            try { setUserAnswers(JSON.parse(draftData.draft)); } catch { setWritingEssay(draftData.draft); }
+            if (draftData.mode && ['reading', 'listening', 'writing'].includes(test.type?.toLowerCase())) {
+                setTestMode(draftData.mode);
+                setShowModeSelection(false);
+            } else if (['reading', 'listening', 'writing'].includes(test.type?.toLowerCase())) {
+                setShowModeSelection(true);
+            } else {
+                setTestMode('exam');
+                setShowModeSelection(false);
+            }
+        }
+        setShowResumeModal(false);
+    };
+
+    const handleResumeFresh = () => {
+        clearTestStorage(user.uid, test.id, partNumber, false);
+        setUserAnswers({});
+        setWritingEssay("");
+        if (['reading', 'listening', 'writing'].includes(test.type?.toLowerCase())) {
+            setShowModeSelection(true);
         } else {
             setTestMode('exam');
             setShowModeSelection(false);
         }
-    }, [test, partNumber]);
+        setShowResumeModal(false);
+    };
 
     // Auto Save
     useEffect(() => {
@@ -179,7 +210,8 @@ export function useTestLogic() {
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
-        activePart, setActivePart, audioTime, setAudioTime, navigate,
-        initialDuration, audioRefs, handleSeekTo, partNumber, resultId, isSubmitting
+        activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
+        audioRefs, handleSeekTo, partNumber, resultId, isSubmitting,
+        showResumeModal, handleResumeContinue, handleResumeFresh
     };
 }

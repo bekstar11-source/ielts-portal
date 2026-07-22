@@ -3,7 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebase/firebase';
-import { deriveQuestionTypesForCard } from '../../utils/TestUtils';
+import { 
+  deriveQuestionTypesForCard,
+  formatQType,
+  Q_TYPE_LABELS,
+  getReadingPassages,
+  getListeningParts
+} from '../../utils/TestUtils';
+import { RingChart, DeadlineCountdown, getTestIconAndColor } from '../../components/teacher/tests/TeacherTestHelpers';
 import { doc, getDoc, getDocs, query, where, collection, updateDoc, arrayUnion, arrayRemove, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import {
   ArrowLeft,
@@ -38,98 +45,6 @@ import {
   FunnelSimple,
 } from '@phosphor-icons/react';
 
-// SVG ring progress chart
-const RingChart = ({ pct, isDark }) => {
-    const r = 17;
-    const circ = 2 * Math.PI * r;
-    const color = pct === 100 ? '#10b981' : pct >= 50 ? '#3b82f6' : '#f59e0b';
-    return (
-        <div className="relative shrink-0 w-11 h-11 flex items-center justify-center">
-            <svg width="44" height="44" viewBox="0 0 44 44" className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="22" cy="22" r={r} fill="none" stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} strokeWidth={5} />
-                <circle cx="22" cy="22" r={r} fill="none" stroke={color} strokeWidth={5}
-                    strokeDasharray={circ}
-                    strokeDashoffset={circ * (1 - pct / 100)}
-                    strokeLinecap="round"
-                    style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
-            </svg>
-            <span className="relative text-[9px] font-black leading-none" style={{ color }}>{pct}%</span>
-        </div>
-    );
-};
-
-// Deadline countdown badge
-const DeadlineCountdown = ({ deadline, isDark }) => {
-    if (!deadline) return <span className="text-emerald-600 dark:text-emerald-400 font-bold">Cheksiz muddat</span>;
-    const now = new Date();
-    const dl = new Date(deadline);
-    const diff = dl - now;
-    if (diff < 0) return <span className="text-rose-500 font-bold">Muddati o'tgan</span>;
-    const days = Math.floor(diff / 86400000);
-    const hours = Math.floor((diff % 86400000) / 3600000);
-    const mins = Math.floor((diff % 3600000) / 60000);
-    const color = days === 0 ? 'text-rose-500' : days <= 2 ? 'text-amber-500' : (isDark ? 'text-gray-300' : 'text-gray-700');
-    if (days > 0) return <span className={`font-bold ${color}`}>{days}k {hours}s qoldi</span>;
-    if (hours > 0) return <span className="font-bold text-rose-500">{hours}s {mins}d qoldi</span>;
-    return <span className="font-bold text-rose-600">{mins} daqiqa qoldi!</span>;
-};
-
-const Q_TYPE_LABELS = {
-    mcq: 'MCQ', multiple_choice: 'MCQ', gap_fill: 'Gap Fill',
-    notes_completion: 'Notes', summary_completion: 'Summary',
-    table_completion: 'Table', flow_chart_completion: 'Flow Chart',
-    map_labeling: 'Map', matching: 'Matching',
-    true_false_not_given: 'T/F/NG', true_false: 'T/F/NG', tfng: 'T/F/NG',
-    yes_no_not_given: 'Y/N/NG', yes_no: 'Y/N/NG', ynng: 'Y/N/NG',
-    short_answer: 'Short Ans', sentence_completion: 'Sentence',
-    diagram_labeling: 'Diagram', heading_matching: 'Headings',
-    paragraph_matching: 'Para Match',
-};
-
-const formatQType = (t) => Q_TYPE_LABELS[t?.toLowerCase?.()] ?? t;
-
-/** Returns array of { label, qTypes } for reading passages */
-const getReadingPassages = (test) => {
-    if (!test) return [];
-    const raw = test.passages;
-    if (!raw) return [];
-    const arr = Array.isArray(raw) ? raw : Object.values(raw);
-    return arr.map((p, i) => ({
-        label: `Passage ${i + 1}`,
-        title: p?.title ?? null,
-        qTypes: Array.isArray(p?.qTypes) ? p.qTypes : [],
-        qCount: p?.questions?.length ?? p?.questionCount ?? null,
-    }));
-};
-
-/** Returns array of { label, qTypes } for listening parts */
-const getListeningParts = (test) => {
-    if (!test) return [];
-    const raw = test.parts;
-    if (!raw || typeof raw !== 'object') return [];
-    return Object.entries(raw)
-        .sort(([a], [b]) => {
-            // numeric sort: part1 < part2 < part10
-            const na = parseInt(a.replace(/\D/g, ''), 10);
-            const nb = parseInt(b.replace(/\D/g, ''), 10);
-            return (isNaN(na) || isNaN(nb)) ? a.localeCompare(b) : na - nb;
-        })
-        .map(([key, part], i) => ({
-            label: `Part ${i + 1}`,
-            qTypes: Array.isArray(part?.qTypes) ? part.qTypes : [],
-            qCount: part?.questions?.length ?? part?.questionCount ?? null,
-        }));
-};
-
-const getTestIconAndColor = (type) => {
-    const t = (type || '').toLowerCase();
-    if (t.includes('reading')) return { icon: <BookOpen size={16} weight="fill" />, colorClass: 'bg-blue-500/10 text-blue-500' };
-    if (t.includes('listening')) return { icon: <Headphones size={16} weight="fill" />, colorClass: 'bg-pink-500/10 text-pink-500' };
-    if (t.includes('writing')) return { icon: <NotePencil size={16} weight="fill" />, colorClass: 'bg-orange-500/10 text-orange-500' };
-    if (t.includes('podcast')) return { icon: <Headphones size={16} weight="fill" />, colorClass: 'bg-indigo-500/10 text-indigo-500' };
-    if (t.includes('article')) return { icon: <BookOpen size={16} weight="fill" />, colorClass: 'bg-emerald-500/10 text-emerald-500' };
-    return { icon: <Trophy size={16} weight="fill" />, colorClass: 'bg-purple-500/10 text-purple-500' };
-};
 
 export default function TeacherTests() {
     const { userData } = useAuth();

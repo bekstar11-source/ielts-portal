@@ -12,6 +12,42 @@ import DetailedAnswersModal from '../TestReview/DetailedAnswersModal';
 // Audio preloading is handled solely by TestHeader's AudioPreloader.
 // This eliminates duplicate downloads that were causing 2x bandwidth.
 // ──────────────────────────────────────────────
+// ──────────────────────────────────────────────
+// RESUME TEST MODAL
+// ──────────────────────────────────────────────
+export const ResumeTestModal = ({ show, onContinue, onFresh }) => {
+    const { t } = useTranslation();
+
+    if (!show) return null;
+
+    return (
+        <div className="absolute inset-0 bg-white/90 z-[1000] flex items-center justify-center backdrop-blur-md">
+            <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-lg w-full text-center">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('testSolving.resumeTitle')}</h2>
+                <p className="text-gray-500 mb-8 text-sm">{t('testSolving.resumeSubtitle')}</p>
+                <div className="grid grid-cols-2 gap-4">
+                    <button
+                        onClick={onContinue}
+                        className="bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
+                    >
+                        <div className="text-3xl mb-3">▶️</div>
+                        <h3 className="font-bold text-gray-900 group-hover:text-blue-600">{t('testSolving.continueTest')}</h3>
+                        <p className="text-gray-400 text-xs mt-2">{t('testSolving.continueTestDesc')}</p>
+                    </button>
+
+                    <button
+                        onClick={onFresh}
+                        className="bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
+                    >
+                        <div className="text-3xl mb-3">🔄</div>
+                        <h3 className="font-bold text-gray-900 group-hover:text-red-600">{t('testSolving.startFresh')}</h3>
+                        <p className="text-gray-400 text-xs mt-2">{t('testSolving.startFreshDesc')}</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
 // ──────────────────────────────────────────────

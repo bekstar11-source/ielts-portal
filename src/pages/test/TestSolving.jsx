@@ -6,7 +6,7 @@ const WritingInterface = lazy(() => import("../../components/WritingInterface/Wr
 const SpeakingInterface = lazy(() => import("../../components/SpeakingInterface/SpeakingInterface"));
 
 import TestHeader from "../../components/TestSolving/TestHeader";
-import { ModeSelectionModal, ResultModal } from "../../components/TestSolving/TestModals";
+import { ModeSelectionModal, ResultModal, ResumeTestModal } from "../../components/TestSolving/TestModals";
 import ResultsCalculatingScreen from "../../components/TestSolving/ResultsCalculatingScreen";
 import TestLockedScreen from "../../components/TestSolving/TestLockedScreen";
 import { useTestLogic } from "../../hooks/useTestLogic";
@@ -26,7 +26,8 @@ export default function TestSolving() {
         showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
-        audioRefs, handleSeekTo, partNumber, resultId, isSubmitting
+        audioRefs, handleSeekTo, partNumber, resultId, isSubmitting,
+        showResumeModal, handleResumeContinue, handleResumeFresh
     } = useTestLogic();
 
     // Dynamically determine the originating/return path
@@ -498,12 +499,18 @@ export default function TestSolving() {
             <div className="flex flex-1 overflow-hidden relative">
 
                 {/* MODALS */}
-                <ModeSelectionModal
-                    show={showModeSelection}
-                    setTestMode={setTestMode}
-                    setTimeLeft={setTimeLeft}
-                    setShowModeSelection={setShowModeSelection}
-                    test={test}
+                <ModeSelectionModal 
+                    show={showModeSelection && !showResumeModal} 
+                    setTestMode={setTestMode} 
+                    setTimeLeft={setTimeLeft} 
+                    setShowModeSelection={setShowModeSelection} 
+                    test={test} 
+                />
+
+                <ResumeTestModal
+                    show={showResumeModal}
+                    onContinue={handleResumeContinue}
+                    onFresh={handleResumeFresh}
                 />
 
                 <ResultModal

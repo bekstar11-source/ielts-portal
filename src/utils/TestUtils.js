@@ -480,5 +480,49 @@ export const getPassageNum = (test, passageNumberProp = null, indexInSet = null)
   return null;
 };
 
+export const Q_TYPE_LABELS = {
+    mcq: 'MCQ', multiple_choice: 'MCQ', gap_fill: 'Gap Fill',
+    notes_completion: 'Notes', summary_completion: 'Summary',
+    table_completion: 'Table', flow_chart_completion: 'Flow Chart',
+    map_labeling: 'Map', matching: 'Matching',
+    true_false_not_given: 'T/F/NG', true_false: 'T/F/NG', tfng: 'T/F/NG',
+    yes_no_not_given: 'Y/N/NG', yes_no: 'Y/N/NG', ynng: 'Y/N/NG',
+    short_answer: 'Short Ans', sentence_completion: 'Sentence',
+    diagram_labeling: 'Diagram', heading_matching: 'Headings',
+    paragraph_matching: 'Para Match',
+};
 
+export const formatQType = (t) => Q_TYPE_LABELS[t?.toLowerCase?.()] ?? t;
 
+/** Returns array of { label, qTypes } for reading passages */
+export const getReadingPassages = (test) => {
+    if (!test) return [];
+    const raw = test.passages;
+    if (!raw) return [];
+    const arr = Array.isArray(raw) ? raw : Object.values(raw);
+    return arr.map((p, i) => ({
+        label: `Passage ${i + 1}`,
+        title: p?.title ?? null,
+        qTypes: Array.isArray(p?.qTypes) ? p.qTypes : [],
+        qCount: p?.questions?.length ?? p?.questionCount ?? null,
+    }));
+};
+
+/** Returns array of { label, qTypes } for listening parts */
+export const getListeningParts = (test) => {
+    if (!test) return [];
+    const raw = test.parts;
+    if (!raw || typeof raw !== 'object') return [];
+    return Object.entries(raw)
+        .sort(([a], [b]) => {
+            // numeric sort: part1 < part2 < part10
+            const na = parseInt(a.replace(/\D/g, ''), 10);
+            const nb = parseInt(b.replace(/\D/g, ''), 10);
+            return (isNaN(na) || isNaN(nb)) ? a.localeCompare(b) : na - nb;
+        })
+        .map(([key, part], i) => ({
+            label: `Part ${i + 1}`,
+            qTypes: Array.isArray(part?.qTypes) ? part.qTypes : [],
+            qCount: part?.questions?.length ?? part?.questionCount ?? null,
+        }));
+};
