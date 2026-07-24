@@ -35,6 +35,7 @@ const AdminTestsToolbar = ({
     setSortOrder,
     onImport,
     onOpenQuestionBank,
+    onFindDuplicates,
     showStats = true,
     onToggleStats
 }) => {
@@ -153,6 +154,11 @@ const AdminTestsToolbar = ({
                     <button onClick={onOpenQuestionBank} className={secondaryBtnClass}>
                         <BookOpen size={12} className="text-blue-500" />
                         <span className="hidden sm:inline">Savollar banki</span>
+                    </button>
+
+                    <button onClick={onFindDuplicates} className={secondaryBtnClass}>
+                        <Search size={12} className="text-purple-500" />
+                        <span className="hidden sm:inline">Duplikatlar</span>
                     </button>
 
                     <button onClick={onImport} className={secondaryBtnClass}>

@@ -21,6 +21,7 @@ import QuickEditModal from "../../components/admin/AdminTests/QuickEditModal";
 import BulkAssignModal from "../../components/admin/AdminTests/BulkAssignModal";
 import MergeModal from "../../components/admin/AdminTests/MergeModal";
 import QuestionBankModal from "../../components/admin/AdminTests/QuestionBankModal";
+import FindDuplicatesModal from "../../components/admin/AdminTests/FindDuplicatesModal";
 
 export default function AdminTests() {
     const navigate = useNavigate();
@@ -76,6 +77,7 @@ export default function AdminTests() {
     const [mergeModalOpen, setMergeModalOpen] = useState(false);
     const [mockExamModalOpen, setMockExamModalOpen] = useState(false);
     const [quickEditModalOpen, setQuickEditModalOpen] = useState(false);
+    const [duplicatesModalOpen, setDuplicatesModalOpen] = useState(false);
 
     // Active Edit Objects
     const [editingCol, setEditingCol] = useState(null); 
@@ -659,6 +661,7 @@ export default function AdminTests() {
                     setSortOrder={setSortOrder}
                     onImport={() => document.getElementById("import-json-file").click()}
                     onOpenQuestionBank={() => setQuestionBankOpen(true)}
+                    onFindDuplicates={() => setDuplicatesModalOpen(true)}
                     showStats={showStats}
                     onToggleStats={toggleStats}
                 />
@@ -891,6 +894,12 @@ export default function AdminTests() {
                 isOpen={questionBankOpen}
                 onClose={() => setQuestionBankOpen(false)}
                 allAvailableTests={allAvailableTests}
+            />
+
+            <FindDuplicatesModal
+                isOpen={duplicatesModalOpen}
+                onClose={() => setDuplicatesModalOpen(false)}
+                onDeleteTest={handleConfirmDeleteTest}
             />
 
             {/* COLLECTION MODAL (ADD / EDIT) */}
