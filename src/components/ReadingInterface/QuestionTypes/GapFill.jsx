@@ -4,8 +4,9 @@ import { injectKeywordsToHTML } from '../../../utils/highlightUtils';
 import { 
     checkAnswer, 
     QuestionExplanation, 
-    ReadingTextInput, 
-    getOptionValue 
+    ReadingTextInput,
+    getOptionValue,
+    isChoiceContext
 } from './CommonComponents';
 
 export const GapFillQuestion = ({ 
@@ -13,7 +14,7 @@ export const GapFillQuestion = ({
 }) => {
     const itemOptions = (Array.isArray(q.options) && q.options.length > 0) ? q.options : (Array.isArray(group.options) ? group.options : []);
     const parts = (q.text || "").split(/(\[INPUT\]|\[DROP\])/g);
-    const isCorrect = checkAnswer(val, q.answer);
+    const isCorrect = checkAnswer(val, q.answer, isChoiceContext(group.type, itemOptions));
 
     const renderParts = () => {
         return parts.map((part, i) => {

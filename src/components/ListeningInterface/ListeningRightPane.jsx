@@ -1,6 +1,8 @@
 import React, { memo } from "react";
 import { MapLabeling, Matching, SelectionBox, TableCompletion, NoteCompletion, FlowChart, MultipleChoice } from "./ListeningQuestionTypes";
 import { useListeningHighlight } from "../../hooks/useListeningHighlight";
+// Bir ro'yxat — render (SelectionBox) va ball hisobi (isMultiAnswerType) bir xil turlarni ko'radi
+import { MULTI_SELECT_TYPES } from "../../utils/ieltsScoring";
 
 const formatIELTSInstruction = (text) => {
     if (!text) return "";
@@ -128,7 +130,7 @@ const ListeningRightPane = memo(({
     const renderGroupContent = (group) => {
         if (group.type === 'map_labeling') return <MapLabeling group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
         if (group.type === 'matching') return <Matching group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
-        if (['selection', 'pick_two', 'pick_three', 'pick_four', 'pick_five', 'multi_three', 'multi_choice_box', 'multiple_choice_multiple_answer'].includes(group.type)) return <SelectionBox group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+        if (MULTI_SELECT_TYPES.includes(group.type)) return <SelectionBox group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
         if (['table_completion', 'table'].includes(group.type)) return <TableCompletion group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
         const completionTypes = ['note_completion', 'gap_fill', 'sentence_completion', 'summary_completion', 'form_completion'];
         if (completionTypes.includes(group.type)) {

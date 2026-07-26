@@ -1,66 +1,41 @@
 // src/utils/ieltsScoring.js
 
+// Rasmiy IELTS raw→band jadvallari (40 ta savol asosida), [eng kam raw ball, band] ko'rinishida.
+// DIQQAT: Reading va Listening jadvallari BIR XIL EMAS. Ilgari ikkalasiga ham Listening
+// jadvali qo'llanilar edi va Reading ballari bir necha chegarada 0.5 ga oshib ketardi
+// (raw 32 → 7.5 o'rniga rasmiy 7.0; raw 26 → 6.0; raw 18 → 5.0; raw 15 → 5.0).
+const READING_BAND_TABLE = [
+    [39, 9.0], [37, 8.5], [35, 8.0], [33, 7.5], [30, 7.0], [27, 6.5], [23, 6.0], [19, 5.5],
+    [15, 5.0], [13, 4.5], [10, 4.0], [8, 3.5], [6, 3.0], [4, 2.5], [2, 2.0], [1, 1.0]
+];
+
+const LISTENING_BAND_TABLE = [
+    [39, 9.0], [37, 8.5], [35, 8.0], [32, 7.5], [30, 7.0], [26, 6.5], [23, 6.0], [18, 5.5],
+    [16, 5.0], [13, 4.5], [11, 4.0], [8, 3.5], [6, 3.0], [4, 2.5], [2, 2.0], [1, 1.0]
+];
+
 // IELTS BAND CALCULATOR
 export const calculateBandScore = (score, type, totalQuestions = 40) => {
     const t = type?.toLowerCase();
+    if (t !== 'listening' && t !== 'reading') return null;
 
-    if (t === 'listening' || t === 'reading') {
-        if (!totalQuestions || totalQuestions <= 0) return 0;
-        if (score <= 0) return 0;
+    if (!totalQuestions || totalQuestions <= 0) return 0;
+    if (score <= 0) return 0;
 
-        // Part testlar uchun (masalan, bitta passage 13-14 savol yoki listening qismi 10 savol)
-        // Xatolar soniga ko'ra band hisoblanadi (scaling orqali gapi-shashlik bo'lmasligi uchun)
-        if (totalQuestions >= 10 && totalQuestions <= 15) {
-            const mistakes = totalQuestions - score;
-            if (mistakes <= 0) return 9.0;
-            if (mistakes === 1) return 8.5;
-            if (mistakes === 2) return 8.0;
-            if (mistakes === 3) return 7.5;
-            if (mistakes === 4) return 7.0;
-            if (mistakes === 5) return 6.5;
-            if (mistakes === 6) return 6.0;
-            if (mistakes === 7) return 5.5;
-            if (mistakes === 8) return 5.0;
-            if (mistakes === 9) return 4.5;
-            if (mistakes === 10) return 4.0;
-            if (mistakes === 11) return 3.5;
-            if (mistakes === 12) return 3.0;
-            if (mistakes === 13) return 2.5;
-            if (mistakes === 14) return 2.0;
-            return 1.0;
-        }
+    // Part practice (bitta passage/section) yoki nostandart savollar soni uchun xom ballni
+    // 40 ta savolga proporsional keltiramiz. Ilgari 10–15 savollik testlar uchun alohida
+    // "xatolar soni" jadvali ishlatilardi — u rasmiy jadvaldan ancha saxiy edi (13 tadan 9 tasi
+    // to'g'ri → 7.0, proporsional ekvivalenti esa 6.5) va 15↔16 savol chegarasida band sakrardi.
+    const cappedScore = Math.min(score, totalQuestions);
+    const scaledScore = totalQuestions === 40
+        ? cappedScore
+        : Math.round((cappedScore / totalQuestions) * 40);
 
-        // Standart testlar (40 ta savol) yoki boshqa o'lchamdagi testlar uchun scaling
-        let scaledScore;
-        if (totalQuestions === 40) {
-            scaledScore = score;
-        } else if (totalQuestions === 20) {
-            scaledScore = Math.round((score / 20) * 40);
-        } else {
-            // Nostandart savollar soni: eng yaqin qiymatga o'tkazamiz
-            scaledScore = Math.round((score / totalQuestions) * 40);
-        }
-
-        // Rasmiy IELTS band jadvali (40 ta asosida)
-        if (scaledScore >= 39) return 9.0;
-        if (scaledScore >= 37) return 8.5;
-        if (scaledScore >= 35) return 8.0;
-        if (scaledScore >= 32) return 7.5;
-        if (scaledScore >= 30) return 7.0;
-        if (scaledScore >= 26) return 6.5;
-        if (scaledScore >= 23) return 6.0;
-        if (scaledScore >= 18) return 5.5;
-        if (scaledScore >= 16) return 5.0;
-        if (scaledScore >= 13) return 4.5;
-        if (scaledScore >= 10) return 4.0;
-        if (scaledScore >= 8)  return 3.5;
-        if (scaledScore >= 6)  return 3.0;
-        if (scaledScore >= 4)  return 2.5;
-        if (scaledScore >= 2)  return 2.0;
-        if (scaledScore >= 1)  return 1.0;
-        return 0;
+    const table = t === 'reading' ? READING_BAND_TABLE : LISTENING_BAND_TABLE;
+    for (const [minRaw, band] of table) {
+        if (scaledScore >= minRaw) return band;
     }
-    return null;
+    return 0;
 };
 
 // OVERALL BAND CALCULATOR (Rounds to nearest 0.5)
@@ -89,6 +64,13 @@ export const calculateOverallBand = (...args) => {
 };
 
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⚠️ SINXRON SAQLASH SHART: quyidagi baholash mantiqi `functions/ieltsScoring.js`
+// bilan bir xil bo'lishi kerak. Ball SERVERDA hisoblanadi, review esa shu fayldan
+// foydalanadi — ular farq qilsa, talaba review'da yashil ✓ ko'rib, ball olmaydi.
+// ─────────────────────────────────────────────────────────────────────────────
+
 // COLLAPSE WHITESPACE & CLEAN
 export const normalizeString = (str) => {
     return String(str || "")
@@ -108,6 +90,10 @@ export const normalizeString = (str) => {
 // Gap-fill/short-answer javoblarida esa bu solishtirish xato bo'lishi mumkin (masalan to'g'ri javob
 // "C. elegans" yoki "A rare bird" bo'lsa, foydalanuvchi shunchaki "C"/"A" deb yozib qo'ysa ham
 // noto'g'ri ravishda "to'g'ri" deb hisoblanib qolardi).
+//
+// DIQQAT: turdan tashqari, guruhda `options` bo'lishi ham variant-tanlash belgisidir
+// (map_labeling, options'li flow_chart). Buni `evaluateTest` hisobga oladi — shuning uchun
+// review UI (options bor joyda choice rejimi) va ball hisobi bir xil qaror qabul qiladi.
 export const isChoiceQuestionType = (type) => {
     if (!type) return false;
     const t = String(type).toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ');
@@ -120,57 +106,161 @@ export const isChoiceQuestionType = (type) => {
            t.includes('matching');
 };
 
+// Bir nechta variant belgilanadigan (checkbox) savol turlari.
+// ListeningRightPane shu ro'yxat bo'yicha SelectionBox render qiladi — ro'yxat
+// `isMultiAnswerType` bilan mos bo'lishi shart, aks holda javoblar alifbo tartibida
+// slotlarga yozilib, har biri alohida tekshirilganda noto'g'ri "xato" chiqadi.
+export const MULTI_SELECT_TYPES = [
+    'selection',
+    'pick_two', 'pick_three', 'pick_four', 'pick_five',
+    'multi_two', 'multi_three', 'multi_four', 'multi_five',
+    'multi_choice_box',
+    'multiple_choice_multiple_answer'
+];
+
+export const isMultiAnswerType = (type) => {
+    if (!type) return false;
+    const t = String(type).toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ');
+
+    // Explicit exclusions for types that have 'multi' but are single-answer per ID
+    if (t === 'multiple choice' || t === 'mcq') return false;
+
+    return t.includes('two choice') ||
+           t.includes('three choice') ||
+           t.includes('pick two') ||
+           t.includes('pick three') ||
+           t.includes('pick four') ||
+           t.includes('pick five') ||
+           t.includes('multi two') ||
+           t.includes('multi three') ||
+           t.includes('multi four') ||
+           t.includes('multi five') ||
+           t.includes('multi choice box') ||
+           t.includes('multiple answer') ||
+           t.includes('multi selection') ||
+           t.includes('multi answer') ||
+           t.includes('selection');
+};
+
+// Guruh turidan nechta variant belgilanishi kerakligini aniqlaydi (topilmasa null)
+export const getMultiSelectCount = (type) => {
+    if (!type) return null;
+    const t = String(type).toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ');
+    if (t.includes('five')) return 5;
+    if (t.includes('four')) return 4;
+    if (t.includes('three')) return 3;
+    if (t.includes('two')) return 2;
+    return null;
+};
+
+// Javob kalitini oladi. Bo'sh satr / bo'sh massiv "kalit yo'q" deb qaraladi,
+// lekin raqam 0 ("0" javobi) HAQIQIY kalit hisoblanadi — avval falsy bo'lgani uchun
+// bunday savollar jimgina umumiy hisobdan tushib qolardi.
+export const getAnswerKey = (o) => {
+    if (!o || typeof o !== 'object') return undefined;
+    const KEYS = ['answer', 'correct_answer', 'correctAnswer', 'correct_answer_value'];
+    for (const k of KEYS) {
+        const v = o[k];
+        if (v === undefined || v === null) continue;
+        if (typeof v === 'string' && v.trim() === '') continue;
+        if (Array.isArray(v) && v.length === 0) continue;
+        return v;
+    }
+    return undefined;
+};
+
+// "23-24" yoki "23,24" kabi ID lar bir nechta savolni bildiradi
+export const getQuestionWeight = (id) => {
+    if (!id) return 1;
+    const s = String(id).trim();
+    const parts = s.split(/[-–—_]/).map(Number);
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        return Math.abs(parts[1] - parts[0]) + 1;
+    }
+    if (s.includes(',')) return s.split(',').length;
+    return 1;
+};
+
+// Defisli yozuvlarni solishtirish uchun variantlar: "car-park" ≈ "car park" ≈ "carpark"
+const hyphenVariants = (s) => {
+    const spaced = s.replace(/[-–—]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const joined = s.replace(/[-–—]+/g, '');
+    return [s, spaced, joined].filter(Boolean);
+};
+
+// To'g'ri javob kalitini muqobil variantlarga ajratadi.
+// "bike/bicycle" → ["bike", "bicycle"]
+// "knife and/or fork" → ["knife and/or fork", "knife", "fork", "knife and fork"]
+//   (avval bu "/" bo'yicha bo'linib, talabaning "knife and" javobi TO'G'RI deb hisoblanardi)
+const splitAlternatives = (raw) => {
+    const s = String(raw).trim();
+    const andOr = s.match(/^(.+?)\s+and\s*\/\s*or\s+(.+)$/i);
+    if (andOr) {
+        const a = andOr[1].trim();
+        const b = andOr[2].trim();
+        return [s, a, b, `${a} and ${b}`];
+    }
+    return s.split(/[/|]/).map(x => x.trim()).filter(Boolean);
+};
+
 // JAVOBNI TEKSHIRISH FUNKSIYASI
 export const checkAnswer = (correct, user, isChoiceType = false) => {
     if (correct === undefined || correct === null) return false;
 
-    // Support single letter answers matched against prefix-style correct answers (e.g., user: "C", correct: "C. Text")
-    // Faqat variant-tanlash (MCQ/TFNG/Matching) turlarida yoqiladi — gap-fill javoblarida yolg'on-ijobiy xato bermasligi uchun.
+    // Massiv ko'rinishidagi kalit: har bir variant alohida tekshiriladi
+    if (Array.isArray(correct)) {
+        return correct.some(c => checkAnswer(c, user, isChoiceType));
+    }
+
     const correctStr = String(correct).trim();
     const userStr = String(user || '').trim().toUpperCase();
+
+    // Single letter check (A, B, C...)
     if (isChoiceType && userStr.length === 1 && /^[A-Z]$/.test(userStr)) {
-        const match = correctStr.match(/^([A-Z])[\.\)\s]/i);
+        const match = correctStr.match(/^([A-Z])[.)\s-]/i);
         if (match && match[1].toUpperCase() === userStr) {
             return true;
         }
     }
 
-    // 1. Tozalash
-    let cleanCorrect = normalizeString(correct);
-    
-    // 2. "v. long text" muammosini hal qilish (Roman numerals with dot)
     const rawUser = String(user || '').trim().toLowerCase();
     let cleanUser = rawUser;
-    if (/^[ivx]+[\.\)\s]/.test(rawUser)) {
-        cleanUser = rawUser.split(/[\.\)\s]/)[0].trim();
+    // "v. long text" muammosi (Roman numerals with dot) — FAQAT variant-tanlash turlarida.
+    // Gap-fill javoblarida bu kesish to'g'ri javoblarni buzadi ("x ray", "x-ray machine", "i love it").
+    if (isChoiceType && /^[ivx]+[.)\s-]/i.test(rawUser)) {
+        cleanUser = rawUser.split(/[.)\s-]/)[0].trim();
     }
     cleanUser = normalizeString(cleanUser);
 
     if (!cleanUser) return false;
 
-    // 3. Qavslar ichidagi ixtiyoriy so'zlar (e.g. "in (the) school")
-    // Biz ixtiyoriy so'zlarni olib tashlangan va bor holatini tekshiramiz
-    const checkWithOptional = (correctStr, userStr) => {
-        if (correctStr === userStr) return true;
-        
-        // Qavslarni olib tashlaymiz (e.g. "in (the) school" -> "in the school")
-        const withoutParens = correctStr.replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
-        if (withoutParens === userStr) return true;
+    // Qavslar ichidagi ixtiyoriy so'zlar (e.g. "in (the) school") + defis variantlari
+    const checkWithOptional = (correctOption, userOption) => {
+        if (!correctOption || !userOption) return false;
 
-        // Qavslar ichidagi so'zlar bilan birga olib tashlaymiz (e.g. "in (the) school" -> "in school")
-        const withoutWords = correctStr.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
-        if (withoutWords === userStr) return true;
+        const forms = [
+            correctOption,
+            // Qavslarni olib tashlaymiz
+            correctOption.replace(/[()]/g, '').replace(/\s+/g, ' ').trim(),
+            // Qavslar ichidagi so'zlar bilan birga olib tashlaymiz
+            correctOption.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim()
+        ];
 
-        return false;
+        const userForms = new Set(hyphenVariants(userOption));
+        return forms.some(f => f && hyphenVariants(f).some(v => userForms.has(v)));
     };
 
-    // 4. Slash (/) yoki Pipe (|) tekshiruvi (Alternative answers)
-    const options = cleanCorrect.split(/[/|]/).map(s => s.trim());
-    
-    // Agar user bir nechta javobni slash bilan yozgan bo'lsa (e.g. user: "a / b")
-    const userOptions = cleanUser.split(/[/|]/).map(s => s.trim());
+    const options = splitAlternatives(correctStr).map(opt => {
+        const cleanOpt = opt.toLowerCase();
+        if (isChoiceType && /^[ivx]+[.)\s-]/i.test(cleanOpt)) {
+            return [normalizeString(cleanOpt), normalizeString(cleanOpt.split(/[.)\s-]/)[0].trim())];
+        }
+        return [normalizeString(cleanOpt)];
+    }).flat().filter(Boolean);
 
-    // User yozgan har qanday variant to'g'ri javoblardan biriga mos kelsa
+    // Talabaning javobi to'liq holida ham, "/" bilan ajratilgan bo'laklari bilan ham tekshiriladi
+    const userOptions = [cleanUser, ...cleanUser.split(/[/|]/).map(s => s.trim())].filter(Boolean);
+
     for (const uOpt of userOptions) {
         if (options.some(o => checkWithOptional(o, uOpt))) {
             return true;
@@ -183,20 +273,34 @@ export const checkAnswer = (correct, user, isChoiceType = false) => {
 // MULTI-CHOICE JAVOBNI TEKSHIRISH (e.g. "Choose TWO letters")
 export const scoreMultiAnswer = (correct, user, weight) => {
     if (!correct) return { matches: 0, weight: weight || 1 };
-    
+
     // To'g'ri javoblarni ajratib olamiz (vergul, slash, pipe yoki bo'shliq orqali)
     const normalizeMulti = (str) => {
         if (!str) return [];
-        const s = String(str).trim();
-        
+        const s = String(Array.isArray(str) ? str.join(', ') : str).trim();
+
         // Single letters split (A, B, C) - Only if items are clearly single letters
+        // MUHIM: BARCHA bo'laklar harf/roman bo'lgandagina bu yo'l ishlatiladi. Aks holda
+        // "a big house, small car" kabi matnli javoblardan faqat "a" qolib, qolgani yo'qolardi.
         if (/^[A-Z, /|\s]+$/i.test(s)) {
-            const parts = s.split(/[,/|\s]+/).map(p => p.trim().toLowerCase()).filter(p => p.length === 1 || /^[ivx]+$/i.test(p));
-            if (parts.length > 0) return parts;
+            const tokens = s.split(/[,/|\s]+/).map(p => p.trim().toLowerCase()).filter(Boolean);
+            const allLabels = tokens.length > 0 && tokens.every(p => p.length === 1 || /^[ivx]+$/i.test(p));
+            if (allLabels) return tokens;
         }
 
         // Standard split by common delimiters
-        return s.split(/[,/|]/).map(item => item.trim().toLowerCase()).filter(Boolean);
+        const parts = s.split(/[,/|]/).map(item => item.trim().toLowerCase()).filter(Boolean);
+
+        // "A. Museum" / "iv) text" kabi prefiksli variantlardan faqat harfni ajratamiz.
+        // Ajratkich sifatida FAQAT tinish belgisi ("." yoki ")") qabul qilinadi — bo'sh joy yoki
+        // defis bo'lsa, "a big house" kabi matnli javoblar "a" ga qisqarib ketardi.
+        return parts.map(p => {
+            const match = p.match(/^([a-z]|[ivx]+)\s*[.)]/i);
+            if (match) {
+                return match[1].toLowerCase();
+            }
+            return p;
+        });
     };
 
     const correctArr = normalizeMulti(correct);
@@ -211,28 +315,136 @@ export const scoreMultiAnswer = (correct, user, weight) => {
             matches++;
         }
     });
-    
+
     const finalWeight = weight || correctArr.length;
     const matchesCount = Math.min(matches, finalWeight);
     return { matches: matchesCount, weight: finalWeight };
 };
 
-export const isMultiAnswerType = (type) => {
-    if (!type) return false;
-    const t = String(type).toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ');
-    
-    // Explicit exclusions for types that have 'multi' but are single-answer per ID
-    if (t === 'multiple choice' || t === 'mcq') return false;
+// ─────────────────────────────────────────────────────────────────────────────
+// YAGONA BAHOLASH DVIGATELI
+// Ilgari uchta alohida implementatsiya bor edi (submit, review modal, mock exam) —
+// ular bir-biridan farq qilib, bitta urinish uchun uch xil ball chiqarardi.
+// ─────────────────────────────────────────────────────────────────────────────
+export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
+    let correctCount = 0;
+    let totalQ = 0;
+    const mistakes = [];
+    const missingKeys = [];   // talaba javob bergan, lekin javob kaliti yo'q savollar
+    const scoredIds = new Set();
 
-    return t.includes('two choice') || 
-           t.includes('three choice') || 
-           t.includes('pick two') || 
-           t.includes('pick three') || 
-           t.includes('pick four') || 
-           t.includes('pick five') || 
-           t.includes('multi selection') || 
-           t.includes('multi answer') ||
-           t.includes('selection');
+    if (!testData || typeof testData !== 'object') {
+        return { correctCount: 0, totalQ: 0, band: 0, mistakes, missingKeys };
+    }
+
+    let targetPassageId = null;
+    if (partNumber && testData.passages && testData.passages[partNumber - 1]) {
+        targetPassageId = testData.passages[partNumber - 1].id;
+    }
+
+    const walk = (obj, parentType, parentHasOptions) => {
+        if (!obj || typeof obj !== 'object') return;
+
+        // Skip questions and passages not belonging to the targeted part in part practice
+        if (targetPassageId) {
+            if (obj.passageId && String(obj.passageId) !== String(targetPassageId)) return;
+            if (obj.id && (obj.audio || obj.passageNumber) && String(obj.id) !== String(targetPassageId)) return;
+        }
+
+        const currentType = String(obj.type || parentType || "").toLowerCase();
+        // `options` bo'lgan guruh — variant-tanlash guruhi (map_labeling, options'li flow_chart).
+        // Review UI ham aynan shu qoidaga tayanadi, shuning uchun ikkalasi bir xil natija beradi.
+        const hasOptions = parentHasOptions || (Array.isArray(obj.options) && obj.options.length > 0);
+        const isChoice = isChoiceQuestionType(currentType) || hasOptions;
+
+        if (isMultiAnswerType(obj.type) && !obj.id) {
+            const groupItems = [];
+            const collectItems = (o) => {
+                if (!o || typeof o !== 'object') return;
+                if (o.id && getAnswerKey(o) !== undefined) groupItems.push(o);
+                ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'].forEach(sk => {
+                    if (o[sk] && Array.isArray(o[sk])) o[sk].forEach(collectItems);
+                    else if (o[sk] && typeof o[sk] === 'object') collectItems(o[sk]);
+                });
+            };
+            collectItems(obj);
+
+            if (groupItems.length > 0) {
+                const allCorrect = groupItems.map(i => getAnswerKey(i)).join(', ');
+                const allUser = groupItems.map(i => userAnswers[String(i.id)] || "").join(', ');
+
+                // Weight: tur nomidagi son (pick_two → 2), bo'lmasa ID larning umumiy og'irligi.
+                // ID "23-24" ko'rinishida bo'lsa, u 2 ta savolni bildiradi.
+                let weight = getMultiSelectCount(currentType);
+                if (!weight) {
+                    weight = groupItems.reduce((sum, i) => sum + getQuestionWeight(i.id), 0) || groupItems.length;
+                }
+
+                const result = scoreMultiAnswer(allCorrect, allUser, weight);
+                correctCount += result.matches;
+                totalQ += result.weight;
+
+                if (result.matches < result.weight && allUser.trim()) {
+                    mistakes.push({ questionId: groupItems.map(i => i.id).join(', '), userResponse: allUser, correctAnswer: allCorrect, isMulti: true });
+                }
+                groupItems.forEach(i => scoredIds.add(String(i.id).trim()));
+                return;
+            }
+        }
+
+        const itemAns = getAnswerKey(obj);
+        if (obj.id && itemAns !== undefined) {
+            const idStr = String(obj.id).trim();
+            if (!scoredIds.has(idStr)) {
+                scoredIds.add(idStr);
+                const userResp = userAnswers[idStr] || "";
+                const weight = getQuestionWeight(idStr);
+
+                if (isMultiAnswerType(currentType) || idStr.includes('-') || idStr.includes(',')) {
+                    const result = scoreMultiAnswer(itemAns, userResp, weight);
+                    correctCount += result.matches;
+                    totalQ += result.weight;
+                    if (result.matches < result.weight && String(userResp).trim()) {
+                        mistakes.push({ questionId: idStr, userResponse: userResp, correctAnswer: itemAns });
+                    }
+                } else {
+                    totalQ++;
+                    if (checkAnswer(itemAns, userResp, isChoice)) correctCount++;
+                    else if (String(userResp).trim()) mistakes.push({ questionId: idStr, userResponse: userResp, correctAnswer: itemAns });
+                }
+            }
+        } else if (obj.id && itemAns === undefined) {
+            // Talaba javob bergan, lekin javob kaliti yo'q — bu test tuzishdagi xato.
+            // Bunday savol umumiy hisobga kirmaydi, shuning uchun band sun'iy ko'tariladi.
+            const idStr = String(obj.id).trim();
+            const resp = userAnswers[idStr];
+            if (resp !== undefined && resp !== null && String(resp).trim() !== '' && !missingKeys.includes(idStr)) {
+                missingKeys.push(idStr);
+            }
+        }
+
+        ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'].forEach(key => {
+            const val = obj[key];
+            if (val && Array.isArray(val)) val.forEach(child => walk(child, currentType, hasOptions));
+            else if (val && typeof val === 'object') walk(val, currentType, hasOptions);
+        });
+    };
+
+    walk(testData, null, false);
+
+    const band = calculateBandScore(correctCount, testData.type || 'reading', totalQ);
+
+    return { correctCount, totalQ, band, mistakes, missingKeys };
+};
+
+// UTILITY TO CALCULATE SCORE FOR A SECTION (READING/LISTENING)
+// `evaluateTest` ustidagi yupqa qobiq — ilgari bu alohida (va farqli) implementatsiya edi.
+export const calculateSectionScore = (testData, sectionAnswers) => {
+    const { correctCount, totalQ } = evaluateTest(testData, sectionAnswers || {});
+    return {
+        correct: correctCount,
+        total: totalQ || 40 // Default to 40 if not found
+    };
 };
 
 // VAQT FORMATLASH (MM:SS)
@@ -243,119 +455,4 @@ export const formatTime = (seconds) => {
 
     if (h > 0) return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
-};
-
-// UTILITY TO CALCULATE SCORE FOR A SECTION (READING/LISTENING)
-export const calculateSectionScore = (testData, sectionAnswers) => {
-    let correctCount = 0;
-    let totalQ = 0;
-    const scoredIds = new Set();
-
-    const getWeight = (id) => {
-        if (!id) return 1;
-        const s = String(id).trim();
-        const parts = s.split(/[\-–—_]/).map(Number);
-        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-            return Math.abs(parts[1] - parts[0]) + 1;
-        }
-        if (s.includes(',')) {
-            return s.split(',').length;
-        }
-        return 1;
-    };
-
-    const isMultiAnswer = isMultiAnswerType;
-
-    const walk = (obj, parentType) => {
-        if (!obj) return;
-        const currentType = obj.type || parentType;
-
-        // MULTI-ANSWER GROUP SCORING (to handle shuffling)
-        // If this is a container (group) and is a multi-answer type, process all children at once
-        if (isMultiAnswerType(obj.type) && !obj.id) {
-            const groupItems = [];
-            const collectItems = (o) => {
-                const ans = o.answer || o.correct_answer || o.correctAnswer || o.correct_answer_value;
-                if (o.id && ans) {
-                    groupItems.push(o);
-                }
-                const subKeys = ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'];
-                for (const sk of subKeys) {
-                    if (o[sk] && Array.isArray(o[sk])) {
-                        o[sk].forEach(collectItems);
-                    }
-                }
-            };
-            collectItems(obj);
-
-            if (groupItems.length > 0) {
-                const allCorrect = groupItems.map(i => i.answer || i.correct_answer || i.correctAnswer || i.correct_answer_value).join(', ');
-                const allUser = groupItems.map(i => sectionAnswers[i.id] || "").join(', ');
-                
-                // Weight ni aniqlash (Default: itemlar soni)
-                let weight = groupItems.length;
-                const t = String(obj.type).toLowerCase();
-                if (t.includes('five')) weight = 5;
-                else if (t.includes('four')) weight = 4;
-                else if (t.includes('three')) weight = 3;
-                else if (t.includes('two')) weight = 2;
-
-                const result = scoreMultiAnswer(allCorrect, allUser, weight);
-                correctCount += result.matches;
-                totalQ += result.weight;
-
-                groupItems.forEach(i => scoredIds.add(String(i.id)));
-                return; // Stop recursion for this group
-            }
-        }
-
-        const answer = obj.answer || obj.correct_answer || obj.correctAnswer || obj.correct_answer_value;
-        if (obj.id && answer) {
-            const id = obj.id;
-            const idStr = String(id);
-
-            if (scoredIds.has(idStr)) return;
-
-            if (isMultiAnswer(currentType)) {
-                const weight = getWeight(id);
-                const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
-                const result = scoreMultiAnswer(answer, userResp, weight);
-                correctCount += result.matches;
-                totalQ += result.weight;
-                scoredIds.add(idStr);
-            } else {
-                const userResp = sectionAnswers[idStr] || sectionAnswers[id] || "";
-                const isCorrect = checkAnswer(answer, userResp, isChoiceQuestionType(currentType));
-                if (isCorrect) correctCount++;
-                totalQ++;
-                scoredIds.add(idStr);
-            }
-        }
-
-        const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
-        for (const key of CONTAINER_KEYS) {
-            const val = obj[key];
-            if (val && Array.isArray(val)) {
-                val.forEach(child => walk(child, currentType));
-            } else if (val && typeof val === 'object') {
-                walk(val, currentType);
-            }
-        }
-    };
-
-    // Entry points
-    walk(testData);
-
-    // Fallbacks if testData top-level property check is still needed
-    if (testData.questions && !scoredIds.size) {
-        testData.questions.forEach(q => walk(q, q.type));
-    }
-    if (testData.passages && !scoredIds.size) {
-        testData.passages.forEach(p => walk(p, null));
-    }
-
-    return {
-        correct: correctCount,
-        total: totalQ || 40 // Default to 40 if not found
-    };
 };

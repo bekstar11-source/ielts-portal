@@ -1,4 +1,67 @@
-import { checkAnswer as centralCheckAnswer } from '../../utils/ieltsScoring';
+import { checkAnswer as centralCheckAnswer, getAnswerKey, getMultiSelectCount, getQuestionWeight } from '../../utils/ieltsScoring';
+
+/**
+ * Multi-select (checkbox) guruhining tuzilishini aniqlaydi.
+ *
+ * Bitta savol elementi bir nechta savolni bildirishi mumkin: id "23-24" → 2 ta savol.
+ * Ilgari SelectionBox `maxSelection` ni savol elementlari soniga tenglashtirardi —
+ * bunday testlarda talaba faqat 1 ta variant tanlay olib, ko'pi bilan 1/2 ball olardi.
+ */
+export const getSelectionLayout = (group) => {
+    const questions = group.questions || group.items || [];
+    const questionIds = questions.map(q => q.id);
+    const totalSlots = questionIds.reduce((sum, id) => sum + getQuestionWeight(id), 0);
+    const maxSelection = getMultiSelectCount(group.type) || totalSlots || questionIds.length;
+    return {
+        questionIds,
+        maxSelection,
+        // Bitta ID bir nechta javobni saqlaydigan holat (id "23-24" → "A, C")
+        isPackedSingleSlot: questionIds.length === 1 && maxSelection > 1
+    };
+};
+
+/** Guruhdagi barcha to'g'ri variant harflari (registr/prefiksdan qat'i nazar) */
+export const getCorrectLabels = (group) => {
+    const questions = group.questions || group.items || [];
+    return questions.flatMap(q => {
+        const ans = getAnswerKey(q);
+        if (ans === undefined || ans === null) return [];
+        const raw = Array.isArray(ans) ? ans : String(ans).split(/[,/|]/);
+        return raw
+            .map(v => String(v).trim().toLowerCase())
+            .map(v => {
+                const m = v.match(/^([a-z]|[ivx]+)\s*[.)]/i);
+                return m ? m[1].toLowerCase() : v;
+            })
+            .filter(Boolean);
+    });
+};
+
+/**
+ * Checkbox bosilganda yangi tanlovni hisoblaydi (FIFO eviction bilan).
+ * `order` — tanlash tartibi (eng eskisini chiqarib tashlash uchun), o'zgartirilgan nusxa qaytariladi.
+ */
+export const nextSelection = (current, order, label, maxSelection) => {
+    let selection = [...current];
+    let newOrder = [...order];
+
+    if (selection.includes(label)) {
+        selection = selection.filter(v => v !== label);
+        newOrder = newOrder.filter(v => v !== label);
+    } else {
+        if (selection.length >= maxSelection) {
+            let oldest = newOrder[0];
+            if (oldest === undefined || !selection.includes(oldest)) oldest = selection[0];
+            selection = selection.filter(v => v !== oldest);
+            newOrder = newOrder.filter(v => v !== oldest);
+        }
+        selection.push(label);
+        newOrder.push(label);
+    }
+
+    selection.sort();
+    return { selection, order: newOrder };
+};
 
 export const checkAnswer = (userVal, correctVal, isChoiceType = false) => {
     if (!correctVal || (Array.isArray(correctVal) && correctVal.length === 0)) return false;

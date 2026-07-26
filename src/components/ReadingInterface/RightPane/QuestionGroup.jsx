@@ -7,9 +7,12 @@ import {
     MatchingGridQuestion,
     ReadingDraggableHeading,
     FlowChartQuestion,
+    DiagramLabelingQuestion,
     QuestionExplanation
 } from '../ReadingQuestionTypes';
 import { getRangeLabel, cleanInstructions, getHeadingOptionLabels } from './RightPaneUtils';
+import { isMatchingHeadingsGroup, isMatchingParagraphGroup } from '../ReadingInterfaceUtils';
+import { isMultiAnswerType } from '../../../utils/ieltsScoring';
 
 const QuestionGroup = ({ 
     group, 
@@ -30,14 +33,13 @@ const QuestionGroup = ({
     const type = String(group.type || "").toLowerCase();
     const instr = String(group.instruction || "").toLowerCase();
     
-    const isChoiceType = ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => type.includes(t));
-    const isMultiSelect = type.includes('pick_two') || 
-                          type.includes('pick_three') || 
-                          (type.includes('multi') && 
-                           !type.includes('multiple_choice') && 
-                           !type.includes('multiple choice') && 
-                           !type.includes('multi_choice') && 
-                           !type.includes('multi choice'));
+    // Bir nechta variant belgilanadigan turlar — ball hisoblagichdagi `isMultiAnswerType`
+    // bilan AYNAN bir xil ro'yxat. Ilgari bu yerda qo'lda yozilgan ro'yxat bor edi va
+    // pick_four/pick_five guruhlari radio button sifatida chizilardi: talaba faqat 1 ta
+    // variant belgilay olardi, ball esa 4–5 tadan hisoblanardi.
+    const isMultiSelect = isMultiAnswerType(group.type);
+    const isChoiceType = isMultiSelect ||
+                         ['mcq', 'choice', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => type.includes(t));
     const isMatching = type.includes('matching') || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));
     const isSummary = (type === 'gap_fill' || type.includes('summary') || type === 'summary_box') && !type.includes('note') && !type.includes('flow');
     const isFlowChart = type.includes('flow') || instr.includes('flow-chart') || instr.includes('flow chart');

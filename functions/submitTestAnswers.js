@@ -38,7 +38,16 @@ async function submitTestAnswers(data, context) {
         const testType = (testData.type || 'reading').toLowerCase().trim();
 
         // 2. Securely evaluate answers
-        const { correctCount, totalQ, band, mistakes } = evaluateTest(testData, cleanUserAnswers, parsedPartNumber);
+        const { correctCount, totalQ, band, mistakes, missingKeys } = evaluateTest(testData, cleanUserAnswers, parsedPartNumber);
+
+        // Talaba javob bergan, lekin javob kaliti kiritilmagan savollar — test tuzishdagi xato.
+        // Bunday savollar umumiy hisobga kirmaydi, ya'ni band sun'iy ravishda ko'tariladi.
+        if (missingKeys && missingKeys.length > 0) {
+            functions.logger.warn(
+                `[submitTestAnswers] Javob kaliti yo'q savollar: test=${testId} savollar=[${missingKeys.join(', ')}] ` +
+                `— bu savollar ${totalQ} ta umumiy hisobdan tashqarida qoldi.`
+            );
+        }
 
         // 3. Fetch user profile
         const userRef = db.collection("users").doc(userId);

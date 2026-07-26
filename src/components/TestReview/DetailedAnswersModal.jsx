@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Search, CheckCircle2, XCircle, ArrowRight, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, calculateSectionScore, calculateBandScore, isChoiceQuestionType } from '../../utils/ieltsScoring';
+import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, evaluateTest, calculateBandScore, isChoiceQuestionType, getAnswerKey, getMultiSelectCount, getQuestionWeight } from '../../utils/ieltsScoring';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function DetailedAnswersModal({
@@ -27,26 +27,69 @@ export default function DetailedAnswersModal({
             if (!obj) return;
             const currentType = obj.type || parentType;
             const options = obj.options || currentOptions;
+            // `options` bo'lgan guruh variant-tanlash guruhi hisoblanadi (map_labeling,
+            // options'li flow_chart) — evaluateTest ham aynan shu qoidaga tayanadi.
+            const hasOptions = Array.isArray(options) && options.length > 0;
 
-            const answer = obj.answer || obj.correct_answer || obj.correctAnswer || obj.correct_answer_value;
-            if (obj.id && answer) {
+            // MULTI-ANSWER GURUHI: butun guruh bir marta baholanadi.
+            // Ilgari har bir savol alohida tekshirilardi, lekin SelectionBox javoblarni
+            // alifbo tartibida slotlarga yozadi — shuning uchun to'g'ri tanlangan javoblar
+            // ham modalda "xato" bo'lib ko'rinardi (ball esa to'g'ri berilgan edi).
+            if (isMultiAnswerType(obj.type) && !obj.id) {
+                const groupItems = [];
+                const collectItems = (o) => {
+                    if (!o || typeof o !== 'object') return;
+                    if (o.id && getAnswerKey(o) !== undefined) groupItems.push(o);
+                    ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'].forEach(sk => {
+                        if (o[sk] && Array.isArray(o[sk])) o[sk].forEach(collectItems);
+                        else if (o[sk] && typeof o[sk] === 'object') collectItems(o[sk]);
+                    });
+                };
+                collectItems(obj);
+
+                if (groupItems.length > 0) {
+                    const allCorrect = groupItems.map(i => getAnswerKey(i)).join(', ');
+                    const allUser = groupItems.map(i => userAnswers[String(i.id)] || "").join(', ');
+                    let weight = getMultiSelectCount(currentType);
+                    if (!weight) {
+                        weight = groupItems.reduce((sum, i) => sum + getQuestionWeight(i.id), 0) || groupItems.length;
+                    }
+                    const scoreRes = scoreMultiAnswer(allCorrect, allUser, weight);
+                    const ids = groupItems.map(i => i.id);
+
+                    list.push({
+                        id: ids.join(', '),
+                        qNumber: ids.join(', '),
+                        correctAnswer: allCorrect,
+                        userAnswer: allUser.replace(/(^|,\s*)(?=,|$)/g, '').trim(),
+                        type: currentType || 'selection',
+                        questionText: obj.questionText || obj.question || obj.title || '',
+                        passageId: obj.passageId || '',
+                        isCorrect: scoreRes.matches === scoreRes.weight,
+                        partialText: (scoreRes.matches > 0 && scoreRes.matches < scoreRes.weight)
+                            ? `${scoreRes.matches}/${scoreRes.weight}` : null,
+                        passageTitle: testData.passages?.find(p => String(p.id) === String(obj.passageId))?.title || ''
+                    });
+
+                    groupItems.forEach(i => scoredIds.add(String(i.id)));
+                    return; // guruh ichiga qayta kirmaymiz
+                }
+            }
+
+            const answer = getAnswerKey(obj);
+            if (obj.id && answer !== undefined) {
                 const idStr = String(obj.id);
                 if (!scoredIds.has(idStr)) {
                     scoredIds.add(idStr);
 
                     // Determine correctness
                     const uAns = userAnswers[idStr] || userAnswers[obj.id] || "";
-                    const isMulti = isMultiAnswerType(currentType);
+                    const isMulti = isMultiAnswerType(currentType) || idStr.includes('-') || idStr.includes(',');
                     let isCorrect = false;
                     let partialText = null;
 
                     if (isMulti) {
-                        let weight = 1;
-                        const tLower = String(currentType).toLowerCase();
-                        if (tLower.includes('two') || tLower.includes('pick two')) weight = 2;
-                        else if (tLower.includes('three') || tLower.includes('pick three')) weight = 3;
-                        else if (tLower.includes('four') || tLower.includes('pick four')) weight = 4;
-                        else if (tLower.includes('five') || tLower.includes('pick five')) weight = 5;
+                        const weight = getMultiSelectCount(currentType) || getQuestionWeight(idStr);
 
                         const scoreRes = scoreMultiAnswer(answer, uAns, weight);
                         isCorrect = scoreRes.matches === scoreRes.weight;
@@ -54,7 +97,7 @@ export default function DetailedAnswersModal({
                             partialText = `${scoreRes.matches}/${scoreRes.weight}`;
                         }
                     } else {
-                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType));
+                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType) || hasOptions);
                     }
 
                     // Resolve answer and user answer from letter to full text if matching
@@ -129,16 +172,20 @@ export default function DetailedAnswersModal({
 
     const { computedScore, computedTotal } = useMemo(() => {
         if (!testData || !userAnswers) return { computedScore: 0, computedTotal: 0 };
-        const res = calculateSectionScore(testData, userAnswers);
+        const res = evaluateTest(testData, userAnswers);
         return {
-            computedScore: res.correct,
-            computedTotal: res.total
+            computedScore: res.correctCount,
+            computedTotal: res.totalQ
         };
     }, [testData, userAnswers]);
 
+    // MUHIM: ball va umumiy savol soni HAR DOIM bir manbadan olinadi.
+    // Ilgari ball serverdan, total esa shu yerdagi hisobdan olinardi — ikkalasi farq qilsa
+    // "35/38" kabi noto'g'ri nisbat va xato soni chiqardi.
     const scoreNum = score !== undefined && score !== null ? Number(score) : NaN;
-    const displayScore = (!isNaN(scoreNum) && scoreNum > 0) ? scoreNum : computedScore;
-    const displayTotal = computedTotal || questionsList.length || 40;
+    const hasComputed = computedTotal > 0;
+    const displayScore = hasComputed ? computedScore : (!isNaN(scoreNum) ? scoreNum : 0);
+    const displayTotal = hasComputed ? computedTotal : (questionsList.length || 40);
 
     const bandScoreNum = bandScore !== undefined && bandScore !== null ? Number(bandScore) : NaN;
     const displayBandScore = useMemo(() => {

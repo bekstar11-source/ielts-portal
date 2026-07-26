@@ -5,6 +5,7 @@ import {
     useSensor, 
     useSensors 
 } from '@dnd-kit/core';
+import { isMatchingHeadingsGroup } from '../components/ReadingInterface/ReadingInterfaceUtils';
 
 export const useReadingDnd = (testData, activePassage, parentAnswers, handleDualAnswerChange, isReviewMode) => {
     const [activeDragData, setActiveDragData] = useState(null);
@@ -35,12 +36,9 @@ export const useReadingDnd = (testData, activePassage, parentAnswers, handleDual
         if (!headingLabel) return;
 
         const currentPassageId = testData?.passages?.[activePassage]?.id;
-        const matchingGroup = testData?.questions?.find(g => {
-            if (String(g.passageId) !== String(currentPassageId)) return false;
-            const gt = String(g.type || "").toLowerCase();
-            const gi = String(g.instruction || "").toLowerCase();
-            return gt.includes('matching') && (gi.includes('heading') || gt.includes('heading'));
-        });
+        const matchingGroup = testData?.questions?.find(g =>
+            String(g.passageId) === String(currentPassageId) && isMatchingHeadingsGroup(g)
+        );
 
         if (matchingGroup) {
             const questions = matchingGroup.items || [];

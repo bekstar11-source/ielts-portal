@@ -1,6 +1,6 @@
 import React from "react";
 import { Lock, Zap } from 'lucide-react';
-import { checkAnswer as centralCheckAnswer } from "../../../utils/ieltsScoring";
+import { checkAnswer as centralCheckAnswer, isChoiceQuestionType } from "../../../utils/ieltsScoring";
 
 // --- UTILS ---
 export const stripRomanNumerals = (text) => {
@@ -63,6 +63,13 @@ export const getOptionValue = (text) => {
 export const checkAnswer = (userVal, correctVal, isChoiceType = false) => {
     return centralCheckAnswer(correctVal, userVal, isChoiceType);
 };
+
+// Review UI ball hisoblagich (`evaluateTest`) bilan AYNAN bir xil qoidaga tayanishi shart:
+// tur variant-tanlash bo'lsa YOKI guruhda `options` bo'lsa, javob variant belgisini
+// (harf/rim raqami) bildiradi. Aks holda kalit "B. Paragraph text" ko'rinishida bo'lganda
+// ball beriladi, lekin review qizil ko'rsatardi.
+export const isChoiceContext = (type, options) =>
+    isChoiceQuestionType(type) || (Array.isArray(options) && options.length > 0);
 
 // --- COMPONENTS ---
 

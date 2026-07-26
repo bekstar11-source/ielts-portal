@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import PricingModal from '../dashboard/PricingModal';
 import { useTranslation } from '../../context/LanguageContext';
 import DetailedAnswersModal from '../TestReview/DetailedAnswersModal';
+import { Play, RefreshCcw, GraduationCap, Headphones } from 'lucide-react';
 
 // ──────────────────────────────────────────────
 // NOTE: useAudioPreloader hook REMOVED to fix bandwidth issue.
@@ -28,18 +29,22 @@ export const ResumeTestModal = ({ show, onContinue, onFresh }) => {
                 <div className="grid grid-cols-2 gap-4">
                     <button
                         onClick={onContinue}
-                        className="bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
+                        className="bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md flex flex-col items-center"
                     >
-                        <div className="text-3xl mb-3">▶️</div>
+                        <div className="mb-4 text-blue-500/80 group-hover:text-blue-600 group-hover:scale-110 transition-all duration-300">
+                            <Play size={42} fill="currentColor" strokeWidth={1.5} />
+                        </div>
                         <h3 className="font-bold text-gray-900 group-hover:text-blue-600">{t('testSolving.continueTest')}</h3>
                         <p className="text-gray-400 text-xs mt-2">{t('testSolving.continueTestDesc')}</p>
                     </button>
 
                     <button
                         onClick={onFresh}
-                        className="bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
+                        className="bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md flex flex-col items-center"
                     >
-                        <div className="text-3xl mb-3">🔄</div>
+                        <div className="mb-4 text-red-500/80 group-hover:text-red-600 group-hover:-rotate-180 transition-all duration-500">
+                            <RefreshCcw size={42} strokeWidth={1.5} />
+                        </div>
                         <h3 className="font-bold text-gray-900 group-hover:text-red-600">{t('testSolving.startFresh')}</h3>
                         <p className="text-gray-400 text-xs mt-2">{t('testSolving.startFreshDesc')}</p>
                     </button>
@@ -70,9 +75,11 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
                             setTestMode('exam');
                             setShowModeSelection(false);
                         }}
-                        className="bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
+                        className="bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md flex flex-col items-center"
                     >
-                        <div className="text-3xl mb-3">🎓</div>
+                        <div className="mb-4 text-red-500/80 group-hover:text-red-600 group-hover:scale-110 transition-all duration-300">
+                            <GraduationCap size={42} strokeWidth={1.5} />
+                        </div>
                         <h3 className="font-bold text-gray-900 group-hover:text-red-600">{t('testSolving.examMode')}</h3>
                         <p className="text-gray-400 text-xs mt-2">{t('testSolving.examModeDesc')}</p>
                     </button>
@@ -84,9 +91,11 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
                             setTimeLeft(0);
                             setShowModeSelection(false);
                         }}
-                        className="bg-white hover:bg-green-50 border border-gray-200 hover:border-green-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md"
+                        className="bg-white hover:bg-green-50 border border-gray-200 hover:border-green-200 p-6 rounded-xl group transition-all shadow-sm hover:shadow-md flex flex-col items-center"
                     >
-                        <div className="text-3xl mb-3">🎧</div>
+                        <div className="mb-4 text-green-500/80 group-hover:text-green-600 group-hover:scale-110 transition-all duration-300">
+                            <Headphones size={42} strokeWidth={1.5} />
+                        </div>
                         <h3 className="font-bold text-gray-900 group-hover:text-green-600">{t('testSolving.practiceMode')}</h3>
                         <p className="text-gray-400 text-xs mt-2">{t('testSolving.practiceModeDesc')}</p>
                     </button>
