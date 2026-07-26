@@ -212,7 +212,7 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
         <div className="mb-10 flex flex-col xl:flex-row gap-8 xl:gap-12 items-start">
             {group.image && (
                 <div className="xl:w-1/2 w-full border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex justify-center py-4 xl:sticky xl:top-4">
-                    <img src={group.image} alt="Map" className="max-w-full max-h-[80vh] w-auto h-auto object-contain" />
+                    <img src={group.image} alt="Map" className="max-w-full max-h-[500px] w-auto h-auto object-contain" />
                 </div>
             )}
             

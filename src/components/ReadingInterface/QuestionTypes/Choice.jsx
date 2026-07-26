@@ -151,7 +151,13 @@ export const ChoiceQuestion = ({
                                     />
                                     <div className={`w-4 h-4 border transition-all flex items-center justify-center bg-white ${isMultiSelect ? 'rounded-[2px]' : 'rounded-full'} ${checkContainerClass}`}>
                                         {isSelected && (
-                                            <div className={`w-2 h-2 rounded-full ${checkIconColor}`}></div>
+                                            isMultiSelect ? (
+                                                <svg className={`w-3 h-3 ${checkIconColor.replace('bg-', 'text-')}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            ) : (
+                                                <div className={`w-2 h-2 rounded-full ${checkIconColor}`}></div>
+                                            )
                                         )}
                                     </div>
                                 </div>

@@ -87,6 +87,7 @@ export const getRangeLabel = (group) => {
     });
     qIds.sort((a, b) => a - b);
     const uniqueIds = [...new Set(qIds)];
+    if (uniqueIds.length === 1) return "";
     return uniqueIds.length > 0 ? `Questions ${uniqueIds[0]}${uniqueIds.length > 1 ? '–' + uniqueIds[uniqueIds.length - 1] : ''}` : "";
 };
 

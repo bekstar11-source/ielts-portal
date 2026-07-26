@@ -64,7 +64,7 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
             }}
             className={`
                 min-w-[150px] w-fit max-w-[400px] min-h-[24px] border rounded-[4px] flex items-center justify-center relative
-                px-3 py-0.5 group/slot cursor-pointer
+                px-3 py-0 group/slot cursor-pointer
                 ${value 
                     ? (isReviewMode 
                         ? (isCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50 font-bold')
@@ -79,7 +79,7 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
         >
             {value ? (
                 <div className="flex items-center w-full px-1">
-                    <span className="text-[1em] font-normal text-black flex-1 leading-tight text-center whitespace-normal">
+                    <span className="text-[1em] font-normal text-black flex-1 leading-none text-center whitespace-normal">
                         {stripLeadingOptionLabel(selectedOption?.text || value)}
                     </span>
                     {!isReviewMode && (
@@ -92,7 +92,7 @@ const DroppableSlot = ({ id, value, options, isReviewMode, isCorrect, correctAns
                     )}
                 </div>
             ) : (
-                <span className="text-black text-[1em] font-bold tracking-wider">{id}</span>
+                <span className="text-black text-[1em] font-bold tracking-wider leading-none">{id}</span>
             )}
 
             {isMenuOpen && !isReviewMode && (
@@ -222,15 +222,8 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                             const cleanText = String(qText).replace('[DROP]', '').trim();
                             return (
                                 <div key={q.id} className={`flex flex-wrap items-center gap-3 py-1.5 transition-all w-full ${isReviewMode ? 'pr-0 md:pr-24' : ''}`}>
-                                    <QuestionBadge 
-                                        id={q.id} 
-                                        isReviewMode={isReviewMode} 
-                                        onClick={() => isReviewMode && handleLocationClick(q.locationId)} 
-                                        onSeekTo={onSeekTo}
-                                        timestamp={q.timestamp ?? q.timeStep ?? q.time_step ?? q['time step']}
-                                        activePart={activePart}
-                                    />
-                                    <div className="font-normal text-black text-[1.1em] shrink-0 max-w-full" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
+                                    {/* Question badge removed to leave number only in dropzone */}
+                                    <div className="font-normal text-black text-[1em] shrink-0 max-w-full" dangerouslySetInnerHTML={{ __html: stripLeadingId(cleanText, q.id) }} />
                                     <DroppableSlot
                                         id={q.id} value={userAnswers[q.id]} options={options} isReviewMode={isReviewMode} isCorrect={isCorrect}
                                         correctAnswer={q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value} 

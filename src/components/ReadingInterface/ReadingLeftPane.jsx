@@ -201,9 +201,10 @@ const ReadingLeftPane = memo(({
     return (
         <div
             ref={containerRef}
-            className={`pt-10 px-6 !pb-24 overflow-y-auto leading-relaxed text-black selectable-text relative passage-content`}
+            className={`pt-10 px-6 !pb-24 overflow-y-auto text-black selectable-text relative passage-content`}
             style={{
-                fontSize: textSize === 'text-sm' ? '13px' : textSize === 'text-lg' ? '17px' : textSize === 'text-xl' ? '19px' : '15px',
+                fontSize: textSize === 'text-sm' ? '14px' : textSize === 'text-lg' ? '18px' : textSize === 'text-xl' ? '20px' : '16px',
+                lineHeight: '1.8',
                 transition: 'font-size 0.3s ease-in-out'
             }}
             onMouseUp={(e) => {

@@ -88,8 +88,13 @@ const QuestionGroup = ({
 
     const isMatchingGrid = type.includes('matching') && !isMatchingHeading && !isMatchingParagraph && Array.isArray(group.options) && group.options.length > 0;
 
+    const nextGroup = filteredQuestions[gIdx + 1];
+    const nextType = nextGroup ? String(nextGroup.type || "").toLowerCase() : "";
+    const isNextChoice = nextGroup && ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => nextType.includes(t));
+    const hideBorder = isChoiceType && isNextChoice;
+
     return (
-        <div className="mb-6 pb-6 border-b border-gray-200 border-dashed last:border-0 font-montserrat">
+        <div className={`font-montserrat ${hideBorder ? 'mb-2 pb-2' : 'mb-6 pb-6 border-b border-gray-200 border-dashed last:border-0'}`}>
             {rangeLabel && <h3 className="text-[15.5px] font-bold text-black mb-4">{rangeLabel}</h3>}
 
             {(!gIdx || (gIdx > 0 && String(filteredQuestions[gIdx - 1].instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase() !== String(group.instruction || "").replace(/<[^>]*>/g, '').trim().toLowerCase())) && group.instruction && (

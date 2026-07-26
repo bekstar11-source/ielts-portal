@@ -187,7 +187,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
 
                 return (
                     <div key={sIdx} className="bg-white py-2 rounded-xl">
-                        {sub.header && <h3 className="text-[1.1em] font-black text-gray-900 mb-4 mt-2 pt-3 uppercase tracking-wider border-t border-gray-100">{typeof sub.header === 'object' ? sub.header.text : sub.header}</h3>}
+                        {sub.header && <h3 className="text-[1.1em] font-bold text-gray-900 mb-4 mt-2 pt-3 uppercase tracking-wider border-t border-gray-100">{typeof sub.header === 'object' ? sub.header.text : sub.header}</h3>}
                         <div className="flex flex-wrap items-baseline gap-y-1">
                             {mergedItems.map((entry, entryIdx) => {
                                 const rawText = entry.rawText;
@@ -208,7 +208,7 @@ export const NoteCompletion = ({ group, userAnswers, onAnswerChange, isReviewMod
 
                                 if (isHeading) {
                                     const headingText = rawText.replace(/^[•\-\*]\s*/, '').trim();
-                                    return <React.Fragment key={entryIdx}>{breakEl}<div className="font-bold text-black text-[1.25em] w-full mt-6 mb-4 ielts-font">{headingText}</div></React.Fragment>;
+                                    return <React.Fragment key={entryIdx}>{breakEl}<div className="font-bold text-black text-[1.1em] w-full mt-6 mb-4 ielts-font">{headingText}</div></React.Fragment>;
                                 }
 
                                 // Render the text once, substituting each [INPUT] with the correct question's input field

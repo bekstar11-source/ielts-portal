@@ -298,7 +298,14 @@ const ListeningRightPane = memo(({
                 </div>
             )}
 
-            {/* HEADER (Sticky) */}
+            {/* STABLE HIGHLIGHT CONTENT CONTAINER (Scrollable) */}
+            <div 
+                ref={containerRef} 
+                onMouseUp={handleTextSelection}
+                className="overflow-y-auto custom-scrollbar highlight-container-stable h-full flex-1"
+            >
+
+            {/* HEADER (Scrolls with content) */}
             {(() => {
                 let partMinId = Infinity;
                 let partMaxId = -Infinity;
@@ -400,13 +407,6 @@ const ListeningRightPane = memo(({
                 );
             })()}
 
-            {/* STABLE HIGHLIGHT CONTENT CONTAINER (Scrollable) */}
-            <div 
-                ref={containerRef} 
-                onMouseUp={handleTextSelection}
-                className="overflow-y-auto custom-scrollbar highlight-container-stable h-full flex-1"
-            >
-
                 {/* QUESTIONS LOOP */}
                 {questionsForPart.map((group, gIdx) => {
                 // Savol raqamlarini aniqlash (Oddiy yoki nested guruhlar uchun)
@@ -446,11 +446,11 @@ const ListeningRightPane = memo(({
                 const isDuplicateGroupText = prevGroup && normalizeHTML(prevGroup.text) === normalizeHTML(group.text);
 
                 return (
-                    <div key={gIdx} className="mb-8">
+                    <div key={gIdx} className="mb-14">
                         <div className="mb-1 flex flex-col">
                             {questionRange && (
                                 <div className="mb-1">
-                                    <h3 className="text-[1.25em] font-bold text-black leading-tight tracking-tight">
+                                    <h3 className="text-[1.05em] font-bold text-black leading-tight tracking-tight">
                                         {questionRange}
                                     </h3>
                                 </div>

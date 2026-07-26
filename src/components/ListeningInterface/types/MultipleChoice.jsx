@@ -14,7 +14,7 @@ export const MultipleChoice = memo(({ group, userAnswers, onAnswerChange, isRevi
                     />
                     {(q.text || q.question || q.sentence) && <div className="font-semibold text-gray-900 leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: stripLeadingId(q.text || q.question || q.sentence, q.id) }} />}
                 </div>
-                <div className="flex flex-col gap-0 pl-2 sm:pl-10">
+                <div className="flex flex-col gap-0.5 pl-2 sm:pl-10">
                     {options.map((opt, idx) => {
                         const isSelected = String(userAnswers[q.id]) === String(opt.label);
                         const correctVal = q.answer || q.correct_answer || q.correctAnswer;
@@ -26,12 +26,12 @@ export const MultipleChoice = memo(({ group, userAnswers, onAnswerChange, isRevi
                                 <div className="relative flex items-center justify-center shrink-0">
                                     <input 
                                         type="radio" 
-                                        className={`appearance-none w-5 h-5 border rounded-full transition-all cursor-pointer ${isSelected ? (isReviewMode ? (isCorrect ? 'bg-green-600 border-green-600' : 'bg-red-600 border-red-600') : 'bg-blue-600 border-blue-600') : (isReviewMode && isCorrect ? 'border-green-600 bg-white' : 'border-black bg-white')}`} 
+                                        className={`appearance-none w-4 h-4 border rounded-full transition-all cursor-pointer ${isSelected ? (isReviewMode ? (isCorrect ? 'bg-green-600 border-green-600' : 'bg-red-600 border-red-600') : 'bg-blue-600 border-blue-600') : (isReviewMode && isCorrect ? 'border-green-600 bg-white' : 'border-black bg-white')}`} 
                                         checked={isSelected} 
                                         onChange={() => !isReviewMode && onAnswerChange(q.id, String(opt.label))} 
                                         disabled={isReviewMode} 
                                     />
-                                    <div className={`absolute w-2.5 h-2.5 rounded-full opacity-0 transition-opacity pointer-events-none ${isSelected ? 'opacity-100' : ''} bg-white`}></div>
+                                    <div className={`absolute w-2 h-2 rounded-full opacity-0 transition-opacity pointer-events-none ${isSelected ? 'opacity-100' : ''} bg-white`}></div>
                                 </div>
                                 <span className="text-gray-900 font-normal leading-tight">{stripLeadingOptionLabel(opt.text)}</span>
                             </div>

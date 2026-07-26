@@ -417,7 +417,7 @@ export default function ReadingInterface({
       )}
 
       <DndContext sensors={dndSensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
-        <div className="flex w-full flex-1 overflow-hidden relative pb-[50px]">
+        <div className="flex w-full flex-1 overflow-hidden relative pb-[60px]">
           <div 
             className={`bg-white flex flex-col h-full select-text shadow-sm ${isMobile && mobileActiveTab !== 'passage' ? 'hidden' : ''} ${isMobile ? 'pane-mobile-full' : ''}`} 
             style={!isMobile ? { width: `${leftWidth}%` } : {}}
@@ -485,7 +485,7 @@ export default function ReadingInterface({
         </div>
 
         {isMobile && (
-          <div className="fixed bottom-[50px] left-1/2 -translate-x-1/2 z-[2001] flex gap-6 p-1">
+          <div className="fixed bottom-[60px] left-1/2 -translate-x-1/2 z-[2001] flex gap-6 p-1">
             <button 
               className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-black transition-all duration-300 shadow-xl border-2 ${mobileActiveTab === 'passage' ? 'bg-blue-600 text-white border-white scale-110 shadow-blue-500/40' : 'bg-white text-blue-600 border-blue-100 shadow-sm'}`}
               onClick={() => {
@@ -520,7 +520,7 @@ export default function ReadingInterface({
         </DragOverlay>
       </DndContext>
 
-      <div className="fixed bottom-0 left-0 w-full h-[50px] bg-white z-[2000]">
+      <div className="fixed bottom-0 left-0 w-full h-[60px] bg-white z-[2000]">
         <ReadingFooter 
           testData={testData} 
           activePassage={activePassage} 

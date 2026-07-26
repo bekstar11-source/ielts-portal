@@ -168,32 +168,6 @@ export default function ListeningFooter({
     return (
         <div className="h-full w-full flex flex-col bg-white select-none">
 
-            {/* ── TOP INDICATOR LINE (full-width gray + green segment) ──────── */}
-            <div className="relative w-full h-[3px] bg-transparent shrink-0">
-                {passageData.map((d) => {
-                    const isActive = activePart === d.idx;
-                    if (!isActive) return null;
-
-                    // Position & width of green segment proportional to this part's questions
-                    const before = passageData
-                        .filter(x => x.idx < d.idx)
-                        .reduce((s, x) => s + x.qCount, 0);
-                    const leftPct  = totalQ > 0 ? (before / totalQ) * 100 : 0;
-                    const widthPct = totalQ > 0 ? (d.qCount / totalQ) * 100 : 100;
-
-                    return (
-                        <div
-                            key={d.idx}
-                            className="absolute top-0 h-full bg-[#3c763d] transition-all duration-300"
-                            style={{
-                                left: `${leftPct}%`,
-                                width: `${widthPct}%`,
-                            }}
-                        />
-                    );
-                })}
-            </div>
-
             {/* ── PARTS ROW ─────────────────────────────────────────────────── */}
             <div className="flex flex-1 items-stretch overflow-x-auto overflow-y-hidden">
                 {passageData.map((d) => {
@@ -205,40 +179,48 @@ export default function ListeningFooter({
                         return (
                             <div
                                 key={passage.id || idx}
-                                className="flex-initial h-full flex items-center bg-white"
-                                style={{ borderRight: 'none' }}
+                                className="flex-1 min-w-0 h-full flex items-center bg-white"
                             >
                                 {/* Part label */}
-                                <div className="h-full flex items-center pl-4 pr-3 shrink-0 gap-1.5">
-                                    <span className="font-bold text-[13px] text-gray-900 whitespace-nowrap">
-                                        Part {partNum}
-                                    </span>
+                                <div className="h-full flex flex-col items-center pl-4 pr-3 shrink-0">
+                                    <div className="mt-[6px] h-[3px] w-full" />
+                                    <div className="flex-1 flex items-center">
+                                        <span className="font-bold text-[14px] text-gray-900 whitespace-nowrap">
+                                            Part {partNum}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Question number buttons */}
-                                <div className="flex items-center h-full gap-[3px] overflow-x-auto pr-3 flex-initial">
+                                <div className="flex h-full gap-[6px] overflow-x-auto pr-3 flex-initial">
                                     {questions.map(q => {
                                         const isAnswered = userAnswers[q.id] && String(userAnswers[q.id]).trim() !== "";
                                         const isActiveQ = String(activeQuestionId) === String(q.id);
 
                                         return (
-                                            <button
-                                                key={q.id}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveQuestionId(q.id);
-                                                    scrollToQuestionDiv(q.id);
-                                                }}
-                                                className="flex items-center justify-center min-w-[26px] h-[26px] px-0.5 text-[12px] font-semibold rounded transition-all"
-                                                style={{
-                                                    color: isActiveQ ? '#1a56db' : '#374151',
-                                                    border: isActiveQ ? '1.5px solid #1a56db' : '1.5px solid transparent',
-                                                    textDecoration: isAnswered ? 'underline' : 'none',
-                                                    textUnderlineOffset: '2px',
-                                                }}
-                                            >
-                                                {q.id}
-                                            </button>
+                                            <div key={q.id} className="flex flex-col items-center h-full min-w-[26px]">
+                                                {/* Top indicator shifted slightly down */}
+                                                <div 
+                                                    className={`mt-[6px] h-[3px] w-full transition-colors ${isAnswered ? 'bg-[#3c763d]' : 'bg-[#e5e7eb]'}`}
+                                                />
+                                                {/* Button centered vertically in remaining space */}
+                                                <div className="flex-1 flex items-center justify-center">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveQuestionId(q.id);
+                                                            scrollToQuestionDiv(q.id);
+                                                        }}
+                                                        className="flex items-center justify-center w-full h-[26px] px-0.5 text-[14px] font-semibold rounded transition-all"
+                                                        style={{
+                                                            color: isActiveQ ? '#1a56db' : '#374151',
+                                                            border: isActiveQ ? '1.5px solid #1a56db' : '1.5px solid transparent',
+                                                        }}
+                                                    >
+                                                        {q.id}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         );
                                     })}
                                 </div>
@@ -249,13 +231,12 @@ export default function ListeningFooter({
                             <div
                                 key={passage.id || idx}
                                 onClick={() => setActivePart(idx)}
-                                className="flex-1 shrink-0 min-w-[75px] h-full flex items-center justify-center gap-2 cursor-pointer bg-white hover:bg-gray-50 transition-colors"
-                                style={{ borderRight: 'none' }}
+                                className="flex-1 min-w-0 h-full flex items-center justify-center gap-2 cursor-pointer bg-white hover:bg-gray-50 transition-colors"
                             >
-                                <span className="font-bold text-[12px] text-gray-700 whitespace-nowrap">
+                                <span className="font-bold text-[14px] text-gray-700 whitespace-nowrap">
                                     Part {partNum}
                                 </span>
-                                <span className="text-[11px] text-gray-400 font-semibold whitespace-nowrap">
+                                <span className="text-[12px] text-gray-400 font-semibold whitespace-nowrap">
                                     {answeredCount} of {qCount}
                                 </span>
                             </div>
