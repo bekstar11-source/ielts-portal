@@ -33,7 +33,6 @@ const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminTests = lazy(() => import('./pages/admin/AdminTests'));
 const Onboarding = lazy(() => import('./pages/auth/Onboarding'));
 const Practice = lazy(() => import('./pages/student/Practice'));
-const RoadmapPage = lazy(() => import('./pages/student/RoadmapPage'));
 const Settings = lazy(() => import('./pages/student/Settings'));
 const DiagnosticIntro = lazy(() => import('./pages/diagnostic/DiagnosticIntro'));
 const DiagnosticTestSolving = lazy(() => import('./pages/diagnostic/DiagnosticTestSolving'));
@@ -65,7 +64,6 @@ const SpeakingPractice = lazy(() => import('./pages/test/SpeakingPractice'));
 const ArticleReading = lazy(() => import('./pages/articles/ArticleReading'));
 const Articles = lazy(() => import('./pages/articles/Articles'));
 const AdminArticles = lazy(() => import('./pages/admin/AdminArticles'));
-const AdminRoadmap = lazy(() => import('./pages/admin/AdminRoadmap'));
 const Podcasts = lazy(() => import('./pages/podcasts/Podcasts'));
 const Listening = lazy(() => import('./pages/test/Listening'));
 const ListeningFull = lazy(() => import('./pages/test/ListeningFull'));
@@ -145,7 +143,6 @@ function App() {
             <Route path="/listening/full" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><ListeningFull /></ProtectedRoute>} />
             <Route path="/listening/parts" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><ListeningParts /></ProtectedRoute>} />
             <Route path="/library" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><Library /></ProtectedRoute>} />
-            {/* <Route path="/roadmap" element={<ProtectedRoute allowedRoles={['student', 'admin']}><RoadmapPage /></ProtectedRoute>} /> */}
             <Route path="/settings" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><Settings /></ProtectedRoute>} />
             <Route path="/mock" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockEntry /></ProtectedRoute>} />
             <Route path="/mock-buy" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockPurchase /></ProtectedRoute>} />
@@ -190,7 +187,6 @@ function App() {
               <Route path="users" element={<AdminUsers />} />
               <Route path="analytics" element={<AdminAnalytics />} />
               <Route path="tests" element={<AdminTests />} />
-              <Route path="roadmap" element={<AdminRoadmap />} />
               <Route path="announcements" element={<AdminAnnouncements />} />
               <Route path="feed" element={<AdminFeedManagement />} />
               <Route path="articles" element={<AdminArticles />} />

@@ -83,9 +83,16 @@ export default function VolumeCheckScreen({ test, onStart }) {
         }
     };
 
+    // ⚠️ TEXNIK QARZ: bu funksiya `test` PROP OBYEKTINI joyida o'zgartiradi (mutatsiya).
+    // React buni "o'zgarish" deb ko'rmaydi — blob URL'lar faqat TestHeader audio manzilini
+    // KEYIN o'qigan taqdirdagina qo'llanadi. To'g'ri yechim: blob xaritasini yuqoriga
+    // (TestSolvingView state'iga) ko'tarib, TestHeader'ga yangi test obyektini uzatish.
+    // Hozircha tegilmadi, chunki audio ijrosini avtomatik tekshirib bo'lmaydi va
+    // noto'g'ri o'zgartirish imtihon ovozini butunlay o'chirib qo'yishi mumkin.
+    // Eng yomon holatda audio tarmoq URL'idan ijro etiladi — imtihon baribir ishlaydi.
     const handleBlobsReady = (newUrls) => {
         if (!test) return;
-        
+
         // Replace audio URLs in the test object with blob URLs
         if (test.passages) {
             test.passages.forEach(passage => {

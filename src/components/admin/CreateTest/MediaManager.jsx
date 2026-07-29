@@ -141,8 +141,7 @@ const MediaManager = ({
     uploadedMaps, handleMapUpload, handleDeleteMap,
     uploading, uploadingPart, uploadProgress,
     isDark,
-    onPassageTimeChange,
-    onIntroDurationChange
+    onPassageTimeChange
 }) => {
     return (
         <div className={`p-5 rounded-2xl border mb-6 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
@@ -217,17 +216,6 @@ const MediaManager = ({
                         )}
                     </div>
 
-                    <div className="mb-6">
-                        <label className="text-xs font-bold mb-1.5 block opacity-60">Intro Countdown (soniya)</label>
-                        <input
-                            type="number"
-                            className={`w-full h-10 px-4 rounded-xl border outline-none text-xs transition ${isDark ? 'bg-[#121212] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`}
-                            value={testData.introDuration !== undefined ? testData.introDuration : 10}
-                            onChange={e => onIntroDurationChange && onIntroDurationChange(e.target.value)}
-                            placeholder="Masalan: 10"
-                            min="0"
-                        />
-                    </div>
                 </>
             )}
 

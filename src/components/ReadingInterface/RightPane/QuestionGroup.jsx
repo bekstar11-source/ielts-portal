@@ -55,7 +55,11 @@ const QuestionGroup = ({
         return text.length <= 3 || /^[A-Z][\.\)]?\s*$/i.test(text);
     });
     
-    const isMatchingParagraph = (type.includes('matching') && (type.includes('paragraph') || instr.includes('paragraph') || instr.includes('contain') || instr.includes('mention')));
+    // Tasniflash `ReadingInterfaceUtils` dagi yagona funksiyalar orqali — chap panel (drop-zone)
+    // va DnD hook ham AYNAN shularni ishlatadi, shuning uchun uch panel bir xil qaror qabul qiladi.
+    const isMatchingHeading = isMatchingHeadingsGroup(group);
+    const isMatchingParagraph = isMatchingParagraphGroup(group);
+
     const showStaticOptions = ((type.includes('matching') && !isMatchingParagraph) || isSummary || isFlowChart) && Array.isArray(group.options) && group.options.length > 0 && !isJustLetters;
 
     const commonProps = {
@@ -73,26 +77,14 @@ const QuestionGroup = ({
         isPremium
     };
 
-    const isMatchingHeading = type.includes('matching') && (
-        instr.includes('heading') ||
-        type.includes('heading') ||
-        // Fallback heuristic for instructions that don't literally say "heading": long option text
-        // + "paragraph" wording. Guarded with !isMatchingParagraph so genuine "match information/
-        // features to paragraphs" questions (instr mentions "contain"/"mention"/"paragraph" with
-        // long descriptive options) aren't misclassified as heading-matching — that mismatch caused
-        // heading-style (roman-numeral) answers to be stored/compared against a letter-based answer
-        // key, marking correct answers wrong.
-        (!isMatchingParagraph && Array.isArray(group.options) && group.options.some(opt => {
-            const t = String(typeof opt === 'object' ? opt.text : opt).toLowerCase();
-            return t.length > 15;
-        }) && instr.includes('paragraph'))
-    );
-
     const isMatchingGrid = type.includes('matching') && !isMatchingHeading && !isMatchingParagraph && Array.isArray(group.options) && group.options.length > 0;
 
     const nextGroup = filteredQuestions[gIdx + 1];
     const nextType = nextGroup ? String(nextGroup.type || "").toLowerCase() : "";
-    const isNextChoice = nextGroup && ['mcq', 'pick_two', 'pick_three', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => nextType.includes(t));
+    const isNextChoice = nextGroup && (
+        isMultiAnswerType(nextGroup.type) ||
+        ['mcq', 'choice', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => nextType.includes(t))
+    );
     const hideBorder = isChoiceType && isNextChoice;
 
     return (

@@ -15,8 +15,9 @@ import { useReadingDnd } from "../../hooks/useReadingDnd";
 import { injectKeywordsToHTML } from "../../utils/highlightUtils";
 import { 
     HL_STORAGE_PREFIX, 
-    detectPassageLabelSuffix, 
-    findMatchingHeadingsGroup 
+    detectPassageLabelSuffix,
+    findMatchingHeadingsGroup,
+    collectGroupQuestionNumbers
 } from "./ReadingInterfaceUtils";
 import { ArrowsLeftRight } from "@phosphor-icons/react";
 import { styles as readingInterfaceStyles } from "./ReadingStyles";
@@ -119,7 +120,7 @@ export default function ReadingInterface({
   }, [currentTestId, deleteNote, removeHighlight]);
 
   // --- 3. UI STATE & NAVIGATION ---
-  const { leftWidth, startResizing } = useResizablePane(50);
+  const { leftWidth, startResizing, containerRef: paneContainerRef } = useResizablePane(50);
   
   const [localActivePassage, setLocalActivePassage] = useState(partNumber ? partNumber - 1 : 0);
   const activePassage = (activePart !== undefined && activePart !== null) ? activePart : localActivePassage;
@@ -360,33 +361,9 @@ export default function ReadingInterface({
               </div>
               <div className={`text-[#000000] font-semibold ${isMobile ? 'text-[11px] leading-tight' : 'text-[14px]'}`}>
                   {(() => {
-                      // Robust question range calculation
-                      const qNums = [];
-                      const collectNums = (idStr) => {
-                          if (!idStr) return;
-                          const matches = String(idStr).match(/\d+/g);
-                          if (matches) matches.forEach(m => {
-                              const num = parseInt(m);
-                              if (!isNaN(num)) qNums.push(num);
-                          });
-                      };
-                      (passageQuestions || []).forEach(group => {
-                          collectNums(group.id);
-                          if (group.startNumber) qNums.push(Number(group.startNumber));
-                          if (group.endNumber) qNums.push(Number(group.endNumber));
-                          group.items?.forEach(item => collectNums(item.id));
-                          group.questions?.forEach(q => {
-                              collectNums(q.id);
-                              if (q.number) qNums.push(Number(q.number));
-                          });
-                          group.groups?.forEach(g => {
-                              collectNums(g.id);
-                              (g.items || g.questions)?.forEach(it => {
-                                  collectNums(it.id);
-                                  if (it.number) qNums.push(Number(it.number));
-                              });
-                          });
-                      });
+                      // Diapazon faqat HAQIQIY savol raqamlaridan hisoblanadi — "g1"/"grp3" kabi
+                      // texnik guruh ID lari hisobga olinmaydi (aks holda "questions 1–40" chiqardi).
+                      const qNums = (passageQuestions || []).flatMap(collectGroupQuestionNumbers);
 
                       const minQ = qNums.length > 0 ? Math.min(...qNums) : "";
                       const maxQ = qNums.length > 0 ? Math.max(...qNums) : "";
@@ -417,7 +394,7 @@ export default function ReadingInterface({
       )}
 
       <DndContext sensors={dndSensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
-        <div className="flex w-full flex-1 overflow-hidden relative pb-[60px]">
+        <div ref={paneContainerRef} className="flex w-full flex-1 overflow-hidden relative pb-[60px]">
           <div 
             className={`bg-white flex flex-col h-full select-text shadow-sm ${isMobile && mobileActiveTab !== 'passage' ? 'hidden' : ''} ${isMobile ? 'pane-mobile-full' : ''}`} 
             style={!isMobile ? { width: `${leftWidth}%` } : {}}

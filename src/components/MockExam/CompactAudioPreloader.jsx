@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 /**
  * Compact audio preloader for IELTS Listening tests.
@@ -8,24 +8,41 @@ export default function CompactAudioPreloader({ test, onReady, onBlobsReady }) {
     const [loadedCount, setLoadedCount] = useState(0);
     const [isDone, setIsDone] = useState(false);
     const hasCalledReady = useRef(false);
-    const passages = test?.passages || [];
+
+    // Callbacklar ref orqali chaqiriladi: parent ularni har renderda YANGI inline arrow
+    // sifatida uzatadi. Ilgari ular effekt dependency'sida edi va effekt har renderda
+    // (masalan ovoz slayderi surilganda) qayta ishga tushib, audio qaytadan yuklanardi —
+    // har safar yangi blob URL yaratilib, eskisi revoke qilinmasdi.
+    const onReadyRef = useRef(onReady);
+    const onBlobsReadyRef = useRef(onBlobsReady);
+    useEffect(() => { onReadyRef.current = onReady; }, [onReady]);
+    useEffect(() => { onBlobsReadyRef.current = onBlobsReady; }, [onBlobsReady]);
+
+    // Manzillar ro'yxatini barqaror satr kalitiga aylantiramiz — effekt faqat audio
+    // manbalari haqiqatan o'zgarganda qayta ishga tushadi.
+    const sources = useMemo(() => {
+        const passages = test?.passages || [];
+        const set = new Set();
+        passages.forEach(passage => {
+            const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
+            if (src) set.add(src);
+        });
+        return Array.from(set);
+    }, [test]);
+    const sourcesKey = sources.join('|');
 
     useEffect(() => {
         let isMounted = true;
         const newUrls = {};
-        const uniqueSrcs = new Set();
-        
-        passages.forEach(passage => {
-            const src = passage.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file;
-            if (src) uniqueSrcs.add(src);
-        });
+        const uniqueSrcs = new Set(sourcesKey ? sourcesKey.split('|') : []);
 
         const totalCount = uniqueSrcs.size;
 
         if (totalCount === 0) {
             setIsDone(true);
-            onBlobsReady?.({});
-            onReady?.();
+            hasCalledReady.current = true;
+            onBlobsReadyRef.current?.({});
+            onReadyRef.current?.();
             return;
         }
 
@@ -38,8 +55,8 @@ export default function CompactAudioPreloader({ test, onReady, onBlobsReady }) {
             if (loaded >= totalCount && !hasCalledReady.current) {
                 hasCalledReady.current = true;
                 setIsDone(true);
-                onBlobsReady?.(newUrls);
-                onReady?.();
+                onBlobsReadyRef.current?.(newUrls);
+                onReadyRef.current?.();
             }
         };
 
@@ -82,19 +99,21 @@ export default function CompactAudioPreloader({ test, onReady, onBlobsReady }) {
                 console.warn('Audio preloading timed out, falling back to network URLs');
                 hasCalledReady.current = true;
                 setIsDone(true);
-                onBlobsReady?.(newUrls);
-                onReady?.();
+                onBlobsReadyRef.current?.(newUrls);
+                onReadyRef.current?.();
             }
         }, 30000); // 30s timeout
 
         return () => {
             isMounted = false;
             clearTimeout(timeout);
-            // We do not revoke object URLs here because they need to be used by the test!
+            // Blob URL'lar bu yerda revoke QILINMAYDI — ular test obyektiga berilgan
+            // va audio hali ijro etilishi kerak. Effekt endi manbalar o'zgargandagina
+            // qayta ishga tushadi, shuning uchun ortiqcha blob ham yaratilmaydi.
         };
-    }, [passages, test, onReady, onBlobsReady]);
+    }, [sourcesKey]);
 
-    const totalCount = new Set(passages.map(p => p.audio || test?.audio || test?.audio_url || test?.audioUrl || test?.file).filter(Boolean)).size;
+    const totalCount = sources.length;
     const pct = totalCount > 0 ? Math.min(100, Math.round((loadedCount / totalCount) * 100)) : 100;
 
     return (

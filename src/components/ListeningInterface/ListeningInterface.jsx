@@ -33,7 +33,7 @@ export default function ListeningInterface({
 }) {
   // --- 1. RESIZE & SELECTION HOOKS ---
   // Listeningda chap taraf (matn) odatda kichikroq bo'ladi (default 40%)
-  const { leftWidth, startResizing } = useResizablePane(40);
+  const { leftWidth, startResizing, containerRef: paneContainerRef } = useResizablePane(40);
   const { menuPos, handleTextSelection, applyHighlight, clearSelection, addToDictionary } = useTextSelection();
 
   // --- 2. STATE ---
@@ -121,7 +121,7 @@ export default function ListeningInterface({
 
 
       {/* --- MAIN SPLIT CONTENT --- */}
-      <div className={`flex w-full h-full overflow-hidden relative pb-[60px] ${isMobile ? 'pt-[48px]' : ''}`}>
+      <div ref={paneContainerRef} className={`flex w-full h-full overflow-hidden relative pb-[60px] ${isMobile ? 'pt-[48px]' : ''}`}>
 
         {/* 1-muammo yechimi: Chap taraf va Resizer FAQAT Review paytida ko'rinadi */}
         {isReviewMode && (

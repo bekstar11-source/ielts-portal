@@ -3,33 +3,30 @@ import HighlightableText from '../HighlightableText';
 import { injectKeywordsToHTML } from '../../../utils/highlightUtils';
 import { checkAnswer, QuestionExplanation } from './CommonComponents';
 
-export const MatchingOptionsBox = ({ 
-    group, activePassage, highlights, handlePartSelect, onRemoveHighlight, keywordTable, isReviewMode, onOpenNotes 
-}) => {
-    let boxTitle = "List of Options";
-    if (group.type === 'summary_box') {
-        boxTitle = "List of Words";
-    } else {
-        const inst = String(group.instruction || "").toLowerCase();
-        const listMatch = inst.match(/list of\s+([a-zA-Z]+)/);
-        if (listMatch && listMatch[1] && !['the', 'following', 'options'].includes(listMatch[1])) {
-            boxTitle = `List of ${listMatch[1].charAt(0).toUpperCase() + listMatch[1].slice(1)}`;
-        } else if (inst.includes("heading")) {
-            boxTitle = "List of Headings";
-        } else if (inst.includes("feature")) {
-            boxTitle = "List of Features";
-        } else if (inst.includes("researcher")) {
-            boxTitle = "List of Researchers";
-        } else if (inst.includes("people") || inst.includes("person")) {
-            boxTitle = "List of People";
-        } else if (inst.includes("countr")) {
-            boxTitle = "List of Countries";
-        } else if (inst.includes("cit")) {
-            boxTitle = "List of Cities";
-        } else if (inst.includes("name")) {
-            boxTitle = "List of Names";
-        }
+// Variantlar ro'yxati uchun sarlavhani guruh ko'rsatmasidan aniqlaydi.
+// MatchingOptionsBox va MatchingGridQuestion ikkalasi ham shundan foydalanadi.
+export const getOptionsBoxTitle = (group) => {
+    if (group?.type === 'summary_box') return "List of Words";
+
+    const inst = String(group?.instruction || "").toLowerCase();
+    const listMatch = inst.match(/list of\s+([a-zA-Z]+)/);
+    if (listMatch && listMatch[1] && !['the', 'following', 'options'].includes(listMatch[1])) {
+        return `List of ${listMatch[1].charAt(0).toUpperCase() + listMatch[1].slice(1)}`;
     }
+    if (inst.includes("heading")) return "List of Headings";
+    if (inst.includes("feature")) return "List of Features";
+    if (inst.includes("researcher")) return "List of Researchers";
+    if (inst.includes("people") || inst.includes("person")) return "List of People";
+    if (inst.includes("countr")) return "List of Countries";
+    if (inst.includes("cit")) return "List of Cities";
+    if (inst.includes("name")) return "List of Names";
+    return "List of Options";
+};
+
+export const MatchingOptionsBox = ({
+    group, activePassage, highlights, handlePartSelect, onRemoveHighlight, keywordTable, isReviewMode, onOpenNotes
+}) => {
+    const boxTitle = getOptionsBoxTitle(group);
 
     return (
         <div className="bg-white p-4 rounded-lg mb-6 border border-gray-200 shadow-sm">
@@ -114,7 +111,11 @@ export const MatchingGridQuestion = ({
                                     </td>
                                     {labels.map((label, lIdx) => {
                                         const isSelected = val === label.toUpperCase();
-                                        const isThisCorrect = String(q.answer).toUpperCase() === label.toUpperCase();
+                                        // Markazlashgan solishtirish: kalit "A" ham, "A. Some text"
+                                        // ham, "A/B" ham to'g'ri ishlaydi. Ilgari qat'iy tenglik edi,
+                                        // shuning uchun prefiksli kalitlarda yashil katak ko'rinmasdi
+                                        // (ball esa berilardi).
+                                        const isThisCorrect = checkAnswer(label, q.answer, true);
                                         
                                         let cellClass = "p-2 border border-black/20 transition-all cursor-pointer h-[42px]";
                                         
@@ -150,7 +151,12 @@ export const MatchingGridQuestion = ({
                 <table className="w-full border-collapse border border-black/40 bg-[#E9E9E9]">
                     <thead>
                         <tr>
-                            <th colSpan="2" className="border border-black/40 p-2 text-left font-bold text-[16px]">First invented or used by</th>
+                            <th colSpan="2" className="border border-black/40 p-2 text-left font-bold text-[16px]">
+                                {/* Ilgari bu yerda bitta konkret testdan qolib ketgan
+                                    "First invented or used by" matni qotirib qo'yilgan edi
+                                    va u BARCHA matching-grid savollarida ko'rinardi. */}
+                                {getOptionsBoxTitle(group)}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>

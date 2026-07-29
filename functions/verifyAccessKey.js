@@ -73,6 +73,23 @@ async function verifyAccessKey(data, context) {
             // Check if it's a mock exam bundle or single test
             if (freshKeyData.type === 'mock_bundle' || freshKeyData.type === 'mock_full' || (freshKeyData.assignedTests && freshKeyData.assignedTests.readingId)) {
                 isMock = true;
+
+                const subTests = {
+                    reading: String(freshKeyData.assignedTests?.readingId || freshKeyData.readingId || "").trim(),
+                    listening: String(freshKeyData.assignedTests?.listeningId || freshKeyData.listeningId || "").trim(),
+                    writing: String(freshKeyData.assignedTests?.writingId || freshKeyData.writingId || "").trim()
+                };
+
+                // Tarkibi to'liq bo'lmagan kalitni FAOLLASHTIRMAYMIZ. Ilgari bo'sh satrli
+                // subTests bilan tayinlov yaratilardi va talaba imtihonni ochganda
+                // `getDoc(doc(db, "tests", ""))` ichkarida portlab, u sababsiz
+                // /mock sahifasiga otilardi — kalit esa allaqachon "ishlatilgan" bo'lardi.
+                if (!subTests.reading || !subTests.listening || !subTests.writing) {
+                    throw new Error(
+                        "Bu kalitning imtihon tarkibi to'liq sozlanmagan. Administratorga murojaat qiling."
+                    );
+                }
+
                 mockAssignment = {
                     id: 'MOCK_' + freshKeyData.key,
                     type: 'mock_full',
@@ -81,11 +98,7 @@ async function verifyAccessKey(data, context) {
                     startDate: now,
                     status: 'unlocked_mock',
                     mockKey: freshKeyData.key,
-                    subTests: {
-                        reading: freshKeyData.assignedTests?.readingId || freshKeyData.readingId || "",
-                        listening: freshKeyData.assignedTests?.listeningId || freshKeyData.listeningId || "",
-                        writing: freshKeyData.assignedTests?.writingId || freshKeyData.writingId || ""
-                    }
+                    subTests
                 };
 
                 // Add to mockTests array

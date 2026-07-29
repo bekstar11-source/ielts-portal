@@ -30,7 +30,16 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
         const testDate = test.startDate 
             ? new Date(test.startDate).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) 
             : '---';
-        const trfNumber = `26UZ${Math.random().toString(36).substring(2, 8).toUpperCase()}${userData?.fullName?.slice(0, 3).toUpperCase() || 'CAN'}004A`; // Random TRF
+        // TRF raqami natijaning ID sidan hosil qilinadi. Ilgari `Math.random()` render
+        // ichida chaqirilardi va "rasmiy" sertifikat raqami har qayta chizilganda o'zgarardi.
+        const trfSeed = String(test.resultId || test.id || test.mockKey || 'CANDIDATE');
+        const trfHash = Array.from(trfSeed)
+            .reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0, 7)
+            .toString(36)
+            .toUpperCase()
+            .padStart(6, '0')
+            .slice(0, 6);
+        const trfNumber = `26UZ${trfHash}${userData?.fullName?.slice(0, 3).toUpperCase() || 'CAN'}004A`;
 
         return (
             <article className="bg-gray-100/50 rounded-xl overflow-hidden border border-gray-200 shadow-sm mb-12">
@@ -85,8 +94,10 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                             <div className="w-1.5 h-6 bg-[#e31b23] rounded-none"></div>
                             <h2 className="text-2xl font-bold text-gray-900">{t('mock.yourResult')}</h2>
                         </div>
-                        <button 
-                            onClick={() => navigate('/mock-exam')}
+                        <button
+                            // Ilgari '/mock-exam' edi: mockData'siz imtihon ekranini ochib,
+                            // eski zaxira ma'lumot bo'yicha BOSHQA imtihonni ishga tushirishi mumkin edi.
+                            onClick={() => navigate('/mock-buy')}
                             className="flex items-center gap-2 text-sm font-bold text-[#e31b23] hover:underline"
                         >
                             <span>{t('mock.buyMockTest')}</span>
@@ -201,19 +212,13 @@ const MockTestCard = ({ test, tab, navigate, userData }) => {
                     </div>
                 </div>
                 
-                <button 
+                <button
                     onClick={() => {
-                        try { 
-                            // Deep clear all potentially stale sessions
-                            Object.keys(localStorage).forEach(key => {
-                                if (key.startsWith('ielts_mock_session_') || 
-                                    key.startsWith('ielts_writing_session_') || 
-                                    key.startsWith('ielts_reading_session_') || 
-                                    key === 'ielts_mock_active_data') {
-                                    localStorage.removeItem(key);
-                                }
-                            });
-                        } catch(e) {}
+                        // DIQQAT: bu yerda localStorage sessiyasini TOZALAMAYMIZ.
+                        // Ilgari tozalanardi, lekin useMockExam tiklashda avval Firestore'ga
+                        // qaraydi — ya'ni tozalash hech narsa bermasdi, faqat brauzer qulab
+                        // tushgandan keyin qaytib kirgan talabaning zaxira nusxasini yo'q qilardi.
+                        // Tugagan imtihon sessiyasi endi finishExam ichida o'chiriladi.
                         navigate('/mock-exam', { state: { mockData: test } });
                     }}
                     className="w-full md:w-auto px-10 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 bg-[#e31b23] text-white hover:bg-[#c4151c] shadow-lg shadow-red-900/20"

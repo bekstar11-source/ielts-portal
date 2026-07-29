@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     Search, LayoutGrid, List, Plus, GitMerge, ChevronDown,
     Folder, BookOpen, Headphones, PenTool, Mic2, Layers, Award, Edit2, Loader2,
-    Upload, Globe, Lock, ArrowUpDown, RefreshCw, Hash, MoreHorizontal, BarChart3
+    Upload, Globe, Lock, ArrowUpDown, RefreshCw, MoreHorizontal, BarChart3, Sparkles,
+    CheckCircle2, AlertTriangle
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -26,9 +27,8 @@ const AdminTestsToolbar = ({
     setFilterStatus,
     filterAccess = "All",
     setFilterAccess,
-    filterTag = "All",
-    setFilterTag,
-    allAvailableTags = [],
+    filterCompleteness = "All",
+    setFilterCompleteness,
     sortBy = "createdAt",
     setSortBy,
     sortOrder = "desc",
@@ -36,8 +36,7 @@ const AdminTestsToolbar = ({
     onImport,
     onOpenQuestionBank,
     onFindDuplicates,
-    showStats = true,
-    onToggleStats
+    stats = null
 }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -87,6 +86,26 @@ const AdminTestsToolbar = ({
 
     const currentSortOption = sortOptions.find(o => o.field === sortBy && o.order === sortOrder) || sortOptions[0];
     const currentColl = collections.find(c => c.id === filterCollection);
+
+    // Per-passage/part options for the "search by specific Passage/Part" section —
+    // only meaningful once the admin has narrowed down to Reading or Listening.
+    const segmentFilterOptions = filterType === 'Reading'
+        ? [{ label: 'P1', title: 'Passage 1' }, { label: 'P2', title: 'Passage 2' }, { label: 'P3', title: 'Passage 3' }]
+        : filterType === 'Listening'
+            ? [{ label: 'Pt1', title: 'Part 1' }, { label: 'Pt2', title: 'Part 2' }, { label: 'Pt3', title: 'Part 3' }, { label: 'Pt4', title: 'Part 4' }]
+            : [];
+
+    const completenessLabel = (value) => {
+        if (value === 'All') return 'Qismlar';
+        if (value === 'Complete') return "To'liq";
+        if (value === 'Incomplete') return "To'liq emas";
+        if (value.startsWith('Missing')) {
+            const label = value.slice('Missing'.length);
+            const opt = segmentFilterOptions.find(o => o.label === label);
+            return opt ? `${opt.title} yo'q` : 'Qismlar';
+        }
+        return 'Qismlar';
+    };
 
     const dropdownBase = `absolute top-full mt-1 left-0 z-50 rounded-xl border shadow-xl p-1 animate-dropdown ${
         isDark ? 'bg-[#1e1e1e] border-white/10 text-white' : 'bg-white border-zinc-150 text-zinc-850'
@@ -362,37 +381,58 @@ const AdminTestsToolbar = ({
                         )}
                     </div>
 
-                    {/* Tags Filter */}
+                {/* Structure Completeness Filter (Reading/Listening: missing passages/parts, or a specific Passage/Part) */}
                     <div className="relative shrink-0">
-                        <button onClick={() => toggleDropdown('tag')} className={`${filterBtnClass(filterTag !== 'All')} whitespace-nowrap max-w-[160px]`}>
-                            <Hash size={10} className="text-blue-500 shrink-0" />
-                            <span className="truncate">{filterTag === 'All' ? 'All Tags' : `#${filterTag}`}</span>
-                            <ChevronDown size={10} className={`opacity-60 transition-transform duration-200 shrink-0 ${openDropdown === 'tag' ? 'rotate-180' : ''}`} />
+                        <button onClick={() => toggleDropdown('completeness')} className={filterBtnClass(filterCompleteness !== 'All')} title="Reading/Listening testlarini qismlari (Passage/Part) bo'yicha tekshirish yoki qidirish">
+                            {filterCompleteness === 'Complete' ? <CheckCircle2 size={12} className="text-emerald-500" /> : filterCompleteness.startsWith('Missing') || filterCompleteness === 'Incomplete' ? <AlertTriangle size={12} className="text-amber-500" /> : <Layers size={10} className="text-zinc-400" />}
+                            <span>{completenessLabel(filterCompleteness)}</span>
+                            <ChevronDown size={10} className={`opacity-60 transition-transform duration-200 ${openDropdown === 'completeness' ? 'rotate-180' : ''}`} />
                         </button>
-                        {openDropdown === 'tag' && (
-                            <div className={`${dropdownBase} w-44`}>
-                                <div className="max-h-60 overflow-y-auto custom-scrollbar p-0.5 space-y-0.5">
-                                    <button
-                                        onClick={() => { setFilterTag("All"); closeDropdown(); }}
-                                        className={`${dropdownItemBase} ${filterTag === 'All' ? dropdownItemActive : dropdownItemInactive}`}
-                                    >
-                                        <Hash size={12} className="text-zinc-400" />
-                                        All Tags
-                                    </button>
-                                    <div className="h-px bg-zinc-150 dark:bg-white/5 my-1" />
-                                    {allAvailableTags.length === 0 ? (
-                                        <span className="text-[10px] text-zinc-400 italic p-2 block text-center">No tags found</span>
-                                    ) : allAvailableTags.map(tag => (
-                                        <button
-                                            key={tag}
-                                            onClick={() => { setFilterTag(tag); closeDropdown(); }}
-                                            className={`${dropdownItemBase} truncate ${filterTag === tag ? dropdownItemActive : dropdownItemInactive}`}
-                                        >
-                                            <span className="text-blue-500 font-extrabold text-xs">#</span>
-                                            <span className="truncate">{tag}</span>
-                                        </button>
-                                    ))}
-                                </div>
+                        {openDropdown === 'completeness' && (
+                            <div className={`${dropdownBase} w-56 space-y-0.5`}>
+                                <button
+                                    onClick={() => { setFilterCompleteness("All"); closeDropdown(); }}
+                                    className={`${dropdownItemBase} ${filterCompleteness === 'All' ? dropdownItemActive : dropdownItemInactive}`}
+                                >
+                                    <Layers size={12} className="text-zinc-400" />
+                                    Barcha testlar
+                                </button>
+                                <button
+                                    onClick={() => { setFilterCompleteness("Complete"); closeDropdown(); }}
+                                    className={`${dropdownItemBase} ${filterCompleteness === 'Complete' ? dropdownItemActive : dropdownItemInactive}`}
+                                >
+                                    <CheckCircle2 size={12} className="text-emerald-500" />
+                                    To'liq (barcha qismlar mavjud)
+                                </button>
+                                <button
+                                    onClick={() => { setFilterCompleteness("Incomplete"); closeDropdown(); }}
+                                    className={`${dropdownItemBase} ${filterCompleteness === 'Incomplete' ? dropdownItemActive : dropdownItemInactive}`}
+                                >
+                                    <AlertTriangle size={12} className="text-amber-500" />
+                                    To'liq emas (qism yetishmayapti)
+                                </button>
+
+                                {segmentFilterOptions.length > 0 && (
+                                    <>
+                                        <div className="h-px bg-zinc-150 dark:bg-white/5 my-1" />
+                                        <span className={`block px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                                            {filterType === 'Listening' ? "Aniq Part bo'yicha qidirish" : "Aniq Passage bo'yicha qidirish"}
+                                        </span>
+                                        {segmentFilterOptions.map(({ label, title }) => {
+                                            const value = `Missing${label}`;
+                                            return (
+                                                <button
+                                                    key={value}
+                                                    onClick={() => { setFilterCompleteness(value); closeDropdown(); }}
+                                                    className={`${dropdownItemBase} ${filterCompleteness === value ? dropdownItemActive : dropdownItemInactive}`}
+                                                >
+                                                    <AlertTriangle size={12} className="text-amber-500" />
+                                                    {title} yo'q
+                                                </button>
+                                            );
+                                        })}
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
@@ -422,21 +462,38 @@ const AdminTestsToolbar = ({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="relative shrink-0">
                     <button
-                        onClick={onToggleStats}
-                        title={showStats ? "Statistikani yashirish" : "Statistikani ko'rsatish"}
-                        className={`p-1.5 rounded-lg border transition-all ${
-                            showStats
-                                ? (isDark ? 'bg-blue-500/15 border-blue-500/30 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600')
-                                : (isDark ? 'bg-white/5 border-white/10 text-zinc-500 hover:text-zinc-300' : 'bg-zinc-50 border-zinc-200 text-zinc-400 hover:text-zinc-600')
-                        }`}
+                        onClick={() => toggleDropdown('stats')}
+                        className={filterBtnClass(openDropdown === 'stats')}
                     >
                         <BarChart3 size={13} />
+                        <span>{totalTestCount} ta test</span>
+                        <ChevronDown size={10} className={`opacity-60 transition-transform duration-200 ${openDropdown === 'stats' ? 'rotate-180' : ''}`} />
                     </button>
-                    <div className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                        Jami: <span className="text-blue-600 dark:text-blue-400 font-black">{totalTestCount} ta test</span>
-                    </div>
+                    {openDropdown === 'stats' && stats && (
+                        <div className={`${dropdownBase} left-auto right-0 w-[280px] p-2 grid grid-cols-2 gap-1`}>
+                            {[
+                                { title: "Tests", value: stats.total, icon: <Layers size={12} className="text-blue-500" /> },
+                                { title: "Mock", value: stats.mockCount, icon: <Award size={12} className="text-rose-500" /> },
+                                { title: "Reading", value: stats.readingCount, icon: <BookOpen size={12} className="text-emerald-500" /> },
+                                { title: "Listening", value: stats.listeningCount, icon: <Headphones size={12} className="text-amber-500" /> },
+                                { title: "Writing", value: stats.writingCount, icon: <PenTool size={12} className="text-violet-500" /> },
+                                { title: "Speaking", value: stats.speakingCount, icon: <Mic2 size={12} className="text-fuchsia-500" /> },
+                                { title: "Public", value: stats.publicCount, icon: <Globe size={12} className="text-teal-500" /> },
+                                { title: "Private", value: stats.privateCount, icon: <Lock size={12} className="text-zinc-500" /> },
+                                { title: "Free", value: stats.freeCount, icon: <Sparkles size={12} className="text-cyan-500" /> }
+                            ].map((card, i) => (
+                                <div key={i} className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg ${isDark ? 'hover:bg-white/5' : 'hover:bg-zinc-50'}`}>
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        {card.icon}
+                                        <span className={`text-[10px] font-black uppercase tracking-wider truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{card.title}</span>
+                                    </div>
+                                    <span className="text-xs font-black tracking-tight shrink-0">{card.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </header>

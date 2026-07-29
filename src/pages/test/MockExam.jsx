@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 // Hooks & Components
-import { useMockExam, getListeningDuration } from "../../hooks/useMockExam";
+import { useMockExam, getListeningDuration, TEST_ENDED_AUTO_ADVANCE_SEC } from "../../hooks/useMockExam";
 import { useExamSecurity } from "../../hooks/useExamSecurity";
 import MockExamIntro from "../../components/MockExam/MockExamIntro";
 import MockExamResult from "../../components/MockExam/MockExamResult";
@@ -18,42 +18,54 @@ export default function MockExam() {
     const location = useLocation();
     const { user, userData } = useAuth();
 
-    // Restore mockData: prefer location.state, fallback to localStorage backup
-    const mockData = location.state?.mockData || (() => {
+    // Restore mockData: prefer location.state, fallback to localStorage backup.
+    // useMemo SHART: fallback yo'li har renderda YANGI obyekt qaytarardi, natijada
+    // quyidagi effekt cheksiz qayta ishga tushib, imtihon tugagach tozalangan
+    // 'ielts_mock_active_data' ni darhol qayta yozib qo'yardi.
+    const mockData = useMemo(() => {
+        if (location.state?.mockData) return location.state.mockData;
         try {
             const backup = localStorage.getItem('ielts_mock_active_data');
             return backup ? JSON.parse(backup) : null;
-        } catch (e) { return null; }
-    })();
+        } catch {
+            return null;
+        }
+    }, [location.state]);
 
     // Save mockData to localStorage as backup (survives refresh even if pushState wipes state)
     useEffect(() => {
         if (mockData) {
-            try { localStorage.setItem('ielts_mock_active_data', JSON.stringify(mockData)); } catch(e) {}
+            try { localStorage.setItem('ielts_mock_active_data', JSON.stringify(mockData)); } catch { /* kvota to'lgan bo'lishi mumkin */ }
         }
     }, [mockData]);
 
     // If no mockData at all, redirect to entry
     useEffect(() => {
-        if (!mockData) navigate('/mock-entry', { replace: true });
+        // '/mock-entry' degan route mavjud emas edi — catch-all orqali bosh sahifaga otardi.
+        if (!mockData) navigate('/mock', { replace: true });
     }, [mockData, navigate]);
 
     const {
         stage, setStage, tests, answers, handleAnswer, 
         timeLeft, setTimeLeft, handleNextStage, finishExam,
-        finalResults, completedModules, autoStartDeadline, setAutoStartDeadline,
+        finalResults, submitError, completedModules, autoStartDeadline,
         resumeAudioTime, resumeActivePart, updateAudioProgress,
         tabSwitchCount, mockId, clearExamSession,
         updateListeningDuration
     } = useMockExam(mockData, user, userData, navigate);
 
     // UI States
-    const [isAudioReady, setIsAudioReady] = useState(false);
-    const [activePart, setActivePart] = useState(resumeActivePart || 0);
+    const [activePart, setActivePart] = useState(0);
+
+    // resumeActivePart sessiya tiklangandan KEYIN (async) keladi, useState esa boshlang'ich
+    // qiymatni bir marta o'qiydi — shuning uchun ilgari qism hech qachon tiklanmasdi.
+    useEffect(() => {
+        if (resumeActivePart) setActivePart(resumeActivePart);
+    }, [resumeActivePart]);
     const [audioTime, setAudioTime] = useState(0);
     const [textSize, setTextSize] = useState('text-base');
     const [isFullScreen, setIsFullScreen] = useState(!!document.fullscreenElement);
-    const [redirectCountdown, setRedirectCountdown] = useState(15);
+    const [redirectCountdown, setRedirectCountdown] = useState(TEST_ENDED_AUTO_ADVANCE_SEC);
     const [showCheatWarning, setShowCheatWarning] = useState(false);
     const [showExitModal, setShowExitModal] = useState(false);
     const [showFullscreenOverlay, setShowFullscreenOverlay] = useState(false);
@@ -69,6 +81,12 @@ export default function MockExam() {
             const solvingStages = ['listening', 'reading', 'writing'];
             if (type === 'tab_switch' && solvingStages.includes(stage)) {
                 setShowCheatWarning(true);
+            }
+            // "Back" tugmasi / swipe-back — chiqishni tasdiqlashni so'raymiz.
+            // Faqat test ishlanayotgan bosqichlarda: modal shu bosqichlarda render qilinadi,
+            // boshqa ekranlar undan oldin `return` qiladi va modal ko'rinmay qolardi.
+            if (type === 'back_navigation' && solvingStages.includes(stage)) {
+                setShowExitModal(true);
             }
         }
     });
@@ -132,10 +150,13 @@ export default function MockExam() {
                 
                 if (remaining <= 0) {
                     clearInterval(interval);
-                    setAutoStartDeadline(null);
-                    const allDone = (!mockData?.subTests?.listening || completedModules.includes('listening')) && 
-                                    (!mockData?.subTests?.reading || completedModules.includes('reading')) && 
+                    const allDone = (!mockData?.subTests?.listening || completedModules.includes('listening')) &&
+                                    (!mockData?.subTests?.reading || completedModules.includes('reading')) &&
                                     (!mockData?.subTests?.writing || completedModules.includes('writing'));
+                    // Bosqich almashuvi deadline'ni useMockExam ichida avtomatik tozalaydi.
+                    // Bu yerda uni QO'LDA null qilmaymiz: allDone bo'lganda stage 'test_ended'
+                    // bo'lib qolgani uchun hook darhol yangi 20s deadline o'rnatib, cheksiz
+                    // sikl hosil bo'lardi.
                     if (!allDone) setStage('intro');
                     // If allDone is true, we do nothing and wait for manual submit
                     // This prevents the "auto-submit" behavior the user complained about.
@@ -143,7 +164,7 @@ export default function MockExam() {
             }, 1000);
             return () => clearInterval(interval);
         }
-    }, [stage, autoStartDeadline, completedModules, navigate, setStage, setAutoStartDeadline]);
+    }, [stage, autoStartDeadline, completedModules, mockData, setStage]);
 
     // ─── Cheat Warning Overlay ───
     const cheatWarningOverlay = showCheatWarning && tabSwitchCount < 3 && (
@@ -211,12 +232,17 @@ export default function MockExam() {
                 
                 <div className="flex flex-col gap-4">
                     <button 
-                        onClick={() => {
+                        onClick={async () => {
                             setShowExitModal(false);
-                            finishExamRef.current().finally(() => {
+                            try {
+                                await finishExam();
+                            } finally {
+                                // Sessiyani tozalaymiz — aks holda qaytib kirganda
+                                // tiklangan 'result' bosqichi bo'sh natija ko'rsatardi.
+                                await clearExamSession();
                                 // Hard redirect to break all history traps
                                 window.location.href = '/mock';
-                            });
+                            }
                         }}
                         className="w-full py-5 bg-red-600 text-white rounded-2xl font-bold text-base hover:bg-red-700 transition-all shadow-xl shadow-red-900/20 active:scale-[0.98]"
                     >
@@ -299,14 +325,22 @@ export default function MockExam() {
                             )}
                         </div>
                         
+                        {submitError && (
+                            <div className="border border-red-200 bg-red-50 rounded-lg p-4 text-left">
+                                <p className="text-sm font-bold text-red-700 mb-1">Natijani yuborib bo'lmadi</p>
+                                <p className="text-xs text-red-600 leading-relaxed">{submitError}</p>
+                                <p className="text-xs text-red-500 mt-2">Javoblaringiz saqlangan. Quyidagi tugma orqali qayta urinib ko'ring.</p>
+                            </div>
+                        )}
+
                         <div className="flex justify-center pt-6">
                             {allModulesDone ? (
-                                <button 
+                                <button
                                     onClick={() => finishExam()}
                                     disabled={stage === 'saving'}
                                     className="px-12 py-3 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all active:scale-[0.98] shadow-lg shadow-zinc-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {stage === 'saving' ? 'Submitting...' : 'Submit Test'}
+                                    {stage === 'saving' ? 'Submitting...' : (submitError ? 'Qayta yuborish' : 'Submit Test')}
                                 </button>
                             ) : (
                                 <button 
@@ -367,7 +401,6 @@ export default function MockExam() {
             activePart={activePart}
             setActivePart={(part) => { setActivePart(part); updateAudioProgress(audioTime, part); }}
             setAudioTime={handleSetAudioTime}
-            setIsAudioReady={setIsAudioReady}
             isFullScreen={isFullScreen}
             audioTime={audioTime}
             userName={userData?.fullName || user?.email || 'Candidate'}

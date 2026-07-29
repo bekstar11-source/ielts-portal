@@ -67,15 +67,34 @@ service cloud.firestore {
     }
 
     // RESULTS
+    // ⚠️ Test natijalari SERVERDA yoziladi (submitTestAnswers / submitMockExam —
+    // Admin SDK bu qoidalarni chetlab o'tadi). Klientga yozish huquqi berilishi
+    // ikki xil hujumga yo'l ochadi, shuning uchun quyida qattiq cheklangan.
     match /results/{resultId} {
+      // `{uid}_{testId}` ko'rinishidagi ID — yuqoridagi `tests` qoidasi uchun
+      // "topshirdim" kvitansiyasi. Klient bunday ID li hujjat YARATA OLMASLIGI shart:
+      // aks holda istalgan test uchun soxta kvitansiya yozib, o'sha testning
+      // javob kalitlarini to'g'ridan-to'g'ri o'qib olardi (getSanitizedTest chetlab o'tilardi).
+      function isReceiptId() {
+        return resultId.matches('^' + request.auth.uid + '_.*');
+      }
+
       allow read: if isAuth() && (
-        resource.data.userId == request.auth.uid || 
+        resource.data.userId == request.auth.uid ||
         resultId.matches('^' + request.auth.uid + '.*') ||
-        isAdmin() || 
+        isAdmin() ||
         isTeacher()
       );
-      allow create: if isAuth() && request.resource.data.userId == request.auth.uid; 
-      allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin() || isTeacher());
+
+      // Klientda faqat avto-ID li hujjatlar yaratiladi (diagnostika). Test topshirish
+      // Cloud Function orqali ketadi va bu qoidaga bo'ysunmaydi.
+      allow create: if isAuth()
+                    && request.resource.data.userId == request.auth.uid
+                    && !isReceiptId();
+
+      // Ball qo'yish — faqat o'qituvchi/admin ishi. Ilgari egasiga ham ruxsat berilgan edi,
+      // ya'ni talaba o'z `bandScore` / `scores` / `status` maydonlarini 9.0 ga o'zgartira olardi.
+      allow update: if isAdmin() || isTeacher();
       allow delete: if isAdmin();
     }
     

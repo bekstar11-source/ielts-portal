@@ -3,11 +3,13 @@ import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { Menu, Moon, Sun, Bell, Search, LogOut } from 'lucide-react';
+import { useSidebar } from '../ui/sidebar';
 
 
-export default function AdminHeader({ toggleSidebar }) {
+export default function AdminHeader() {
     const { theme, toggleTheme } = useTheme();
     const { userData, logout } = useAuth();
+    const { toggleSidebar } = useSidebar();
     const location = useLocation();
     const navigate = useNavigate();
 

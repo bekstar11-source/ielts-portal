@@ -141,9 +141,9 @@ const ReviewHeader = ({
                 </div>
 
                 {/* CENTER: Audio player */}
-                <div className="flex-1 flex justify-center min-w-0">
+                <div className="flex-1 flex justify-center min-w-0 px-2 lg:px-6">
                     {hasAudioPlayer && (
-                        <div className="flex items-center gap-2 w-full max-w-[560px]">
+                        <div className="flex items-center gap-2 w-full max-w-5xl">
                             <div className="flex-1 min-w-0">
                                 {testData.passages?.map((passage, index) => {
                                     const src = passage.audio || testData?.audio || testData?.audio_url || testData?.audioUrl || testData?.file;

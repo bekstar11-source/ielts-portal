@@ -42,7 +42,7 @@ const TEMPLATES = [
             collectionId: "None",
             tags: [],
             audio_url: "",
-            introDuration: 10,
+            introDuration: 0,
             passages: [
                 { id: 101, title: "Part 1", content: "", audio: "", extraSilentTime: 0 },
                 { id: 102, title: "Part 2", content: "", audio: "", extraSilentTime: 0 },

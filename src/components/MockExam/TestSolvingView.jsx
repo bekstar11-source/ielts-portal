@@ -15,8 +15,11 @@ import VolumeCheckScreen from './VolumeCheckScreen';
 export const TestSolvingView = ({
     stage, tests, answers, handleAnswer, timeLeft, handleNextStage,
     textSize, setTextSize, activePart, setActivePart, setAudioTime,
-    setIsAudioReady, isFullScreen, audioTime, userName, resumeAudioTime, mockId,
-    onTotalDurationCalculated, onAudioEnded
+    isFullScreen, audioTime, userName, resumeAudioTime, mockId,
+    onTotalDurationCalculated, onAudioEnded,
+    // Audio tayyorligini hozircha hech bir komponent o'qimaydi — parent'dagi o'lik
+    // state olib tashlandi, prop esa mavjud API uchun ixtiyoriy no-op sifatida qoldi.
+    setIsAudioReady = () => {}
 }) => {
     const logicalStage = stage === 'listening_volume_check' ? 'listening' : stage;
     const [volume, setVolume] = useState(0.7);
@@ -24,10 +27,28 @@ export const TestSolvingView = ({
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
     const [contrastMode, setContrastMode] = useState('default');
     const [showFinishConfirm, setShowFinishConfirm] = useState(false);
-    const [showResumeOverlay, setShowResumeOverlay] = useState(resumeAudioTime > 0 && logicalStage === 'listening');
 
+    // resumeAudioTime sessiya tiklanganidan keyin (async) keladi. Ilgari u faqat
+    // useState boshlang'ich qiymati sifatida o'qilardi — o'sha paytda hali 0 bo'lgani
+    // uchun overlay HECH QACHON ko'rinmasdi, ya'ni autoplay'ni ochadigan foydalanuvchi
+    // klik bosqichi tushib qolar va tiklangan listening'da audio ishga tushmasligi mumkin edi.
+    const [showResumeOverlay, setShowResumeOverlay] = useState(false);
+    const resumeOverlayShownRef = useRef(false);
+    useEffect(() => {
+        if (resumeAudioTime > 0 && logicalStage === 'listening' && !resumeOverlayShownRef.current) {
+            resumeOverlayShownRef.current = true;
+            setShowResumeOverlay(true);
+        }
+    }, [resumeAudioTime, logicalStage]);
+
+    // Oxirgi daqiqada soniyalarni ko'rsatamiz. Ilgari faqat `Math.floor(seconds/60)`
+    // ishlatilardi va oxirgi 59 soniya davomida "0 minutes remaining" deb qotib turardi.
     const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
+        const safe = Math.max(0, Math.floor(seconds || 0));
+        if (safe < 60) {
+            return `${safe} second${safe !== 1 ? 's' : ''} remaining`;
+        }
+        const m = Math.floor(safe / 60);
         return `${m} minute${m !== 1 ? 's' : ''} remaining`;
     };
 
@@ -40,6 +61,14 @@ export const TestSolvingView = ({
         }
         // Don't close immediately so user sees the change
     };
+
+    // Kontrast klassi <html> ga yoziladi — komponent yo'q qilinganda tozalanishi SHART.
+    // Aks holda imtihondan chiqqach butun ilova qora rejimda qolib ketardi.
+    useEffect(() => {
+        return () => {
+            document.documentElement.classList.remove('white-on-black', 'yellow-on-black');
+        };
+    }, []);
 
     return (
         <div className={`flex flex-col h-[100dvh] bg-gray-50 overflow-hidden font-sans ${textSize}`}>

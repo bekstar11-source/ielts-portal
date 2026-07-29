@@ -234,7 +234,10 @@ export default function MockEntry() {
                 setShowCalendar={setShowCalendar} currentMock={currentMock}
                 viewDate={viewDate} setViewDate={setViewDate}
                 selectedDate={selectedDate} setSelectedDate={setSelectedDate}
-                handleScheduleTest={handleScheduleTest} handleStartTestNow={() => navigate(`/mock/start/${currentMock.id}`)}
+                handleScheduleTest={handleScheduleTest}
+                // '/mock/start/:id' route'i yo'q edi — tugma bosh sahifaga otardi.
+                // Imtihon MockTestCard bilan bir xil yo'l orqali ochiladi.
+                handleStartTestNow={() => navigate('/mock-exam', { state: { mockData: currentMock } })}
                 loading={loading}
             />
             <DashboardModals

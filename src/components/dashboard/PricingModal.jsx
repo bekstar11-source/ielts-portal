@@ -68,7 +68,7 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="fixed inset-0 bg-[#f5f5f7]/80 backdrop-blur-xl"
+                    className="fixed inset-0 bg-warm-surface/80 dark:bg-warm-dark/80 backdrop-blur-xl"
                     onClick={onClose}
                 />
 
@@ -76,26 +76,26 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
                     initial={{ scale: 0.98, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.98, opacity: 0 }}
-                    className="relative w-full max-w-6xl bg-white border border-white rounded-[24px] shadow-2xl overflow-hidden flex flex-col"
+                    className="relative w-full max-w-6xl bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-canvas dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
                 >
                     {/* Close Button */}
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 z-50 p-1.5 bg-black/5 hover:bg-black/10 rounded-full transition-colors"
+                        className="absolute top-4 right-4 z-50 p-1.5 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 rounded-full transition-colors"
                     >
-                        <X size={16} className="text-black/40" />
+                        <X size={16} className="text-black/40 dark:text-white/60" />
                     </button>
 
                     <div className="relative z-10 p-5 sm:p-8">
                         {/* Compact Title Section */}
                         <div className="text-center mb-6">
-                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[9px] font-bold uppercase tracking-wider mb-2">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-warm-primary/10 dark:bg-warm-primary/20 text-warm-primary text-[9px] font-bold uppercase tracking-wider mb-2">
                                 <Sparkles size={10} /> Premium
                             </div>
-                            <h2 className="text-[24px] sm:text-[30px] font-bold text-[#1d1d1f] tracking-tight mb-1">
+                            <h2 className="text-[24px] sm:text-[30px] font-bold text-warm-ink dark:text-warm-on-dark tracking-tight mb-1">
                                 Bilimga investitsiya — eng yaxshi sarmoya.
                             </h2>
-                            <p className="text-[13px] text-[#86868b]">
+                            <p className="text-[13px] text-warm-muted dark:text-warm-on-dark-soft">
                                 {userName}, Pro tarif bilan IELTS ga tayyorgarlikni yangi darajaga ko'taring.
                             </p>
                         </div>
@@ -105,36 +105,36 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
                             {plans.map((plan, idx) => (
                                 <div
                                     key={idx}
-                                    className={`relative p-5 rounded-[20px] border transition-all duration-300 flex flex-col ${
-                                        plan.popular 
-                                        ? 'bg-black text-white border-black shadow-lg scale-[1.02]' 
-                                        : 'bg-white text-[#1d1d1f] border-[#e5e5e5]'
+                                    className={`relative p-5 rounded-2xl border transition-all duration-300 flex flex-col ${
+                                        plan.popular
+                                        ? 'bg-warm-ink dark:bg-white text-white dark:text-warm-ink border-warm-ink dark:border-white shadow-lg scale-[1.02]'
+                                        : 'bg-warm-canvas dark:bg-warm-dark-elevated text-warm-ink dark:text-warm-on-dark border-warm-hairline dark:border-white/10'
                                     }`}
                                 >
                                     {plan.popular && (
-                                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#0071e3] text-white text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">
+                                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-warm-primary text-white text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">
                                             ENG MASHHUR
                                         </div>
                                     )}
 
                                     <div className="mb-4">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${plan.popular ? 'bg-white/10 text-white' : 'bg-[#f5f5f7] text-[#0071e3]'}`}>
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${plan.popular ? 'bg-white/10 dark:bg-warm-ink/10 text-white dark:text-warm-ink' : 'bg-warm-surface dark:bg-white/5 text-warm-primary'}`}>
                                             {plan.icon}
                                         </div>
                                         <h3 className="text-sm font-bold mb-0.5">{plan.name}</h3>
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-[22px] font-bold">{plan.price}</span>
-                                            <span className={`text-[10px] font-medium ${plan.popular ? 'text-white/60' : 'text-[#86868b]'}`}>UZS</span>
+                                            <span className={`text-[10px] font-medium ${plan.popular ? 'text-white/60 dark:text-warm-ink/60' : 'text-warm-muted dark:text-warm-on-dark-soft'}`}>UZS</span>
                                         </div>
                                     </div>
 
                                     <ul className="space-y-2 mb-6 flex-1">
                                         {plan.features.map((feature, fIdx) => (
                                             <li key={fIdx} className="flex items-start gap-2">
-                                                <div className={`mt-1 flex-shrink-0 w-3 h-3 rounded-full flex items-center justify-center ${plan.popular ? 'bg-white/20' : 'bg-blue-50'}`}>
-                                                    <Check size={7} className={plan.popular ? 'text-white' : 'text-[#0071e3]'} strokeWidth={4} />
+                                                <div className={`mt-1 flex-shrink-0 w-3 h-3 rounded-full flex items-center justify-center ${plan.popular ? 'bg-white/20 dark:bg-warm-ink/20' : 'bg-warm-primary/10 dark:bg-warm-primary/20'}`}>
+                                                    <Check size={7} className={plan.popular ? 'text-white dark:text-warm-ink' : 'text-warm-primary'} strokeWidth={4} />
                                                 </div>
-                                                <span className={`text-[11px] font-medium leading-tight ${plan.popular ? 'text-white/80' : 'text-[#424245]'}`}>
+                                                <span className={`text-[11px] font-medium leading-tight ${plan.popular ? 'text-white/80 dark:text-warm-ink/80' : 'text-warm-body dark:text-warm-on-dark-soft'}`}>
                                                     {feature}
                                                 </span>
                                             </li>
@@ -147,9 +147,9 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
                                             window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, '_blank');
                                         }}
                                         className={`w-full py-2.5 rounded-lg font-bold text-[12px] transition-all flex items-center justify-center gap-1.5 group ${
-                                            plan.popular 
-                                            ? 'bg-white text-black hover:bg-gray-100' 
-                                            : 'bg-[#0071e3] text-white hover:bg-[#0077ed]'
+                                            plan.popular
+                                            ? 'bg-warm-canvas dark:bg-warm-ink text-warm-ink dark:text-white hover:bg-warm-surface dark:hover:bg-warm-body-strong'
+                                            : 'bg-warm-primary text-white hover:bg-warm-primary-active'
                                         }`}
                                     >
                                         {plan.buttonText}
@@ -160,29 +160,29 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
                         </div>
 
                         {/* Minimal Footer Info */}
-                        <div className="mt-6 pt-4 border-t border-[#f2f2f2] text-center flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="mt-6 pt-4 border-t border-warm-hairline dark:border-white/10 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-4 opacity-60">
-                                <div className="flex items-center gap-1 text-[10px] font-medium text-[#1d1d1f]">
+                                <div className="flex items-center gap-1 text-[10px] font-medium text-warm-ink dark:text-warm-on-dark">
                                     <CreditCard size={12} /> To'lov xavfsiz
                                 </div>
-                                <div className="flex items-center gap-1 text-[10px] font-medium text-[#1d1d1f]">
+                                <div className="flex items-center gap-1 text-[10px] font-medium text-warm-ink dark:text-warm-on-dark">
                                     <Zap size={12} /> Tezkor faollashtirish
                                 </div>
                             </div>
-                            <p className="text-[10px] text-[#86868b] flex items-center gap-3">
-                                <button 
+                            <p className="text-[10px] text-warm-muted dark:text-warm-on-dark-soft flex items-center gap-3">
+                                <button
                                     onClick={() => {
                                         navigate('/pricing');
                                         onClose();
                                     }}
-                                    className="text-[#0071e3] hover:underline font-bold"
+                                    className="text-warm-primary hover:underline font-bold"
                                 >
                                     Batafsil ma'lumot
                                 </button>
                                 <span>•</span>
                                 <span>To'lovdan so'ng barcha funksiyalar ochiladi.</span>
                                 <span>•</span>
-                                <a href="https://t.me/support" className="text-[#0071e3] hover:underline">Support</a>
+                                <a href="https://t.me/support" className="text-warm-primary hover:underline">Support</a>
                             </p>
                         </div>
                     </div>

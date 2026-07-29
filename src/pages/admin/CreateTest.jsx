@@ -387,20 +387,6 @@ export default function CreateTest() {
         }
     };
 
-    const handleIntroDurationChange = (value) => {
-        const numericVal = value === "" ? "" : Number(value);
-        setTestData(prev => ({ ...prev, introDuration: numericVal }));
-        try {
-            if (jsonInput) {
-                const parsed = JSON.parse(jsonInput);
-                parsed.introDuration = numericVal;
-                setJsonInput(JSON.stringify(parsed, null, 2));
-            }
-        } catch (e) {
-            console.warn("JSON sync skipped:", e.message);
-        }
-    };
-
     // Mini validator badge
     const validatorBadge = () => {
         if (!['reading', 'listening'].includes(testData.type)) return null;
@@ -544,7 +530,6 @@ export default function CreateTest() {
                             uploadingPart={uploadingPart}
                             isDark={isDark}
                             onPassageTimeChange={handlePassageTimeChange}
-                            onIntroDurationChange={handleIntroDurationChange}
                         />
 
                         {testData.type === 'writing' && (

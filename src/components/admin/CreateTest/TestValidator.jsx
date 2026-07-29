@@ -76,6 +76,23 @@ export function runValidation(testData) {
     
     // Flatten helper to extract all actual questions
     const allQuestions = [];
+
+    const isArrowGlyph = (text) => ["↓", "▼", "⬇", "arrow", "⇓"].includes(String(text || '').trim());
+
+    // Decorative/non-scored pseudo-items (section headings, arrow connectors, header boxes)
+    // are legitimately missing id/answer by design — the exam-taking renderers skip them too,
+    // so the validator must not flag them as errors.
+    const isNonScoredItem = (q, itemIdx) => {
+        if (!q || typeof q !== 'object' || Object.keys(q).length === 0) return true;
+        if (q.isInfo || q.type === 'info' || q.type === 'text' || q.type === 'instruction' || q.isExample || q.type === 'example') return true;
+        if (q.type === 'heading') return true;
+        const itemText = typeof q.text === 'object' ? q.text?.text : q.text;
+        if (isArrowGlyph(itemText)) return true;
+        const hasInput = itemText && String(itemText).includes('[INPUT]');
+        if (itemIdx === 0 && q.isQuestion === false && !hasInput) return true;
+        return false;
+    };
+
     const checkGroupQuestions = (group, gIdx) => {
         const passageId = group.passageId;
         // Every group should specify which passage/part it belongs to
@@ -118,14 +135,16 @@ export function runValidation(testData) {
             });
         }
 
-        items.forEach(q => {
+        items.forEach((q, iIdx) => {
+            if (isNonScoredItem(q, iIdx)) return;
             allQuestions.push({ q, group });
         });
 
         if (group.groups && Array.isArray(group.groups)) {
             group.groups.forEach(sub => {
                 const subItems = sub.items || sub.questions || [];
-                subItems.forEach(q => {
+                subItems.forEach((q, iIdx) => {
+                    if (isNonScoredItem(q, iIdx)) return;
                     allQuestions.push({ q, group, subGroup: sub });
                 });
             });
@@ -162,110 +181,119 @@ export function runValidation(testData) {
         const qId = q.id || 'Noma\'lum';
         const answer = q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value;
 
-        // Check if answer is missing
-        if (answer === undefined || answer === null || String(answer).trim() === '') {
-            errors.push({ 
-                id: `q-${qId}-missing-answer`, 
-                message: `Savol ${qId}: Javob kaliti (answer) kiritilmagan`, 
-                category: 'Javoblar (Answers)' 
+        if (!q.id) {
+            errors.push({
+                id: `q-missing-id-${Math.random().toString(36).substr(2, 9)}`,
+                message: `Savol ID (raqami) kiritilmagan. (Guruh: ${group.type || 'Noma\'lum'}, ${q.text ? `Matni: "${String(q.text).substring(0, 30)}..."` : 'ID qo\'shing'})`,
+                category: 'Savollar Tuzilishi'
             });
         }
 
-        // Check for typos in TFNG / YNNG questions
-        const groupTypeLower = (group.type || '').toLowerCase();
-        if (groupTypeLower.includes('true') || groupTypeLower.includes('yes_no') || groupTypeLower.includes('tfng') || groupTypeLower.includes('ynng')) {
-            const validTFNG = ['TRUE', 'FALSE', 'NOT GIVEN'];
-            const validYNNG = ['YES', 'NO', 'NOT GIVEN'];
-            const upperAns = String(answer || '').toUpperCase().trim();
-            
-            if (groupTypeLower.includes('true') || groupTypeLower.includes('tfng')) {
-                if (!validTFNG.includes(upperAns)) {
-                    errors.push({
-                        id: `q-${qId}-invalid-tfng`,
-                        message: `Savol ${qId}: True/False/Not Given javobi noto'g'ri: "${answer}". Faqat TRUE, FALSE yoki NOT GIVEN bo'lishi kerak.`,
-                        category: 'Javoblar (Answers)'
-                    });
-                }
-            } else {
-                if (!validYNNG.includes(upperAns)) {
-                    errors.push({
-                        id: `q-${qId}-invalid-ynng`,
-                        message: `Savol ${qId}: Yes/No/Not Given javobi noto'g'ri: "${answer}". Faqat YES, NO yoki NOT GIVEN bo'lishi kerak.`,
-                        category: 'Javoblar (Answers)'
-                    });
+        // Check if answer is missing
+        if (answer === undefined || answer === null || String(answer).trim() === '') {
+            errors.push({ 
+                id: `q-${qId}-missing-answer-${Math.random().toString(36).substr(2, 9)}`, 
+                message: `Savol ${qId}: Javob kaliti (answer) kiritilmagan`, 
+                category: 'Javoblar (Answers)' 
+            });
+        } else {
+            // Check for typos in TFNG / YNNG questions
+            const groupTypeLower = (group.type || '').toLowerCase();
+            if (groupTypeLower.includes('true') || groupTypeLower.includes('yes_no') || groupTypeLower.includes('tfng') || groupTypeLower.includes('ynng')) {
+                const validTFNG = ['TRUE', 'FALSE', 'NOT GIVEN'];
+                const validYNNG = ['YES', 'NO', 'NOT GIVEN'];
+                const upperAns = String(answer || '').toUpperCase().trim();
+                
+                if (groupTypeLower.includes('true') || groupTypeLower.includes('tfng')) {
+                    if (!validTFNG.includes(upperAns)) {
+                        errors.push({
+                            id: `q-${qId}-invalid-tfng`,
+                            message: `Savol ${qId}: True/False/Not Given javobi noto'g'ri: "${answer}". Faqat TRUE, FALSE yoki NOT GIVEN bo'lishi kerak.`,
+                            category: 'Javoblar (Answers)'
+                        });
+                    }
+                } else {
+                    if (!validYNNG.includes(upperAns)) {
+                        errors.push({
+                            id: `q-${qId}-invalid-ynng`,
+                            message: `Savol ${qId}: Yes/No/Not Given javobi noto'g'ri: "${answer}". Faqat YES, NO yoki NOT GIVEN bo'lishi kerak.`,
+                            category: 'Javoblar (Answers)'
+                        });
+                    }
                 }
             }
-        }
 
-        // Multiple choice options check
-        if (groupTypeLower.includes('multiple') || groupTypeLower.includes('choice') || groupTypeLower.includes('mcq')) {
-            const options = (Array.isArray(q.options) ? q.options : null) || (Array.isArray(group.options) ? group.options : null) || [];
-            if (options.length < 2) {
-                errors.push({
-                    id: `q-${qId}-mcq-options-count`,
-                    message: `Savol ${qId}: Multiple choice savolida variantlar (options) kamida 2 ta bo'lishi kerak`,
-                    category: 'Savollar Tuzilishi'
-                });
-            } else {
-                // Check if answer is in option labels
-                const getOptLabel = (opt, idx) => {
-                    if (typeof opt === 'object' && opt !== null) {
-                        return String(opt.label || '').toUpperCase().trim();
-                    }
-                    const str = String(opt || '').trim();
-                    const match = str.match(/^([A-Z])[\.\)\s]/i);
-                    if (match) {
-                        return match[1].toUpperCase();
-                    }
-                    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-                    return letters[idx] || 'A';
-                };
-
-                const getOptText = (opt) => {
-                    if (typeof opt === 'object' && opt !== null) {
-                        return String(opt.text || '').toUpperCase().trim();
-                    }
-                    const str = String(opt || '').trim();
-                    const match = str.match(/^[A-Z][\.\)\s]\s*(.*)$/i);
-                    return (match ? match[1] : str).toUpperCase().trim();
-                };
-
-                const cleanAnswerKey = (ans) => {
-                    const str = String(ans || '').trim();
-                    const match = str.match(/^([A-Z])[\.\)\s]/i);
-                    if (match) return match[1].toUpperCase();
-                    if (str.length === 1 && /^[A-Z]$/i.test(str)) return str.toUpperCase();
-                    return '';
-                };
-
-                const optionLabels = options.map((opt, idx) => getOptLabel(opt, idx));
-                const optionTexts = options.map(opt => getOptText(opt));
-                
-                const cleanedAnsKey = cleanAnswerKey(answer);
-                const upperAns = String(answer || '').toUpperCase().trim();
-
-                let isFound = false;
-                if (cleanedAnsKey && optionLabels.includes(cleanedAnsKey)) {
-                    isFound = true;
-                } else if (optionLabels.includes(upperAns)) {
-                    isFound = true;
-                } else {
-                    const cleanedAnsText = String(answer || '').replace(/^[A-Z][\.\)\s]\s*/i, '').toUpperCase().trim();
-                    isFound = optionTexts.some(txt => txt && (txt === upperAns || txt === cleanedAnsText));
-                }
-
-                if (!isFound) {
+            // Multiple choice options check
+            if (groupTypeLower.includes('multiple') || groupTypeLower.includes('choice') || groupTypeLower.includes('mcq')) {
+                const options = (Array.isArray(q.options) ? q.options : null) || (Array.isArray(group.options) ? group.options : null) || [];
+                if (options.length < 2) {
                     errors.push({
-                        id: `q-${qId}-mcq-answer-mismatch`,
-                        message: `Savol ${qId}: Javob kaliti "${answer}" kiritilgan variantlar (${optionLabels.join(', ')}) orasida topilmadi`,
-                        category: 'Javoblar (Answers)'
+                        id: `q-${qId}-mcq-options-count`,
+                        message: `Savol ${qId}: Multiple choice savolida variantlar (options) kamida 2 ta bo'lishi kerak`,
+                        category: 'Savollar Tuzilishi'
                     });
+                } else {
+                    // Check if answer is in option labels
+                    const getOptLabel = (opt, idx) => {
+                        if (typeof opt === 'object' && opt !== null) {
+                            return String(opt.label || '').toUpperCase().trim();
+                        }
+                        const str = String(opt || '').trim();
+                        const match = str.match(/^([A-Z])[\.\)\s]/i);
+                        if (match) {
+                            return match[1].toUpperCase();
+                        }
+                        const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                        return letters[idx] || 'A';
+                    };
+
+                    const getOptText = (opt) => {
+                        if (typeof opt === 'object' && opt !== null) {
+                            return String(opt.text || '').toUpperCase().trim();
+                        }
+                        const str = String(opt || '').trim();
+                        const match = str.match(/^[A-Z][\.\)\s]\s*(.*)$/i);
+                        return (match ? match[1] : str).toUpperCase().trim();
+                    };
+
+                    const cleanAnswerKey = (ans) => {
+                        const str = String(ans || '').trim();
+                        const match = str.match(/^([A-Z])[\.\)\s]/i);
+                        if (match) return match[1].toUpperCase();
+                        if (str.length === 1 && /^[A-Z]$/i.test(str)) return str.toUpperCase();
+                        return '';
+                    };
+
+                    const optionLabels = options.map((opt, idx) => getOptLabel(opt, idx));
+                    const optionTexts = options.map(opt => getOptText(opt));
+                    
+                    const cleanedAnsKey = cleanAnswerKey(answer);
+                    const upperAns = String(answer || '').toUpperCase().trim();
+
+                    let isFound = false;
+                    if (cleanedAnsKey && optionLabels.includes(cleanedAnsKey)) {
+                        isFound = true;
+                    } else if (optionLabels.includes(upperAns)) {
+                        isFound = true;
+                    } else {
+                        const cleanedAnsText = String(answer || '').replace(/^[A-Z][\.\)\s]\s*/i, '').toUpperCase().trim();
+                        isFound = optionTexts.some(txt => txt && (txt === upperAns || txt === cleanedAnsText));
+                    }
+
+                    if (!isFound) {
+                        errors.push({
+                            id: `q-${qId}-mcq-answer-mismatch`,
+                            message: `Savol ${qId}: Javob kaliti "${answer}" kiritilgan variantlar (${optionLabels.join(', ')}) orasida topilmadi`,
+                            category: 'Javoblar (Answers)'
+                        });
+                    }
                 }
             }
         }
 
         // Question text
-        if (groupTypeLower.includes('multiple') || groupTypeLower.includes('choice') || groupTypeLower.includes('mcq')) {
+        const groupTypeLowerForText = (group.type || '').toLowerCase();
+        if (groupTypeLowerForText.includes('multiple') || groupTypeLowerForText.includes('choice') || groupTypeLowerForText.includes('mcq')) {
             if (!q.text || !q.text.trim()) {
                 warnings.push({
                     id: `q-${qId}-missing-text`,

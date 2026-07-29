@@ -1,14 +1,18 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
+import { calculateOverallBand } from '../../utils/ieltsScoring';
 
 const MockExamResult = ({ results, onDashboard, onResults }) => {
     // Calculate overall band (average of available scores)
     const listeningBand = results?.listening?.band || 0;
     const readingBand = results?.reading?.band || 0;
     const writingBand = results?.writing?.band || 0; // Usually pending, but use 0 if not set
-    
-    // For overall, we often just average the graded parts if some are pending
-    const overallBand = ((listeningBand + readingBand) / 2).toFixed(1);
+
+    // IELTS yaxlitlash qoidasi (.25 → .5, .75 → keyingi butun). Ilgari oddiy o'rtacha
+    // olinardi va L=6.5 / R=7.0 uchun "6.8" chiqardi — bunday band IELTS'da yo'q.
+    // Server ham aynan shu funksiyani ishlatadi, shuning uchun endi natija ekrani
+    // va "My Results" bir xil qiymat ko'rsatadi.
+    const overallBand = (results?.overallBand ?? calculateOverallBand([listeningBand, readingBand])).toFixed(1);
 
     return (
         <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 font-['Plus_Jakarta_Sans'] select-text">

@@ -261,7 +261,7 @@ export const useTestEditor = (id) => {
 
     const [testData, setTestData] = useState({
         title: "", type: "reading", difficulty: "medium", passages: [],
-        audio_url: "", introDuration: 10, questions: [], passage: "",
+        audio_url: "", introDuration: 0, questions: [], passage: "",
         collectionId: "None",
         writingTasks: [
             { id: 1, title: "Task 1", prompt: "", image: "", minWords: 150 },
@@ -367,7 +367,7 @@ export const useTestEditor = (id) => {
                     type: testType,
                     difficulty: autoDifficulty || parsed.difficulty || prev.difficulty,
                     audio_url: parsed.audio || prev.audio_url,
-                    introDuration: parsed.introDuration || prev.introDuration,
+                    introDuration: 0, // Intro countdown olib tashlandi
                     passages: parsed.passages ? updatedPassages : prev.passages,
                     questions: newQuestions,
                     keywordTable: parsed.keywordTable || prev.keywordTable || [],
@@ -411,7 +411,7 @@ export const useTestEditor = (id) => {
                 ...testData,
                 passages: processedPassages,
                 questions: finalQuestions,
-                introDuration: Number(testData.introDuration) || 0,
+                introDuration: 0, // Intro countdown olib tashlandi
                 isExclusive: isMockMode || false,
                 isFree: isFree || false,
                 questionTypes: getQuestionTypesFromQuestions(finalQuestions),

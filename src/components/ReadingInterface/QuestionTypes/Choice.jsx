@@ -8,8 +8,9 @@ import {
     expandQuestionIds, 
     cleanQuestionText, 
     getOptionValue, 
-    stripRomanNumerals 
+    stripRomanNumerals
 } from './CommonComponents';
+import { getMultiSelectCount } from '../../../utils/ieltsScoring';
 
 export const ChoiceQuestion = ({ 
     group, q, val, onAnswerChange, isReviewMode, isMultiSelect, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, onOpenNotes, isPremium 
@@ -26,7 +27,9 @@ export const ChoiceQuestion = ({
         else if (isYNNG) itemOptions = ["YES", "NO", "NOT GIVEN"];
     }
 
-    const correctAnswersList = String(q.answer || "").split(',').map(s => getOptionValue(s.trim()).toLowerCase());
+    // Kalit "A,B" dan tashqari "A/B" yoki "A|B" ko'rinishida ham bo'lishi mumkin — ball
+    // hisoblagich uchalasini ham qo'llab-quvvatlaydi, review esa faqat vergulni bilardi.
+    const correctAnswersList = String(q.answer || "").split(/[,/|]/).map(s => getOptionValue(s.trim()).toLowerCase());
     const isCorrect = checkAnswer(val, q.answer, true);
 
     return (
@@ -138,7 +141,10 @@ export const ChoiceQuestion = ({
                                             const cleanOptionValue = getOptionValue(String(optId));
                                             if (isMultiSelect) {
                                                 const current = val ? String(val).split(',').filter(Boolean) : [];
-                                                const limit = (group.type && group.type.includes('three')) ? 3 : 2;
+                                                // Nechta variant belgilash mumkinligi tur nomidan olinadi
+                                                // (pick_four → 4, pick_five → 5). Ilgari "three" bo'lmasa
+                                                // har doim 2 ga qotirilgan edi.
+                                                const limit = getMultiSelectCount(group.type) || 2;
                                                 let newA;
                                                 if (isSelected) newA = current.filter(a => a !== cleanOptionValue);
                                                 else { if (current.length >= limit) return; newA = [...current, cleanOptionValue].sort(); }

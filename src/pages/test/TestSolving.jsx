@@ -489,7 +489,7 @@ export default function TestSolving() {
                     }
                 }}
                 onAudioEnded={async () => {
-                    if (test?.type?.toLowerCase() === 'listening') {
+                    if (test?.type?.toLowerCase() === 'listening' && testMode === 'exam') {
                         await handleSubmit();
                     }
                 }}

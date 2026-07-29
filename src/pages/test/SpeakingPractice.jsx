@@ -225,7 +225,7 @@ export default function SpeakingPractice() {
                         Qayta topshirish
                       </button>
                       <button 
-                        onClick={() => navigate('/roadmap')}
+                        onClick={() => navigate('/dashboard')}
                         className="px-6 py-3 bg-[#0071E3] text-white rounded-xl font-bold shadow-md hover:bg-[#0077ED] transition-all"
                       >
                         Keyingi vazifa

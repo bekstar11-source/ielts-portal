@@ -133,13 +133,13 @@ export default function DashboardHeader({
     const skillRow = (Icon, iconColor, label, active, onClick) => (
       <button
         onClick={onClick}
-        className={`w-full text-left px-2 py-1 ${subTextClass} rounded-lg transition-all flex items-center gap-2 font-normal group ${
+        className={`w-full text-left px-2 py-1.5 ${subTextClass} rounded-lg transition-all duration-200 flex items-center gap-2 font-medium group ${
           active
-            ? 'text-[#0066cc] dark:text-[#3894ff] bg-[#e8f3ff]/40 dark:bg-blue-950/20'
-            : 'text-zinc-550 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white dark:hover:bg-zinc-900/60'
+            ? 'text-warm-primary dark:text-white bg-warm-primary/10 dark:bg-warm-primary'
+            : 'text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
         }`}
       >
-        <Icon size={iconSize} style={{ color: active ? undefined : iconColor }} className={active ? 'text-[#0066cc] dark:text-[#3894ff]' : ''} />
+        <Icon size={iconSize} style={{ color: active ? undefined : iconColor }} className={active ? 'text-warm-primary dark:text-white' : ''} />
         {label}
       </button>
     );
@@ -147,13 +147,13 @@ export default function DashboardHeader({
     return (
       <div className={isMobile ? "mt-3 flex flex-col gap-2.5" : "mt-4 flex flex-col gap-3"}>
         {/* IELTS Group Header */}
-        <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2.5 select-none">
+        <div className="text-[9px] font-bold text-warm-muted-soft dark:text-warm-muted uppercase tracking-widest px-2.5 select-none">
           IELTS
         </div>
 
         {/* Full Tests card */}
-        <div className="flex flex-col gap-1.5 bg-zinc-50 dark:bg-zinc-900/60 rounded-2xl p-3">
-          <div className="flex items-center gap-2 px-1 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider select-none">
+        <div className="flex flex-col gap-1.5 bg-warm-surface dark:bg-white/5 rounded-xl p-2.5">
+          <div className="flex items-center gap-2 px-1 text-[9px] font-bold text-warm-muted-soft dark:text-warm-muted uppercase tracking-widest select-none">
             <ClipboardList size={13} />
             <span>{t('dashboard.fullTests')}</span>
           </div>
@@ -165,8 +165,8 @@ export default function DashboardHeader({
         </div>
 
         {/* Part Tests card */}
-        <div className="flex flex-col gap-1.5 bg-white dark:bg-zinc-900/30 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-3">
-          <div className="flex items-center gap-2 px-1 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider select-none">
+        <div className="flex flex-col gap-1.5 bg-warm-canvas dark:bg-transparent border border-warm-hairline dark:border-white/5 rounded-xl p-2.5">
+          <div className="flex items-center gap-2 px-1 text-[9px] font-bold text-warm-muted-soft dark:text-warm-muted uppercase tracking-widest select-none">
             <Layers size={13} />
             <span>{t('dashboard.partTests')}</span>
           </div>
@@ -180,13 +180,13 @@ export default function DashboardHeader({
         {/* Speaking */}
         <button
           onClick={() => handleSubItemClick('/speaking-ai')}
-          className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-normal transition-all ${
+          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
             isSpeakingActive
-              ? 'bg-[#e8f3ff] dark:bg-blue-950/30 text-[#0066cc] dark:text-[#3894ff]'
-              : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white'
+              ? 'bg-warm-primary/10 dark:bg-warm-primary text-warm-primary dark:text-white'
+              : 'text-warm-muted dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 hover:text-warm-ink dark:hover:text-warm-on-dark'
           }`}
         >
-          <Mic size={15} style={{ color: isSpeakingActive ? undefined : '#e41e3f' }} className={isSpeakingActive ? 'text-[#0066cc] dark:text-[#3894ff]' : ''} />
+          <Mic size={15} style={{ color: isSpeakingActive ? undefined : '#e41e3f' }} className={isSpeakingActive ? 'text-warm-primary dark:text-white' : ''} />
           <span>{t('dashboard.speaking')}</span>
         </button>
       </div>
@@ -223,10 +223,10 @@ export default function DashboardHeader({
       <div className={isMobile ? "mt-3 flex flex-col gap-2.5" : "mt-4 flex flex-col gap-3"}>
         <button
           onClick={() => setIsTeacherSectionOpen(!isTeacherSectionOpen)}
-          className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2.5 select-none hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors w-full text-left"
+          className="flex items-center gap-1.5 text-[11px] font-semibold text-warm-muted-soft dark:text-warm-on-dark-soft uppercase tracking-wider px-2.5 select-none hover:text-warm-body dark:hover:text-warm-on-dark transition-colors w-full text-left"
         >
           <span>USTOZ PANELI</span>
-          <ChevronDown size={11} className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 ${isTeacherSectionOpen ? '' : '-rotate-90'}`} />
+          <ChevronDown size={11} className={`text-warm-muted-soft dark:text-warm-on-dark-soft transition-transform duration-200 ${isTeacherSectionOpen ? '' : '-rotate-90'}`} />
         </button>
 
         <AnimatePresence initial={false}>
@@ -247,10 +247,10 @@ export default function DashboardHeader({
                     className={`w-full text-left px-2.5 py-1.5 ${textClass} rounded-lg transition-all flex items-center gap-2.5 font-normal group ${
                       isActive
                         ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 font-semibold'
-                        : 'text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
+                        : 'text-warm-body dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
                     }`}
                   >
-                    <Icon size={15} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-550 dark:text-zinc-455 group-hover:text-black dark:group-hover:text-white transition-colors'} />
+                    <Icon size={15} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-warm-muted dark:text-warm-on-dark-soft group-hover:text-warm-ink dark:group-hover:text-warm-on-dark transition-colors'} />
                     <span>{item.label}</span>
                   </button>
                 );
@@ -270,14 +270,14 @@ export default function DashboardHeader({
     let buttonClasses = isMock
       ? 'mock-exam-shimmer'
       : active
-        ? 'bg-[#e8f3ff] dark:bg-blue-950/30 text-[#0066cc] dark:text-[#3894ff]'
-        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white';
+        ? 'bg-warm-primary/10 dark:bg-warm-primary text-warm-primary dark:text-white dark:shadow-lg dark:shadow-warm-primary/20'
+        : 'text-warm-muted dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 hover:text-warm-ink dark:hover:text-warm-on-dark';
 
     let iconClasses = isMock
       ? 'text-[#c5a880] transition-colors'
       : active
-        ? 'text-[#0066cc] dark:text-[#3894ff]'
-        : 'text-zinc-550 dark:text-zinc-400';
+        ? 'text-warm-primary dark:text-white'
+        : 'text-warm-muted-soft dark:text-warm-on-dark-soft';
 
     if (item.iconColor) {
       if (active) {
@@ -303,9 +303,9 @@ export default function DashboardHeader({
       <button
         key={item.id}
         onClick={() => handleNavigation(item)}
-        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-normal transition-all ${buttonClasses}`}
+        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 ${buttonClasses}`}
       >
-        <Icon size={15} className={iconClasses} />
+        <Icon size={15} strokeWidth={active ? 2.5 : 2} className={iconClasses} />
         {getLabel(item.id, item.label)}
       </button>
     );
@@ -319,14 +319,14 @@ export default function DashboardHeader({
     let buttonClasses = isMock
       ? 'mock-exam-shimmer'
       : active
-        ? 'bg-[#e8f3ff] dark:bg-blue-950/40 text-[#0066cc] dark:text-[#3894ff]'
-        : 'text-zinc-650 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white';
+        ? 'bg-warm-primary/10 dark:bg-warm-primary/20 text-warm-primary dark:text-warm-primary'
+        : 'text-warm-body dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 hover:text-warm-ink dark:hover:text-warm-on-dark';
 
     let iconClasses = isMock
       ? 'text-[#c5a880] transition-colors'
       : active
-        ? 'text-[#0066cc] dark:text-[#3894ff]'
-        : 'text-zinc-400 dark:text-zinc-500';
+        ? 'text-warm-primary dark:text-warm-primary'
+        : 'text-warm-muted-soft dark:text-warm-on-dark-soft';
 
     if (item.iconColor) {
       if (active) {
@@ -436,9 +436,6 @@ export default function DashboardHeader({
     } else if (path === '/settings') {
       parentKey = 'settings';
       childKey = 'preferences';
-    } else if (path === '/roadmap') {
-      parentKey = 'roadmap';
-      childKey = 'strategy';
     } else if (path.startsWith('/podcast/')) {
       parentKey = 'podcasts';
       childKey = 'episodePlayer';
@@ -459,14 +456,14 @@ export default function DashboardHeader({
   return (
     <>
       {/* Desktop Content Header */}
-      <header className="hidden md:flex fixed top-0 left-60 right-0 h-12 bg-white dark:bg-[#18181b] border-b border-zinc-200/50 dark:border-zinc-800/80 items-center justify-between px-6 z-50">
+      <header className="hidden md:flex fixed top-0 left-60 right-0 h-12 bg-warm-canvas dark:bg-warm-dark border-b border-warm-hairline dark:border-white/5 items-center justify-between px-6 z-50">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-1.5 text-[13px] font-normal text-zinc-400 dark:text-zinc-550 select-none">
-          <span className="text-zinc-650 dark:text-zinc-300 font-medium">
+        <div className="flex items-center gap-1.5 text-[13px] font-normal text-warm-muted-soft dark:text-warm-on-dark-soft select-none">
+          <span className="text-warm-body dark:text-warm-on-dark font-medium">
             {parent}
           </span>
-          <span className="text-zinc-300 dark:text-zinc-700">/</span>
-          <span className="text-zinc-450 dark:text-zinc-500 font-light">
+          <span className="text-warm-hairline dark:text-white/20">/</span>
+          <span className="text-warm-muted-soft dark:text-warm-on-dark-soft font-light">
             {child}
           </span>
         </div>
@@ -474,18 +471,18 @@ export default function DashboardHeader({
         {/* Right Header Section */}
         <div className="flex items-center gap-4">
           {/* Right Search Input */}
-          <div 
+          <div
             onClick={() => setIsSearchOpen(true)}
             className="relative w-60 cursor-pointer group flex items-center"
           >
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-455 dark:text-zinc-550 transition-colors group-hover:text-zinc-700 dark:group-hover:text-zinc-350" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-muted-soft dark:text-warm-on-dark-soft transition-colors group-hover:text-warm-body dark:group-hover:text-warm-on-dark" />
             <input
               type="text"
               readOnly
               placeholder={searchPlaceholder}
-              className="w-full bg-[#f4f5f8] dark:bg-zinc-900/60 hover:bg-[#ececf0] dark:hover:bg-zinc-850 text-zinc-700 dark:text-zinc-200 text-xs rounded-lg pl-8 pr-12 py-1.5 outline-none cursor-pointer transition-colors border border-transparent placeholder-zinc-450 dark:placeholder-zinc-500"
+              className="w-full bg-warm-surface dark:bg-warm-dark-elevated hover:bg-warm-card dark:hover:bg-white/10 text-warm-body dark:text-warm-on-dark text-xs rounded-lg pl-8 pr-12 py-1.5 outline-none cursor-pointer transition-colors border border-transparent placeholder-warm-muted-soft dark:placeholder-warm-on-dark-soft"
             />
-            <kbd className="absolute right-2 text-[9px] font-normal bg-white dark:bg-zinc-800 text-zinc-450 dark:text-zinc-500 border border-zinc-200/50 dark:border-zinc-700/50 px-1 py-0.5 rounded shadow-sm select-none pointer-events-none transition-colors group-hover:bg-[#ececf0] dark:group-hover:bg-zinc-700">
+            <kbd className="absolute right-2 text-[9px] font-normal bg-warm-canvas dark:bg-white/10 text-warm-muted-soft dark:text-warm-on-dark-soft border border-warm-hairline dark:border-white/10 px-1 py-0.5 rounded shadow-sm select-none pointer-events-none transition-colors group-hover:bg-warm-card dark:group-hover:bg-white/15">
               {isMac ? '⌘K' : 'Ctrl K'}
             </kbd>
           </div>
@@ -494,14 +491,14 @@ export default function DashboardHeader({
           <div className="flex items-center gap-1.5 text-xs font-semibold select-none">
             <button
               onClick={() => setLang('en')}
-              className={`transition-colors uppercase tracking-wider ${lang === 'en' ? 'text-zinc-950 dark:text-white font-bold' : 'text-zinc-400 dark:text-zinc-500 font-normal hover:text-zinc-650'}`}
+              className={`transition-colors uppercase tracking-wider ${lang === 'en' ? 'text-warm-ink dark:text-warm-on-dark font-bold' : 'text-warm-muted-soft dark:text-warm-on-dark-soft font-normal hover:text-warm-body'}`}
             >
               eng
             </button>
-            <span className="text-zinc-300 dark:text-zinc-700">/</span>
+            <span className="text-warm-hairline dark:text-white/20">/</span>
             <button
               onClick={() => setLang('uz')}
-              className={`transition-colors uppercase tracking-wider ${lang === 'uz' ? 'text-zinc-950 dark:text-white font-bold' : 'text-zinc-400 dark:text-zinc-500 font-normal hover:text-zinc-650'}`}
+              className={`transition-colors uppercase tracking-wider ${lang === 'uz' ? 'text-warm-ink dark:text-warm-on-dark font-bold' : 'text-warm-muted-soft dark:text-warm-on-dark-soft font-normal hover:text-warm-body'}`}
             >
               uz
             </button>
@@ -511,7 +508,7 @@ export default function DashboardHeader({
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            className="relative w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
+            className="relative w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 text-warm-muted dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/10 hover:text-warm-ink dark:hover:text-warm-on-dark"
           >
             <AnimatePresence mode="wait" initial={false}>
               {theme === 'dark' ? (
@@ -541,11 +538,12 @@ export default function DashboardHeader({
           </button>
         </div>
       </header>      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex fixed top-0 left-0 bottom-0 w-60 bg-white dark:bg-[#09090b] border-r border-zinc-200/50 dark:border-zinc-800/80 z-[60] flex-col justify-between select-none font-sans">
+      <aside className="hidden md:flex fixed top-0 left-0 bottom-0 w-60 bg-warm-canvas dark:bg-warm-dark-elevated border-r border-warm-hairline dark:border-white/5 z-[60] flex-col justify-between select-none font-sans">
         {/* Fixed Logo Header */}
-        <div className="flex items-center pt-3.5 pb-2.5 px-[18px] flex-shrink-0">
-          <div className="cursor-pointer flex items-center select-none" onClick={() => navigate('/dashboard')}>
-            <span className="text-2xl tracking-tight font-normal text-zinc-900 dark:text-zinc-50 font-sans">
+        <div className="h-14 flex items-center px-[18px] flex-shrink-0 border-b border-warm-hairline dark:border-white/5">
+          <div className="cursor-pointer flex items-center gap-2.5 select-none" onClick={() => navigate('/dashboard')}>
+            <div className="w-7 h-7 bg-warm-primary rounded-lg flex items-center justify-center text-white flex-shrink-0 text-xs font-black">E</div>
+            <span className="text-lg tracking-tight font-normal text-warm-ink dark:text-warm-on-dark font-sans">
               eng<span className="font-bold">lev.</span>
             </span>
           </div>
@@ -574,34 +572,34 @@ export default function DashboardHeader({
 
           {/* Resources Section */}
           <div className="mt-4">
-            <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1 px-2.5 select-none">
+            <div className="text-[9px] font-bold text-warm-muted-soft dark:text-warm-muted uppercase tracking-widest py-1 px-2.5 select-none">
               {t('dashboard.resources')}
             </div>
-            <div className="mt-1 gap-1 flex flex-col">
+            <div className="mt-1 gap-0.5 flex flex-col">
               {resourceItems.map(renderMenuItem)}
             </div>
           </div>
 
           {/* Account footer group */}
-          <div className="mt-4 pt-3 border-t border-zinc-150 dark:border-zinc-800/50 flex flex-col gap-2">
+          <div className="mt-4 pt-3 border-t border-warm-hairline dark:border-white/5 flex flex-col gap-2">
             {/* See what's included Plan Card */}
             {userData?.role !== 'teacher' && (
               <div
                 onClick={onPremiumClick || (() => navigate('/pricing'))}
-                className="border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3 bg-white dark:bg-zinc-900/50 shadow-[0_1px_2px_rgba(0,0,0,0.01)] flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 group"
+                className="border border-warm-hairline dark:border-white/5 rounded-xl p-3 bg-warm-canvas dark:bg-white/[0.02] flex items-center justify-between cursor-pointer hover:bg-warm-surface dark:hover:bg-white/5 transition-all duration-200 group"
               >
                 <div className="flex-1 min-w-0 pr-1.5">
-                  <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-black dark:group-hover:text-white">{t('dashboard.upgradeTitle')}</p>
-                  <p className="text-[11px] font-normal text-zinc-450 dark:text-zinc-550 mt-0.5 group-hover:text-zinc-555 dark:group-hover:text-zinc-400">{t('dashboard.upgradeSubtitle')}</p>
+                  <p className="text-[13px] font-semibold text-warm-ink dark:text-warm-on-dark group-hover:text-warm-ink dark:group-hover:text-warm-on-dark">{t('dashboard.upgradeTitle')}</p>
+                  <p className="text-[11px] font-normal text-warm-muted-soft dark:text-warm-on-dark-soft mt-0.5">{t('dashboard.upgradeSubtitle')}</p>
                 </div>
-                <ChevronRight size={12} className="text-zinc-455 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight size={12} className="text-warm-muted-soft dark:text-warm-on-dark-soft shrink-0 group-hover:translate-x-0.5 transition-transform" />
               </div>
             )}
 
             {/* Logout Button */}
             <button
               onClick={onLogoutClick || logout}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 dark:hover:text-red-400 border border-transparent hover:border-red-100 dark:hover:border-red-950/50 shadow-sm"
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
             >
               <LogOut size={15} className="text-red-500 shrink-0" />
               {t('dashboard.logout')}
@@ -610,16 +608,16 @@ export default function DashboardHeader({
 
           {/* BOTTOM CONTAINER (UPGRADE CARD) */}
           {!isPremium && userData?.role !== 'teacher' && (
-            <div className="bg-[#f4f5f8] dark:bg-zinc-900/70 border border-zinc-200/10 dark:border-zinc-800/40 rounded-xl p-3.5 text-center flex flex-col items-center gap-3 mt-4 shrink-0 font-sans">
-              <div className="w-8 h-8 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center border border-zinc-200/80 dark:border-zinc-700/80 shadow-sm text-zinc-700 dark:text-zinc-300">
-                <ArrowUp size={14} strokeWidth={2} />
+            <div className="bg-warm-surface dark:bg-white/5 border border-warm-hairline dark:border-white/5 rounded-xl p-3.5 text-center flex flex-col items-center gap-3 mt-4 shrink-0 font-sans">
+              <div className="w-8 h-8 rounded-lg bg-warm-primary/10 dark:bg-warm-primary/20 flex items-center justify-center text-warm-primary">
+                <ArrowUp size={14} strokeWidth={2.5} />
               </div>
-              <p className="text-[11.5px] text-zinc-650 dark:text-zinc-400 font-normal leading-normal px-0.5">
+              <p className="text-[11.5px] text-warm-muted dark:text-warm-on-dark-soft font-normal leading-normal px-0.5">
                 {t('dashboard.upgradePrompt')}
               </p>
-              <button 
+              <button
                 onClick={onPremiumClick || (() => navigate('/pricing'))}
-                className="w-full bg-[#0071e3] hover:bg-[#0071e3]/90 active:scale-95 text-white font-medium py-1.5 rounded-lg text-xs transition-all shadow-md shadow-blue-500/10"
+                className="w-full bg-warm-primary hover:bg-warm-primary-active active:scale-95 text-white font-semibold py-1.5 rounded-lg text-xs transition-all shadow-lg shadow-warm-primary/20"
               >
                 {t('dashboard.viewPlans')}
               </button>
@@ -628,13 +626,13 @@ export default function DashboardHeader({
         </div>
 
         {/* Fixed Footer: Profile Widget */}
-        <div className="p-2 bg-white dark:bg-[#09090b] flex-shrink-0">
-          <div 
+        <div className="p-2 bg-warm-canvas dark:bg-warm-dark-elevated border-t border-warm-hairline dark:border-white/5 flex-shrink-0">
+          <div
             onClick={() => navigate('/settings')}
-            className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-all duration-200 select-none"
+            className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-warm-surface dark:hover:bg-white/5 cursor-pointer transition-all duration-200 select-none"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shrink-0">
+              <div className="w-8 h-8 rounded-lg overflow-hidden border border-warm-hairline dark:border-white/10 shrink-0">
                 <img
                   src={userData?.photoURL || user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
                   alt="Avatar"
@@ -645,30 +643,30 @@ export default function DashboardHeader({
                 />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                <span className="text-[13px] font-semibold text-warm-ink dark:text-warm-on-dark truncate">
                   {userData?.fullName || user?.displayName || "IELTS Candidate"}
                 </span>
-                <span className="text-[11px] text-zinc-450 dark:text-zinc-550 truncate leading-none mt-0.5">
+                <span className="text-[11px] text-warm-muted-soft dark:text-warm-on-dark-soft truncate leading-none mt-0.5">
                   {user?.email || userData?.email || ""}
                 </span>
               </div>
             </div>
-            <ChevronsUpDown size={13} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
+            <ChevronsUpDown size={13} className="text-warm-muted-soft dark:text-warm-on-dark-soft shrink-0" />
           </div>
         </div>
       </aside>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 left-0 right-0 h-12 bg-white dark:bg-[#18181b] border-b border-zinc-100 dark:border-zinc-900/80 z-[60] flex items-center justify-between px-4">
+      <header className="md:hidden sticky top-0 left-0 right-0 h-12 bg-warm-canvas dark:bg-warm-dark border-b border-warm-hairline dark:border-white/5 z-[60] flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setIsMobileMenuOpen(true)}
-            className="p-1 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white"
+            className="p-1 text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark"
           >
             <Menu size={20} />
           </button>
           <div className="cursor-pointer flex items-center select-none" onClick={() => navigate('/dashboard')}>
-            <span className="text-xl tracking-tight font-normal text-zinc-900 dark:text-zinc-50 font-sans">
+            <span className="text-xl tracking-tight font-normal text-warm-ink dark:text-warm-on-dark font-sans">
               eng<span className="font-bold">lev.</span>
             </span>
           </div>
@@ -679,14 +677,14 @@ export default function DashboardHeader({
           <div className="flex items-center gap-1.5 text-[11px] font-semibold select-none">
             <button
               onClick={() => setLang('en')}
-              className={`transition-colors uppercase tracking-wider ${lang === 'en' ? 'text-zinc-950 dark:text-white font-bold' : 'text-zinc-400 dark:text-zinc-500 font-normal hover:text-zinc-650'}`}
+              className={`transition-colors uppercase tracking-wider ${lang === 'en' ? 'text-warm-ink dark:text-warm-on-dark font-bold' : 'text-warm-muted-soft dark:text-warm-on-dark-soft font-normal hover:text-warm-body'}`}
             >
               eng
             </button>
-            <span className="text-zinc-300 dark:text-zinc-700">/</span>
+            <span className="text-warm-hairline dark:text-white/20">/</span>
             <button
               onClick={() => setLang('uz')}
-              className={`transition-colors uppercase tracking-wider ${lang === 'uz' ? 'text-zinc-950 dark:text-white font-bold' : 'text-zinc-400 dark:text-zinc-500 font-normal hover:text-zinc-650'}`}
+              className={`transition-colors uppercase tracking-wider ${lang === 'uz' ? 'text-warm-ink dark:text-warm-on-dark font-bold' : 'text-warm-muted-soft dark:text-warm-on-dark-soft font-normal hover:text-warm-body'}`}
             >
               uz
             </button>
@@ -696,7 +694,7 @@ export default function DashboardHeader({
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-            className="relative w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+            className="relative w-8 h-8 flex items-center justify-center rounded-lg text-warm-muted dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/10 transition-all"
           >
             <AnimatePresence mode="wait" initial={false}>
               {theme === 'dark' ? (
@@ -725,14 +723,14 @@ export default function DashboardHeader({
             </AnimatePresence>
           </button>
 
-          <button 
+          <button
             onClick={() => setIsSearchOpen(true)}
-            className="p-1 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white"
+            className="p-1 text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark"
           >
             <Search size={18} />
           </button>
-          
-          <div className="w-7 h-7 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-800" onClick={() => navigate('/settings')}>
+
+          <div className="w-7 h-7 rounded-full overflow-hidden border border-warm-hairline dark:border-white/10" onClick={() => navigate('/settings')}>
             <img
               src={userData?.photoURL || user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
               alt="Avatar"
@@ -760,19 +758,19 @@ export default function DashboardHeader({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 left-0 bottom-0 w-[260px] bg-white dark:bg-[#09090b] z-[100] shadow-2xl p-3 flex flex-col justify-between overflow-y-auto md:hidden font-sans"
+              className="fixed top-0 left-0 bottom-0 w-[260px] bg-warm-canvas dark:bg-warm-dark z-[100] shadow-2xl p-3 flex flex-col justify-between overflow-y-auto md:hidden font-sans"
             >
               <div className="flex flex-col gap-3">
                 {/* Close button row */}
-                <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-900">
+                <div className="flex items-center justify-between pb-2 border-b border-warm-hairline dark:border-white/5">
                   <div className="cursor-pointer flex items-center select-none" onClick={() => { navigate('/dashboard'); setIsMobileMenuOpen(false); }}>
-                    <span className="text-xl tracking-tight font-normal text-zinc-900 dark:text-zinc-50 font-sans">
+                    <span className="text-xl tracking-tight font-normal text-warm-ink dark:text-warm-on-dark font-sans">
                       eng<span className="font-bold">lev.</span>
                     </span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-zinc-200 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    className="p-1 text-warm-muted-soft hover:text-warm-ink dark:hover:text-warm-on-dark rounded-full hover:bg-warm-surface dark:hover:bg-white/10 transition-colors"
                   >
                     <X size={16} />
                   </button>
@@ -803,7 +801,7 @@ export default function DashboardHeader({
 
                 {/* Resources Section */}
                 <div className="mt-3">
-                  <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1 px-2.5 select-none">
+                  <div className="text-[11px] font-semibold text-warm-muted-soft dark:text-warm-on-dark-soft uppercase tracking-wider py-1 px-2.5 select-none">
                     {t('dashboard.resources')}
                   </div>
                   <div className="mt-1 gap-1 flex flex-col">
@@ -812,18 +810,18 @@ export default function DashboardHeader({
                 </div>
 
                 {/* Account footer group */}
-                <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2">
+                <div className="mt-4 pt-3 border-t border-warm-hairline dark:border-white/10 flex flex-col gap-2">
                   {/* See what's included Plan Card */}
                   {userData?.role !== 'teacher' && (
                     <div
                       onClick={() => { navigate('/pricing'); setIsMobileMenuOpen(false); }}
-                      className="border border-zinc-200/60 dark:border-zinc-800/80 rounded-xl p-2.5 bg-white dark:bg-zinc-900/50 shadow-[0_1px_2px_rgba(0,0,0,0.01)] flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 group"
+                      className="border border-warm-hairline dark:border-white/10 rounded-xl p-2.5 bg-warm-canvas dark:bg-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.01)] flex items-center justify-between cursor-pointer hover:bg-warm-surface dark:hover:bg-white/10 hover:border-warm-primary/30 dark:hover:border-warm-primary/30 transition-all duration-200 group"
                     >
                       <div className="flex-1 min-w-0 pr-1.5">
-                        <p className="text-xs font-medium text-zinc-850 dark:text-zinc-205 group-hover:text-black dark:group-hover:text-white">{t('dashboard.upgradeTitle')}</p>
-                        <p className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500 mt-0.5 group-hover:text-zinc-555 dark:group-hover:text-zinc-400">{t('dashboard.upgradeSubtitle')}</p>
+                        <p className="text-xs font-medium text-warm-ink dark:text-warm-on-dark group-hover:text-warm-ink dark:group-hover:text-warm-on-dark">{t('dashboard.upgradeTitle')}</p>
+                        <p className="text-[10px] font-medium text-warm-muted-soft dark:text-warm-on-dark-soft mt-0.5 group-hover:text-warm-muted dark:group-hover:text-warm-on-dark-soft">{t('dashboard.upgradeSubtitle')}</p>
                       </div>
-                      <ChevronRight size={12} className="text-zinc-455 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight size={12} className="text-warm-muted-soft shrink-0 group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   )}
 
@@ -840,16 +838,16 @@ export default function DashboardHeader({
 
               {/* BOTTOM CONTAINER (UPGRADE CARD) */}
               {!isPremium && userData?.role !== 'teacher' && (
-                <div className="bg-[#f4f5f8] dark:bg-zinc-900/80 border border-zinc-200/20 dark:border-zinc-800/50 rounded-xl p-3 text-center flex flex-col items-center gap-2.5 mt-3">
-                  <div className="w-8 h-8 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm text-zinc-700 dark:text-zinc-300">
+                <div className="bg-warm-surface dark:bg-white/5 border border-warm-hairline dark:border-white/10 rounded-xl p-3 text-center flex flex-col items-center gap-2.5 mt-3">
+                  <div className="w-8 h-8 rounded-full bg-warm-canvas dark:bg-white/10 flex items-center justify-center border border-warm-hairline dark:border-white/10 shadow-sm text-warm-body dark:text-warm-on-dark-soft">
                     <ArrowUp size={14} strokeWidth={2} />
                   </div>
-                  <p className="text-[11.5px] text-zinc-550 dark:text-zinc-400 font-medium leading-normal px-0.5">
+                  <p className="text-[11.5px] text-warm-muted dark:text-warm-on-dark-soft font-medium leading-normal px-0.5">
                     {t('dashboard.upgradePrompt')}
                   </p>
-                  <button 
+                  <button
                     onClick={() => { navigate('/pricing'); setIsMobileMenuOpen(false); }}
-                    className="w-full bg-[#0071e3] hover:bg-[#0071e3]/90 active:scale-95 text-white font-medium py-1.5 rounded-lg text-xs transition-all shadow-md shadow-blue-500/10"
+                    className="w-full bg-warm-primary hover:bg-warm-primary-active active:scale-95 text-white font-medium py-1.5 rounded-lg text-xs transition-all shadow-md shadow-warm-primary/20"
                   >
                     {t('dashboard.viewPlans')}
                   </button>

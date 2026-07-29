@@ -80,6 +80,16 @@ export default {
         "tile-dark-1": "#272729",
         "tile-dark-2": "#2a2a2c",
         "surface-container": "#ecedf6",
+        warm: {
+          canvas: '#faf9f5', surface: '#f5f0e8', card: '#efe9de', 'card-strong': '#e8e0d2',
+          dark: '#181715', 'dark-elevated': '#252320', 'dark-soft': '#1f1e1b',
+          ink: '#141413', body: '#3d3d3a', 'body-strong': '#252523',
+          muted: '#6c6a64', 'muted-soft': '#8e8b82',
+          hairline: '#e6dfd8', 'hairline-soft': '#ebe6df',
+          primary: '#cc785c', 'primary-active': '#a9583e', 'primary-soft': '#e6dfd8',
+          'on-primary': '#ffffff', 'on-dark': '#faf9f5', 'on-dark-soft': '#a09d96',
+          success: '#5db872', warning: '#d4a017', error: '#c64545',
+        },
         vetra: {
           bg: '#FFFFFF',
           card: '#FFFFFF',
@@ -100,6 +110,7 @@ export default {
       fontFamily: {
         sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
         display: ['Abel', 'sans-serif'],
+        'serif-display': ['"Cormorant Garamond"', '"EB Garamond"', 'Georgia', 'serif'],
       },
       letterSpacing: {
         tightest: '-.075em',
@@ -133,7 +144,18 @@ export default {
         "lead": ["28px", {"lineHeight": "1.14", "letterSpacing": "0.196px", "fontWeight": "400"}],
         "nav-link": ["12px", {"lineHeight": "1.0", "letterSpacing": "-0.12px", "fontWeight": "400"}],
         "display-md": ["34px", {"lineHeight": "1.47", "letterSpacing": "-0.374px", "fontWeight": "600"}],
-        "dense-link": ["17px", {"lineHeight": "2.41", "letterSpacing": "0", "fontWeight": "400"}]
+        "dense-link": ["17px", {"lineHeight": "2.41", "letterSpacing": "0", "fontWeight": "400"}],
+        "warm-display-xl": ["64px", {"lineHeight": "1.05", "letterSpacing": "-1.5px", "fontWeight": "400"}],
+        "warm-display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-1px", "fontWeight": "400"}],
+        "warm-display-md": ["36px", {"lineHeight": "1.15", "letterSpacing": "-0.5px", "fontWeight": "400"}],
+        "warm-display-sm": ["28px", {"lineHeight": "1.2", "letterSpacing": "-0.3px", "fontWeight": "400"}],
+        "warm-title-lg": ["22px", {"lineHeight": "1.3", "fontWeight": "500"}],
+        "warm-title-md": ["18px", {"lineHeight": "1.4", "fontWeight": "500"}],
+        "warm-title-sm": ["16px", {"lineHeight": "1.4", "fontWeight": "500"}],
+        "warm-body-md": ["16px", {"lineHeight": "1.55", "fontWeight": "400"}],
+        "warm-body-sm": ["14px", {"lineHeight": "1.55", "fontWeight": "400"}],
+        "warm-caption": ["13px", {"lineHeight": "1.4", "fontWeight": "500"}],
+        "warm-caption-upper": ["12px", {"lineHeight": "1.4", "fontWeight": "500", "letterSpacing": "1.5px"}]
       },
       animation: {
         'fade-in-up': 'fadeInUp 0.8s ease-out forwards',

@@ -182,6 +182,15 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
         }
     }, [userId, testId, testTitle, pairs, unsavedIds]);
 
+    // Auto-save: whenever a new pair is added, persist it automatically (debounced)
+    useEffect(() => {
+        if (unsavedIds.size === 0 || isSaving) return;
+        const timer = setTimeout(() => {
+            handleSave();
+        }, 600);
+        return () => clearTimeout(timer);
+    }, [unsavedIds, isSaving, handleSave]);
+
     const handleRemovePair = useCallback(async (pair) => {
         const isUnsaved = unsavedIds.has(pair.id);
         if (isUnsaved) {
@@ -441,20 +450,18 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                         </AnimatePresence>
                     </div>
 
-                    {/* Footer: Save button */}
+                    {/* Footer: auto-save status (no manual click needed) */}
                     {unsavedIds.size > 0 && (
                         <div className="px-3 pb-3 pt-2 shrink-0" style={{ borderTop: '1px solid rgba(100,116,139,0.25)', background: 'rgba(15,23,42,0.85)' }}>
-                            <button
-                                onClick={handleSave}
-                                disabled={isSaving}
-                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all text-white"
-                                style={{ background: isSaving ? '#5b21b6' : '#7c3aed', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}
+                            <div
+                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-white"
+                                style={{ background: '#5b21b6', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}
                             >
                                 {isSaving
                                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Saqlanmoqda...</>
-                                    : <><Save className="w-4 h-4" /> Saqlash ({unsavedIds.size} ta yangi)</>
+                                    : <><Save className="w-4 h-4" /> Avtomatik saqlash kutilmoqda...</>
                                 }
-                            </button>
+                            </div>
                         </div>
                     )}
 

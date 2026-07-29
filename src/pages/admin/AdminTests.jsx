@@ -11,7 +11,7 @@ import AdminTestsList from "../../components/admin/AdminTests/AdminTestsList";
 import AdminTestsGrid from "../../components/admin/AdminTests/AdminTestsGrid";
 import BulkActionBar from "../../components/admin/AdminTests/BulkActionBar";
 import Pagination from "../../components/common/Pagination";
-import { Loader2, Layers, Award, BookOpen, Headphones, PenTool, Mic2, Globe, Lock, Sparkles, Settings, Folder } from "lucide-react";
+import { Loader2, Globe, Lock, Settings, Folder } from "lucide-react";
 
 // Extracted Modals
 import ConfirmModal from "../../components/admin/AdminTests/ConfirmModal";
@@ -57,18 +57,6 @@ export default function AdminTests() {
     // UI State
     const [viewMode, setViewMode] = useState("list");
     const [selectedTests, setSelectedTests] = useState([]);
-    const [showStats, setShowStats] = useState(() => {
-        const saved = localStorage.getItem("admin_show_stats");
-        return saved !== null ? JSON.parse(saved) : true;
-    });
-
-    const toggleStats = () => {
-        setShowStats(prev => {
-            const next = !prev;
-            localStorage.setItem("admin_show_stats", JSON.stringify(next));
-            return next;
-        });
-    };
 
     // Modals Visibility States
     const [collectionModalOpen, setCollectionModalOpen] = useState(false);
@@ -150,8 +138,7 @@ export default function AdminTests() {
         filterCollection, setFilterCollection,
         filterStatus, setFilterStatus,
         filterAccess, setFilterAccess,
-        filterTag, setFilterTag,
-        allAvailableTags,
+        filterCompleteness, setFilterCompleteness,
         sortBy, setSortBy,
         sortOrder, setSortOrder,
 
@@ -652,9 +639,8 @@ export default function AdminTests() {
                     setFilterStatus={setFilterStatus}
                     filterAccess={filterAccess}
                     setFilterAccess={setFilterAccess}
-                    filterTag={filterTag}
-                    setFilterTag={setFilterTag}
-                    allAvailableTags={allAvailableTags}
+                    filterCompleteness={filterCompleteness}
+                    setFilterCompleteness={setFilterCompleteness}
                     sortBy={sortBy}
                     setSortBy={setSortBy}
                     sortOrder={sortOrder}
@@ -662,8 +648,7 @@ export default function AdminTests() {
                     onImport={() => document.getElementById("import-json-file").click()}
                     onOpenQuestionBank={() => setQuestionBankOpen(true)}
                     onFindDuplicates={() => setDuplicatesModalOpen(true)}
-                    showStats={showStats}
-                    onToggleStats={toggleStats}
+                    stats={stats}
                 />
  
                 {/* Vaqtincha audio qidirish UI */}
@@ -694,31 +679,6 @@ export default function AdminTests() {
                         </pre>
                     )}
                 </div>
-
-                {/* Dashboard stats panel */}
-                {stats && showStats && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-2.5 px-6 pt-4 pb-2 shrink-0 select-none">
-                        {[
-                            { title: "Tests", value: stats.total, icon: <Layers size={13} />, color: "from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25" },
-                            { title: "Mock", value: stats.mockCount, icon: <Award size={13} />, color: "from-rose-500/10 to-pink-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25" },
-                            { title: "Reading", value: stats.readingCount, icon: <BookOpen size={13} />, color: "from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" },
-                            { title: "Listening", value: stats.listeningCount, icon: <Headphones size={13} />, color: "from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25" },
-                            { title: "Writing", value: stats.writingCount, icon: <PenTool size={13} />, color: "from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400 border-violet-500/25" },
-                            { title: "Speaking", value: stats.speakingCount, icon: <Mic2 size={13} />, color: "from-fuchsia-500/10 to-pink-500/10 text-fuchsia-600 dark:text-fuchsia-400 border-fuchsia-500/25" },
-                            { title: "Public", value: stats.publicCount, icon: <Globe size={13} />, color: "from-teal-500/10 to-green-500/10 text-teal-600 dark:text-teal-400 border-teal-500/25" },
-                            { title: "Private", value: stats.privateCount, icon: <Lock size={13} />, color: "from-zinc-500/10 to-neutral-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/25" },
-                            { title: "Free", value: stats.freeCount, icon: <Sparkles size={13} />, color: "from-cyan-500/10 to-sky-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25" }
-                        ].map((card, i) => (
-                            <div key={i} className={`py-2 px-3 rounded-xl border bg-gradient-to-br ${card.color} shadow-sm flex items-center justify-between hover:scale-[1.02] transition-transform duration-200`}>
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <span className="opacity-70 shrink-0">{card.icon}</span>
-                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60 truncate">{card.title}</span>
-                                </div>
-                                <span className="text-sm font-black tracking-tight shrink-0 ml-2">{card.value}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
 
                 <main className={`flex-1 flex flex-col min-h-0 transition-colors ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
                     {loading ? (

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import RoadmapTimeline from './RoadmapTimeline';
 
 // REFACTORED COMPONENTS
 import DashboardWelcome from './DashboardWelcome';
@@ -17,9 +16,7 @@ export default function HeroSection({
     examDate = null,
     skillStats = [],
     onToggleSkill,
-    usageStats = null,
     onStartTest = null,
-    assignments = [],
     loading = false,
 }) {
     const [animatedCurrent, setAnimatedCurrent] = useState(0);
@@ -61,10 +58,6 @@ export default function HeroSection({
                 skillStats={skillStats}
                 loading={loading}
             />
-
-            <div className="w-full mt-8 mb-4">
-                <RoadmapTimeline usageStats={usageStats} onStartTest={onStartTest} assignments={assignments} />
-            </div>
 
             <DashboardReadingCarousel onStartTest={onStartTest} />
 

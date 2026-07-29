@@ -32,9 +32,8 @@ export const getCleanCtaPath = (url) => {
         '/podcast/', 
         '/article/', 
         '/library', 
-        '/practice', 
-        '/roadmap', 
-        '/settings', 
+        '/practice',
+        '/settings',
         '/mock', 
         '/my-results', 
         '/vocabulary'

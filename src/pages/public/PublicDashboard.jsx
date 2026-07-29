@@ -12,7 +12,6 @@ import DashboardModals from "../../components/dashboard/DashboardModals";
 import PricingModal from "../../components/dashboard/PricingModal";
 import SiteFooter from "../../components/common/SiteFooter";
 import { useAnalytics } from '../../hooks/useAnalytics';
-import RoadmapTimeline from "../../components/dashboard/RoadmapTimeline";
 import LimitReachedSheet from "../../components/dashboard/LimitReachedSheet";
 import { useDailyLimit } from "../../hooks/useDailyLimit";
 

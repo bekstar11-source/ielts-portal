@@ -107,16 +107,16 @@ const CustomAudioPlayer = forwardRef(({
     // Theme values
     const isDark = variant === 'dark';
     const containerClass = isDark 
-        ? "w-full flex items-center gap-2 md:gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/5 px-2 md:px-3 py-0.5 md:py-1 shadow-sm backdrop-blur-sm" 
-        : "w-full flex items-center gap-2 md:gap-3 overflow-hidden rounded-lg md:rounded-xl border border-gray-200 bg-white px-2 md:px-3 py-1 md:py-1.5 shadow-sm";
+        ? "w-full flex items-center gap-1.5 md:gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 px-2 md:px-3 py-1 shadow-sm backdrop-blur-sm" 
+        : "w-full flex items-center gap-1.5 md:gap-2 overflow-hidden rounded-lg md:rounded-xl border border-gray-100 bg-white px-2 md:px-3 py-1 shadow-sm";
     
     const timeClass = isDark ? "text-[9px] md:text-[10px] font-mono text-gray-400 shrink-0 tabular-nums" : "text-[10px] md:text-[11px] font-mono text-gray-400 shrink-0 tabular-nums";
     const railClass = isDark ? "flex-1 h-1 bg-white/10 cursor-pointer relative rounded-full group touch-none" : "flex-1 h-1 md:h-1.5 bg-gray-100 cursor-pointer relative rounded-full group touch-none";
     const fillClass = isDark ? "absolute top-0 left-0 h-full bg-white rounded-full opacity-80" : "absolute top-0 left-0 h-full bg-black rounded-full";
     const thumbClass = isDark ? "absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity" : "absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-black rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity";
     const btnClass = isDark 
-        ? `flex-shrink-0 w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full transition-colors focus:outline-none ${isExam ? 'text-white/20' : 'bg-white/10 hover:bg-white/20 text-white'}` 
-        : `flex-shrink-0 w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full transition-colors focus:outline-none ${isExam ? 'bg-gray-100 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-black'}`;
+        ? `flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full transition-all focus:outline-none ${isExam ? 'text-white/20' : 'text-white/70 hover:bg-white/10 hover:text-white active:scale-95'}` 
+        : `flex-shrink-0 w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full transition-all focus:outline-none ${isExam ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-95'}`;
 
     const resumeSilentPeriod = useCallback((segmentDur) => {
         if (silentTimerRef.current) clearInterval(silentTimerRef.current);
@@ -595,12 +595,12 @@ const CustomAudioPlayer = forwardRef(({
                         onClick={handleSpeedToggle}
                         disabled={isExam}
                         title="Playback Speed"
-                        className={`shrink-0 min-w-[32px] h-6 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all ${
-                            isExam ? 'opacity-20 cursor-not-allowed' : 'hover:scale-105 active:scale-95 cursor-pointer'
+                        className={`shrink-0 min-w-[32px] h-6 flex items-center justify-center rounded-md text-[10px] font-bold transition-all ${
+                            isExam ? 'opacity-20 cursor-not-allowed' : 'active:scale-95 cursor-pointer'
                         } ${
                             isDark 
-                            ? 'border-white/10 text-gray-400 bg-white/5 hover:bg-white/10 hover:text-white' 
-                            : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-black'
+                            ? 'text-gray-400 hover:bg-white/10 hover:text-white' 
+                            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                         }`}
                     >
                         {playbackRate}x

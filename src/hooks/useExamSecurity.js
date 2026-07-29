@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -11,6 +11,12 @@ import { useNavigate } from 'react-router-dom';
 export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
     const navigate = useNavigate();
 
+    // Callback'ni ref orqali chaqiramiz: parent uni har renderda inline arrow sifatida
+    // uzatadi, effektlar esa faqat `enabled` o'zgarganda qayta ishga tushadi — to'g'ridan-to'g'ri
+    // chaqirilsa eskirgan closure qolib ketardi (va listener'lar har renderda qayta ulanardi).
+    const violationRef = useRef(onSecurityViolation);
+    useEffect(() => { violationRef.current = onSecurityViolation; }, [onSecurityViolation]);
+
     useEffect(() => {
         if (!enabled) return;
 
@@ -18,6 +24,9 @@ export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
         window.history.pushState(null, null, window.location.pathname);
         const handlePopState = (e) => {
             window.history.pushState(null, null, window.location.pathname);
+            // Ilgari "Back" jimgina yutilardi va talaba nima bo'lganini tushunmasdi.
+            // Endi chiqishni tasdiqlash modali ko'rsatiladi.
+            violationRef.current?.('back_navigation');
         };
 
         // 2. Beforeunload warning
@@ -39,16 +48,22 @@ export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
             }
         };
 
+        // MUHIM: add/remove ga AYNAN bir xil funksiya referensi berilishi shart.
+        // Ilgari ikkalasiga alohida inline arrow uzatilardi, ya'ni contextmenu listener'i
+        // hech qachon o'chirilmasdi — imtihondan chiqqandan keyin ham butun saytda
+        // o'ng tugma bloklangan qolar va har `enabled` o'zgarishida yangisi qo'shilardi.
+        const handleContextMenu = (e) => e.preventDefault();
+
         window.addEventListener('popstate', handlePopState);
         window.addEventListener('beforeunload', handleBeforeUnload);
         window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('contextmenu', (e) => e.preventDefault());
+        window.addEventListener('contextmenu', handleContextMenu);
 
         return () => {
             window.removeEventListener('popstate', handlePopState);
             window.removeEventListener('beforeunload', handleBeforeUnload);
             window.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('contextmenu', (e) => e.preventDefault());
+            window.removeEventListener('contextmenu', handleContextMenu);
         };
     }, [enabled]);
 
@@ -58,13 +73,13 @@ export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
 
         const handleVisibilityChange = () => {
             if (document.hidden) {
-                onSecurityViolation?.('tab_switch');
+                violationRef.current?.('tab_switch');
             }
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [enabled, onSecurityViolation]);
+    }, [enabled]);
 
     // 5. Fullscreen exit detection
     useEffect(() => {
@@ -72,7 +87,7 @@ export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
 
         const handleFullscreenChange = () => {
             if (!document.fullscreenElement) {
-                onSecurityViolation?.('fullscreen_exit');
+                violationRef.current?.('fullscreen_exit');
             }
         };
 
@@ -87,5 +102,5 @@ export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
             document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
             document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
         };
-    }, [enabled, onSecurityViolation]);
+    }, [enabled]);
 };

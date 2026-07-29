@@ -400,7 +400,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 bg-zinc-950/40 dark:bg-black/60 backdrop-blur-md"
+        className="fixed inset-0 bg-warm-ink/40 dark:bg-black/60 backdrop-blur-md"
       />
 
       {/* Spotlight Centered Card */}
@@ -409,12 +409,12 @@ export default function SearchOverlay({ isOpen, onClose }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: -10 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-[600px] bg-white dark:bg-[#0c0c0e] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[520px] font-sans"
+        className="relative w-full max-w-[600px] bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[520px] font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header / Input Field */}
-        <div className="relative flex items-center px-4 py-3.5 border-b border-zinc-100 dark:border-zinc-800/60 shrink-0">
-          <Search className="text-zinc-400 dark:text-zinc-555 mr-3" size={17} strokeWidth={2.5} />
+        <div className="relative flex items-center px-4 py-3.5 border-b border-warm-hairline dark:border-white/10 shrink-0">
+          <Search className="text-warm-muted-soft dark:text-warm-on-dark-soft mr-3" size={17} strokeWidth={2.5} />
           <input
             ref={inputRef}
             type="text"
@@ -424,33 +424,33 @@ export default function SearchOverlay({ isOpen, onClose }) {
               setSelectedIndex(0);
             }}
             placeholder={lang === 'uz' ? 'IELTS testlari yoki bo\'limlarni qidiring...' : 'Search IELTS mock tests or sections...'}
-            className="w-full bg-transparent border-none text-[15px] font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-650 focus:outline-none focus:ring-0 leading-normal p-0"
+            className="w-full bg-transparent border-none text-[15px] font-medium text-warm-ink dark:text-warm-on-dark placeholder:text-warm-muted-soft dark:placeholder:text-warm-on-dark-soft focus:outline-none focus:ring-0 leading-normal p-0"
           />
           <div className="flex items-center gap-1.5 ml-2">
             {searchQuery && (
               <button
                 onClick={() => { setSearchQuery(''); setSelectedIndex(0); }}
-                className="p-1 rounded-full text-zinc-400 dark:text-zinc-550 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
+                className="p-1 rounded-full text-warm-muted-soft dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/10 transition-colors"
               >
                 <X size={15} />
               </button>
             )}
-            <span className="hidden sm:inline-block text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-500 border border-zinc-200/50 dark:border-zinc-800 px-1.5 py-0.5 rounded shadow-sm">
+            <span className="hidden sm:inline-block text-[10px] font-semibold bg-warm-surface dark:bg-white/10 text-warm-muted-soft dark:text-warm-on-dark-soft border border-warm-hairline dark:border-white/10 px-1.5 py-0.5 rounded shadow-sm">
               ESC
             </span>
           </div>
         </div>
 
         {/* Scrollable Results */}
-        <div 
+        <div
           ref={resultsContainerRef}
-          className="flex-1 overflow-y-auto p-2.5 max-h-[380px] scrollbar-thin dark:scrollbar-thumb-zinc-800"
+          className="flex-1 overflow-y-auto p-2.5 max-h-[380px] scrollbar-thin dark:scrollbar-thumb-white/10"
         >
           {/* Query is Empty - default view */}
           {!searchQuery.trim() && (
             <div className="py-2.5 px-1.5">
               {/* Quick links block */}
-              <h4 className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest mb-3.5 pl-1">
+              <h4 className="text-[10px] text-warm-muted-soft dark:text-warm-on-dark-soft font-bold uppercase tracking-widest mb-3.5 pl-1">
                 {lang === 'uz' ? 'Tavsiya etilgan havolalar' : 'Recommended Quick Links'}
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
@@ -468,8 +468,8 @@ export default function SearchOverlay({ isOpen, onClose }) {
                       onClick={() => selectAndNavigate(item.path)}
                       className={`search-result-item flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all ${
                         isActive
-                          ? 'bg-blue-50/70 border-blue-200 text-[#0066cc] dark:bg-blue-950/20 dark:border-blue-800/80 dark:text-blue-400'
-                          : 'bg-zinc-50/40 hover:bg-zinc-50 dark:bg-zinc-900/30 dark:hover:bg-zinc-900/50 border-zinc-100/60 hover:border-zinc-200 dark:border-zinc-900/50 dark:hover:border-zinc-800 text-zinc-700 dark:text-zinc-300'
+                          ? 'bg-warm-primary/10 border-warm-primary/30 text-warm-primary dark:bg-warm-primary/15 dark:border-warm-primary/40 dark:text-warm-primary'
+                          : 'bg-warm-surface/40 hover:bg-warm-surface dark:bg-white/5 dark:hover:bg-white/10 border-warm-hairline/60 hover:border-warm-hairline dark:border-white/5 dark:hover:border-white/10 text-warm-body dark:text-warm-on-dark-soft'
                       }`}
                     >
                       <div className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center`}>
@@ -482,7 +482,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
               </div>
 
               {/* Trending tags */}
-              <h4 className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest mb-3 pl-1">
+              <h4 className="text-[10px] text-warm-muted-soft dark:text-warm-on-dark-soft font-bold uppercase tracking-widest mb-3 pl-1">
                 {lang === 'uz' ? 'Ommabop mavzular' : 'Trending Topics'}
               </h4>
               <div className="flex flex-wrap gap-2 pl-0.5">
@@ -497,7 +497,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
                   <button
                     key={i}
                     onClick={() => { setSearchQuery(item.query); setSelectedIndex(0); }}
-                    className="px-3.5 py-1.5 bg-zinc-50 dark:bg-zinc-900 text-[12px] font-medium text-zinc-650 dark:text-zinc-300 border border-zinc-100 dark:border-zinc-850 hover:bg-zinc-100 dark:hover:bg-zinc-850 rounded-full transition-all"
+                    className="px-3.5 py-1.5 bg-warm-surface dark:bg-white/5 text-[12px] font-medium text-warm-body dark:text-warm-on-dark-soft border border-warm-hairline dark:border-white/10 hover:bg-warm-card dark:hover:bg-white/10 rounded-full transition-all"
                   >
                     #{item.tag}
                   </button>
@@ -516,60 +516,60 @@ export default function SearchOverlay({ isOpen, onClose }) {
 
                 return (
                   <div key={category} className="space-y-1">
-                    <h4 className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest mb-2 pl-2">
+                    <h4 className="text-[10px] text-warm-muted-soft dark:text-warm-on-dark-soft font-bold uppercase tracking-widest mb-2 pl-2">
                       {getCategoryLabel(category)}
                     </h4>
-                    
+
                     <div className="space-y-1">
                       {categoryItems.map((item) => {
                         const Icon = item.icon;
                         // Find the globally unique index of this item in the flat filtered array
                         const globalIndex = filteredResults.findIndex(r => r.id === item.id);
                         const isActive = selectedIndex === globalIndex;
-                        
+
                         return (
                           <div
                             key={item.id}
                             onClick={() => selectAndNavigate(item.path)}
                             className={`search-result-item flex items-center justify-between p-2.5 rounded-xl cursor-pointer border transition-all ${
                               isActive
-                                ? 'bg-blue-50/70 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800/80'
-                                : 'bg-transparent border-transparent hover:bg-zinc-50 dark:hover:bg-zinc-900/50'
+                                ? 'bg-warm-primary/10 border-warm-primary/30 dark:bg-warm-primary/15 dark:border-warm-primary/40'
+                                : 'bg-transparent border-transparent hover:bg-warm-surface dark:hover:bg-white/5'
                             }`}
                           >
                             <div className="flex items-center gap-3.5 min-w-0 flex-1">
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                isActive 
-                                  ? 'bg-blue-500/10 text-[#0066cc] dark:text-blue-400' 
-                                  : 'bg-zinc-50 dark:bg-zinc-900 text-zinc-450 dark:text-zinc-500'
+                                isActive
+                                  ? 'bg-warm-primary/10 text-warm-primary dark:text-warm-primary'
+                                  : 'bg-warm-surface dark:bg-white/5 text-warm-muted-soft dark:text-warm-on-dark-soft'
                               }`}>
                                 <Icon size={16} />
                               </div>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <p className={`text-[13.5px] font-semibold leading-normal truncate ${
-                                    isActive ? 'text-[#0066cc] dark:text-blue-400' : 'text-zinc-800 dark:text-zinc-200'
+                                    isActive ? 'text-warm-primary dark:text-warm-primary' : 'text-warm-ink dark:text-warm-on-dark'
                                   }`}>
                                     {lang === 'uz' ? item.uzLabel : item.label}
                                   </p>
                                   {item.isCompleted && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 border border-emerald-250/20">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 border border-emerald-200/40">
                                       {lang === 'uz' ? 'Bajarilgan' : 'Completed'}
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
+                                <p className="text-[11px] font-medium text-warm-muted-soft dark:text-warm-on-dark-soft truncate mt-0.5">
                                   {lang === 'uz' ? item.uzDesc : item.desc}
                                 </p>
                               </div>
                             </div>
                             <div className="shrink-0 flex items-center ml-4 pl-1">
                               {isActive ? (
-                                <span className="flex items-center gap-1 text-[10px] font-semibold bg-blue-500/10 text-[#0066cc] dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/50 px-1.5 py-0.5 rounded shadow-sm select-none pointer-events-none">
+                                <span className="flex items-center gap-1 text-[10px] font-semibold bg-warm-primary/10 text-warm-primary dark:text-warm-primary border border-warm-primary/30 dark:border-warm-primary/40 px-1.5 py-0.5 rounded shadow-sm select-none pointer-events-none">
                                   {lang === 'uz' ? 'O\'tish' : 'Enter'} <CornerDownLeft size={10} strokeWidth={2.5} />
                                 </span>
                               ) : (
-                                <span className="text-[11px] text-zinc-300 dark:text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                <span className="text-[11px] text-warm-hairline dark:text-white/20 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                               )}
                             </div>
                           </div>
@@ -589,15 +589,15 @@ export default function SearchOverlay({ isOpen, onClose }) {
               animate={{ opacity: 1 }}
               className="py-12 px-4 text-center flex flex-col items-center justify-center"
             >
-              <div className="w-12 h-12 rounded-full bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 dark:text-zinc-500 mb-4 border border-zinc-150/50 dark:border-zinc-800/80">
+              <div className="w-12 h-12 rounded-full bg-warm-surface dark:bg-white/5 flex items-center justify-center text-warm-muted-soft dark:text-warm-on-dark-soft mb-4 border border-warm-hairline/60 dark:border-white/10">
                 <Search size={20} />
               </div>
-              <h3 className="text-[14px] font-bold text-zinc-800 dark:text-zinc-200">
+              <h3 className="text-[14px] font-bold text-warm-ink dark:text-warm-on-dark">
                 {lang === 'uz' ? 'Hech narsa topilmadi' : 'No results found'}
               </h3>
-              <p className="text-zinc-400 dark:text-zinc-500 text-xs max-w-xs leading-relaxed mt-1.5">
-                {lang === 'uz' 
-                  ? `"${searchQuery}" so'zi bo'yicha hech qanday natija topilmadi. Boshqa kalit so'zlarni sinab ko'ring.` 
+              <p className="text-warm-muted-soft dark:text-warm-on-dark-soft text-xs max-w-xs leading-relaxed mt-1.5">
+                {lang === 'uz'
+                  ? `"${searchQuery}" so'zi bo'yicha hech qanday natija topilmadi. Boshqa kalit so'zlarni sinab ko'ring.`
                   : `No matches found for "${searchQuery}". Please try adjusting your keywords or search query.`}
               </p>
             </motion.div>
@@ -605,14 +605,14 @@ export default function SearchOverlay({ isOpen, onClose }) {
         </div>
 
         {/* Premium Status Nav Footer */}
-        <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-zinc-50/50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-zinc-800/60 text-[11px] text-zinc-450 dark:text-zinc-500 select-none">
+        <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-warm-surface/50 dark:bg-white/5 border-t border-warm-hairline dark:border-white/10 text-[11px] text-warm-muted-soft dark:text-warm-on-dark-soft select-none">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 font-medium">
-              <span className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-250/60 dark:border-zinc-800 px-1 py-0.5 rounded shadow-sm font-semibold flex items-center justify-center">↑↓</span>
+              <span className="bg-warm-surface dark:bg-white/10 border border-warm-hairline dark:border-white/10 px-1 py-0.5 rounded shadow-sm font-semibold flex items-center justify-center">↑↓</span>
               {lang === 'uz' ? 'tanlash' : 'select'}
             </span>
             <span className="flex items-center gap-1 font-medium">
-              <span className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-250/60 dark:border-zinc-800 px-1 py-0.5 rounded shadow-sm font-semibold flex items-center justify-center"><CornerDownLeft size={8} strokeWidth={3} /></span>
+              <span className="bg-warm-surface dark:bg-white/10 border border-warm-hairline dark:border-white/10 px-1 py-0.5 rounded shadow-sm font-semibold flex items-center justify-center"><CornerDownLeft size={8} strokeWidth={3} /></span>
               {lang === 'uz' ? 'kirish' : 'open'}
             </span>
           </div>

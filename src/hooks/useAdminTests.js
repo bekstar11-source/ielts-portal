@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { db } from '../firebase/firebase';
+import { normalizeTestSegments } from '../utils/normalizeTestSegments';
 import {
     collection,
     getDocs,
@@ -50,8 +51,9 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         const saved = sessionStorage.getItem("admin_tests_filterAccess");
         return (saved && saved !== "null" && saved !== "undefined") ? saved : "All";
     });
-    const [filterTag, setFilterTag] = useState(() => {
-        const saved = sessionStorage.getItem("admin_tests_filterTag");
+    // "All" | "Complete" | "Incomplete" — checks Reading/Listening tests for missing passages/parts
+    const [filterCompleteness, setFilterCompleteness] = useState(() => {
+        const saved = sessionStorage.getItem("admin_tests_filterCompleteness");
         return (saved && saved !== "null" && saved !== "undefined") ? saved : "All";
     });
     const [sortBy, setSortBy] = useState(() => {
@@ -78,11 +80,25 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         sessionStorage.setItem("admin_tests_filterCollection", filterCollection || "All");
         sessionStorage.setItem("admin_tests_filterStatus", filterStatus || "All");
         sessionStorage.setItem("admin_tests_filterAccess", filterAccess || "All");
-        sessionStorage.setItem("admin_tests_filterTag", filterTag || "All");
+        sessionStorage.setItem("admin_tests_filterCompleteness", filterCompleteness || "All");
         sessionStorage.setItem("admin_tests_sortBy", sortBy || "createdAt");
         sessionStorage.setItem("admin_tests_sortOrder", sortOrder || "desc");
         sessionStorage.setItem("admin_tests_currentPage", String(currentPage || 1));
-    }, [searchTerm, contentSearchTerm, filterType, filterCollection, filterStatus, filterAccess, filterTag, sortBy, sortOrder, currentPage]);
+    }, [searchTerm, contentSearchTerm, filterType, filterCollection, filterStatus, filterAccess, filterCompleteness, sortBy, sortOrder, currentPage]);
+
+    // Reset to page 1 whenever a filter/search value changes, so the current
+    // page doesn't stay out of range for the newly filtered result set.
+    const prevFiltersRef = useRef(null);
+    useEffect(() => {
+        const current = [searchTerm, contentSearchTerm, filterType, filterCollection, filterStatus, filterAccess, filterCompleteness, sortBy, sortOrder];
+        const prev = prevFiltersRef.current;
+        prevFiltersRef.current = current;
+        // Skip on mount, and skip if values are unchanged since the last run
+        // (React StrictMode double-invokes effects in dev — a plain "first run"
+        // flag doesn't survive that and falsely resets the page on remount).
+        if (prev === null || prev.every((v, i) => v === current[i])) return;
+        setCurrentPage(1);
+    }, [searchTerm, contentSearchTerm, filterType, filterCollection, filterStatus, filterAccess, filterCompleteness, sortBy, sortOrder]);
 
     const fetchCollections = async () => {
         try {
@@ -263,9 +279,22 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
             list = list.filter(t => !!t.isFree === wantFree);
         }
 
-        // 4b. Tag Filter
-        if (filterTag !== "All") {
-            list = list.filter(t => Array.isArray(t.tags) && t.tags.includes(filterTag));
+        // 4c. Structure Completeness Filter (Reading/Listening: missing passages/parts,
+        // or a specific Passage/Part number — e.g. "P2" = has Passage 2, "MissingP2" = missing it)
+        if (filterCompleteness !== "All") {
+            list = list.filter(t => {
+                if (t.type !== 'reading' && t.type !== 'listening') return false;
+                const segments = normalizeTestSegments(t);
+
+                if (filterCompleteness === "Complete") return segments.every(s => s.exists);
+                if (filterCompleteness === "Incomplete") return segments.some(s => !s.exists);
+
+                const wantMissing = filterCompleteness.startsWith("Missing");
+                const label = wantMissing ? filterCompleteness.slice("Missing".length) : filterCompleteness;
+                const segment = segments.find(s => s.label === label);
+                if (!segment) return false;
+                return wantMissing ? !segment.exists : segment.exists;
+            });
         }
 
         // 5. Search filter (by Title/ID)
@@ -309,7 +338,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         });
 
         return { filteredAndSortedTests: list, totalTestCount: list.length };
-    }, [allTestsCache, contentCache, filterType, filterCollection, filterStatus, filterAccess, filterTag, searchTerm, contentSearchTerm, sortBy, sortOrder]);
+    }, [allTestsCache, contentCache, filterType, filterCollection, filterStatus, filterAccess, filterCompleteness, searchTerm, contentSearchTerm, sortBy, sortOrder]);
 
     // Lazy-load combinedContent only when content search is triggered
     useEffect(() => {
@@ -362,18 +391,6 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         };
     }, [allTestsCache]);
 
-    // Calculate all available tags dynamically from loaded tests
-    const allAvailableTags = useMemo(() => {
-        const tagsSet = new Set();
-        allTestsCache.forEach(t => {
-            if (Array.isArray(t.tags)) {
-                t.tags.forEach(tag => {
-                    if (tag) tagsSet.add(tag);
-                });
-            }
-        });
-        return Array.from(tagsSet).sort();
-    }, [allTestsCache]);
 
     // Compatible function handlers to update filter state from external triggers
     const fetchInitial = (type = "All", collectionId = "All") => {
@@ -797,8 +814,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         filterCollection,
         filterStatus,
         filterAccess,
-        filterTag,
-        allAvailableTags,
+        filterCompleteness,
         sortBy,
         sortOrder,
         stats,
@@ -812,7 +828,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         setFilterCollection,
         setFilterStatus,
         setFilterAccess,
-        setFilterTag,
+        setFilterCompleteness,
         setSortBy,
         setSortOrder,
         setCurrentPage,

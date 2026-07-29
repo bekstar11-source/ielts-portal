@@ -1,11 +1,34 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { db, functions } from "../firebase/firebase";
-import { doc, getDoc, addDoc, collection, serverTimestamp, updateDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc, deleteDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { calculateSectionScore, calculateBandScore, calculateOverallBand } from "../utils/ieltsScoring";
 import { syncServerTime, getCurrentServerTime } from "../utils/timeSync";
 
 const STORAGE_KEY = 'ielts_mock_session';
+
+// Sessiya saqlanadigan bosqichlar ('loading' ataylab yo'q).
+const PERSISTED_STAGES = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended', 'saving', 'result'];
+
+// Taymer ishlaydigan bosqichlar.
+const TIMED_STAGES = ['listening', 'reading', 'writing'];
+
+// Javoblar qaysi "chelak"ka yozilishi. Volume check paytida stage 'listening_volume_check'
+// bo'ladi, javoblar esa baribir listening'ga tegishli.
+const ANSWER_BUCKET_BY_STAGE = {
+    listening: 'listening',
+    listening_volume_check: 'listening',
+    reading: 'reading',
+    writing: 'writing'
+};
+
+// Javoblarni Firestore'ga sinxronlash: tinchlangandan 10s keyin, lekin oxirgi
+// yozuvdan 30s dan ko'p o'tib ketmasligi kafolatlanadi (uzluksiz yozuvchi talaba uchun).
+const FIRESTORE_DEBOUNCE_MS = 10000;
+const FIRESTORE_MAX_WAIT_MS = 30000;
+
+// "Module Ended" ekrani avtomatik intro'ga o'tguncha kutadigan vaqt.
+// MockExam.jsx dagi hisoblagich ham shu qiymatdan boshlanadi.
+export const TEST_ENDED_AUTO_ADVANCE_SEC = 20;
 
 function saveSession(mockId, data) {
     try {
@@ -18,10 +41,6 @@ function loadSession(mockId) {
         const raw = localStorage.getItem(`${STORAGE_KEY}_${mockId}`);
         return raw ? JSON.parse(raw) : null;
     } catch (e) { return null; }
-}
-
-function clearSession(mockId) {
-    try { localStorage.removeItem(`${STORAGE_KEY}_${mockId}`); } catch (e) {}
 }
 
 export function getListeningDuration(listeningTest) {
@@ -56,6 +75,7 @@ export function useMockExam(mockData, user, userData, navigate) {
     const [timeLeft, setTimeLeft] = useState(0);
     const [cheatWarning, setCheatWarning] = useState({ isOpen: false, count: 0, msg: '' });
     const [finalResults, setFinalResults] = useState(null);
+    const [submitError, setSubmitError] = useState(null);
     const [completedModules, setCompletedModules] = useState([]);
     const [autoStartDeadline, setAutoStartDeadline] = useState(null);
     const [listeningStartTime, setListeningStartTime] = useState(null);
@@ -68,9 +88,17 @@ export function useMockExam(mockData, user, userData, navigate) {
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
     
     // Auto-set deadline for test_ended stage only (intro is managed by MockExamIntro)
+    // MUHIM: test_ended dan chiqqanda deadline NULL ga qaytarilishi shart. Ilgari
+    // qaytarilmasdi va talaba "Continue" ni qo'lda bossa, eski (o'tib ketgan) deadline
+    // qolib ketardi — keyingi modul tugaganda "Module Ended" ekrani ko'rsatilmasdan,
+    // bir soniyada intro'ga sakrab ketardi.
     useEffect(() => {
-        if (stage === 'test_ended' && !autoStartDeadline) {
-            setAutoStartDeadline(Date.now() + 20 * 1000);
+        if (stage === 'test_ended') {
+            if (!autoStartDeadline) {
+                setAutoStartDeadline(Date.now() + TEST_ENDED_AUTO_ADVANCE_SEC * 1000);
+            }
+        } else if (autoStartDeadline) {
+            setAutoStartDeadline(null);
         }
     }, [stage, autoStartDeadline]);
 
@@ -93,17 +121,14 @@ export function useMockExam(mockData, user, userData, navigate) {
     useEffect(() => { completedRef.current = completedModules; }, [completedModules]);
     useEffect(() => { tabSwitchCountRef.current = tabSwitchCount; }, [tabSwitchCount]);
 
-    // ─── Unified Persist: localStorage (immediate) + Firestore (smart debounce) ───
-    const prevStageRef = useRef(stage);
+    // ─── Persist 1/2: localStorage (har o'zgarishda darhol) ───
     useEffect(() => {
-        const activeStages = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended', 'saving', 'result'];
-        if (!activeStages.includes(stage) || stage === 'loading' || !user?.uid) return;
+        if (!PERSISTED_STAGES.includes(stage) || !user?.uid) return;
 
         const deadlineVal = ['listening', 'reading', 'writing'].includes(stage) && timeLeft > 0
             ? getCurrentServerTime() + timeLeft * 1000
             : null;
 
-        // Always save to localStorage immediately
         saveSession(mockId, {
             stage,
             answers,
@@ -118,12 +143,24 @@ export function useMockExam(mockData, user, userData, navigate) {
             listeningDuration,
             savedAt: getCurrentServerTime()
         });
+    }, [stage, answers, timeLeft, completedModules, user?.uid, mockId, autoStartDeadline, listeningStartTime, listeningDuration]);
 
-        // Determine if this is a stage change (write immediately) or just answers/time (debounce)
+    // ─── Persist 2/2: Firestore ───
+    // DIQQAT: bu effekt `timeLeft` ga BOG'LANMAYDI. Ilgari bog'langan edi va taymer uni
+    // har sekundda o'zgartirgani uchun cleanup 10 soniyalik debounce'ni har safar bekor
+    // qilardi — natijada javoblar imtihon davomida Firestore'ga UMUMAN yozilmasdi
+    // (faqat bosqich almashganda). Qurilma o'chsa, talabaning essesi yo'qolardi.
+    // Joriy qiymatlar ref'lardan o'qiladi, shuning uchun yozuv paytida ular eng yangisi bo'ladi.
+    const prevStageRef = useRef(stage);
+    const lastFirestoreWriteRef = useRef(0);
+    useEffect(() => {
+        if (!PERSISTED_STAGES.includes(stage) || !user?.uid) return;
+
         const isStageChange = prevStageRef.current !== stage;
         prevStageRef.current = stage;
 
         const writeToFirestore = async () => {
+            lastFirestoreWriteRef.current = getCurrentServerTime();
             try {
                 const sessionRef = doc(db, "users", user.uid, "mockSessions", mockId);
 
@@ -134,9 +171,9 @@ export function useMockExam(mockData, user, userData, navigate) {
 
                     const updateData = {
                         stage,
-                        answers,
-                        timeLeft,
-                        completedModules,
+                        answers: answersRef.current,
+                        timeLeft: timeLeftRef.current,
+                        completedModules: completedRef.current,
                         tabSwitchCount: tabSwitchCountRef.current,
                         audioTime: audioTimeRef.current,
                         activePart: activePartRef.current,
@@ -159,10 +196,11 @@ export function useMockExam(mockData, user, userData, navigate) {
 
                     await setDoc(sessionRef, updateData, { merge: true });
                 } else {
-                    // Answer/time updates: just sync the essentials
+                    // Answer updates: just sync the essentials
                     await setDoc(sessionRef, {
-                        answers,
-                        timeLeft,
+                        answers: answersRef.current,
+                        timeLeft: timeLeftRef.current,
+                        completedModules: completedRef.current,
                         audioTime: audioTimeRef.current,
                         activePart: activePartRef.current,
                         updatedAt: serverTimestamp()
@@ -174,15 +212,20 @@ export function useMockExam(mockData, user, userData, navigate) {
         };
 
         if (isStageChange) {
-            // Stage changes write to Firestore immediately
+            // Bosqich almashuvi — darhol yoziladi va ayni paytda kutayotgan javoblarni ham flush qiladi.
             writeToFirestore();
             return;
         }
 
-        // Answer/time changes: debounce Firestore writes to 10 seconds
-        const timeoutId = setTimeout(writeToFirestore, 10000);
+        // Javob o'zgarishlari: 10s debounce, LEKIN oxirgi yozuvdan 30s o'tgan bo'lsa darhol.
+        // Max-wait bo'lmasa, uzluksiz yozayotgan talaba (Writing) debounce'ni cheksiz
+        // surib, hech qachon sinxronlanmasligi mumkin edi.
+        const sinceLastWrite = getCurrentServerTime() - lastFirestoreWriteRef.current;
+        const delay = Math.max(0, Math.min(FIRESTORE_DEBOUNCE_MS, FIRESTORE_MAX_WAIT_MS - sinceLastWrite));
+
+        const timeoutId = setTimeout(writeToFirestore, delay);
         return () => clearTimeout(timeoutId);
-    }, [stage, answers, timeLeft, completedModules, user?.uid, mockId, autoStartDeadline]);
+    }, [stage, answers, completedModules, user?.uid, mockId, autoStartDeadline]);
 
     // ─── Warn before page unload & Auto-submit logic ───
     useEffect(() => {
@@ -336,6 +379,14 @@ export function useMockExam(mockData, user, userData, navigate) {
                         currentStage = 'test_ended';
                     }
 
+                    // 'result' va 'saving' bosqichlarini TIKLAMAYMIZ: natijalar (finalResults)
+                    // faqat xotirada bo'ladi va sahifa yangilangach yo'qoladi. Ilgari tiklanardi
+                    // va talaba "Exam Completed! 0.0 / 0.0" degan soxta ekranni ko'rib qolardi.
+                    // test_ended ga qaytaramiz — u yerda "Submit Test" tugmasi bor.
+                    if (currentStage === 'result' || currentStage === 'saving') {
+                        currentStage = 'test_ended';
+                    }
+
                     // Finally set the stage to resume the test
                     if (stageRef.current === 'loading') {
                         setStage(currentStage);
@@ -353,22 +404,32 @@ export function useMockExam(mockData, user, userData, navigate) {
         fetchTests();
     }, [mockData]);
 
-    // Global Timer
+    // Global Timer — faqat sanaydi, YON TA'SIRSIZ.
+    // Ilgari `handleNextStage()` to'g'ridan-to'g'ri `setTimeLeft` updater'i ICHIDA
+    // chaqirilardi. React updater'ni toza (pure) deb hisoblaydi va StrictMode uni ikki
+    // marta chaqiradi — bosqich ikki marta almashib ketishi mumkin edi.
+    const timerArmedRef = useRef(false);
     useEffect(() => {
-        const activeStages = ['listening', 'reading', 'writing'];
-        if (timeLeft <= 0 || !activeStages.includes(stage)) return;
-        
+        if (timeLeft <= 0 || !TIMED_STAGES.includes(stage)) return;
+
+        timerArmedRef.current = true;
         const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    handleNextStage();
-                    return 0;
-                }
-                return prev - 1;
-            });
+            setTimeLeft(prev => (prev <= 1 ? 0 : prev - 1));
         }, 1000);
         return () => clearInterval(timer);
+    }, [timeLeft, stage]);
+
+    // Vaqt tugaganda bosqichni almashtiramiz.
+    // `timerArmedRef` shart: usiz, modul boshlanishida `stage` allaqachon o'rnatilib,
+    // `timeLeft` hali 0 bo'lgan bir renderda modul darhol yakunlanib qolishi mumkin edi.
+    useEffect(() => {
+        if (!TIMED_STAGES.includes(stage)) {
+            timerArmedRef.current = false;
+            return;
+        }
+        if (timeLeft > 0 || !timerArmedRef.current) return;
+        timerArmedRef.current = false;
+        handleNextStage();
     }, [timeLeft, stage]);
 
     const handleNextStage = () => {
@@ -412,50 +473,71 @@ export function useMockExam(mockData, user, userData, navigate) {
     };
 
     const handleAnswer = (qId, val) => {
+        // Ilgari chelak kaliti to'g'ridan-to'g'ri `stageRef.current` edi — volume check
+        // paytida javoblar `answers['listening_volume_check']` ga tushib, hech qachon
+        // baholanmasdi. Endi bosqich mantiqiy modulga xaritalanadi.
+        const bucket = ANSWER_BUCKET_BY_STAGE[stageRef.current];
+        if (!bucket) return;
+
         setAnswers(prev => ({
             ...prev,
-            [stageRef.current]: { ...prev[stageRef.current], [qId]: val }
+            [bucket]: { ...prev[bucket], [qId]: val }
         }));
     };
 
-    const finishExam = async (forcedAnswers, forcedTests, forcedCompleted) => {
+    const finishExam = async (forcedAnswers) => {
         if (stageRef.current === 'saving' || stageRef.current === 'result') return;
-        
+
         setStage('saving');
-        stageRef.current = 'saving'; 
+        stageRef.current = 'saving';
+        setSubmitError(null);
 
         try {
             const currentAnswers = forcedAnswers || answersRef.current;
-            
+
+            // DIQQAT: imtihon tarkibini (subTests) yubormaymiz — server uni o'zi
+            // `users/{uid}.mockTests` dan oladi. Klientdan kelgan tarkibga ishonish
+            // talabaga javoblari ma'lum testni baholatib olish imkonini berardi.
             const submitMockExamFn = httpsCallable(functions, 'submitMockExam');
             const res = await submitMockExamFn({
                 mockKey: mockData.mockKey,
-                mockData: mockData,
                 answers: currentAnswers
             });
 
-            if (res.data && res.data.success) {
-                setFinalResults({
-                    listening: { 
-                        correct: res.data.scores.listening, 
-                        total: 40, 
-                        band: res.data.scores.listeningBand 
-                    },
-                    reading: { 
-                        correct: res.data.scores.reading, 
-                        total: 40, 
-                        band: res.data.scores.readingBand 
-                    }
-                });
-            } else {
+            if (!res.data || !res.data.success) {
                 throw new Error("Imtihon topshirishda backend xatoligi yuz berdi.");
             }
 
+            const scores = res.data.scores || {};
+            setFinalResults({
+                listening: {
+                    correct: scores.listening,
+                    // Serverdan kelgan haqiqiy savollar soni; 40 — faqat zaxira qiymat.
+                    total: scores.listeningTotal || 40,
+                    band: scores.listeningBand
+                },
+                reading: {
+                    correct: scores.reading,
+                    total: scores.readingTotal || 40,
+                    band: scores.readingBand
+                },
+                overallBand: res.data.overallBand
+            });
+
+            setStage('result');
+
+            // Muvaffaqiyatli topshirilgach sessiyani o'chiramiz. Aks holda u Firestore'da
+            // qolib ketardi va talaba qaytib kirganda tugagan imtihonga "tiklanib",
+            // qayta boshlay olmasdi.
+            clearExamSession();
         } catch (err) {
             console.error('CRITICAL: finishExam failed:', err);
-            alert("Natijalarni saqlashda xatolik yuz berdi. Iltimos administratorga murojaat qiling.");
-        } finally {
-            setStage('result');
+            // MUHIM: xatoda 'result' ga O'TMAYMIZ. Ilgari `finally` baribir 'result' qilardi
+            // va talaba muvaffaqiyatsiz topshirishdan keyin "Exam Completed! 0.0" ni ko'rib,
+            // qayta yuborish imkonini yo'qotardi. test_ended da "Submit Test" tugmasi qoladi.
+            setSubmitError(err?.message || "Natijalarni saqlashda xatolik yuz berdi.");
+            setStage('test_ended');
+            stageRef.current = 'test_ended';
         }
     };
 
@@ -512,7 +594,7 @@ export function useMockExam(mockData, user, userData, navigate) {
     return {
         stage, setStage, tests, answers, handleAnswer, 
         timeLeft, setTimeLeft, handleNextStage, finishExam,
-        cheatWarning, setCheatWarning, finalResults,
+        cheatWarning, setCheatWarning, finalResults, submitError,
         completedModules, autoStartDeadline, setAutoStartDeadline,
         resumeAudioTime, resumeActivePart, updateAudioProgress,
         tabSwitchCount,
