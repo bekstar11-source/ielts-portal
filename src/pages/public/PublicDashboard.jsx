@@ -108,7 +108,7 @@ export default function PublicDashboard() {
         const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');
         const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;
 
-        if (limitTarget && !checkLimit(limitTarget)) {
+        if (limitTarget && !checkLimit(limitTarget, test)) {
             setLimitType(limitTarget);
             setShowLimitSheet(true);
             return;

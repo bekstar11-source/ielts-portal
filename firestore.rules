@@ -24,8 +24,40 @@ service cloud.firestore {
 
     // USERS
     match /users/{userId} {
+      // ⚠️ Obuna, rol va topshiriq maydonlari KLIENTDAN yozilmasligi shart.
+      // Ilgari egasiga to'liq `write` berilgan edi — ya'ni istalgan o'quvchi
+      // konsoldan `accountType: 'pro'` yozib butun to'lov tizimini chetlab
+      // o'ta olardi. Bu maydonlar faqat Admin SDK (Telegram bot / Cloud
+      // Functions) yoki admin tomonidan o'zgartiriladi.
+      function protectedUserFields() {
+        return [
+          'role', 'accountType', 'isPro', 'isPremium', 'isStandard', 'tier',
+          'subscriptionStart', 'subscriptionEnd', 'teacherSubscription',
+          'assignedTests', 'mockTests', 'groupId'
+        ];
+      }
+
+      function touchesProtectedFields() {
+        return request.resource.data.diff(resource.data)
+                 .affectedKeys().hasAny(protectedUserFields());
+      }
+
       allow read: if isAuth() && (request.auth.uid == userId || isAdmin() || isTeacher());
-      allow write: if isAuth() && (request.auth.uid == userId || isAdmin());
+
+      // Ro'yxatdan o'tish: faqat o'zining hujjati, bepul tarif bilan.
+      allow create: if isAuth()
+                    && request.auth.uid == userId
+                    && request.resource.data.get('accountType', 'public') == 'public'
+                    && request.resource.data.get('role', 'student') == 'student'
+                    && !request.resource.data.keys().hasAny(
+                         ['isPro', 'isPremium', 'isStandard', 'tier',
+                          'subscriptionStart', 'subscriptionEnd', 'teacherSubscription']
+                       );
+
+      allow update: if isAdmin()
+                    || (isAuth() && request.auth.uid == userId && !touchesProtectedFields());
+
+      allow delete: if isAdmin();
 
       match /{allSubcollections=**} {
         allow read, write: if isAuth() && (request.auth.uid == userId || isAdmin());

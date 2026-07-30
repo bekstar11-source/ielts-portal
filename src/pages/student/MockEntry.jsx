@@ -82,6 +82,10 @@ export default function MockEntry() {
                 if (!userDoc.exists()) return;
                 const userData = userDoc.data();
                 const mocks = userData.mockTests || [];
+                // Rejalashtirilgan sanalar alohida `mockSchedules` map'ida saqlanadi:
+                // `mockTests` massivi endi faqat server (Admin SDK) tomonidan yoziladi,
+                // aks holda o'quvchi o'ziga istalgan mock/subTest ochib olardi.
+                const schedules = userData.mockSchedules || {};
 
                 // 2. Fetch user's actual results to get scores
                 const q = query(
@@ -93,17 +97,21 @@ export default function MockEntry() {
                 const results = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
                 // 3. Merge scores into mock assignments
-                const merged = mocks.map(m => {
+                const merged = mocks.map(rawMock => {
+                    const m = schedules[rawMock.id]
+                        ? { ...rawMock, scheduledDate: schedules[rawMock.id] }
+                        : rawMock;
+
                     // Try to find result by mockKey (primary for mocks) or by saved resultId
-                    const result = results.find(r => 
-                        (m.mockKey && r.mockKey === m.mockKey) || 
+                    const result = results.find(r =>
+                        (m.mockKey && r.mockKey === m.mockKey) ||
                         (m.resultId && r.id === m.resultId)
                     );
 
                     if (!result) return m;
 
-                    return { 
-                        ...m, 
+                    return {
+                        ...m,
                         ...result, // Bring in all result fields (bandScore, scores, writingBand, etc.)
                         id: m.id,  // Preserve the mock assignment ID for UI stability
                         resultId: result.id,
@@ -152,17 +160,11 @@ export default function MockEntry() {
         setLoading(true);
         try {
             const userRef = doc(db, "users", user.uid);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                const mocks = userSnap.data().mockTests || [];
-                const updated = mocks.map(test => {
-                    if (test.id === currentMock.id) {
-                        return { ...test, scheduledDate: selectedDate.toISOString() };
-                    }
-                    return test;
-                });
-                await updateDoc(userRef, { mockTests: updated });
-            }
+            // Faqat sanani yozamiz. `mockTests` massivining o'zi himoyalangan
+            // (unga yozish = o'ziga mock ochib olish) — u faqat serverdan yangilanadi.
+            await updateDoc(userRef, {
+                [`mockSchedules.${currentMock.id}`]: selectedDate.toISOString()
+            });
             setShowCalendar(false);
             setSuccess(false);
             setMockKey("");

@@ -13,7 +13,12 @@ import {
   signInWithPopup
 } from "firebase/auth";
 import { logAction } from "../utils/logger"; // Import logger
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  isSubscriptionExpired,
+  getRawTier,
+  getSubscriptionEnd
+} from "../utils/subscription";
 
 const AuthContext = createContext();
 
@@ -70,40 +75,27 @@ export function AuthProvider({ children }) {
     setUserData((prev) => ({ ...prev, ...newFields }));
   };
 
-  // Helper function to check and handle subscription expiration
-  const processUserData = async (uid, data) => {
+  // Obuna muddati tugaganini LOKAL ravishda aks ettiradi.
+  //
+  // ⚠️ Ilgari bu funksiya Firestore'ga yozardi (`accountType: 'public'`).
+  // Endi bu maydonlar klientdan yozilmaydi (firestore.rules) — hujjatni
+  // `expireSubscriptions` scheduled function tozalaydi, kirish huquqi esa
+  // har bir so'rovda serverda (`getSanitizedTest`) qayta tekshiriladi.
+  // Bu yerda faqat UI darhol to'g'ri ko'rinishi uchun overlay qilamiz.
+  const processUserData = (uid, data) => {
     if (!data) return null;
-    const isGrouped = data.groupId && data.groupId !== 'none';
-    const hasPremium = data.accountType === 'pro' || data.accountType === 'standard' || data.isPro;
-    
-    if (!isGrouped && hasPremium && data.subscriptionEnd) {
-      const expiryDate = data.subscriptionEnd.seconds 
-        ? new Date(data.subscriptionEnd.seconds * 1000) 
-        : new Date(data.subscriptionEnd);
-      
-      const endOfExpiryDate = new Date(expiryDate);
-      endOfExpiryDate.setHours(23, 59, 59, 999);
-        
-      if (new Date() > endOfExpiryDate) {
-        const updatedFields = {
-          accountType: 'public',
-          isPro: false,
-          tier: 'public'
-        };
-        try {
-          await updateDoc(doc(db, "users", uid), updatedFields);
-          try {
-            logAction(uid, 'SUBSCRIPTION_EXPIRED', { expiredAt: expiryDate.toISOString() });
-          } catch (logErr) {
-            console.error("Logger error:", logErr);
-          }
-          return { ...data, ...updatedFields };
-        } catch (err) {
-          console.error("Error auto-downgrading expired subscription:", err);
-        }
-      }
+    if (!isSubscriptionExpired(data)) return data;
+    if (getRawTier(data) === 'free') return data;
+
+    try {
+      logAction(uid, 'SUBSCRIPTION_EXPIRED', {
+        expiredAt: getSubscriptionEnd(data)?.toISOString() || null
+      });
+    } catch (logErr) {
+      console.error("Logger error:", logErr);
     }
-    return data;
+
+    return { ...data, accountType: 'public', isPro: false, isPremium: false, tier: 'public' };
   };
 
   // 5. User datasini qayta Firestore dan yuklash (manual refresh uchun)
@@ -112,7 +104,7 @@ export function AuthProvider({ children }) {
     try {
       const docSnap = await getDoc(doc(db, "users", user.uid));
       if (docSnap.exists()) {
-        const processed = await processUserData(user.uid, docSnap.data());
+        const processed = processUserData(user.uid, docSnap.data());
         setUserData(processed);
       }
     } catch (e) {
@@ -175,7 +167,7 @@ export function AuthProvider({ children }) {
           setUserData(newUserData);
           logAction(user.uid, 'USER_REGISTER', { email: user.email, method: 'google_popup' });
         } else {
-          const processed = await processUserData(user.uid, docSnap.data());
+          const processed = processUserData(user.uid, docSnap.data());
           setUserData(processed);
           logAction(user.uid, 'USER_LOGIN', { email: user.email, method: 'google_popup' });
         }
@@ -212,7 +204,7 @@ export function AuthProvider({ children }) {
           }
 
           if (docSnap.exists()) {
-            const processed = await processUserData(currentUser.uid, docSnap.data());
+            const processed = processUserData(currentUser.uid, docSnap.data());
             setUserData(processed);
             setLoading(false);
           } else {
@@ -253,7 +245,7 @@ export function AuthProvider({ children }) {
                 try {
                   const retrySnap = await getDoc(doc(db, "users", currentUser.uid));
                   if (retrySnap.exists()) {
-                    const processed = await processUserData(currentUser.uid, retrySnap.data());
+                    const processed = processUserData(currentUser.uid, retrySnap.data());
                     setUserData(processed);
                     found = true;
                     break;

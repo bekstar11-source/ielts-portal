@@ -60,8 +60,11 @@ export default function StudentDashboard() {
         const isListening = type.includes('listening') || test.title?.toLowerCase().includes('listening');
         const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;
 
-        if (limitTarget && !checkLimit(limitTarget)) {
-            dashboard.setLimitType?.(limitTarget); // Note: setLimitType might need to be added to hook if needed
+        if (limitTarget && !checkLimit(limitTarget, test)) {
+            // Ilgari bu yerda mavjud bo'lmagan `setLimitType?.()` chaqirilardi:
+            // optional-call jim o'tib ketar, foydalanuvchi "Boshlash"ni bosganda
+            // hech narsa sodir bo'lmasdi. Endi tarif oynasi ochiladi.
+            dashboard.setShowPricingModal(true);
             return;
         }
         dashboard.handleStartTest(test);

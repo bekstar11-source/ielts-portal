@@ -16,6 +16,7 @@ const { getSanitizedTest } = require("./getSanitizedTest");
 const { submitTestAnswers } = require("./submitTestAnswers");
 const { submitMockExam } = require("./submitMockExam");
 const { shareTest } = require("./shareTest");
+const { expireSubscriptions } = require("./expireSubscriptions");
 
 exports.transcribePodcast = functions
     .runWith({ timeoutSeconds: 300, memory: "512MB" })
@@ -135,6 +136,8 @@ exports.sharePodcast = functions
 exports.shareTest = functions
     .runWith({ timeoutSeconds: 60, memory: "256MB" })
     .https.onRequest(shareTest);
+
+exports.expireSubscriptions = expireSubscriptions;
 
 exports.telegramWebhook = telegramWebhook;
 exports.verifyTelegramOTP = verifyTelegramOTP;

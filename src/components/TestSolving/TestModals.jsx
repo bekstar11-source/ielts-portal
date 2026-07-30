@@ -7,6 +7,7 @@ import PricingModal from '../dashboard/PricingModal';
 import { useTranslation } from '../../context/LanguageContext';
 import DetailedAnswersModal from '../TestReview/DetailedAnswersModal';
 import { Play, RefreshCcw, GraduationCap, Headphones } from 'lucide-react';
+import { getTier, canAccessPremiumContent } from '../../utils/subscription';
 
 // ──────────────────────────────────────────────
 // NOTE: useAudioPreloader hook REMOVED to fix bandwidth issue.
@@ -114,12 +115,12 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
     const [showPricingModal, setShowPricingModal] = useState(false);
     const [showDetailedAnswers, setShowDetailedAnswers] = useState(false);
 
-    // Check if user is standard or pro (or premium/admin/teacher)
-    const isPro = userData?.accountType === 'pro' || userData?.isPro;
-    const isStandard = userData?.accountType === 'standard' || userData?.isStandard;
-    const isPremium = userData?.accountType === 'premium' || userData?.isPremium || userData?.role === 'admin' || userData?.role === 'teacher';
-    
-    const canReview = isPro || isStandard || isPremium;
+    // Tarif — yagona manbadan, obuna muddati bilan (utils/subscription)
+    const tier = getTier(userData);
+    const isPro = tier === 'pro';
+    const isStandard = tier === 'standard';
+
+    const canReview = canAccessPremiumContent(userData);
 
     const timeSpent = testMode === 'practice' ? timeLeft : Math.max(0, (initialDuration || (test.duration || 60) * 60) - timeLeft);
 

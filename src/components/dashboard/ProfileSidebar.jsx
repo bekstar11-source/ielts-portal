@@ -1,5 +1,10 @@
 import React from 'react';
 import { useTranslation } from '../../context/LanguageContext';
+import {
+    hasActiveSubscription,
+    getSubscriptionEnd,
+    getTierLabel
+} from '../../utils/subscription';
 
 export default function ProfileSidebar({ 
     user, 
@@ -21,30 +26,18 @@ export default function ProfileSidebar({
     const myAvatar = userData?.photoURL || user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80";
 
     const getSubscriptionStatus = () => {
-        const isPremium = userData?.accountType === 'pro' || userData?.accountType === 'standard' || userData?.isPro;
-        if (!isPremium) return { label: 'Bepul tarif', expiry: null };
+        // Muddati o'tgan obuna endi shu yerda ham "Bepul tarif" ko'rinadi.
+        if (!hasActiveSubscription(userData)) return { label: 'Bepul tarif', expiry: null };
 
-        const tierLabel = userData?.accountType === 'pro' ? 'PRO obuna' : 'Standard obuna';
-        
+        const dateObj = getSubscriptionEnd(userData);
         let expiryDate = null;
-        if (userData?.subscriptionEnd) {
-            try {
-                const dateObj = userData.subscriptionEnd.seconds 
-                    ? new Date(userData.subscriptionEnd.seconds * 1000) 
-                    : new Date(userData.subscriptionEnd);
-                
-                if (!isNaN(dateObj.getTime())) {
-                    const day = String(dateObj.getDate()).padStart(2, '0');
-                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                    const year = dateObj.getFullYear();
-                    expiryDate = `${day}.${month}.${year}`;
-                }
-            } catch (e) {
-                console.error("Error parsing subscriptionEnd date:", e);
-            }
+        if (dateObj) {
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            expiryDate = `${day}.${month}.${dateObj.getFullYear()}`;
         }
-        
-        return { label: tierLabel, expiry: expiryDate };
+
+        return { label: getTierLabel(userData), expiry: expiryDate };
     };
 
     const sub = getSubscriptionStatus();

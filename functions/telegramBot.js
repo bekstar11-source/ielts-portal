@@ -2,16 +2,51 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
-// Yangi API Token
-const TELEGRAM_TOKEN = "8622410650:AAE1qXWWncsD9aOrOXzeE4aA37hhIOwkU0s";
+// ⚠️ Token endi kod ichida SAQLANMAYDI. Deploydan oldin sozlang:
+//   firebase functions:config:set telegram.token="<BOTFATHER_TOKEN>" \
+//                                 telegram.admin_chat_id="66049218" \
+//                                 telegram.webhook_secret="<random>"
+// (yoki TELEGRAM_TOKEN / TELEGRAM_ADMIN_CHAT_ID / TELEGRAM_WEBHOOK_SECRET env)
+// Eski token git tarixida ochiq qolgani uchun BotFather'da revoke qilinishi shart.
+let cfg = {};
+try {
+  // Legacy runtime config (Google uni to'xtatdi) — bo'lsa ishlatamiz, bo'lmasa .env
+  cfg = (functions.config && functions.config().telegram) || {};
+} catch (e) {
+  cfg = {};
+}
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || cfg.token || "";
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
+const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || cfg.webhook_secret || "";
 
-// Admin ID
-let ADMIN_CHAT_ID = "66049218";
+// Admin ID — faqat konfiguratsiyadan. Firestore'dagi `config/telegram` hujjati
+// endi buni O'ZGARTIRA OLMAYDI (ilgari istalgan odam /admin_info yozib
+// barcha to'lov tasdiqlash tugmalarini o'ziga o'tkazib olardi).
+const ADMIN_CHAT_ID = String(
+  process.env.TELEGRAM_ADMIN_CHAT_ID || cfg.admin_chat_id || "66049218"
+);
+
+function isAdminChat(chatId) {
+  return String(chatId) === ADMIN_CHAT_ID;
+}
+
+// O'qituvchi guruh obunalari (src/pages/teacher/TeacherSubscription.jsx bilan mos)
+const TEACHER_TIERS = {
+  tier_10: { name: "Kichik Guruh", maxStudents: 10, price: 500000 },
+  tier_20: { name: "O'rta Guruh", maxStudents: 20, price: 1000000 },
+  tier_30: { name: "Katta Guruh", maxStudents: 30, price: 1500000 }
+};
 
 exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
   if (req.method !== "POST") {
     return res.status(200).send("OK");
+  }
+
+  // Telegram webhook'ni faqat Telegram chaqirayotganiga ishonch hosil qilamiz
+  // (setWebhook ... secret_token=<WEBHOOK_SECRET> bilan o'rnatilishi kerak).
+  if (WEBHOOK_SECRET && req.get("X-Telegram-Bot-Api-Secret-Token") !== WEBHOOK_SECRET) {
+    console.warn("Rejected webhook call with invalid secret token");
+    return res.status(401).send("Unauthorized");
   }
 
   const update = req.body;
@@ -28,15 +63,6 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
   const document = message ? message.document : null;
 
   try {
-    // Load dynamic admin chat ID from Firestore
-    try {
-      const configSnap = await admin.firestore().collection("config").doc("telegram").get();
-      if (configSnap.exists && configSnap.data().adminChatId) {
-        ADMIN_CHAT_ID = configSnap.data().adminChatId.toString();
-      }
-    } catch (err) {
-      console.error("Error loading ADMIN_CHAT_ID config:", err);
-    }
     // 1. Callback Query handle (Tugmalar bosilganda)
     if (callbackQuery) {
       await handleCallback(chatId, callbackQuery);
@@ -79,23 +105,23 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
     else if (photo || (document && document.mime_type && document.mime_type.startsWith("image/"))) {
       await handleScreenshot(chatId, photo, document, message.from);
     }
-    // 5. Admin uchun ID sini bilish
+    // 5. Chat ID ni ko'rsatish (faqat ma'lumot uchun — hech narsani o'zgartirmaydi).
+    // Admin chat ID ni almashtirish endi faqat `functions:config:set` orqali.
     else if (text === "/admin_info") {
-      try {
-        await admin.firestore().collection("config").doc("telegram").set({
-          adminChatId: chatId.toString()
-        }, { merge: true });
-        await sendMessage(chatId, `Sizning Chat ID: <code>${chatId}</code>\nTizimda muvaffaqiyatli saqlandi! Endi barcha to'lov bildirishnomalari sizga keladi.`);
-      } catch (err) {
-        await sendMessage(chatId, `Sizning Chat ID: <code>${chatId}</code>\nUni functions/telegramBot.js dagi ADMIN_CHAT_ID ga yozib qo'ying.`);
-      }
+      await sendMessage(
+        chatId,
+        `Sizning Chat ID: <code>${chatId}</code>\n\n` +
+        (isAdminChat(chatId)
+          ? "✅ Siz admin sifatida ro'yxatdan o'tgansiz."
+          : "ℹ️ Adminni almashtirish uchun: <code>firebase functions:config:set telegram.admin_chat_id=\"" + chatId + "\"</code>")
+      );
     }
     // 6. Kontakt ulashilganda (Auth uchun)
     else if (contact) {
       await handleAuthContact(chatId, contact);
     }
     // 7. Admin xabar yuborishi (Reply state)
-    else if (text && chatId.toString() === ADMIN_CHAT_ID) {
+    else if (text && isAdminChat(chatId)) {
       const adminStateDoc = await admin.firestore().collection("admin_states").doc(chatId.toString()).get();
       if (adminStateDoc.exists) {
         const state = adminStateDoc.data();
@@ -122,10 +148,21 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
   }
 });
 
+// Faqat admin bosishi mumkin bo'lgan tugmalar.
+const ADMIN_ONLY_CALLBACKS = ["approve_", "ap_mock_", "ap_teach_", "ask_reply_"];
+
 // Callback handle (Tugmalar)
 async function handleCallback(chatId, query) {
   const data = query.data;
-  
+
+  // ⚠️ Tasdiqlash tugmalari — pul beradigan amallar. Xabar boshqa chatga
+  // ko'chirilgan yoki callback qo'lda yuborilgan holatlarda ham himoyalanadi.
+  if (ADMIN_ONLY_CALLBACKS.some(prefix => data.startsWith(prefix)) && !isAdminChat(chatId)) {
+    console.warn(`Non-admin chat ${chatId} tried admin callback: ${data}`);
+    await answerCallbackQuery(query.id, "Bu amal faqat admin uchun.");
+    return;
+  }
+
   if (data === "show_prices") {
     const msg = "📊 <b>Tariflar va Narxlar:</b>\n\n" +
       "🔹 <b>Standard:</b>\n" +
@@ -145,20 +182,13 @@ async function handleCallback(chatId, query) {
   }
   else if (data.startsWith("ap_mock_")) {
     const mockId = data.slice(8); // Extract mock ID directly
-    
-    // Parse student details from caption
-    const caption = query.message.caption || "";
-    const userMatch = caption.match(/User ID:(?:<\/b>)?\s*(?:<code>)?\s*([^\s<]+)/i);
-    const chatMatch = caption.match(/Student Chat ID:(?:<\/b>)?\s*(?:<code>)?\s*([^\s<]+)/i);
-    
-    const studentUserId = userMatch ? userMatch[1] : null;
-    const studentChatId = chatMatch ? chatMatch[1] : null;
 
+    const { studentUserId, studentChatId } = parseStudentFromCaption(query.message.caption);
     if (!studentUserId || !studentChatId) {
-      await sendMessage(chatId, "❌ Xatolik: O'quvchi ma'lumotlarini caption'dan o'qib bo'lmadi.");
+      await sendMessage(chatId, "❌ Xatolik: O'quvchi ma'lumotlarini caption'dan o'qib bo'lmadi (ehtimol, bu chek allaqachon qayta ishlangan).");
       return;
     }
-    
+
     try {
       // 1. Fetch mock metadata from Firestore
       const mockDoc = await admin.firestore().collection("tests_metadata").doc(mockId).get();
@@ -188,9 +218,20 @@ async function handleCallback(chatId, query) {
 
       // 3. Add to user's mockTests array in firestore
       const userRef = admin.firestore().collection("users").doc(studentUserId);
+      const userSnap = await userRef.get();
+      if (!userSnap.exists) {
+        throw new Error(`Foydalanuvchi topilmadi: ${studentUserId}`);
+      }
       await userRef.update({
         mockTests: admin.firestore.FieldValue.arrayUnion(mockAssignment)
       });
+
+      // To'lov sessiyasini yopamiz (keyingi chek eski tanlov bilan aralashmasligi uchun)
+      await admin.firestore().collection("payment_sessions").doc(studentChatId).set({
+        status: "approved",
+        approvedMockId: mockId,
+        approvedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
 
       // 4. Notify Student
       await sendMessage(studentChatId, `🎉 <b>Mock to'lovingiz tasdiqlandi!</b>\n\nSizga <b>${mockData.title}</b> mock imtihoni ochildi. Saytga kirib "Mock Exams" bo'limida uni topshirishingiz mumkin.`);
@@ -202,45 +243,140 @@ async function handleCallback(chatId, query) {
       await sendMessage(chatId, "❌ Xatolik yuz berdi: " + err.message);
     }
   }
-  else if (data.startsWith("approve_")) {
-    // approve_tier_studentChatId_studentUserId
-    const parts = data.split("_");
-    const tier = parts[1];
-    const studentChatId = parts[2];
-    const studentUserId = parts.slice(3).join("_");
-    
+  else if (data.startsWith("ap_teach_")) {
+    // O'qituvchi guruh obunasini tasdiqlash
+    const tierId = data.slice("ap_teach_".length);
+    const tierInfo = TEACHER_TIERS[tierId];
+    if (!tierInfo) {
+      await sendMessage(chatId, "❌ Noma'lum o'qituvchi tarifi: " + tierId);
+      return;
+    }
+
+    const { studentUserId, studentChatId } = parseStudentFromCaption(query.message.caption);
+    if (!studentUserId || !studentChatId) {
+      await sendMessage(chatId, "❌ Xatolik: Foydalanuvchi ma'lumotlarini caption'dan o'qib bo'lmadi.");
+      return;
+    }
+
     try {
-      // Get billing info from payment_sessions to determine duration
-      const sessionDoc = await admin.firestore().collection("payment_sessions").doc(studentChatId).get();
-      let billingDays = 30; // default 30 days (1 month)
-      if (sessionDoc.exists) {
-        const sessionData = sessionDoc.data();
-        if (sessionData && sessionData.billing === "tri") {
-          billingDays = 90; // 90 days (3 months)
-        }
+      const db = admin.firestore();
+      const userRef = db.collection("users").doc(studentUserId);
+      const userSnap = await userRef.get();
+      if (!userSnap.exists) {
+        throw new Error(`Foydalanuvchi topilmadi: ${studentUserId}`);
       }
 
-      const subscriptionStart = admin.firestore.FieldValue.serverTimestamp();
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + billingDays);
-      const subscriptionEnd = admin.firestore.Timestamp.fromDate(endDate);
+      // Amaldagi obuna ustiga qo'shamiz
+      const current = userSnap.data().teacherSubscription;
+      const currentEnd = current && current.validUntil ? new Date(current.validUntil) : null;
+      const base = currentEnd && currentEnd > new Date() ? new Date(currentEnd) : new Date();
+      base.setMonth(base.getMonth() + 1);
+
+      await userRef.update({
+        teacherSubscription: {
+          tierId: tierId,
+          tier: tierInfo.name,
+          maxStudents: tierInfo.maxStudents,
+          price: tierInfo.price,
+          validUntil: base.toISOString()
+        }
+      });
+
+      await db.collection("payment_sessions").doc(studentChatId).set({
+        status: "approved",
+        approvedTeacherTier: tierId,
+        approvedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      const endText = base.toLocaleDateString("uz-UZ");
+      await sendMessage(studentChatId, `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\n<b>${tierInfo.name}</b> obunasi faollashtirildi (${tierInfo.maxStudents} tagacha o'quvchi).\n📅 <b>Muddat:</b> ${endText} gacha.`);
+      await editMessageText(chatId, query.message.message_id, `✅ <b>O'QITUVCHI OBUNASI TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nTarif: <b>${tierInfo.name}</b>\nMuddat: <b>${endText}</b>`);
+    } catch (err) {
+      console.error("Teacher Promotion Error:", err);
+      await sendMessage(chatId, "❌ Xatolik yuz berdi: " + err.message);
+    }
+  }
+  else if (data.startsWith("approve_")) {
+    // callback_data = `approve_{tier}`. Ilgari chatId va uid ham shu yerga
+    // tiqilardi — Telegram'ning 64 baytlik chegarasiga urilib, uzun uid'larda
+    // tugma umuman ishlamay qolardi. Endi ular caption'dan o'qiladi (ap_mock_ kabi).
+    const tier = data.slice("approve_".length);
+    if (tier !== "pro" && tier !== "standard") {
+      await sendMessage(chatId, "❌ Noma'lum tarif: " + tier);
+      return;
+    }
+
+    const { studentUserId, studentChatId } = parseStudentFromCaption(query.message.caption);
+    if (!studentUserId || !studentChatId) {
+      await sendMessage(chatId, "❌ Xatolik: O'quvchi ma'lumotlarini caption'dan o'qib bo'lmadi (ehtimol, bu chek allaqachon qayta ishlangan).");
+      return;
+    }
+
+    try {
+      const db = admin.firestore();
+      const sessionRef = db.collection("payment_sessions").doc(studentChatId);
+      const userRef = db.collection("users").doc(studentUserId);
+
+      // Get billing info from payment_sessions to determine duration
+      const sessionDoc = await sessionRef.get();
+      const sessionData = sessionDoc.exists ? sessionDoc.data() : null;
+
+      // Sessiya boshqa foydalanuvchiga tegishli bo'lsa — to'xtatamiz
+      // (chat egasi almashgan yoki eski sessiya qolib ketgan holat).
+      if (sessionData && sessionData.userId && sessionData.userId !== studentUserId) {
+        await sendMessage(chatId, `⚠️ Bekor qilindi: sessiyadagi foydalanuvchi (<code>${sessionData.userId}</code>) tugmadagidan (<code>${studentUserId}</code>) farq qiladi.`);
+        return;
+      }
+      if (sessionData && sessionData.status === "approved") {
+        await sendMessage(chatId, "⚠️ Bu to'lov allaqachon tasdiqlangan (takroriy bosish e'tiborsiz qoldirildi).");
+        return;
+      }
+
+      const billingDays = sessionData && sessionData.billing === "tri" ? 90 : 30;
+
+      const userSnap = await userRef.get();
+      if (!userSnap.exists) {
+        await sendMessage(chatId, `❌ Foydalanuvchi topilmadi: <code>${studentUserId}</code>. O'quvchi avval saytga kirishi kerak.`);
+        return;
+      }
+
+      // Amaldagi obuna ustiga QO'SHAMIZ. Ilgari muddat har safar bugundan
+      // qayta boshlanardi va qolgan kunlar yonib ketardi.
+      const currentEnd = userSnap.data().subscriptionEnd;
+      const currentEndDate =
+        currentEnd && typeof currentEnd.toDate === "function" ? currentEnd.toDate() : null;
+      const base = currentEndDate && currentEndDate > new Date() ? new Date(currentEndDate) : new Date();
+      base.setDate(base.getDate() + billingDays);
+      const subscriptionEnd = admin.firestore.Timestamp.fromDate(base);
 
       // Update User in Firestore
-      await admin.firestore().collection("users").doc(studentUserId).update({
+      await userRef.update({
         tier: tier, // pro or standard
         accountType: tier, // for backward compatibility and header checks
         isPro: tier === "pro",
-        subscriptionStart: subscriptionStart,
+        // Legacy bayroqlar tozalanadi, aks holda ular muddatdan qat'i nazar ruxsat berardi
+        isPremium: admin.firestore.FieldValue.delete(),
+        subscriptionStart: admin.firestore.FieldValue.serverTimestamp(),
         subscriptionEnd: subscriptionEnd
       });
+
+      // Sessiyani yopamiz — aks holda keyingi chek eski `billing` bilan o'qilardi.
+      if (sessionDoc.exists) {
+        await sessionRef.set({
+          status: "approved",
+          approvedTier: tier,
+          approvedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
 
       // Notify Student
       const tierName = tier === "pro" ? "Pro 🔥" : "Standard ✅";
       const periodName = billingDays === 90 ? "3 oylik" : "1 oylik";
-      await sendMessage(studentChatId, `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\nSizda <b>${periodName} ${tierName}</b> tarifi faollashtirildi. Endi platformaning barcha imkoniyatlaridan foydalanishingiz mumkin.`);
-      
+      const endText = base.toLocaleDateString("uz-UZ");
+      await sendMessage(studentChatId, `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\nSizda <b>${periodName} ${tierName}</b> tarifi faollashtirildi.\n📅 <b>Amal qilish muddati:</b> ${endText} gacha.`);
+
       // Update Admin Message
-      await editMessageText(chatId, query.message.message_id, `✅ <b>TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nTarif: <b>${tierName} (${periodName})</b>\nStatus: Yakunlandi.`);
+      await editMessageText(chatId, query.message.message_id, `✅ <b>TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nTarif: <b>${tierName} (${periodName})</b>\nMuddat: <b>${endText}</b>\nStatus: Yakunlandi.`);
     } catch (err) {
       console.error("Promotion Error:", err);
       await sendMessage(chatId, "❌ Xatolik yuz berdi: " + err.message);
@@ -277,7 +413,36 @@ async function sendAuthCodePrompt(chatId) {
   await sendMessage(chatId, msg, keyboard);
 }
 
-// Edit message helper
+// Callback query'ga javob (Telegram'dagi "soat"ni to'xtatadi)
+async function answerCallbackQuery(callbackQueryId, text) {
+  try {
+    await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text: text || "",
+        show_alert: Boolean(text)
+      })
+    });
+  } catch (err) {
+    console.error("answerCallbackQuery error:", err);
+  }
+}
+
+/** Adminga yuborilgan chek caption'idan o'quvchi ma'lumotlarini o'qiydi. */
+function parseStudentFromCaption(caption) {
+  const text = caption || "";
+  const userMatch = text.match(/User ID:(?:<\/b>)?\s*(?:<code>)?\s*([^\s<]+)/i);
+  const chatMatch = text.match(/Student Chat ID:(?:<\/b>)?\s*(?:<code>)?\s*([^\s<]+)/i);
+  return {
+    studentUserId: userMatch ? userMatch[1] : null,
+    studentChatId: chatMatch ? chatMatch[1] : null
+  };
+}
+
+// Edit message helper — caption'ni yangilaydi va tugmalarni olib tashlaydi,
+// shunda bir chek ikki marta tasdiqlanmaydi.
 async function editMessageText(chatId, messageId, text) {
   await fetch(`${TELEGRAM_API}/editMessageCaption`, {
     method: "POST",
@@ -286,7 +451,8 @@ async function editMessageText(chatId, messageId, text) {
       chat_id: chatId,
       message_id: messageId,
       caption: text,
-      parse_mode: "HTML"
+      parse_mode: "HTML",
+      reply_markup: { inline_keyboard: [] }
     })
   });
 }
@@ -351,6 +517,40 @@ async function handlePaymentStart(chatId, userId, planId, billing) {
     return;
   }
 
+  // O'qituvchi guruh obunasi: start=UID_teacher_tier-10 ("_" ajratgich bo'lgani
+  // uchun klient tarif ID sini "tier-10" ko'rinishida yuboradi).
+  if (planId === "teacher") {
+    const teacherTierId = String(billing).replace(/-/g, "_");
+    const tierInfo = TEACHER_TIERS[teacherTierId];
+    if (!tierInfo) {
+      await sendMessage(chatId, "❌ <b>Bunday o'qituvchi tarifi topilmadi.</b>");
+      return;
+    }
+
+    await admin.firestore().collection("payment_sessions").doc(chatId.toString()).set({
+      userId,
+      planId: "teacher",
+      teacherTier: teacherTierId,
+      maxStudents: tierInfo.maxStudents,
+      price: tierInfo.price,
+      status: "pending",
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    await sendMessage(chatId,
+      `💳 <b>TO'LOV MA'LUMOTLARI (O'QITUVCHI OBUNASI)</b>\n\n` +
+      `📦 <b>Tarif:</b> ${tierInfo.name} (${tierInfo.maxStudents} tagacha o'quvchi)\n` +
+      `💰 <b>Summa:</b> ${new Intl.NumberFormat("uz-UZ").format(tierInfo.price)} so'm\n` +
+      `🗓 <b>Muddat:</b> 1 oy\n\n` +
+      `--------------------------\n` +
+      `🏛 <b>Karta:</b> <code>8600 0529 2812 2652</code>\n` +
+      `👤 <b>Ega:</b> Aslbek Jo'raboyev\n` +
+      `--------------------------\n\n` +
+      `📝 To'lov chekini (screenshot) shu botga yuboring — admin tasdiqlagach obuna faollashadi.`
+    );
+    return;
+  }
+
   const prices = {
     standard_monthly: "35 000", standard_tri: "89 000",
     pro_monthly: "49 000", pro_tri: "129 000"
@@ -399,10 +599,17 @@ async function handleScreenshot(chatId, photoArray, documentObj, from) {
   let session = null;
   let userId = null;
 
-  if (sessionDoc.exists) {
-    session = sessionDoc.data();
-    userId = session.userId;
-  } else {
+  const sessionData = sessionDoc.exists ? sessionDoc.data() : null;
+
+  // Allaqachon tasdiqlangan sessiya "eski tanlov" hisoblanadi — uni tarif
+  // sifatida ko'rsatib adminni chalg'itmaymiz (foydalanuvchi yangi to'lov uchun
+  // saytdan qayta link ochishi kerak), lekin userId sifatida ishlatsa bo'ladi.
+  if (sessionData && sessionData.status !== "approved") {
+    session = sessionData;
+  }
+  userId = (sessionData && sessionData.userId) || null;
+
+  if (!userId) {
     // Try to find user by telegram ID
     const userDoc = await admin.firestore().collection("users").doc(`telegram_${chatId}`).get();
     if (userDoc.exists) {
@@ -426,6 +633,11 @@ async function handleScreenshot(chatId, photoArray, documentObj, from) {
       const formattedPrice = new Intl.NumberFormat("uz-UZ").format(session.price);
       adminMsg += `📦 <b>Tanlangan:</b> ${session.mockTitle}\n` +
         `💰 <b>Summa:</b> ${formattedPrice} so'm\n`;
+    } else if (session.planId === "teacher") {
+      const tierInfo = TEACHER_TIERS[session.teacherTier] || {};
+      adminMsg += `📦 <b>Tanlangan:</b> O'qituvchi obunasi — ${tierInfo.name || session.teacherTier}\n` +
+        `👥 <b>Limit:</b> ${session.maxStudents} o'quvchi\n` +
+        `💰 <b>Summa:</b> ${new Intl.NumberFormat("uz-UZ").format(session.price)} so'm\n`;
     } else {
       adminMsg += `📦 <b>Tanlangan:</b> ${session.planId} (${session.billing})\n` +
         `💰 <b>Summa:</b> ${session.price} so'm\n`;
@@ -438,10 +650,21 @@ async function handleScreenshot(chatId, photoArray, documentObj, from) {
 
   const inlineKeyboard = [
     [
-      { text: "✅ Standard", callback_data: `approve_standard_${chatId}_${userId}` },
-      { text: "🔥 Pro", callback_data: `approve_pro_${chatId}_${userId}` }
+      // Student ID/chat ID caption'dan o'qiladi (callback_data 64 bayt bilan cheklangan)
+      { text: "✅ Standard", callback_data: "approve_standard" },
+      { text: "🔥 Pro", callback_data: "approve_pro" }
     ]
   ];
+
+  if (session && session.planId === "teacher") {
+    const tierInfo = TEACHER_TIERS[session.teacherTier] || {};
+    inlineKeyboard.unshift([
+      {
+        text: `👨‍🏫 O'qituvchi: ${tierInfo.name || session.teacherTier}`,
+        callback_data: `ap_teach_${session.teacherTier}`
+      }
+    ]);
+  }
 
   // Fetch all mock tests to list as buttons
   try {

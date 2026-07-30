@@ -29,6 +29,7 @@ import FullReadingCard from "../../components/practice/FullReadingCard";
 import ReadingSetCard from "../../components/practice/ReadingSetCard";
 import { usePracticeScroll } from "../../hooks/usePracticeScroll";
 import { qTypeMatchesSelected, getPassageNum } from "../../utils/TestUtils";
+import { getTier, isStaff, canAccessPremiumContent } from '../../utils/subscription';
 
 // Categories
 const categories = [
@@ -53,10 +54,11 @@ export default function Practice() {
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'reading');
   const [searchQuery, setSearchQuery] = useState("");
   
-  const isPro = userData?.accountType === 'pro' || userData?.isPro;
-  const isStandard = userData?.accountType === 'standard';
-  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
-                    userData?.role === 'admin' || userData?.role === 'teacher';
+  // Tarif obuna MUDDATI bilan hisoblanadi (utils/subscription)
+  const tier = getTier(userData);
+  const isPro = tier === 'pro' || isStaff(userData);
+  const isStandard = tier === 'standard';
+  const isPremium = canAccessPremiumContent(userData);
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("all"); // 'all', 'completed', 'not_completed'
   const [selectedPassages, setSelectedPassages] = useState([]); // [1, 2, 3]
@@ -321,7 +323,7 @@ export default function Practice() {
     
     const limitTarget = isReading ? 'reading' : isListening ? 'listening' : null;
     
-    if (limitTarget && !checkLimit(limitTarget)) {
+    if (limitTarget && !checkLimit(limitTarget, test)) {
       setLimitType(limitTarget);
       setShowPricingModal(true);
       return;

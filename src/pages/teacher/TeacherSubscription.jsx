@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebase/firebase';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { ArrowLeft, Users, Zap, CheckCircle2, AlertCircle, Crown, Shield, CreditCard } from 'lucide-react';
 
 export default function TeacherSubscription() {
@@ -54,33 +54,20 @@ export default function TeacherSubscription() {
         }
     };
 
-    const handleSubscribe = async (tier, maxStudents, price) => {
+    // ⚠️ Ilgari bu funksiya to'g'ridan-to'g'ri `teacherSubscription` maydonini
+    // yozardi — ya'ni 1.5 mln so'mlik tarif bir marta bosishda, hech qanday
+    // to'lovsiz faollashardi. Endi o'quvchilar tarifi bilan bir xil oqim:
+    // Telegram bot → chek → admin tasdiqlaydi → Admin SDK yozadi.
+    const handleSubscribe = (tierId) => {
         if (!user) return;
         setActionLoading(true);
         setMessage('');
-
         try {
-            // Calculate validity (1 month from now)
-            const validUntil = new Date();
-            validUntil.setMonth(validUntil.getMonth() + 1);
-
-            await updateDoc(doc(db, 'users', user.uid), {
-                teacherSubscription: {
-                    tier,
-                    maxStudents,
-                    price,
-                    validUntil: validUntil.toISOString()
-                }
-            });
-            
-            // In a real app, this would redirect to a payment gateway first.
-            // Since there's no real payment integrated, we mock the success.
-            setMessage('✅ Obuna muvaffaqiyatli faollashtirildi! Sahifa yangilanmoqda...');
-            
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
-            
+            // Bot payload'i "_" bo'yicha bo'linadi (UID_PLAN_BILLING), shuning uchun
+            // tarif ID sidagi "_" ni "-" ga almashtiramiz: tier_10 → tier-10.
+            const params = `${user.uid}_teacher_${tierId.replace(/_/g, '-')}`;
+            window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, '_blank');
+            setMessage("💬 Telegram bot ochildi. To'lov chekini yuborganingizdan so'ng admin obunani faollashtiradi.");
         } catch (error) {
             console.error("Subscription error:", error);
             setMessage('❌ Xatolik yuz berdi. Iltimos, qayta urinib ko\'ring.');
@@ -260,12 +247,12 @@ export default function TeacherSubscription() {
 
                                     <button 
                                         disabled={actionLoading}
-                                        onClick={() => handleSubscribe(tier.name, tier.maxStudents, tier.priceNum)}
+                                        onClick={() => handleSubscribe(tier.id)}
                                         className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 
                                         bg-gradient-to-r ${tier.color} hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
                                         <CreditCard size={18} />
-                                        Sotib Olish
+                                        To'lov qilish
                                     </button>
                                 </div>
                             </div>

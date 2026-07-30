@@ -37,6 +37,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getTier, canAccessPremiumContent } from '../../utils/subscription';
 
 export default function DashboardHeader({ 
   user, 
@@ -304,10 +305,12 @@ export default function DashboardHeader({
     );
   };
 
-  const isPro = userData?.accountType === 'pro' || userData?.isPro;
-  const isStandard = userData?.accountType === 'standard';
-  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
-                    userData?.role === 'admin' || userData?.role === 'teacher';
+  // Tarif obuna MUDDATI bilan hisoblanadi (utils/subscription) — ilgari
+  // bu yerda faqat bayroqlar o'qilib, muddati o'tgan obuna ham amal qilardi.
+  const tier = getTier(userData);
+  const isPro = tier === 'pro';
+  const isStandard = tier === 'standard';
+  const isPremium = canAccessPremiumContent(userData);
 
   const isTabActive = (item) => {
     if (item.id === 'dashboard') {

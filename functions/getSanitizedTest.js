@@ -1,6 +1,7 @@
 // functions/getSanitizedTest.js
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const { getTier, isStaff, meetsTier } = require("./subscription");
 
 /**
  * Recursively removes all answer keys from the test structure.
@@ -36,22 +37,21 @@ async function checkEntitlement(db, uid, userData, testData, testId) {
         return true;
     }
 
-    const isPro = userData.accountType === 'pro' || userData.isPro === true;
-    const isStandard = userData.accountType === 'standard';
-    const isPremiumFlag = userData.isPremium === true || userData.accountType === 'premium';
-    const isStaff = userData.role === 'admin' || userData.role === 'teacher';
+    if (isStaff(userData)) return true;
 
-    if (isStaff) return true;
+    // ⚠️ `getTier` obuna MUDDATINI ham hisobga oladi. Ilgari bu yerda faqat
+    // `accountType`/`isPro` bayroqlari o'qilardi va muddat tugashi faqat
+    // klientda (AuthContext) tekshirilardi — ya'ni brauzer o'sha yozuvni
+    // bajarmasa, obuna abadiy amal qilaverardi.
+    const userTier = getTier(userData);
+    const requiredTier = testData.collectionAccessTier;
 
-    const tier = testData.collectionAccessTier;
-    if (tier === 'pro') {
-        if (isPro) return true;
-    } else if (tier === 'standard') {
-        if (isStandard || isPro) return true;
+    if (requiredTier === 'pro' || requiredTier === 'standard') {
+        if (meetsTier(userData, requiredTier)) return true;
     } else {
         const type = (testData.type || '').toLowerCase();
         if (type === 'reading' || type === 'listening') {
-            if (isPro || isStandard || isPremiumFlag) return true;
+            if (userTier !== 'free') return true;
         } else {
             // Writing/Speaking are not subscription-gated today.
             return true;

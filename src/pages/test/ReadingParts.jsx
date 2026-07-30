@@ -26,6 +26,7 @@ import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
 import PracticeCard from "../../components/practice/PracticeCard";
 import { deriveQuestionTypesForCard, qTypeMatchesSelected, getActualQuestionCount, getPassageNum } from "../../utils/TestUtils";
+import { getTier, isStaff, canAccessPremiumContent } from '../../utils/subscription';
 
 const categories = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
@@ -49,9 +50,11 @@ export default function ReadingParts() {
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
   const [freeOnly, setFreeOnly] = useState(false);
   
-  const isPro = userData?.accountType === 'pro' || userData?.isPro || userData?.role === 'admin' || userData?.role === 'teacher';
-  const isStandard = userData?.accountType === 'standard';
-  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
+  // Tarif obuna MUDDATI bilan hisoblanadi (utils/subscription)
+  const tier = getTier(userData);
+  const isPro = tier === 'pro' || isStaff(userData);
+  const isStandard = tier === 'standard';
+  const isPremium = canAccessPremiumContent(userData);
   const isAdminOrTeacher = userData?.role === 'admin' || userData?.role === 'teacher';
   
   const { assignments, loading, error: errorMsg, refresh } = useStudentData(user);
@@ -441,7 +444,7 @@ export default function ReadingParts() {
       setShowStartConfirm(true); 
       return;
     }
-    if (!checkLimit('reading')) {
+    if (!checkLimit('reading', test)) {
       setShowPricingModal(true);
       return;
     }

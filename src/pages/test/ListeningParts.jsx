@@ -23,6 +23,7 @@ import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
 import ListeningPartsSection from "../../components/practice/ListeningPartsSection";
 import { deriveQuestionTypesForCard, qTypeMatchesSelected } from "../../utils/TestUtils";
+import { getTier, isStaff, canAccessPremiumContent } from '../../utils/subscription';
 
 const categories = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
@@ -36,10 +37,11 @@ export default function ListeningParts() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isPro = userData?.accountType === 'pro' || userData?.isPro || userData?.role === 'admin' || userData?.role === 'teacher';
-  const isStandard = userData?.accountType === 'standard';
-  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
-                    userData?.role === 'admin' || userData?.role === 'teacher';
+  // Tarif obuna MUDDATI bilan hisoblanadi (utils/subscription)
+  const tier = getTier(userData);
+  const isPro = tier === 'pro' || isStaff(userData);
+  const isStandard = tier === 'standard';
+  const isPremium = canAccessPremiumContent(userData);
   const isAdminOrTeacher = userData?.role === 'admin' || userData?.role === 'teacher';
 
   const { checkLimit, incrementUsage } = useDailyLimit(userData);
@@ -418,7 +420,7 @@ export default function ListeningParts() {
       setShowStartConfirm(true); 
       return;
     }
-    if (!checkLimit('listening')) {
+    if (!checkLimit('listening', test)) {
       setShowPricingModal(true);
       return;
     }

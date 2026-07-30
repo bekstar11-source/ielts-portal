@@ -3,6 +3,7 @@ import { BookOpen, Headphones, PenTool, Mic, Clock, HelpCircle, Play, Check, Fol
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { ShineBorder } from '../ui/shine-border';
+import { canAccessPremiumContent, hasDirectAssignment, isAssignedItem } from '../../utils/subscription';
 
 // --- STYLES & VARIANTS ---
 const containerVariants = {
@@ -317,7 +318,10 @@ const TestCardContent = ({ test, onStart, onReview, isPremium, onUpgradeClick })
 
 export default function TestGrid({ loading, tests, onStartTest, onSelectSet, onReview, onUpgradeClick, errorMsg }) {
     const { userData } = useAuth();
-    const isIndividualUser = !userData?.groupId;
+    // ⚠️ Ilgari bu yerda faqat `!userData?.groupId` qaralardi — ya'ni PRO sotib
+    // olgan individual foydalanuvchi ham 3-testdan boshlab qulf ko'rardi.
+    // Endi haqiqiy (muddati amal qilayotgan) obuna hisobga olinadi.
+    const hasFullAccess = canAccessPremiumContent(userData);
 
     if (loading) return <div className="text-center py-20 text-gray-400 text-sm animate-pulse">Yuklanmoqda...</div>;
     if (errorMsg) return <div className="bg-red-500/10 text-red-400 p-4 rounded-xl mb-6 text-sm font-medium border border-red-500/20">{errorMsg}</div>;
@@ -331,8 +335,13 @@ export default function TestGrid({ loading, tests, onStartTest, onSelectSet, onR
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
         >
             {tests.map((test, index) => {
-                // Individual foydalanuvchilar uchun dastlabki 2 ta test bepul, qolganlari premium
-                const isPremium = isIndividualUser && index >= 2;
+                // Obunasi yo'q foydalanuvchilar uchun dastlabki 2 ta test bepul,
+                // qolganlari qulflangan. Biriktirilgan testlar hech qachon qulflanmaydi.
+                const isPremium =
+                    !hasFullAccess &&
+                    index >= 2 &&
+                    !isAssignedItem(test) &&
+                    !hasDirectAssignment(userData, test.id || test.testId);
 
                 if (test.isMock) {
                     return (

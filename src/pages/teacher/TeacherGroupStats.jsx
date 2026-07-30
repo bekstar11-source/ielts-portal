@@ -143,6 +143,23 @@ export default function TeacherGroupStats() {
 
     const handleAddStudent = async (studentId) => {
         if (!selectedGroup) return;
+
+        // O'qituvchi obunasidagi `maxStudents` limiti — ilgari faqat tarif
+        // kartochkasida yozib qo'yilgan edi, hech qayerda tekshirilmasdi.
+        const sub = userData?.teacherSubscription;
+        const subActive = sub && new Date(sub.validUntil) > new Date();
+        if (!subActive) {
+            alert("Faol guruh obunangiz yo'q. O'quvchi qo'shish uchun avval obuna xarid qiling.");
+            return;
+        }
+        const currentCount = new Set(
+            groups.flatMap(g => g.studentIds || [])
+        ).size;
+        if (!sub.maxStudents || currentCount >= sub.maxStudents) {
+            alert(`Tarif limiti to'ldi (${currentCount}/${sub.maxStudents}). Kattaroq tarifga o'ting.`);
+            return;
+        }
+
         try {
             const groupRef = doc(db, 'groups', selectedGroup);
             await updateDoc(groupRef, {

@@ -5,13 +5,12 @@ import {
     Calendar, Clock, FileText, ChevronRight, 
     User, Fingerprint, Building2, Monitor, MapPin
 } from 'lucide-react';
+import { canAccessPremiumContent } from '../../../utils/subscription';
 
 const MockTestCard = ({ test, tab, navigate, userData }) => {
     const { t, lang } = useTranslation();
-    const isPremium = userData?.isPremium || 
-                      userData?.isPro || 
-                      ['premium', 'pro', 'standard'].includes(userData?.accountType) || 
-                      ['admin', 'teacher'].includes(userData?.role);
+    // Obuna muddatini ham hisobga oladi (utils/subscription)
+    const isPremium = canAccessPremiumContent(userData);
 
     const handleReviewClick = () => {
         navigate(`/review/${test.resultId || test.id}`);

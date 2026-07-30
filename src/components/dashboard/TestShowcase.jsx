@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { ArrowRight, Star, Zap, Clock, ChevronRight, ChevronLeft, Crown } from 'lucide-react';
+import { canAccessPremiumContent, hasDirectAssignment, isAssignedItem } from '../../utils/subscription';
 
 const ShowcaseCard = ({ test, onStart, isPremium, onUpgradeClick }) => {
     const { user, userData } = useAuth();
@@ -107,7 +108,8 @@ const ShowcaseCard = ({ test, onStart, isPremium, onUpgradeClick }) => {
 
 export default function TestShowcase({ tests, onStartTest, onUpgradeClick }) {
     const { userData } = useAuth();
-    const isIndividualUser = !userData?.groupId;
+    // TestGrid bilan bir xil qoida: obuna muddati bilan hisoblanadi (guruh emas).
+    const hasFullAccess = canAccessPremiumContent(userData);
     const scrollRef = useRef(null);
 
     const scroll = (direction) => {
@@ -147,7 +149,11 @@ export default function TestShowcase({ tests, onStartTest, onUpgradeClick }) {
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                     {recommendedTests.map((test, i) => {
-                        const isPremium = isIndividualUser && i >= 2;
+                        const isPremium =
+                            !hasFullAccess &&
+                            i >= 2 &&
+                            !isAssignedItem(test) &&
+                            !hasDirectAssignment(userData, test.id || test.testId);
                         return (
                             <div key={i} className="snap-start">
                                 <ShowcaseCard 

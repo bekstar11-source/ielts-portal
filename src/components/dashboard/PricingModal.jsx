@@ -143,7 +143,17 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
 
                                     <button
                                         onClick={() => {
-                                            const params = `${user?.uid || 'guest'}_${plan.id}_${plan.billing}`;
+                                            // Ilgari bu yerda `'guest'` yuborilardi: bot `users/guest`
+                                            // hujjatiga yozmoqchi bo'lib xato berardi, pul esa
+                                            // to'langan bo'lardi. Endi avval tizimga kirishni so'raymiz.
+                                            if (!user?.uid) {
+                                                onClose?.();
+                                                navigate('/login', {
+                                                    state: { redirectTo: '/pricing', reason: 'subscription' }
+                                                });
+                                                return;
+                                            }
+                                            const params = `${user.uid}_${plan.id}_${plan.billing}`;
                                             window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, '_blank');
                                         }}
                                         className={`w-full py-2.5 rounded-lg font-bold text-[12px] transition-all flex items-center justify-center gap-1.5 group ${

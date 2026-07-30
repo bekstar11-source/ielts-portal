@@ -19,6 +19,7 @@ import DashboardModals from "../../components/dashboard/DashboardModals";
 import PricingModal from "../../components/dashboard/PricingModal";
 import SiteFooter from "../../components/common/SiteFooter";
 import { useDailyLimit } from "../../hooks/useDailyLimit";
+import { getTier, canAccessPremiumContent } from '../../utils/subscription';
 import BottomNav from "../../components/dashboard/BottomNav";
 
 // REFACTORED COMPONENTS
@@ -49,10 +50,12 @@ export default function ReadingFull() {
   const [showQuestionFilters, setShowQuestionFilters] = useState(false);
   const [freeOnly, setFreeOnly] = useState(false);
   
-  const isPro = userData?.accountType === 'pro' || userData?.isPro;
-  const isStandard = userData?.accountType === 'standard';
-  const isPremium = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium' ||
-                    userData?.role === 'admin' || userData?.role === 'teacher';
+  // Tarif obuna MUDDATI bilan hisoblanadi (utils/subscription) — ilgari
+  // bu yerda faqat bayroqlar o'qilib, muddati o'tgan obuna ham amal qilardi.
+  const tier = getTier(userData);
+  const isPro = tier === 'pro';
+  const isStandard = tier === 'standard';
+  const isPremium = canAccessPremiumContent(userData);
   
   const { assignments, userResults = [], loading, error: errorMsg, refresh } = useStudentData(user);
   
@@ -167,7 +170,7 @@ export default function ReadingFull() {
       setShowStartConfirm(true); 
       return;
     }
-    if (!checkLimit('reading')) {
+    if (!checkLimit('reading', test)) {
       setShowPricingModal(true);
       return;
     }
