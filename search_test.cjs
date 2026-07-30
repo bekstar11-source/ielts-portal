@@ -1,7 +1,12 @@
 const fs = require('fs');
 const https = require('https');
 
-const accessToken = "***REMOVED***";
+const accessToken = process.env.GCLOUD_ACCESS_TOKEN;
+if (!accessToken) {
+    console.error("GCLOUD_ACCESS_TOKEN o'rnatilmagan.");
+    console.error("Ishlatish: export GCLOUD_ACCESS_TOKEN=$(gcloud auth print-access-token)");
+    process.exit(1);
+}
 
 function request(url) {
     return new Promise((resolve, reject) => {
