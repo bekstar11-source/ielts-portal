@@ -21,18 +21,18 @@ export default function ListeningPartsSection({
   const { t } = useTranslation();
   return (
     <div className="space-y-6" ref={partsSectionRef}>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-warm-hairline dark:border-white/10 pb-4">
             <div className="space-y-1">
-                <h2 className="text-[32px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Listening Parts</h2>
-                <p className="text-[#86868b] dark:text-zinc-400 text-[14px]">Displaying {filteredVirtualParts.length} part practice tests</p>
+                <h2 className="font-serif-display text-warm-display-sm md:text-warm-display-md font-semibold text-warm-ink dark:text-warm-on-dark tracking-tight">Listening Parts</h2>
+                <p className="text-warm-muted dark:text-warm-on-dark-soft text-[14px]">Displaying {filteredVirtualParts.length} part practice tests</p>
             </div>
 
             {/* Beautiful Segmented Tab Filter */}
 
         </div>
-        
+
         {filteredVirtualParts.length === 0 ? (
-            <div className="text-center py-20 text-gray-400 text-sm">
+            <div className="text-center py-20 text-warm-muted-soft dark:text-warm-muted text-sm">
                 Ushbu bo'limga mos part practice testlari topilmadi.
             </div>
         ) : (
@@ -58,7 +58,7 @@ export default function ListeningPartsSection({
                 <button
                     onClick={handleShowMore}
                     disabled={loadingLibrary}
-                    className="group relative flex items-center gap-3 px-8 py-3.5 bg-[#1d1d1f] hover:bg-black dark:bg-[#f5f5f7] dark:hover:bg-white dark:text-[#1d1d1f] text-white rounded-full font-semibold transition-all active:scale-95 disabled:opacity-50 text-[13px] shadow-sm"
+                    className="group relative flex items-center gap-3 px-8 py-3.5 bg-warm-ink hover:bg-black dark:bg-warm-on-dark dark:hover:bg-white dark:text-warm-ink text-white rounded-full font-semibold transition-all active:scale-95 disabled:opacity-50 text-[13px] shadow-sm"
                 >
                     {loadingLibrary ? (
                         <Loader2 size={16} className="animate-spin" />

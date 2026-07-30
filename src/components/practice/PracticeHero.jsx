@@ -1,7 +1,69 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, CheckCircle, HelpCircle, FileText, Clipboard, Headphones } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
+
+// Icons for the hero's pill badges, ported 1:1 from the imported dc.html mockup
+const HeroBadgeIcon = ({ icon, color }) => {
+  switch (icon) {
+    case 'check':
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+          <circle cx="8" cy="8" r="7" stroke={color} strokeWidth="1.5" />
+          <path d="M5 8l2 2 4-4" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'question':
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+          <circle cx="8" cy="8" r="7" stroke={color} strokeWidth="1.5" />
+          <text x="8" y="11.5" fontSize="9" textAnchor="middle" fill={color} fontFamily="Inter">?</text>
+        </svg>
+      );
+    case 'list':
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+          <rect x="3" y="2" width="10" height="12" rx="1.5" stroke={color} strokeWidth="1.5" />
+          <path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      );
+    case 'card':
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+          <rect x="3.5" y="3" width="9" height="11" rx="1.2" stroke={color} strokeWidth="1.5" />
+          <rect x="5.5" y="1.5" width="5" height="2.5" rx="0.6" fill={color} />
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
+const HeroPill = ({ badge, align }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5, delay: badge.delay }}
+    className={`flex items-center gap-2.5 bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10 rounded-full px-4 py-2 w-max shadow-sm ${align === 'end' ? 'self-end' : 'self-start'}`}
+  >
+    <HeroBadgeIcon icon={badge.icon} color={badge.color} />
+    <span className="text-[13px] font-medium text-warm-ink dark:text-warm-on-dark whitespace-nowrap">{badge.text}</span>
+  </motion.div>
+);
+
+// Center icon for the hero: open book for reading, headphones for listening — line-art to match the pill icons
+const HeroCenterIcon = ({ isReading }) => (
+  isReading ? (
+    <svg width="24" height="24" viewBox="0 0 26 26" fill="none" className="shrink-0">
+      <path d="M13 3v20M13 3c-2.5 2-6 2.5-9 2v16c3 0.5 6.5 0 9-2M13 3c2.5 2 6 2.5 9 2v16c-3 0.5-6.5 0-9-2" stroke="#cc785c" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  ) : (
+    <svg width="24" height="24" viewBox="0 0 26 26" fill="none" className="shrink-0">
+      <path d="M4 14v-1a9 9 0 0 1 18 0v1" stroke="#cc785c" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="2" y="14" width="6" height="8" rx="2" stroke="#cc785c" strokeWidth="1.6" strokeLinejoin="round" />
+      <rect x="18" y="14" width="6" height="8" rx="2" stroke="#cc785c" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  )
+);
 
 export default function PracticeHero({ activeTab, totalCount, filteredCount, subType }) {
   const { t } = useTranslation();
@@ -10,73 +72,56 @@ export default function PracticeHero({ activeTab, totalCount, filteredCount, sub
   if (activeTab !== 'reading' && activeTab !== 'listening') return null;
 
   const isReading = activeTab === 'reading';
+  const suffix = subType === 'parts' ? ' (Parts)' : subType === 'full' ? ' (Full)' : '';
 
-  // Badges data depending on activeTab
-  const badges = isReading
+  const leftBadges = isReading
     ? [
-        { id: 1, text: 'True / False / NG', icon: CheckCircle, color: 'text-emerald-500', bgColor: 'bg-emerald-50 dark:bg-emerald-950/30', style: 'left-[8%] top-[20%] rotate-[-3deg]', delay: 0.2 },
-        { id: 2, text: 'Multiple Choice', icon: HelpCircle, color: 'text-blue-500', bgColor: 'bg-blue-50 dark:bg-blue-950/30', style: 'left-[12%] bottom-[15%] rotate-[4deg]', delay: 0.4 },
-        { id: 3, text: 'Matching Headings', icon: FileText, color: 'text-indigo-500', bgColor: 'bg-indigo-50 dark:bg-indigo-950/30', style: 'right-[8%] top-[25%] rotate-[5deg]', delay: 0.3 },
-        { id: 4, text: 'Gap Fill', icon: Clipboard, color: 'text-amber-500', bgColor: 'bg-amber-50 dark:bg-amber-950/30', style: 'right-[14%] bottom-[12%] rotate-[-4deg]', delay: 0.5 },
+        { text: 'True / False / NG', icon: 'check', color: '#5db872', delay: 0.15 },
+        { text: 'Multiple Choice', icon: 'question', color: '#cc785c', delay: 0.3 },
       ]
     : [
-        { id: 1, text: 'Matching', icon: CheckCircle, color: 'text-emerald-500', bgColor: 'bg-emerald-50 dark:bg-emerald-950/30', style: 'left-[8%] top-[20%] rotate-[-3deg]', delay: 0.2 },
-        { id: 2, text: 'Multiple Choice', icon: HelpCircle, color: 'text-blue-500', bgColor: 'bg-blue-50 dark:bg-blue-950/30', style: 'left-[12%] bottom-[15%] rotate-[4deg]', delay: 0.4 },
-        { id: 3, text: 'Map / Plan / Diagram', icon: FileText, color: 'text-indigo-500', bgColor: 'bg-indigo-50 dark:bg-indigo-950/30', style: 'right-[8%] top-[25%] rotate-[5deg]', delay: 0.3 },
-        { id: 4, text: 'Gap Fill', icon: Clipboard, color: 'text-amber-500', bgColor: 'bg-amber-50 dark:bg-amber-950/30', style: 'right-[14%] bottom-[12%] rotate-[-4deg]', delay: 0.5 },
+        { text: 'Matching', icon: 'check', color: '#5db872', delay: 0.15 },
+        { text: 'Multiple Choice', icon: 'question', color: '#cc785c', delay: 0.3 },
+      ];
+  const rightBadges = isReading
+    ? [
+        { text: 'Matching Headings', icon: 'list', color: '#cc785c', delay: 0.2 },
+        { text: 'Gap Fill', icon: 'card', color: '#e8a55a', delay: 0.35 },
+      ]
+    : [
+        { text: 'Map / Plan / Diagram', icon: 'list', color: '#cc785c', delay: 0.2 },
+        { text: 'Gap Fill', icon: 'card', color: '#e8a55a', delay: 0.35 },
       ];
 
-  const IconComponent = isReading ? BookOpen : Headphones;
   const titleText = isReading ? t('practice.heroTitle') : t('practice.heroTitleListening');
   const subtitleText = isReading ? t('practice.heroSubtitle') : t('practice.heroSubtitleListening');
 
   return (
-    <div className="w-full bg-[#f0f6ff] dark:bg-zinc-950 border-b border-black/[0.03] dark:border-white/[0.05] h-[130px] md:h-[160px] flex items-center justify-center overflow-hidden relative">
-      {/* Soft gradient blur backgrounds */}
-      <div className={`absolute w-[250px] h-[250px] ${isReading ? 'bg-blue-400/10 dark:bg-blue-500/5' : 'bg-purple-400/10 dark:bg-purple-500/5'} rounded-full blur-[60px] -left-10 top-0 pointer-events-none`} />
-      <div className="absolute w-[250px] h-[250px] bg-indigo-400/10 dark:bg-indigo-500/5 rounded-full blur-[80px] -right-10 bottom-0 pointer-events-none" />
+    <div className="w-full bg-warm-surface dark:bg-warm-dark-elevated border-b border-warm-hairline dark:border-white/5">
+      <div className="max-w-[1440px] mx-auto px-6 py-10 md:py-14 flex items-center justify-between gap-8">
+        <div className="hidden lg:flex flex-col gap-4 shrink-0">
+          {leftBadges.map((b, i) => <HeroPill key={`l-${i}`} badge={b} align="start" />)}
+        </div>
 
-      {/* Floating Badges (Figma-community style) */}
-      <div className="absolute inset-0 max-w-[1440px] mx-auto px-6 hidden md:block pointer-events-none">
-        {badges.map((badge) => {
-          const BadgeIcon = badge.icon;
-          return (
-            <motion.div 
-              key={badge.id}
-              initial={{ opacity: 0, y: badge.delay * 50, rotate: parseFloat(badge.style.match(/rotate-\[(.*?)deg\]/)?.[1] || '0') }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: badge.delay }}
-              className={`absolute ${badge.style.split(' rotate-')[0]} bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 shadow-sm rounded-xl px-3 py-1.5 flex items-center gap-2`}
-            >
-              <div className={`w-6 h-6 rounded-lg ${badge.bgColor} flex items-center justify-center ${badge.color}`}>
-                <BadgeIcon size={13} />
-              </div>
-              <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">{badge.text}</span>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Main Content */}
-      <div className="text-center px-6 relative z-10 max-w-[500px]">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center gap-2 mb-2"
+          className="flex flex-col items-center text-center gap-2.5 max-w-[560px] mx-auto"
         >
-          <IconComponent className="text-blue-500 dark:text-blue-400" size={18} />
-          <h1 className="text-[20px] md:text-[24px] font-bold text-zinc-950 dark:text-white tracking-tight">
-            {titleText}{subType === 'parts' ? ' (Parts)' : subType === 'full' ? ' (Full)' : ''}
-          </h1>
+          <div className="flex items-center gap-3">
+            <HeroCenterIcon isReading={isReading} />
+            <h1 className="font-serif-display text-warm-display-sm md:text-warm-display-md font-semibold tracking-tight text-warm-ink dark:text-warm-on-dark">
+              {titleText}{suffix}
+            </h1>
+          </div>
+          <p className="text-warm-body-sm md:text-warm-body-md text-warm-muted dark:text-warm-on-dark-soft leading-relaxed">
+            {subtitleText}
+          </p>
         </motion.div>
-        <motion.p 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-zinc-550 dark:text-zinc-400 text-xs md:text-[13px] font-medium leading-relaxed"
-        >
-          {subtitleText}
-        </motion.p>
+
+        <div className="hidden lg:flex flex-col gap-4 items-end shrink-0">
+          {rightBadges.map((b, i) => <HeroPill key={`r-${i}`} badge={b} align="end" />)}
+        </div>
       </div>
     </div>
   );

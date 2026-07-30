@@ -495,7 +495,7 @@ export default function ReadingParts() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#18181b] font-sans text-gray-900 dark:text-[#f5f5f7] overflow-x-hidden transition-colors duration-200">
+    <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark overflow-x-hidden transition-colors duration-200">
       <DashboardHeader
         user={user} userData={userData}
         activeTab="reading"
@@ -557,7 +557,7 @@ export default function ReadingParts() {
         <div className="max-w-[1440px] mx-auto px-6">
         {isInitialLoading ? (
             <div className="flex justify-center py-40">
-                <div className="w-8 h-8 border-2 border-gray-200 border-t-[#0066cc] rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-warm-hairline border-t-warm-primary rounded-full animate-spin" />
             </div>
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
@@ -565,11 +565,11 @@ export default function ReadingParts() {
              <>
                 {filteredTests.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-40 text-center" key="no-passages">
-                        <Search size={24} className="text-gray-300 dark:text-zinc-600 mb-6" />
-                        <h3 className="text-[24px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Hech narsa topilmadi</h3>
+                        <Search size={24} className="text-warm-muted-soft dark:text-warm-muted mb-6" />
+                        <h3 className="text-[24px] font-semibold text-warm-ink dark:text-warm-on-dark">Hech narsa topilmadi</h3>
                     </div>
                 ) : (
-                    <motion.div 
+                    <motion.div
                         key="passages"
                         initial={false}
                         animate={{ opacity: 1, y: 0 }}
@@ -577,8 +577,8 @@ export default function ReadingParts() {
                     >
                         <div className="space-y-4" ref={passagesListRef}>
                             <div className="space-y-1.5">
-                                <h2 className="text-[32px] md:text-[48px] font-medium text-[#0a1317] dark:text-[#f5f5f7] tracking-tight leading-[1.17]">Reading Passages</h2>
-                                <p className="text-[#8595a4] dark:text-zinc-450 text-[14px]">Displaying {filteredTests.length} passages</p>
+                                <h2 className="font-serif-display text-warm-display-sm md:text-warm-display-md font-semibold text-warm-ink dark:text-warm-on-dark tracking-tight">Reading Passages</h2>
+                                <p className="text-warm-muted dark:text-warm-on-dark-soft text-[14px]">Displaying {filteredTests.length} passages</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 pt-4">
@@ -599,9 +599,9 @@ export default function ReadingParts() {
                             
                             {/* Pagination UI */}
                             {totalPages > 1 && (
-                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 pb-8 border-t border-[#dee3e9] dark:border-zinc-800/80 mt-10">
-                                    <p className="text-[14px] text-[#5d6c7b] dark:text-zinc-450">
-                                        Showing <span className="font-bold text-[#1c1e21] dark:text-[#f5f5f7]">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(filteredTests.length, currentPage * itemsPerPage)}</span> of <span className="font-bold text-[#1c1e21] dark:text-[#f5f5f7]">{filteredTests.length}</span> passages
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 pb-8 border-t border-warm-hairline dark:border-white/10 mt-10">
+                                    <p className="text-[14px] text-warm-muted dark:text-warm-on-dark-soft">
+                                        Showing <span className="font-bold text-warm-ink dark:text-warm-on-dark">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(filteredTests.length, currentPage * itemsPerPage)}</span> of <span className="font-bold text-warm-ink dark:text-warm-on-dark">{filteredTests.length}</span> passages
                                     </p>
 
                                     <div className="flex items-center gap-2">
@@ -609,7 +609,7 @@ export default function ReadingParts() {
                                         <button
                                             onClick={() => handlePageChange(currentPage - 1)}
                                             disabled={currentPage === 1 || loadingLibrary}
-                                            className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900/60 border border-[#ced0d4] dark:border-zinc-700 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800 text-[#8595a4] dark:text-zinc-300 disabled:opacity-40 disabled:hover:bg-white dark:disabled:hover:bg-zinc-900/60 disabled:cursor-not-allowed transition-all active:scale-90 flex items-center justify-center"
+                                            className="w-10 h-10 rounded-full bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10 hover:bg-warm-surface dark:hover:bg-white/5 text-warm-muted dark:text-warm-on-dark-soft disabled:opacity-40 disabled:hover:bg-warm-canvas dark:disabled:hover:bg-warm-dark-elevated disabled:cursor-not-allowed transition-all active:scale-90 flex items-center justify-center"
                                             aria-label="Previous page"
                                         >
                                             <ChevronLeft size={16} />
@@ -642,7 +642,7 @@ export default function ReadingParts() {
                                                         return (
                                                             <span
                                                                 key={`ellipsis-${index}`}
-                                                                className="text-[#8595a4] dark:text-zinc-500 px-1.5 text-[14px] select-none"
+                                                                className="text-warm-muted-soft dark:text-warm-muted px-1.5 text-[14px] select-none"
                                                             >
                                                                 ...
                                                             </span>
@@ -657,8 +657,8 @@ export default function ReadingParts() {
                                                             disabled={loadingLibrary}
                                                             className={`w-10 h-10 rounded-full text-[14px] font-bold transition-all active:scale-95 flex items-center justify-center ${
                                                                 isActive
-                                                                    ? 'bg-[#0a1317] text-white dark:bg-[#f5f5f7] dark:text-[#0a1317] shadow-sm'
-                                                                    : 'bg-white text-[#1c1e21] border border-[#ced0d4] hover:bg-[#f1f4f7] dark:bg-zinc-900/40 dark:border-zinc-700 dark:text-[#f5f5f7] dark:hover:bg-zinc-800'
+                                                                    ? 'bg-warm-ink text-white dark:bg-warm-on-dark dark:text-warm-ink shadow-sm'
+                                                                    : 'bg-warm-canvas text-warm-ink border border-warm-hairline hover:bg-warm-surface dark:bg-warm-dark-elevated dark:border-white/10 dark:text-warm-on-dark dark:hover:bg-white/10'
                                                             }`}
                                                         >
                                                             {p}
@@ -672,7 +672,7 @@ export default function ReadingParts() {
                                         <button
                                             onClick={() => handlePageChange(currentPage + 1)}
                                             disabled={currentPage === totalPages || loadingLibrary}
-                                            className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900/60 border border-[#ced0d4] dark:border-zinc-700 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800 text-[#1c1e21] dark:text-zinc-300 disabled:opacity-40 disabled:hover:bg-white dark:disabled:hover:bg-zinc-900/60 disabled:cursor-not-allowed transition-all active:scale-90 flex items-center justify-center"
+                                            className="w-10 h-10 rounded-full bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10 hover:bg-warm-surface dark:hover:bg-white/5 text-warm-ink dark:text-warm-on-dark-soft disabled:opacity-40 disabled:hover:bg-warm-canvas dark:disabled:hover:bg-warm-dark-elevated disabled:cursor-not-allowed transition-all active:scale-90 flex items-center justify-center"
                                             aria-label="Next page"
                                         >
                                             {loadingLibrary ? (

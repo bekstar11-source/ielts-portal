@@ -313,7 +313,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
             return (
                 <div className="px-3 py-2">
                     {/* Main assignment card */}
-                    <div className="relative rounded-2xl overflow-hidden border border-gray-100 dark:border-white/[0.06] bg-white dark:bg-zinc-900 shadow-sm">
+                    <div className="relative rounded-2xl overflow-hidden border border-warm-hairline dark:border-white/10 bg-warm-canvas dark:bg-warm-dark-elevated shadow-sm">
                         {/* Colored top accent bar */}
                         <div className={`h-1 w-full bg-gradient-to-r ${priorityColor}`} />
 
@@ -330,7 +330,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                                     )}
                                     {getPriorityBadge(post.priority)}
                                 </div>
-                                <h4 className="text-[15px] font-bold text-gray-900 dark:text-zinc-50 leading-snug tracking-tight">
+                                <h4 className="text-[15px] font-bold text-warm-ink dark:text-warm-on-dark leading-snug tracking-tight">
                                     {post.content || post.testTitle || 'Yangi vazifa tayinlandi'}
                                 </h4>
                             </div>
@@ -345,20 +345,20 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
 
                             {/* Metadata row */}
                             <div className="flex items-center gap-3 flex-wrap">
-                                <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-zinc-400 font-medium">
-                                    <RotateCcw size={12} className="text-gray-400 dark:text-zinc-500" />
+                                <div className="flex items-center gap-1.5 text-[11px] text-warm-muted dark:text-warm-on-dark-soft font-medium">
+                                    <RotateCcw size={12} className="text-warm-muted-soft dark:text-warm-on-dark-soft" />
                                     <span>{post.maxAttempts || 1} ta urinish</span>
                                 </div>
-                                <span className="text-gray-200 dark:text-zinc-700">·</span>
-                                <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-zinc-400 font-medium">
-                                    <Calendar size={12} className="text-gray-400 dark:text-zinc-500" />
+                                <span className="text-warm-hairline dark:text-white/20">·</span>
+                                <div className="flex items-center gap-1.5 text-[11px] text-warm-muted dark:text-warm-on-dark-soft font-medium">
+                                    <Calendar size={12} className="text-warm-muted-soft dark:text-warm-on-dark-soft" />
                                     <span>{formattedDeadline || "Cheksiz"}</span>
                                 </div>
                                 {post.deadline && (
                                     <>
-                                        <span className="text-gray-200 dark:text-zinc-700">·</span>
+                                        <span className="text-warm-hairline dark:text-white/20">·</span>
                                         <div className={`flex items-center gap-1.5 text-[11px] font-bold ${
-                                            timeRemaining.isExpired ? 'text-rose-500' : timeRemaining.isUrgent ? 'text-amber-500' : 'text-gray-500 dark:text-zinc-400'
+                                            timeRemaining.isExpired ? 'text-rose-500' : timeRemaining.isUrgent ? 'text-amber-500' : 'text-warm-muted dark:text-warm-on-dark-soft'
                                         }`}>
                                             <Hourglass size={12} className={timeRemaining.isUrgent && !timeRemaining.isExpired ? 'animate-pulse' : ''} />
                                             <span>{timeRemaining.text}</span>
@@ -370,7 +370,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                             {/* Tasks list or single CTA */}
                             {post.tests && post.tests.length > 0 ? (
                                 <div className="flex flex-col gap-2">
-                                    <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">
+                                    <span className="text-[10px] font-bold text-warm-muted-soft dark:text-warm-on-dark-soft uppercase tracking-wider">
                                         Topshiriqlar ro'yxati:
                                     </span>
                                     <div className="flex flex-col gap-2">
@@ -384,7 +384,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                                                     className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-200 ${
                                                         completed
                                                             ? 'bg-emerald-50/60 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/20'
-                                                            : 'bg-gray-50/60 dark:bg-zinc-800/40 border-gray-100 dark:border-white/[0.05]'
+                                                            : 'bg-warm-surface/60 dark:bg-white/5 border-warm-hairline dark:border-white/5'
                                                     }`}
                                                 >
                                                     <div className="flex items-center gap-2.5 min-w-0">
@@ -392,11 +392,11 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                                                             {icon}
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="text-[13px] font-semibold text-gray-800 dark:text-zinc-100 truncate leading-tight">
+                                                            <p className="text-[13px] font-semibold text-warm-body-strong dark:text-warm-on-dark truncate leading-tight">
                                                                 {test.title}
                                                             </p>
                                                             <div className="flex items-center gap-1.5 mt-0.5">
-                                                                <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-medium uppercase tracking-wide">
+                                                                <span className="text-[10px] text-warm-muted-soft dark:text-warm-on-dark-soft font-medium uppercase tracking-wide">
                                                                     {test.type === 'mock_full' ? 'Mock Exam' : test.type}
                                                                 </span>
                                                                 {completed && (
@@ -413,7 +413,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                                                         disabled={timeRemaining.isExpired}
                                                         className={`shrink-0 flex items-center gap-1 font-bold text-[11px] px-3 py-2 rounded-lg active:scale-[0.96] transition-all duration-150 ${
                                                             timeRemaining.isExpired
-                                                                ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed'
+                                                                ? 'bg-warm-surface dark:bg-white/5 text-warm-muted-soft dark:text-warm-on-dark-soft cursor-not-allowed'
                                                                 : completed
                                                                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
                                                                     : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-500/20'
@@ -437,7 +437,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                                     disabled={timeRemaining.isExpired}
                                     className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-3 rounded-xl active:scale-[0.98] transition-all duration-150 ${
                                         timeRemaining.isExpired
-                                            ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed'
+                                            ? 'bg-warm-surface dark:bg-white/5 text-warm-muted-soft dark:text-warm-on-dark-soft cursor-not-allowed'
                                             : isTestCompleted(post.testId)
                                                 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200'
                                                 : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-500/20'
@@ -530,7 +530,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                                     ? () => handleUniversalNavigate(getCleanCtaUrl(), navigate, { fromNewsfeed: true })
                                     : undefined
                         }
-                        className={`relative w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-white/5 shadow-sm group/carousel transition-all ${
+                        className={`relative w-full rounded-lg overflow-hidden bg-warm-surface dark:bg-white/5 border border-warm-hairline dark:border-white/10 shadow-sm group/carousel transition-all ${
                             isMediaClickable ? 'cursor-pointer hover:shadow-md' : ''
                         }`}
                         style={{ aspectRatio: aspectRatio }}
@@ -616,36 +616,36 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                 {/* Attached Tests Carousel (Horizontal scrollable cards) */}
                 {post.attachedTests && post.attachedTests.length > 0 ? (
                     <div className="w-full flex flex-col gap-1.5 mt-1 px-1">
-                        <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider block text-left">Tavsiya Etilgan Testlar</span>
+                        <span className="text-[10px] font-bold text-warm-muted-soft dark:text-warm-on-dark-soft uppercase tracking-wider block text-left">Tavsiya Etilgan Testlar</span>
                         <div className="w-full flex gap-3 overflow-x-auto pb-2 scrollbar-thin snap-x snap-mandatory text-left">
                             {post.attachedTests.map((test) => {
                                 const categoryUrl = getCategoryUrl(test);
                                 return (
-                                    <div 
+                                    <div
                                         key={test.id}
                                         onClick={() => handleUniversalNavigate(categoryUrl, navigate)}
-                                        className="min-w-[210px] max-w-[210px] p-3 rounded-lg border border-gray-150 dark:border-white/5 bg-gray-50/60 dark:bg-zinc-900/40 hover:bg-gray-50 dark:hover:bg-zinc-900/85 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-sm cursor-pointer transition-all duration-200 snap-center flex flex-col justify-between gap-3 group/test-card"
+                                        className="min-w-[210px] max-w-[210px] p-3 rounded-lg border border-warm-hairline dark:border-white/5 bg-warm-surface/60 dark:bg-white/5 hover:bg-warm-surface dark:hover:bg-white/10 hover:border-warm-primary/30 dark:hover:border-warm-primary/30 hover:shadow-sm cursor-pointer transition-all duration-200 snap-center flex flex-col justify-between gap-3 group/test-card"
                                     >
                                         <div className="space-y-1">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[9px] font-black uppercase tracking-wider text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                                                <span className="text-[9px] font-black uppercase tracking-wider text-warm-primary bg-warm-primary/10 px-1.5 py-0.5 rounded">
                                                     {test.type || 'Test'}
                                                 </span>
-                                                <span className="text-[9px] text-gray-400 dark:text-zinc-500 font-medium">
+                                                <span className="text-[9px] text-warm-muted-soft dark:text-warm-on-dark-soft font-medium">
                                                     {test.difficulty || 'Medium'}
                                                 </span>
                                             </div>
-                                            <h4 className="font-extrabold text-xs text-gray-800 dark:text-zinc-200 line-clamp-2 leading-snug group-hover/test-card:text-blue-500 dark:group-hover/test-card:text-blue-400 transition-colors">
+                                            <h4 className="font-extrabold text-xs text-warm-body-strong dark:text-warm-on-dark line-clamp-2 leading-snug group-hover/test-card:text-warm-primary transition-colors">
                                                 {test.title}
                                             </h4>
                                         </div>
-                                        
+
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleUniversalNavigate(categoryUrl, navigate);
                                             }}
-                                            className="w-full flex items-center justify-center gap-1.5 bg-[#0066cc] dark:bg-[#3894ff] hover:bg-[#0055aa] dark:hover:bg-[#1a7ddb] text-white font-bold text-[9px] py-1.5 rounded-md active:scale-[0.98] transition-all shadow-sm shrink-0"
+                                            className="w-full flex items-center justify-center gap-1.5 bg-warm-primary hover:bg-warm-primary-active text-white font-bold text-[9px] py-1.5 rounded-md active:scale-[0.98] transition-all shadow-sm shrink-0"
                                         >
                                             {post.ctaText || "Testni bajarish"}
                                             <ArrowRight size={10} />
@@ -665,16 +665,16 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                                     : undefined
                         }
                         className={`flex items-center justify-between py-2.5 px-4 rounded-lg border transition-all duration-200 group/material-card ${
-                            post.ctaUrl 
-                                ? 'cursor-pointer bg-gray-55/60 hover:bg-gray-55 dark:bg-zinc-900/45 dark:hover:bg-zinc-900/85 active:scale-[0.995] border-gray-100 dark:border-white/5 hover:border-gray-150 dark:hover:border-white/10 hover:shadow-sm' 
-                                : 'bg-gray-55/30 dark:bg-zinc-900/20 border-gray-100 dark:border-white/5'
+                            post.ctaUrl
+                                ? 'cursor-pointer bg-warm-surface/60 hover:bg-warm-surface dark:bg-white/5 dark:hover:bg-white/10 active:scale-[0.995] border-warm-hairline dark:border-white/5 hover:border-warm-hairline dark:hover:border-white/10 hover:shadow-sm'
+                                : 'bg-warm-surface/30 dark:bg-white/[0.03] border-warm-hairline dark:border-white/5'
                         }`}
                     >
                         <div className="min-w-0 flex-1 pr-3">
-                            <h4 className="font-bold text-xs text-gray-800 dark:text-zinc-200 line-clamp-1 group-hover/material-card:text-blue-500 dark:group-hover/material-card:text-blue-400 transition-colors">
+                            <h4 className="font-bold text-xs text-warm-body-strong dark:text-warm-on-dark line-clamp-1 group-hover/material-card:text-warm-primary transition-colors">
                                 {post.title || (materialType === 'podcast' ? 'Podcast' : materialType === 'test' ? 'Test' : 'Maqola')}
                             </h4>
-                            <p className="text-[10px] text-gray-400 dark:text-zinc-500 line-clamp-1 mt-0.5">
+                            <p className="text-[10px] text-warm-muted-soft dark:text-warm-on-dark-soft line-clamp-1 mt-0.5">
                                 {post.description || (materialType === 'podcast' ? 'IELTS Podcast tinglang va mashqlarni bajaring' : materialType === 'test' ? 'IELTS testini yeching' : 'IELTS maqolasini o\'qing')}
                             </p>
                         </div>
@@ -688,7 +688,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                                             handleUniversalNavigate(getCleanCtaUrl(), navigate, { fromNewsfeed: true });
                                         }
                                 }
-                                className="flex items-center gap-1 bg-[#0066cc] dark:bg-[#3894ff] hover:bg-[#0055aa] dark:hover:bg-[#1a7ddb] text-white font-medium text-[9px] px-2.5 py-1 rounded-md active:scale-95 transition-all shadow-sm flex-shrink-0"
+                                className="flex items-center gap-1 bg-warm-primary hover:bg-warm-primary-active text-white font-medium text-[9px] px-2.5 py-1 rounded-md active:scale-95 transition-all shadow-sm flex-shrink-0"
                             >
                                 {materialType === 'test' 
                                     ? 'Testni bajarish' 
@@ -703,8 +703,8 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
 
                 {/* Caption / Text details for standard posts */}
                 {post.type === 'post' && (
-                    <div className="px-1 text-sm text-gray-800 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
-                        <span className="font-bold mr-2 text-gray-900 dark:text-white">IELTS Portal Admin</span>
+                    <div className="px-1 text-sm text-warm-body-strong dark:text-warm-on-dark-soft leading-relaxed whitespace-pre-wrap">
+                        <span className="font-bold mr-2 text-warm-ink dark:text-warm-on-dark">IELTS Portal Admin</span>
                         {post.content}
                     </div>
                 )}
@@ -713,19 +713,19 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
     };
 
     return (
-        <div className="w-full bg-white dark:bg-[#18181b] border-b border-gray-150 dark:border-white/5 py-4 transition-colors">
+        <div className="w-full bg-warm-canvas dark:bg-warm-dark border-b border-warm-hairline dark:border-white/5 py-4 transition-colors">
             {/* Header */}
             <div className="flex justify-between items-center px-4 pb-2">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black text-xs font-black select-none">
+                    <div className="w-8 h-8 rounded-full bg-warm-ink dark:bg-warm-on-dark flex items-center justify-center text-white dark:text-warm-ink text-xs font-black select-none">
                         {authorInitials}
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-gray-900 dark:text-white">{authorName}</span>
+                            <span className="font-bold text-xs text-warm-ink dark:text-warm-on-dark">{authorName}</span>
                             {renderCardHeaderDecoration()}
                         </div>
-                        <span className="text-[9px] text-gray-400 dark:text-zinc-500 font-medium block mt-0.5">
+                        <span className="text-[9px] text-warm-muted-soft dark:text-warm-on-dark-soft font-medium block mt-0.5">
                             {getRelativeTime(post.createdAt)}
                         </span>
                     </div>
@@ -734,7 +734,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                 {(isAdmin || (isTeacherPost && (post.teacherId === user?.uid || userData?.role === 'teacher'))) && (
                     <button
                         onClick={() => onDelete(post.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition"
+                        className="p-2 text-warm-muted-soft hover:text-red-500 dark:hover:text-red-400 transition"
                     >
                         <Trash2 size={16} />
                     </button>
@@ -754,26 +754,26 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                         <Heart
                             size={20}
                             className={`transition-colors ${
-                                isLiked 
-                                    ? 'fill-red-500 text-red-500 scale-110' 
-                                    : 'text-gray-500 dark:text-zinc-400 group-hover:text-red-500'
+                                isLiked
+                                    ? 'fill-red-500 text-red-500 scale-110'
+                                    : 'text-warm-muted dark:text-warm-on-dark-soft group-hover:text-red-500'
                             }`}
                         />
-                        <span className="text-xs font-bold text-gray-600 dark:text-zinc-400">{likesCount}</span>
+                        <span className="text-xs font-bold text-warm-body dark:text-warm-on-dark-soft">{likesCount}</span>
                     </button>
 
                     <button
                         onClick={() => setShowComments(true)}
                         className="flex items-center gap-1.5 focus:outline-none transition group"
                     >
-                        <MessageCircle size={20} className="text-gray-500 dark:text-zinc-400 group-hover:text-blue-500" />
-                        <span className="text-xs font-bold text-gray-600 dark:text-zinc-400">{commentsCount}</span>
+                        <MessageCircle size={20} className="text-warm-muted dark:text-warm-on-dark-soft group-hover:text-warm-primary" />
+                        <span className="text-xs font-bold text-warm-body dark:text-warm-on-dark-soft">{commentsCount}</span>
                     </button>
                 </div>
 
                 <button
                     onClick={handleShare}
-                    className="p-1 text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white transition"
+                    className="p-1 text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark transition"
                 >
                     <Share2 size={20} />
                 </button>
@@ -805,22 +805,22 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.98 }}
                             transition={{ duration: 0.15, ease: "easeOut" }}
-                            className="relative bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-2xl w-full max-w-[300px] text-center border border-[#E4E2E3]/30 dark:border-zinc-800 z-10"
+                            className="relative bg-warm-canvas dark:bg-warm-dark-elevated p-6 rounded-2xl shadow-2xl w-full max-w-[300px] text-center border border-warm-hairline dark:border-white/10 z-10"
                         >
-                            <h3 className="text-lg font-bold mb-1 text-[#161616] dark:text-white tracking-tight">Podcast</h3>
-                            <p className="text-xs font-medium text-[#A8AAAC] dark:text-zinc-400 mb-5 px-2 leading-relaxed">
+                            <h3 className="text-lg font-bold mb-1 text-warm-ink dark:text-warm-on-dark tracking-tight">Podcast</h3>
+                            <p className="text-xs font-medium text-warm-muted dark:text-warm-on-dark-soft mb-5 px-2 leading-relaxed">
                                 Podcastni eshitishni xohlaysizmi?
                             </p>
                             <div className="flex gap-2.5">
-                                <button 
-                                    onClick={() => setShowPodcastConfirm(false)} 
-                                    className="flex-1 py-2.5 rounded-xl font-bold text-[#A8AAAC] dark:text-zinc-400 hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-all duration-300 text-xs"
+                                <button
+                                    onClick={() => setShowPodcastConfirm(false)}
+                                    className="flex-1 py-2.5 rounded-xl font-bold text-warm-muted dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 transition-all duration-300 text-xs"
                                 >
                                     Yo'q
                                 </button>
-                                <button 
-                                    onClick={confirmPodcastPlay} 
-                                    className="flex-1 py-2.5 rounded-xl font-bold text-white bg-[#161616] dark:bg-white dark:text-black hover:bg-black dark:hover:bg-zinc-200 transition-all duration-300 text-xs shadow-lg shadow-black/10 dark:shadow-white/5 active:scale-[0.98]"
+                                <button
+                                    onClick={confirmPodcastPlay}
+                                    className="flex-1 py-2.5 rounded-xl font-bold text-white bg-warm-primary hover:bg-warm-primary-active transition-all duration-300 text-xs shadow-lg shadow-warm-primary/20 active:scale-[0.98]"
                                 >
                                     Ha
                                 </button>
@@ -846,7 +846,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.97, y: 8 }}
                             transition={{ duration: 0.18, ease: "easeOut" }}
-                            className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-[320px] border border-gray-100 dark:border-zinc-800 z-10 overflow-hidden"
+                            className="relative bg-warm-canvas dark:bg-warm-dark-elevated rounded-2xl shadow-2xl w-full max-w-[320px] border border-warm-hairline dark:border-white/10 z-10 overflow-hidden"
                         >
                             {/* Top accent */}
                             <div className="h-1 w-full bg-gradient-to-r from-indigo-500 to-violet-500" />
@@ -855,17 +855,17 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                                     <BookOpen size={22} className="text-indigo-600 dark:text-indigo-400" />
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-bold text-gray-900 dark:text-zinc-50 tracking-tight">
+                                    <h3 className="text-base font-bold text-warm-ink dark:text-warm-on-dark tracking-tight">
                                         Testni boshlaysizmi?
                                     </h3>
-                                    <p className="text-[12px] text-gray-500 dark:text-zinc-400 mt-1 leading-relaxed px-2">
-                                        <span className="font-semibold text-gray-700 dark:text-zinc-200">"{testConfirm.title}"</span> testini boshlashga tayyormisiz?
+                                    <p className="text-[12px] text-warm-muted dark:text-warm-on-dark-soft mt-1 leading-relaxed px-2">
+                                        <span className="font-semibold text-warm-body-strong dark:text-warm-on-dark">"{testConfirm.title}"</span> testini boshlashga tayyormisiz?
                                     </p>
                                 </div>
                                 <div className="flex gap-2.5 w-full mt-1">
                                     <button
                                         onClick={() => setTestConfirm(null)}
-                                        className="flex-1 py-2.5 rounded-xl font-bold text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all text-sm"
+                                        className="flex-1 py-2.5 rounded-xl font-bold text-warm-muted dark:text-warm-on-dark-soft bg-warm-surface dark:bg-white/5 hover:bg-warm-card dark:hover:bg-white/10 transition-all text-sm"
                                     >
                                         Bekor
                                     </button>

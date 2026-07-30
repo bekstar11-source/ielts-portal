@@ -113,13 +113,13 @@ export default function CommentsModal({ isOpen, onClose, postId, user, userData,
                 onClick={onClose} 
             />
 
-            <div className="relative w-full max-w-[500px] h-[80vh] md:h-[600px] bg-white dark:bg-[#18181b] rounded-t-3xl md:rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col overflow-hidden shadow-2xl z-10">
+            <div className="relative w-full max-w-[500px] h-[80vh] md:h-[600px] bg-warm-canvas dark:bg-warm-dark-elevated rounded-t-3xl md:rounded-3xl border border-warm-hairline dark:border-white/5 flex flex-col overflow-hidden shadow-2xl z-10">
                 {/* Header */}
-                <div className="flex justify-between items-center px-4 py-4 border-b border-gray-150 dark:border-white/5">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base">Izohlar</h3>
-                    <button 
-                        onClick={onClose} 
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                <div className="flex justify-between items-center px-4 py-4 border-b border-warm-hairline dark:border-white/5">
+                    <h3 className="font-bold text-warm-ink dark:text-warm-on-dark text-base">Izohlar</h3>
+                    <button
+                        onClick={onClose}
+                        className="text-warm-muted-soft hover:text-warm-body dark:hover:text-warm-on-dark p-1 rounded-full hover:bg-warm-surface dark:hover:bg-white/5 transition"
                     >
                         <X size={20} />
                     </button>
@@ -129,23 +129,23 @@ export default function CommentsModal({ isOpen, onClose, postId, user, userData,
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-full gap-2">
-                            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                            <span className="text-xs text-gray-400">Izohlar yuklanmoqda...</span>
+                            <div className="w-8 h-8 border-4 border-warm-primary border-t-transparent rounded-full animate-spin" />
+                            <span className="text-xs text-warm-muted-soft">Izohlar yuklanmoqda...</span>
                         </div>
                     ) : comments.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 dark:text-zinc-500 py-10">
+                        <div className="flex flex-col items-center justify-center h-full text-center text-warm-muted-soft dark:text-warm-on-dark-soft py-10">
                             <span className="text-sm">Birinchi bo'lib izoh qoldiring!</span>
                         </div>
                     ) : (
                         comments.map((comment) => (
                             <div key={comment.id} className="flex items-start justify-between gap-3 group">
                                 <div className="flex items-start gap-2.5">
-                                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 font-bold text-xs uppercase flex-shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-warm-primary/10 dark:bg-warm-primary/20 flex items-center justify-center text-warm-primary font-bold text-xs uppercase flex-shrink-0">
                                         {comment.userName?.slice(0, 2)}
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="font-bold text-xs text-gray-800 dark:text-zinc-200">
+                                            <span className="font-bold text-xs text-warm-body-strong dark:text-warm-on-dark">
                                                 {comment.userName}
                                             </span>
                                             {comment.userRole === 'admin' && (
@@ -153,11 +153,11 @@ export default function CommentsModal({ isOpen, onClose, postId, user, userData,
                                                     Admin
                                                 </span>
                                             )}
-                                            <span className="text-[9px] text-gray-400">
+                                            <span className="text-[9px] text-warm-muted-soft">
                                                 {comment.createdAt?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-gray-600 dark:text-zinc-400 mt-0.5 whitespace-pre-wrap leading-relaxed">
+                                        <p className="text-sm text-warm-body dark:text-warm-on-dark-soft mt-0.5 whitespace-pre-wrap leading-relaxed">
                                             {comment.text}
                                         </p>
                                     </div>
@@ -166,7 +166,7 @@ export default function CommentsModal({ isOpen, onClose, postId, user, userData,
                                 {(isAdmin || user?.uid === comment.userId) && (
                                     <button
                                         onClick={() => handleDelete(comment.id)}
-                                        className="p-1 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100 dark:hover:bg-white/5 transition opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                        className="p-1 text-warm-muted-soft hover:text-red-500 rounded hover:bg-warm-surface dark:hover:bg-white/5 transition opacity-0 group-hover:opacity-100 focus:opacity-100"
                                     >
                                         <Trash size={14} />
                                     </button>
@@ -177,14 +177,14 @@ export default function CommentsModal({ isOpen, onClose, postId, user, userData,
                 </div>
 
                 {/* Input area */}
-                <form 
-                    onSubmit={handleSubmit} 
-                    className="p-4 border-t border-gray-150 dark:border-white/5 bg-gray-50 dark:bg-[#111113] flex gap-2"
+                <form
+                    onSubmit={handleSubmit}
+                    className="p-4 border-t border-warm-hairline dark:border-white/5 bg-warm-surface dark:bg-warm-dark flex gap-2"
                 >
                     <input
                         type="text"
                         placeholder="Izoh yozing..."
-                        className="flex-1 bg-white dark:bg-[#202024] border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                        className="flex-1 bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-warm-primary focus:ring-1 focus:ring-warm-primary transition"
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         disabled={submitting}
@@ -193,7 +193,7 @@ export default function CommentsModal({ isOpen, onClose, postId, user, userData,
                     <button
                         type="submit"
                         disabled={submitting || !newComment.trim()}
-                        className="p-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center"
+                        className="p-2.5 bg-warm-primary hover:bg-warm-primary-active text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center"
                     >
                         <Send size={16} />
                     </button>

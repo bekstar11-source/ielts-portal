@@ -101,6 +101,27 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
 
   const derivedQuestionTypes = deriveQuestionTypesForCard(test);
 
+  const isWarmCard = test.type === 'reading' || test.type === 'listening';
+
+  // Warm design-system themes for reading/listening thumbnails (ported from the imported dc.html mockup)
+  const CARD_GRADIENT_THEMES = [
+    { grad: 'from-warm-dark to-warm-dark-elevated', badge: 'bg-warm-canvas/15 text-warm-canvas', tag: 'bg-warm-canvas/10 text-warm-canvas' },
+    { grad: 'from-warm-primary to-warm-primary-active', badge: 'bg-white/20 text-white', tag: 'bg-white/15 text-white' },
+    { grad: 'from-warm-accent-amber to-warm-primary', badge: 'bg-warm-ink/25 text-white', tag: 'bg-warm-ink/15 text-white' },
+    { grad: 'from-warm-accent-teal to-[#3d8a7a]', badge: 'bg-warm-ink/25 text-white', tag: 'bg-warm-ink/15 text-white' },
+  ];
+
+  const getCardTheme = (id, title) => {
+    let hash = 0;
+    const str = (id || '') + (title || '');
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return CARD_GRADIENT_THEMES[Math.abs(hash) % CARD_GRADIENT_THEMES.length];
+  };
+
+  const cardTheme = isWarmCard ? getCardTheme(test.id || '', test.title) : null;
+
   const getGradient = (id, title) => {
     let hash = 0;
     const str = (id || '') + (title || '');
@@ -156,27 +177,41 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
         hapticFeedback('light');
         handleClick();
       }}
-      className="group w-full bg-white dark:bg-zinc-950 rounded-[32px] overflow-hidden transition-all duration-[400ms] hover:shadow-lg flex flex-col h-full cursor-pointer border border-[#dee3e9] dark:border-zinc-800/80"
+      className={`group w-full overflow-hidden transition-all duration-[400ms] hover:shadow-lg flex flex-col h-full cursor-pointer border ${
+        isWarmCard
+          ? 'bg-warm-canvas dark:bg-warm-dark-elevated rounded-xl border-warm-hairline dark:border-white/10'
+          : 'bg-white dark:bg-zinc-950 rounded-[32px] border-[#dee3e9] dark:border-zinc-800/80'
+      }`}
     >
       {/* Top Visual Section */}
-      <div className="relative aspect-[1.75/1] w-full overflow-hidden bg-[#f1f4f7] dark:bg-zinc-900">
+      <div className={`relative aspect-[1.75/1] w-full overflow-hidden ${isWarmCard ? 'bg-warm-surface dark:bg-warm-dark' : 'bg-[#f1f4f7] dark:bg-zinc-900'}`}>
         {hasVisual ? (
           <img src={cardImage} alt={test.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
         ) : (
           <>
             {/* Gradient Background */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(test.id || '', test.title)} opacity-90 transition-transform duration-700 group-hover:scale-105`} />
-            
-            {/* Decorative Grid Pattern */}
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent)]" />
+            <div className={`absolute inset-0 bg-gradient-to-br ${isWarmCard ? cardTheme.grad : getGradient(test.id || '', test.title)} opacity-90 transition-transform duration-700 group-hover:scale-105`} />
+
+            {isWarmCard ? (
+              /* Grain Noise Texture */
+              <div
+                className="absolute inset-0 opacity-[0.35] mix-blend-overlay pointer-events-none"
+                style={{
+                  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+                }}
+              />
+            ) : (
+              /* Decorative Grid Pattern */
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent)]" />
+            )}
           </>
         )}
-        
+
         {/* Inner Content of Visual Section */}
         <div className="absolute inset-0 p-4 flex flex-col justify-between text-white select-none">
           {/* Top Row with Badges */}
           <div className="flex justify-between items-start">
-            <span className="px-3 py-1 rounded-full bg-[#0a1317]/55 backdrop-blur-md text-white text-[11px] font-bold tracking-wide uppercase whitespace-nowrap shrink-0">
+            <span className={`px-3 py-1 rounded-full backdrop-blur-md text-[11px] font-bold tracking-wide uppercase whitespace-nowrap shrink-0 ${isWarmCard ? cardTheme.badge : 'bg-[#0a1317]/55 text-white'}`}>
               {passageLabel}
             </span>
             <div className="flex gap-1.5 flex-wrap justify-end max-w-[60%]">
@@ -203,7 +238,13 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
           
 
           
-          <QuestionTypeTags types={derivedQuestionTypes} />
+          <QuestionTypeTags
+            types={derivedQuestionTypes}
+            {...(isWarmCard ? {
+              tagClassName: `px-3 py-1 rounded-full ${cardTheme.tag} backdrop-blur-md text-[10px] font-bold tracking-wide uppercase shadow-sm`,
+              moreButtonClassName: `px-3 py-1 rounded-full ${cardTheme.tag} backdrop-blur-md text-[10px] font-bold tracking-wide uppercase shadow-sm opacity-90 hover:opacity-100 transition-opacity`,
+            } : {})}
+          />
         </div>
 
         {/* Hover Action Overlay */}
@@ -251,30 +292,34 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
       </div>
 
       {/* Footer Info Section */}
-      <div className="p-[18px] bg-white dark:bg-zinc-950 flex-1 flex flex-col gap-2">
-        <h4 className="text-[20px] font-medium leading-[1.3] text-[#0a1317] dark:text-zinc-100 group-hover:text-[#0066cc] dark:group-hover:text-[#3894ff] transition-colors line-clamp-1">
+      <div className={`p-[18px] flex-1 flex flex-col gap-2 ${isWarmCard ? 'bg-warm-canvas dark:bg-warm-dark-elevated' : 'bg-white dark:bg-zinc-950'}`}>
+        <h4 className={`text-[20px] font-medium leading-[1.3] transition-colors line-clamp-1 ${
+          isWarmCard
+            ? 'text-warm-ink dark:text-warm-on-dark group-hover:text-warm-primary'
+            : 'text-[#0a1317] dark:text-zinc-100 group-hover:text-[#0066cc] dark:group-hover:text-[#3894ff]'
+        }`}>
           {test.title}
         </h4>
-        <div className="text-[14px] leading-[1.43] tracking-[-0.14px] text-[#5d6c7b] dark:text-zinc-400 flex items-center flex-wrap gap-1.5">
+        <div className={`text-[14px] leading-[1.43] tracking-[-0.14px] flex items-center flex-wrap gap-1.5 ${isWarmCard ? 'text-warm-muted dark:text-warm-on-dark-soft' : 'text-[#5d6c7b] dark:text-zinc-400'}`}>
           <span className="flex items-center gap-1">
-            <FileText size={14} className="text-[#5d6c7b] dark:text-zinc-400" />
+            <FileText size={14} className={isWarmCard ? 'text-warm-muted dark:text-warm-on-dark-soft' : 'text-[#5d6c7b] dark:text-zinc-400'} />
             {t('practice.questionsCount').replace('{count}', questionCount)}
           </span>
           {test.collectionName && (
-            <span className="px-2 py-0.5 rounded-[6px] bg-[#f1f4f7] dark:bg-zinc-900 text-[#5d6c7b] dark:text-zinc-400 font-bold text-[12px]">
+            <span className={`px-2 py-0.5 rounded-[6px] font-bold text-[12px] ${isWarmCard ? 'bg-warm-surface dark:bg-white/5 text-warm-muted dark:text-warm-on-dark-soft' : 'bg-[#f1f4f7] dark:bg-zinc-900 text-[#5d6c7b] dark:text-zinc-400'}`}>
               {test.collectionName}
             </span>
           )}
           {isCompleted && (
             <>
               <span className="select-none">•</span>
-              <span className="text-[#31a24c] font-bold">
+              <span className={`font-bold ${isWarmCard ? 'text-warm-success' : 'text-[#31a24c]'}`}>
                 {t('practice.result')}: {test.result.score}/{test.result.totalQuestions || test.totalQuestions || 40}
               </span>
               <span className="select-none">•</span>
               <button
                 onClick={(e) => { e.stopPropagation(); onReview(test); }}
-                className="text-[#385898] dark:text-[#3894ff] hover:underline"
+                className={isWarmCard ? 'text-warm-primary hover:underline' : 'text-[#385898] dark:text-[#3894ff] hover:underline'}
               >
                 {t('practice.review')}
               </button>
@@ -283,7 +328,7 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
                   <span className="select-none">•</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); onStart(test); }}
-                    className="text-[#385898] dark:text-[#3894ff] hover:underline"
+                    className={isWarmCard ? 'text-warm-primary hover:underline' : 'text-[#385898] dark:text-[#3894ff] hover:underline'}
                   >
                     {t('practice.retake')}
                   </button>

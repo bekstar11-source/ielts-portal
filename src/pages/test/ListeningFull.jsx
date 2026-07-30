@@ -246,7 +246,7 @@ export default function ListeningFull() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#18181b] font-sans text-gray-900 dark:text-[#f5f5f7] pb-24 selection:bg-[#0066cc]/30 selection:text-[#1d1d1f] transition-colors duration-200">
+    <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark pb-24 selection:bg-warm-primary/30 selection:text-warm-ink transition-colors duration-200">
       <DashboardHeader
         user={user} userData={userData}
         activeTab="listening"

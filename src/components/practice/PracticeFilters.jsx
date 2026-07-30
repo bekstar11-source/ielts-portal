@@ -31,6 +31,7 @@ export default function PracticeFilters({
   setSortOrder
 }) {
   const { t } = useTranslation();
+  const isWarm = activeTab === 'reading' || activeTab === 'listening';
   const [openDropdown, setOpenDropdown] = useState(null); // 'status' | 'passages' | 'parts' | 'types' | null
   
   const containerRef = useRef(null);
@@ -193,7 +194,7 @@ export default function PracticeFilters({
   return (
     <div
       ref={containerRef}
-      className={`sticky z-40 w-full bg-white dark:bg-zinc-900 border-b border-[#dee3e9] dark:border-white/[0.05] mb-6 py-4 transition-shadow duration-300 ${
+      className={`sticky z-40 w-full ${isWarm ? 'bg-warm-canvas dark:bg-warm-dark' : 'bg-white dark:bg-zinc-900'} border-b ${isWarm ? 'border-warm-hairline dark:border-white/10' : 'border-[#dee3e9] dark:border-white/[0.05]'} mb-6 py-4 transition-shadow duration-300 ${
         keepVisibleOnScroll ? 'top-0 md:top-12' : 'top-[44px]'
       } ${
         keepVisibleOnScroll ? '' : 'opacity-100'
@@ -268,12 +269,16 @@ export default function PracticeFilters({
                 className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none free-filter-glow ${
                   freeOnly
                     ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-250 dark:border-amber-800 text-amber-600 dark:text-amber-400'
+                    : isWarm
+                    ? 'bg-warm-canvas dark:bg-warm-dark-elevated border-warm-hairline dark:border-white/10 text-warm-ink dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5'
                     : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
                 }`}
               >
                 <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
-                  freeOnly 
-                    ? 'border-amber-550 bg-amber-500 text-white' 
+                  freeOnly
+                    ? 'border-amber-550 bg-amber-500 text-white'
+                    : isWarm
+                    ? 'border-warm-hairline dark:border-white/20 bg-warm-canvas dark:bg-warm-dark'
                     : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950'
                 }`}>
                   {freeOnly && <Check size={10} strokeWidth={3} />}
@@ -288,7 +293,11 @@ export default function PracticeFilters({
                 onClick={() => toggleDropdown('status')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none ${
                   selectedStatus !== 'all'
-                    ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
+                    ? isWarm
+                      ? 'bg-warm-primary/10 dark:bg-warm-primary/15 border-warm-primary/30 dark:border-warm-primary/40 text-warm-primary-active dark:text-warm-primary'
+                      : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
+                    : isWarm
+                    ? 'bg-warm-canvas dark:bg-warm-dark-elevated border-warm-hairline dark:border-white/10 text-warm-ink dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5'
                     : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
                 }`}
               >
@@ -299,11 +308,11 @@ export default function PracticeFilters({
 
               <AnimatePresence>
                 {openDropdown === 'status' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 5 }}
-                    className="absolute left-0 mt-1.5 w-[180px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-50 p-1"
+                    className={`absolute left-0 mt-1.5 w-[180px] rounded-xl shadow-lg z-50 p-1 ${isWarm ? 'bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800'}`}
                   >
                     {statusOptions.map((opt) => (
                       <button
@@ -312,10 +321,10 @@ export default function PracticeFilters({
                           setSelectedStatus(opt.id);
                           setOpenDropdown(null);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium transition-colors ${isWarm ? 'text-warm-body dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80'}`}
                       >
                         <span>{opt.label}</span>
-                        {selectedStatus === opt.id && <Check size={14} className="text-blue-500" />}
+                        {selectedStatus === opt.id && <Check size={14} className={isWarm ? 'text-warm-primary' : 'text-blue-500'} />}
                       </button>
                     ))}
                   </motion.div>
@@ -330,8 +339,8 @@ export default function PracticeFilters({
                   onClick={() => toggleDropdown('passages')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none ${
                     selectedPassages.length > 0
-                      ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
-                      : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
+                      ? 'bg-warm-primary/10 dark:bg-warm-primary/15 border-warm-primary/30 dark:border-warm-primary/40 text-warm-primary-active dark:text-warm-primary'
+                      : 'bg-warm-canvas dark:bg-warm-dark-elevated border-warm-hairline dark:border-white/10 text-warm-ink dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5'
                   }`}
                 >
                   <Layers size={15} className="opacity-75" />
@@ -341,11 +350,11 @@ export default function PracticeFilters({
 
                 <AnimatePresence>
                   {openDropdown === 'passages' && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 5 }}
-                      className="absolute left-0 mt-1.5 w-[160px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-50 p-1"
+                      className="absolute left-0 mt-1.5 w-[160px] bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10 rounded-xl shadow-lg z-50 p-1"
                     >
                       {[1, 2, 3].map((num) => {
                         const isSel = selectedPassages.includes(num);
@@ -359,10 +368,10 @@ export default function PracticeFilters({
                                 setSelectedPassages([...selectedPassages, num]);
                               }
                             }}
-                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-warm-body dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 transition-colors"
                           >
                             <span>{t('practice.passageNum').replace('{num}', num)}</span>
-                            {isSel && <Check size={14} className="text-blue-500" />}
+                            {isSel && <Check size={14} className="text-warm-primary" />}
                           </button>
                         );
                       })}
@@ -379,8 +388,8 @@ export default function PracticeFilters({
                   onClick={() => toggleDropdown('parts')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none ${
                     selectedParts.length > 0
-                      ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
-                      : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
+                      ? 'bg-warm-primary/10 dark:bg-warm-primary/15 border-warm-primary/30 dark:border-warm-primary/40 text-warm-primary-active dark:text-warm-primary'
+                      : 'bg-warm-canvas dark:bg-warm-dark-elevated border-warm-hairline dark:border-white/10 text-warm-ink dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5'
                   }`}
                 >
                   <Layers size={15} className="opacity-75" />
@@ -390,11 +399,11 @@ export default function PracticeFilters({
 
                 <AnimatePresence>
                   {openDropdown === 'parts' && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 5 }}
-                      className="absolute left-0 mt-1.5 w-[160px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-50 p-1"
+                      className="absolute left-0 mt-1.5 w-[160px] bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10 rounded-xl shadow-lg z-50 p-1"
                     >
                       {[1, 2, 3, 4].map((num) => {
                         const isSel = selectedParts.includes(num);
@@ -408,10 +417,10 @@ export default function PracticeFilters({
                                 setSelectedParts([...selectedParts, num]);
                               }
                             }}
-                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[13px] font-medium text-warm-body dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 transition-colors"
                           >
                             <span>Part {num}</span>
-                            {isSel && <Check size={14} className="text-blue-500" />}
+                            {isSel && <Check size={14} className="text-warm-primary" />}
                           </button>
                         );
                       })}
@@ -425,7 +434,7 @@ export default function PracticeFilters({
             {activeTab === 'listening' && setSortOrder && (
               <button
                 onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50"
+                className="flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none bg-warm-canvas dark:bg-warm-dark-elevated border-warm-hairline dark:border-white/10 text-warm-ink dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5"
                 title={sortOrder === 'desc' ? 'Z → A (20, 19, 18...)' : 'A → Z (14, 15, 16...)'}
               >
                 {sortOrder === 'desc' ? <ArrowDownAZ size={14} /> : <ArrowUpAZ size={14} />}
@@ -439,7 +448,11 @@ export default function PracticeFilters({
                 onClick={() => toggleDropdown('types')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-bold transition-all duration-200 select-none ${
                   selectedQuestionTypes.length > 0
-                    ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
+                    ? isWarm
+                      ? 'bg-warm-primary/10 dark:bg-warm-primary/15 border-warm-primary/30 dark:border-warm-primary/40 text-warm-primary-active dark:text-warm-primary'
+                      : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400'
+                    : isWarm
+                    ? 'bg-warm-canvas dark:bg-warm-dark-elevated border-warm-hairline dark:border-white/10 text-warm-ink dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5'
                     : 'bg-white dark:bg-zinc-900 border-[#ced0d4] dark:border-zinc-800 text-[#1c1e21] dark:text-zinc-300 hover:bg-[#f1f4f7] dark:hover:bg-zinc-800/50'
                 }`}
               >
@@ -450,19 +463,19 @@ export default function PracticeFilters({
 
               <AnimatePresence>
                 {openDropdown === 'types' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 5 }}
-                    className="absolute left-0 mt-1.5 w-[calc(100vw-32px)] sm:w-[500px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl z-50 p-6"
+                    className={`absolute left-0 mt-1.5 w-[calc(100vw-32px)] sm:w-[500px] rounded-2xl shadow-xl z-50 p-6 ${isWarm ? 'bg-warm-canvas dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800'}`}
                   >
-                    <div className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100 mb-5 select-none">
+                    <div className={`text-[15px] font-bold mb-5 select-none ${isWarm ? 'text-warm-ink dark:text-warm-on-dark' : 'text-zinc-900 dark:text-zinc-100'}`}>
                       Question Types
                     </div>
                     <div className="space-y-6">
                       {questionTypeGroups.map((group, groupIdx) => (
                         <div key={groupIdx} className="space-y-2.5">
-                          <span className="text-[10px] font-bold tracking-wider text-[#7e8a9f] dark:text-zinc-500 block uppercase">
+                          <span className={`text-[10px] font-bold tracking-wider block uppercase ${isWarm ? 'text-warm-muted-soft dark:text-warm-muted' : 'text-[#7e8a9f] dark:text-zinc-500'}`}>
                             {group.title}
                           </span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3.5">
@@ -481,13 +494,15 @@ export default function PracticeFilters({
                                   className="flex items-center gap-3 group text-left outline-none"
                                 >
                                   <div className={`w-[18px] h-[18px] rounded border flex items-center justify-center transition-all shrink-0 ${
-                                    isSel 
-                                      ? 'border-[#0066cc] bg-[#0066cc] text-white' 
+                                    isSel
+                                      ? isWarm ? 'border-warm-primary bg-warm-primary text-white' : 'border-[#0066cc] bg-[#0066cc] text-white'
+                                      : isWarm
+                                      ? 'border-warm-hairline dark:border-white/20 bg-warm-canvas dark:bg-warm-dark group-hover:border-warm-muted-soft dark:group-hover:border-white/30'
                                       : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 group-hover:border-zinc-400 dark:group-hover:border-zinc-500'
                                   }`}>
                                     {isSel && <Check size={11} strokeWidth={3} />}
                                   </div>
-                                  <span className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
+                                  <span className={`text-[13px] font-medium transition-colors ${isWarm ? 'text-warm-body dark:text-warm-on-dark-soft group-hover:text-warm-ink dark:group-hover:text-warm-on-dark' : 'text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white'}`}>
                                     {opt.label}
                                   </span>
                                 </button>
@@ -515,19 +530,23 @@ export default function PracticeFilters({
           </div>
 
           {/* RIGHT: Search Input */}
-          <div className="flex items-center h-10 bg-[#f1f4f7] dark:bg-zinc-800/70 hover:bg-[#e8e8ed] dark:hover:bg-zinc-800 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 border border-transparent rounded-full px-4 transition-all duration-350 w-full lg:w-[240px] shrink-0">
-            <Search size={15} className="text-[#5d6c7b] mr-2 shrink-0" />
+          <div className={`flex items-center h-10 border rounded-full px-4 transition-all duration-350 w-full lg:w-[240px] shrink-0 ${
+            isWarm
+              ? 'bg-warm-surface dark:bg-white/5 hover:bg-warm-card dark:hover:bg-white/10 focus-within:bg-warm-canvas dark:focus-within:bg-warm-dark focus-within:ring-2 focus-within:ring-warm-primary/20 focus-within:border-warm-primary border-transparent'
+              : 'bg-[#f1f4f7] dark:bg-zinc-800/70 hover:bg-[#e8e8ed] dark:hover:bg-zinc-800 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 border-transparent'
+          }`}>
+            <Search size={15} className={`mr-2 shrink-0 ${isWarm ? 'text-warm-muted' : 'text-[#5d6c7b]'}`} />
             <input
               type="text"
               placeholder={t('practice.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none outline-none w-full text-[14px] text-[#1c1e21] dark:text-white placeholder-[#5d6c7b] dark:placeholder-gray-500 py-0"
+              className={`bg-transparent border-none outline-none w-full text-[14px] py-0 ${isWarm ? 'text-warm-ink dark:text-warm-on-dark placeholder-warm-muted-soft dark:placeholder-warm-muted' : 'text-[#1c1e21] dark:text-white placeholder-[#5d6c7b] dark:placeholder-gray-500'}`}
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="text-[#5d6c7b] hover:text-black dark:hover:text-white p-0.5 rounded-full"
+                className={isWarm ? 'text-warm-muted hover:text-warm-ink dark:hover:text-warm-on-dark p-0.5 rounded-full' : 'text-[#5d6c7b] hover:text-black dark:hover:text-white p-0.5 rounded-full'}
               >
                 <X size={13} />
               </button>

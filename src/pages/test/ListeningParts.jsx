@@ -478,7 +478,7 @@ export default function ListeningParts() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#18181b] font-sans text-gray-900 dark:text-[#f5f5f7] pb-24 selection:bg-[#0066cc]/30 selection:text-[#1d1d1f] transition-colors duration-200">
+    <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark pb-24 selection:bg-warm-primary/30 selection:text-warm-ink transition-colors duration-200">
       <DashboardHeader
         user={user} userData={userData}
         activeTab="listening"
@@ -529,7 +529,7 @@ export default function ListeningParts() {
         <div className="max-w-[1440px] mx-auto px-6">
         {isInitialLoading ? (
             <div className="flex justify-center py-40">
-                <div className="w-8 h-8 border-2 border-gray-200 border-t-[#0066cc] rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-warm-hairline border-t-warm-primary rounded-full animate-spin" />
             </div>
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
@@ -537,11 +537,11 @@ export default function ListeningParts() {
             <>
                 {filteredVirtualParts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-4 duration-700" key="no-parts">
-                        <div className="w-16 h-16 bg-[#f5f5f7] dark:bg-zinc-800 rounded-full flex items-center justify-center mb-6">
-                            <Search size={24} className="text-gray-300 dark:text-zinc-650" />
+                        <div className="w-16 h-16 bg-warm-surface dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
+                            <Search size={24} className="text-warm-muted-soft dark:text-warm-muted" />
                         </div>
-                        <h3 className="text-[24px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Hech narsa topilmadi</h3>
-                        <p className="text-[#86868b] dark:text-[#86868b] mt-2 max-w-[300px]">Qidiruv mezonlariga mos keladigan testlar mavjud emas.</p>
+                        <h3 className="text-[24px] font-semibold text-warm-ink dark:text-warm-on-dark">Hech narsa topilmadi</h3>
+                        <p className="text-warm-muted dark:text-warm-on-dark-soft mt-2 max-w-[300px]">Qidiruv mezonlariga mos keladigan testlar mavjud emas.</p>
                     </div>
                 ) : (
                     <motion.div 

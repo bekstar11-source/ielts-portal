@@ -89,6 +89,7 @@ export default {
           primary: '#cc785c', 'primary-active': '#a9583e', 'primary-soft': '#e6dfd8',
           'on-primary': '#ffffff', 'on-dark': '#faf9f5', 'on-dark-soft': '#a09d96',
           success: '#5db872', warning: '#d4a017', error: '#c64545',
+          'accent-teal': '#5db8a6', 'accent-amber': '#e8a55a',
         },
         vetra: {
           bg: '#FFFFFF',
@@ -128,11 +129,11 @@ export default {
       },
       // 3. O'LCHAMLAR (Agar kerak bo'lsa)
       spacing: {
-        'md': '17px',
+        'md': '16px',
         'xxs': '4px',
         'xs': '8px',
         'sm': '12px',
-        'section': '80px',
+        'section': '96px',
         'xxl': '48px',
         'lg': '24px',
         'xl': '32px',

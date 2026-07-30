@@ -23,7 +23,6 @@ import {
   CreditCard,
   PenTool,
   Mic,
-  Layers,
   ClipboardList,
   Moon,
   Sun,
@@ -103,10 +102,10 @@ export default function DashboardHeader({
   ];
 
   const resourceItems = [
-    { id: 'podcasts', label: 'Podcasts', path: '/podcasts', icon: Headphones, iconColor: 'text-red-500' },
-    { id: 'articles', label: 'Articles', path: '/articles', icon: Newspaper, iconColor: 'text-emerald-500' },
-    { id: 'vocabulary', label: 'WordBank', path: '/vocabulary', icon: BookMarked, iconColor: 'text-violet-500' },
-    { id: 'pricing', label: 'Pricing', path: '/pricing', icon: CreditCard, iconColor: 'text-amber-500' },
+    { id: 'podcasts', label: 'Podcasts', path: '/podcasts', icon: Headphones },
+    { id: 'articles', label: 'Articles', path: '/articles', icon: Newspaper },
+    { id: 'vocabulary', label: 'WordBank', path: '/vocabulary', icon: BookMarked },
+    { id: 'pricing', label: 'Pricing', path: '/pricing', icon: CreditCard },
   ];
 
   const renderIeltsSection = (isMobile = false) => {
@@ -127,68 +126,53 @@ export default function DashboardHeader({
       }
     };
 
-    const subTextClass = isMobile ? 'text-[12px] py-1' : 'text-[13px] py-1';
-    const iconSize = isMobile ? 13 : 14;
+    const subTextClass = 'text-sm';
+    const iconSize = isMobile ? 16 : 18;
 
-    const skillRow = (Icon, iconColor, label, active, onClick) => (
+    const skillRow = (Icon, label, active, onClick) => (
       <button
         onClick={onClick}
-        className={`w-full text-left px-2 py-1.5 ${subTextClass} rounded-lg transition-all duration-200 flex items-center gap-2 font-medium group ${
+        className={`w-full text-left px-sm py-1.5 ${subTextClass} rounded-lg transition-all duration-200 flex items-center gap-2.5 group ${
           active
-            ? 'text-warm-primary dark:text-white bg-warm-primary/10 dark:bg-warm-primary'
-            : 'text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
+            ? 'text-warm-primary dark:text-white bg-[#F0EAE0] dark:bg-warm-primary font-semibold'
+            : 'text-warm-body dark:text-warm-on-dark-soft font-medium hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
         }`}
       >
-        <Icon size={iconSize} style={{ color: active ? undefined : iconColor }} className={active ? 'text-warm-primary dark:text-white' : ''} />
+        <Icon size={iconSize} strokeWidth={2} className={active ? 'text-warm-primary dark:text-white' : 'text-warm-muted-soft dark:text-warm-on-dark-soft'} />
         {label}
       </button>
     );
 
+    const sectionLabel = (label) => (
+      <div className="text-xs font-medium text-warm-muted-soft dark:text-warm-muted px-sm mb-1.5 select-none">
+        {label}
+      </div>
+    );
+
     return (
-      <div className={isMobile ? "mt-3 flex flex-col gap-2.5" : "mt-4 flex flex-col gap-3"}>
-        {/* IELTS Group Header */}
-        <div className="text-[9px] font-bold text-warm-muted-soft dark:text-warm-muted uppercase tracking-widest px-2.5 select-none">
-          IELTS
-        </div>
-
-        {/* Full Tests card */}
-        <div className="flex flex-col gap-1.5 bg-warm-surface dark:bg-white/5 rounded-xl p-2.5">
-          <div className="flex items-center gap-2 px-1 text-[9px] font-bold text-warm-muted-soft dark:text-warm-muted uppercase tracking-widest select-none">
-            <ClipboardList size={13} />
-            <span>{t('dashboard.fullTests')}</span>
-          </div>
-          <div className="flex flex-col">
-            {skillRow(BookOpen, '#31a24c', t('dashboard.reading'), isFullReadingActive, () => handleSubItemClick('/reading/full'))}
-            {skillRow(Headphones, '#f2a918', t('dashboard.listening'), isFullListeningActive, () => handleSubItemClick('/listening/full'))}
-            {skillRow(PenTool, '#0071e3', t('dashboard.writing'), isFullWritingActive, () => handleSubItemClick('/practice?tab=writing&type=full'))}
+      <div className="mt-3.5 flex flex-col gap-3.5">
+        {/* Full Tests */}
+        <div>
+          {sectionLabel(t('dashboard.fullTests'))}
+          <div className="flex flex-col gap-xxs">
+            {skillRow(BookOpen, t('dashboard.reading'), isFullReadingActive, () => handleSubItemClick('/reading/full'))}
+            {skillRow(Headphones, t('dashboard.listening'), isFullListeningActive, () => handleSubItemClick('/listening/full'))}
+            {skillRow(PenTool, t('dashboard.writing'), isFullWritingActive, () => handleSubItemClick('/practice?tab=writing&type=full'))}
           </div>
         </div>
 
-        {/* Part Tests card */}
-        <div className="flex flex-col gap-1.5 bg-warm-canvas dark:bg-transparent border border-warm-hairline dark:border-white/5 rounded-xl p-2.5">
-          <div className="flex items-center gap-2 px-1 text-[9px] font-bold text-warm-muted-soft dark:text-warm-muted uppercase tracking-widest select-none">
-            <Layers size={13} />
-            <span>{t('dashboard.partTests')}</span>
-          </div>
-          <div className="flex flex-col">
-            {skillRow(BookOpen, '#31a24c', t('dashboard.reading'), isPartReadingActive, () => handleSubItemClick('/reading/parts'))}
-            {skillRow(Headphones, '#f2a918', t('dashboard.listening'), isPartListeningActive, () => handleSubItemClick('/listening/parts'))}
-            {skillRow(PenTool, '#0071e3', t('dashboard.writing'), isPartWritingActive, () => handleSubItemClick('/practice?tab=writing&type=part'))}
+        {/* Part Tests */}
+        <div>
+          {sectionLabel(t('dashboard.partTests'))}
+          <div className="flex flex-col gap-xxs">
+            {skillRow(BookOpen, t('dashboard.reading'), isPartReadingActive, () => handleSubItemClick('/reading/parts'))}
+            {skillRow(Headphones, t('dashboard.listening'), isPartListeningActive, () => handleSubItemClick('/listening/parts'))}
+            {skillRow(PenTool, t('dashboard.writing'), isPartWritingActive, () => handleSubItemClick('/practice?tab=writing&type=part'))}
           </div>
         </div>
 
         {/* Speaking */}
-        <button
-          onClick={() => handleSubItemClick('/speaking-ai')}
-          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
-            isSpeakingActive
-              ? 'bg-warm-primary/10 dark:bg-warm-primary text-warm-primary dark:text-white'
-              : 'text-warm-muted dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 hover:text-warm-ink dark:hover:text-warm-on-dark'
-          }`}
-        >
-          <Mic size={15} style={{ color: isSpeakingActive ? undefined : '#e41e3f' }} className={isSpeakingActive ? 'text-warm-primary dark:text-white' : ''} />
-          <span>{t('dashboard.speaking')}</span>
-        </button>
+        {skillRow(Mic, t('dashboard.speaking'), isSpeakingActive, () => handleSubItemClick('/speaking-ai'))}
       </div>
     );
   };
@@ -220,13 +204,13 @@ export default function DashboardHeader({
     const iconSize = isMobile ? 13 : 14;
 
     return (
-      <div className={isMobile ? "mt-3 flex flex-col gap-2.5" : "mt-4 flex flex-col gap-3"}>
+      <div className={isMobile ? "mt-lg flex flex-col gap-sm" : "mt-lg flex flex-col gap-sm"}>
         <button
           onClick={() => setIsTeacherSectionOpen(!isTeacherSectionOpen)}
-          className="flex items-center gap-1.5 text-[11px] font-semibold text-warm-muted-soft dark:text-warm-on-dark-soft uppercase tracking-wider px-2.5 select-none hover:text-warm-body dark:hover:text-warm-on-dark transition-colors w-full text-left"
+          className="flex items-center gap-xs text-[13px] font-medium text-warm-muted-soft dark:text-warm-on-dark-soft px-sm select-none hover:text-warm-body dark:hover:text-warm-on-dark transition-colors w-full text-left"
         >
-          <span>USTOZ PANELI</span>
-          <ChevronDown size={11} className={`text-warm-muted-soft dark:text-warm-on-dark-soft transition-transform duration-200 ${isTeacherSectionOpen ? '' : '-rotate-90'}`} />
+          <span>Ustoz paneli</span>
+          <ChevronDown size={13} className={`text-warm-muted-soft dark:text-warm-on-dark-soft transition-transform duration-200 ${isTeacherSectionOpen ? '' : '-rotate-90'}`} />
         </button>
 
         <AnimatePresence initial={false}>
@@ -235,7 +219,7 @@ export default function DashboardHeader({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className={`overflow-hidden flex flex-col ${isMobile ? "gap-2.5" : "gap-1 mt-1 pl-1"}`}
+              className={`overflow-hidden flex flex-col ${isMobile ? "gap-xs" : "gap-xxs mt-xxs pl-xxs"}`}
             >
               {items.map(item => {
                 const Icon = item.icon;
@@ -244,7 +228,7 @@ export default function DashboardHeader({
                   <button
                     key={item.id}
                     onClick={() => handleItemClick(item.path)}
-                    className={`w-full text-left px-2.5 py-1.5 ${textClass} rounded-lg transition-all flex items-center gap-2.5 font-normal group ${
+                    className={`w-full text-left px-sm py-xs ${textClass} rounded-lg transition-all flex items-center gap-xs font-normal group ${
                       isActive
                         ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 font-semibold'
                         : 'text-warm-body dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
@@ -268,10 +252,10 @@ export default function DashboardHeader({
     const isMock = item.id === 'mock';
 
     let buttonClasses = isMock
-      ? 'mock-exam-shimmer'
+      ? 'mock-exam-shimmer font-semibold'
       : active
-        ? 'bg-warm-primary/10 dark:bg-warm-primary text-warm-primary dark:text-white dark:shadow-lg dark:shadow-warm-primary/20'
-        : 'text-warm-muted dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 hover:text-warm-ink dark:hover:text-warm-on-dark';
+        ? 'bg-[#F0EAE0] dark:bg-warm-primary text-warm-primary dark:text-white font-semibold dark:shadow-lg dark:shadow-warm-primary/20'
+        : 'text-warm-body dark:text-warm-on-dark-soft font-medium hover:bg-warm-surface dark:hover:bg-white/5 hover:text-warm-ink dark:hover:text-warm-on-dark';
 
     let iconClasses = isMock
       ? 'text-[#c5a880] transition-colors'
@@ -279,33 +263,13 @@ export default function DashboardHeader({
         ? 'text-warm-primary dark:text-white'
         : 'text-warm-muted-soft dark:text-warm-on-dark-soft';
 
-    if (item.iconColor) {
-      if (active) {
-        if (item.id === 'podcasts') {
-          buttonClasses = 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400';
-          iconClasses = 'text-red-500';
-        } else if (item.id === 'articles') {
-          buttonClasses = 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400';
-          iconClasses = 'text-emerald-500';
-        } else if (item.id === 'vocabulary') {
-          buttonClasses = 'bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400';
-          iconClasses = 'text-violet-500';
-        } else if (item.id === 'pricing') {
-          buttonClasses = 'bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400';
-          iconClasses = 'text-amber-500';
-        }
-      } else {
-        iconClasses = item.iconColor;
-      }
-    }
-
     return (
       <button
         key={item.id}
         onClick={() => handleNavigation(item)}
-        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 ${buttonClasses}`}
+        className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 ${buttonClasses}`}
       >
-        <Icon size={15} strokeWidth={active ? 2.5 : 2} className={iconClasses} />
+        <Icon size={18} strokeWidth={2} className={iconClasses} />
         {getLabel(item.id, item.label)}
       </button>
     );
@@ -317,10 +281,10 @@ export default function DashboardHeader({
     const isMock = item.id === 'mock';
 
     let buttonClasses = isMock
-      ? 'mock-exam-shimmer'
+      ? 'mock-exam-shimmer font-semibold'
       : active
-        ? 'bg-warm-primary/10 dark:bg-warm-primary/20 text-warm-primary dark:text-warm-primary'
-        : 'text-warm-body dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 hover:text-warm-ink dark:hover:text-warm-on-dark';
+        ? 'bg-[#F0EAE0] dark:bg-warm-primary/20 text-warm-primary dark:text-warm-primary font-semibold'
+        : 'text-warm-body dark:text-warm-on-dark-soft font-medium hover:bg-warm-surface dark:hover:bg-white/5 hover:text-warm-ink dark:hover:text-warm-on-dark';
 
     let iconClasses = isMock
       ? 'text-[#c5a880] transition-colors'
@@ -328,33 +292,13 @@ export default function DashboardHeader({
         ? 'text-warm-primary dark:text-warm-primary'
         : 'text-warm-muted-soft dark:text-warm-on-dark-soft';
 
-    if (item.iconColor) {
-      if (active) {
-        if (item.id === 'podcasts') {
-          buttonClasses = 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400';
-          iconClasses = 'text-red-500';
-        } else if (item.id === 'articles') {
-          buttonClasses = 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-[#10b981]';
-          iconClasses = 'text-emerald-500';
-        } else if (item.id === 'vocabulary') {
-          buttonClasses = 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-[#8b5cf6]';
-          iconClasses = 'text-violet-500';
-        } else if (item.id === 'pricing') {
-          buttonClasses = 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-[#f59e0b]';
-          iconClasses = 'text-amber-500';
-        }
-      } else {
-        iconClasses = item.iconColor;
-      }
-    }
-
     return (
       <button
         key={item.id}
         onClick={() => { handleNavigation(item); setIsMobileMenuOpen(false); }}
-        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${buttonClasses}`}
+        className={`w-full flex items-center gap-2.5 px-sm py-1.5 rounded-lg text-sm transition-all ${buttonClasses}`}
       >
-        <Icon size={14} className={iconClasses} />
+        <Icon size={16} strokeWidth={2} className={iconClasses} />
         {getLabel(item.id, item.label)}
       </button>
     );
@@ -456,9 +400,9 @@ export default function DashboardHeader({
   return (
     <>
       {/* Desktop Content Header */}
-      <header className="hidden md:flex fixed top-0 left-60 right-0 h-12 bg-warm-canvas dark:bg-warm-dark border-b border-warm-hairline dark:border-white/5 items-center justify-between px-6 z-50">
+      <header className="hidden md:flex fixed top-0 left-60 right-0 h-12 bg-warm-canvas dark:bg-warm-dark border-b border-warm-hairline dark:border-white/5 items-center justify-between px-lg z-50">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-1.5 text-[13px] font-normal text-warm-muted-soft dark:text-warm-on-dark-soft select-none">
+        <div className="flex items-center gap-xs text-[13px] font-normal text-warm-muted-soft dark:text-warm-on-dark-soft select-none">
           <span className="text-warm-body dark:text-warm-on-dark font-medium">
             {parent}
           </span>
@@ -469,7 +413,7 @@ export default function DashboardHeader({
         </div>
 
         {/* Right Header Section */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-md">
           {/* Right Search Input */}
           <div
             onClick={() => setIsSearchOpen(true)}
@@ -540,22 +484,24 @@ export default function DashboardHeader({
       </header>      {/* Desktop Sidebar */}
       <aside className="hidden md:flex fixed top-0 left-0 bottom-0 w-60 bg-warm-canvas dark:bg-warm-dark-elevated border-r border-warm-hairline dark:border-white/5 z-[60] flex-col justify-between select-none font-sans">
         {/* Fixed Logo Header */}
-        <div className="h-14 flex items-center px-[18px] flex-shrink-0 border-b border-warm-hairline dark:border-white/5">
-          <div className="cursor-pointer flex items-center gap-2.5 select-none" onClick={() => navigate('/dashboard')}>
-            <div className="w-7 h-7 bg-warm-primary rounded-lg flex items-center justify-center text-white flex-shrink-0 text-xs font-black">E</div>
-            <span className="text-lg tracking-tight font-normal text-warm-ink dark:text-warm-on-dark font-sans">
-              eng<span className="font-bold">lev.</span>
+        <div className="h-14 flex items-center px-md flex-shrink-0">
+          <div className="cursor-pointer flex items-center gap-2 select-none" onClick={() => navigate('/dashboard')}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-warm-primary flex-shrink-0">
+              <path fillRule="evenodd" clipRule="evenodd" d="M8 0C3.58172 0 0 3.58172 0 8V20C0 24.4183 3.58172 28 8 28H20C24.4183 28 28 24.4183 28 20V8C28 3.58172 24.4183 0 20 0H8ZM14 20C17.3137 20 20 17.3137 20 14C20 10.6863 17.3137 8 14 8C10.6863 8 8 10.6863 8 14C8 17.3137 10.6863 20 14 20Z" fill="currentColor"/>
+            </svg>
+            <span className="text-[22px] tracking-tight font-bold text-warm-ink dark:text-warm-on-dark font-sans">
+              Englev
             </span>
           </div>
         </div>
 
         {/* Scrollable sidebar content */}
-        <div className="flex-1 overflow-y-auto hide-scrollbar p-3 flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
+        <div className="flex-1 overflow-y-auto hide-scrollbar p-sm flex flex-col gap-3.5">
+          <div className="flex flex-col gap-xxs">
             {userData?.role === 'admin' && (
               <button
                 onClick={() => navigate('/admin')}
-                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-semibold transition-all bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 mb-1"
+                className="w-full flex items-center gap-xs px-sm py-xs rounded-lg text-[13px] font-semibold transition-all bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 mb-xxs"
               >
                 <GraduationCap size={15} className="text-amber-500" />
                 <span>Admin Panel</span>
@@ -571,26 +517,26 @@ export default function DashboardHeader({
           {renderIeltsSection(false)}
 
           {/* Resources Section */}
-          <div className="mt-4">
-            <div className="text-[9px] font-bold text-warm-muted-soft dark:text-warm-muted uppercase tracking-widest py-1 px-2.5 select-none">
+          <div className="mt-3.5">
+            <div className="text-xs font-medium text-warm-muted-soft dark:text-warm-muted px-sm mb-1.5 select-none">
               {t('dashboard.resources')}
             </div>
-            <div className="mt-1 gap-0.5 flex flex-col">
+            <div className="gap-xxs flex flex-col">
               {resourceItems.map(renderMenuItem)}
             </div>
           </div>
 
           {/* Account footer group */}
-          <div className="mt-4 pt-3 border-t border-warm-hairline dark:border-white/5 flex flex-col gap-2">
+          <div className="mt-md pt-sm border-t border-warm-hairline dark:border-white/5 flex flex-col gap-xs">
             {/* See what's included Plan Card */}
             {userData?.role !== 'teacher' && (
               <div
                 onClick={onPremiumClick || (() => navigate('/pricing'))}
-                className="border border-warm-hairline dark:border-white/5 rounded-xl p-3 bg-warm-canvas dark:bg-white/[0.02] flex items-center justify-between cursor-pointer hover:bg-warm-surface dark:hover:bg-white/5 transition-all duration-200 group"
+                className="border border-warm-hairline dark:border-white/5 rounded-xl p-sm bg-warm-canvas dark:bg-white/[0.02] flex items-center justify-between cursor-pointer hover:bg-warm-surface dark:hover:bg-white/5 transition-all duration-200 group"
               >
-                <div className="flex-1 min-w-0 pr-1.5">
+                <div className="flex-1 min-w-0 pr-xs">
                   <p className="text-[13px] font-semibold text-warm-ink dark:text-warm-on-dark group-hover:text-warm-ink dark:group-hover:text-warm-on-dark">{t('dashboard.upgradeTitle')}</p>
-                  <p className="text-[11px] font-normal text-warm-muted-soft dark:text-warm-on-dark-soft mt-0.5">{t('dashboard.upgradeSubtitle')}</p>
+                  <p className="text-[11px] font-normal text-warm-muted-soft dark:text-warm-on-dark-soft mt-xxs">{t('dashboard.upgradeSubtitle')}</p>
                 </div>
                 <ChevronRight size={12} className="text-warm-muted-soft dark:text-warm-on-dark-soft shrink-0 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -599,7 +545,7 @@ export default function DashboardHeader({
             {/* Logout Button */}
             <button
               onClick={onLogoutClick || logout}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
+              className="w-full flex items-center gap-xs px-sm py-xs rounded-xl text-[13px] font-semibold transition-all duration-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
             >
               <LogOut size={15} className="text-red-500 shrink-0" />
               {t('dashboard.logout')}
@@ -608,11 +554,11 @@ export default function DashboardHeader({
 
           {/* BOTTOM CONTAINER (UPGRADE CARD) */}
           {!isPremium && userData?.role !== 'teacher' && (
-            <div className="bg-warm-surface dark:bg-white/5 border border-warm-hairline dark:border-white/5 rounded-xl p-3.5 text-center flex flex-col items-center gap-3 mt-4 shrink-0 font-sans">
+            <div className="bg-warm-surface dark:bg-white/5 border border-warm-hairline dark:border-white/5 rounded-xl p-sm text-center flex flex-col items-center gap-sm mt-md shrink-0 font-sans">
               <div className="w-8 h-8 rounded-lg bg-warm-primary/10 dark:bg-warm-primary/20 flex items-center justify-center text-warm-primary">
                 <ArrowUp size={14} strokeWidth={2.5} />
               </div>
-              <p className="text-[11.5px] text-warm-muted dark:text-warm-on-dark-soft font-normal leading-normal px-0.5">
+              <p className="text-[11.5px] text-warm-muted dark:text-warm-on-dark-soft font-normal leading-normal px-xxs">
                 {t('dashboard.upgradePrompt')}
               </p>
               <button
@@ -626,12 +572,12 @@ export default function DashboardHeader({
         </div>
 
         {/* Fixed Footer: Profile Widget */}
-        <div className="p-2 bg-warm-canvas dark:bg-warm-dark-elevated border-t border-warm-hairline dark:border-white/5 flex-shrink-0">
+        <div className="p-xs bg-warm-canvas dark:bg-warm-dark-elevated border-t border-warm-hairline dark:border-white/5 flex-shrink-0">
           <div
             onClick={() => navigate('/settings')}
-            className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-warm-surface dark:hover:bg-white/5 cursor-pointer transition-all duration-200 select-none"
+            className="flex items-center justify-between gap-xs p-xs rounded-xl hover:bg-warm-surface dark:hover:bg-white/5 cursor-pointer transition-all duration-200 select-none"
           >
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-xs min-w-0">
               <div className="w-8 h-8 rounded-lg overflow-hidden border border-warm-hairline dark:border-white/10 shrink-0">
                 <img
                   src={userData?.photoURL || user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
@@ -646,7 +592,7 @@ export default function DashboardHeader({
                 <span className="text-[13px] font-semibold text-warm-ink dark:text-warm-on-dark truncate">
                   {userData?.fullName || user?.displayName || "IELTS Candidate"}
                 </span>
-                <span className="text-[11px] text-warm-muted-soft dark:text-warm-on-dark-soft truncate leading-none mt-0.5">
+                <span className="text-[11px] text-warm-muted-soft dark:text-warm-on-dark-soft truncate leading-none mt-xxs">
                   {user?.email || userData?.email || ""}
                 </span>
               </div>
@@ -657,24 +603,27 @@ export default function DashboardHeader({
       </aside>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 left-0 right-0 h-12 bg-warm-canvas dark:bg-warm-dark border-b border-warm-hairline dark:border-white/5 z-[60] flex items-center justify-between px-4">
-        <div className="flex items-center gap-3">
+      <header className="md:hidden sticky top-0 left-0 right-0 h-12 bg-warm-canvas dark:bg-warm-dark border-b border-warm-hairline dark:border-white/5 z-[60] flex items-center justify-between px-md">
+        <div className="flex items-center gap-sm">
           <button
             onClick={() => setIsMobileMenuOpen(true)}
             className="p-1 text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark"
           >
             <Menu size={20} />
           </button>
-          <div className="cursor-pointer flex items-center select-none" onClick={() => navigate('/dashboard')}>
-            <span className="text-xl tracking-tight font-normal text-warm-ink dark:text-warm-on-dark font-sans">
-              eng<span className="font-bold">lev.</span>
+          <div className="cursor-pointer flex items-center gap-1.5 select-none" onClick={() => navigate('/dashboard')}>
+            <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-warm-primary flex-shrink-0">
+              <path fillRule="evenodd" clipRule="evenodd" d="M8 0C3.58172 0 0 3.58172 0 8V20C0 24.4183 3.58172 28 8 28H20C24.4183 28 28 24.4183 28 20V8C28 3.58172 24.4183 0 20 0H8ZM14 20C17.3137 20 20 17.3137 20 14C20 10.6863 17.3137 8 14 8C10.6863 8 8 10.6863 8 14C8 17.3137 10.6863 20 14 20Z" fill="currentColor"/>
+            </svg>
+            <span className="text-xl tracking-tight font-bold text-warm-ink dark:text-warm-on-dark font-sans">
+              Englev
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-sm">
           {/* Language Switcher for Mobile */}
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold select-none">
+          <div className="flex items-center gap-xs text-[11px] font-semibold select-none">
             <button
               onClick={() => setLang('en')}
               className={`transition-colors uppercase tracking-wider ${lang === 'en' ? 'text-warm-ink dark:text-warm-on-dark font-bold' : 'text-warm-muted-soft dark:text-warm-on-dark-soft font-normal hover:text-warm-body'}`}
@@ -758,14 +707,17 @@ export default function DashboardHeader({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 left-0 bottom-0 w-[260px] bg-warm-canvas dark:bg-warm-dark z-[100] shadow-2xl p-3 flex flex-col justify-between overflow-y-auto md:hidden font-sans"
+              className="fixed top-0 left-0 bottom-0 w-[260px] bg-warm-canvas dark:bg-warm-dark z-[100] shadow-2xl p-sm flex flex-col justify-between overflow-y-auto md:hidden font-sans"
             >
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-sm">
                 {/* Close button row */}
-                <div className="flex items-center justify-between pb-2 border-b border-warm-hairline dark:border-white/5">
-                  <div className="cursor-pointer flex items-center select-none" onClick={() => { navigate('/dashboard'); setIsMobileMenuOpen(false); }}>
-                    <span className="text-xl tracking-tight font-normal text-warm-ink dark:text-warm-on-dark font-sans">
-                      eng<span className="font-bold">lev.</span>
+                <div className="flex items-center justify-between pb-xs">
+                  <div className="cursor-pointer flex items-center gap-2 select-none" onClick={() => { navigate('/dashboard'); setIsMobileMenuOpen(false); }}>
+                    <svg width="26" height="26" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-warm-primary flex-shrink-0">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M8 0C3.58172 0 0 3.58172 0 8V20C0 24.4183 3.58172 28 8 28H20C24.4183 28 28 24.4183 28 20V8C28 3.58172 24.4183 0 20 0H8ZM14 20C17.3137 20 20 17.3137 20 14C20 10.6863 17.3137 8 14 8C10.6863 8 8 10.6863 8 14C8 17.3137 10.6863 20 14 20Z" fill="currentColor"/>
+                    </svg>
+                    <span className="text-xl tracking-tight font-bold text-warm-ink dark:text-warm-on-dark font-sans">
+                      Englev
                     </span>
                   </div>
                   <button
@@ -776,13 +728,12 @@ export default function DashboardHeader({
                   </button>
                 </div>
 
-
                 {/* Core Items (Home, Mock Exam, Results, Reyting) */}
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-xxs">
                   {userData?.role === 'admin' && (
                     <button
                       onClick={() => { navigate('/admin'); setIsMobileMenuOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 mb-1"
+                      className="w-full flex items-center gap-xs px-sm py-xs rounded-lg text-xs font-semibold transition-all bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 mb-xxs"
                     >
                       <GraduationCap size={14} className="text-amber-500" />
                       <span>Admin Panel</span>
@@ -791,8 +742,6 @@ export default function DashboardHeader({
                   {userData?.role !== 'teacher' && coreItems.map(renderMobileMenuItem)}
                 </div>
 
-
-
                 {/* Teacher Section */}
                 {renderTeacherSection(true)}
 
@@ -800,26 +749,26 @@ export default function DashboardHeader({
                 {renderIeltsSection(true)}
 
                 {/* Resources Section */}
-                <div className="mt-3">
-                  <div className="text-[11px] font-semibold text-warm-muted-soft dark:text-warm-on-dark-soft uppercase tracking-wider py-1 px-2.5 select-none">
+                <div className="mt-3.5">
+                  <div className="text-xs font-medium text-warm-muted-soft dark:text-warm-on-dark-soft px-sm mb-1.5 select-none">
                     {t('dashboard.resources')}
                   </div>
-                  <div className="mt-1 gap-1 flex flex-col">
+                  <div className="gap-xxs flex flex-col">
                     {resourceItems.map(renderMobileMenuItem)}
                   </div>
                 </div>
 
                 {/* Account footer group */}
-                <div className="mt-4 pt-3 border-t border-warm-hairline dark:border-white/10 flex flex-col gap-2">
+                <div className="mt-md pt-sm border-t border-warm-hairline dark:border-white/10 flex flex-col gap-xs">
                   {/* See what's included Plan Card */}
                   {userData?.role !== 'teacher' && (
                     <div
                       onClick={() => { navigate('/pricing'); setIsMobileMenuOpen(false); }}
-                      className="border border-warm-hairline dark:border-white/10 rounded-xl p-2.5 bg-warm-canvas dark:bg-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.01)] flex items-center justify-between cursor-pointer hover:bg-warm-surface dark:hover:bg-white/10 hover:border-warm-primary/30 dark:hover:border-warm-primary/30 transition-all duration-200 group"
+                      className="border border-warm-hairline dark:border-white/10 rounded-xl p-sm bg-warm-canvas dark:bg-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.01)] flex items-center justify-between cursor-pointer hover:bg-warm-surface dark:hover:bg-white/10 hover:border-warm-primary/30 dark:hover:border-warm-primary/30 transition-all duration-200 group"
                     >
-                      <div className="flex-1 min-w-0 pr-1.5">
+                      <div className="flex-1 min-w-0 pr-xs">
                         <p className="text-xs font-medium text-warm-ink dark:text-warm-on-dark group-hover:text-warm-ink dark:group-hover:text-warm-on-dark">{t('dashboard.upgradeTitle')}</p>
-                        <p className="text-[10px] font-medium text-warm-muted-soft dark:text-warm-on-dark-soft mt-0.5 group-hover:text-warm-muted dark:group-hover:text-warm-on-dark-soft">{t('dashboard.upgradeSubtitle')}</p>
+                        <p className="text-[10px] font-medium text-warm-muted-soft dark:text-warm-on-dark-soft mt-xxs group-hover:text-warm-muted dark:group-hover:text-warm-on-dark-soft">{t('dashboard.upgradeSubtitle')}</p>
                       </div>
                       <ChevronRight size={12} className="text-warm-muted-soft shrink-0 group-hover:translate-x-0.5 transition-transform" />
                     </div>
@@ -828,7 +777,7 @@ export default function DashboardHeader({
                   {/* Logout Button */}
                   <button
                     onClick={() => { if (onLogoutClick) onLogoutClick(); else logout(); setIsMobileMenuOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 dark:hover:text-red-400 border border-transparent hover:border-red-100 dark:hover:border-red-950/50 shadow-sm"
+                    className="w-full flex items-center gap-xs px-sm py-xs rounded-lg text-xs font-semibold transition-all text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 dark:hover:text-red-400 border border-transparent hover:border-red-100 dark:hover:border-red-950/50 shadow-sm"
                   >
                     <LogOut size={14} className="text-red-500 shrink-0" />
                     {t('dashboard.logout')}
@@ -838,11 +787,11 @@ export default function DashboardHeader({
 
               {/* BOTTOM CONTAINER (UPGRADE CARD) */}
               {!isPremium && userData?.role !== 'teacher' && (
-                <div className="bg-warm-surface dark:bg-white/5 border border-warm-hairline dark:border-white/10 rounded-xl p-3 text-center flex flex-col items-center gap-2.5 mt-3">
+                <div className="bg-warm-surface dark:bg-white/5 border border-warm-hairline dark:border-white/10 rounded-xl p-sm text-center flex flex-col items-center gap-xs mt-sm">
                   <div className="w-8 h-8 rounded-full bg-warm-canvas dark:bg-white/10 flex items-center justify-center border border-warm-hairline dark:border-white/10 shadow-sm text-warm-body dark:text-warm-on-dark-soft">
                     <ArrowUp size={14} strokeWidth={2} />
                   </div>
-                  <p className="text-[11.5px] text-warm-muted dark:text-warm-on-dark-soft font-medium leading-normal px-0.5">
+                  <p className="text-[11.5px] text-warm-muted dark:text-warm-on-dark-soft font-medium leading-normal px-xxs">
                     {t('dashboard.upgradePrompt')}
                   </p>
                   <button
