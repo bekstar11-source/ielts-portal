@@ -18,7 +18,7 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
             price: "35,000",
             period: "oyiga",
             icon: <Zap size={14} />,
-            features: ["Reading & Listening", "Premium Podcastlar", "3 ta Mock imtihon"],
+            features: ["Cheklovsiz Reading & Listening", "Batafsil natija tahlili", "Oyiga 1 ta Mock imtihon"],
             buttonText: "Tanlash",
             popular: false
         },
@@ -29,7 +29,7 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
             price: "89,000",
             period: "3 oyga",
             icon: <CreditCard size={14} />,
-            features: ["Barcha Standard", "Premium Podcastlar", "3 ta Mock imtihon"],
+            features: ["Barcha Standard imkoniyatlari", "Oyiga 1 ta Mock imtihon", "3 oy uchun 20% tejash"],
             buttonText: "Tanlash",
             popular: false
         },
@@ -40,7 +40,7 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
             price: "49,000",
             period: "oyiga",
             icon: <Shield size={14} />,
-            features: ["Standard + 5 ta Mock", "Personal Roadmap", "Xatolar banki"],
+            features: ["Standard + oyiga 2 ta Mock", "Chuqur xatolar analitikasi", "Oyiga 15 ta AI Writing"],
             buttonText: "Pro'ga o'tish",
             popular: false
         },
@@ -51,7 +51,7 @@ export default function PricingModal({ isOpen, onClose, userName = "O'quvchi" })
             price: "129,000",
             period: "3 oyga",
             icon: <Star size={14} />,
-            features: ["Barcha Pro + 5 ta Mock", "Personal Roadmap", "Support 24/7"],
+            features: ["Barcha Pro imkoniyatlari", "Chuqur xatolar analitikasi", "Priority support"],
             buttonText: "3 Oylik Pro",
             popular: true
         }

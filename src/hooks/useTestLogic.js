@@ -57,7 +57,7 @@ export function useTestLogic() {
     const [audioTime, setAudioTime] = useState(0);
 
     // Modularized Logic
-    const { test, loading, locked, lockedMeta } = useTestFetch(cleanTestId, user, userData, navigate);
+    const { test, loading, locked, lockedMeta } = useTestFetch(cleanTestId, user, userData, navigate, partNumber);
     const { userAnswers, setUserAnswers, writingEssay, setWritingEssay, flaggedQuestions, handleSelectAnswer, toggleFlag } = useTestAnswers();
     const initialDuration = useMemo(() => {
         if (partNumber) return 10 * 60; // 10 minutes per part practice

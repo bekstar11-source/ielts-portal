@@ -3,6 +3,7 @@ import { Search, ChevronDown, MoreVertical, Crown, Zap, Loader2 } from 'lucide-r
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../../../firebase/firebase';
 import { useStudentSearch } from '../../../hooks/useStudentSearch';
+import { getTier } from '../../../utils/subscription';
 import UserDetailPanel from '../UserDetailPanel';
 
 const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, hasMore, onLoadMore, totalCount }) => {
@@ -12,6 +13,7 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
     const [showDetailPanel, setShowDetailPanel] = useState(false);
     const [filterBand, setFilterBand] = useState('all');
     const [filterGroup, setFilterGroup] = useState('all');
+    const [filterSubscription, setFilterSubscription] = useState('all');
     const [selectedIds, setSelectedIds] = useState([]);
     const [bulkGroupId, setBulkGroupId] = useState("");
     const [isBulkProcessing, setIsBulkProcessing] = useState(false);
@@ -26,9 +28,10 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
             const matchesBand = filterBand === 'all' || s.targetBand === filterBand;
             const matchesGroup = filterGroup === 'all'
                 || (filterGroup === 'none' ? !s.groupId : s.groupId === filterGroup);
-            return matchesBand && matchesGroup;
+            const matchesSubscription = filterSubscription === 'all' || getTier(s) === filterSubscription;
+            return matchesBand && matchesGroup && matchesSubscription;
         });
-    }, [combinedStudents, filterBand, filterGroup]);
+    }, [combinedStudents, filterBand, filterGroup, filterSubscription]);
 
     const isAllSelected = filteredStudents.length > 0 && selectedIds.length === filteredStudents.length;
     const isIndeterminate = selectedIds.length > 0 && selectedIds.length < filteredStudents.length;
@@ -145,6 +148,19 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
                             <option value="all">Barcha Guruhlar</option>
                             <option value="none">Guruhsiz</option>
                             {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                    <div className="relative">
+                        <select
+                            value={filterSubscription}
+                            onChange={e => setFilterSubscription(e.target.value)}
+                            className={`pl-4 pr-10 py-2.5 rounded-xl border-none outline-none appearance-none cursor-pointer text-sm font-medium transition-all ${isDark ? 'bg-white/5 text-gray-300 hover:bg-white/[0.08]' : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                        >
+                            <option value="all">Barcha Obunalar</option>
+                            <option value="pro">Pro</option>
+                            <option value="standard">Standard</option>
+                            <option value="free">Bepul</option>
                         </select>
                         <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>

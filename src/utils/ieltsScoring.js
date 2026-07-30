@@ -1,5 +1,7 @@
 // src/utils/ieltsScoring.js
 
+import { canonicalQuestionType } from './questionTypes';
+
 // Rasmiy IELTS raw→band jadvallari (40 ta savol asosida), [eng kam raw ball, band] ko'rinishida.
 // DIQQAT: Reading va Listening jadvallari BIR XIL EMAS. Ilgari ikkalasiga ham Listening
 // jadvali qo'llanilar edi va Reading ballari bir necha chegarada 0.5 ga oshib ketardi
@@ -333,8 +335,23 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
     const missingKeys = [];   // talaba javob bergan, lekin javob kaliti yo'q savollar
     const scoredIds = new Set();
 
+    // Savol turlari kesimidagi statistika: { multiple_choice: { total, correct } }.
+    // Xatolar tahlili (Pro) shu yerdan oziqlanadi — faqat xatolar ro'yxatining o'zi
+    // yetarli emas, chunki maxraj (turdagi umumiy savollar soni) bo'lmasa
+    // "5 ta xato" ko'p yoki ozligini aytib bo'lmaydi.
+    const typeStats = {};
+    const addTypeStat = (rawType, total, correct) => {
+        if (!total || total <= 0) return;
+        const family = canonicalQuestionType(rawType);
+        const prev = typeStats[family] || { total: 0, correct: 0 };
+        typeStats[family] = {
+            total: prev.total + total,
+            correct: prev.correct + Math.max(0, Math.min(correct, total))
+        };
+    };
+
     if (!testData || typeof testData !== 'object') {
-        return { correctCount: 0, totalQ: 0, band: 0, mistakes, missingKeys };
+        return { correctCount: 0, totalQ: 0, band: 0, mistakes, missingKeys, typeStats };
     }
 
     let targetPassageId = null;
@@ -383,9 +400,10 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
                 const result = scoreMultiAnswer(allCorrect, allUser, weight);
                 correctCount += result.matches;
                 totalQ += result.weight;
+                addTypeStat(currentType, result.weight, result.matches);
 
                 if (result.matches < result.weight && allUser.trim()) {
-                    mistakes.push({ questionId: groupItems.map(i => i.id).join(', '), userResponse: allUser, correctAnswer: allCorrect, isMulti: true });
+                    mistakes.push({ questionId: groupItems.map(i => i.id).join(', '), userResponse: allUser, correctAnswer: allCorrect, isMulti: true, questionType: canonicalQuestionType(currentType) });
                 }
                 groupItems.forEach(i => scoredIds.add(String(i.id).trim()));
                 return;
@@ -404,13 +422,16 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
                     const result = scoreMultiAnswer(itemAns, userResp, weight);
                     correctCount += result.matches;
                     totalQ += result.weight;
+                    addTypeStat(currentType, result.weight, result.matches);
                     if (result.matches < result.weight && String(userResp).trim()) {
-                        mistakes.push({ questionId: idStr, userResponse: userResp, correctAnswer: itemAns });
+                        mistakes.push({ questionId: idStr, userResponse: userResp, correctAnswer: itemAns, questionType: canonicalQuestionType(currentType) });
                     }
                 } else {
                     totalQ++;
-                    if (checkAnswer(itemAns, userResp, isChoice)) correctCount++;
-                    else if (String(userResp).trim()) mistakes.push({ questionId: idStr, userResponse: userResp, correctAnswer: itemAns });
+                    const isRight = checkAnswer(itemAns, userResp, isChoice);
+                    addTypeStat(currentType, 1, isRight ? 1 : 0);
+                    if (isRight) correctCount++;
+                    else if (String(userResp).trim()) mistakes.push({ questionId: idStr, userResponse: userResp, correctAnswer: itemAns, questionType: canonicalQuestionType(currentType) });
                 }
             }
         } else if (obj.id && itemAns === undefined) {
@@ -434,7 +455,7 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
 
     const band = calculateBandScore(correctCount, testData.type || 'reading', totalQ);
 
-    return { correctCount, totalQ, band, mistakes, missingKeys };
+    return { correctCount, totalQ, band, mistakes, missingKeys, typeStats };
 };
 
 // UTILITY TO CALCULATE SCORE FOR A SECTION (READING/LISTENING)

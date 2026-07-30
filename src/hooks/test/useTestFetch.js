@@ -10,7 +10,7 @@ const safeDate = (dateVal) => {
     return isNaN(d.getTime()) ? null : d;
 };
 
-export function useTestFetch(testId, user, userData, navigate) {
+export function useTestFetch(testId, user, userData, navigate, partNumber = null) {
     const [test, setTest] = useState(null);
     const [loading, setLoading] = useState(true);
     const [locked, setLocked] = useState(false);
@@ -38,7 +38,10 @@ export function useTestFetch(testId, user, userData, navigate) {
                     testData = { id: testSnap.id, ...testSnap.data() };
                 } else {
                     const getSanitizedTestFn = httpsCallable(functions, 'getSanitizedTest');
-                    const res = await getSanitizedTestFn({ testId: cleanId });
+                    // `partNumber` server uchun ham kerak: to'liq test faqat Pro'da
+                    // ochiladi, part esa Standard'da ham. Listening da part —
+                    // bitta hujjatning bo'lagi, shuning uchun uni klient aytadi.
+                    const res = await getSanitizedTestFn({ testId: cleanId, partNumber: partNumber || null });
                     testData = res.data;
                 }
 
@@ -72,7 +75,12 @@ export function useTestFetch(testId, user, userData, navigate) {
                     // Find the assignment for this test
                     const assignment = allAssigns.find(a => String(a.id).trim() === cleanId);
 
-                    const hasGroupId = userData?.groupId && userData?.groupId !== 'none';
+                    // `userData.groupId` shunchaki foydalanuvchi hujjatidagi maydon —
+                    // guruh admin tomonidan o'chirilganda har doim ham tozalanmasligi
+                    // mumkin (masalan, Firestore'dan to'g'ridan-to'g'ri o'chirilsa).
+                    // Shuning uchun bu maydonga emas, haqiqatda mavjud bo'lgan va
+                    // o'quvchini o'z ichiga olgan guruh hujjatiga (groupsSnap) ishonamiz.
+                    const isVerifiedGroupMember = groupsSnap.docs.length > 0;
                     let maxAttempts = null;
                     let deadline = null;
 
@@ -80,7 +88,7 @@ export function useTestFetch(testId, user, userData, navigate) {
                         maxAttempts = Number(assignment.maxAttempts) || 1;
                         deadline = assignment.deadline || assignment.endDate || null;
                         testData.isAssignment = true;
-                    } else if (hasGroupId) {
+                    } else if (isVerifiedGroupMember) {
                         maxAttempts = Infinity;
                         testData.isAssignment = false;
                     } else {
@@ -149,7 +157,7 @@ export function useTestFetch(testId, user, userData, navigate) {
         };
 
         fetchTest();
-    }, [testId, user, userData?.role, userData?.groupId, userData?.assignedTests]);
+    }, [testId, partNumber, user, userData?.role, userData?.groupId, userData?.assignedTests]);
 
     return { test, loading, locked, lockedMeta };
 }

@@ -85,6 +85,95 @@ function meetsTier(userData, requiredTier) {
   return true;
 }
 
+/**
+ * Testning "ko'lami": bitta passage/section (part) mi, to'liq test mi, to'plam mi.
+ *
+ * Bazada bu alohida maydon sifatida saqlanmaydi, shuning uchun tuzilmadan
+ * aniqlaymiz — Practice sahifalari ham xuddi shu qoidaga tayanadi:
+ *   • Reading — bitta passage li hujjat "part", ko'p passage li hujjat "full".
+ *   • Listening — bitta hujjatda `parts` (part1..part4) bo'ladi; `partNumber`
+ *     ko'rsatilgan bo'lsa "part", ko'rsatilmasa butun test ishlanadi → "full".
+ *
+ * @param {object} test
+ * @param {number|string|null} partNumber  URL dagi `?part=N` (bo'lsa)
+ * @returns {'part'|'full'|'set'}
+ */
+function getTestScope(test, partNumber = null) {
+  if (!test) return 'part';
+  if (test.isSet) return 'set';
+
+  // Ro'yxatni tuzgan joy ko'lamni aniq bilsa (masalan kolleksiyaning
+  // "Full Tests" bo'limi), shu bayroqni qo'yadi. Tuzilmadan taxmin qilishga
+  // tayanib qolmaymiz: `tests_metadata` da `passages` bo'lmasa, full test
+  // jimgina "part" deb qaralib, Standard'ga ochilib ketardi.
+  if (test.isFullTest) return 'full';
+
+  if (partNumber !== null && partNumber !== undefined && String(partNumber).trim() !== '') {
+    return 'part';
+  }
+
+  const countEntries = (value) => {
+    if (!value) return 0;
+    if (Array.isArray(value)) return value.length;
+    if (typeof value === 'object') return Object.keys(value).length;
+    return 0;
+  };
+
+  const type = String(test.type || '').toLowerCase();
+  if (type === 'listening') {
+    return countEntries(test.parts) > 1 ? 'full' : 'part';
+  }
+
+  return countEntries(test.passages) > 1 ? 'full' : 'part';
+}
+
+/**
+ * Testni ochish uchun MINIMAL tarif.
+ *
+ * Qoida ikki qismdan iborat:
+ *   1. To'liq test va to'plamlar — HAR DOIM Pro. Admin kolleksiyani "standard"
+ *      qilib qo'ygan bo'lsa ham: to'plam ichidagi full testni faqat Pro ishlaydi.
+ *   2. PART testlar — darajani ADMIN belgilaydi. Kolleksiyaning `accessTier` i
+ *      nima bo'lsa, ichidagi part testlar ham o'sha darajada. Ya'ni "standard"
+ *      kolleksiyadagi part testni Standard o'quvchi ham yechadi, "pro"
+ *      kolleksiyadagisini esa faqat Pro — lekin ikkalasi ham Parts sahifasida
+ *      ko'rinib turadi, ustida tegishli yorliq bilan.
+ *
+ * ⚠️ Bu funksiya `functions/subscription.js` dagi nusxasi bilan bir xil bo'lishi
+ * shart — server (`getSanitizedTest`) aynan shu qoidaga tayanadi.
+ *
+ * @returns {'free'|'standard'|'pro'}
+ */
+function getRequiredTier(test, partNumber = null) {
+  if (!test) return 'free';
+
+  const scope = getTestScope(test, partNumber);
+  if (scope === 'full' || scope === 'set') return 'pro';
+
+  const colTier = test.collectionAccessTier;
+  if (colTier === 'free' || colTier === 'standard' || colTier === 'pro') return colTier;
+
+  if (test.isFree) return 'free';
+
+  const type = String(test.type || '').toLowerCase();
+  if (type === 'reading' || type === 'listening') return 'standard';
+
+  // Writing/Speaking hozircha obuna bilan cheklanmagan.
+  return 'free';
+}
+
+/**
+ * Tarif bo'yicha testni ochish mumkinmi.
+ *
+ * DIQQAT: bu faqat TARIF bo'yicha qaror. O'qituvchi biriktirgan yoki mock
+ * tarkibidagi testlar alohida yo'l bilan ochiladi — shuning uchun `false`
+ * "ruxsat yo'q" degani emas, "tarif yetarli emas" degani.
+ */
+function tierAllowsTest(userData, test, partNumber = null) {
+  if (isStaff(userData)) return true;
+  return meetsTier(userData, getRequiredTier(test, partNumber));
+}
+
 module.exports = {
   toDate,
   getSubscriptionEnd,
@@ -96,4 +185,7 @@ module.exports = {
   hasActiveSubscription,
   canAccessPremiumContent,
   meetsTier,
+  getTestScope,
+  getRequiredTier,
+  tierAllowsTest,
 };

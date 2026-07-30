@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import SiteFooter from '../../components/common/SiteFooter';
+import MistakeAnalysis from '../../components/student/MistakeAnalysis';
 
 export default function StudentStatistics() {
     const navigate = useNavigate();
@@ -362,6 +363,11 @@ export default function StudentStatistics() {
                             </ResponsiveContainer>
                         </div>
                     </div>
+                </div>
+
+                {/* Savol turlari kesimidagi xatolar tahlili (Pro) */}
+                <div className="animate-fade-in-up" style={{ animationDelay: '0.35s' }}>
+                    <MistakeAnalysis userData={userData} results={userResults} />
                 </div>
 
                 {/* Weak Areas & Recommendations */}

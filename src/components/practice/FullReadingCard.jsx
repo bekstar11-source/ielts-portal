@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import ShareModal from '../common/ShareModal';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { tierAllowsTest } from '../../utils/subscription';
 
-export default function FullReadingCard({ test, isCompleted, onReview, onStart, isPro, isStandard }) {
+export default function FullReadingCard({ test, isCompleted, onReview, onStart }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -17,7 +18,11 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
   const disableRetake = hasGroupId && isAssignment && (attemptsCount >= maxAttempts);
   const passages = test.title?.split('/').map(s => s.trim()) || [test.title];
 
-  const canAccess = isPro || isStandard || !!test.isFree || userData?.role === 'admin' || userData?.role === 'teacher' || userData?.isPremium;
+  // To'liq testlar faqat Pro'da. Ilgari bu yerda `isStandard` va `isFree` ham
+  // ruxsat berardi — natijada Standard foydalanuvchi qulfsiz kartani bosib,
+  // faqat shundan keyin "obuna kerak" oynasini ko'rardi.
+  // O'qituvchi biriktirgan testlar tarifdan qat'i nazar ochiq qoladi.
+  const canAccess = isAssignment || tierAllowsTest(userData, test);
 
   const handleClick = () => {
     if (isCompleted) {
@@ -45,7 +50,7 @@ export default function FullReadingCard({ test, isCompleted, onReview, onStart, 
               <span className="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-bold tracking-wider uppercase">
                 {t('practice.fullReading')}
               </span>
-              {test.isFree ? (
+              {test.isFree && canAccess ? (
                 <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold tracking-wider uppercase shadow-sm">
                   FREE
                 </span>

@@ -19,7 +19,7 @@ import DashboardModals from "../../components/dashboard/DashboardModals";
 import PricingModal from "../../components/dashboard/PricingModal";
 import SiteFooter from "../../components/common/SiteFooter";
 import { useDailyLimit } from "../../hooks/useDailyLimit";
-import { getTier, canAccessPremiumContent } from '../../utils/subscription';
+import { getTier, canAccessPremiumContent, tierAllowsTest, isAssignedItem } from '../../utils/subscription';
 import BottomNav from "../../components/dashboard/BottomNav";
 
 // REFACTORED COMPONENTS
@@ -149,11 +149,19 @@ export default function ReadingFull() {
     return { fullTestsList };
   }, [collectionsData.collectionProcessedTests, searchQuery, selectedStatus, selectedQuestionTypes, freeOnly]);
 
-  const handleStartTest = (test) => { 
+  const handleStartTest = (test) => {
     const colTier = test.collectionAccessTier;
     const isAdminOrTeacher = userData?.role === 'admin' || userData?.role === 'teacher';
     let allowed = true;
-    
+
+    // To'liq testlar va to'plamlar faqat Pro'da. Standard cheklovsiz PART
+    // ishlaydi, lekin bu sahifadagi testlarni ocholmaydi. O'qituvchi biriktirgan
+    // yoki mock tarkibidagi testlar bundan mustasno — ular alohida ochiladi.
+    if (!isAdminOrTeacher && !isAssignedItem(test) && !tierAllowsTest(userData, test)) {
+      setShowPricingModal(true);
+      return;
+    }
+
     if (colTier === 'pro') {
       allowed = isPro || isAdminOrTeacher;
     } else if (colTier === 'standard') {
@@ -274,7 +282,7 @@ export default function ReadingFull() {
         <div className="max-w-[1440px] mx-auto px-6">
         {loading ? (
             <div className="flex justify-center py-40">
-                <div className="w-8 h-8 border-2 border-gray-200 border-t-[#0066cc] rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-warm-hairline border-t-warm-primary rounded-full animate-spin" />
             </div>
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
@@ -286,8 +294,8 @@ export default function ReadingFull() {
                         if (fullTests.length === 0) {
                             return (
                                 <div className="flex flex-col items-center justify-center py-40 text-center" key="no-fulltests">
-                                    <Search size={24} className="text-gray-300 dark:text-zinc-600 mb-6" />
-                                    <h3 className="text-[24px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Hech narsa topilmadi</h3>
+                                    <Search size={24} className="text-warm-muted-soft dark:text-warm-muted mb-6" />
+                                    <h3 className="text-[24px] font-semibold text-warm-ink dark:text-warm-on-dark">Hech narsa topilmadi</h3>
                                 </div>
                             );
                         }
@@ -299,7 +307,7 @@ export default function ReadingFull() {
                                 className="space-y-4 pb-20"
                                 ref={fullTestSectionRef}
                             >
-                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Full Reading</h2>
+                                <h2 className="font-serif-display text-warm-display-sm md:text-warm-display-md font-semibold text-warm-ink dark:text-warm-on-dark tracking-tight">Full Reading</h2>
                                 <div 
                                     ref={fullReadingScroll.scrollRef}
                                     onScroll={(e) => fullReadingScroll.updateScrollState(e.currentTarget)}

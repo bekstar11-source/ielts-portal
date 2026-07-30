@@ -1,7 +1,7 @@
 // functions/getSanitizedTest.js
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const { getTier, isStaff, meetsTier } = require("./subscription");
+const { isStaff, tierAllowsTest } = require("./subscription");
 
 /**
  * Recursively removes all answer keys from the test structure.
@@ -31,32 +31,22 @@ function sanitizeObject(obj) {
  * Mirrors the client-side gating in ReadingFull/ListeningFull/useDailyLimit,
  * but runs server-side so it can't be bypassed by navigating straight to /test/:id.
  */
-async function checkEntitlement(db, uid, userData, testData, testId) {
-    // Explicitly free tests/collections are always allowed.
-    if (testData.isFree || testData.collectionAccessTier === 'free') {
-        return true;
-    }
-
+async function checkEntitlement(db, uid, userData, testData, testId, partNumber = null) {
     if (isStaff(userData)) return true;
 
-    // ⚠️ `getTier` obuna MUDDATINI ham hisobga oladi. Ilgari bu yerda faqat
-    // `accountType`/`isPro` bayroqlari o'qilardi va muddat tugashi faqat
-    // klientda (AuthContext) tekshirilardi — ya'ni brauzer o'sha yozuvni
+    // Kerakli tarif — YAGONA manbadan (`subscription.getRequiredTier`):
+    //   • full test / to'plam → har doim Pro (kolleksiya "standard" bo'lsa ham);
+    //   • part test → kolleksiyaning `accessTier` i (uni admin belgilaydi).
+    //
+    // ⚠️ `tierAllowsTest` ichidagi `getTier` obuna MUDDATINI ham hisobga oladi.
+    // Ilgari bu yerda faqat `accountType`/`isPro` bayroqlari o'qilardi va muddat
+    // tugashi faqat klientda tekshirilardi — ya'ni brauzer o'sha yozuvni
     // bajarmasa, obuna abadiy amal qilaverardi.
-    const userTier = getTier(userData);
-    const requiredTier = testData.collectionAccessTier;
-
-    if (requiredTier === 'pro' || requiredTier === 'standard') {
-        if (meetsTier(userData, requiredTier)) return true;
-    } else {
-        const type = (testData.type || '').toLowerCase();
-        if (type === 'reading' || type === 'listening') {
-            if (userTier !== 'free') return true;
-        } else {
-            // Writing/Speaking are not subscription-gated today.
-            return true;
-        }
-    }
+    //
+    // Tarif yetmasa pastdagi biriktirish/mock tekshiruvlariga tushadi:
+    // o'qituvchi bergan yoki mock tarkibidagi full test Standard uchun ham
+    // ochiq qolishi shart.
+    if (tierAllowsTest(userData, testData, partNumber)) return true;
 
     // Not covered by account tier — check if this specific test was assigned
     // to the user directly, via their group, or unlocked through an access key
@@ -88,10 +78,21 @@ async function getSanitizedTest(data, context) {
         throw new functions.https.HttpsError('unauthenticated', 'Avtorizatsiyadan o\'tilmagan.');
     }
 
-    const { testId } = data;
+    const { testId, partNumber = null } = data;
     if (!testId || typeof testId !== 'string') {
         throw new functions.https.HttpsError('invalid-argument', 'Test identifikatori kiritilishi shart.');
     }
+
+    // Listening da part — bitta hujjatning bo'lagi, shuning uchun qaysi part
+    // so'ralayotganini faqat klient aytadi.
+    //
+    // ⚠️ MA'LUM CHEKLOV: bu qiymatga ishonamiz. Reading uchun muammo yo'q —
+    // u yerda full test ALOHIDA hujjat, ya'ni `partNumber` yozib yuborish
+    // yordam bermaydi. Listening da esa Standard foydalanuvchi `partNumber`
+    // ni qo'lda yuborib butun hujjatni ola oladi. Buni to'liq yopish uchun
+    // javob tarkibini so'ralgan part bilan cheklash (payload trimming) kerak.
+    const parsedPart = Number(partNumber);
+    const cleanPartNumber = Number.isFinite(parsedPart) && parsedPart > 0 ? parsedPart : null;
 
     try {
         const db = admin.firestore();
@@ -109,7 +110,7 @@ async function getSanitizedTest(data, context) {
         const userSnap = await db.collection("users").doc(uid).get();
         const userData = userSnap.exists ? userSnap.data() : {};
 
-        const entitled = await checkEntitlement(db, uid, userData, rawData, cleanId);
+        const entitled = await checkEntitlement(db, uid, userData, rawData, cleanId, cleanPartNumber);
         if (!entitled) {
             throw new functions.https.HttpsError('permission-denied', 'Bu testni ishlash uchun obuna talab qilinadi.');
         }

@@ -38,7 +38,7 @@ async function submitTestAnswers(data, context) {
         const testType = (testData.type || 'reading').toLowerCase().trim();
 
         // 2. Securely evaluate answers
-        const { correctCount, totalQ, band, mistakes, missingKeys } = evaluateTest(testData, cleanUserAnswers, parsedPartNumber);
+        const { correctCount, totalQ, band, mistakes, missingKeys, typeStats } = evaluateTest(testData, cleanUserAnswers, parsedPartNumber);
 
         // Talaba javob bergan, lekin javob kaliti kiritilmagan savollar — test tuzishdagi xato.
         // Bunday savollar umumiy hisobga kirmaydi, ya'ni band sun'iy ravishda ko'tariladi.
@@ -73,7 +73,8 @@ async function submitTestAnswers(data, context) {
             timeSpent: cleanTimeSpent,
             mode: cleanTestMode,
             userAnswers: cleanUserAnswers,
-            partNumber: parsedPartNumber
+            partNumber: parsedPartNumber,
+            typeStats: typeStats || {}
         };
 
         await db.runTransaction(async (transaction) => {
@@ -105,7 +106,13 @@ async function submitTestAnswers(data, context) {
                 bandScore: bestBandScore,
                 lastAttemptDate: now,
                 date: now,
-                
+
+                // Savol turlari kesimidagi statistika — Pro "Xatolar tahlili" shundan
+                // yig'iladi. Ataylab OXIRGI urinishnikini saqlaymiz: aks holda bitta
+                // testni qayta-qayta ishlagan o'quvchi umumiy manzarani buzib yuborardi.
+                typeStats: typeStats || {},
+
+
                 attempts: admin.firestore.FieldValue.arrayUnion(currentAttempt),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             };
@@ -148,6 +155,7 @@ async function submitTestAnswers(data, context) {
             const mistakeSessionRef = db.collection("users").doc(userId).collection("mistakeSessions").doc();
             await mistakeSessionRef.set({
                 mistakes,
+                typeStats: typeStats || {},
                 date: now,
                 testId: testId,
                 testTitle: testData.title || 'Untitled Test'

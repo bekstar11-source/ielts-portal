@@ -2,6 +2,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { evaluateTest, calculateBandScore, calculateOverallBand } = require("./ieltsScoring");
+const { mergeTypeStats } = require("./questionTypes");
 
 /**
  * Cloud Function to securely grade and log full mock exams on the backend.
@@ -161,6 +162,12 @@ async function submitMockExam(data, context) {
             scores: finalScores,
             bandScore: interimOverall,
             overallBand: interimOverall,
+
+            // Xatolar tahlili (Pro) uchun savol turlari kesimi. Mock'da Listening va
+            // Reading bitta hujjatga tushadi, shuning uchun ikkalasini qo'shib yozamiz —
+            // o'quvchi uchun "Matching Headings"dagi zaiflik qaysi bo'limdan kelganidan
+            // qat'i nazar bir xil ko'nikma muammosi.
+            typeStats: mergeTypeStats(lEval.typeStats, rEval.typeStats),
             details: {
                 listeningAnswers: listeningAns || {},
                 readingAnswers: readingAns || {},

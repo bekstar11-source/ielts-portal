@@ -8,6 +8,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import { deriveQuestionTypesForCard, getActualQuestionCount, getPassageNum } from '../../utils/TestUtils';
 import QuestionTypeTags from './QuestionTypeTags';
 import { useAuth } from '../../context/AuthContext';
+import { getRequiredTier, tierAllowsTest } from '../../utils/subscription';
 
 // Preload Set 1 thumbnail image for instant rendering across all cards
 if (typeof window !== 'undefined') {
@@ -15,7 +16,7 @@ if (typeof window !== 'undefined') {
   preloadImg.src = "https://firebasestorage.googleapis.com/v0/b/ielts-portal-v1.firebasestorage.app/o/thumbnails%2FGemini_Generated_Image_vx0h6mvx0h6mvx0h-squished.webp?alt=media&token=03a2fab5-c0db-46c9-af03-dd556fb08fde";
 }
 
-const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, isPro, isStandard, passageNumber: passageNumberProp }) {
+const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onReview, onStart, onSelectSet, passageNumber: passageNumberProp }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -25,12 +26,6 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
   const attemptsCount = test.attemptsCount || 0;
   const maxAttempts = test.maxAttempts || 1;
   const disableRetake = hasGroupId && isAssignment && (attemptsCount >= maxAttempts);
-  
-  const isPremiumContent = (() => {
-    if (test.collectionAccessTier === 'free') return false;
-    if (test.collectionAccessTier === 'standard' || test.collectionAccessTier === 'pro') return true;
-    return (test.isMock || test.status === 'locked' || (test.type === 'mock_full') || test.type === 'reading' || test.type === 'listening') && !test.isFree;
-  })();
   
   const isListeningPart = test.type === 'listening' && (test.title?.toLowerCase().includes('part') || test.partNumber || !test.title?.toLowerCase().includes('full'));
   const isListeningFull = test.type === 'listening' && test.title?.toLowerCase().includes('full');
@@ -77,12 +72,14 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
     ? (test.title.match(/Part\s*(\d+)|Section\s*(\d+)/i)?.[0] || (test.difficulty?.includes('1') ? 'Section 1' : test.difficulty?.includes('2') ? 'Section 2' : test.difficulty?.includes('3') ? 'Section 3' : test.difficulty?.includes('4') ? 'Section 4' : 'Listening Section'))
     : (test.type === 'mock_full' ? 'Full Mock' : 'IELTS Test');
 
+  // Kerakli tarif — server bilan bir xil qoidadan (`utils/subscription`):
+  // full/to'plam → Pro, part → kolleksiyaning admin belgilagan darajasi.
+  const requiredTier = getRequiredTier(test, test.partNumber);
+
   const canAccess = (() => {
-    if (userData?.role === 'admin' || userData?.role === 'teacher' || userData?.isPremium) return true;
-    if (test.collectionAccessTier === 'free') return true;
-    if (test.collectionAccessTier === 'standard') return isStandard || isPro;
-    if (test.collectionAccessTier === 'pro') return isPro;
-    return isPro || (isStandard && (test.type === 'reading' || test.type === 'listening' || test.type === 'podcasts'));
+    if (userData?.isPremium) return true;
+    if (isAssignment) return true;
+    return tierAllowsTest(userData, test, test.partNumber);
   })();
 
   const handleClick = () => {
@@ -90,14 +87,14 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
       onReview(test);
     } else if (test.isSet) {
       onSelectSet(test);
-    } else if (!canAccess && isPremiumContent) {
+    } else if (!canAccess) {
       navigate('/pricing');
     } else {
       onStart(test);
     }
   };
 
-  const showGetAccess = !canAccess && isPremiumContent && !isCompleted && !test.isSet;
+  const showGetAccess = !canAccess && !isCompleted && !test.isSet;
 
   const derivedQuestionTypes = deriveQuestionTypesForCard(test);
 
@@ -215,17 +212,21 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
               {passageLabel}
             </span>
             <div className="flex gap-1.5 flex-wrap justify-end max-w-[60%]">
-              {test.collectionAccessTier === 'free' || (test.isFree && !test.collectionAccessTier) ? (
-                <span className="px-2.5 py-1 rounded-full bg-[#31a24c] text-white text-[11px] font-bold tracking-wide whitespace-nowrap shrink-0 shadow-sm">
-                  FREE
+              {/* Yorliq kerakli tarifni ko'rsatadi. Muhimi: "standard" kolleksiya
+                  ichidagi FULL test ham PRO deb belgilanadi — chunki uni faqat Pro
+                  ishlaydi. Ilgari yorliq to'g'ridan-to'g'ri `collectionAccessTier`
+                  dan olinardi va bunday kartada "STANDARD" deb yozilib qolardi. */}
+              {requiredTier === 'pro' ? (
+                <span className="px-2.5 py-1 rounded-full bg-[#f7b928] text-[#0a1317] text-[11px] font-bold tracking-wide flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm">
+                  <Crown size={9} fill="currentColor" /> PRO
                 </span>
-              ) : test.collectionAccessTier === 'standard' ? (
+              ) : requiredTier === 'standard' ? (
                 <span className="px-2.5 py-1 rounded-full bg-[#0064e0] text-white text-[11px] font-bold tracking-wide flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm">
                   <Zap size={9} fill="currentColor" /> STANDARD
                 </span>
-              ) : test.collectionAccessTier === 'pro' || (isPremiumContent && !test.collectionAccessTier) ? (
-                <span className="px-2.5 py-1 rounded-full bg-[#f7b928] text-[#0a1317] text-[11px] font-bold tracking-wide flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm">
-                  <Crown size={9} fill="currentColor" /> PRO
+              ) : (test.isFree || test.collectionAccessTier === 'free') ? (
+                <span className="px-2.5 py-1 rounded-full bg-[#31a24c] text-white text-[11px] font-bold tracking-wide whitespace-nowrap shrink-0 shadow-sm">
+                  FREE
                 </span>
               ) : null}
               {isCompleted && (

@@ -23,7 +23,7 @@ import PracticeHero from "../../components/practice/PracticeHero";
 import PracticeFilters from "../../components/practice/PracticeFilters";
 import ListeningPartsSection from "../../components/practice/ListeningPartsSection";
 import { deriveQuestionTypesForCard, qTypeMatchesSelected } from "../../utils/TestUtils";
-import { getTier, isStaff, canAccessPremiumContent } from '../../utils/subscription';
+import { getTier, isStaff, canAccessPremiumContent, tierAllowsTest, isAssignedItem } from '../../utils/subscription';
 
 const categories = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
@@ -69,7 +69,9 @@ export default function ListeningParts() {
         const privateIds = new Set();
         snap.docs.forEach(d => {
           const data = d.data();
-          mapping[d.id] = data.name;
+          // Nomdan tashqari `accessTier` ham kerak: part testning qaysi tarifga
+          // tegishliligini aynan kolleksiya darajasi belgilaydi (uni admin qo'yadi).
+          mapping[d.id] = { name: data.name, accessTier: data.accessTier };
           if (data.isPublic === false) {
             privateIds.add(d.id);
           }
@@ -301,7 +303,8 @@ export default function ListeningParts() {
             duration: 10,
             thumbnail: partData.thumbnail || test.thumbnail || null,
             collectionId: test.collectionId,
-            collectionName: test.collectionName || collectionsMap[test.collectionId] || "",
+            collectionName: test.collectionName || collectionsMap[test.collectionId]?.name || "",
+            collectionAccessTier: test.collectionAccessTier || collectionsMap[test.collectionId]?.accessTier,
             audioUrl: partData.audioUrl || test.audioUrl || "",
             startTime: partData.startSec || 0,
             endTime: partData.endSec || 0,
@@ -328,7 +331,8 @@ export default function ListeningParts() {
             duration: 10,
             thumbnail: test.thumbnail || null,
             collectionId: test.collectionId,
-            collectionName: test.collectionName || collectionsMap[test.collectionId] || "",
+            collectionName: test.collectionName || collectionsMap[test.collectionId]?.name || "",
+            collectionAccessTier: test.collectionAccessTier || collectionsMap[test.collectionId]?.accessTier,
             audioUrl: test.audioUrl || "",
             startTime: 0,
             endTime: 0,
@@ -413,7 +417,14 @@ export default function ListeningParts() {
     return filtered;
   }, [partTestsList, searchQuery, selectedStatus, selectedQuestionTypes, activePartFilter, selectedParts, freeOnly, sortOrder]);
 
-  const handleStartTest = (test) => { 
+  const handleStartTest = (test) => {
+    // Kolleksiya darajasi (admin belgilaydi) tarifdan yuqori bo'lsa — to'xtatamiz.
+    // Bu tekshiruvsiz Standard o'quvchi "pro" kolleksiyadagi part testni bosib,
+    // faqat server rad etgandan keyin xabar ko'rardi.
+    if (!isAdminOrTeacher && !isAssignedItem(test) && !tierAllowsTest(userData, test, test.partNumber)) {
+      setShowPricingModal(true);
+      return;
+    }
     if (test.isFree) {
       // Free tests are always allowed, bypass limit!
       setTestToStart(test); 
