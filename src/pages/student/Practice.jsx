@@ -395,7 +395,7 @@ export default function Practice() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 pb-24 selection:bg-[#0066cc]/30 selection:text-[#1d1d1f]">
+    <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark pb-section selection:bg-warm-primary/30 selection:text-warm-ink">
       
       <DashboardHeader
         user={user} userData={userData}
@@ -436,7 +436,7 @@ export default function Practice() {
         <div className="max-w-[1440px] mx-auto px-6">
         {loading ? (
             <div className="flex justify-center py-40">
-                <div className="w-8 h-8 border-2 border-gray-200 border-t-[#0066cc] rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-warm-hairline dark:border-white/10 border-t-warm-primary rounded-full animate-spin" />
             </div>
         ) : errorMsg ? (
             <div className="text-center py-20 text-red-500">{errorMsg}</div>
@@ -444,11 +444,11 @@ export default function Practice() {
             <>
               {filteredTests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-                   <div className="w-16 h-16 bg-[#f5f5f7] rounded-full flex items-center justify-center mb-6">
-                      <Search size={24} className="text-gray-300" />
+                   <div className="w-16 h-16 bg-warm-surface dark:bg-warm-dark-elevated rounded-full flex items-center justify-center mb-6">
+                      <Search size={24} className="text-warm-muted-soft dark:text-warm-muted" />
                    </div>
-                   <h3 className="text-[24px] font-semibold text-[#1d1d1f]">{t('practice.notFound')}</h3>
-                   <p className="text-[#86868b] mt-2 max-w-[300px]">{t('practice.notFoundDesc')}</p>
+                   <h3 className="text-[24px] font-semibold text-warm-ink dark:text-warm-on-dark">{t('practice.notFound')}</h3>
+                   <p className="text-warm-muted dark:text-warm-on-dark-soft mt-2 max-w-[300px]">{t('practice.notFoundDesc')}</p>
                 </div>
               ) : (
                   <motion.div 
@@ -456,7 +456,7 @@ export default function Practice() {
                     initial={false}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }}
-                    className="space-y-10 pb-20"
+                    className="space-y-xl pb-20"
                   >
                         {(() => {
                             const isReading = activeTab.toLowerCase() === 'reading';
@@ -472,12 +472,12 @@ export default function Practice() {
                                     <div className="space-y-4" ref={passagesSectionRef}>
                                         {isReading && (
                                             <div className="space-y-1">
-                                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">{t('practice.readingPassages')}</h2>
-                                                <p className="text-[#86868b] text-[14px]">{t('practice.displayingTests').replace('{count}', filteredTests.length).replace('{total}', rawAssignments.length)}</p>
+                                                <h2 className="font-serif-display text-warm-display-sm md:text-warm-display-md font-semibold text-warm-ink dark:text-warm-on-dark tracking-tight">{t('practice.readingPassages')}</h2>
+                                                <p className="text-warm-muted dark:text-warm-on-dark-soft text-[14px]">{t('practice.displayingTests').replace('{count}', filteredTests.length).replace('{total}', rawAssignments.length)}</p>
                                             </div>
                                         )}
                                         
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-5 pt-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-md pt-4">
                                             {standardTests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((test) => (
                                                 <PracticeCard 
                                                     key={test.id} 
@@ -494,7 +494,7 @@ export default function Practice() {
 
                                         {/* Pagination */}
                                         {standardTests.length > itemsPerPage && (
-                                            <div className="flex justify-center items-center gap-1.5 pt-10 pb-8">
+                                            <div className="flex justify-center items-center gap-1.5 pt-xl pb-8">
                                                 {(() => {
                                                     const totalPages = Math.ceil(standardTests.length / itemsPerPage);
                                                     const pages = [];
@@ -520,7 +520,7 @@ export default function Practice() {
 
                                                     return uniquePages.map((p, i) => (
                                                         p === '...' ? (
-                                                            <span key={`dots-${i}`} className="text-[#86868b] px-1 text-[13px]">...</span>
+                                                            <span key={`dots-${i}`} className="text-warm-muted-soft dark:text-warm-muted px-1 text-[13px]">...</span>
                                                         ) : (
                                                             <button
                                                                 key={p}
@@ -533,9 +533,9 @@ export default function Practice() {
                                                                     }
                                                                 }}
                                                                 className={`w-8 h-8 rounded-full text-[13px] font-semibold transition-all ${
-                                                                    currentPage === p 
-                                                                    ? 'bg-[#1d1d1f] text-white' 
-                                                                    : 'bg-[#f5f5f7] text-[#1d1d1f] hover:bg-gray-200'
+                                                                    currentPage === p
+                                                                    ? 'bg-warm-primary text-white'
+                                                                    : 'bg-warm-surface dark:bg-warm-dark-elevated text-warm-ink dark:text-warm-on-dark hover:bg-warm-card dark:hover:bg-white/10'
                                                                 }`}
                                                             >
                                                                 {p}
@@ -557,11 +557,11 @@ export default function Practice() {
                                             className="space-y-4"
                                             ref={fullTestSectionRef}
                                         >
-                                            <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">{t('practice.fullReading')}</h2>
+                                            <h2 className="font-serif-display text-warm-display-sm md:text-warm-display-md font-semibold text-warm-ink dark:text-warm-on-dark tracking-tight">{t('practice.fullReading')}</h2>
                                             <div 
                                                 ref={fullReadingScroll.scrollRef}
                                                 onScroll={(e) => fullReadingScroll.updateScrollState(e.currentTarget)}
-                                                className="flex gap-5 overflow-x-auto pt-4 pb-12 hide-scrollbar -mx-6 px-6"
+                                                className="flex gap-md overflow-x-auto pt-4 pb-12 hide-scrollbar -mx-6 px-6"
                                             >
                                                 {fullReadingTests.map((test, i) => (
                                                   <FullReadingCard 
@@ -582,14 +582,14 @@ export default function Practice() {
                                                 <button 
                                                     onClick={() => fullReadingScroll.handleScroll(-1)}
                                                     disabled={!fullReadingScroll.canLeft}
-                                                    className={`w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#1d1d1f] active:scale-95 transition-all shadow-lg border border-black/5 ${fullReadingScroll.canLeft ? 'hover:bg-white cursor-pointer' : 'opacity-30 cursor-default'}`}
+                                                    className={`w-10 h-10 rounded-full bg-warm-canvas/80 dark:bg-warm-dark-elevated/80 backdrop-blur-md flex items-center justify-center text-warm-ink dark:text-warm-on-dark active:scale-95 transition-all shadow-lg border border-warm-hairline dark:border-white/10 ${fullReadingScroll.canLeft ? 'hover:bg-warm-canvas dark:hover:bg-warm-dark-elevated cursor-pointer' : 'opacity-30 cursor-default'}`}
                                                 >
                                                     <ChevronLeft size={18} />
                                                 </button>
                                                 <button 
                                                     onClick={() => fullReadingScroll.handleScroll(1)}
                                                     disabled={!fullReadingScroll.canRight}
-                                                    className={`w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#1d1d1f] active:scale-95 transition-all shadow-lg border border-black/5 ${fullReadingScroll.canRight ? 'hover:bg-white cursor-pointer' : 'opacity-30 cursor-default'}`}
+                                                    className={`w-10 h-10 rounded-full bg-warm-canvas/80 dark:bg-warm-dark-elevated/80 backdrop-blur-md flex items-center justify-center text-warm-ink dark:text-warm-on-dark active:scale-95 transition-all shadow-lg border border-warm-hairline dark:border-white/10 ${fullReadingScroll.canRight ? 'hover:bg-warm-canvas dark:hover:bg-warm-dark-elevated cursor-pointer' : 'opacity-30 cursor-default'}`}
                                                 >
                                                     <ChevronRight size={18} />
                                                 </button>
@@ -616,7 +616,7 @@ export default function Practice() {
                                                 className="space-y-4"
                                                 ref={setSectionRef}
                                             >
-                                                <h2 className="text-[32px] font-semibold text-[#1d1d1f] tracking-tight">{t('practice.sets')}</h2>
+                                                <h2 className="font-serif-display text-warm-display-sm md:text-warm-display-md font-semibold text-warm-ink dark:text-warm-on-dark tracking-tight">{t('practice.sets')}</h2>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-6">
                                                     {readingSets.slice(0, 3).map((set, i) => (
                                                       <ReadingSetCard 

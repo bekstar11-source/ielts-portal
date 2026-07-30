@@ -51,13 +51,13 @@ export default function TestResults() {
     });
 
     return (
-        <div className="min-h-screen bg-[#f5f5f5] font-sans text-[#1d1d1f] antialiased flex flex-col">
+        <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark antialiased flex flex-col">
             {/* Header Area */}
-            <header className="bg-white border-b border-zinc-200 h-20 flex items-center px-4 md:px-12 sticky top-0 z-50">
+            <header className="bg-white dark:bg-warm-dark-elevated border-b border-warm-hairline dark:border-white/10 h-20 flex items-center px-4 md:px-12 sticky top-0 z-50">
                 <div className="flex-1 flex items-center">
-                    <button 
+                    <button
                         onClick={() => navigate('/mock')}
-                        className="flex items-center gap-2 text-zinc-500 hover:text-[#e31837] transition-colors font-bold text-sm group"
+                        className="flex items-center gap-2 text-warm-muted hover:text-warm-primary dark:text-warm-on-dark-soft dark:hover:text-warm-primary transition-colors font-bold text-sm group"
                     >
                         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
                         <span className="hidden md:inline">{t('testResults.back')}</span>
@@ -65,12 +65,12 @@ export default function TestResults() {
                 </div>
                 <div className="flex-1 flex justify-center">
                    <div className="flex items-baseline gap-1.5 cursor-pointer" onClick={() => navigate('/dashboard')}>
-                       <span className="text-[#e31837] font-black text-3xl tracking-tighter">IELTS</span>
-                       <span className="text-[#1d1d1f] font-medium text-xl tracking-tighter italic">mock</span>
+                       <span className="text-warm-primary font-black text-3xl tracking-tighter">IELTS</span>
+                       <span className="text-warm-ink dark:text-warm-on-dark font-medium text-xl tracking-tighter italic">mock</span>
                    </div>
                 </div>
                 <div className="flex-1 flex justify-end">
-                    <button onClick={() => navigate('/settings')} className="w-10 h-10 rounded-full bg-zinc-800 text-white flex items-center justify-center font-bold text-sm">
+                    <button onClick={() => navigate('/settings')} className="w-10 h-10 rounded-full bg-warm-ink dark:bg-warm-dark-soft text-white flex items-center justify-center font-bold text-sm">
                         {userData?.fullName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
                     </button>
                 </div>
@@ -78,9 +78,9 @@ export default function TestResults() {
 
             <main className="flex-1 w-full max-w-6xl mx-auto px-6 py-8 space-y-8">
                 {/* Breadcrumb style back link */}
-                <button 
+                <button
                     onClick={() => navigate('/mock')}
-                    className="flex items-center gap-1 text-[#0066cc] hover:underline text-sm font-medium"
+                    className="flex items-center gap-1 text-warm-primary hover:underline text-sm font-medium"
                 >
                     <ChevronLeft size={16} />
                     {t('testResults.backToDashboard')}
@@ -89,42 +89,42 @@ export default function TestResults() {
                 {/* Title Section */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                     <div className="space-y-2">
-                        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">{t('testResults.title')}</h1>
-                        <p className="text-zinc-500 text-[15px] font-medium">{t('testResults.subtitle')}</p>
+                        <h1 className="text-3xl font-bold text-warm-ink dark:text-warm-on-dark tracking-tight">{t('testResults.title')}</h1>
+                        <p className="text-warm-muted dark:text-warm-on-dark-soft text-[15px] font-medium">{t('testResults.subtitle')}</p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => navigate('/mock')}
-                        className="bg-[#e31837] text-white px-8 py-3 rounded-full font-bold text-sm hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20"
+                        className="bg-warm-primary text-white px-8 py-3 rounded-full font-bold text-sm hover:bg-warm-primary-active transition-colors shadow-lg shadow-warm-primary/20"
                     >
                         {t('mock.buyMock')}
                     </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="border-b border-zinc-200 flex items-center gap-12">
-                    <button 
+                <div className="border-b border-warm-hairline dark:border-white/10 flex items-center gap-12">
+                    <button
                         onClick={() => setActiveTab('upcoming')}
                         className={`pb-4 text-sm font-bold transition-all relative ${
-                            activeTab === 'upcoming' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
+                            activeTab === 'upcoming' ? 'text-warm-ink dark:text-warm-on-dark' : 'text-warm-muted-soft hover:text-warm-muted dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark'
                         }`}
                     >
                         {t('testResults.upcomingTests')}
-                        {activeTab === 'upcoming' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#e31837]" />}
+                        {activeTab === 'upcoming' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-warm-primary" />}
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('past')}
                         className={`pb-4 text-sm font-bold transition-all relative ${
-                            activeTab === 'past' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
+                            activeTab === 'past' ? 'text-warm-ink dark:text-warm-on-dark' : 'text-warm-muted-soft hover:text-warm-muted dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark'
                         }`}
                     >
                         {t('testResults.pastTests')}
-                        {activeTab === 'past' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#e31837]" />}
+                        {activeTab === 'past' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-warm-primary" />}
                     </button>
                 </div>
 
                 {/* Results List */}
                 <div className="space-y-6 pb-12">
-                    <h3 className="text-lg font-bold text-zinc-900">
+                    <h3 className="text-lg font-bold text-warm-ink dark:text-warm-on-dark">
                         {t('testResults.showingTestsCount')
                             .replace('{count}', filteredTests.length)
                             .replace('{status}', activeTab === 'past' ? t('testResults.past') : t('testResults.upcoming'))
@@ -136,11 +136,11 @@ export default function TestResults() {
                             <TestResultCard key={index} test={test} tab={activeTab} navigate={navigate} t={t} />
                         ))
                     ) : (
-                        <div className="bg-white rounded-xl border border-zinc-200 p-12 text-center space-y-4">
-                            <div className="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mx-auto text-zinc-300">
+                        <div className="bg-white dark:bg-warm-dark-elevated rounded-xl border border-warm-hairline dark:border-white/10 p-12 text-center space-y-4">
+                            <div className="w-16 h-16 bg-warm-card dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-warm-muted-soft">
                                 <FileText size={32} />
                             </div>
-                            <p className="text-zinc-500 font-medium">
+                            <p className="text-warm-muted dark:text-warm-on-dark-soft font-medium">
                                 {t('testResults.noTests').replace('{type}', activeTab === 'past' ? t('testResults.results') : t('testResults.scheduledTests'))}
                             </p>
                         </div>
@@ -154,37 +154,37 @@ export default function TestResults() {
 }
 
 const TestResultCard = ({ test, tab, navigate, t }) => (
-    <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-warm-dark-elevated rounded-xl border border-warm-hairline dark:border-white/10 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between gap-4">
-                <h4 className="text-lg font-bold text-[#e31837]">IELTS On Computer Academic</h4>
+                <h4 className="text-lg font-bold text-warm-primary">IELTS On Computer Academic</h4>
                 {tab === 'past' ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-md border border-green-100">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-warm-success/10 text-warm-success rounded-md border border-warm-success/20">
                         <CheckCircle2 size={14} />
                         <span className="text-[11px] font-bold uppercase tracking-wider">{t('testResults.resultsAvailable')}</span>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-md border border-blue-100">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-warm-accent-teal/10 text-warm-accent-teal rounded-md border border-warm-accent-teal/20">
                         <Calendar size={14} />
                         <span className="text-[11px] font-bold uppercase tracking-wider">{t('testResults.scheduled')}</span>
                     </div>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 bg-[#f8f8f8] rounded-lg divide-y md:divide-y-0 md:divide-x divide-zinc-200 border border-zinc-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 bg-warm-canvas dark:bg-warm-dark-soft rounded-lg divide-y md:divide-y-0 md:divide-x divide-warm-hairline dark:divide-white/10 border border-warm-hairline-soft dark:border-white/5">
                 <div className="p-5 space-y-2">
-                    <p className="text-[15px] font-bold text-zinc-900">Listening, Reading, Writing</p>
-                    <div className="flex items-center gap-3 text-zinc-500 text-[13px] font-medium">
-                        <span className="flex items-center gap-1.5"><Calendar size={14} /> 
+                    <p className="text-[15px] font-bold text-warm-ink dark:text-warm-on-dark">Listening, Reading, Writing</p>
+                    <div className="flex items-center gap-3 text-warm-muted dark:text-warm-on-dark-soft text-[13px] font-medium">
+                        <span className="flex items-center gap-1.5"><Calendar size={14} />
                             {test.scheduledDate ? new Date(test.scheduledDate).toLocaleDateString('uz-UZ') : test.startDate ? new Date(test.startDate).toLocaleDateString('uz-UZ') : 'N/A'}
                         </span>
                         <span className="flex items-center gap-1.5"><Clock size={14} /> 09:30 AM</span>
                     </div>
                 </div>
                 <div className="p-5 space-y-2">
-                    <p className="text-[15px] font-bold text-zinc-900">{t('testResults.speakingTest')}</p>
-                    <div className="flex items-center gap-3 text-zinc-500 text-[13px] font-medium">
-                        <span className="flex items-center gap-1.5"><Calendar size={14} /> 
+                    <p className="text-[15px] font-bold text-warm-ink dark:text-warm-on-dark">{t('testResults.speakingTest')}</p>
+                    <div className="flex items-center gap-3 text-warm-muted dark:text-warm-on-dark-soft text-[13px] font-medium">
+                        <span className="flex items-center gap-1.5"><Calendar size={14} />
                             {test.scheduledDate ? new Date(test.scheduledDate).toLocaleDateString('uz-UZ') : test.startDate ? new Date(test.startDate).toLocaleDateString('uz-UZ') : 'N/A'}
                         </span>
                         <span className="flex items-center gap-1.5"><Clock size={14} /> 03:00 PM</span>
@@ -193,32 +193,32 @@ const TestResultCard = ({ test, tab, navigate, t }) => (
             </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-zinc-100 flex flex-col md:flex-row items-center justify-between gap-4 bg-zinc-50/30">
+        <div className="px-6 py-4 border-t border-warm-hairline-soft dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 bg-warm-canvas/30 dark:bg-white/[0.02]">
             <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2 text-zinc-500 text-[13px] font-medium">
+                <div className="flex items-center gap-2 text-warm-muted dark:text-warm-on-dark-soft text-[13px] font-medium">
                     <Monitor size={16} />
                     <span>{t('testResults.onComputer')}</span>
                 </div>
-                <div className="flex items-center gap-2 text-zinc-500 text-[13px] font-medium">
+                <div className="flex items-center gap-2 text-warm-muted dark:text-warm-on-dark-soft text-[13px] font-medium">
                     <MapPin size={16} />
                     <span>1 Imam At-Termeziy Street Termez, Termez 190100</span>
                 </div>
             </div>
             {tab === 'upcoming' ? (
-                <button 
+                <button
                     onClick={() => {
                         const isMock = test.type === 'mock_full' || test.id?.startsWith('MOCK_');
-                        navigate(isMock ? '/mock-exam' : '/exam', { 
-                            state: isMock ? { mockData: test } : { testData: test } 
+                        navigate(isMock ? '/mock-exam' : '/exam', {
+                            state: isMock ? { mockData: test } : { testData: test }
                         });
                     }}
-                    className="flex items-center gap-2 bg-[#e31837] text-white px-6 py-2 rounded-full text-[13px] font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-500/10 active:scale-95"
+                    className="flex items-center gap-2 bg-warm-primary text-white px-6 py-2 rounded-full text-[13px] font-bold hover:bg-warm-primary-active transition-all shadow-lg shadow-warm-primary/10 active:scale-95"
                 >
                     {t('testResults.takeNow')}
                     <ChevronRight size={16} />
                 </button>
             ) : (
-                <button className="flex items-center gap-1 text-[#1d1d1f] hover:text-[#e31837] transition-colors text-[13px] font-bold group">
+                <button className="flex items-center gap-1 text-warm-ink dark:text-warm-on-dark hover:text-warm-primary transition-colors text-[13px] font-bold group">
                     {t('testResults.viewResults')}
                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </button>

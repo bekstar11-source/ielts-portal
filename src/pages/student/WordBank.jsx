@@ -181,7 +181,7 @@ export default function Wordbank() {
     }
 
     return (
-        <div className={`min-h-screen font-sans transition-colors duration-500 pb-20 ${isDark ? 'bg-black text-[#f5f5f7]' : 'bg-white text-[#1d1d1f]'}`}>
+        <div className={`min-h-screen font-sans transition-colors duration-500 pb-20 ${isDark ? 'bg-warm-dark text-warm-on-dark' : 'bg-warm-canvas text-warm-ink'}`}>
             <DashboardHeader
                 user={user} userData={userData}
                 activeTab="vocabulary"
@@ -189,7 +189,7 @@ export default function Wordbank() {
                 loading={loading}
             />
 
-            <main className="max-w-[1200px] mx-auto px-6 pt-12 w-full">
+            <main className="max-w-[1200px] mx-auto px-lg pt-xxl w-full">
                 <WordBankHero 
                     wordsCount={words.length}
                     todayAddedCount={todayAddedCount}
@@ -200,18 +200,18 @@ export default function Wordbank() {
                     isDark={isDark}
                 />
 
-                <div className={`border rounded-3xl p-6 md:p-8 transition-colors ${isDark ? 'bg-[#1c1c1e] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+                <div className={`border rounded-xl p-lg md:p-xl transition-colors ${isDark ? 'bg-warm-dark-elevated border-white/10' : 'bg-white border-warm-hairline shadow-sm'}`}>
                     {/* Controls */}
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
-                        <div className="flex items-center gap-1 bg-[#f5f5f7] dark:bg-white/5 p-1 rounded-xl w-fit">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-lg mb-xl">
+                        <div className="flex items-center gap-1 bg-warm-card dark:bg-white/5 p-xxs rounded-md w-fit">
                             {[
                                 { id: 'vocabulary', label: t('wordbank.allWords') },
                                 { id: 'keywords', label: t('wordbank.keywords') }
                             ].map(tab => (
-                                <button 
+                                <button
                                     key={tab.id}
                                     onClick={() => setMainTab(tab.id)}
-                                    className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${mainTab === tab.id ? 'bg-white dark:bg-white/10 shadow-sm text-[#1d1d1f] dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                    className={`px-md py-xs rounded-md text-sm font-medium transition-all ${mainTab === tab.id ? 'bg-white dark:bg-white/10 shadow-sm text-warm-ink dark:text-warm-on-dark' : 'text-warm-muted hover:text-warm-body dark:hover:text-warm-on-dark-soft'}`}
                                 >
                                     {tab.label}
                                 </button>
@@ -220,11 +220,11 @@ export default function Wordbank() {
 
                         <div className="flex flex-col sm:flex-row items-center gap-4">
                              <div className="relative w-full sm:w-[280px] group">
-                                <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isDark ? 'text-gray-600 group-focus-within:text-[#FB5102]' : 'text-gray-400 group-focus-within:text-[#FB5102]'}`} />
-                                <input 
-                                    type="text" 
-                                    placeholder={t('wordbank.searchWords')} 
-                                    className={`w-full border outline-none rounded-xl py-2.5 pl-11 pr-4 text-sm transition-all ${isDark ? 'bg-black/20 border-white/10 focus:border-[#FB5102]/40 text-white' : 'bg-[#f5f5f7] border-transparent focus:bg-white focus:border-[#FB5102]/30 text-gray-900'}`}
+                                <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isDark ? 'text-warm-muted-soft group-focus-within:text-warm-primary' : 'text-warm-muted group-focus-within:text-warm-primary'}`} />
+                                <input
+                                    type="text"
+                                    placeholder={t('wordbank.searchWords')}
+                                    className={`w-full border outline-none rounded-md py-2.5 pl-11 pr-4 text-sm transition-all ${isDark ? 'bg-black/20 border-white/10 focus:border-warm-primary/40 text-warm-on-dark' : 'bg-warm-card border-transparent focus:bg-white focus:border-warm-primary/30 text-warm-ink'}`}
                                     value={mainTab === 'vocabulary' ? searchTerm : keywordSearch}
                                     onChange={(e) => mainTab === 'vocabulary' ? setSearchTerm(e.target.value) : setKeywordSearch(e.target.value)}
                                 />
@@ -232,17 +232,17 @@ export default function Wordbank() {
                             
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all w-full sm:w-auto justify-center bg-[#1d1d1f] hover:bg-black text-white dark:bg-white/10 dark:hover:bg-white/20 active:scale-95 border dark:border-white/5 border-transparent`}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold transition-all w-full sm:w-auto justify-center bg-warm-ink hover:bg-warm-body-strong text-white dark:bg-white/10 dark:hover:bg-white/20 active:scale-95 border dark:border-white/10 border-transparent`}
                             >
                                 <Plus className="w-4 h-4" />
                                 <span>Yangi so'z</span>
                             </button>
                             
-                            <button 
-                                onClick={handleTranslateAll} 
-                                disabled={batchProcessing || words.every(w => w.hasAI)} 
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all w-full sm:w-auto justify-center
-                                ${ (batchProcessing || words.every(w => w.hasAI)) ? 'opacity-40 cursor-not-allowed' : 'bg-[#FB5102] text-white hover:bg-[#e64a02] active:scale-95'}`}
+                            <button
+                                onClick={handleTranslateAll}
+                                disabled={batchProcessing || words.every(w => w.hasAI)}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold transition-all w-full sm:w-auto justify-center
+                                ${ (batchProcessing || words.every(w => w.hasAI)) ? 'opacity-40 cursor-not-allowed' : 'bg-warm-primary text-white hover:bg-warm-primary-active active:scale-95'}`}
                             >
                                 {batchProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                                 <span>{batchProcessing ? t('wordbank.translating') : t('wordbank.autoTranslateAll')}</span>
@@ -251,9 +251,9 @@ export default function Wordbank() {
                     </div>
 
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20">
-                            <Loader2 className="w-8 h-8 text-[#FB5102] animate-spin mb-3" />
-                            <p className="text-sm text-gray-500">{t('wordbank.loadingCollection')}</p>
+                        <div className="flex flex-col items-center justify-center py-section">
+                            <Loader2 className="w-8 h-8 text-warm-primary animate-spin mb-3" />
+                            <p className="text-sm text-warm-muted">{t('wordbank.loadingCollection')}</p>
                         </div>
                     ) : (
                         mainTab === 'keywords' ? (

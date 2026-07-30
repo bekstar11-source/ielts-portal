@@ -120,7 +120,7 @@ export default function MockPurchase() {
 
   return (
     <div className={`min-h-screen font-['Plus_Jakarta_Sans'] flex flex-col transition-colors duration-200 select-none ${
-      isDark ? "bg-[#18181b] text-zinc-150" : "bg-white text-gray-800"
+      isDark ? "bg-warm-dark text-warm-on-dark" : "bg-warm-canvas text-warm-ink"
     }`}>
       <DashboardHeader
         user={user}
@@ -131,13 +131,13 @@ export default function MockPurchase() {
 
       {/* MOBILE STICKY HEADER */}
       <header className={`w-full border-b px-6 py-3 sticky top-0 z-50 md:hidden flex justify-between items-center ${
-        isDark ? "bg-[#18181b] border-zinc-800" : "bg-white border-gray-300"
+        isDark ? "bg-warm-dark border-white/10" : "bg-warm-canvas border-warm-hairline"
       }`}>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate("/mock")} 
+          <button
+            onClick={() => navigate("/mock")}
             className={`p-2 rounded-full transition-colors ${
-              isDark ? "hover:bg-zinc-900 text-zinc-400 hover:text-white" : "hover:bg-gray-50 text-gray-500 hover:text-gray-900"
+              isDark ? "hover:bg-warm-dark-elevated text-warm-on-dark-soft hover:text-warm-on-dark" : "hover:bg-warm-card text-warm-muted hover:text-warm-ink"
             }`}
           >
             <ArrowLeft size={18} />
@@ -145,47 +145,47 @@ export default function MockPurchase() {
           <span className="font-bold text-xs">Mocks</span>
         </div>
         <div className="flex items-baseline">
-          <span className="text-[#e31b23] font-black text-2xl tracking-normal">IELTS</span>
-          <span className={`font-bold text-xs ml-1 ${isDark ? "text-white" : "text-gray-900"}`}>Store</span>
+          <span className="text-warm-primary font-black text-2xl tracking-normal">IELTS</span>
+          <span className={`font-bold text-xs ml-1 ${isDark ? "text-warm-on-dark" : "text-warm-ink"}`}>Store</span>
         </div>
       </header>
 
       {/* MAIN CONTAINER */}
-      <main className="flex-1 w-full max-w-6xl mx-auto px-6 py-10 space-y-10 pb-24">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-6 py-xl space-y-xl pb-24">
         {/* Navigation Breadcrumb */}
         <section className="hidden md:flex justify-between items-center">
-          <button 
+          <button
             onClick={() => navigate("/mock")}
-            className={`flex items-center gap-2 border px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-              isDark 
-                ? "bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-zinc-300" 
-                : "bg-white border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 text-zinc-655"
+            className={`flex items-center gap-2 border px-4 py-2.5 rounded-md text-xs font-bold transition-all active:scale-95 ${
+              isDark
+                ? "bg-warm-dark-elevated border-white/10 hover:bg-warm-dark-soft hover:border-white/20 text-warm-on-dark-soft"
+                : "bg-white border-warm-hairline hover:bg-warm-card hover:border-warm-hairline text-warm-body"
             }`}
           >
             <ArrowLeft size={14} /> Mock imtihonlar paneliga qaytish
           </button>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-red-500/5 to-amber-500/5 border-red-500/10 text-red-500">
-            <Sparkles size={11} className="text-yellow-550 fill-yellow-500" /> IELTS Simulator
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-warm-primary/5 to-warm-accent-amber/5 border-warm-primary/10 text-warm-primary">
+            <Sparkles size={11} className="text-warm-accent-amber fill-warm-accent-amber" /> IELTS Simulator
           </div>
         </section>
 
         {/* Hero Section */}
         <section className="space-y-2">
-          <h1 className={`text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+          <h1 className={`text-3xl font-extrabold tracking-tight ${isDark ? "text-warm-on-dark" : "text-warm-ink"}`}>
             Premium Mock Testlar
           </h1>
-          <p className={`text-sm max-w-2xl font-medium ${isDark ? "text-zinc-500" : "text-gray-500"}`}>
+          <p className={`text-sm max-w-2xl font-medium ${isDark ? "text-warm-on-dark-soft" : "text-warm-muted"}`}>
             Reading, Listening va Writing bo'limlarini o'z ichiga olgan to'liq IELTS on Computer simulyatsiyalari. Istalgan mock testni tanlab, o'z bilimingizni rasmiy imtihon darajasida tekshirib ko'ring.
           </p>
-          <div className={`h-[1px] w-full pt-4 border-b ${isDark ? "border-zinc-900" : "border-gray-150"}`}></div>
+          <div className={`h-[1px] w-full pt-4 border-b ${isDark ? "border-white/10" : "border-warm-hairline-soft"}`}></div>
         </section>
 
         {/* MOCK LIST SECTION */}
         <section>
           {loading ? (
-            <div className="py-24 text-center text-zinc-500 font-bold uppercase tracking-widest text-xs">
-              <Loader2 className="animate-spin mx-auto mb-4 opacity-35" size={32} /> 
+            <div className="py-24 text-center text-warm-muted dark:text-warm-on-dark-soft font-bold uppercase tracking-widest text-xs">
+              <Loader2 className="animate-spin mx-auto mb-4 opacity-35" size={32} />
               Katalog yuklanmoqda...
             </div>
           ) : mocks.length > 0 ? (
@@ -193,34 +193,34 @@ export default function MockPurchase() {
               {mocks.map((mock) => {
                 const purchased = isAlreadyPurchased(mock);
                 return (
-                  <article 
+                  <article
                     key={mock.id}
-                    className={`border transition-all flex flex-col justify-between p-5 rounded-lg shadow-sm hover:translate-y-[-2px] hover:shadow-md duration-250 ${
-                      isDark 
-                        ? "bg-[#0b0b0d] border-zinc-850 hover:border-zinc-800 text-zinc-150" 
-                        : "bg-white border-zinc-200 hover:border-zinc-250 text-gray-800"
+                    className={`border transition-all flex flex-col justify-between p-xl rounded-lg shadow-sm hover:translate-y-[-2px] hover:shadow-md duration-250 ${
+                      isDark
+                        ? "bg-warm-dark-elevated border-white/10 hover:border-warm-primary/30 text-warm-on-dark"
+                        : "bg-white border-warm-hairline hover:border-warm-primary/30 text-warm-ink"
                     }`}
                   >
                     <div className="space-y-4">
                       {/* Badge and Price */}
                       <div className="flex justify-between items-center">
                         <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
-                          isDark ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-red-50 text-red-650 border border-red-100"
+                          isDark ? "bg-warm-primary/10 text-warm-primary border border-warm-primary/20" : "bg-warm-primary/10 text-warm-primary-active border border-warm-primary/20"
                         }`}>
                           Premium Mock
                         </span>
-                        <span className={`text-xs font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+                        <span className={`text-xs font-black tracking-tight ${isDark ? "text-warm-on-dark" : "text-warm-ink"}`}>
                           {formatPrice(mock.price)}
                         </span>
                       </div>
 
                       {/* Title and Description */}
                       <div className="space-y-1.5">
-                        <h3 className={`text-base font-black tracking-tight leading-snug ${isDark ? "text-white" : "text-gray-900"}`}>
+                        <h3 className={`text-base font-black tracking-tight leading-snug ${isDark ? "text-warm-on-dark" : "text-warm-ink"}`}>
                           {mock.title}
                         </h3>
                         {mock.description && (
-                          <p className={`text-xs leading-relaxed font-semibold line-clamp-3 ${isDark ? "text-zinc-450" : "text-gray-500"}`}>
+                          <p className={`text-xs leading-relaxed font-semibold line-clamp-3 ${isDark ? "text-warm-on-dark-soft" : "text-warm-muted"}`}>
                             {mock.description}
                           </p>
                         )}
@@ -229,17 +229,17 @@ export default function MockPurchase() {
                       {/* Mock structure badges */}
                       <div className="flex items-center gap-2 flex-wrap pt-1">
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${
-                          isDark ? "bg-zinc-950 border-zinc-850 text-zinc-400" : "bg-gray-50 border-gray-200 text-gray-600"
+                          isDark ? "bg-white/5 border-white/10 text-warm-on-dark-soft" : "bg-warm-canvas border-warm-hairline text-warm-body"
                         }`}>
                           <BookOpen size={10} /> Reading
                         </span>
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${
-                          isDark ? "bg-zinc-950 border-zinc-850 text-zinc-400" : "bg-gray-50 border-gray-200 text-gray-600"
+                          isDark ? "bg-white/5 border-white/10 text-warm-on-dark-soft" : "bg-warm-canvas border-warm-hairline text-warm-body"
                         }`}>
                           <Headphones size={10} /> Listening
                         </span>
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${
-                          isDark ? "bg-zinc-950 border-zinc-850 text-zinc-400" : "bg-gray-50 border-gray-200 text-gray-600"
+                          isDark ? "bg-white/5 border-white/10 text-warm-on-dark-soft" : "bg-warm-canvas border-warm-hairline text-warm-body"
                         }`}>
                           <PenTool size={10} /> Writing
                         </span>
@@ -251,10 +251,10 @@ export default function MockPurchase() {
                       {purchased ? (
                         <button
                           disabled
-                          className={`w-full py-3.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border ${
-                            isDark 
-                              ? "bg-zinc-900 border-zinc-850 text-zinc-550" 
-                              : "bg-gray-50 border-gray-200 text-gray-400"
+                          className={`w-full py-3.5 rounded-md text-xs font-bold flex items-center justify-center gap-1.5 border ${
+                            isDark
+                              ? "bg-warm-dark-soft border-white/10 text-warm-on-dark-soft"
+                              : "bg-warm-card border-warm-hairline text-warm-muted"
                           }`}
                         >
                           <Check size={14} /> Sotib olingan
@@ -265,7 +265,7 @@ export default function MockPurchase() {
                             setPaymentStarted(false);
                             setSelectedMock(mock);
                           }}
-                          className="w-full py-3.5 rounded-lg text-xs font-bold transition-all bg-[#e31b23] hover:bg-[#c4151c] text-white active:scale-98 flex items-center justify-center gap-1.5 shadow-sm shadow-red-950/20"
+                          className="w-full py-3.5 rounded-md text-xs font-bold transition-all bg-warm-primary hover:bg-warm-primary-active text-white active:scale-98 flex items-center justify-center gap-1.5 shadow-sm shadow-warm-primary/20"
                         >
                           <ShoppingBag size={14} /> Sotib olish
                         </button>
@@ -277,10 +277,10 @@ export default function MockPurchase() {
             </div>
           ) : (
             <div className={`border border-dashed rounded-xl py-24 text-center ${
-              isDark ? "border-zinc-850 bg-zinc-950/20" : "border-gray-250 bg-gray-50/50"
+              isDark ? "border-white/10 bg-white/5" : "border-warm-hairline bg-warm-card/50"
             }`}>
-              <Layers size={40} className="mx-auto mb-4 text-zinc-400 opacity-20" />
-              <p className="text-zinc-500 text-sm font-semibold italic">Ayni paytda sotuvdagi premium mock testlar mavjud emas.</p>
+              <Layers size={40} className="mx-auto mb-4 text-warm-muted-soft dark:text-warm-on-dark-soft opacity-20" />
+              <p className="text-warm-muted dark:text-warm-on-dark-soft text-sm font-semibold italic">Ayni paytda sotuvdagi premium mock testlar mavjud emas.</p>
             </div>
           )}
         </section>
@@ -300,41 +300,41 @@ export default function MockPurchase() {
           
           {/* Checkout Panel */}
           <div className={`relative w-full max-w-md rounded-lg border p-8 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ${
-            isDark ? "bg-[#0b0b0c] border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-gray-800"
+            isDark ? "bg-warm-dark-elevated border-white/10 text-warm-on-dark" : "bg-white border-warm-hairline text-warm-ink"
           }`}>
             <div className="text-center space-y-6">
               {!paymentStarted ? (
                 <>
                   <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto ${
-                    isDark ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-red-50 text-[#e31b23] border border-red-100"
+                    isDark ? "bg-warm-primary/10 text-warm-primary border border-warm-primary/20" : "bg-warm-primary/10 text-warm-primary-active border border-warm-primary/20"
                   }`}>
                     <ShoppingBag size={24} />
                   </div>
 
                   <div className="space-y-2">
-                    <h3 className={`text-xl font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+                    <h3 className={`text-xl font-black tracking-tight ${isDark ? "text-warm-on-dark" : "text-warm-ink"}`}>
                       {lang === 'uz' ? "To'lovni boshlash" : "Start Payment"}
                     </h3>
-                    <p className={`text-xs font-semibold leading-relaxed px-2 ${isDark ? "text-zinc-450" : "text-gray-555"}`}>
-                      {lang === 'uz' 
-                        ? "Ushbu mock testni sotib olish uchun Telegram botimizga yo'naltirilasiz. Bot orqali to'lov qilib, chekni yuborasiz. Admin tasdiqlagach, mock avtomatik ravishda ochiladi." 
+                    <p className={`text-xs font-semibold leading-relaxed px-2 ${isDark ? "text-warm-on-dark-soft" : "text-warm-muted"}`}>
+                      {lang === 'uz'
+                        ? "Ushbu mock testni sotib olish uchun Telegram botimizga yo'naltirilasiz. Bot orqali to'lov qilib, chekni yuborasiz. Admin tasdiqlagach, mock avtomatik ravishda ochiladi."
                         : "To purchase this mock test, you will be redirected to our Telegram bot. After transferring payment, upload your receipt in the bot. It will be unlocked once approved by the admin."}
                     </p>
                   </div>
 
                   {/* Order Box */}
                   <div className={`p-4 rounded border text-left space-y-2.5 ${
-                    isDark ? "bg-zinc-950 border-zinc-850" : "bg-gray-50 border-gray-250"
+                    isDark ? "bg-white/5 border-white/10" : "bg-warm-card border-warm-hairline"
                   }`}>
                     <div className="flex justify-between items-baseline gap-2">
-                      <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-zinc-550" : "text-zinc-450"}`}>Mock:</span>
-                      <span className={`text-xs font-bold truncate flex-1 text-right ${isDark ? "text-zinc-200" : "text-gray-800"}`}>
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-warm-on-dark-soft" : "text-warm-muted-soft"}`}>Mock:</span>
+                      <span className={`text-xs font-bold truncate flex-1 text-right ${isDark ? "text-warm-on-dark" : "text-warm-ink"}`}>
                         {selectedMock.title}
                       </span>
                     </div>
                     <div className="flex justify-between items-center border-t border-dashed pt-2.5 border-inherit">
-                      <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-zinc-550" : "text-zinc-450"}`}>Jami narxi:</span>
-                      <span className={`text-sm font-extrabold text-red-500`}>
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-warm-on-dark-soft" : "text-warm-muted-soft"}`}>Jami narxi:</span>
+                      <span className={`text-sm font-extrabold text-warm-primary`}>
                         {formatPrice(selectedMock.price)}
                       </span>
                     </div>
@@ -345,9 +345,9 @@ export default function MockPurchase() {
                     <button
                       type="button"
                       onClick={handleConfirmPurchase}
-                      className="w-full bg-[#e31b23] hover:bg-[#c4151c] text-white py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                      className="w-full bg-warm-primary hover:bg-warm-primary-active text-white py-3.5 rounded-md font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
                     >
-                      <MessageCircle size={14} /> 
+                      <MessageCircle size={14} />
                       {lang === 'uz' ? "Telegram orqali to'lash" : "Pay via Telegram"}
                     </button>
                     <button
@@ -356,10 +356,10 @@ export default function MockPurchase() {
                         setSelectedMock(null);
                         setPaymentStarted(false);
                       }}
-                      className={`w-full py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] border ${
-                        isDark 
-                          ? "bg-transparent border-zinc-800 hover:bg-zinc-900 text-zinc-400" 
-                          : "bg-transparent border-gray-250 hover:bg-gray-50 text-gray-500"
+                      className={`w-full py-3.5 rounded-md font-bold text-xs transition-all active:scale-[0.98] border ${
+                        isDark
+                          ? "bg-transparent border-white/10 hover:bg-white/5 text-warm-on-dark-soft"
+                          : "bg-transparent border-warm-hairline hover:bg-warm-card text-warm-muted"
                       }`}
                     >
                       {lang === 'uz' ? "Bekor qilish" : "Cancel"}
@@ -369,16 +369,16 @@ export default function MockPurchase() {
               ) : (
                 <>
                   <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto ${
-                    isDark ? "bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20" : "bg-blue-50 text-[#0071e3] border border-blue-100"
+                    isDark ? "bg-warm-primary/10 text-warm-primary border border-warm-primary/20" : "bg-warm-primary/10 text-warm-primary-active border border-warm-primary/20"
                   }`}>
                     <MessageCircle size={24} />
                   </div>
 
                   <div className="space-y-2">
-                    <h3 className={`text-xl font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+                    <h3 className={`text-xl font-black tracking-tight ${isDark ? "text-warm-on-dark" : "text-warm-ink"}`}>
                       {lang === 'uz' ? "Telegram botga yo'naltirildingiz" : "Redirected to Telegram Bot"}
                     </h3>
-                    <div className={`text-xs font-semibold leading-relaxed px-2 space-y-3 text-left ${isDark ? "text-zinc-400" : "text-gray-600"}`}>
+                    <div className={`text-xs font-semibold leading-relaxed px-2 space-y-3 text-left ${isDark ? "text-warm-on-dark-soft" : "text-warm-body"}`}>
                       <p>
                         {lang === 'uz' 
                           ? "1. Telegram botda to'lov ma'lumotlarini olish uchun botni ishga tushiring (Start tugmasini bosing)." 
@@ -405,7 +405,7 @@ export default function MockPurchase() {
                         const params = `${user.uid}_mock_${selectedMock.id}`;
                         window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, "_blank");
                       }}
-                      className="w-full bg-[#0071e3] hover:bg-[#005bb5] text-white py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                      className="w-full bg-warm-primary hover:bg-warm-primary-active text-white py-3.5 rounded-md font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
                     >
                       <ExternalLink size={14} />
                       {lang === 'uz' ? "Telegramni qayta ochish" : "Re-open Telegram"}
@@ -416,10 +416,10 @@ export default function MockPurchase() {
                         setSelectedMock(null);
                         setPaymentStarted(false);
                       }}
-                      className={`w-full py-3.5 rounded-lg font-bold text-xs transition-all active:scale-[0.98] border ${
-                        isDark 
-                          ? "bg-transparent border-zinc-800 hover:bg-zinc-900 text-zinc-400" 
-                          : "bg-transparent border-gray-250 hover:bg-gray-50 text-gray-500"
+                      className={`w-full py-3.5 rounded-md font-bold text-xs transition-all active:scale-[0.98] border ${
+                        isDark
+                          ? "bg-transparent border-white/10 hover:bg-white/5 text-warm-on-dark-soft"
+                          : "bg-transparent border-warm-hairline hover:bg-warm-card text-warm-muted"
                       }`}
                     >
                       {lang === 'uz' ? "Tushunarli / Yopish" : "Got it / Close"}

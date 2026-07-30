@@ -106,10 +106,10 @@ export default function StudentStatistics() {
 
     const skillDistribution = useMemo(() => {
         return [
-            { name: t('dashboard.reading'), value: stats.skillAverages.reading, color: '#007AFF' },
-            { name: t('dashboard.listening'), value: stats.skillAverages.listening, color: '#34C759' },
-            { name: t('dashboard.writing'), value: stats.skillAverages.writing, color: '#FF9500' },
-            { name: t('dashboard.speaking'), value: stats.skillAverages.speaking, color: '#AF52DE' },
+            { name: t('dashboard.reading'), value: stats.skillAverages.reading, color: '#cc785c' },
+            { name: t('dashboard.listening'), value: stats.skillAverages.listening, color: '#5db8a6' },
+            { name: t('dashboard.writing'), value: stats.skillAverages.writing, color: '#d4a017' },
+            { name: t('dashboard.speaking'), value: stats.skillAverages.speaking, color: '#c64545' },
         ].filter(s => s.value > 0);
     }, [stats.skillAverages, t]);
 
@@ -135,44 +135,44 @@ export default function StudentStatistics() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
-                <div className="w-10 h-10 border-4 border-black/10 border-t-black rounded-full animate-spin"></div>
+            <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-warm-hairline dark:border-white/10 border-t-warm-primary rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#F5F5F7] font-sans selection:bg-black selection:text-white">
+        <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans selection:bg-warm-primary selection:text-white">
             <DashboardHeader user={user} userData={userData} />
 
             <main className="max-w-7xl mx-auto px-6 py-12 md:py-20">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 animate-fade-in-up">
                     <div>
-                        <button 
+                        <button
                             onClick={() => navigate(-1)}
-                            className="flex items-center gap-1 text-sm font-medium text-black/50 hover:text-black transition-colors mb-4 group"
+                            className="flex items-center gap-1 text-sm font-medium text-warm-muted hover:text-warm-ink dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark transition-colors mb-4 group"
                         >
                             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
                             {t('statistics.back')}
                         </button>
-                        <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-[#1D1D1F]">
+                        <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-warm-ink dark:text-warm-on-dark">
                             {t('statistics.title')}
                         </h1>
-                        <p className="text-lg text-black/50 font-medium mt-2">
+                        <p className="text-lg text-warm-muted dark:text-warm-on-dark-soft font-medium mt-2">
                             {t('statistics.subtitle')}
                         </p>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {/* <button 
+                        {/* <button
                             onClick={() => navigate('/leaderboard')}
-                            className="bg-[#007AFF] text-white px-6 py-3 rounded-full font-semibold flex items-center gap-2 hover:bg-[#0066CC] hover:scale-105 active:scale-95 transition-all shadow-[0_8px_20px_rgba(0,122,255,0.25)] h-[52px]"
+                            className="bg-warm-primary text-white px-6 py-3 rounded-full font-semibold flex items-center gap-2 hover:bg-warm-primary-active hover:scale-105 active:scale-95 transition-all shadow-[0_8px_20px_rgba(0,122,255,0.25)] h-[52px]"
                         >
                             <Trophy size={18} /> {t('dashboard.ranking')}
                         </button> */}
-                        <div className="bg-gradient-to-b from-gray-800 to-black p-0.5 rounded-[20px] shadow-lg h-[52px] flex items-center justify-center overflow-hidden">
-                            <div className="px-5 py-2 bg-gradient-to-b from-gray-900 to-black text-white rounded-[18px] h-full flex flex-col justify-center">
+                        <div className="bg-warm-ink dark:bg-warm-dark-elevated p-0.5 rounded-lg shadow-lg h-[52px] flex items-center justify-center overflow-hidden">
+                            <div className="px-5 py-2 bg-warm-ink dark:bg-warm-dark-soft text-white rounded-md h-full flex flex-col justify-center">
                                 <span className="text-[9px] font-bold uppercase tracking-widest text-white/60 block leading-none mb-1.5">Overall Band</span>
                                 <span className="text-2xl font-bold tracking-tighter leading-none">{calculatedOverallBand}</span>
                             </div>
@@ -217,27 +217,27 @@ export default function StudentStatistics() {
                 {/* Main Charts Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
                     {/* Progress Chart with Left Legend Panel */}
-                    <div className="lg:col-span-3 bg-white rounded-[32px] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-black/[0.03] animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                    <div className="lg:col-span-3 bg-white dark:bg-warm-dark-elevated rounded-xl p-8 shadow-sm border border-warm-hairline dark:border-white/10 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                         <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h3 className="text-xl font-bold text-[#1D1D1F]">{t('statistics.activityStats')}</h3>
+                                <h3 className="text-xl font-bold text-warm-ink dark:text-warm-on-dark">{t('statistics.activityStats')}</h3>
                             </div>
-                            <div className="flex bg-[#F5F5F7] p-1 rounded-xl">
-                               <button 
-                                    onClick={() => setTimeRange('haftalik')} 
-                                    className={`px-4 py-1.5 text-xs md:text-sm font-semibold rounded-lg transition-colors ${timeRange === 'haftalik' ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-black' : 'text-black/50 hover:text-black'}`}
+                            <div className="flex bg-warm-canvas dark:bg-warm-dark-soft p-1 rounded-md">
+                               <button
+                                    onClick={() => setTimeRange('haftalik')}
+                                    className={`px-4 py-1.5 text-xs md:text-sm font-semibold rounded-md transition-colors ${timeRange === 'haftalik' ? 'bg-white dark:bg-warm-dark-elevated shadow-sm text-warm-ink dark:text-warm-on-dark' : 'text-warm-muted hover:text-warm-ink dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark'}`}
                                 >
                                     {t('statistics.weekly')}
                                 </button>
-                                <button 
-                                    onClick={() => setTimeRange('oylik')} 
-                                    className={`px-4 py-1.5 text-xs md:text-sm font-semibold rounded-lg transition-colors ${timeRange === 'oylik' ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-black' : 'text-black/50 hover:text-black'}`}
+                                <button
+                                    onClick={() => setTimeRange('oylik')}
+                                    className={`px-4 py-1.5 text-xs md:text-sm font-semibold rounded-md transition-colors ${timeRange === 'oylik' ? 'bg-white dark:bg-warm-dark-elevated shadow-sm text-warm-ink dark:text-warm-on-dark' : 'text-warm-muted hover:text-warm-ink dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark'}`}
                                 >
                                     {t('statistics.monthly')}
                                 </button>
-                                <button 
-                                    onClick={() => setTimeRange('barchasi')} 
-                                    className={`px-4 py-1.5 text-xs md:text-sm font-semibold rounded-lg transition-colors ${timeRange === 'barchasi' ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-black' : 'text-black/50 hover:text-black'}`}
+                                <button
+                                    onClick={() => setTimeRange('barchasi')}
+                                    className={`px-4 py-1.5 text-xs md:text-sm font-semibold rounded-md transition-colors ${timeRange === 'barchasi' ? 'bg-white dark:bg-warm-dark-elevated shadow-sm text-warm-ink dark:text-warm-on-dark' : 'text-warm-muted hover:text-warm-ink dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark'}`}
                                 >
                                     {t('statistics.all')}
                                 </button>
@@ -246,34 +246,34 @@ export default function StudentStatistics() {
 
                         <div className="flex flex-col lg:flex-row gap-8">
                             {/* Left Legend Panel */}
-                            <div className="lg:w-[240px] flex flex-col gap-8 lg:border-r border-black/[0.03] lg:pr-8 py-4 shrink-0">
-                                <LegendItem 
-                                    title={t('dashboard.reading').toUpperCase()} 
-                                    value={stats.skillAverages.reading} 
-                                    color="#007AFF" 
-                                    isActive={activeLines.reading} 
-                                    onToggle={() => toggleLine('reading')} 
+                            <div className="lg:w-[240px] flex flex-col gap-8 lg:border-r border-warm-hairline dark:border-white/10 lg:pr-8 py-4 shrink-0">
+                                <LegendItem
+                                    title={t('dashboard.reading').toUpperCase()}
+                                    value={stats.skillAverages.reading}
+                                    color="#cc785c"
+                                    isActive={activeLines.reading}
+                                    onToggle={() => toggleLine('reading')}
                                   />
-                                  <LegendItem 
-                                    title={t('dashboard.listening').toUpperCase()} 
-                                    value={stats.skillAverages.listening} 
-                                    color="#34C759" 
-                                    isActive={activeLines.listening} 
-                                    onToggle={() => toggleLine('listening')} 
+                                  <LegendItem
+                                    title={t('dashboard.listening').toUpperCase()}
+                                    value={stats.skillAverages.listening}
+                                    color="#5db8a6"
+                                    isActive={activeLines.listening}
+                                    onToggle={() => toggleLine('listening')}
                                   />
-                                  <LegendItem 
-                                    title={t('dashboard.writing').toUpperCase()} 
-                                    value={stats.skillAverages.writing} 
-                                    color="#FF9500" 
-                                    isActive={activeLines.writing} 
-                                    onToggle={() => toggleLine('writing')} 
+                                  <LegendItem
+                                    title={t('dashboard.writing').toUpperCase()}
+                                    value={stats.skillAverages.writing}
+                                    color="#d4a017"
+                                    isActive={activeLines.writing}
+                                    onToggle={() => toggleLine('writing')}
                                   />
-                                  <LegendItem 
-                                    title={t('dashboard.speaking').toUpperCase()} 
-                                    value={stats.skillAverages.speaking} 
-                                    color="#AF52DE" 
-                                    isActive={activeLines.speaking} 
-                                    onToggle={() => toggleLine('speaking')} 
+                                  <LegendItem
+                                    title={t('dashboard.speaking').toUpperCase()}
+                                    value={stats.skillAverages.speaking}
+                                    color="#c64545"
+                                    isActive={activeLines.speaking}
+                                    onToggle={() => toggleLine('speaking')}
                                   />
                               </div>
   
@@ -281,77 +281,77 @@ export default function StudentStatistics() {
                               <div className="flex-1 h-[340px] w-full relative">
                                   <ResponsiveContainer width="100%" height="100%">
                                       <LineChart data={chartData} margin={{ top: 20, right: 20, left: -20, bottom: 20 }}>
-                                          <XAxis 
-                                              dataKey="displayDate" 
-                                              axisLine={false} 
-                                              tickLine={false} 
-                                              tick={{ fill: '#00000060', fontSize: 11, fontWeight: 600 }} 
-                                              dy={15} 
+                                          <XAxis
+                                              dataKey="displayDate"
+                                              axisLine={false}
+                                              tickLine={false}
+                                              tick={{ fill: '#8e8b82', fontSize: 11, fontWeight: 600 }}
+                                              dy={15}
                                           />
-                                          <YAxis 
-                                              domain={[0, 9]} 
-                                              axisLine={false} 
-                                              tickLine={false} 
-                                              tick={{ fill: '#00000060', fontSize: 11, fontWeight: 600 }} 
+                                          <YAxis
+                                              domain={[0, 9]}
+                                              axisLine={false}
+                                              tickLine={false}
+                                              tick={{ fill: '#8e8b82', fontSize: 11, fontWeight: 600 }}
                                           />
-                                          <Tooltip 
-                                              cursor={{ stroke: '#000000', strokeWidth: 1, opacity: 0.1 }}
-                                              contentStyle={{ 
-                                                  backgroundColor: '#ffffff', 
-                                                  borderRadius: '8px', 
-                                                  border: '1px solid rgba(0,0,0,0.05)', 
-                                                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                                          <Tooltip
+                                              cursor={{ stroke: '#cc785c', strokeWidth: 1, opacity: 0.15 }}
+                                              contentStyle={{
+                                                  backgroundColor: '#ffffff',
+                                                  borderRadius: '8px',
+                                                  border: '1px solid #e6dfd8',
+                                                  boxShadow: '0 4px 20px rgba(20,20,19,0.08)',
                                                   padding: '12px 16px'
-                                              }} 
-                                              itemStyle={{ fontWeight: 700, fontSize: 13, color: '#1D1D1F' }}
-                                              labelStyle={{ color: '#00000080', marginBottom: '8px', fontWeight: 600, fontSize: 12 }}
+                                              }}
+                                              itemStyle={{ fontWeight: 700, fontSize: 13, color: '#141413' }}
+                                              labelStyle={{ color: '#6c6a64', marginBottom: '8px', fontWeight: 600, fontSize: 12 }}
                                           />
-                                          {activeLines.reading && <Line type="linear" dataKey="reading" stroke="#007AFF" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#007AFF' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.reading')} connectNulls />}
-                                          {activeLines.listening && <Line type="linear" dataKey="listening" stroke="#34C759" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#34C759' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.listening')} connectNulls />}
-                                          {activeLines.writing && <Line type="linear" dataKey="writing" stroke="#FF9500" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#FF9500' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.writing')} connectNulls />}
-                                          {activeLines.speaking && <Line type="linear" dataKey="speaking" stroke="#AF52DE" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#AF52DE' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.speaking')} connectNulls />}
+                                          {activeLines.reading && <Line type="linear" dataKey="reading" stroke="#cc785c" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#cc785c' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.reading')} connectNulls />}
+                                          {activeLines.listening && <Line type="linear" dataKey="listening" stroke="#5db8a6" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#5db8a6' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.listening')} connectNulls />}
+                                          {activeLines.writing && <Line type="linear" dataKey="writing" stroke="#d4a017" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#d4a017' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.writing')} connectNulls />}
+                                          {activeLines.speaking && <Line type="linear" dataKey="speaking" stroke="#c64545" strokeWidth={2} dot={{ r: 4, strokeWidth: 0, fill: '#c64545' }} activeDot={{ r: 6, strokeWidth: 0 }} name={t('dashboard.speaking')} connectNulls />}
                                       </LineChart>
                                   </ResponsiveContainer>
-                                  <p className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-black/30 uppercase tracking-widest">{t('statistics.analyticsTimeAxis')}</p>
+                                  <p className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-warm-muted-soft dark:text-warm-on-dark-soft uppercase tracking-widest">{t('statistics.analyticsTimeAxis')}</p>
                               </div>
                         </div>
                     </div>
 
                     {/* Skill Breakdown Chart */}
-                    <div className="lg:col-span-3 bg-white rounded-[32px] p-8 shadow-sm border border-black/[0.03] animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                    <div className="lg:col-span-3 bg-white dark:bg-warm-dark-elevated rounded-xl p-8 shadow-sm border border-warm-hairline dark:border-white/10 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                         <div className="flex items-center justify-between mb-10">
                             <div>
-                                <h3 className="text-xl font-bold text-[#1D1D1F]">{t('statistics.skills')}</h3>
-                                <p className="text-sm text-black/40 font-medium">{t('statistics.avgPerSection')}</p>
+                                <h3 className="text-xl font-bold text-warm-ink dark:text-warm-on-dark">{t('statistics.skills')}</h3>
+                                <p className="text-sm text-warm-muted dark:text-warm-on-dark-soft font-medium">{t('statistics.avgPerSection')}</p>
                             </div>
-                            <Award className="text-black/20" size={24} />
+                            <Award className="text-warm-muted-soft dark:text-warm-on-dark-soft" size={24} />
                         </div>
 
                         <div className="h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={skillDistribution} layout="vertical" margin={{ left: 10, right: 20 }}>
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#00000008" />
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e6dfd8" />
                                     <XAxis type="number" domain={[0, 9]} hide />
-                                    <YAxis 
-                                        dataKey="name" 
-                                        type="category" 
-                                        axisLine={false} 
-                                        tickLine={false} 
+                                    <YAxis
+                                        dataKey="name"
+                                        type="category"
+                                        axisLine={false}
+                                        tickLine={false}
                                         width={80}
-                                        tick={{ fill: '#1D1D1F', fontSize: 13, fontWeight: 600 }}
+                                        tick={{ fill: '#141413', fontSize: 13, fontWeight: 600 }}
                                     />
-                                    <Tooltip 
-                                        cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                                    <Tooltip
+                                        cursor={{ fill: 'rgba(20,20,19,0.03)' }}
                                         formatter={(value) => [Number(value).toFixed(1), t('statistics.avg')]}
-                                        contentStyle={{ 
-                                            backgroundColor: 'rgba(255, 255, 255, 0.85)', 
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(255, 255, 255, 0.85)',
                                             backdropFilter: 'blur(20px)',
                                             WebkitBackdropFilter: 'blur(20px)',
-                                            borderRadius: '16px', 
-                                            border: '1px solid rgba(0,0,0,0.05)',
-                                            boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+                                            borderRadius: '12px',
+                                            border: '1px solid #e6dfd8',
+                                            boxShadow: '0 20px 40px rgba(20,20,19,0.1)'
                                         }}
-                                        itemStyle={{ fontWeight: 700, fontSize: 14, color: '#1D1D1F' }}
+                                        itemStyle={{ fontWeight: 700, fontSize: 14, color: '#141413' }}
                                     />
                                     <Bar dataKey="value" radius={[0, 16, 16, 0]} barSize={28}>
                                         {skillDistribution.map((entry, index) => (
@@ -366,42 +366,42 @@ export default function StudentStatistics() {
 
                 {/* Weak Areas & Recommendations */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-                    <div className="bg-white rounded-[32px] p-8 shadow-sm border border-black/[0.03]">
-                        <h3 className="text-xl font-bold text-[#1D1D1F] mb-6 flex items-center gap-2">
-                            <PenTool size={20} className="text-orange-500" />
+                    <div className="bg-white dark:bg-warm-dark-elevated rounded-xl p-8 shadow-sm border border-warm-hairline dark:border-white/10">
+                        <h3 className="text-xl font-bold text-warm-ink dark:text-warm-on-dark mb-6 flex items-center gap-2">
+                            <PenTool size={20} className="text-warm-warning" />
                             {t('statistics.focusAreas')}
                         </h3>
                         <div className="flex flex-wrap gap-2">
                             {stats.weakAreas.length > 0 ? stats.weakAreas.map(area => (
-                                <span key={area} className="px-4 py-2 bg-orange-50 text-orange-600 rounded-full text-sm font-bold border border-orange-100">
+                                <span key={area} className="px-4 py-2 bg-warm-warning/10 text-warm-warning rounded-full text-sm font-bold border border-warm-warning/20">
                                     {t('dashboard.' + area.toLowerCase())}
                                 </span>
                             )) : (
-                                <p className="text-black/40 font-medium italic">{t('statistics.allExcellent')}</p>
+                                <p className="text-warm-muted dark:text-warm-on-dark-soft font-medium italic">{t('statistics.allExcellent')}</p>
                             )}
                         </div>
-                        <p className="text-sm text-black/40 mt-6 leading-relaxed font-medium">
+                        <p className="text-sm text-warm-muted dark:text-warm-on-dark-soft mt-6 leading-relaxed font-medium">
                             {t('statistics.focusExplanation')}
                         </p>
                     </div>
 
-                    <div className="bg-white rounded-[32px] p-8 shadow-sm border border-black/[0.03]">
-                        <h3 className="text-xl font-bold text-[#1D1D1F] mb-6 flex items-center gap-2">
-                            <Calendar size={20} className="text-blue-500" />
+                    <div className="bg-white dark:bg-warm-dark-elevated rounded-xl p-8 shadow-sm border border-warm-hairline dark:border-white/10">
+                        <h3 className="text-xl font-bold text-warm-ink dark:text-warm-on-dark mb-6 flex items-center gap-2">
+                            <Calendar size={20} className="text-warm-primary" />
                             {t('statistics.nextSteps')}
                         </h3>
                         <ul className="space-y-4">
                             <li className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                                <div className="w-6 h-6 rounded-full bg-warm-primary/10 text-warm-primary flex items-center justify-center shrink-0 mt-0.5">
                                     <span className="text-xs font-bold">1</span>
                                 </div>
-                                <p className="text-sm text-black/70 font-medium">{t('statistics.step1')}</p>
+                                <p className="text-sm text-warm-body dark:text-warm-on-dark-soft font-medium">{t('statistics.step1')}</p>
                             </li>
                             <li className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                                <div className="w-6 h-6 rounded-full bg-warm-primary/10 text-warm-primary flex items-center justify-center shrink-0 mt-0.5">
                                     <span className="text-xs font-bold">2</span>
                                 </div>
-                                <p className="text-sm text-black/70 font-medium">{t('statistics.step2')}</p>
+                                <p className="text-sm text-warm-body dark:text-warm-on-dark-soft font-medium">{t('statistics.step2')}</p>
                             </li>
                         </ul>
                     </div>
@@ -425,20 +425,20 @@ export default function StudentStatistics() {
 
 function KPICard({ title, value, icon: Icon, color }) {
     const colors = {
-        blue: 'bg-blue-50 text-blue-600',
-        purple: 'bg-purple-50 text-purple-600',
-        orange: 'bg-orange-50 text-orange-600',
-        emerald: 'bg-emerald-50 text-emerald-600',
+        blue: 'bg-warm-primary/10 text-warm-primary',
+        purple: 'bg-warm-accent-teal/10 text-warm-accent-teal',
+        orange: 'bg-warm-accent-amber/10 text-warm-accent-amber',
+        emerald: 'bg-warm-success/10 text-warm-success',
     };
 
     return (
-        <div className="bg-white p-6 md:p-8 rounded-[32px] shadow-sm border border-black/[0.03] hover:scale-[1.02] transition-transform duration-300">
-            <div className={`w-12 h-12 rounded-2xl ${colors[color]} flex items-center justify-center mb-6`}>
+        <div className="bg-white dark:bg-warm-dark-elevated p-6 md:p-8 rounded-xl shadow-sm border border-warm-hairline dark:border-white/10 hover:scale-[1.02] transition-transform duration-300">
+            <div className={`w-12 h-12 rounded-lg ${colors[color]} flex items-center justify-center mb-6`}>
                 <Icon size={24} />
             </div>
             <div>
-                <p className="text-xs font-bold text-black/30 uppercase tracking-widest mb-1">{title}</p>
-                <h4 className="text-2xl md:text-3xl font-bold tracking-tighter text-[#1D1D1F]">{value}</h4>
+                <p className="text-xs font-bold text-warm-muted-soft dark:text-warm-on-dark-soft uppercase tracking-widest mb-1">{title}</p>
+                <h4 className="text-2xl md:text-3xl font-bold tracking-tighter text-warm-ink dark:text-warm-on-dark">{value}</h4>
             </div>
         </div>
     );
@@ -446,12 +446,12 @@ function KPICard({ title, value, icon: Icon, color }) {
 
 function LegendItem({ title, value, color, isActive, onToggle }) {
     const formattedValue = typeof value === 'number' ? value.toFixed(1) : parseFloat(value || 0).toFixed(1);
-    
+
     return (
         <div>
-            <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest mb-3">{title}</p>
+            <p className="text-[10px] font-bold text-warm-muted dark:text-warm-on-dark-soft uppercase tracking-widest mb-3">{title}</p>
             <div className="flex items-center gap-4 cursor-pointer select-none group" onClick={onToggle}>
-                <button className={`w-5 h-5 rounded-[6px] flex items-center justify-center transition-all flex-shrink-0 ${isActive ? 'shadow-sm' : 'bg-gray-100 border border-black/10'}`} style={{ backgroundColor: isActive ? color : undefined }}>
+                <button className={`w-5 h-5 rounded-md flex items-center justify-center transition-all flex-shrink-0 ${isActive ? 'shadow-sm' : 'bg-warm-card dark:bg-white/10 border border-warm-hairline dark:border-white/10'}`} style={{ backgroundColor: isActive ? color : undefined }}>
                     {isActive && (
                         <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                             <path d="M2 5L4 7L8 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -459,10 +459,10 @@ function LegendItem({ title, value, color, isActive, onToggle }) {
                     )}
                 </button>
                 <div className="flex items-baseline gap-1">
-                    <span className={`text-2xl font-bold tracking-tighter transition-colors ${isActive ? '' : 'text-black/30'}`} style={{ color: isActive ? color : undefined }}>
+                    <span className={`text-2xl font-bold tracking-tighter transition-colors ${isActive ? '' : 'text-warm-muted-soft dark:text-warm-on-dark-soft'}`} style={{ color: isActive ? color : undefined }}>
                         {formattedValue}
                     </span>
-                    <span className="text-xs text-black/40 font-semibold tracking-normal">avg</span>
+                    <span className="text-xs text-warm-muted dark:text-warm-on-dark-soft font-semibold tracking-normal">avg</span>
                 </div>
             </div>
         </div>

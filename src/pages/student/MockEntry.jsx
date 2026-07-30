@@ -182,7 +182,7 @@ export default function MockEntry() {
     });
 
     return (
-        <div className="min-h-screen bg-white font-['Plus_Jakarta_Sans'] text-gray-800 antialiased flex flex-col select-none">
+        <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-['Plus_Jakarta_Sans'] text-warm-ink dark:text-warm-on-dark antialiased flex flex-col select-none">
             <DashboardHeader
                 user={user}
                 userData={userData}
@@ -191,17 +191,17 @@ export default function MockEntry() {
             />
 
             {/* Official Header */}
-            <header className="w-full border-b border-gray-300 px-6 py-3 bg-white sticky top-0 z-50 md:hidden">
+            <header className="w-full border-b border-warm-hairline dark:border-white/10 px-6 py-3 bg-warm-canvas dark:bg-warm-dark sticky top-0 z-50 md:hidden">
                 <div className="max-w-6xl mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900">
+                        <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-warm-card dark:hover:bg-warm-dark-elevated rounded-full transition-colors text-warm-muted hover:text-warm-ink dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark">
                             <ArrowLeft size={20} />
                         </button>
-                        <span className="font-bold text-sm text-gray-900">{t('roadmap.backToDashboard')}</span>
+                        <span className="font-bold text-sm text-warm-ink dark:text-warm-on-dark">{t('roadmap.backToDashboard')}</span>
                     </div>
                     <div className="flex items-baseline">
-                        <span className="text-[#e31b23] font-black text-[32px] tracking-normal" style={{ textShadow: '0.5px 0 0 #e31b23, -0.5px 0 0 #e31b23' }}>IELTS</span>
-                        <span className="text-gray-900 font-bold text-[16px] ml-1">Mock</span>
+                        <span className="text-warm-primary font-black text-[32px] tracking-normal" style={{ textShadow: '0.5px 0 0 #cc785c, -0.5px 0 0 #cc785c' }}>IELTS</span>
+                        <span className="text-warm-ink dark:text-warm-on-dark font-bold text-[16px] ml-1">Mock</span>
                     </div>
                 </div>
             </header>
@@ -209,9 +209,9 @@ export default function MockEntry() {
             <main className="flex-1 w-full max-w-6xl mx-auto px-8 py-12 space-y-12 pb-24">
                 {/* Hero Section */}
                 <section className="space-y-1">
-                    <h1 className="text-xl font-bold text-[#e31b23]">{t('mock.welcome')}, {userData?.fullName?.split(' ')[0] || t('mock.candidate')}</h1>
-                    <p className="text-gray-500 text-xs font-semibold">{user?.email}</p>
-                    <div className="h-[1px] bg-gray-200 w-full mt-4"></div>
+                    <h1 className="text-xl font-bold text-warm-primary">{t('mock.welcome')}, {userData?.fullName?.split(' ')[0] || t('mock.candidate')}</h1>
+                    <p className="text-warm-muted dark:text-warm-on-dark-soft text-xs font-semibold">{user?.email}</p>
+                    <div className="h-[1px] bg-warm-hairline dark:bg-white/10 w-full mt-4"></div>
                 </section>
 
                 <MockBanners 

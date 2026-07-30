@@ -17,8 +17,8 @@ export default function SpeakingAi() {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     return (
-        <div className={`min-h-screen transition-colors duration-500 flex flex-col selection:bg-blue-500/20 ${
-            isDark ? 'bg-black text-white' : 'bg-[#F5F5F7] text-zinc-900'
+        <div className={`min-h-screen transition-colors duration-500 flex flex-col selection:bg-warm-primary/20 ${
+            isDark ? 'bg-warm-dark text-warm-on-dark' : 'bg-warm-canvas text-warm-ink'
         } font-sans`}>
             {/* Dashboard Header */}
             <DashboardHeader
@@ -30,13 +30,13 @@ export default function SpeakingAi() {
 
             {/* Mobile Header */}
             <header className={`w-full border-b px-6 py-3 sticky top-0 z-50 md:hidden ${
-                isDark ? 'bg-black border-zinc-800' : 'bg-white border-zinc-200'
+                isDark ? 'bg-warm-dark border-white/10' : 'bg-white border-warm-hairline'
             }`}>
                 <div className="max-w-6xl mx-auto flex justify-between items-center">
-                    <button 
-                        onClick={() => navigate('/dashboard')} 
+                    <button
+                        onClick={() => navigate('/dashboard')}
                         className={`p-2 rounded-full transition-colors ${
-                            isDark ? 'hover:bg-zinc-900 text-zinc-400 hover:text-white' : 'hover:bg-zinc-50 text-zinc-500 hover:text-black'
+                            isDark ? 'hover:bg-white/5 text-warm-on-dark-soft hover:text-warm-on-dark' : 'hover:bg-warm-canvas text-warm-muted hover:text-warm-ink'
                         }`}
                     >
                         <ArrowLeft size={20} />
@@ -49,14 +49,14 @@ export default function SpeakingAi() {
             <main className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl w-full mx-auto relative overflow-hidden">
                 {/* Back button for desktop */}
                 <div className="absolute top-6 left-6 hidden md:block">
-                    <button 
-                        onClick={() => navigate('/dashboard')} 
+                    <button
+                        onClick={() => navigate('/dashboard')}
                         className={`flex items-center gap-2 transition-all group font-bold text-sm ${
-                            isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-500 hover:text-black'
+                            isDark ? 'text-warm-on-dark-soft hover:text-warm-on-dark' : 'text-warm-muted hover:text-warm-ink'
                         }`}
                     >
                         <div className={`p-2 rounded-full transition-colors ${
-                            isDark ? 'group-hover:bg-white/10' : 'group-hover:bg-black/5'
+                            isDark ? 'group-hover:bg-white/10' : 'group-hover:bg-warm-ink/5'
                         }`}>
                             <ArrowLeft size={18} />
                         </div>
@@ -67,7 +67,7 @@ export default function SpeakingAi() {
                 {/* Animated Background Glow */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                     <div className={`w-96 h-96 rounded-full blur-[120px] opacity-20 transition-colors duration-500 ${
-                        isDark ? 'bg-blue-600/30' : 'bg-blue-400/20'
+                        isDark ? 'bg-warm-primary/30' : 'bg-warm-primary/20'
                     }`} />
                 </div>
 
@@ -86,7 +86,7 @@ export default function SpeakingAi() {
                                 ease: "easeInOut"
                             }}
                             className={`absolute bottom-4 w-32 h-4 rounded-full blur-md ${
-                                isDark ? 'bg-blue-500/20' : 'bg-blue-400/20'
+                                isDark ? 'bg-warm-primary/20' : 'bg-warm-primary/20'
                             }`}
                         />
 
@@ -101,19 +101,19 @@ export default function SpeakingAi() {
                             className="relative flex flex-col items-center"
                         >
                             {/* Sparks / Particles */}
-                            <motion.div 
+                            <motion.div
                                 animate={{ rotate: 360 }}
                                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                                className="absolute -top-4 -right-4 text-blue-400"
+                                className="absolute -top-4 -right-4 text-warm-primary"
                             >
                                 <Sparkles size={20} />
                             </motion.div>
 
                             {/* Robot Body Container */}
                             <div className={`w-40 h-40 rounded-full flex items-center justify-center p-6 shadow-2xl relative border ${
-                                isDark 
-                                    ? 'bg-gradient-to-b from-zinc-900 to-zinc-950 border-white/10 shadow-blue-500/10' 
-                                    : 'bg-gradient-to-b from-white to-zinc-50 border-zinc-200 shadow-blue-500/5'
+                                isDark
+                                    ? 'bg-gradient-to-b from-warm-dark-elevated to-warm-dark border-white/10 shadow-warm-primary/10'
+                                    : 'bg-gradient-to-b from-white to-warm-card border-warm-hairline shadow-warm-primary/5'
                             }`}>
                                 {/* Sleek Robot Face SVG */}
                                 <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
@@ -158,7 +158,7 @@ export default function SpeakingAi() {
 
                     {/* TEXT LABELS */}
                     <div className="space-y-3">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-500 dark:text-blue-400">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-warm-primary/10 border border-warm-primary/20 text-xs font-bold text-warm-primary">
                             <Sparkles size={12} className="animate-pulse" />
                             {lang === 'uz' ? "Yangi Imkoniyat" : "New Feature"}
                         </div>
@@ -166,9 +166,9 @@ export default function SpeakingAi() {
                         <h2 className="text-3xl font-extrabold tracking-tight">
                             Speaking with AI
                         </h2>
-                        
+
                         <p className={`text-sm md:text-base font-semibold leading-relaxed ${
-                            isDark ? 'text-zinc-400' : 'text-zinc-600'
+                            isDark ? 'text-warm-on-dark-soft' : 'text-warm-body'
                         }`}>
                             {lang === 'uz' 
                                 ? "Sun'iy intellekt orqali IELTS Speaking ko'nikmasini rivojlantirish moduli ishlab chiqilmoqda. Tez orada bu sahifada real vaqt rejimida AI bilan muloqot qilishingiz mumkin bo'ladi!"
@@ -191,7 +191,7 @@ export default function SpeakingAi() {
                                     ease: "easeInOut"
                                 }}
                                 className={`w-1 rounded-full ${
-                                    idx % 3 === 0 ? 'bg-blue-500' : idx % 3 === 1 ? 'bg-sky-450' : 'bg-indigo-500'
+                                    idx % 3 === 0 ? 'bg-warm-primary' : idx % 3 === 1 ? 'bg-warm-accent-teal' : 'bg-warm-accent-amber'
                                 }`}
                                 style={{ height: '16px', transformOrigin: 'center' }}
                             />
@@ -200,10 +200,10 @@ export default function SpeakingAi() {
 
                     {/* COMING SOON BADGE */}
                     <div className="pt-4">
-                        <span className={`px-6 py-2 rounded-xl text-xs font-black tracking-widest uppercase border ${
-                            isDark 
-                                ? 'bg-zinc-900 border-white/5 text-zinc-300' 
-                                : 'bg-white border-zinc-200 text-zinc-700 shadow-sm'
+                        <span className={`px-6 py-2 rounded-full text-xs font-black tracking-widest uppercase border ${
+                            isDark
+                                ? 'bg-warm-dark-elevated border-white/5 text-warm-on-dark-soft'
+                                : 'bg-white border-warm-hairline text-warm-body shadow-sm'
                         }`}>
                             {lang === 'uz' ? "Tez Kunda" : "Coming Soon"}
                         </span>

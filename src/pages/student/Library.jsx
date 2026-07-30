@@ -61,7 +61,7 @@ export default function Library() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-[#18181b] font-sans text-zinc-900 dark:text-[#f5f5f7] antialiased transition-colors duration-200 pb-24 md:pb-12">
+    <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark antialiased transition-colors duration-200 pb-24 md:pb-12">
       <DashboardHeader
         user={user}
         userData={userData}
@@ -69,28 +69,28 @@ export default function Library() {
         onLogoutClick={() => setShowLogoutConfirm(true)}
       />
 
-      <main className="max-w-md mx-auto px-4 py-6 md:py-10">
+      <main className="max-w-md mx-auto px-4 py-6 md:py-xl">
         {/* Minimalist Go Back */}
-        <button 
-          onClick={() => navigate('/dashboard')} 
-          className="flex items-center gap-1.5 mb-5 text-zinc-550 hover:text-black dark:text-zinc-400 dark:hover:text-white transition-colors text-xs font-semibold"
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-1.5 mb-lg text-warm-muted hover:text-warm-ink dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark transition-colors text-xs font-semibold"
         >
           <ArrowLeft size={14} />
           <span>{t('roadmap.backToDashboard') || 'Back'}</span>
         </button>
 
         {/* Title and Intro */}
-        <div className="mb-5">
-          <span className="text-[9px] font-bold tracking-widest text-[#0066cc] dark:text-[#3894ff] uppercase">
+        <div className="mb-lg">
+          <span className="text-warm-caption-upper font-bold text-warm-primary dark:text-warm-primary uppercase">
             IELTS Practice
           </span>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
+          <h1 className="text-xl font-bold tracking-tight text-warm-ink dark:text-warm-on-dark">
             {t('library.chooseModule') || 'Library'}
           </h1>
         </div>
 
         {/* Minimalistic Small Divs Layout */}
-        <div className="space-y-4">
+        <div className="space-y-md">
           {sections.map((section) => {
             const Icon = section.icon;
             
@@ -118,38 +118,38 @@ export default function Library() {
             }[section.color];
 
             return (
-              <div 
+              <div
                 key={section.id}
-                className="bg-white dark:bg-[#121214] border border-zinc-200/60 dark:border-zinc-800/80 rounded-lg p-4 shadow-sm"
+                className="bg-white dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10 rounded-lg p-md shadow-sm"
               >
                 {/* Header Category */}
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-xs mb-sm">
                   <div className={`p-1.5 rounded border ${colorThemes.bg} ${colorThemes.border} ${colorThemes.text}`}>
                     <Icon size={15} />
                   </div>
-                  <h2 className="text-sm font-bold text-zinc-850 dark:text-zinc-100">
+                  <h2 className="text-sm font-bold text-warm-body-strong dark:text-warm-on-dark">
                     {section.title}
                   </h2>
                 </div>
 
                 {/* Sub Options in Small Divs */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-sm">
                   {section.options.map((opt, i) => (
                     <button
                       key={i}
                       onClick={() => navigate(opt.path)}
-                      className="flex flex-col justify-between p-3 rounded-lg border border-zinc-100 dark:border-zinc-800/30 bg-zinc-50/50 dark:bg-zinc-900/20 hover:bg-zinc-100/60 dark:hover:bg-zinc-900/60 transition-all text-left active:scale-[0.98]"
+                      className="flex flex-col justify-between p-sm rounded-md border border-warm-hairline-soft dark:border-white/5 bg-warm-canvas/60 dark:bg-white/[0.03] hover:bg-warm-card dark:hover:bg-white/[0.06] transition-all text-left active:scale-[0.98]"
                     >
                       <div>
-                        <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block truncate">
+                        <span className="text-xs font-bold text-warm-ink dark:text-warm-on-dark block truncate">
                           {opt.label}
                         </span>
-                        <span className="text-[9px] text-zinc-500 dark:text-zinc-450 mt-0.5 block leading-tight">
+                        <span className="text-warm-caption text-warm-muted-soft dark:text-warm-on-dark-soft mt-0.5 block leading-tight">
                           {opt.desc}
                         </span>
                       </div>
-                      <div className="flex justify-end w-full mt-2">
-                        <ChevronRight size={12} className="text-zinc-400" />
+                      <div className="flex justify-end w-full mt-xs">
+                        <ChevronRight size={12} className="text-warm-muted-soft" />
                       </div>
                     </button>
                   ))}
