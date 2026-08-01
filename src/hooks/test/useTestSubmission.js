@@ -26,6 +26,8 @@ export function useTestSubmission(user, userData) {
                     success: true,
                     score: res.data.score,
                     bandScore: res.data.bandScore,
+                    totalQuestions: res.data.totalQuestions,
+                    partBreakdown: res.data.partBreakdown,
                     mistakes: res.data.mistakes,
                     resultId: res.data.resultId
                 };

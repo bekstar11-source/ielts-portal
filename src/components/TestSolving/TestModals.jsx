@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import PricingModal from '../dashboard/PricingModal';
 import { useTranslation } from '../../context/LanguageContext';
 import DetailedAnswersModal from '../TestReview/DetailedAnswersModal';
-import { Play, RefreshCcw, GraduationCap, Headphones } from 'lucide-react';
+import { Play, RefreshCcw, GraduationCap, Headphones, Lock, BarChart3 } from 'lucide-react';
 import { getTier, canAccessPremiumContent } from '../../utils/subscription';
 
 // ──────────────────────────────────────────────
@@ -109,7 +109,7 @@ export const ModeSelectionModal = ({ show, setTestMode, setTimeLeft, setShowMode
 // ──────────────────────────────────────────────
 // RESULT MODAL
 // ──────────────────────────────────────────────
-export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, initialDuration, isReviewing, setIsReviewing, onExit, userAnswers, partNumber = null, resultId = null, navigate = null, fromNewsfeed = false, from = null }) => {
+export const ResultModal = ({ show, test, testMode, score, bandScore, totalQuestions: totalQuestionsProp = 0, partBreakdown = [], timeLeft, initialDuration, isReviewing, setIsReviewing, onExit, userAnswers, partNumber = null, resultId = null, navigate = null, fromNewsfeed = false, from = null }) => {
     const { t } = useTranslation();
     const { userData } = useAuth();
     const [showPricingModal, setShowPricingModal] = useState(false);
@@ -165,6 +165,10 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                         }
                     };
                     collectItems(obj);
+
+                    if (groupItems.length > 0 && groupItems.some(i => scoredIds.has(String(i.id)))) {
+                        return;
+                    }
 
                     if (groupItems.length > 0) {
                         const allCorrect = groupItems.map(i => i.answer || i.correct_answer || i.correctAnswer || i.correct_answer_value).join(', ');
@@ -246,61 +250,69 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
 
     if (!show || isReviewing) return null;
 
-    const totalQuestions = partStats.reduce((acc, curr) => acc + curr.total, 0) || (partNumber ? 10 : 40);
+    // Server tomonidan hisoblangan qiymatlar — javob kalitlari clientga
+    // yuborilmagani uchun yagona ishonchli manba shu (partStats faqat eski
+    // natijalar uchun zaxira variant, chunki javoblarsiz hech narsani to'g'ri sanay olmaydi).
+    const displayParts = partBreakdown.length > 0
+        ? partBreakdown.map((part, index) => ({ ...part, partIndex: index }))
+        : partStats;
+    const totalQuestions = totalQuestionsProp > 0
+        ? totalQuestionsProp
+        : (partStats.reduce((acc, curr) => acc + curr.total, 0) || (partNumber ? 10 : 40));
     const totalMistakes = Math.max(0, totalQuestions - score);
-    const colsClass = partStats.length === 1 ? 'grid-cols-1 max-w-[120px] mx-auto' : (partStats.length === 3 ? 'grid-cols-3' : 'grid-cols-4');
+    const colsClass = displayParts.length === 1 ? 'grid-cols-1 max-w-[120px] mx-auto' : (displayParts.length === 3 ? 'grid-cols-3' : 'grid-cols-4');
 
     return (
-        <div className="absolute inset-0 bg-white/90 z-[9999] flex items-center justify-center backdrop-blur-md">
-            <div className="bg-white p-8 rounded-3xl shadow-2xl border border-gray-100/80 max-w-md w-full text-center">
-                <h3 className="font-extrabold text-2xl text-gray-900 mb-1">{t('testSolving.testCompleted') || 'Test yakunlandi'}</h3>
+        <div className="absolute inset-0 bg-warm-canvas/90 dark:bg-warm-dark/90 z-[9999] flex items-center justify-center backdrop-blur-md">
+            <div className="bg-white dark:bg-warm-dark-elevated p-8 rounded-3xl shadow-2xl border border-warm-hairline dark:border-white/10 max-w-md w-full text-center">
+                <h3 className="font-bold text-2xl text-warm-ink dark:text-warm-on-dark mb-1.5 tracking-tight">{t('testSolving.testCompleted') || 'Test yakunlandi'}</h3>
 
-                <p className="text-gray-400 mb-5 flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
-                    <Icons.Clock className="w-3.5 h-3.5 opacity-60" />
-                    {t('testSolving.timeSpent') || 'Sarflangan vaqt'}: <span className="font-black text-gray-800">{formatTime(timeSpent)}</span>
+                <p className="text-warm-muted dark:text-warm-on-dark-soft mb-6 flex items-center justify-center gap-1.5 text-sm font-medium">
+                    <Icons.Clock className="w-4 h-4 opacity-70" />
+                    {t('testSolving.timeSpent') || 'Sarflangan vaqt'}: <span className="font-semibold text-warm-body dark:text-warm-on-dark">{formatTime(timeSpent)}</span>
                 </p>
 
                 {test.type !== 'speaking' && test.type !== 'writing' ? (
                     <div className="my-5">
                         {/* Core Stats Grid */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                             {/* Answers Panel */}
-                            <div className="bg-[#f8f9fa] dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800 rounded-2xl p-4 flex flex-col justify-center items-center">
-                                <span className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">{t('testSolving.answers') || 'JAVOBLAR'}</span>
-                                <div className="flex items-baseline gap-1 mt-2">
-                                    <span className="text-3xl font-black text-emerald-650">{score}</span>
-                                    <span className="text-gray-300 font-bold text-lg">/</span>
-                                    <span className="text-3xl font-black text-rose-500">{totalMistakes}</span>
+                            <div className="bg-warm-surface dark:bg-warm-dark-soft border border-warm-hairline dark:border-white/10 rounded-2xl p-4 flex flex-col justify-center items-center">
+                                <span className="text-[11px] font-semibold text-warm-muted dark:text-warm-on-dark-soft uppercase tracking-wide">{t('testSolving.answers') || 'Javoblar'}</span>
+                                <div className="flex items-baseline gap-1.5 mt-2">
+                                    <span className="text-3xl font-bold text-warm-success">{score}</span>
+                                    <span className="text-warm-muted-soft font-medium text-lg">/</span>
+                                    <span className="text-3xl font-bold text-warm-error">{totalMistakes}</span>
                                 </div>
-                                <div className="flex gap-3 mt-2 text-[9px] font-black tracking-widest uppercase">
-                                    <span className="text-emerald-700">✓ {t('testSolving.correct') || "To'g'ri"}</span>
-                                    <span className="text-rose-600">✗ {t('testSolving.mistake') || 'Xato'}</span>
+                                <div className="flex gap-3 mt-2.5 text-[11px] font-semibold">
+                                    <span className="text-warm-success">✓ {t('testSolving.correct') || "To'g'ri"}</span>
+                                    <span className="text-warm-error">✗ {t('testSolving.mistake') || 'Xato'}</span>
                                 </div>
                             </div>
 
                             {/* Band Score Panel */}
-                            <div className="bg-blue-50/30 dark:bg-blue-950/20 border border-blue-150/40 dark:border-blue-900/30 rounded-2xl p-4 flex flex-col justify-center items-center">
-                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{t('testSolving.bandScore') || 'BAND SCORE'}</span>
-                                <span className="text-4xl font-black text-blue-650 mt-1.5">{bandScore}</span>
-                                <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-2">{t('testSolving.ieltsStandard') || 'IELTS STANDARTI'}</span>
+                            <div className="bg-warm-primary/[0.06] dark:bg-warm-primary/10 border border-warm-primary/15 rounded-2xl p-4 flex flex-col justify-center items-center">
+                                <span className="text-[11px] font-semibold text-warm-primary uppercase tracking-wide">{t('testSolving.bandScore') || 'Band score'}</span>
+                                <span className="text-4xl font-bold text-warm-primary mt-1.5">{bandScore}</span>
+                                <span className="text-[11px] font-medium text-warm-primary/70 mt-2">{t('testSolving.ieltsStandard') || 'IELTS standarti'}</span>
                             </div>
                         </div>
 
                         {/* Part Breakdown Grid */}
-                        {partStats.length > 0 && (
-                            <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800 w-full text-left">
-                                <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest text-center mb-4">
-                                    {t('testSolving.mistakesAnalysis') || 'XATOLAR TAHLILI'}
+                        {displayParts.length > 0 && (
+                            <div className="mt-6 pt-5 border-t border-warm-hairline dark:border-white/10 w-full text-left">
+                                <p className="text-[11px] font-semibold text-warm-muted dark:text-warm-on-dark-soft uppercase tracking-wide text-center mb-3.5">
+                                    {t('testSolving.mistakesAnalysis') || 'Xatolar tahlili'}
                                 </p>
-                                <div className={`grid ${colsClass} gap-3`}>
-                                    {partStats.map((part, index) => (
-                                        <div key={part.passageId || index} className="bg-[#f8f9fa] dark:bg-zinc-900 border border-zinc-150/40 dark:border-zinc-800 rounded-2xl p-3 text-center transition-all hover:bg-zinc-50 duration-200">
-                                            <span className="block text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none mb-1">
+                                <div className={`grid ${colsClass} gap-2.5`}>
+                                    {displayParts.map((part, index) => (
+                                        <div key={part.passageId || index} className="bg-warm-surface dark:bg-warm-dark-soft border border-warm-hairline dark:border-white/10 rounded-xl px-3 py-2.5 text-center transition-colors hover:bg-warm-card duration-200">
+                                            <span className="block text-[11px] font-semibold text-warm-muted dark:text-warm-on-dark-soft leading-none mb-1.5">
                                                 Part {part.partIndex !== undefined ? part.partIndex + 1 : index + 1}
                                             </span>
-                                            <div className="flex items-baseline justify-center gap-0.5 mt-1.5">
-                                                <span className="text-sm font-black text-rose-500 dark:text-rose-455">{part.mistakes}</span>
-                                                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider ml-0.5">{t('testSolving.mistakes') || 'xato'}</span>
+                                            <div className="flex items-baseline justify-center gap-1">
+                                                <span className="text-sm font-bold text-warm-error">{part.mistakes}</span>
+                                                <span className="text-[11px] font-medium text-warm-muted dark:text-warm-on-dark-soft">{t('testSolving.mistakes') || 'xato'}</span>
                                             </div>
                                         </div>
                                     ))}
@@ -309,10 +321,10 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                         )}
                     </div>
                 ) : (
-                    <p className="text-gray-500 my-6 text-sm">{t('testSolving.submittedGrading')}</p>
+                    <p className="text-warm-muted dark:text-warm-on-dark-soft my-6 text-sm">{t('testSolving.submittedGrading')}</p>
                 )}
 
-                <div className="flex flex-col gap-2.5 mt-5">
+                <div className="flex flex-col gap-2.5 mt-6">
                     {test.type !== 'speaking' && test.type !== 'writing' && (
                         <button
                             onClick={() => {
@@ -322,13 +334,14 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                                     setShowPricingModal(true);
                                 }
                             }}
-                            className="bg-white border border-gray-250 hover:bg-gray-50 text-gray-900 font-extrabold py-3.5 rounded-2xl w-full text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow active:scale-[0.98] flex items-center justify-center gap-2"
+                            className="bg-white dark:bg-warm-dark-soft border border-warm-hairline dark:border-white/10 hover:bg-warm-surface dark:hover:bg-warm-dark-elevated text-warm-ink dark:text-warm-on-dark font-semibold py-3 rounded-2xl w-full text-sm transition-all duration-200 shadow-sm hover:shadow active:scale-[0.98] flex items-center justify-center gap-2"
                         >
-                            {!canReview && <span className="text-xs">🔒</span>}
-                            📊 {t('testSolving.viewDetailedAnswers') || 'Javoblar ro\'yxati (Batafsil)'}
+                            <BarChart3 className="w-4 h-4 opacity-80" />
+                            {t('testSolving.viewDetailedAnswers') || 'Javoblar ro\'yxati (Batafsil)'}
+                            {!canReview && <Lock className="w-3.5 h-3.5 opacity-70" />}
                         </button>
                     )}
-                    <button 
+                    <button
                         onClick={() => {
                             if (canReview) {
                                 if (resultId && navigate) {
@@ -339,13 +352,13 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, timeLeft, 
                             } else {
                                 setShowPricingModal(true);
                             }
-                        }} 
-                        className="bg-gray-950 hover:bg-black text-white font-extrabold py-3.5 rounded-2xl w-full text-xs uppercase tracking-wider transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                        }}
+                        className="bg-warm-primary hover:bg-warm-primary-active text-warm-on-primary font-semibold py-3 rounded-2xl w-full text-sm transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
                     >
-                        {!canReview && <span className="text-xs">🔒</span>}
                         {t('testSolving.reviewMistakes') || 'Xatolarni ko\'rib chiqish'}
+                        {!canReview && <Lock className="w-3.5 h-3.5 opacity-80" />}
                     </button>
-                    <button onClick={onExit} className="text-gray-400 hover:text-gray-700 font-bold py-2 rounded-xl w-full text-[11px] uppercase tracking-wider transition-colors duration-200">{t('testSolving.exit') || 'Chiqish'}</button>
+                    <button onClick={onExit} className="text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark font-medium py-2 rounded-xl w-full text-sm transition-colors duration-200">{t('testSolving.exit') || 'Chiqish'}</button>
                 </div>
             </div>
 

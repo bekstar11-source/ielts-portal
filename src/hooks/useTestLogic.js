@@ -44,6 +44,8 @@ export function useTestLogic() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [score, setScore] = useState(0);
     const [bandScore, setBandScore] = useState(0);
+    const [totalQuestions, setTotalQuestions] = useState(0);
+    const [partBreakdown, setPartBreakdown] = useState([]);
     const [resultId, setResultId] = useState(null);
     const [textSize, setTextSize] = useState('text-base');
     const [isReviewing, setIsReviewing] = useState(false);
@@ -173,6 +175,8 @@ export function useTestLogic() {
                 await awardXP('test', test.id, test.title, xpAmount);
                 setScore(res.score);
                 setBandScore(res.bandScore);
+                setTotalQuestions(res.totalQuestions || 0);
+                setPartBreakdown(res.partBreakdown || []);
                 setResultId(res.resultId);
                 setShowResult(true);
                 clearTestStorage(user.uid, test.id, partNumber, true);
@@ -208,7 +212,7 @@ export function useTestLogic() {
     return {
         test, loading, locked, lockedMeta, testMode, setTestMode, showModeSelection, setShowModeSelection,
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
-        showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
+        showResult, score, bandScore, totalQuestions, partBreakdown, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
         audioRefs, handleSeekTo, partNumber, resultId, isSubmitting,

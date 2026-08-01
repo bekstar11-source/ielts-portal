@@ -35,6 +35,35 @@ export default function WritingInterface({
         }
     }, [currentAnswer, activeTask]);
 
+    // Boshqa dastur (masalan Telegram) fokusni olib, keyin talaba brauzerga
+    // qaytganda fokus <body> da qolib ketadi va yozilgan harflar hech qayerga
+    // tushmaydi. Shu holatda kursorni matn maydoniga qaytaramiz.
+    useEffect(() => {
+        if (isReviewMode) return;
+
+        const restoreFocus = () => {
+            const el = textareaRef.current;
+            if (!el || el.disabled) return;
+            const active = document.activeElement;
+            // Faqat hech narsa tanlanmagan bo'lsa: modal tugmasi yoki boshqa
+            // input'dan fokusni tortib olmaymiz.
+            if (active && active !== document.body && active !== document.documentElement) return;
+            const pos = el.value.length;
+            el.focus({ preventScroll: true });
+            try { el.setSelectionRange(pos, pos); } catch { /* ignore */ }
+        };
+
+        const onFocus = () => setTimeout(restoreFocus, 60);
+        const onVisibility = () => { if (!document.hidden) onFocus(); };
+
+        window.addEventListener('focus', onFocus);
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onVisibility);
+        };
+    }, [isReviewMode, activeTask]);
+
     const handleMouseMove = (e) => {
         if (!isDragging) return;
         const newLeftWidth = (e.clientX / window.innerWidth) * 100;

@@ -166,10 +166,10 @@ export default function ListeningFooter({
     const totalQ = passageData.reduce((s, d) => s + d.qCount, 0);
 
     return (
-        <div className="h-full w-full flex flex-col bg-white select-none">
+        <div className="h-full w-full flex flex-col bg-white select-none px-3">
 
             {/* ── PARTS ROW ─────────────────────────────────────────────────── */}
-            <div className="flex flex-1 items-stretch overflow-x-auto overflow-y-hidden">
+            <div className="flex flex-1 items-stretch overflow-hidden">
                 {passageData.map((d) => {
                     const { passage, idx, questions, qCount, answeredCount } = d;
                     const isActive = activePart === idx;
@@ -182,8 +182,8 @@ export default function ListeningFooter({
                                 className="flex-1 min-w-0 h-full flex items-center bg-white"
                             >
                                 {/* Part label */}
-                                <div className="h-full flex flex-col items-center pl-4 pr-3 shrink-0">
-                                    <div className="mt-[6px] h-[3px] w-full" />
+                                <div className="h-full flex flex-col items-center pl-3 pr-3 shrink-0">
+                                    <div className="mt-[6px] h-[3px] w-full bg-[#d1d5db]" />
                                     <div className="flex-1 flex items-center">
                                         <span className="font-bold text-[14px] text-gray-900 whitespace-nowrap">
                                             Part {partNum}
@@ -192,16 +192,16 @@ export default function ListeningFooter({
                                 </div>
 
                                 {/* Question number buttons */}
-                                <div className="flex h-full gap-[6px] overflow-x-auto pr-3 flex-initial">
+                                <div className="flex h-full gap-[6px] pr-3 flex-1 min-w-0">
                                     {questions.map(q => {
                                         const isAnswered = userAnswers[q.id] && String(userAnswers[q.id]).trim() !== "";
                                         const isActiveQ = String(activeQuestionId) === String(q.id);
 
                                         return (
-                                            <div key={q.id} className="flex flex-col items-center h-full min-w-[26px]">
+                                            <div key={q.id} className="flex flex-col items-center h-full grow-0 shrink basis-[32px] min-w-[22px] max-w-[32px]">
                                                 {/* Top indicator shifted slightly down */}
-                                                <div 
-                                                    className={`mt-[6px] h-[3px] w-full transition-colors ${isAnswered ? 'bg-[#3c763d]' : 'bg-[#e5e7eb]'}`}
+                                                <div
+                                                    className={`mt-[6px] h-[3px] w-full rounded-none transition-colors ${isAnswered ? 'bg-[#16a34a]' : 'bg-[#d1d5db]'}`}
                                                 />
                                                 {/* Button centered vertically in remaining space */}
                                                 <div className="flex-1 flex items-center justify-center">
@@ -211,7 +211,7 @@ export default function ListeningFooter({
                                                             setActiveQuestionId(q.id);
                                                             scrollToQuestionDiv(q.id);
                                                         }}
-                                                        className="flex items-center justify-center w-full h-[26px] px-0.5 text-[14px] font-semibold rounded transition-all"
+                                                        className="flex items-center justify-center w-[26px] h-[26px] px-0 text-[clamp(10.5px,1.05vw,13.5px)] leading-none font-semibold rounded transition-all"
                                                         style={{
                                                             color: isActiveQ ? '#1a56db' : '#374151',
                                                             border: isActiveQ ? '1.5px solid #1a56db' : '1.5px solid transparent',
@@ -231,12 +231,13 @@ export default function ListeningFooter({
                             <div
                                 key={passage.id || idx}
                                 onClick={() => setActivePart(idx)}
-                                className="flex-1 min-w-0 h-full flex items-center justify-center gap-2 cursor-pointer bg-white hover:bg-gray-50 transition-colors"
+                                title={`Part ${partNum} — ${answeredCount} of ${qCount}`}
+                                className="flex-1 basis-0 min-w-0 max-w-[460px] h-full flex items-center justify-center gap-2 px-3 cursor-pointer bg-white hover:bg-gray-50 transition-colors"
                             >
-                                <span className="font-bold text-[14px] text-gray-700 whitespace-nowrap">
+                                <span className="font-bold text-[13.5px] text-gray-700 whitespace-nowrap">
                                     Part {partNum}
                                 </span>
-                                <span className="text-[12px] text-gray-400 font-semibold whitespace-nowrap">
+                                <span className="text-[12px] text-gray-400 font-semibold whitespace-nowrap tabular-nums">
                                     {answeredCount} of {qCount}
                                 </span>
                             </div>

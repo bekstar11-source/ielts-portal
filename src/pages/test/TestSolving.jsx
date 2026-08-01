@@ -23,7 +23,7 @@ export default function TestSolving() {
     const {
         test, loading, locked, lockedMeta, testMode, setTestMode, showModeSelection, setShowModeSelection,
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
-        showResult, score, bandScore, saving, handleSubmit, timeLeft, setTimeLeft,
+        showResult, score, bandScore, totalQuestions, partBreakdown, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
         audioRefs, handleSeekTo, partNumber, resultId, isSubmitting,
@@ -519,6 +519,8 @@ export default function TestSolving() {
                     testMode={testMode}
                     score={score}
                     bandScore={bandScore}
+                    totalQuestions={totalQuestions}
+                    partBreakdown={partBreakdown}
                     timeLeft={timeLeft}
                     initialDuration={initialDuration}
                     isReviewing={isReviewing}

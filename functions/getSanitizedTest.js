@@ -1,7 +1,7 @@
 // functions/getSanitizedTest.js
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const { isStaff, tierAllowsTest } = require("./subscription");
+const { checkEntitlement } = require("./subscription");
 
 /**
  * Recursively removes all answer keys from the test structure.
@@ -24,50 +24,6 @@ function sanitizeObject(obj) {
         }
     }
     return newObj;
-}
-
-/**
- * Checks whether a user is entitled to access a given test's content.
- * Mirrors the client-side gating in ReadingFull/ListeningFull/useDailyLimit,
- * but runs server-side so it can't be bypassed by navigating straight to /test/:id.
- */
-async function checkEntitlement(db, uid, userData, testData, testId, partNumber = null) {
-    if (isStaff(userData)) return true;
-
-    // Kerakli tarif — YAGONA manbadan (`subscription.getRequiredTier`):
-    //   • full test / to'plam → har doim Pro (kolleksiya "standard" bo'lsa ham);
-    //   • part test → kolleksiyaning `accessTier` i (uni admin belgilaydi).
-    //
-    // ⚠️ `tierAllowsTest` ichidagi `getTier` obuna MUDDATINI ham hisobga oladi.
-    // Ilgari bu yerda faqat `accountType`/`isPro` bayroqlari o'qilardi va muddat
-    // tugashi faqat klientda tekshirilardi — ya'ni brauzer o'sha yozuvni
-    // bajarmasa, obuna abadiy amal qilaverardi.
-    //
-    // Tarif yetmasa pastdagi biriktirish/mock tekshiruvlariga tushadi:
-    // o'qituvchi bergan yoki mock tarkibidagi full test Standard uchun ham
-    // ochiq qolishi shart.
-    if (tierAllowsTest(userData, testData, partNumber)) return true;
-
-    // Not covered by account tier — check if this specific test was assigned
-    // to the user directly, via their group, or unlocked through an access key
-    // (single test or as part of an unlocked mock exam).
-    const userAssigns = userData.assignedTests || [];
-    if (userAssigns.some(a => String(a.id).trim() === testId)) return true;
-
-    const mockTests = userData.mockTests || [];
-    const inUnlockedMock = mockTests.some(m => {
-        const sub = m.subTests || {};
-        return sub.reading === testId || sub.listening === testId || sub.writing === testId;
-    });
-    if (inUnlockedMock) return true;
-
-    const groupsSnap = await db.collection('groups').where('studentIds', 'array-contains', uid).get();
-    for (const groupDoc of groupsSnap.docs) {
-        const groupAssigns = groupDoc.data().assignedTests || [];
-        if (groupAssigns.some(a => String(a.id).trim() === testId)) return true;
-    }
-
-    return false;
 }
 
 /**

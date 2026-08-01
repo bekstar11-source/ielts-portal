@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 
 // Hooks & Components
 import { useMockExam, getListeningDuration, TEST_ENDED_AUTO_ADVANCE_SEC } from "../../hooks/useMockExam";
-import { useExamSecurity } from "../../hooks/useExamSecurity";
+import { useExamSecurity, isFullscreenActive } from "../../hooks/useExamSecurity";
 import MockExamIntro from "../../components/MockExam/MockExamIntro";
 import MockExamResult from "../../components/MockExam/MockExamResult";
 import MockExamSectionIntro from "../../components/MockExam/MockExamSectionIntro";
@@ -77,6 +77,12 @@ export default function MockExam() {
             if (type === 'fullscreen_exit') {
                 setShowFullscreenOverlay(true);
             }
+            // Talaba to'liq ekranga qaytdi (F11 orqali ham) — overlay'ni darhol
+            // yopamiz. Aks holda u yozuv maydonini bosib turar va Writing'da
+            // matn terib bo'lmasdi.
+            if (type === 'fullscreen_restored') {
+                setShowFullscreenOverlay(false);
+            }
             // Only count tab switches during actual test solving
             const solvingStages = ['listening', 'reading', 'writing'];
             if (type === 'tab_switch' && solvingStages.includes(stage)) {
@@ -93,10 +99,21 @@ export default function MockExam() {
 
     // Enforcement on mount/stage change
     useEffect(() => {
-        if (SECURITY_ACTIVE_STAGES.includes(stage) && !document.fullscreenElement && stage !== 'loading' && stage !== 'saving') {
+        if (SECURITY_ACTIVE_STAGES.includes(stage) && !isFullscreenActive() && stage !== 'loading' && stage !== 'saving') {
             setShowFullscreenOverlay(true);
         }
     }, [stage]);
+
+    // Xavfsizlik to'ri: overlay ochiq qolib ketmasligi uchun uni doimiy
+    // tekshirib turamiz. Fullscreen hodisalari ba'zi brauzer/OS kombinatsiyalarida
+    // (masalan orqada Telegram ochiq turganda) umuman kelmasligi mumkin.
+    useEffect(() => {
+        if (!showFullscreenOverlay) return;
+        const id = setInterval(() => {
+            if (isFullscreenActive()) setShowFullscreenOverlay(false);
+        }, 1000);
+        return () => clearInterval(id);
+    }, [showFullscreenOverlay]);
 
     // Auto-terminate logic is now handled via a modal button to confirm result viewing
 
@@ -106,11 +123,17 @@ export default function MockExam() {
         updateAudioProgress(time, activePart);
     };
 
-    const enterFullScreen = () => {
+    const enterFullScreen = async () => {
         const docEl = document.documentElement;
-        if (docEl.requestFullscreen) docEl.requestFullscreen();
-        else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
-        else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
+        try {
+            if (docEl.requestFullscreen) await docEl.requestFullscreen();
+            else if (docEl.webkitRequestFullscreen) await docEl.webkitRequestFullscreen();
+            else if (docEl.msRequestFullscreen) await docEl.msRequestFullscreen();
+        } catch (err) {
+            // F11 bilan allaqachon to'liq ekranda bo'lsa yoki brauzer rad etsa —
+            // talabani baribir bloklab qo'ymaymiz.
+            console.warn('Fullscreen request failed:', err);
+        }
         setShowFullscreenOverlay(false);
     };
 

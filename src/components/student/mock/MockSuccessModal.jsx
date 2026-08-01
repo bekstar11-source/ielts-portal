@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Loader2, Calendar, Clock, Sparkles } from 'lucide-react';
+import { CheckCircle2, Loader2, Calendar, Clock, Sparkles, ChevronRight } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, startOfWeek } from 'date-fns';
 import { uz, enUS } from 'date-fns/locale';
 
@@ -41,7 +41,7 @@ export default function MockSuccessModal({
                                                 localStorage.removeItem(`ielts_mock_session_${key}`); 
                                                 localStorage.removeItem('ielts_mock_active_data');
                                             } catch(e) {}
-                                            navigate('/mock-exam', { state: { mockData: currentMock } });
+                                            handleStartTestNow?.();
                                         }} className="w-full bg-[#e31b23] text-white py-4 rounded-xl font-bold text-sm hover:bg-[#c4151c] transition-all shadow-lg shadow-red-900/10">{t('mock.startNow')}</button>
                                         <button onClick={() => setShowCalendar(true)} className="w-full bg-gray-50 text-gray-600 py-4 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all border border-gray-200">{t('mock.scheduleLater')}</button>
                                     </div>

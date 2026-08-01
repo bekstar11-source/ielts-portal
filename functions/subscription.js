@@ -174,6 +174,40 @@ function tierAllowsTest(userData, test, partNumber = null) {
   return meetsTier(userData, getRequiredTier(test, partNumber));
 }
 
+/**
+ * Foydalanuvchi berilgan testning KONTENTI/JAVOBLARIGA kira oladimi — yagona
+ * tekshiruv, `getSanitizedTest` (kontent o'qish) va `submitTestAnswers`
+ * (javob topshirish) callable'lari ikkalasi ham shu funksiyadan foydalanadi,
+ * toki ikkisi orasida tekshiruv chetlab o'tilmasin.
+ *
+ * Avval tarif (`tierAllowsTest`) tekshiriladi; yetmasa — to'g'ridan-to'g'ri
+ * biriktirilgan, guruh orqali biriktirilgan yoki mock tarkibida ochilgan
+ * testlarga alohida ruxsat beriladi.
+ */
+async function checkEntitlement(db, uid, userData, testData, testId, partNumber = null) {
+  if (isStaff(userData)) return true;
+
+  if (tierAllowsTest(userData, testData, partNumber)) return true;
+
+  const userAssigns = (userData && userData.assignedTests) || [];
+  if (userAssigns.some((a) => String(a.id).trim() === testId)) return true;
+
+  const mockTests = (userData && userData.mockTests) || [];
+  const inUnlockedMock = mockTests.some((m) => {
+    const sub = m.subTests || {};
+    return sub.reading === testId || sub.listening === testId || sub.writing === testId;
+  });
+  if (inUnlockedMock) return true;
+
+  const groupsSnap = await db.collection('groups').where('studentIds', 'array-contains', uid).get();
+  for (const groupDoc of groupsSnap.docs) {
+    const groupAssigns = groupDoc.data().assignedTests || [];
+    if (groupAssigns.some((a) => String(a.id).trim() === testId)) return true;
+  }
+
+  return false;
+}
+
 module.exports = {
   toDate,
   getSubscriptionEnd,
@@ -188,4 +222,5 @@ module.exports = {
   getTestScope,
   getRequiredTier,
   tierAllowsTest,
+  checkEntitlement,
 };

@@ -2,6 +2,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { evaluateTest } = require("./ieltsScoring");
+const { checkEntitlement } = require("./subscription");
 
 /**
  * Cloud Function to securely grade test answers on the backend, 
@@ -37,8 +38,48 @@ async function submitTestAnswers(data, context) {
         const testData = { id: testSnap.id, ...testSnap.data() };
         const testType = (testData.type || 'reading').toLowerCase().trim();
 
-        // 2. Securely evaluate answers
+        // 2. Fetch user profile
+        const userRef = db.collection("users").doc(userId);
+        const userSnap = await userRef.get();
+        if (!userSnap.exists) {
+            throw new functions.https.HttpsError('not-found', 'Foydalanuvchi profili topilmadi.');
+        }
+        const userData = userSnap.data();
+
+        // 3. Tarif/biriktirish bo'yicha ruxsatni tekshirish — xuddi `getSanitizedTest`
+        // dagi kabi. Bu bo'lmasa, foydalanuvchi kontentni hech qachon olmagan
+        // (getSanitizedTest'dan rad javobi kelgan) bo'lsa ham, ushbu callable'ga
+        // to'g'ridan-to'g'ri murojaat qilib, istalgan testning natijasini "topshirib"
+        // saqlab qo'yishi mumkin edi.
+        const entitled = await checkEntitlement(db, userId, userData, testData, testId, parsedPartNumber);
+        if (!entitled) {
+            throw new functions.https.HttpsError('permission-denied', 'Bu testni ishlash uchun obuna talab qilinadi.');
+        }
+
+        // 4. Securely evaluate answers
         const { correctCount, totalQ, band, mistakes, missingKeys, typeStats } = evaluateTest(testData, cleanUserAnswers, parsedPartNumber);
+
+        // Per-passage breakdown (question count + mistake count only — never answers)
+        // so the result screen can show an accurate "mistakes per part" view without
+        // the client ever seeing correct answers.
+        let partBreakdown = [];
+        if (parsedPartNumber) {
+            const passage = testData.passages && testData.passages[parsedPartNumber - 1];
+            partBreakdown = [{
+                passageId: passage?.id || null,
+                total: totalQ,
+                mistakes: Math.max(0, totalQ - correctCount)
+            }];
+        } else if (Array.isArray(testData.passages) && testData.passages.length > 0) {
+            partBreakdown = testData.passages.map((passage, idx) => {
+                const r = evaluateTest(testData, cleanUserAnswers, idx + 1);
+                return {
+                    passageId: passage.id || null,
+                    total: r.totalQ,
+                    mistakes: Math.max(0, r.totalQ - r.correctCount)
+                };
+            });
+        }
 
         // Talaba javob bergan, lekin javob kaliti kiritilmagan savollar — test tuzishdagi xato.
         // Bunday savollar umumiy hisobga kirmaydi, ya'ni band sun'iy ravishda ko'tariladi.
@@ -49,15 +90,7 @@ async function submitTestAnswers(data, context) {
             );
         }
 
-        // 3. Fetch user profile
-        const userRef = db.collection("users").doc(userId);
-        const userSnap = await userRef.get();
-        if (!userSnap.exists) {
-            throw new functions.https.HttpsError('not-found', 'Foydalanuvchi profili topilmadi.');
-        }
-        const userData = userSnap.data();
-
-        // 4. Save results atomically using a transaction
+        // 5. Save results atomically using a transaction
         const resultDocId = parsedPartNumber 
             ? `${userId}_${testId}_part_${parsedPartNumber}`
             : `${userId}_${testId}`;
@@ -150,7 +183,7 @@ async function submitTestAnswers(data, context) {
             transaction.update(userRef, updatePayload);
         });
 
-        // 5. Save mistake sessions if any (doesn't need transaction but run in parallel)
+        // 6. Save mistake sessions if any (doesn't need transaction but run in parallel)
         if (mistakes && mistakes.length > 0) {
             const mistakeSessionRef = db.collection("users").doc(userId).collection("mistakeSessions").doc();
             await mistakeSessionRef.set({
@@ -166,6 +199,8 @@ async function submitTestAnswers(data, context) {
             success: true,
             score: correctCount,
             bandScore: band || 0,
+            totalQuestions: totalQ,
+            partBreakdown,
             mistakes: mistakes,
             resultId: resultDocId
         };
