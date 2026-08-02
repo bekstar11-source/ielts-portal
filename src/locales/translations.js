@@ -578,7 +578,74 @@ export const translations = {
       officialCenter: "Rasmiy markaz",
       viewFullReport: "To'liq hisobotni ko'rish",
       buyMockTest: "Mock test sotib olish",
-      unlocked: "Faollashtirilgan"
+      unlocked: "Faollashtirilgan",
+
+      pageTitle: "Mock imtihonlar",
+      pageSubtitle: "Rasmiy formatga mos to'liq IELTS simulyatsiyasi: Listening, Reading va Writing.",
+      refresh: "Yangilash",
+      searchPlaceholder: "Nomi yoki kalit bo'yicha qidirish",
+      loadFailed: "Ma'lumotlarni yuklab bo'lmadi.",
+      noSearchResults: "Qidiruvga mos test topilmadi.",
+      emptyUpcomingCta: "Kalitni faollashtiring yoki do'kondan mock sotib oling.",
+
+      keyPanelTitle: "Kalit bilan ochish",
+      keyPanelDesc: "Sizga berilgan 6 belgili kalitni kiriting.",
+      keyPlaceholder: "ABC123",
+      activate: "Faollashtirish",
+      activated: "Faollashtirildi",
+      keyEmpty: "Kalitni kiriting.",
+      keyNotFound: "Bunday kalit topilmadi.",
+      keyUsed: "Bu kalit allaqachon ishlatilgan yoki mos emas.",
+      keyAuthError: "Avval tizimga kiring.",
+      networkError: "Aloqada xatolik. Qayta urinib ko'ring.",
+      notAMockKey: "Bu kalit alohida testni ochdi — uni \"Mashqlar\" bo'limidan topasiz.",
+
+      storeTitle: "Mock do'koni",
+      storeDesc: "To'liq imtihon to'plamini sotib oling va darhol boshlang.",
+      goToStore: "Do'konga o'tish",
+
+      schedule: "Sana belgilash",
+      reschedule: "Sanani o'zgartirish",
+      clearSchedule: "Sanani olib tashlash",
+      scheduleSaved: "Sana saqlandi.",
+      scheduleCleared: "Sana olib tashlandi.",
+      scheduleFailed: "Sanani saqlab bo'lmadi.",
+      notScheduled: "Sana belgilanmagan",
+      today: "Bugun",
+      tomorrow: "Ertaga",
+      daysLeft: "{count} kundan keyin",
+      overdue: "Belgilangan sana o'tib ketgan",
+      close: "Yopish",
+      copied: "Nusxa olindi",
+      copyFailed: "Nusxa olib bo'lmadi",
+      resultPending: "Tekshiruvda",
+      resultReady: "Natija tayyor",
+      completedOn: "Topshirilgan sana",
+
+      interfaceTitle: "Imtihon interfeysi",
+      interfaceSubtitle: "Har bir bo'lim rasmiy IELTS on Computer muhitiga mos ishlab chiqilgan.",
+      interfaceModules: {
+        reading: {
+          title: "Reading",
+          desc: "Matn chapda, savollar o'ngda. Kalit joylarni belgilash va savollar orasida tez yurish.",
+          features: ["Ikki panelli ko'rinish", "Matnni highlight qilish", "Barcha savol turlari"]
+        },
+        listening: {
+          title: "Listening",
+          desc: "Yuqori sifatli audio va ovoz nazorati. Javoblar avtomatik saqlanadi.",
+          features: ["Ovoz balandligi nazorati", "Avtomatik saqlash", "Klaviatura navigatsiyasi"]
+        },
+        writing: {
+          title: "Writing",
+          desc: "Topshiriq va yozuv maydoni yonma-yon. So'zlar soni real vaqtda hisoblanadi.",
+          features: ["Doimiy ko'rinadigan topshiriq", "So'z hisoblagich", "Fon rejimida saqlash"]
+        },
+        tools: {
+          title: "Boshqaruv paneli",
+          desc: "Tepada rasmiy taymer, pastda barcha savollar ro'yxati va belgilash imkoni.",
+          features: ["Rasmiy taymer", "Review belgisi", "40 ta savol ro'yxati"]
+        }
+      }
     },
     practice: {
       heroTitle: "IELTS Reading Mashg'uloti",
@@ -799,30 +866,6 @@ export const translations = {
       noAnswer: "Javob berilmagan",
       jumpToQuestion: "O'tish"
     },
-    teacherStudents: {
-      title: "O'quvchilarni Boshqarish",
-      description: "O'zingizga biriktirilgan guruhlardagi o'quvchilarni ko'rish, qo'shish va ularni guruhdan o'chirish.",
-      backBtn: "Orqaga qaytish",
-      noGroups: "Guruhlar topilmadi",
-      noGroupsDesc: "Sizga hozircha hech qanday guruh biriktirilmagan.",
-      selectGroup: "Guruhni tanlang",
-      studentsCount: "o'quvchi",
-      addStudent: "Yangi O'quvchi Qo'shish",
-      searchPlaceholder: "Ism yoki email orqali qidiring...",
-      searching: "Qidirilmoqda...",
-      noResults: "Hech narsa topilmadi",
-      alreadyInGroup: "Guruhda mavjud",
-      addBtn: "Qo'shish",
-      studentsList: "O'quvchilar ro'yxati",
-      emptyGroup: "Bu guruhda hozircha o'quvchilar yo'q.",
-      emptyGroupHint: "Chap tomondagi qidiruv orqali qo'shishingiz mumkin.",
-      unnamed: "Ismsiz o'quvchi",
-      removeBtn: "O'chirish",
-      removeConfirm: "{name}ni ushbu guruhdan o'chirmoqchimisiz?",
-      studentAdded: "O'quvchi qo'shildi: {name}",
-      studentRemoved: "O'quvchi guruhdan olib tashlandi",
-      errorOccurred: "Xatolik yuz berdi"
-    }
   },
   en: {
     common: {
@@ -1401,7 +1444,74 @@ export const translations = {
       officialCenter: "Official Center",
       viewFullReport: "View full report",
       buyMockTest: "Buy Mock Test",
-      unlocked: "Unlocked"
+      unlocked: "Unlocked",
+
+      pageTitle: "Mock exams",
+      pageSubtitle: "A full IELTS simulation in the official format: Listening, Reading and Writing.",
+      refresh: "Refresh",
+      searchPlaceholder: "Search by title or key",
+      loadFailed: "Could not load your exams.",
+      noSearchResults: "No exam matches your search.",
+      emptyUpcomingCta: "Activate a key or buy a mock from the store.",
+
+      keyPanelTitle: "Unlock with a key",
+      keyPanelDesc: "Enter the 6-character key you were given.",
+      keyPlaceholder: "ABC123",
+      activate: "Activate",
+      activated: "Activated",
+      keyEmpty: "Please enter a key.",
+      keyNotFound: "No such key was found.",
+      keyUsed: "This key has already been used or is not valid.",
+      keyAuthError: "Please sign in first.",
+      networkError: "Connection problem. Please try again.",
+      notAMockKey: "This key unlocked a single test — you'll find it under \"Practice\".",
+
+      storeTitle: "Mock store",
+      storeDesc: "Buy a complete exam bundle and start right away.",
+      goToStore: "Go to store",
+
+      schedule: "Set a date",
+      reschedule: "Change date",
+      clearSchedule: "Remove date",
+      scheduleSaved: "Date saved.",
+      scheduleCleared: "Date removed.",
+      scheduleFailed: "Could not save the date.",
+      notScheduled: "No date set",
+      today: "Today",
+      tomorrow: "Tomorrow",
+      daysLeft: "In {count} days",
+      overdue: "The scheduled date has passed",
+      close: "Close",
+      copied: "Copied",
+      copyFailed: "Could not copy",
+      resultPending: "Under review",
+      resultReady: "Result ready",
+      completedOn: "Taken on",
+
+      interfaceTitle: "The exam interface",
+      interfaceSubtitle: "Every module is built to match the official IELTS on Computer environment.",
+      interfaceModules: {
+        reading: {
+          title: "Reading",
+          desc: "Passage on the left, questions on the right. Highlight key phrases and move between questions quickly.",
+          features: ["Split-screen layout", "Text highlighting", "All question types"]
+        },
+        listening: {
+          title: "Listening",
+          desc: "High-quality audio with volume control. Answers are saved automatically.",
+          features: ["Volume control", "Auto-saving answers", "Keyboard navigation"]
+        },
+        writing: {
+          title: "Writing",
+          desc: "Prompt and editor side by side, with a live word count.",
+          features: ["Always-visible prompt", "Live word counter", "Background auto-save"]
+        },
+        tools: {
+          title: "Exam controls",
+          desc: "Official timer on top, the full question list and review flags at the bottom.",
+          features: ["Official countdown", "Review flag", "40-question navigator"]
+        }
+      }
     },
     practice: {
       heroTitle: "IELTS Reading Practice",
@@ -1622,29 +1732,5 @@ export const translations = {
        noAnswer: "No Answer",
        jumpToQuestion: "Go to"
      },
-     teacherStudents: {
-       title: "Manage Students",
-       description: "View, add, and remove students from your assigned groups.",
-       backBtn: "Back to Home",
-       noGroups: "No groups found",
-       noGroupsDesc: "You don't have any groups assigned yet.",
-       selectGroup: "Select Group",
-       studentsCount: "students",
-       addStudent: "Add New Student",
-       searchPlaceholder: "Search by name or email...",
-       searching: "Searching...",
-       noResults: "No results found",
-       alreadyInGroup: "Already in group",
-       addBtn: "Add",
-       studentsList: "Students List",
-       emptyGroup: "There are no students in this group yet.",
-       emptyGroupHint: "You can add them using the search on the left.",
-       unnamed: "Unnamed student",
-       removeBtn: "Remove",
-       removeConfirm: "Are you sure you want to remove {name} from this group?",
-       studentAdded: "Student added: {name}",
-       studentRemoved: "Student removed from the group",
-       errorOccurred: "An error occurred"
-     }
    }
  };

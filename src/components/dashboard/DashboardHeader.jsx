@@ -30,7 +30,8 @@ import {
   LayoutDashboard,
   FilePlus,
   Plus,
-  Award
+  Award,
+  Users
 } from 'lucide-react';
 import SearchOverlay from './SearchOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -226,6 +227,7 @@ export default function DashboardHeader({
       { id: 't_create_writing', label: "Writing Yaratish", path: '/teacher/create-writing', icon: Plus },
       { id: 't_writing_review', label: "Writing Tekshirish", path: '/teacher/writing-review', icon: PenTool },
       { id: 't_stats', label: "Guruh Statistikasi", path: '/teacher/group-stats', icon: BarChart2 },
+      { id: 't_students', label: "O'quvchilar", path: '/teacher/group-stats?view=students', icon: Users },
       { id: 't_my_results', label: "Mening Natijalarim", path: '/my-results', icon: Award },
       { id: 't_results', label: "Barcha Natijalar", path: '/teacher/results', icon: ClipboardList },
       { id: 't_subscription', label: "Obuna & To'lovlar", path: '/teacher/subscription', icon: CreditCard }
@@ -240,24 +242,36 @@ export default function DashboardHeader({
 
     const iconSize = isMobile ? 16 : 18;
 
+    // "Guruh statistikasi" va "O'quvchilar" bitta sahifaning ikki ko'rinishi —
+    // shuning uchun faqat pathname yetarli emas, `?view=` ham solishtiriladi.
+    const isTeacherItemActive = (item) => {
+      const [path, search] = item.path.split('?');
+      if (location.pathname !== path) {
+        return item.path === '/teacher' && location.pathname === '/teacher/';
+      }
+      const currentView = new URLSearchParams(location.search).get('view');
+      const itemView = new URLSearchParams(search || '').get('view');
+      return (currentView || null) === (itemView || null);
+    };
+
     if (isCollapsed) {
       return (
         <div className="mt-lg flex flex-col gap-xxs">
           {items.map(item => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path || (item.path === '/teacher' && location.pathname === '/teacher/');
+            const isActive = isTeacherItemActive(item);
             return (
               <button
                 key={item.id}
                 title={item.label}
                 onClick={() => handleItemClick(item.path)}
-                className={`w-full flex items-center justify-center py-2 rounded-lg transition-all ${
+                className={`w-full flex items-center justify-center py-2 rounded-lg transition-all duration-200 ${
                   isActive
-                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20'
-                    : 'text-warm-body dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
+                    ? 'text-warm-primary dark:text-white bg-[#F0EAE0] dark:bg-warm-primary'
+                    : 'text-warm-muted-soft dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
                 }`}
               >
-                <Icon size={iconSize} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-warm-muted dark:text-warm-on-dark-soft'} />
+                <Icon size={iconSize} strokeWidth={2} className={isActive ? 'text-warm-primary dark:text-white' : 'text-warm-muted-soft dark:text-warm-on-dark-soft'} />
               </button>
             );
           })}
@@ -285,18 +299,18 @@ export default function DashboardHeader({
             >
               {items.map(item => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path || (item.path === '/teacher' && location.pathname === '/teacher/');
+                const isActive = isTeacherItemActive(item);
                 return (
                   <button
                     key={item.id}
                     onClick={() => handleItemClick(item.path)}
-                    className={`w-full text-left ${isMobile ? 'px-sm' : 'px-3'} py-1.5 text-sm rounded-lg transition-all flex items-center gap-2.5 group ${
+                    className={`w-full text-left ${isMobile ? 'px-sm' : 'px-3'} py-1.5 text-sm rounded-lg transition-all duration-200 flex items-center gap-2.5 group ${
                       isActive
-                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 font-semibold'
+                        ? 'text-warm-primary dark:text-white bg-[#F0EAE0] dark:bg-warm-primary font-semibold'
                         : 'text-warm-body dark:text-warm-on-dark-soft font-medium hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
                     }`}
                   >
-                    <Icon size={iconSize} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-warm-muted dark:text-warm-on-dark-soft group-hover:text-warm-ink dark:group-hover:text-warm-on-dark transition-colors'} />
+                    <Icon size={iconSize} strokeWidth={2} className={isActive ? 'text-warm-primary dark:text-white' : 'text-warm-muted-soft dark:text-warm-on-dark-soft group-hover:text-warm-ink dark:group-hover:text-warm-on-dark transition-colors'} />
                     <span>{item.label}</span>
                   </button>
                 );

@@ -1,62 +1,121 @@
+/**
+ * Mock ro'yxati: tab'lar (soni bilan), qidiruv va kartalar.
+ *
+ * Tab'lar endi nechta test borligini ko'rsatadi — ilgari bo'sh tabga o'tib
+ * ketish yagona bilish usuli edi.
+ */
+
 import React from 'react';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, MagnifyingGlass, CircleNotch, WarningCircle } from '@phosphor-icons/react';
 import MockTestCard from './MockTestCard';
+import { CARD_CLS, MUTED_CLS } from './mockHelpers';
 
-export default function MockTestList({ 
-    t, activeTab, setActiveTab, filteredMocks, navigate, userData, fetchingMocks, lang
-}) {
+function Tab({ active, label, count, onClick }) {
     return (
-                <section className="space-y-8">
-                    <div className="flex items-center gap-12 border-b border-gray-200">
-                        <button 
-                            onClick={() => setActiveTab('upcoming')}
-                            className={`pb-4 text-[17px] font-bold transition-all relative ${activeTab === 'upcoming' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                            {t('mock.upcomingTests')}
-                            {activeTab === 'upcoming' && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#e31b23]" />}
-                        </button>
-                        <button 
-                            onClick={() => setActiveTab('past')}
-                            className={`pb-4 text-[17px] font-bold transition-all relative ${activeTab === 'past' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                            {t('mock.pastTests')}
-                            {activeTab === 'past' && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#e31b23]" />}
-                        </button>
-                    </div>
-                    
-                    {activeTab === 'past' && filteredMocks.length > 0 && (
-                        <p className="text-sm font-bold text-gray-900 mb-6 mt-8">
-                            {lang === 'uz' ? (
-                                <>
-                                    Sizda <span className="text-[#e31b23]">{filteredMocks.length}</span> ta o'tgan test mavjud
-                                </>
-                            ) : (
-                                <>
-                                    Showing <span className="text-[#e31b23]">{filteredMocks.length}</span> past test{filteredMocks.length > 1 ? 's' : ''}
-                                </>
-                            )}
-                        </p>
-                    )}
+        <button
+            type="button"
+            onClick={onClick}
+            aria-selected={active}
+            role="tab"
+            className={`relative pb-3 text-[15px] font-medium transition-colors ${
+                active
+                    ? 'text-warm-ink dark:text-warm-on-dark'
+                    : 'text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark'
+            }`}
+        >
+            {label}
+            <span className={`ml-2 text-[13px] tabular-nums ${active ? 'text-warm-primary' : ''}`}>{count}</span>
+            {active && <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-warm-primary rounded-full" />}
+        </button>
+    );
+}
 
-                    <div className="space-y-6">
-                        {fetchingMocks ? (
-                            <div className="py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">
-                                <Loader2 className="animate-spin mx-auto mb-4 opacity-30" size={32} /> 
-                                {t('mock.authenticating')}
-                            </div>
-                        ) : filteredMocks.length > 0 ? (
-                            filteredMocks.map((test, index) => (
-                                <MockTestCard key={index} test={test} tab={activeTab} navigate={navigate} userData={userData} />
-                            ))
-                        ) : (
-                            <div className="border border-dashed border-gray-300 rounded-md py-20 text-center bg-gray-50/50">
-                                <FileText size={40} className="mx-auto mb-4 text-gray-200" />
-                                <p className="text-gray-400 text-sm font-medium italic">
-                                    {activeTab === 'upcoming' ? t('mock.noUpcoming') : t('mock.noPast')}
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </section>
+export default function MockTestList({
+    t, lang, activeTab, setActiveTab, upcomingCount, pastCount, mocks,
+    search, setSearch, loading, error, userData,
+    onStart, onSchedule, onReview, onGoToStore,
+}) {
+    const isSearching = search.trim().length > 0;
+
+    return (
+        <section className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div role="tablist" className="flex items-center gap-8 border-b border-warm-hairline dark:border-white/10 flex-1">
+                    <Tab
+                        active={activeTab === 'upcoming'}
+                        label={t('mock.upcomingTests')}
+                        count={upcomingCount}
+                        onClick={() => setActiveTab('upcoming')}
+                    />
+                    <Tab
+                        active={activeTab === 'past'}
+                        label={t('mock.pastTests')}
+                        count={pastCount}
+                        onClick={() => setActiveTab('past')}
+                    />
+                </div>
+
+                <div className="relative sm:w-64">
+                    <MagnifyingGlass size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${MUTED_CLS}`} />
+                    <input
+                        type="search"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder={t('mock.searchPlaceholder')}
+                        aria-label={t('mock.searchPlaceholder')}
+                        className="w-full rounded-xl border border-warm-hairline dark:border-white/10 bg-white dark:bg-warm-dark-elevated pl-9 pr-3 py-2.5 text-[14px] outline-none transition-colors focus:border-warm-primary placeholder:text-warm-muted-soft"
+                    />
+                </div>
+            </div>
+
+            {loading ? (
+                <div className={`${CARD_CLS} py-20 text-center`}>
+                    <CircleNotch size={26} className={`animate-spin mx-auto ${MUTED_CLS}`} />
+                    <p className={`mt-3 text-[13px] ${MUTED_CLS}`}>{t('mock.authenticating')}</p>
+                </div>
+            ) : error ? (
+                <div className={`${CARD_CLS} py-16 text-center`}>
+                    <WarningCircle size={26} className="mx-auto text-warm-error" />
+                    <p className="mt-3 text-[14px] font-medium">{t('mock.loadFailed')}</p>
+                </div>
+            ) : mocks.length > 0 ? (
+                <div className="space-y-4">
+                    {mocks.map((test) => (
+                        <MockTestCard
+                            key={test.id || test.mockKey}
+                            test={test}
+                            tab={activeTab}
+                            t={t}
+                            lang={lang}
+                            userData={userData}
+                            onStart={() => onStart(test)}
+                            onSchedule={() => onSchedule(test)}
+                            onReview={() => onReview(test)}
+                        />
+                    ))}
+                </div>
+            ) : (
+                <div className={`${CARD_CLS} py-16 px-6 text-center`}>
+                    <FileText size={26} className={`mx-auto ${MUTED_CLS}`} />
+                    <p className="mt-3 text-[14px] font-medium">
+                        {isSearching
+                            ? t('mock.noSearchResults')
+                            : activeTab === 'upcoming' ? t('mock.noUpcoming') : t('mock.noPast')}
+                    </p>
+                    {!isSearching && activeTab === 'upcoming' && (
+                        <>
+                            <p className={`mt-1 text-[13px] ${MUTED_CLS}`}>{t('mock.emptyUpcomingCta')}</p>
+                            <button
+                                type="button"
+                                onClick={onGoToStore}
+                                className="mt-5 rounded-xl px-5 py-2.5 text-[14px] font-medium bg-warm-primary text-warm-on-primary transition-colors hover:bg-warm-primary-active"
+                            >
+                                {t('mock.goToStore')}
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
+        </section>
     );
 }

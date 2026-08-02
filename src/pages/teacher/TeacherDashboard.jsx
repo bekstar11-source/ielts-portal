@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase/firebase';
@@ -13,6 +13,13 @@ import {
     toDate, hasActiveTeacherSubscription, getTeacherSubscriptionDaysLeft
 } from '../../utils/subscription';
 import { collectStudentIds, chunkIds } from '../../utils/teacherResults';
+import {
+    buildStudentStats, buildSkillAverages, buildActivitySeries,
+    collectStudentsFromResults, buildAttentionList,
+} from '../../utils/groupAnalytics';
+import {
+    CARD_CLS, ROW_CLS, SectionHeader, ActivityStrip, SkillAverages, AttentionList,
+} from '../../components/teacher/dashboard/DashboardWidgets';
 
 /** Natija turiga mos belgi — rangsiz, faqat shakl orqali farqlanadi. */
 const typeIcon = (type) => {
@@ -30,7 +37,8 @@ export default function TeacherDashboard() {
     const [groups, setGroups] = useState([]);
     const [pendingWritings, setPendingWritings] = useState(0);
     const [assignedTestsCount, setAssignedTestsCount] = useState(0);
-    const [recentResults, setRecentResults] = useState([]);
+    const [results, setResults] = useState([]);
+    const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -85,14 +93,22 @@ export default function TeacherDashboard() {
 
             if (allStudentIds.length > 0) {
                 const allResults = [];
+                const studentDocs = [];
                 for (const chunk of chunkIds(allStudentIds)) {
-                    const snap = await getDocs(query(
-                        collection(db, 'results'),
-                        where('userId', 'in', chunk),
-                        limit(200) // Increase limit as we'll sort client-side if needed
-                    ));
-                    allResults.push(...snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                    // O'quvchilar hujjatlari ham kerak: umuman test topshirmagan
+                    // o'quvchi natijalar ichida umuman uchramaydi.
+                    const [rsnap, usnap] = await Promise.all([
+                        getDocs(query(
+                            collection(db, 'results'),
+                            where('userId', 'in', chunk),
+                            limit(200) // Increase limit as we'll sort client-side if needed
+                        )),
+                        getDocs(query(collection(db, 'users'), where('__name__', 'in', chunk))),
+                    ]);
+                    allResults.push(...rsnap.docs.map(d => ({ id: d.id, ...d.data() })));
+                    studentDocs.push(...usnap.docs.map(d => ({ id: d.id, ...d.data() })));
                 }
+                setStudents(studentDocs);
 
                 // Sort by date client-side. (Ilgari bu komparator ichida
                 // `const db` e'lon qilinib, firebase `db` ini soya qilardi.)
@@ -104,10 +120,11 @@ export default function TeacherDashboard() {
                     !r.teacherFeedback && !r.writingBand
                 );
                 setPendingWritings(pending.length);
-                setRecentResults(allResults.slice(0, 6));
+                setResults(allResults);
             } else {
                 setPendingWritings(0);
-                setRecentResults([]);
+                setResults([]);
+                setStudents([]);
             }
         } catch (e) {
             console.error(e);
@@ -119,6 +136,34 @@ export default function TeacherDashboard() {
     const firstName = userData?.fullName?.split(' ')[0] || 'Ustoz';
     const totalStudents = groups.reduce((acc, g) => acc + (g.studentIds?.length || 0), 0);
 
+    const recentResults = useMemo(() => results.slice(0, 6), [results]);
+
+    /**
+     * Barcha kesimlar bitta natijalar to'plamidan hisoblanadi.
+     * O'quvchilar ro'yxati `users` hujjatlaridan olinadi — natijalardan emas,
+     * aks holda umuman test topshirmaganlar hisobga tushmay qolardi.
+     * Hujjat yetib kelmagan holatda natijalardagi ismga qaytamiz.
+     */
+    const insights = useMemo(() => {
+        const statsMap = buildStudentStats(results);
+        const roster = students.length ? students : collectStudentsFromResults(results);
+        const skills = buildSkillAverages(roster, statsMap);
+        const bands = roster
+            .map((s) => statsMap.get(s.id)?.avgBand)
+            .filter((b) => b !== null && b !== undefined);
+
+        return {
+            activity: buildActivitySeries(results, 14),
+            skills,
+            overallBand: bands.length
+                ? Math.round((bands.reduce((a, b) => a + b, 0) / bands.length) * 10) / 10
+                : null,
+            attention: buildAttentionList(roster, statsMap, 4),
+            activeStudents: roster.filter((s) => statsMap.get(s.id)?.isInactive === false).length,
+            untestedCount: roster.filter((s) => !statsMap.has(s.id)).length,
+        };
+    }, [results, students]);
+
     const subActive = hasActiveTeacherSubscription(userData);
     const daysLeft = getTeacherSubscriptionDaysLeft(userData);
     const subNotice = !subActive
@@ -129,13 +174,23 @@ export default function TeacherDashboard() {
 
     const stats = [
         { label: 'Guruhlar', value: groups.length, to: '/teacher/group-stats' },
-        { label: "O'quvchilar", value: totalStudents, to: '/teacher/students' },
+        {
+            label: "O'quvchilar",
+            value: totalStudents,
+            to: '/teacher/group-stats?view=students',
+            hint: insights.activeStudents ? `${insights.activeStudents} faol` : null,
+        },
         { label: 'Tayinlangan testlar', value: assignedTestsCount, to: '/teacher/tests' },
-        { label: 'Tekshirilmagan', value: pendingWritings, to: '/teacher/writing-review' },
+        {
+            label: 'Tekshirilmagan',
+            value: pendingWritings,
+            to: '/teacher/writing-review',
+            hint: pendingWritings > 0 ? 'tekshiruv kutmoqda' : null,
+        },
     ];
 
-    const cardCls = 'rounded-2xl border border-warm-hairline dark:border-white/10 bg-white dark:bg-warm-dark-elevated';
-    const rowCls = 'w-full flex items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-warm-surface/60 dark:hover:bg-white/5';
+    const cardCls = CARD_CLS;
+    const rowCls = ROW_CLS;
 
     return (
         <div className="font-sans text-warm-ink dark:text-warm-on-dark">
@@ -201,23 +256,28 @@ export default function TeacherDashboard() {
                             >
                                 <p className="text-[28px] leading-none font-semibold tracking-tight">{s.value}</p>
                                 <p className="text-[13px] text-warm-muted dark:text-warm-on-dark-soft mt-2">{s.label}</p>
+                                <p className="text-[12px] text-warm-muted-soft dark:text-warm-on-dark-soft/70 mt-0.5 truncate">
+                                    {s.hint || ' '}
+                                </p>
                             </button>
                         ))}
                     </div>
 
+                    {/* ── Kunlik faollik ── */}
+                    <div className="mb-lg">
+                        <ActivityStrip series={insights.activity} />
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg">
 
-                        {/* ── So'nggi natijalar ── */}
-                        <section className="lg:col-span-7">
-                            <div className="flex items-center justify-between mb-sm">
-                                <h2 className="text-warm-title-sm font-medium">So'nggi natijalar</h2>
-                                <button
-                                    onClick={() => navigate('/teacher/results')}
-                                    className="text-[13px] text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark transition-colors"
-                                >
-                                    Barchasi
-                                </button>
-                            </div>
+                        {/* ── So'nggi natijalar + ko'nikmalar ── */}
+                        <section className="lg:col-span-7 space-y-lg">
+                            <div>
+                            <SectionHeader
+                                title="So'nggi natijalar"
+                                actionLabel="Barchasi"
+                                onAction={() => navigate('/teacher/results')}
+                            />
 
                             <div className={`${cardCls} overflow-hidden divide-y divide-warm-hairline dark:divide-white/10`}>
                                 {recentResults.length === 0 ? (
@@ -238,7 +298,7 @@ export default function TeacherDashboard() {
                                                     </p>
                                                     <p className="text-[12px] text-warm-muted dark:text-warm-on-dark-soft truncate">
                                                         {r.testTitle || 'Test'}
-                                                        {toDate(r.date) && ` · ${toDate(r.date).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' })}`}
+                                                        {toDate(r.date) && ` · ${toDate(r.date).toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit' })}`}
                                                     </p>
                                                 </div>
                                             </div>
@@ -253,19 +313,31 @@ export default function TeacherDashboard() {
                                     );
                                 })}
                             </div>
+                            </div>
+
+                            <SkillAverages skills={insights.skills} overallBand={insights.overallBand} />
                         </section>
 
-                        {/* ── Guruhlar ── */}
-                        <section className="lg:col-span-5">
-                            <div className="flex items-center justify-between mb-sm">
-                                <h2 className="text-warm-title-sm font-medium">Guruhlarim</h2>
-                                <button
-                                    onClick={() => navigate('/teacher/students')}
-                                    className="text-[13px] text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark transition-colors"
-                                >
-                                    Boshqarish
-                                </button>
+                        {/* ── E'tibor talab qiladi + guruhlar ── */}
+                        <section className="lg:col-span-5 space-y-lg">
+                            <div>
+                                <SectionHeader
+                                    title="E'tibor talab qiladi"
+                                    actionLabel={insights.attention.length ? 'Batafsil' : null}
+                                    onAction={() => navigate('/teacher/group-stats?view=students')}
+                                />
+                                <AttentionList
+                                    items={insights.attention}
+                                    onOpen={() => navigate('/teacher/group-stats?view=students')}
+                                />
                             </div>
+
+                            <div>
+                            <SectionHeader
+                                title="Guruhlarim"
+                                actionLabel="Boshqarish"
+                                onAction={() => navigate('/teacher/group-stats?view=students')}
+                            />
 
                             <div className={`${cardCls} overflow-hidden divide-y divide-warm-hairline dark:divide-white/10`}>
                                 {groups.map(group => (
@@ -283,6 +355,7 @@ export default function TeacherDashboard() {
                                         <CaretRight size={14} className="text-warm-muted-soft flex-shrink-0" />
                                     </button>
                                 ))}
+                            </div>
                             </div>
                         </section>
 

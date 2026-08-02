@@ -1,116 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, Trash2, ArrowRight, Play, BookOpen, Volume2, Megaphone, ChevronLeft, ChevronRight, AlertTriangle, RotateCcw, Calendar, Hourglass, MessageSquare, Flame, ShieldAlert } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Trash2, ArrowRight, Megaphone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import CommentsModal from './CommentsModal';
+import AssignmentCard from './AssignmentCard';
 import { handleUniversalNavigate, getCategoryUrl } from '../../utils/navigation';
 import { db } from '../../firebase/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { usePodcast } from '../../context/PodcastContext';
-
-const getDeadlineTimeRemaining = (deadline) => {
-    if (!deadline) return { text: "Cheksiz muddat", isUrgent: false, isExpired: false };
-    const deadlineDate = new Date(deadline);
-    const now = new Date();
-    const diffMs = deadlineDate - now;
-
-    if (diffMs <= 0) {
-        return { text: "Muddati o'tgan", isUrgent: false, isExpired: true };
-    }
-
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffDays > 2) {
-        return { text: `${diffDays} kun qoldi`, isUrgent: false, isExpired: false };
-    }
-    if (diffDays === 2) {
-        return { text: "2 kun qoldi", isUrgent: true, isExpired: false };
-    }
-    if (diffDays === 1) {
-        return { text: "Ertaga oxirgi kun", isUrgent: true, isExpired: false };
-    }
-    if (diffHours >= 1) {
-        return { text: `${diffHours} soat qoldi`, isUrgent: true, isExpired: false };
-    }
-    if (diffMins >= 1) {
-        return { text: `${diffMins} daqiqa qoldi`, isUrgent: true, isExpired: false };
-    }
-    return { text: "Hozir tugaydi", isUrgent: true, isExpired: false };
-};
-
-const getPriorityBadge = (priority) => {
-    const p = (priority || 'medium').toLowerCase();
-    switch (p) {
-        case 'high':
-            return (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/20">
-                    <Flame size={13} className="text-rose-500 dark:text-rose-400 animate-pulse" />
-                    Yuqori
-                </span>
-            );
-        case 'low':
-            return (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/20">
-                    <ShieldAlert size={13} className="text-emerald-500 dark:text-emerald-400" />
-                    Past
-                </span>
-            );
-        case 'medium':
-        default:
-            return (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/20">
-                    <AlertTriangle size={13} className="text-amber-500 dark:text-amber-400" />
-                    O'rtacha
-                </span>
-            );
-    }
-};
-
-const getTestTypeTag = (testType) => {
-    const t = (testType || '').toLowerCase();
-    let label = 'Test';
-    let bgClasses = 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/30 text-blue-600 dark:text-blue-400';
-    
-    if (t.includes('reading')) {
-        label = 'Reading';
-        bgClasses = 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/30 text-blue-600 dark:text-blue-400';
-    } else if (t.includes('listening')) {
-        label = 'Listening';
-        bgClasses = 'bg-pink-50 dark:bg-pink-950/40 border-pink-100 dark:border-pink-900/30 text-pink-600 dark:text-pink-400';
-    } else if (t.includes('writing')) {
-        label = 'Writing';
-        bgClasses = 'bg-orange-50 dark:bg-orange-950/40 border-orange-100 dark:border-orange-900/30 text-orange-600 dark:text-orange-400';
-    } else if (t.includes('mock') || t.includes('full')) {
-        label = 'Mock Exam';
-        bgClasses = 'bg-purple-50 dark:bg-purple-950/40 border-purple-100 dark:border-purple-900/30 text-purple-600 dark:text-purple-400';
-    } else if (t.includes('podcast')) {
-        label = 'Podcast';
-        bgClasses = 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-100 dark:border-indigo-900/30 text-indigo-600 dark:text-indigo-400';
-    } else if (t.includes('article')) {
-        label = 'Maqola';
-        bgClasses = 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400';
-    }
-    
-    return (
-        <span className={`text-[11px] font-semibold tracking-wide px-3 py-1 rounded-full border ${bgClasses}`}>
-            {label}
-        </span>
-    );
-};
-
-const getTestIconAndColor = (type) => {
-    const t = (type || '').toLowerCase();
-    if (t.includes('reading')) return { icon: <BookOpen size={16} className="text-blue-500 dark:text-blue-400" />, colorClass: 'bg-blue-50 dark:bg-blue-950/40 text-blue-550 dark:text-blue-400' };
-    if (t.includes('listening')) return { icon: <Volume2 size={16} className="text-pink-500 dark:text-pink-400" />, colorClass: 'bg-pink-50 dark:bg-pink-950/40 text-pink-550 dark:text-pink-400' };
-    if (t.includes('writing')) return { icon: <MessageSquare size={16} className="text-orange-500 dark:text-orange-400" />, colorClass: 'bg-orange-50 dark:bg-orange-950/40 text-orange-555 dark:text-orange-400' };
-    if (t.includes('podcast')) return { icon: <Volume2 size={16} className="text-indigo-500 dark:text-indigo-400" />, colorClass: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-550 dark:text-indigo-400' };
-    if (t.includes('article')) return { icon: <BookOpen size={16} className="text-emerald-500 dark:text-emerald-400" />, colorClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-555 dark:text-emerald-400' };
-    return { icon: <Flame size={16} className="text-purple-500 dark:text-purple-400" />, colorClass: 'bg-purple-50 dark:bg-purple-950/40 text-purple-550 dark:text-purple-400' };
-};
-
 
 export default function FeedPostCard({ post, user, userData, assignments = [], onLike, onCommentAdded, onDelete }) {
     const navigate = useNavigate();
@@ -122,7 +20,6 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
         return 1.777; // Default to landscape instead of 4:3 to prevent initial tall stretching
     });
     const [showPodcastConfirm, setShowPodcastConfirm] = useState(false);
-    const [testConfirm, setTestConfirm] = useState(null); // { id, title, type }
 
     const { setCurrentTrack, setIsExpanded, setIsPlaying } = usePodcast();
 

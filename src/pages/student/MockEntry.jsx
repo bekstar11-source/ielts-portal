@@ -1,71 +1,71 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * /mock — o'quvchining mock imtihonlari sahifasi.
+ *
+ * Sahifa faqat holatni boshqaradi va ko'rsatadi: ma'lumot yuklash va sana
+ * yozish `useStudentMocks` ichida, vizual bloklar esa
+ * `components/student/mock/` da.
+ */
+
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { db, functions } from '../../firebase/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import MockBanners from '../../components/student/mock/MockBanners';
+import toast from 'react-hot-toast';
+import { ArrowLeft, ArrowClockwise } from '@phosphor-icons/react';
+
+import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../context/LanguageContext';
+import { functions } from '../../firebase/firebase';
+import useStudentMocks from '../../hooks/useStudentMocks';
+
+import MockAccessPanel from '../../components/student/mock/MockAccessPanel';
 import MockTestList from '../../components/student/mock/MockTestList';
-import MockSuccessModal from '../../components/student/mock/MockSuccessModal';
-
-import MockTestCard from '../../components/student/mock/MockTestCard';
+import MockActivatedModal from '../../components/student/mock/MockActivatedModal';
+import MockScheduleModal from '../../components/student/mock/MockScheduleModal';
 import MockInterfacePresentation from '../../components/student/mock/MockInterfacePresentation';
+import { MUTED_CLS } from '../../components/student/mock/mockHelpers';
 
-import { 
-    ChevronRight, 
-    ArrowLeft,
-    Loader2, 
-    Sparkles, 
-    Clock,
-    Calendar,
-    AlertCircle,
-    Monitor,
-    MapPin,
-    FileText,
-    CheckCircle2,
-    User,
-    Fingerprint,
-    Building2,
-    Download,
-    KeyRound,
-    ShoppingBag,
-    BookOpen,
-    Headphones,
-    PenTool,
-    Mic,
-    Timer,
-    CheckSquare,
-    Volume2,
-    Play,
-    Pause,
-    HelpCircle
-} from 'lucide-react';
 import SiteFooter from '../../components/common/SiteFooter';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardModals from '../../components/dashboard/DashboardModals';
 import PricingModal from '../../components/dashboard/PricingModal';
-import { useTranslation } from '../../context/LanguageContext';
+
+/**
+ * Callable funksiya xatosini foydalanuvchi tiliga o'giradi.
+ * Ilgari `err.message` to'g'ridan-to'g'ri chiqarilardi — prod'da bu ko'pincha
+ * "internal" degan tushunarsiz matn bo'lardi.
+ */
+function keyErrorMessage(err, t) {
+    const code = String(err?.code || '').replace('functions/', '');
+    if (code === 'not-found') return t('mock.keyNotFound');
+    if (code === 'failed-precondition') return t('mock.keyUsed');
+    if (code === 'invalid-argument') return t('mock.keyEmpty');
+    if (code === 'unauthenticated') return t('mock.keyAuthError');
+    if (code === 'unavailable' || code === 'deadline-exceeded') return t('mock.networkError');
+    // Server o'zi tushunarli matn qaytargan bo'lsa (masalan "tarkibi to'liq
+    // sozlanmagan"), uni yashirmaymiz.
+    return err?.message || t('mock.unexpectedError');
+}
 
 export default function MockEntry() {
     const { user, userData, logout } = useAuth();
     const { t, lang } = useTranslation();
     const navigate = useNavigate();
-    
-    const [mockKey, setMockKey] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState(false);
-    const [currentMock, setCurrentMock] = useState(null);
-    const [showCalendar, setShowCalendar] = useState(false);
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [viewDate, setViewDate] = useState(new Date());
+
+    const { upcoming, past, loading, error, refresh, setSchedule } = useStudentMocks(user?.uid);
+
+    const [mockKey, setMockKey] = useState('');
+    const [verifying, setVerifying] = useState(false);
+    const [keyError, setKeyError] = useState('');
+    const [activatedMock, setActivatedMock] = useState(null);
+
+    const [schedulingMock, setSchedulingMock] = useState(null);
+    const [savingSchedule, setSavingSchedule] = useState(false);
+
+    const [activeTab, setActiveTab] = useState('upcoming');
+    const [search, setSearch] = useState('');
+
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showPricingModal, setShowPricingModal] = useState(false);
-    
-    const [activeTab, setActiveTab] = useState('upcoming');
-    const [mockTests, setMockTests] = useState([]);
-    const [fetchingMocks, setFetchingMocks] = useState(true);
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
         const handleOpenPricing = () => setShowPricingModal(true);
@@ -73,118 +73,76 @@ export default function MockEntry() {
         return () => window.removeEventListener('open-pricing', handleOpenPricing);
     }, []);
 
-    useEffect(() => {
-        const fetchMocks = async () => {
-            if (!user?.uid) return;
-            try {
-                // 1. Fetch user's mock assignments
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (!userDoc.exists()) return;
-                const userData = userDoc.data();
-                const mocks = userData.mockTests || [];
-                // Rejalashtirilgan sanalar alohida `mockSchedules` map'ida saqlanadi:
-                // `mockTests` massivi endi faqat server (Admin SDK) tomonidan yoziladi,
-                // aks holda o'quvchi o'ziga istalgan mock/subTest ochib olardi.
-                const schedules = userData.mockSchedules || {};
+    const visibleMocks = useMemo(() => {
+        const source = activeTab === 'past' ? past : upcoming;
+        const term = search.trim().toLowerCase();
+        if (!term) return source;
+        return source.filter((m) => (
+            String(m.title || '').toLowerCase().includes(term) ||
+            String(m.mockKey || '').toLowerCase().includes(term)
+        ));
+    }, [activeTab, past, upcoming, search]);
 
-                // 2. Fetch user's actual results to get scores
-                const q = query(
-                    collection(db, "results"),
-                    where("userId", "==", user.uid),
-                    where("type", "==", "mock_full")
-                );
-                const resultsSnap = await getDocs(q);
-                const results = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                // 3. Merge scores into mock assignments
-                const merged = mocks.map(rawMock => {
-                    const m = schedules[rawMock.id]
-                        ? { ...rawMock, scheduledDate: schedules[rawMock.id] }
-                        : rawMock;
-
-                    // Try to find result by mockKey (primary for mocks) or by saved resultId
-                    const result = results.find(r =>
-                        (m.mockKey && r.mockKey === m.mockKey) ||
-                        (m.resultId && r.id === m.resultId)
-                    );
-
-                    if (!result) return m;
-
-                    return {
-                        ...m,
-                        ...result, // Bring in all result fields (bandScore, scores, writingBand, etc.)
-                        id: m.id,  // Preserve the mock assignment ID for UI stability
-                        resultId: result.id,
-                        status: 'completed',
-                        resultStatus: result.status || 'pending_review'
-                    };
-                });
-
-                setMockTests(merged.sort((a, b) => new Date(b.startDate) - new Date(a.startDate)));
-            } catch (error) {
-                console.error("Error fetching mocks:", error);
-            } finally {
-                setFetchingMocks(false);
-            }
-        };
-        fetchMocks();
-    }, [user, refreshTrigger]);
+    const startExam = useCallback((mock) => {
+        navigate('/mock-exam', { state: { mockData: mock } });
+    }, [navigate]);
 
     const handleVerifyKey = async (e) => {
         if (e) e.preventDefault();
-        if (!mockKey.trim() || loading) return;
+        const key = mockKey.trim().toUpperCase();
+        if (!key || verifying) return;
 
-        setLoading(true);
-        setError("");
-        
+        setVerifying(true);
+        setKeyError('');
+
         try {
-            const verifyAccessKeyFn = httpsCallable(functions, 'verifyAccessKey');
-            const res = await verifyAccessKeyFn({ key: mockKey });
+            const verifyAccessKey = httpsCallable(functions, 'verifyAccessKey');
+            const res = await verifyAccessKey({ key });
 
-            if (res.data && res.data.success) {
-                setSuccess(true);
-                setCurrentMock(res.data.assignment);
-                setRefreshTrigger(prev => prev + 1);
-            } else {
-                throw new Error(t('mock.unexpectedError'));
+            if (!res.data?.success) throw new Error(t('mock.unexpectedError'));
+
+            setMockKey('');
+            refresh();
+
+            // Kalit alohida testni ochgan bo'lishi ham mumkin. Ilgari bunday
+            // holatda ham "imtihonni boshlash" oynasi chiqib, mock bo'lmagan
+            // tayinlov bilan /mock-exam ochilardi va u yerda buzilardi.
+            if (!res.data.isMock) {
+                toast.success(t('mock.notAMockKey'));
+                return;
             }
-        } catch (err) {
-            setError(err.message || t('mock.invalidKey'));
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    const handleScheduleTest = async () => {
-        if (!currentMock) return;
-        setLoading(true);
-        try {
-            const userRef = doc(db, "users", user.uid);
-            // Faqat sanani yozamiz. `mockTests` massivining o'zi himoyalangan
-            // (unga yozish = o'ziga mock ochib olish) — u faqat serverdan yangilanadi.
-            await updateDoc(userRef, {
-                [`mockSchedules.${currentMock.id}`]: selectedDate.toISOString()
-            });
-            setShowCalendar(false);
-            setSuccess(false);
-            setMockKey("");
+            setActivatedMock(res.data.assignment);
             setActiveTab('upcoming');
-            setRefreshTrigger(prev => prev + 1);
         } catch (err) {
-            console.error("Scheduling error:", err);
+            setKeyError(keyErrorMessage(err, t));
         } finally {
-            setLoading(false);
+            setVerifying(false);
         }
     };
 
-    const filteredMocks = mockTests.filter(test => {
-        if (activeTab === 'past') return test.status === 'completed';
-        if (activeTab === 'upcoming') return test.status !== 'completed';
-        return false;
-    });
+    const saveSchedule = async (date) => {
+        if (!schedulingMock) return;
+        setSavingSchedule(true);
+        try {
+            await setSchedule(schedulingMock.id, date);
+            toast.success(date ? t('mock.scheduleSaved') : t('mock.scheduleCleared'));
+            setSchedulingMock(null);
+            setActiveTab('upcoming');
+        } catch (err) {
+            // Ilgari bu xato faqat konsolga tushardi va foydalanuvchi sana
+            // saqlanmaganini bilmasdi.
+            console.error('Mock sanasini saqlashda xatolik:', err);
+            toast.error(t('mock.scheduleFailed'));
+        } finally {
+            setSavingSchedule(false);
+        }
+    };
+
+    const firstName = userData?.fullName?.split(' ')[0] || t('mock.candidate');
 
     return (
-        <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-['Plus_Jakarta_Sans'] text-warm-ink dark:text-warm-on-dark antialiased flex flex-col select-none">
+        <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark antialiased flex flex-col selection:bg-warm-primary/30 selection:text-warm-ink transition-colors duration-200">
             <DashboardHeader
                 user={user}
                 userData={userData}
@@ -192,65 +150,109 @@ export default function MockEntry() {
                 onLogoutClick={() => setShowLogoutConfirm(true)}
             />
 
-            {/* Official Header */}
-            <header className="w-full border-b border-warm-hairline dark:border-white/10 px-6 py-3 bg-warm-canvas dark:bg-warm-dark sticky top-0 z-50 md:hidden">
-                <div className="max-w-6xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-warm-card dark:hover:bg-warm-dark-elevated rounded-full transition-colors text-warm-muted hover:text-warm-ink dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark">
-                            <ArrowLeft size={20} />
-                        </button>
-                        <span className="font-bold text-sm text-warm-ink dark:text-warm-on-dark">{t('roadmap.backToDashboard')}</span>
-                    </div>
-                    <div className="flex items-baseline">
-                        <span className="text-warm-primary font-black text-[32px] tracking-normal" style={{ textShadow: '0.5px 0 0 #cc785c, -0.5px 0 0 #cc785c' }}>IELTS</span>
-                        <span className="text-warm-ink dark:text-warm-on-dark font-bold text-[16px] ml-1">Mock</span>
-                    </div>
+            <header className="w-full border-b border-warm-hairline dark:border-white/10 px-5 py-3 sticky top-0 z-40 bg-warm-canvas dark:bg-warm-dark md:hidden">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        aria-label={t('roadmap.backToDashboard')}
+                        className={`p-2 -ml-2 rounded-lg transition-colors hover:bg-warm-surface dark:hover:bg-white/5 ${MUTED_CLS}`}
+                    >
+                        <ArrowLeft size={18} />
+                    </button>
+                    <span className="text-[15px] font-medium">{t('mock.pageTitle')}</span>
                 </div>
             </header>
 
-            <main className="flex-1 w-full max-w-6xl mx-auto px-8 py-12 space-y-12 pb-24">
-                {/* Hero Section */}
-                <section className="space-y-1">
-                    <h1 className="text-xl font-bold text-warm-primary">{t('mock.welcome')}, {userData?.fullName?.split(' ')[0] || t('mock.candidate')}</h1>
-                    <p className="text-warm-muted dark:text-warm-on-dark-soft text-xs font-semibold">{user?.email}</p>
-                    <div className="h-[1px] bg-warm-hairline dark:bg-white/10 w-full mt-4"></div>
+            <main className="flex-1 w-full max-w-5xl mx-auto px-5 md:px-8 py-10 md:py-12 space-y-10 pb-20">
+                <section className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div>
+                        <h1 className="text-warm-display-sm font-normal">{t('mock.pageTitle')}</h1>
+                        <p className={`text-[14px] mt-2 max-w-xl ${MUTED_CLS}`}>{t('mock.pageSubtitle')}</p>
+                        <p className={`text-[13px] mt-1 ${MUTED_CLS}`}>
+                            {t('mock.welcome')}, {firstName} · {user?.email}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={refresh}
+                        disabled={loading}
+                        className={`shrink-0 inline-flex items-center gap-1.5 text-[13px] px-3 py-2 rounded-lg transition-colors hover:bg-warm-surface dark:hover:bg-white/5 disabled:opacity-50 ${MUTED_CLS}`}
+                    >
+                        <ArrowClockwise size={15} className={loading ? 'animate-spin' : undefined} />
+                        {t('mock.refresh')}
+                    </button>
                 </section>
 
-                <MockBanners 
-                    lang={lang} handleVerifyKey={handleVerifyKey} mockKey={mockKey} 
-                    setMockKey={setMockKey} loading={loading} success={success} 
-                    error={error} navigate={navigate} 
+                <MockAccessPanel
+                    t={t}
+                    mockKey={mockKey}
+                    setMockKey={(value) => { setMockKey(value); if (keyError) setKeyError(''); }}
+                    onSubmit={handleVerifyKey}
+                    loading={verifying}
+                    activated={Boolean(activatedMock)}
+                    error={keyError}
+                    onGoToStore={() => navigate('/mock-buy')}
                 />
-                <MockTestList 
-                    t={t} activeTab={activeTab} setActiveTab={setActiveTab} 
-                    filteredMocks={filteredMocks} navigate={navigate} userData={userData} 
-                    fetchingMocks={fetchingMocks} lang={lang}
+
+                <MockTestList
+                    t={t}
+                    lang={lang}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    upcomingCount={upcoming.length}
+                    pastCount={past.length}
+                    mocks={visibleMocks}
+                    search={search}
+                    setSearch={setSearch}
+                    loading={loading}
+                    error={error}
+                    userData={userData}
+                    onStart={startExam}
+                    onSchedule={setSchedulingMock}
+                    onReview={(test) => navigate(`/review/${test.resultId || test.id}`)}
+                    onGoToStore={() => navigate('/mock-buy')}
                 />
-                <MockInterfacePresentation lang={lang} />
+
+                <MockInterfacePresentation t={t} />
             </main>
 
             <SiteFooter />
 
-            <MockSuccessModal
-                t={t} lang={lang} success={success} showCalendar={showCalendar}
-                setShowCalendar={setShowCalendar} currentMock={currentMock}
-                viewDate={viewDate} setViewDate={setViewDate}
-                selectedDate={selectedDate} setSelectedDate={setSelectedDate}
-                handleScheduleTest={handleScheduleTest}
-                // '/mock/start/:id' route'i yo'q edi — tugma bosh sahifaga otardi.
-                // Imtihon MockTestCard bilan bir xil yo'l orqali ochiladi.
-                handleStartTestNow={() => navigate('/mock-exam', { state: { mockData: currentMock } })}
-                loading={loading}
+            <MockActivatedModal
+                open={Boolean(activatedMock)}
+                onClose={() => setActivatedMock(null)}
+                t={t}
+                onStartNow={() => {
+                    const mock = activatedMock;
+                    setActivatedMock(null);
+                    startExam(mock);
+                }}
+                onScheduleLater={() => {
+                    setSchedulingMock(activatedMock);
+                    setActivatedMock(null);
+                }}
             />
+
+            <MockScheduleModal
+                open={Boolean(schedulingMock)}
+                onClose={() => setSchedulingMock(null)}
+                t={t}
+                lang={lang}
+                mock={schedulingMock}
+                onConfirm={saveSchedule}
+                onClear={() => saveSchedule(null)}
+                loading={savingSchedule}
+            />
+
             <DashboardModals
                 showLogoutConfirm={showLogoutConfirm}
                 setShowLogoutConfirm={setShowLogoutConfirm}
                 confirmLogout={logout}
             />
-            <PricingModal 
-                isOpen={showPricingModal} 
-                onClose={() => setShowPricingModal(false)} 
-                userName={userData?.fullName?.split(' ')[0]} 
+            <PricingModal
+                isOpen={showPricingModal}
+                onClose={() => setShowPricingModal(false)}
+                userName={userData?.fullName?.split(' ')[0]}
             />
         </div>
     );
