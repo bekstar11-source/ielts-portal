@@ -233,3 +233,31 @@ export function getTierLabel(userData) {
   if (tier === 'standard') return 'Standard obuna';
   return 'Bepul tarif';
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * O'QITUVCHI OBUNASI (`teacherSubscription`)
+ *
+ * Ilgari bu tekshiruv 3 xil sahifada 3 marta qo'lda yozilgan edi
+ * (TeacherDashboard, TeacherSubscription, TeacherGroupStats) va hammasi
+ * `new Date(sub.validUntil)` deb yozardi — Firestore Timestamp kelib
+ * qolsa "Invalid Date" chiqib, taqqoslash jimgina `false` bo'lardi.
+ * ───────────────────────────────────────────────────────────── */
+
+/** O'qituvchi obunasining tugash sanasi (yo'q bo'lsa `null`). */
+export function getTeacherSubscriptionEnd(userData) {
+  return toDate(userData?.teacherSubscription?.validUntil);
+}
+
+/** O'qituvchining guruh obunasi hozir amal qiladimi. */
+export function hasActiveTeacherSubscription(userData) {
+  const end = getTeacherSubscriptionEnd(userData);
+  return Boolean(end) && end.getTime() > Date.now();
+}
+
+/** Obuna tugashiga necha kun qolgani (tugagan/yo'q bo'lsa 0). */
+export function getTeacherSubscriptionDaysLeft(userData) {
+  const end = getTeacherSubscriptionEnd(userData);
+  if (!end) return 0;
+  const days = Math.ceil((end.getTime() - Date.now()) / 86400000);
+  return days > 0 ? days : 0;
+}

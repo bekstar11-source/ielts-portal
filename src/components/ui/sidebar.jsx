@@ -163,7 +163,7 @@ export function Sidebar({ collapsible = 'icon', className, children, ...props })
             <div
                 data-slot="sidebar-gap"
                 className={cn(
-                    'hidden flex-shrink-0 transition-all duration-300 ease-in-out md:block',
+                    'hidden flex-shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none md:block',
                     collapsible === 'icon' ? 'w-16' : expanded ? 'w-[13rem]' : 'w-0'
                 )}
             />
@@ -173,7 +173,8 @@ export function Sidebar({ collapsible = 'icon', className, children, ...props })
                 onMouseEnter={() => collapsible === 'icon' && setHovered(true)}
                 onMouseLeave={() => collapsible === 'icon' && setHovered(false)}
                 className={cn(
-                    'fixed inset-y-0 left-0 z-30 hidden h-full flex-col border-r border-gray-200 bg-white text-gray-900 transition-all duration-300 ease-in-out md:flex dark:border-white/5 dark:bg-[#1E1E1E] dark:text-white',
+                    'fixed inset-y-0 left-0 z-30 hidden h-full flex-col border-r border-gray-200 bg-white text-gray-900 md:flex dark:border-white/5 dark:bg-[#1E1E1E] dark:text-white',
+                    'will-change-[width] transition-[width,box-shadow,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
                     visuallyExpanded ? 'w-[13rem] shadow-2xl' : 'w-16 shadow-none',
                     collapsible === 'offcanvas' && !expanded && '-translate-x-full',
                     className
@@ -233,16 +234,30 @@ export function SidebarGroup({ className, ...props }) {
 export function SidebarGroupLabel({ className, children, ...props }) {
     const expanded = useSidebarVisual();
     return (
+        // Balandligi ikkala holatda ham bir xil (h-6) — shuning uchun quyidagi
+        // ikonkalar yig'ilish/ochilishda vertikal siljimaydi. Ilgari bu yer
+        // `max-h-0` ga qisqarardi va butun ro'yxat yuqoriga sakrab ketardi.
+        // Yig'ilganda matn o'rniga ingichka ajratuvchi chiziq ko'rinadi.
         <div
             data-slot="sidebar-group-label"
-            className={cn(
-                'overflow-hidden px-2.5 mb-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 transition-all duration-300 whitespace-nowrap dark:text-gray-600',
-                expanded ? 'max-h-6 opacity-100' : 'max-h-0 opacity-0',
-                className
-            )}
+            className={cn('relative flex h-6 items-center px-2.5 mb-1.5', className)}
             {...props}
         >
-            {children}
+            <span
+                className={cn(
+                    'text-[9px] font-bold uppercase tracking-widest whitespace-nowrap text-gray-400 transition-opacity duration-200 dark:text-gray-600',
+                    expanded ? 'opacity-100 delay-100' : 'opacity-0'
+                )}
+            >
+                {children}
+            </span>
+            <span
+                aria-hidden="true"
+                className={cn(
+                    'pointer-events-none absolute inset-x-2.5 top-1/2 h-px bg-gray-200 transition-opacity duration-200 dark:bg-white/10',
+                    expanded ? 'opacity-0' : 'opacity-100 delay-100'
+                )}
+            />
         </div>
     );
 }
@@ -257,8 +272,11 @@ export function SidebarMenuItem({ className, ...props }) {
 
 export function SidebarMenuButton({ asChild = false, isActive = false, tooltip, className, children, ...props }) {
     const expanded = useSidebarVisual();
+    // Qat'iy `h-9`: yig'ilgan holatda qator balandligini ikonka (18px), ochilganda
+    // esa matn qatori (~20px) belgilardi — natijada har bir element bir-ikki
+    // piksel sakrardi. Endi ikkalasida ham bir xil.
     const buttonClassName = cn(
-        'flex items-center gap-3 px-2.5 py-2 rounded-xl font-semibold text-[13px] transition-all duration-200',
+        'flex h-9 items-center gap-3 px-2.5 rounded-xl font-semibold text-[13px] transition-colors duration-200',
         isActive
             ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 dark:bg-blue-600'
             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white',
@@ -284,10 +302,12 @@ export function SidebarMenuButton({ asChild = false, isActive = false, tooltip, 
 export function SidebarMenuLabel({ className, children, ...props }) {
     const expanded = useSidebarVisual();
     return (
+        // Matn kengligi bilan birga so'nadi — `opacity` panel kengayishidan
+        // biroz kechikib boshlanadi, shunda harflar tor joyga tiqilib turmaydi.
         <span
             className={cn(
-                'overflow-hidden whitespace-nowrap transition-all duration-300',
-                expanded ? 'max-w-[160px] opacity-100' : 'max-w-0 opacity-0',
+                'overflow-hidden whitespace-nowrap leading-none transition-[max-width,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
+                expanded ? 'max-w-[160px] opacity-100 delay-75' : 'max-w-0 opacity-0',
                 className
             )}
             {...props}

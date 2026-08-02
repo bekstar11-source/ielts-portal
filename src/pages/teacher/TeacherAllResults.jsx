@@ -1,6 +1,8 @@
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useState, useMemo, Fragment } from "react";
 import { db } from "../../firebase/firebase";
-import { collection, getDocs, getDoc, doc, query, where, limit, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, where, limit, orderBy } from "firebase/firestore";
+import { toDate } from "../../utils/subscription";
+import { detectViolation, formatDuration, getLatestAttempt, chunkIds } from "../../utils/teacherResults";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -27,7 +29,6 @@ export default function TeacherAllResults() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [results, setResults] = useState([]);
-  const [filteredResults, setFilteredResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState(new Set());
 
@@ -94,14 +95,9 @@ export default function TeacherAllResults() {
           }
         });
 
-        const chunks = [];
-        for (let i = 0; i < studentIdsArray.length; i += 10) {
-          chunks.push(studentIdsArray.slice(i, i + 10));
-        }
-
         let allDocsData = [];
         let foundMore = false;
-        for (const chunk of chunks) {
+        for (const chunk of chunkIds(studentIdsArray)) {
           if (chunk.length === 0) continue;
           const q = query(
             collection(db, "results"),
@@ -120,61 +116,17 @@ export default function TeacherAllResults() {
         setHasMore(foundMore);
 
         // Client-side sort by date descending
-        allDocsData.sort((a, b) => {
-          const dateA = a.date ? (a.date.toDate ? a.date.toDate() : new Date(a.date)) : new Date(0);
-          const dateB = b.date ? (b.date.toDate ? b.date.toDate() : new Date(b.date)) : new Date(0);
-          return dateB - dateA;
-        });
+        allDocsData.sort((a, b) => (toDate(b.date)?.getTime() || 0) - (toDate(a.date)?.getTime() || 0));
 
         const data = allDocsData.map((d) => {
-          // Duration calculation
-          let durationStr = "-";
-          let timeSpentSeconds = 0;
-          let dbTimeSpent = d.timeSpent;
-          if (dbTimeSpent === undefined && d.attempts && Array.isArray(d.attempts) && d.attempts.length > 0) {
-            const lastAttempt = d.attempts[d.attempts.length - 1];
-            dbTimeSpent = lastAttempt.timeSpent;
-          }
-
-          if (dbTimeSpent) {
-            timeSpentSeconds = dbTimeSpent;
-            const mins = Math.floor(dbTimeSpent / 60);
-            const secs = dbTimeSpent % 60;
-            durationStr = `${mins} daq ${secs} sek`;
-          } else if (d.duration) {
-            timeSpentSeconds = d.duration * 60;
-            durationStr = `${d.duration} daq`;
-          } else if (d.startedAt && d.date) {
-            const start = d.startedAt.toDate ? d.startedAt.toDate() : new Date(d.startedAt);
-            const end = d.date.toDate ? d.date.toDate() : new Date(d.date);
-            const diffMs = end - start;
-            timeSpentSeconds = Math.floor(diffMs / 1000);
-            const diffMins = Math.floor(timeSpentSeconds / 60);
-            durationStr = `${diffMins} daq`;
-          }
-          
-          // A part test is when:
-          // 1. d.partNumber exists, OR
-          // 2. test title explicitly mentions "part" / "passage" / "section" (indicating a practice part test, which is < 40 mins)
-          const isPartTest = d.partNumber != null || 
-                             (d.testTitle && (
-                               d.testTitle.toLowerCase().includes("part") || 
-                               d.testTitle.toLowerCase().includes("passage") || 
-                               d.testTitle.toLowerCase().includes("section")
-                             ));
-
-          const isFast = !isPartTest && (d.status === 'graded' || d.status === 'published') && timeSpentSeconds > 0 && timeSpentSeconds < 600 && d.type !== 'speaking';
-          const hasViolation = !!d.violation || isFast;
-          let violationText = null;
-          if (d.violation === 'tab_closed') violationText = 'Tab yopilgan (erta yakunlangan)';
-          else if (isFast) violationText = 'Tez bajarilgan (< 10 daq)';
-          else if (d.violation) violationText = d.violation;
+          const { hasViolation, violationText, timeSpentSeconds } = detectViolation(d);
+          const durationDisplay = formatDuration(timeSpentSeconds);
 
           // Multiple attempts of the same test are stored in d.attempts[].
           // The row should always reflect the LATEST attempt, with older
           // ones available via the expandable "attempts history" list.
           const attemptsArr = Array.isArray(d.attempts) ? d.attempts : [];
-          const latestAttempt = attemptsArr.length > 0 ? attemptsArr[attemptsArr.length - 1] : null;
+          const latestAttempt = getLatestAttempt(d);
           const latestScoreVal = d.latestBandScore ?? d.latestScore ?? latestAttempt?.bandScore ?? latestAttempt?.score ?? d.bandScore ?? d.score;
 
           return {
@@ -186,8 +138,8 @@ export default function TeacherAllResults() {
             type: d.type || "other",
             score: d.score !== undefined ? d.score : "-",
             status: d.status || "pending",
-            date: d.date ? (d.date.toDate ? d.date.toDate() : new Date(d.date)) : null,
-            durationDisplay: durationStr,
+            date: toDate(d.date),
+            durationDisplay,
             hasViolation,
             violationText,
             attempts: attemptsArr,
@@ -197,8 +149,6 @@ export default function TeacherAllResults() {
         });
 
         setResults(data);
-        setFilteredResults(data);
-        console.log("TeacherAllResults: Fetched " + allDocsData.length + " results for " + studentIdsArray.length + " students.");
       } catch (error) {
         console.error("Error fetching results in TeacherAllResults:", error);
       } finally {
@@ -211,9 +161,11 @@ export default function TeacherAllResults() {
     }
   }, [userData, resultsLimit]);
 
-  // FILTER LOGIC
-  useEffect(() => {
-    let temp = [...results];
+  // FILTER LOGIC — hosila qiymat, shuning uchun state emas, `useMemo`.
+  // Ilgari u alohida state'da saqlanib, har filtr o'zgarganda qo'shimcha
+  // render sikli keltirib chiqarardi.
+  const filteredResults = useMemo(() => {
+    let temp = results;
 
     if (searchTerm.trim()) {
       const lowerTerm = searchTerm.toLowerCase();
@@ -238,13 +190,17 @@ export default function TeacherAllResults() {
 
     if (groupFilter !== "all") {
       const targetGroup = groups.find(g => g.id === groupFilter);
-      const studentIdsInGroup = targetGroup?.studentIds || [];
-      temp = temp.filter((item) => studentIdsInGroup.includes(item.userId));
+      const studentIdsInGroup = new Set(targetGroup?.studentIds || []);
+      temp = temp.filter((item) => studentIdsInGroup.has(item.userId));
     }
 
-    setFilteredResults(temp);
-    setCurrentPage(1);
+    return temp;
   }, [searchTerm, typeFilter, statusFilter, groupFilter, results, groups]);
+
+  // Filtr o'zgarsa birinchi sahifaga qaytamiz.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, typeFilter, statusFilter, groupFilter]);
 
   const formatDateTime = (dateObj) => {
     if (!dateObj) return { date: "-", time: "" };
@@ -281,7 +237,7 @@ export default function TeacherAllResults() {
               onClick={() => setCurrentPage(page)}
               className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${currentPage === page
                   ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                  : isDark ? "bg-[#2C2C2C] border border-white/5 text-gray-400 hover:bg-white/5 hover:border-white/10" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-355"
+                  : isDark ? "bg-[#2C2C2C] border border-white/5 text-gray-400 hover:bg-white/5 hover:border-white/10" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
                 }`}
             >
               {page}
@@ -315,7 +271,7 @@ export default function TeacherAllResults() {
       label: "Jami Yechilgan",
       value: totalCount,
       icon: FileIcon,
-      color: isDark ? "text-indigo-400" : "text-indigo-650",
+      color: isDark ? "text-indigo-400" : "text-indigo-600",
       bg: isDark ? "rgba(99,102,241,0.08)" : "rgba(99,102,241,0.05)",
       iconBg: isDark ? "bg-indigo-500/20" : "bg-indigo-50",
     },
@@ -323,7 +279,7 @@ export default function TeacherAllResults() {
       label: "Tekshirish Kutilmoqda",
       value: pendingCount,
       icon: ClockIcon,
-      color: isDark ? "text-amber-400" : "text-amber-650",
+      color: isDark ? "text-amber-400" : "text-amber-600",
       bg: isDark ? "rgba(245,158,11,0.08)" : "rgba(245,158,11,0.05)",
       iconBg: isDark ? "bg-amber-500/20" : "bg-amber-50",
     },
@@ -331,7 +287,7 @@ export default function TeacherAllResults() {
       label: "O'rtacha Band",
       value: avgBand,
       icon: GradIcon,
-      color: isDark ? "text-emerald-400" : "text-emerald-650",
+      color: isDark ? "text-emerald-400" : "text-emerald-600",
       bg: isDark ? "rgba(16,185,129,0.08)" : "rgba(16,185,129,0.05)",
       iconBg: isDark ? "bg-emerald-500/20" : "bg-emerald-50",
     },
@@ -339,7 +295,7 @@ export default function TeacherAllResults() {
       label: "Qoidabuzarliklar",
       value: violationsCount,
       icon: AlertIcon,
-      color: isDark ? "text-rose-400" : "text-rose-650",
+      color: isDark ? "text-rose-400" : "text-rose-600",
       bg: isDark ? "rgba(244,63,94,0.08)" : "rgba(244,63,94,0.05)",
       iconBg: isDark ? "bg-rose-500/20" : "bg-rose-50",
     },
@@ -422,7 +378,7 @@ export default function TeacherAllResults() {
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             {/* Search Input */}
             <div className="relative flex-1 md:flex-initial min-w-[200px] group">
-              <SearchIcon className={`absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
+              <SearchIcon className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
               <input
                 type="text"
                 placeholder="Ism yoki test nomi..."
@@ -435,7 +391,7 @@ export default function TeacherAllResults() {
             {/* Group Filter */}
             <div className="relative flex-1 md:flex-initial min-w-[160px]">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <UsersIcon className={`w-4.5 h-4.5 ${isDark ? 'text-gray-550' : 'text-gray-400'}`} />
+                <UsersIcon className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
               </div>
               <select
                 value={groupFilter}
@@ -455,7 +411,7 @@ export default function TeacherAllResults() {
             {/* Test Type Filter */}
             <div className="relative flex-1 md:flex-initial min-w-[150px]">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <FileIcon className={`w-4.5 h-4.5 ${isDark ? 'text-gray-550' : 'text-gray-400'}`} />
+                <FileIcon className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
               </div>
               <select
                 value={typeFilter}
@@ -475,7 +431,7 @@ export default function TeacherAllResults() {
             {/* Status Filter */}
             <div className="relative flex-1 md:flex-initial min-w-[150px]">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <GradIcon className={`w-4.5 h-4.5 ${isDark ? 'text-gray-550' : 'text-gray-400'}`} />
+                <GradIcon className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
               </div>
               <select
                 value={statusFilter}
@@ -553,10 +509,10 @@ export default function TeacherAllResults() {
                         {/* 1. Date */}
                         <td className="py-4 px-5 whitespace-nowrap align-middle">
                           <div className="flex items-center gap-2">
-                            <CalendarIcon className={`w-4.5 h-4.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                            <CalendarIcon className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                             <div className="flex flex-col leading-tight">
                               <span className={`text-[13px] font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{date}</span>
-                              <span className={`text-[11px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-450'}`}>{time}</span>
+                              <span className={`text-[11px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{time}</span>
                             </div>
                           </div>
                         </td>
@@ -610,7 +566,7 @@ export default function TeacherAllResults() {
                                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
                                   (res.scores.writingBand ?? res.writingBand) 
                                     ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100')
-                                    : (isDark ? 'bg-amber-500/10 text-amber-450 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse')
+                                    : (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse')
                                 }`} title="Writing">
                                   W: {res.scores.writingBand ?? res.writingBand ?? 'kutilmoqda'}
                                 </span>
@@ -657,7 +613,7 @@ export default function TeacherAllResults() {
                           <div className="flex flex-col items-center gap-1.5">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
                               res.status === 'graded' || res.status === 'published'
-                                ? (isDark ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                                ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
                                 : (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200')
                             }`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${
@@ -714,8 +670,6 @@ export default function TeacherAllResults() {
                                 const attemptDateObj = attempt.date ? (attempt.date.toDate ? attempt.date.toDate() : new Date(attempt.date)) : null;
                                 const { date: aDate, time: aTime } = formatDateTime(attemptDateObj);
                                 const aScore = attempt.bandScore || attempt.score || '-';
-                                const aMins = Math.floor((attempt.timeSpent || 0) / 60);
-                                const aSecs = (attempt.timeSpent || 0) % 60;
 
                                 return (
                                   <div
@@ -728,12 +682,12 @@ export default function TeacherAllResults() {
                                       </span>
                                       <div className="flex flex-col leading-tight">
                                         <span className={`text-[12px] font-semibold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{aDate}</span>
-                                        <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-450'}`}>{aTime}</span>
+                                        <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{aTime}</span>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                       <span className={`text-[11px] font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        {aMins} daq {aSecs} sek
+                                        {formatDuration(attempt.timeSpent)}
                                       </span>
                                       <span className={`text-[13px] font-black font-mono px-2.5 py-0.5 rounded-lg ${isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-700'}`}>
                                         {aScore}
@@ -802,7 +756,7 @@ export default function TeacherAllResults() {
             </div>
 
             <span className={`text-[13px] font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              Jami <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{filteredResults.length}</span> tadan <span className={isDark ? 'text-white' : 'text-gray-900'}>{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)}</span> ko'rsatilmoqda
+              Jami <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{filteredResults.length}</span> tadan <span className={isDark ? 'text-white' : 'text-gray-900'}>{filteredResults.length === 0 ? 0 : indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)}</span> ko'rsatilmoqda
             </span>
           </div>
         </div>

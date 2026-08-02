@@ -189,8 +189,35 @@ export default function MockExam() {
         }
     }, [stage, autoStartDeadline, completedModules, mockData, setStage]);
 
-    // ─── Cheat Warning Overlay ───
-    const cheatWarningOverlay = showCheatWarning && tabSwitchCount < 3 && (
+    // Writing'da matn terish HECH QACHON to'silmasligi kerak: talaba yozayotgan
+    // paytda orqada Telegram ochiq bo'lsa ham, ogohlantirishlar butun ekranni
+    // qoplamaydi — ular yuqorida, klaviaturani band qilmaydigan banner sifatida
+    // chiqadi (pointer-events yo'q, faqat tugmasi bosiladi).
+    const isWritingStage = stage === 'writing';
+
+    // ─── Cheat Warning (Writing'da bloklamaydigan banner) ───
+    const cheatWarningBanner = showCheatWarning && tabSwitchCount < 3 && isWritingStage && (
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] w-[min(560px,92vw)] pointer-events-none">
+            <div className="pointer-events-auto flex items-center gap-3 bg-white border border-red-200 rounded-xl shadow-xl px-4 py-3">
+                <span className="text-xl shrink-0">⚠️</span>
+                <div className="text-left min-w-0 flex-1">
+                    <p className="text-sm font-bold text-zinc-900">Siz boshqa oynaga o'tdingiz</p>
+                    <p className="text-xs text-red-600 mt-0.5">
+                        Ogohlantirish {tabSwitchCount} / 3 — 3-marta takrorlansa test avtomatik yakunlanadi.
+                    </p>
+                </div>
+                <button
+                    onClick={() => setShowCheatWarning(false)}
+                    className="shrink-0 px-3 py-1.5 bg-zinc-900 text-white rounded-lg font-bold text-xs hover:bg-black transition-all active:scale-[0.98]"
+                >
+                    OK
+                </button>
+            </div>
+        </div>
+    );
+
+    // ─── Cheat Warning Overlay (Writing'dan tashqari bosqichlar) ───
+    const cheatWarningOverlay = showCheatWarning && tabSwitchCount < 3 && !isWritingStage && (
         <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
                 <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
@@ -282,8 +309,28 @@ export default function MockExam() {
         </div>
     );
 
-    // ─── Fullscreen Enforcement Overlay ───
-    const fullscreenOverlay = showFullscreenOverlay && (
+    // ─── Fullscreen eslatmasi: Writing'da bloklamaydigan banner ───
+    const fullscreenBanner = showFullscreenOverlay && isWritingStage && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] w-[min(520px,92vw)] pointer-events-none">
+            <div className="pointer-events-auto flex items-center gap-3 bg-white border border-zinc-200 rounded-xl shadow-xl px-4 py-3">
+                <div className="w-9 h-9 bg-[#e31b23] rounded-lg flex items-center justify-center shrink-0">
+                    <Maximize size={18} className="text-white" />
+                </div>
+                <p className="text-xs text-zinc-700 font-medium leading-snug flex-1 text-left">
+                    Imtihon qoidasiga ko'ra to'liq ekranda ishlash talab qilinadi. Yozishni davom ettirishingiz mumkin.
+                </p>
+                <button
+                    onClick={enterFullScreen}
+                    className="shrink-0 px-3 py-1.5 bg-zinc-900 text-white rounded-lg font-bold text-xs hover:bg-black transition-all active:scale-[0.98]"
+                >
+                    Full Screen
+                </button>
+            </div>
+        </div>
+    );
+
+    // ─── Fullscreen Enforcement Overlay (Writing'dan tashqari bosqichlar) ───
+    const fullscreenOverlay = showFullscreenOverlay && !isWritingStage && (
         <div className="fixed inset-0 z-[9999] bg-white/60 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300 font-sans">
             <div className="w-16 h-16 bg-[#e31b23] rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-red-500/20">
                 <Maximize size={32} className="text-white" />
@@ -409,9 +456,11 @@ export default function MockExam() {
     return (
         <>
         {cheatWarningOverlay}
+        {cheatWarningBanner}
         {cheatTerminationOverlay}
         {exitConfirmationModal}
         {fullscreenOverlay}
+        {fullscreenBanner}
         <TestSolvingView 
             stage={stage}
             tests={tests}

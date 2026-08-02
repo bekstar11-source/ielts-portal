@@ -1,51 +1,58 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebase/firebase';
-import { 
-  deriveQuestionTypesForCard,
-  formatQType,
-  Q_TYPE_LABELS,
-  getReadingPassages,
-  getListeningParts
-} from '../../utils/TestUtils';
-import { RingChart, DeadlineCountdown, getTestIconAndColor } from '../../components/teacher/tests/TeacherTestHelpers';
+import { getListeningParts } from '../../utils/TestUtils';
+import { collectStudentIds, chunkIds, toDateTimeLocalValue } from '../../utils/teacherResults';
+import { DeadlineCountdown } from '../../components/teacher/tests/TeacherTestHelpers';
+import { getTestIconAndColor } from '../../components/teacher/tests/testTypeIcon';
 import AssignTestForm from '../../components/teacher/tests/AssignTestForm';
 import MonitorTestPage from '../../components/teacher/tests/MonitorTestPage';
-import { doc, getDoc, getDocs, query, where, collection, updateDoc, arrayUnion, arrayRemove, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDocs, query, where, collection, updateDoc, arrayUnion, arrayRemove, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import {
-  ArrowLeft,
   BookOpen,
+  CaretLeft,
   CheckCircle,
   Clock,
+  CopySimple,
   Plus,
   Trash,
   MagnifyingGlass as SearchIcon,
-  CaretDown,
   X,
-  Users,
   Eye,
-  Info,
   Minus,
-  Warning,
-  Flame,
-  ShieldWarning,
-  NotePencil,
-  Headphones,
-  Trophy,
+  MinusSquare,
   ArrowsCounterClockwise,
   CheckSquare,
   Square,
   Timer,
   ListChecks,
-  Lightning,
-  DownloadSimple,
-  BellRinging,
   PencilSimple,
-  ArrowsDownUp,
   FunnelSimple,
 } from '@phosphor-icons/react';
+
+/**
+ * Ingichka progress chizig'i. Rangli "donut" o'rniga — bir qarashda
+ * taqqoslash osonroq va kartochkada kamroq vizual shovqin.
+ */
+const ProgressBar = ({ pct, isExpired, isDark, rounded = true }) => {
+    const fill = pct >= 100
+        ? 'bg-emerald-500'
+        : isExpired
+            ? 'bg-rose-500'
+            : pct > 0 ? 'bg-blue-500' : 'bg-transparent';
+    const shape = rounded ? 'rounded-full' : '';
+    return (
+        <div className={`w-full h-1 overflow-hidden ${shape} ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}>
+            <div
+                className={`h-full transition-[width] duration-500 ${shape} ${fill}`}
+                style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+            />
+        </div>
+    );
+};
+
 
 
 export default function TeacherTests() {
@@ -77,12 +84,9 @@ export default function TeacherTests() {
     const [showAssignPage, setShowAssignPage] = useState(false);
     const [showMonitorPage, setShowMonitorPage] = useState(false);
     const [monitoringTest, setMonitoringTest] = useState(null);
-    const [activeMonitorFilter, setActiveMonitorFilter] = useState("all");
 
     // Assign form states — selectedGroupIds replaces single selectedGroupId (multi-group)
     const [selectedGroupIds, setSelectedGroupIds] = useState(new Set());
-    const [showGroupDropdown, setShowGroupDropdown] = useState(false);
-    const groupDropdownRef = useRef(null);
     const [searchTestQuery, setSearchTestQuery] = useState("");
     const [testTypeFilter, setTestTypeFilter] = useState("all");
     const [selectedTests, setSelectedTests] = useState([]);
@@ -98,16 +102,15 @@ export default function TeacherTests() {
     const [bulkMode, setBulkMode] = useState(false);
     const [selectedBulk, setSelectedBulk] = useState(new Set());
 
-    // Monitor page
-    const [monitorSearch, setMonitorSearch] = useState('');
-    const [monitorSort, setMonitorSort] = useState({ col: null, dir: 'asc' });
+    // Monitor page — qidiruv/saralash/`lastRefresh` MonitorTestPage ichida
+    // saqlanadi; bu yerda faqat "eslatma yuborilmoqda" holati kerak.
     const [sendingReminder, setSendingReminder] = useState(false);
-    const [lastRefresh, setLastRefresh] = useState(null);
 
     // Main list filters
     const [mainSearch, setMainSearch] = useState('');
     const [mainGroupFilter, setMainGroupFilter] = useState('all');
     const [mainStatusFilter, setMainStatusFilter] = useState('all');
+    const [mainSort, setMainSort] = useState('newest'); // 'newest' | 'deadline' | 'progress'
 
     // Edit assignment modal
     const [editModal, setEditModal] = useState(null);
@@ -115,37 +118,62 @@ export default function TeacherTests() {
     const [editTestSearch, setEditTestSearch] = useState('');
     const [showEditTestPicker, setShowEditTestPicker] = useState(false);
 
-    const getPriorityBadge = (priority) => {
-        const p = (priority || 'medium').toLowerCase();
-        switch (p) {
-            case 'high':
-                return (
-                    <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/20">
-                        Yuqori
-                    </span>
-                );
-            case 'low':
-                return (
-                    <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 border border-emerald-100 dark:border-emerald-900/20">
-                        Past
-                    </span>
-                );
-            case 'medium':
-            default:
-                return (
-                    <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/20">
-                        O'rtacha
-                    </span>
-                );
+    // Copy assignment modal
+    const [copyModal, setCopyModal] = useState(null);
+    const [copySaving, setCopySaving] = useState(false);
+
+    /**
+     * Topshirganlar indeksi. Ilgari har bir test kartochkasi uchun butun
+     * `results` massivi qaytadan filtrlanardi — 50 ta test × 2000 natija har
+     * renderда. Endi bir marta indeks quriladi, qidiruv O(1).
+     */
+    const submissionIndex = useMemo(() => {
+        const byTest = new Map();      // testId -> Set(userId)
+        const byPodcast = new Map();   // podcastId -> Set(userId)
+        const byArticle = new Map();   // articleId -> Set(userId)
+
+        for (const r of results) {
+            const key = String(r.testId ?? '').trim();
+            if (!key) continue;
+            if (!byTest.has(key)) byTest.set(key, new Set());
+            byTest.get(key).add(r.userId);
         }
+        for (const a of podcastAttempts) {
+            if (!a.completedAt) continue;
+            const key = String(a.podcastId ?? '').trim();
+            if (!key) continue;
+            if (!byPodcast.has(key)) byPodcast.set(key, new Set());
+            byPodcast.get(key).add(a.userId);
+        }
+        for (const s of students) {
+            for (const itemId of s.awardedItems || []) {
+                const key = String(itemId).trim();
+                if (!byArticle.has(key)) byArticle.set(key, new Set());
+                byArticle.get(key).add(s.id);
+            }
+        }
+        return { byTest, byPodcast, byArticle };
+    }, [results, podcastAttempts, students]);
+
+    const countSubmitted = (test, memberIds) => {
+        const key = String(test.id ?? '').trim();
+        const source = test.type === 'podcast' ? submissionIndex.byPodcast
+            : test.type === 'article' ? submissionIndex.byArticle
+                : submissionIndex.byTest;
+        const doneSet = source.get(key);
+        if (!doneSet) return 0;
+        let n = 0;
+        for (const id of memberIds) if (doneSet.has(id)) n++;
+        return n;
     };
 
+    /** Tayinlovlar guruh + sana bo'yicha birlashtiriladi va progress qo'shiladi. */
     const groupedAssignments = useMemo(() => {
-        const groupsMap = {};
+        const groupsMap = new Map();
         assignedTests.forEach(test => {
             const key = `${test.groupId}_${test.date}`;
-            if (!groupsMap[key]) {
-                groupsMap[key] = {
+            if (!groupsMap.has(key)) {
+                groupsMap.set(key, {
                     groupId: test.groupId,
                     groupName: test.groupName,
                     date: test.date,
@@ -155,34 +183,70 @@ export default function TeacherTests() {
                     teacherNote: test.teacherNote,
                     studentIds: test.studentIds || [],
                     tests: []
-                };
+                });
             }
-            groupsMap[key].tests.push(test);
+            groupsMap.get(key).tests.push(test);
         });
-        return Object.values(groupsMap).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-    }, [assignedTests]);
+
+        const now = Date.now();
+        return [...groupsMap.values()].map(g => {
+            const memberIds = g.studentIds || [];
+            const total = memberIds.length;
+            const perTest = g.tests.map(t => {
+                const submitted = countSubmitted(t, memberIds);
+                return { test: t, submitted, total, pct: total > 0 ? Math.round((submitted / total) * 100) : 0 };
+            });
+            // Guruh darajasidagi umumiy progress — barcha test × o'quvchi juftlari.
+            const expected = total * g.tests.length;
+            const done = perTest.reduce((s, p) => s + p.submitted, 0);
+            const deadlineMs = g.deadline ? new Date(g.deadline).getTime() : null;
+            return {
+                ...g,
+                perTest,
+                dateMs: g.date ? new Date(g.date).getTime() : 0,
+                deadlineMs,
+                isExpired: Boolean(deadlineMs && deadlineMs < now),
+                submittedTotal: done,
+                expectedTotal: expected,
+                pct: expected > 0 ? Math.round((done / expected) * 100) : 0,
+            };
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assignedTests, submissionIndex]);
 
     const summaryStats = useMemo(() => {
         const total = groupedAssignments.length;
-        const expired = groupedAssignments.filter(g => g.deadline && new Date(g.deadline) < new Date()).length;
-        const active = total - expired;
-        const totalTests = assignedTests.length;
-        return { total, active, expired, totalTests };
+        const expired = groupedAssignments.filter(g => g.isExpired).length;
+        return { total, active: total - expired, expired, totalTests: assignedTests.length };
     }, [groupedAssignments, assignedTests]);
 
     const filteredGroupedAssignments = useMemo(() => {
-        return groupedAssignments.filter(g => {
+        const q = mainSearch.trim().toLowerCase();
+        const list = groupedAssignments.filter(g => {
             const matchGroup = mainGroupFilter === 'all' || g.groupId === mainGroupFilter;
-            const isExpired = g.deadline && new Date(g.deadline) < new Date();
             const matchStatus = mainStatusFilter === 'all'
-                || (mainStatusFilter === 'active' && !isExpired)
-                || (mainStatusFilter === 'expired' && isExpired);
-            const q = mainSearch.toLowerCase();
+                || (mainStatusFilter === 'active' && !g.isExpired)
+                || (mainStatusFilter === 'expired' && g.isExpired);
             const matchSearch = !q || g.groupName?.toLowerCase().includes(q)
                 || g.tests.some(t => t.title?.toLowerCase().includes(q));
             return matchGroup && matchStatus && matchSearch;
         });
-    }, [groupedAssignments, mainGroupFilter, mainStatusFilter, mainSearch]);
+
+        if (mainSort === 'deadline') {
+            // Muddati bor va eng yaqinlari birinchi; muddatsizlar oxirida.
+            return list.sort((a, b) => (a.deadlineMs ?? Infinity) - (b.deadlineMs ?? Infinity));
+        }
+        if (mainSort === 'progress') {
+            return list.sort((a, b) => a.pct - b.pct);
+        }
+        return list.sort((a, b) => b.dateMs - a.dateMs);
+    }, [groupedAssignments, mainGroupFilter, mainStatusFilter, mainSearch, mainSort]);
+
+    /** Filtrdan o'tgan tayinlovlardagi barcha bulk kalitlari. */
+    const visibleBulkKeys = useMemo(
+        () => filteredGroupedAssignments.flatMap(g => g.tests.map(t => `${g.groupId}__${t.id}__${t.date}`)),
+        [filteredGroupedAssignments]
+    );
 
     useEffect(() => {
         if (userData) {
@@ -203,26 +267,27 @@ export default function TeacherTests() {
                 return;
             }
 
-            const groupIds = fetchedGroups.map(g => g.id);
+            // 2. Fetch all student profiles in these groups.
+            //    Manba — `groups.studentIds` (yagona haqiqat). Ilgari
+            //    `where("groupId","in",groupIds)` ishlatilardi: u 30 tadan ortiq
+            //    guruhda umuman ishlamasdi va O'quvchilar sahifasi orqali
+            //    qo'shilgan (users.groupId yozilmagan) o'quvchilarni ko'rmasdi.
+            const studentIdsArray = collectStudentIds(fetchedGroups);
 
-            // 2. Fetch all student profiles in these groups
-            const usersQuery = query(collection(db, "users"), where("groupId", "in", groupIds));
-            const usersSnap = await getDocs(usersQuery);
-            const studentsList = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const studentsList = [];
+            for (const chunk of chunkIds(studentIdsArray)) {
+                const usersSnap = await getDocs(
+                    query(collection(db, "users"), where("__name__", "in", chunk))
+                );
+                studentsList.push(...usersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            }
             setStudents(studentsList);
 
-            // Get unique student IDs for results fetch
-            const studentIdsArray = studentsList.map(s => s.id);
-
-            // 3. Fetch student results and podcast attempts (chunked to bypass 10-in Firestore limit)
+            // 3. Fetch student results and podcast attempts (chunked for the Firestore `in` limit)
             const resultsList = [];
             const podcastAttemptsList = [];
             if (studentIdsArray.length > 0) {
-                const chunks = [];
-                for (let i = 0; i < studentIdsArray.length; i += 10) {
-                    chunks.push(studentIdsArray.slice(i, i + 10));
-                }
-                for (const chunk of chunks) {
+                for (const chunk of chunkIds(studentIdsArray)) {
                     const q = query(collection(db, 'results'), where('userId', 'in', chunk));
                     const snap = await getDocs(q);
                     snap.docs.forEach(docSnap => {
@@ -280,6 +345,72 @@ export default function TeacherTests() {
         }
     };
 
+    /**
+     * Tayyor tayinlov yozuvlarini guruhlarga yozadi, feed post yaratadi va
+     * lokal holatni yangilaydi.
+     *
+     * Yangi tayinlash ham, mavjudini nusxalash ham SHU funksiyadan o'tadi —
+     * aks holda ikki xil yozuv oqimi paydo bo'lib, feed post yoki maydon
+     * tarkibi bir-biridan chetga chiqib ketardi.
+     */
+    const commitAssignments = async (groupIds, assignments) => {
+        const testEntries = assignments.map(a => ({ id: a.id, title: a.title, type: a.type }));
+        const feedContent = testEntries.length === 1
+            ? testEntries[0].title
+            : `Ustozingiz sizga ${testEntries.length} ta yangi vazifa tayinladi`;
+        const first = assignments[0];
+
+        await Promise.all(groupIds.map(gid =>
+            updateDoc(doc(db, 'groups', gid), { assignedTests: arrayUnion(...assignments) })
+        ));
+
+        // Create a fresh feed post for each group (no merging with old posts)
+        await Promise.all(groupIds.map(async gid => {
+            try {
+                await addDoc(collection(db, 'feed_posts'), {
+                    type: 'teacher_test',
+                    title: 'Sizning ustozingiz vazifa tayinladi',
+                    content: feedContent,
+                    groupId: gid,
+                    deadline: first.deadline,
+                    maxAttempts: first.maxAttempts,
+                    priority: first.priority,
+                    teacherNote: first.teacherNote,
+                    teacherId: userData.uid,
+                    teacherName: userData.fullName || 'Ustoz',
+                    likes: [], commentsCount: 0,
+                    createdAt: serverTimestamp(),
+                    tests: testEntries,
+                    testId: testEntries[0].id,
+                    testType: testEntries[0].type,
+                    assignDate: first.date,
+                });
+            } catch (feedErr) {
+                console.error("Feed post error:", feedErr);
+            }
+        }));
+
+        // Optimistic local state update
+        const targetSet = new Set(groupIds);
+        setGroups(prev => prev.map(g => (
+            targetSet.has(g.id)
+                ? { ...g, assignedTests: [...(g.assignedTests || []), ...assignments] }
+                : g
+        )));
+        setAssignedTests(prev => [
+            ...groupIds.flatMap(gid => {
+                const grp = groups.find(g => g.id === gid);
+                return assignments.map(a => ({
+                    ...a,
+                    groupId: gid,
+                    groupName: grp?.name || '',
+                    studentIds: grp?.studentIds || [],
+                }));
+            }),
+            ...prev,
+        ]);
+    };
+
     const handleAssignTest = async (e) => {
         e.preventDefault();
         if (selectedGroupIds.size === 0) return showToast("Iltimos, kamida bitta guruhni tanlang!", 'error');
@@ -306,51 +437,9 @@ export default function TeacherTests() {
                     ...(hasPartSelection ? { selectedParts: [...chosenParts].sort((a, b) => a - b) } : {})
                 };
             });
-            const newTestEntries = newAssignments.map(a => ({ id: a.id, title: a.title, type: a.type }));
-            const feedContent = newTestEntries.length === 1
-                ? newTestEntries[0].title
-                : `Ustozingiz sizga ${newTestEntries.length} ta yangi vazifa tayinladi`;
 
             const allGroupIds = [...selectedGroupIds];
-
-            await Promise.all(allGroupIds.map(gid =>
-                updateDoc(doc(db, 'groups', gid), { assignedTests: arrayUnion(...newAssignments) })
-            ));
-
-            // Create a fresh feed post for each group (no merging with old posts)
-            await Promise.all(allGroupIds.map(async gid => {
-                try {
-                    await addDoc(collection(db, 'feed_posts'), {
-                        type: 'teacher_test',
-                        title: 'Sizning ustozingiz vazifa tayinladi',
-                        content: feedContent,
-                        groupId: gid, deadline: deadlineVal,
-                        maxAttempts: Number(maxAttempts) || 1,
-                        priority, teacherNote,
-                        teacherId: userData.uid,
-                        teacherName: userData.fullName || 'Ustoz',
-                        likes: [], commentsCount: 0,
-                        createdAt: serverTimestamp(),
-                        tests: newTestEntries,
-                        testId: newTestEntries[0].id,
-                        testType: newTestEntries[0].type,
-                        assignDate: assignDate,
-                    });
-                } catch (feedErr) {
-                    console.error("Feed post error:", feedErr);
-                }
-            }));
-
-            // Optimistic local state update
-            setGroups(prev => prev.map(g => {
-                if (!selectedGroupIds.has(g.id)) return g;
-                return { ...g, assignedTests: [...(g.assignedTests || []), ...newAssignments] };
-            }));
-            const newEntries = allGroupIds.flatMap(gid => {
-                const grp = groups.find(g => g.id === gid);
-                return newAssignments.map(a => ({ ...a, groupId: gid, groupName: grp?.name || '', studentIds: grp?.studentIds || [] }));
-            });
-            setAssignedTests(prev => [...newEntries, ...prev]);
+            await commitAssignments(allGroupIds, newAssignments);
 
             showToast(`${newAssignments.length} ta vazifa ${allGroupIds.length} ta guruhga tayinlandi!`);
             setShowAssignPage(false);
@@ -442,18 +531,25 @@ export default function TeacherTests() {
 
     const handleBulkDelete = async () => {
         if (selectedBulk.size === 0) return;
+        const keys = [...selectedBulk];
         setConfirmDialog({
-            message: `${selectedBulk.size} ta vazifani o'chirishni tasdiqlaysizmi?`,
+            message: `${keys.length} ta vazifani o'chirishni tasdiqlaysizmi?`,
             onConfirm: async () => {
                 setConfirmDialog(null);
-                for (const key of selectedBulk) {
+                let removed = 0;
+                for (const key of keys) {
                     const [groupId, testId, date] = key.split('__');
-                    const fakeAssign = assignedTests.find(a => a.groupId === groupId && a.id === testId && a.date === date);
-                    if (fakeAssign) await doUnassignTest(fakeAssign);
+                    const assignment = assignedTests.find(a => a.groupId === groupId && a.id === testId && a.date === date);
+                    // `doUnassignTest` xatoni o'zi ushlaydi, shuning uchun bu
+                    // yerda faqat topilganlarini sanaymiz.
+                    if (assignment) {
+                        await doUnassignTest(assignment);
+                        removed++;
+                    }
                 }
                 setSelectedBulk(new Set());
                 setBulkMode(false);
-                showToast(`${selectedBulk.size} ta vazifa o'chirildi!`);
+                showToast(`${removed} ta vazifa o'chirildi!`);
             }
         });
     };
@@ -468,14 +564,42 @@ export default function TeacherTests() {
         });
     };
 
-    const toggleSelectAll = () => {
-        if (selectedBulk.size === assignedTests.length) {
-            setSelectedBulk(new Set());
-        } else {
-            const all = new Set(assignedTests.map(a => `${a.groupId}__${a.id}__${a.date}`));
-            setSelectedBulk(all);
-        }
+    /** Bitta tayinlovdagi (guruh + sana) barcha testlarni birdaniga belgilash. */
+    const toggleBulkAssignment = (groupAssign) => {
+        const keys = groupAssign.tests.map(t => `${groupAssign.groupId}__${t.id}__${t.date}`);
+        setSelectedBulk(prev => {
+            const next = new Set(prev);
+            const allSelected = keys.every(k => next.has(k));
+            keys.forEach(k => allSelected ? next.delete(k) : next.add(k));
+            return next;
+        });
     };
+
+    // "Hammasini tanlash" faqat FILTRDAN O'TGANLARNI qamraydi — ilgari u
+    // ekranda ko'rinmayotgan tayinlovlarni ham belgilab, tasodifan o'chirib
+    // yuborish xavfini tug'dirardi.
+    const allVisibleSelected = visibleBulkKeys.length > 0 && visibleBulkKeys.every(k => selectedBulk.has(k));
+    const toggleSelectAll = () => {
+        setSelectedBulk(allVisibleSelected ? new Set() : new Set(visibleBulkKeys));
+    };
+
+    const exitBulkMode = () => {
+        setBulkMode(false);
+        setSelectedBulk(new Set());
+    };
+
+    // Esc — ochiq modal/dialogni yopadi, bulk rejimidan chiqadi.
+    useEffect(() => {
+        const onKeyDown = (e) => {
+            if (e.key !== 'Escape') return;
+            if (confirmDialog) setConfirmDialog(null);
+            else if (copyModal) { if (!copySaving) setCopyModal(null); }
+            else if (editModal) { setEditModal(null); setEditTestSearch(''); setShowEditTestPicker(false); }
+            else if (bulkMode) exitBulkMode();
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [confirmDialog, editModal, copyModal, copySaving, bulkMode]);
 
     const doEditAssignment = async () => {
         if (!editModal) return;
@@ -535,6 +659,72 @@ export default function TeacherTests() {
         }
     };
 
+    /** Mavjud tayinlovni boshqa guruh(lar)ga ko'chirish modalini ochadi. */
+    const openCopyModal = (groupAssign) => {
+        setCopyModal({
+            sourceGroupId: groupAssign.groupId,
+            sourceGroupName: groupAssign.groupName,
+            tests: groupAssign.tests.map(t => ({
+                id: t.id,
+                title: t.title,
+                type: t.type,
+                ...(t.selectedParts ? { selectedParts: t.selectedParts } : {}),
+            })),
+            // Muddat o'tib ketgan bo'lsa uni nusxaga ko'chirishning ma'nosi yo'q —
+            // bunday holda maydon bo'sh ochiladi.
+            deadline: groupAssign.deadline && !groupAssign.isExpired
+                ? toDateTimeLocalValue(groupAssign.deadline)
+                : '',
+            maxAttempts: String(groupAssign.maxAttempts || 1),
+            priority: groupAssign.priority || 'medium',
+            teacherNote: groupAssign.teacherNote || '',
+            targetGroupIds: new Set(),
+        });
+    };
+
+    const toggleCopyTarget = (gid) => {
+        setCopyModal(prev => {
+            const next = new Set(prev.targetGroupIds);
+            if (next.has(gid)) next.delete(gid); else next.add(gid);
+            return { ...prev, targetGroupIds: next };
+        });
+    };
+
+    const doCopyAssignment = async () => {
+        if (!copyModal || copyModal.targetGroupIds.size === 0) return;
+        setCopySaving(true);
+        try {
+            // Nusxa YANGI tayinlov: o'z sanasi bilan, ya'ni manba tayinlovdan
+            // alohida kartochka bo'lib turadi va alohida tahrirlanadi.
+            const assignDate = new Date().toISOString();
+            const deadlineVal = copyModal.deadline ? new Date(copyModal.deadline).toISOString() : null;
+            const maxAttemptsVal = Number(copyModal.maxAttempts) || 1;
+
+            const assignments = copyModal.tests.map(t => ({
+                id: t.id,
+                title: t.title || 'Untitled',
+                type: t.type,
+                date: assignDate,
+                deadline: deadlineVal,
+                maxAttempts: maxAttemptsVal,
+                priority: copyModal.priority,
+                teacherNote: copyModal.teacherNote,
+                ...(t.selectedParts ? { selectedParts: t.selectedParts } : {}),
+            }));
+
+            const targetIds = [...copyModal.targetGroupIds];
+            await commitAssignments(targetIds, assignments);
+
+            showToast(`${assignments.length} ta vazifa ${targetIds.length} ta guruhga nusxalandi!`);
+            setCopyModal(null);
+        } catch (err) {
+            console.error(err);
+            showToast('Xatolik: ' + err.message, 'error');
+        } finally {
+            setCopySaving(false);
+        }
+    };
+
     const exportMonitorCSV = (monitoringStudents, monitoringTest) => {
         const rows = [['Ism', 'Email/Telefon', 'Status', 'Ball/Natija', 'Sana', 'Qoidabuzarlik']];
         monitoringStudents.forEach(({ student, submitted, score, submitDate, hasViolation, violationText }) => {
@@ -580,48 +770,32 @@ export default function TeacherTests() {
         }
     };
 
-    const getTypeColor = (type) => {
+    /**
+     * Tur uchun yorliq va NUQTA rangi.
+     * Ilgari har bir tur to'liq rangli "pill" edi — kartochkada 5–6 xil rang
+     * bir vaqtda ko'rinib, muhim narsani (progress va muddat) bosib ketardi.
+     * Endi rang faqat kichik nuqtada, matn esa neytral.
+     */
+    const getTypeMeta = (type) => {
         const t = (type || '').toLowerCase();
-        if (t.includes('mock') || t.includes('full')) return 'text-purple-400 bg-purple-500/10 border-purple-500/20';
-        if (t.includes('reading')) return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-        if (t.includes('listening')) return 'text-pink-400 bg-pink-500/10 border-pink-500/20';
-        if (t.includes('writing')) return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
-        if (t.includes('podcast')) return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20';
-        if (t.includes('article')) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-        return 'text-gray-400 bg-gray-500/10 border-gray-500/20';
+        if (t.includes('mock') || t.includes('full')) return { label: 'Mock', dot: 'bg-purple-500' };
+        if (t.includes('reading')) return { label: 'Reading', dot: 'bg-blue-500' };
+        if (t.includes('listening')) return { label: 'Listening', dot: 'bg-pink-500' };
+        if (t.includes('writing')) return { label: 'Writing', dot: 'bg-orange-500' };
+        if (t.includes('podcast')) return { label: 'Podcast', dot: 'bg-indigo-500' };
+        if (t.includes('article')) return { label: 'Article', dot: 'bg-emerald-500' };
+        return { label: (type || 'Test').toUpperCase(), dot: 'bg-gray-400' };
     };
 
-    // Filter available tests for assignment modal
-    const filteredAvailableTests = availableTests.filter(t => {
-        const matchesQuery = t.title?.toLowerCase().includes(searchTestQuery.toLowerCase());
-        const tLow = (t.type || '').toLowerCase();
-        let matchesType = testTypeFilter === 'all';
-        if (!matchesType) {
-            if (testTypeFilter === 'mock_full') {
-                matchesType = tLow.includes('mock') || tLow.includes('full');
-            } else {
-                matchesType = tLow === testTypeFilter;
-            }
-        }
-        return matchesQuery && matchesType;
-    });
-
-    // Helpers for multi-group dropdown
-    const selectedGroupNames = groups.filter(g => selectedGroupIds.has(g.id)).map(g => g.name);
-    const toggleGroupId = (gid) => {
-        setSelectedGroupIds(prev => {
-            const next = new Set(prev);
-            if (next.has(gid)) next.delete(gid); else next.add(gid);
-            return next;
-        });
+    const PRIORITY_META = {
+        high: { label: 'Yuqori', className: 'text-rose-600 dark:text-rose-400' },
+        low: { label: 'Past', className: 'text-emerald-600 dark:text-emerald-400' },
     };
-    const isTestPrevAssignedInAny = (testId) =>
-        groups.some(g => selectedGroupIds.has(g.id) && (g.assignedTests || []).some(a => a.id === testId));
 
     if (showAssignPage) {
         return (
             <AssignTestForm
-                isDark={isDark} toast={toast} showToast={showToast}
+                isDark={isDark} toast={toast}
                 groups={groups} availableTests={availableTests}
                 selectedGroupIds={selectedGroupIds} setSelectedGroupIds={setSelectedGroupIds}
                 searchTestQuery={searchTestQuery} setSearchTestQuery={setSearchTestQuery}
@@ -650,12 +824,13 @@ export default function TeacherTests() {
     if (showMonitorPage && monitoringTest) {
         return (
             <MonitorTestPage
-                isDark={isDark} toast={toast} showToast={showToast}
-                monitoringTest={monitoringTest} results={results} 
-                podcastAttempts={podcastAttempts} students={students} groups={groups}
+                isDark={isDark}
+                monitoringTest={monitoringTest} results={results}
+                podcastAttempts={podcastAttempts} students={students}
                 fetchData={fetchData}
                 exportMonitorCSV={exportMonitorCSV}
                 sendReminder={sendReminder}
+                sendingReminder={sendingReminder}
                 onBack={() => { setShowMonitorPage(false); setMonitoringTest(null); }}
             />
         );
@@ -663,16 +838,20 @@ export default function TeacherTests() {
 
     return (
         <div className={`space-y-6 ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            {/* Toast Notification */}
+            {/* Toast Notification — bulk paneli ochiq bo'lsa uning ustiga chiqadi */}
             {toast && (
-                <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-semibold animate-fade-in-up transition-all ${
-                    toast.type === 'error'
-                        ? (isDark ? 'bg-rose-950 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-700')
-                        : (isDark ? 'bg-emerald-950 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700')
-                }`}>
+                <div
+                    className={`fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-fade-in-up transition-all ${
+                        bulkMode && selectedBulk.size > 0 ? 'bottom-24' : 'bottom-6'
+                    } ${
+                        toast.type === 'error'
+                            ? (isDark ? 'bg-[#1E1E1E] border-rose-500/30 text-rose-300' : 'bg-white border-rose-200 text-rose-700')
+                            : (isDark ? 'bg-[#1E1E1E] border-emerald-500/30 text-emerald-300' : 'bg-white border-emerald-200 text-emerald-700')
+                    }`}
+                >
                     {toast.type === 'error'
-                        ? <X size={16} weight="bold" className="text-rose-500 shrink-0" />
-                        : <CheckCircle size={16} weight="fill" className="text-emerald-500 shrink-0" />
+                        ? <X size={15} weight="bold" className="text-rose-500 shrink-0" />
+                        : <CheckCircle size={15} weight="fill" className="text-emerald-500 shrink-0" />
                     }
                     {toast.message}
                 </div>
@@ -680,24 +859,30 @@ export default function TeacherTests() {
 
             {/* Inline Confirm Dialog */}
             {confirmDialog && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-                    <div className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 mx-auto ${isDark ? 'bg-rose-500/15' : 'bg-rose-50'}`}>
-                            <Trash size={22} className="text-rose-500" />
-                        </div>
-                        <p className={`text-sm font-semibold text-center mb-6 leading-relaxed ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                    onClick={() => setConfirmDialog(null)}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        onClick={e => e.stopPropagation()}
+                        className={`w-full max-w-sm rounded-2xl border p-5 shadow-xl ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}
+                    >
+                        <p className={`text-sm leading-relaxed mb-5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
                             {confirmDialog.message}
                         </p>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2 justify-end">
                             <button
                                 onClick={() => setConfirmDialog(null)}
-                                className={`flex-1 py-2.5 rounded-xl border font-semibold text-sm transition-all ${isDark ? 'border-white/10 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
                             >
                                 Bekor qilish
                             </button>
                             <button
+                                autoFocus
                                 onClick={confirmDialog.onConfirm}
-                                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all active:scale-95"
+                                className="h-9 px-4 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium transition-colors"
                             >
                                 O'chirish
                             </button>
@@ -706,315 +891,669 @@ export default function TeacherTests() {
                 </div>
             )}
 
+            {/* Back link — boshqa ustoz sahifalari bilan bir xil */}
+            <button
+                onClick={() => navigate('/teacher')}
+                className={`flex items-center gap-2 text-sm font-medium transition-colors -mb-1 ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+                <CaretLeft size={15} weight="bold" />
+                Bosh sahifa
+            </button>
+
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Test tayinlash</h1>
-                    <p className={`text-sm mt-1.5 font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Guruhlaringizga Reading, Listening, Writing yoki Mock testlarini biriktiring va topshirish jarayonini kuzating.
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+                <div className="min-w-0">
+                    <h1 className={`text-[28px] leading-tight font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Tayinlangan testlar
+                    </h1>
+                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                        {loading
+                            ? 'Yuklanmoqda…'
+                            : assignedTests.length === 0
+                                ? "Hali birorta vazifa biriktirilmagan"
+                                : `${summaryStats.total} ta tayinlov · ${summaryStats.totalTests} ta test`}
                     </p>
                 </div>
-                
-                <div className="flex items-center gap-2 flex-wrap">
+
+                <div className="flex items-center gap-2 shrink-0">
                     {assignedTests.length > 0 && (
                         <button
-                            onClick={() => {
-                                setBulkMode(b => !b);
-                                setSelectedBulk(new Set());
-                            }}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-semibold text-sm border transition-all active:scale-95 ${
+                            onClick={() => (bulkMode ? exitBulkMode() : setBulkMode(true))}
+                            className={`flex items-center gap-2 h-10 px-3.5 rounded-xl text-sm font-medium border transition-colors ${
                                 bulkMode
-                                    ? (isDark ? 'bg-rose-600/15 border-rose-500/40 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-600')
-                                    : (isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm')
+                                    ? (isDark ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-900 border-gray-900 text-white')
+                                    : (isDark ? 'border-white/10 text-gray-300 hover:bg-white/5' : 'border-gray-200 text-gray-700 hover:bg-gray-50')
                             }`}
                         >
-                            <CheckSquare size={16} weight="bold" />
-                            {bulkMode ? "Bekor qilish" : "Tanlash"}
-                        </button>
-                    )}
-                    {bulkMode && selectedBulk.size > 0 && (
-                        <button
-                            onClick={handleBulkDelete}
-                            className="flex items-center gap-2 px-4 py-3 rounded-2xl font-semibold text-sm bg-rose-600 hover:bg-rose-700 text-white shadow-md active:scale-95 transition-all"
-                        >
-                            <Trash size={16} weight="bold" />
-                            O'chirish ({selectedBulk.size})
+                            <CheckSquare size={15} />
+                            {bulkMode ? 'Tayyor' : 'Tanlash'}
                         </button>
                     )}
                     <button
                         onClick={() => setShowAssignPage(true)}
-                        className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold text-sm shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all"
+                        className="flex items-center gap-2 h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
                     >
-                        <Plus size={18} weight="bold" />
-                        Yangi test tayinlash
+                        <Plus size={16} weight="bold" />
+                        Yangi tayinlash
                     </button>
                 </div>
             </div>
 
-            {/* Summary Stats */}
+            {/* Filtrlar — status chiplari sanoqni ham ko'rsatadi, shuning uchun
+                alohida statistika kartochkalari kerak emas */}
             {!loading && assignedTests.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
-                        { label: "Jami tayinlov", value: summaryStats.total, color: 'text-blue-500', bg: isDark ? 'bg-blue-500/8 border-blue-500/15' : 'bg-blue-50 border-blue-100' },
-                        { label: "Faol", value: summaryStats.active, color: 'text-emerald-500', bg: isDark ? 'bg-emerald-500/8 border-emerald-500/15' : 'bg-emerald-50 border-emerald-100' },
-                        { label: "Muddati o'tgan", value: summaryStats.expired, color: 'text-rose-500', bg: isDark ? 'bg-rose-500/8 border-rose-500/15' : 'bg-rose-50 border-rose-100' },
-                        { label: "Jami test", value: summaryStats.totalTests, color: 'text-purple-500', bg: isDark ? 'bg-purple-500/8 border-purple-500/15' : 'bg-purple-50 border-purple-100' },
-                    ].map(s => (
-                        <div key={s.label} className={`rounded-2xl border p-4 ${s.bg}`}>
-                            <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
-                            <p className={`text-[11px] font-semibold mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{s.label}</p>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Filter Bar */}
-            {!loading && assignedTests.length > 0 && (
-                <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1">
-                        <SearchIcon size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Guruh yoki test nomini qidiring..."
-                            value={mainSearch}
-                            onChange={e => setMainSearch(e.target.value)}
-                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-all ${isDark ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500' : 'bg-white border-gray-200 text-gray-800 focus:border-blue-500 shadow-sm'}`}
-                        />
-                        {mainSearch && <button onClick={() => setMainSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={13} /></button>}
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        {[
+                            { key: 'all', label: 'Hammasi', count: summaryStats.total },
+                            { key: 'active', label: 'Faol', count: summaryStats.active },
+                            { key: 'expired', label: "Muddati o'tgan", count: summaryStats.expired },
+                        ].map(chip => {
+                            const active = mainStatusFilter === chip.key;
+                            return (
+                                <button
+                                    key={chip.key}
+                                    onClick={() => setMainStatusFilter(chip.key)}
+                                    className={`h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors flex items-center gap-1.5 ${
+                                        active
+                                            ? (isDark ? 'bg-white/10 border-white/15 text-white' : 'bg-gray-900 border-gray-900 text-white')
+                                            : (isDark ? 'border-white/8 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50')
+                                    }`}
+                                >
+                                    {chip.label}
+                                    <span className={active ? 'opacity-60' : 'opacity-45'}>{chip.count}</span>
+                                </button>
+                            );
+                        })}
                     </div>
-                    <select
-                        value={mainGroupFilter}
-                        onChange={e => setMainGroupFilter(e.target.value)}
-                        className={`px-3 py-2.5 rounded-xl border text-sm font-semibold outline-none ${isDark ? 'bg-[#2C2C2C] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-700 shadow-sm'}`}
-                    >
-                        <option value="all">Barcha guruhlar</option>
-                        {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                    </select>
-                    <select
-                        value={mainStatusFilter}
-                        onChange={e => setMainStatusFilter(e.target.value)}
-                        className={`px-3 py-2.5 rounded-xl border text-sm font-semibold outline-none ${isDark ? 'bg-[#2C2C2C] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-700 shadow-sm'}`}
-                    >
-                        <option value="all">Barcha statuslar</option>
-                        <option value="active">Faol</option>
-                        <option value="expired">Muddati o'tgan</option>
-                    </select>
-                    {bulkMode && (
-                        <button
-                            onClick={toggleSelectAll}
-                            className={`px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'}`}
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="relative flex-1 min-w-0">
+                            <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Guruh yoki test nomi…"
+                                value={mainSearch}
+                                onChange={e => setMainSearch(e.target.value)}
+                                className={`w-full h-10 pl-9 pr-8 rounded-xl border text-sm outline-none transition-colors ${isDark ? 'bg-transparent border-white/10 text-white placeholder-gray-600 focus:border-white/25' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400 focus:border-gray-400'}`}
+                            />
+                            {mainSearch && (
+                                <button onClick={() => setMainSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
+                                    <X size={12} weight="bold" />
+                                </button>
+                            )}
+                        </div>
+                        <select
+                            value={mainGroupFilter}
+                            onChange={e => setMainGroupFilter(e.target.value)}
+                            className={`h-10 px-3 rounded-xl border text-sm outline-none cursor-pointer transition-colors ${isDark ? 'bg-transparent border-white/10 text-gray-300' : 'bg-white border-gray-200 text-gray-700'}`}
                         >
-                            {selectedBulk.size === assignedTests.length ? 'Bekor' : 'Hammasini tanlash'}
-                        </button>
-                    )}
+                            <option value="all">Barcha guruhlar</option>
+                            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                        </select>
+                        <select
+                            value={mainSort}
+                            onChange={e => setMainSort(e.target.value)}
+                            title="Saralash"
+                            className={`h-10 px-3 rounded-xl border text-sm outline-none cursor-pointer transition-colors ${isDark ? 'bg-transparent border-white/10 text-gray-300' : 'bg-white border-gray-200 text-gray-700'}`}
+                        >
+                            <option value="newest">Eng yangi</option>
+                            <option value="deadline">Muddati yaqin</option>
+                            <option value="progress">Kam topshirilgan</option>
+                        </select>
+                    </div>
                 </div>
             )}
 
             {loading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="w-10 h-10 border-2 border-t-transparent border-blue-650 rounded-full animate-spin" />
+                <div className="flex flex-col gap-3">
+                    {/* Skeleton — bo'sh spinner o'rniga sahifa tuzilishini oldindan ko'rsatadi */}
+                    {[0, 1, 2].map(i => (
+                        <div key={i} className={`rounded-2xl border p-5 ${isDark ? 'border-white/8' : 'border-gray-200 bg-white'}`}>
+                            <div className="animate-pulse space-y-3">
+                                <div className={`h-4 w-40 rounded ${isDark ? 'bg-white/8' : 'bg-gray-200'}`} />
+                                <div className={`h-3 w-64 rounded ${isDark ? 'bg-white/5' : 'bg-gray-100'}`} />
+                                <div className={`h-12 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-100'}`} />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : assignedTests.length === 0 ? (
-                <div className={`rounded-3xl border p-16 text-center ${isDark ? 'bg-[#2C2C2C]/30 border-white/5' : 'bg-white border-gray-150 shadow-sm'}`}>
-                    <BookOpen size={48} className="mx-auto mb-4 text-gray-400 dark:text-zinc-500 opacity-40" />
-                    <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Hozircha hech qanday test tayinlanmagan</p>
-                    <p className="text-sm mt-1.5 text-gray-400 dark:text-zinc-500">Yangi test biriktirish uchun yuqoridagi tugmani bosing.</p>
+                <div className={`rounded-2xl border border-dashed p-14 text-center ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                    <BookOpen size={32} className="mx-auto mb-3 text-gray-400 opacity-50" />
+                    <p className={`text-base font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Hali test tayinlanmagan</p>
+                    <p className="text-sm mt-1 text-gray-500">Guruhlaringizga birinchi vazifani biriktiring.</p>
+                    <button
+                        onClick={() => setShowAssignPage(true)}
+                        className="mt-5 inline-flex items-center gap-2 h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
+                    >
+                        <Plus size={16} weight="bold" />
+                        Yangi tayinlash
+                    </button>
                 </div>
             ) : filteredGroupedAssignments.length === 0 ? (
-                <div className={`rounded-3xl border p-12 text-center ${isDark ? 'bg-[#2C2C2C]/30 border-white/5' : 'bg-white border-gray-150 shadow-sm'}`}>
-                    <FunnelSimple size={36} className="mx-auto mb-3 text-gray-400 opacity-40" />
-                    <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Filtr bo'yicha tayinlov topilmadi</p>
-                    <button onClick={() => { setMainSearch(''); setMainGroupFilter('all'); setMainStatusFilter('all'); }} className="mt-3 text-xs text-blue-500 font-semibold hover:underline">Filtrni tozalash</button>
+                <div className={`rounded-2xl border border-dashed p-12 text-center ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                    <FunnelSimple size={28} className="mx-auto mb-3 text-gray-400 opacity-50" />
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Filtrga mos tayinlov yo'q</p>
+                    <button
+                        onClick={() => { setMainSearch(''); setMainGroupFilter('all'); setMainStatusFilter('all'); }}
+                        className="mt-3 text-sm text-blue-500 font-medium hover:underline"
+                    >
+                        Filtrni tozalash
+                    </button>
                 </div>
             ) : (
-                <div className="flex flex-col gap-5">
-                    {filteredGroupedAssignments.map((groupAssign, i) => {
-                        const isExpired = groupAssign.deadline && new Date(groupAssign.deadline) < new Date();
-                        const priorityBadge = getPriorityBadge(groupAssign.priority);
+                <div className={`flex flex-col gap-3 ${bulkMode && selectedBulk.size > 0 ? 'pb-20' : ''}`}>
+                    {filteredGroupedAssignments.map((groupAssign) => {
+                        const { isExpired, pct, submittedTotal, expectedTotal } = groupAssign;
+                        const priority = PRIORITY_META[(groupAssign.priority || '').toLowerCase()];
+                        const assignKeys = groupAssign.tests.map(t => `${groupAssign.groupId}__${t.id}__${t.date}`);
+                        const allInAssignSelected = assignKeys.every(k => selectedBulk.has(k));
+                        const someInAssignSelected = !allInAssignSelected && assignKeys.some(k => selectedBulk.has(k));
 
                         return (
                             <div
-                                key={`${groupAssign.groupId}-${groupAssign.date}-${i}`}
-                                className={`rounded-3xl border p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
-                                    isDark
-                                        ? 'bg-[#2C2C2C]/50 border-white/5 hover:border-white/10'
-                                        : 'bg-white border-gray-105 shadow-sm hover:shadow-md'
+                                key={`${groupAssign.groupId}-${groupAssign.date}`}
+                                className={`rounded-2xl border transition-colors ${
+                                    someInAssignSelected || allInAssignSelected
+                                        ? (isDark ? 'border-blue-500/40 bg-blue-500/[0.04]' : 'border-blue-300 bg-blue-50/40')
+                                        : (isDark ? 'border-white/8 hover:border-white/15' : 'border-gray-200 bg-white hover:border-gray-300')
                                 }`}
-                                style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
                             >
-                                <div>
-                                    {/* Card Header */}
-                                    <div className="flex justify-between items-center gap-2 mb-4 flex-wrap">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                                                isDark ? 'bg-blue-950/45 text-blue-400 border-blue-900/30' : 'bg-blue-50 text-blue-700 border-blue-100'
-                                            }`}>
-                                                {groupAssign.groupName}
-                                            </span>
-                                            {priorityBadge}
-                                            {isExpired && (
-                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20">Muddati o'tgan</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-medium">
-                                                {new Date(groupAssign.date).toLocaleString('uz-UZ', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                            {!bulkMode && (
-                                                <button
-                                                    onClick={() => {
-                                                        setEditTestSearch('');
-                                                        setShowEditTestPicker(false);
-                                                        setEditModal({
-                                                            groupId: groupAssign.groupId,
-                                                            date: groupAssign.date,
-                                                            tests: groupAssign.tests.map(t => ({ id: t.id, title: t.title, type: t.type, ...(t.selectedParts ? { selectedParts: t.selectedParts } : {}) })),
-                                                            deadline: groupAssign.deadline ? new Date(groupAssign.deadline).toISOString().slice(0, 16) : '',
-                                                            maxAttempts: String(groupAssign.maxAttempts || 1),
-                                                            priority: groupAssign.priority || 'medium',
-                                                            teacherNote: groupAssign.teacherNote || '',
-                                                            groupName: groupAssign.groupName,
-                                                        });
-                                                    }}
-                                                    className={`p-1.5 rounded-lg border transition-all hover:text-blue-500 hover:border-blue-500/30 ${isDark ? 'border-white/10 text-gray-500 hover:bg-blue-500/10' : 'border-gray-200 text-gray-400 hover:bg-blue-50'}`}
-                                                    title="Tahrirlash"
-                                                >
-                                                    <PencilSimple size={13} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Deadline Countdown + Max Attempts */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 p-4 rounded-2xl bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-100 dark:border-white/5 text-[11px] font-semibold text-gray-500 dark:text-zinc-400">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <Timer size={15} className="text-gray-400 dark:text-zinc-500 shrink-0" />
-                                            <DeadlineCountdown deadline={groupAssign.deadline} isDark={isDark} />
-                                            {groupAssign.deadline && !isExpired && (
-                                                <span className="text-[10px] text-gray-400 truncate">
-                                                    ({new Date(groupAssign.deadline).toLocaleDateString('uz-UZ')})
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2 min-w-0 sm:justify-end">
-                                            <Info size={15} className="text-gray-400 dark:text-zinc-500 shrink-0" />
-                                            <span>Urinishlar: <span className={isDark ? 'text-gray-250 font-bold' : 'text-gray-800 font-bold'}>{groupAssign.maxAttempts} marta</span></span>
-                                        </div>
-                                    </div>
-
-                                    {/* Teacher Instructions */}
-                                    {groupAssign.teacherNote && (
-                                        <div className="mb-5 p-4 rounded-2xl border border-indigo-150/10 dark:border-indigo-900/10 bg-indigo-50/5 dark:bg-indigo-950/5 text-xs text-gray-500 dark:text-zinc-400 flex items-start gap-2.5 relative overflow-hidden text-left">
-                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-l-2xl" />
-                                            <div className="space-y-1">
-                                                <span className="font-bold text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">Eslatma:</span>
-                                                <p className="italic leading-relaxed whitespace-pre-wrap">{groupAssign.teacherNote}</p>
-                                            </div>
-                                        </div>
+                                {/* ── Kartochka sarlavhasi ── */}
+                                <div className="flex items-start gap-3 px-5 pt-4 pb-3.5">
+                                    {bulkMode && (
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleBulkAssignment(groupAssign)}
+                                            className="shrink-0 mt-0.5 text-gray-400 hover:text-blue-500 transition-colors"
+                                            title="Butun tayinlovni tanlash"
+                                        >
+                                            {allInAssignSelected
+                                                ? <CheckSquare size={18} weight="fill" className="text-blue-500" />
+                                                : someInAssignSelected
+                                                    ? <MinusSquare size={18} weight="fill" className="text-blue-500" />
+                                                    : <Square size={18} />}
+                                        </button>
                                     )}
 
-                                    {/* Test list */}
-                                    <div className="space-y-3 mt-4">
-                                        <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider block text-left">
-                                            Tayinlangan testlar ({groupAssign.tests.length}):
-                                        </span>
-                                        <div className="space-y-2.5">
-                                            {groupAssign.tests.map((test, idx) => {
-                                                const typeColor = getTypeColor(test.type);
-                                                const bulkKey = `${groupAssign.groupId}__${test.id}__${test.date}`;
-                                                const isBulkSelected = selectedBulk.has(bulkKey);
-                                                const groupStudentIds = groupAssign.studentIds || [];
-                                                let submittedCount = 0;
-                                                if (test.type === 'podcast') {
-                                                    submittedCount = students.filter(s => groupStudentIds.includes(s.id))
-                                                        .filter(s => !!podcastAttempts.find(a => a.userId === s.id && a.podcastId === test.id)?.completedAt).length;
-                                                } else if (test.type === 'article') {
-                                                    submittedCount = students.filter(s => groupStudentIds.includes(s.id))
-                                                        .filter(s => s.awardedItems?.includes(test.id)).length;
-                                                } else {
-                                                    const grpResults = results.filter(r => String(r.testId).trim() === String(test.id).trim() && groupStudentIds.includes(r.userId));
-                                                    submittedCount = new Set(grpResults.map(r => r.userId)).size;
-                                                }
-                                                const totalStudents = groupStudentIds.length;
-                                                const pct = totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0;
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h3 className={`text-[15px] font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                                {groupAssign.groupName}
+                                            </h3>
+                                            <span className="text-gray-300 dark:text-gray-700">·</span>
+                                            <span className="text-[13px] text-gray-500">{groupAssign.tests.length} ta test</span>
+                                            {priority && (
+                                                <span className={`text-[11px] font-medium ${priority.className}`}>{priority.label}</span>
+                                            )}
+                                        </div>
 
-                                                return (
-                                                    <div
-                                                        key={`${test.id}-${idx}`}
-                                                        className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all text-left ${
-                                                            isBulkSelected
-                                                                ? (isDark ? 'bg-rose-600/10 border-rose-500/40' : 'bg-rose-50 border-rose-200')
-                                                                : (isDark ? 'bg-zinc-900/10 border-white/5 hover:border-white/10' : 'bg-gray-50/10 border-gray-150 hover:border-gray-200')
-                                                        }`}
-                                                    >
-                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                                            {bulkMode && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => toggleBulkItem(groupAssign.groupId, test.id, test.date)}
-                                                                    className="shrink-0"
-                                                                >
-                                                                    {isBulkSelected
-                                                                        ? <CheckSquare size={18} weight="fill" className="text-rose-500" />
-                                                                        : <Square size={18} className="text-gray-400" />}
-                                                                </button>
-                                                            )}
-                                                            <div className="min-w-0 flex-1">
-                                                                <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border mb-1 ${typeColor}`}>
-                                                                    {test.type === 'mock_full' ? 'Mock Exam' : test.type}
-                                                                </span>
-                                                                <h4 className={`font-bold text-sm leading-snug ${isDark ? 'text-zinc-200' : 'text-slate-800'}`}>
-                                                                    {test.title}
-                                                                </h4>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-3 shrink-0 justify-between sm:justify-end w-full sm:w-auto">
-                                                            <div className="flex items-center gap-2">
-                                                                <RingChart pct={pct} isDark={isDark} />
-                                                                <div className="text-[10px] font-bold leading-tight">
-                                                                    <div className={isDark ? 'text-gray-300' : 'text-gray-700'}>{submittedCount}/{totalStudents}</div>
-                                                                    <div className="text-gray-400">topshirdi</div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setActiveMonitorFilter("all");
-                                                                        setMonitorSearch('');
-                                                                        setMonitorSort({ col: null, dir: 'asc' });
-                                                                        setMonitoringTest({ ...test, groupId: groupAssign.groupId, groupName: groupAssign.groupName });
-                                                                        setShowMonitorPage(true);
-                                                                    }}
-                                                                    className={`px-3 py-2 rounded-xl font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 border transition-all active:scale-[0.98] ${
-                                                                        isDark ? 'bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border-blue-500/25' : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-100 shadow-sm'
-                                                                    }`}
-                                                                >
-                                                                    <Eye size={12} weight="bold" />
-                                                                    Kuzatish
-                                                                </button>
-                                                                {!bulkMode && (
-                                                                    <button
-                                                                        onClick={() => handleUnassignTest(test)}
-                                                                        className={`p-2 rounded-xl border hover:text-rose-500 hover:bg-rose-500/10 transition-all ${isDark ? 'border-white/5 text-gray-400' : 'border-gray-200 text-gray-500 bg-gray-50'}`}
-                                                                        title="O'chirish"
-                                                                    >
-                                                                        <Trash size={14} />
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                        {/* Meta qatori — muddat, urinishlar, tayinlangan sana */}
+                                        <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mt-1.5 text-[12px] text-gray-500">
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <Timer size={13} className="text-gray-400 shrink-0" />
+                                                <DeadlineCountdown deadline={groupAssign.deadline} isDark={isDark} />
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <ArrowsCounterClockwise size={13} className="text-gray-400 shrink-0" />
+                                                {groupAssign.maxAttempts || 1} urinish
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <Clock size={13} className="text-gray-400 shrink-0" />
+                                                {new Date(groupAssign.date).toLocaleDateString('uz-UZ', { day: '2-digit', month: 'short' })}
+                                            </span>
                                         </div>
                                     </div>
+
+                                    {/* Umumiy holat — chiziq sarlavha ostida, butun kartochka
+                                        eni bo'ylab (test qatorlaridagi ustunlar bilan
+                                        tekislanish muammosi shu tarzda yo'qoladi) */}
+                                    <div className="shrink-0 flex items-center gap-2">
+                                        {expectedTotal > 0 ? (
+                                            <span className={`text-[12px] font-medium tabular-nums whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                                {submittedTotal}/{expectedTotal}
+                                                <span className="hidden sm:inline"> topshirdi</span>
+                                            </span>
+                                        ) : (
+                                            // Guruhda o'quvchi yo'q — "0/0" o'rniga sababini aytamiz
+                                            <span className="text-[11px] text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                                                O'quvchi yo'q
+                                            </span>
+                                        )}
+                                        {!bulkMode && groups.length > 1 && (
+                                            <button
+                                                onClick={() => openCopyModal(groupAssign)}
+                                                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'text-gray-500 hover:text-white hover:bg-white/5' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'}`}
+                                                title="Boshqa guruhga nusxalash"
+                                            >
+                                                <CopySimple size={15} />
+                                            </button>
+                                        )}
+                                        {!bulkMode && (
+                                            <button
+                                                onClick={() => {
+                                                    setEditTestSearch('');
+                                                    setShowEditTestPicker(false);
+                                                    setEditModal({
+                                                        groupId: groupAssign.groupId,
+                                                        date: groupAssign.date,
+                                                        tests: groupAssign.tests.map(t => ({ id: t.id, title: t.title, type: t.type, ...(t.selectedParts ? { selectedParts: t.selectedParts } : {}) })),
+                                                        deadline: groupAssign.deadline ? toDateTimeLocalValue(groupAssign.deadline) : '',
+                                                        maxAttempts: String(groupAssign.maxAttempts || 1),
+                                                        priority: groupAssign.priority || 'medium',
+                                                        teacherNote: groupAssign.teacherNote || '',
+                                                        groupName: groupAssign.groupName,
+                                                    });
+                                                }}
+                                                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'text-gray-500 hover:text-white hover:bg-white/5' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'}`}
+                                                title="Tayinlovni tahrirlash"
+                                            >
+                                                <PencilSimple size={15} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+
+                                {/* Tayinlovning umumiy progressi — kartochka enidagi ingichka chiziq */}
+                                <ProgressBar pct={pct} isExpired={isExpired} isDark={isDark} rounded={false} />
+
+                                {/* ── Testlar ro'yxati ── */}
+                                <div className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
+                                    {groupAssign.perTest.map(({ test, submitted, total, pct: testPct }, idx) => {
+                                        const typeMeta = getTypeMeta(test.type);
+                                        const bulkKey = `${groupAssign.groupId}__${test.id}__${test.date}`;
+                                        const isBulkSelected = selectedBulk.has(bulkKey);
+                                        const notSubmitted = total - submitted;
+
+                                        return (
+                                            <div
+                                                key={`${test.id}-${idx}`}
+                                                className={`group flex items-center gap-3 px-5 py-3 transition-colors ${
+                                                    isBulkSelected
+                                                        ? (isDark ? 'bg-blue-500/[0.06]' : 'bg-blue-50/60')
+                                                        : (isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-gray-50/70')
+                                                }`}
+                                            >
+                                                {bulkMode && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleBulkItem(groupAssign.groupId, test.id, test.date)}
+                                                        className="shrink-0 text-gray-400 hover:text-blue-500 transition-colors"
+                                                    >
+                                                        {isBulkSelected
+                                                            ? <CheckSquare size={17} weight="fill" className="text-blue-500" />
+                                                            : <Square size={17} />}
+                                                    </button>
+                                                )}
+
+                                                {/* Nom va turi */}
+                                                <div className="min-w-0 flex-1">
+                                                    <p className={`text-sm font-medium truncate ${isDark ? 'text-zinc-100' : 'text-gray-900'}`} title={test.title}>
+                                                        {test.title}
+                                                    </p>
+                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${typeMeta.dot}`} />
+                                                        <span className="text-[11px] text-gray-500">{typeMeta.label}</span>
+                                                        {test.selectedParts?.length > 0 && (
+                                                            <span className="text-[11px] text-gray-400">
+                                                                · {test.selectedParts.map(n => `P${n}`).join(', ')}
+                                                            </span>
+                                                        )}
+                                                        {/* Mobilda progress ustuni yashiringani uchun sanoq shu yerda */}
+                                                        <span className="sm:hidden text-[11px] text-gray-400 tabular-nums">
+                                                            · {submitted}/{total}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Progress */}
+                                                <div className="hidden sm:flex flex-col items-end gap-1.5 w-24 shrink-0">
+                                                    <span className={`text-[12px] tabular-nums ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                        {submitted}/{total}
+                                                    </span>
+                                                    <ProgressBar pct={testPct} isExpired={isExpired} isDark={isDark} />
+                                                </div>
+
+                                                {/* Amallar */}
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <button
+                                                        onClick={() => {
+                                                            setMonitoringTest({
+                                                                ...test,
+                                                                groupId: groupAssign.groupId,
+                                                                groupName: groupAssign.groupName,
+                                                                studentIds: groupAssign.studentIds || [],
+                                                            });
+                                                            setShowMonitorPage(true);
+                                                        }}
+                                                        className={`h-8 px-3 rounded-lg text-[13px] font-medium flex items-center gap-1.5 transition-colors ${
+                                                            isDark ? 'text-gray-300 hover:bg-white/8' : 'text-gray-700 hover:bg-gray-100'
+                                                        }`}
+                                                        title={notSubmitted > 0 ? `${notSubmitted} ta o'quvchi topshirmagan` : 'Hamma topshirdi'}
+                                                    >
+                                                        <Eye size={15} />
+                                                        <span className="hidden md:inline">Kuzatish</span>
+                                                    </button>
+                                                    {!bulkMode && (
+                                                        <button
+                                                            onClick={() => handleUnassignTest(test)}
+                                                            className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 ${
+                                                                isDark ? 'text-gray-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'
+                                                            }`}
+                                                            title="Tayinlovdan olib tashlash"
+                                                        >
+                                                            <Trash size={15} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* ── Ustoz eslatmasi ── */}
+                                {groupAssign.teacherNote && (
+                                    <div className={`px-5 py-3 border-t text-[13px] leading-relaxed ${isDark ? 'border-white/5 text-gray-400' : 'border-gray-100 text-gray-600'}`}>
+                                        <span className="text-gray-400 dark:text-gray-500">Eslatma: </span>
+                                        <span className="whitespace-pre-wrap">{groupAssign.teacherNote}</span>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
                 </div>
-                )}
+            )}
+
+            {/* ── Bulk amal paneli (pastda, doim ko'rinadi) ── */}
+            {bulkMode && selectedBulk.size > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md">
+                    <div className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl border shadow-lg ${
+                        isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'
+                    }`}>
+                        <span className={`text-sm font-medium px-1.5 tabular-nums ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {selectedBulk.size} ta tanlandi
+                        </span>
+                        <button
+                            onClick={toggleSelectAll}
+                            className={`h-9 px-3 rounded-xl text-[13px] font-medium transition-colors ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >
+                            {allVisibleSelected ? 'Bekor qilish' : 'Hammasi'}
+                        </button>
+                        <div className="flex-1" />
+                        <button
+                            onClick={handleBulkDelete}
+                            className="h-9 px-3.5 rounded-xl text-[13px] font-medium bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-colors"
+                        >
+                            <Trash size={14} weight="bold" />
+                            O'chirish
+                        </button>
+                        <button
+                            onClick={exitBulkMode}
+                            className={`h-9 w-9 rounded-xl flex items-center justify-center transition-colors ${isDark ? 'text-gray-500 hover:bg-white/5' : 'text-gray-400 hover:bg-gray-100'}`}
+                            title="Yopish (Esc)"
+                        >
+                            <X size={15} weight="bold" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Nusxalash modali ── */}
+            {copyModal && (() => {
+                // Manba guruhning o'zi ro'yxatda ko'rsatilmaydi — bir guruhga
+                // ikki marta bir xil vazifa berish ko'pincha xato bo'ladi.
+                const targetGroups = groups.filter(g => g.id !== copyModal.sourceGroupId);
+                const selectedCount = copyModal.targetGroupIds.size;
+                const studentCount = groups
+                    .filter(g => copyModal.targetGroupIds.has(g.id))
+                    .reduce((s, g) => s + (g.studentIds?.length || 0), 0);
+
+                return (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
+                        onClick={() => !copySaving && setCopyModal(null)}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            onClick={e => e.stopPropagation()}
+                            className={`w-full max-w-lg rounded-2xl border shadow-xl flex flex-col max-h-[85vh] ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}
+                        >
+                            {/* Sarlavha */}
+                            <div className={`flex items-start justify-between gap-3 px-5 pt-4 pb-3.5 border-b ${isDark ? 'border-white/8' : 'border-gray-100'}`}>
+                                <div className="min-w-0">
+                                    <h3 className={`text-[15px] font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                        Boshqa guruhga nusxalash
+                                    </h3>
+                                    <p className="text-[13px] text-gray-500 mt-0.5 truncate">
+                                        Manba: {copyModal.sourceGroupName} · {copyModal.tests.length} ta test
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setCopyModal(null)}
+                                    className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isDark ? 'text-gray-500 hover:bg-white/5' : 'text-gray-400 hover:bg-gray-100'}`}
+                                >
+                                    <X size={15} />
+                                </button>
+                            </div>
+
+                            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5 custom-scrollbar">
+                                {/* Ko'chiriladigan testlar */}
+                                <div className="space-y-2">
+                                    <p className={`text-[11px] font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                        Ko'chiriladigan testlar
+                                    </p>
+                                    <div className={`rounded-xl border divide-y ${isDark ? 'border-white/8 divide-white/5' : 'border-gray-200 divide-gray-100'}`}>
+                                        {copyModal.tests.map(t => {
+                                            const meta = getTypeMeta(t.type);
+                                            return (
+                                                <div key={t.id} className="flex items-center gap-2.5 px-3 py-2.5">
+                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
+                                                    <span className={`flex-1 text-[13px] truncate ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>{t.title}</span>
+                                                    {t.selectedParts?.length > 0 && (
+                                                        <span className="text-[11px] text-gray-400 shrink-0">
+                                                            {t.selectedParts.map(n => `P${n}`).join(', ')}
+                                                        </span>
+                                                    )}
+                                                    <span className="text-[11px] text-gray-500 shrink-0">{meta.label}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Maqsad guruhlar */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className={`text-[11px] font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                            Qaysi guruhlarga
+                                        </p>
+                                        {selectedCount > 0 && (
+                                            <span className="text-[11px] text-gray-500 tabular-nums">{selectedCount} ta tanlandi</span>
+                                        )}
+                                    </div>
+
+                                    {targetGroups.length === 0 ? (
+                                        <p className="text-[13px] text-gray-500 py-3">
+                                            Nusxalash uchun boshqa guruhingiz yo'q.
+                                        </p>
+                                    ) : (
+                                        <div className={`rounded-xl border divide-y overflow-hidden ${isDark ? 'border-white/8 divide-white/5' : 'border-gray-200 divide-gray-100'}`}>
+                                            {targetGroups.map(g => {
+                                                const checked = copyModal.targetGroupIds.has(g.id);
+                                                // Shu testlardan qaysidir allaqachon berilganmi
+                                                const already = copyModal.tests.filter(t =>
+                                                    (g.assignedTests || []).some(a => a.id === t.id)
+                                                ).length;
+                                                return (
+                                                    <button
+                                                        key={g.id}
+                                                        type="button"
+                                                        onClick={() => toggleCopyTarget(g.id)}
+                                                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                                                            checked
+                                                                ? (isDark ? 'bg-blue-500/10' : 'bg-blue-50')
+                                                                : (isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50')
+                                                        }`}
+                                                    >
+                                                        {checked
+                                                            ? <CheckSquare size={17} weight="fill" className="text-blue-500 shrink-0" />
+                                                            : <Square size={17} className="text-gray-400 shrink-0" />}
+                                                        <span className={`flex-1 text-[13px] font-medium truncate ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>
+                                                            {g.name}
+                                                        </span>
+                                                        {already > 0 && (
+                                                            <span className="text-[11px] text-amber-600 dark:text-amber-400 shrink-0">
+                                                                {already} tasi allaqachon bor
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[11px] text-gray-500 shrink-0 tabular-nums">
+                                                            {g.studentIds?.length || 0} o'q
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Sozlamalar */}
+                                <div className="space-y-3">
+                                    <p className={`text-[11px] font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                        Nusxa uchun sozlamalar
+                                    </p>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[13px] text-gray-500 flex items-center gap-1.5">
+                                            <Clock size={13} className="text-gray-400" /> Deadline
+                                        </label>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {[{ label: '+1 kun', days: 1 }, { label: '+3 kun', days: 3 }, { label: '+1 hafta', days: 7 }].map(({ label, days }) => (
+                                                <button
+                                                    key={days}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const d = new Date();
+                                                        d.setDate(d.getDate() + days);
+                                                        d.setSeconds(0, 0);
+                                                        setCopyModal(p => ({ ...p, deadline: toDateTimeLocalValue(d) }));
+                                                    }}
+                                                    className={`h-7 px-2.5 rounded-lg border text-[12px] font-medium transition-colors ${isDark ? 'border-white/10 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                                >
+                                                    {label}
+                                                </button>
+                                            ))}
+                                            {copyModal.deadline && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCopyModal(p => ({ ...p, deadline: '' }))}
+                                                    className="h-7 px-2.5 rounded-lg border border-rose-500/25 text-rose-500 text-[12px] font-medium hover:bg-rose-500/5 transition-colors"
+                                                >
+                                                    Tozalash
+                                                </button>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="datetime-local"
+                                            value={copyModal.deadline}
+                                            onChange={e => setCopyModal(p => ({ ...p, deadline: e.target.value }))}
+                                            className={`w-full h-10 px-3 rounded-xl border text-[13px] outline-none transition-colors ${isDark ? 'bg-transparent border-white/10 text-white' : 'bg-white border-gray-200 text-gray-800'}`}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[13px] text-gray-500 flex items-center gap-1.5">
+                                                <ArrowsCounterClockwise size={13} className="text-gray-400" /> Urinishlar
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={Number(copyModal.maxAttempts) <= 1}
+                                                    onClick={() => setCopyModal(p => ({ ...p, maxAttempts: String(Math.max(1, Number(p.maxAttempts) - 1)) }))}
+                                                    className={`h-9 w-9 rounded-lg border flex items-center justify-center disabled:opacity-40 transition-colors ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-gray-200 hover:bg-gray-50'}`}
+                                                >
+                                                    <Minus size={13} weight="bold" />
+                                                </button>
+                                                <span className={`flex-1 text-center text-sm font-medium tabular-nums ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                                    {copyModal.maxAttempts}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    disabled={Number(copyModal.maxAttempts) >= 10}
+                                                    onClick={() => setCopyModal(p => ({ ...p, maxAttempts: String(Math.min(10, Number(p.maxAttempts) + 1)) }))}
+                                                    className={`h-9 w-9 rounded-lg border flex items-center justify-center disabled:opacity-40 transition-colors ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-gray-200 hover:bg-gray-50'}`}
+                                                >
+                                                    <Plus size={13} weight="bold" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[13px] text-gray-500">Muhimlik</label>
+                                            <div className="grid grid-cols-3 gap-1">
+                                                {[
+                                                    { key: 'low', label: 'Past' },
+                                                    { key: 'medium', label: "O'rt" },
+                                                    { key: 'high', label: 'Yuq' },
+                                                ].map(item => (
+                                                    <button
+                                                        key={item.key}
+                                                        type="button"
+                                                        onClick={() => setCopyModal(p => ({ ...p, priority: item.key }))}
+                                                        className={`h-9 rounded-lg border text-[12px] font-medium transition-colors ${
+                                                            copyModal.priority === item.key
+                                                                ? (isDark ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-900 border-gray-900 text-white')
+                                                                : (isDark ? 'border-white/10 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50')
+                                                        }`}
+                                                    >
+                                                        {item.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[13px] text-gray-500">Eslatma / izoh</label>
+                                        <textarea
+                                            rows={2}
+                                            value={copyModal.teacherNote}
+                                            onChange={e => setCopyModal(p => ({ ...p, teacherNote: e.target.value }))}
+                                            placeholder="Ixtiyoriy"
+                                            className={`w-full p-3 rounded-xl border text-[13px] outline-none resize-none transition-colors ${isDark ? 'bg-transparent border-white/10 text-white placeholder-gray-600' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Amallar */}
+                            <div className={`flex items-center gap-2 px-5 py-3.5 border-t ${isDark ? 'border-white/8' : 'border-gray-100'}`}>
+                                <span className="text-[12px] text-gray-500 flex-1 truncate">
+                                    {selectedCount > 0
+                                        ? `${copyModal.tests.length} × ${selectedCount} guruh · ${studentCount} o'quvchi`
+                                        : 'Guruh tanlang'}
+                                </span>
+                                <button
+                                    onClick={() => setCopyModal(null)}
+                                    className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
+                                >
+                                    Bekor qilish
+                                </button>
+                                <button
+                                    onClick={doCopyAssignment}
+                                    disabled={copySaving || selectedCount === 0}
+                                    className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    {copySaving
+                                        ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        : <><CopySimple size={15} weight="bold" /> Nusxalash</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Edit Assignment Modal */}
             {editModal && (() => {
@@ -1148,7 +1687,7 @@ export default function TeacherTests() {
                                     <div className="flex flex-wrap gap-1.5 mb-1.5">
                                         {[{ label: '+1 kun', days: 1 }, { label: '+3 kun', days: 3 }, { label: '+1 hafta', days: 7 }].map(({ label, days }) => (
                                             <button key={days} type="button"
-                                                onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); d.setSeconds(0, 0); setEditModal(p => ({ ...p, deadline: d.toISOString().slice(0, 16) })); }}
+                                                onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); d.setSeconds(0, 0); setEditModal(p => ({ ...p, deadline: toDateTimeLocalValue(d) })); }}
                                                 className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-blue-500/10 hover:text-blue-400' : 'bg-white border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-600 shadow-sm'}`}
                                             >{label}</button>
                                         ))}
@@ -1191,7 +1730,7 @@ export default function TeacherTests() {
                                             ].map(item => (
                                                 <button key={item.key} type="button"
                                                     onClick={() => setEditModal(p => ({ ...p, priority: item.key }))}
-                                                    className={`py-2 rounded-xl border text-[10px] font-bold transition-all ${editModal.priority === item.key ? item.activeClass : (isDark ? 'border-white/5 text-gray-450 bg-[#2C2C2C]/50 hover:bg-white/5' : 'border-gray-200 text-gray-600 bg-white shadow-sm')}`}>
+                                                    className={`py-2 rounded-xl border text-[10px] font-bold transition-all ${editModal.priority === item.key ? item.activeClass : (isDark ? 'border-white/5 text-gray-400 bg-[#2C2C2C]/50 hover:bg-white/5' : 'border-gray-200 text-gray-600 bg-white shadow-sm')}`}>
                                                     {item.label}
                                                 </button>
                                             ))}

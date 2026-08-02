@@ -5,6 +5,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebase/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { ArrowLeft, Users, Zap, CheckCircle2, AlertCircle, Crown, Shield, CreditCard } from 'lucide-react';
+import { hasActiveTeacherSubscription, getTeacherSubscriptionDaysLeft } from '../../utils/subscription';
+import { collectStudentIds } from '../../utils/teacherResults';
 
 export default function TeacherSubscription() {
     const { userData, user } = useAuth();
@@ -18,7 +20,7 @@ export default function TeacherSubscription() {
     const [studentCount, setStudentCount] = useState(0);
 
     const subscription = userData?.teacherSubscription;
-    const isSubscribed = subscription && new Date(subscription.validUntil) > new Date();
+    const isSubscribed = hasActiveTeacherSubscription(userData);
 
     useEffect(() => {
         if (userData) {
@@ -32,21 +34,7 @@ export default function TeacherSubscription() {
             const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
             const querySnap = await getDocs(q);
             const fetchedGroups = querySnap.docs.map(d => d.data());
-
-            if (!fetchedGroups.length) {
-                setStudentCount(0);
-                setLoading(false);
-                return;
-            }
-
-            const allStudentIds = new Set();
-            fetchedGroups.forEach(g => {
-                if (g.studentIds && Array.isArray(g.studentIds)) {
-                    g.studentIds.forEach(id => allStudentIds.add(id));
-                }
-            });
-
-            setStudentCount(allStudentIds.size);
+            setStudentCount(collectStudentIds(fetchedGroups).length);
         } catch (error) {
             console.error("Error fetching students:", error);
         } finally {
@@ -110,13 +98,7 @@ export default function TeacherSubscription() {
         }
     ];
 
-    const getRemainingDays = () => {
-        if (!isSubscribed) return 0;
-        const end = new Date(subscription.validUntil);
-        const diffTime = end - new Date();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays > 0 ? diffDays : 0;
-    };
+    const remainingDays = getTeacherSubscriptionDaysLeft(userData);
 
     return (
         <div className={`min-h-screen font-sans transition-colors duration-500 pb-20 ${isDark ? 'bg-[#0f0f0f] text-white' : 'bg-[#f8f9fa] text-zinc-900'}`}>
@@ -177,7 +159,7 @@ export default function TeacherSubscription() {
                             <div className="flex items-center gap-4 shrink-0">
                                 <div className={`flex flex-col items-center justify-center p-4 rounded-2xl border ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'} min-w-[120px]`}>
                                     <span className="text-xs font-bold text-zinc-500 mb-1">MUDDAT</span>
-                                    <span className="text-3xl font-black">{getRemainingDays()}</span>
+                                    <span className="text-3xl font-black">{remainingDays}</span>
                                     <span className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Kun Qoldi</span>
                                 </div>
                             </div>

@@ -432,6 +432,10 @@
   body.student-sidebar-active {
     padding-left: 240px !important;
     padding-top: 48px !important;
+    transition: padding-left 0.2s ease;
+  }
+  body.student-sidebar-active.student-sidebar-collapsed {
+    padding-left: 72px !important;
   }
 }
 

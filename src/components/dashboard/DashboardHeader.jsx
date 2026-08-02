@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Bell, 
-  ChevronDown, 
-  ChevronRight, 
+import {
+  Bell,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronsUpDown,
   Search, 
   Settings, 
@@ -73,6 +74,10 @@ export default function DashboardHeader({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isTeacherSectionOpen, setIsTeacherSectionOpen] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('sidebarCollapsed') === 'true';
+  });
   const navigate = useNavigate();
   const location = useLocation();
   const isMac = typeof window !== 'undefined' && navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
@@ -80,10 +85,13 @@ export default function DashboardHeader({
   useEffect(() => {
     // Add layout shift class to body when sidebar is active
     document.body.classList.add('student-sidebar-active');
+    document.body.classList.toggle('student-sidebar-collapsed', isCollapsed);
+    localStorage.setItem('sidebarCollapsed', String(isCollapsed));
     return () => {
       document.body.classList.remove('student-sidebar-active');
+      document.body.classList.remove('student-sidebar-collapsed');
     };
-  }, []);
+  }, [isCollapsed]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -109,7 +117,7 @@ export default function DashboardHeader({
     { id: 'pricing', label: 'Pricing', path: '/pricing', icon: CreditCard },
   ];
 
-  const renderIeltsSection = (isMobile = false) => {
+  const renderIeltsSection = (isMobile = false, isCollapsed = false) => {
     const isFullReadingActive = location.pathname === '/reading/full';
     const isFullListeningActive = location.pathname === '/listening/full';
     const isFullWritingActive = location.pathname.startsWith('/practice') && location.search.includes('tab=writing') && location.search.includes('type=full');
@@ -131,17 +139,31 @@ export default function DashboardHeader({
     const iconSize = isMobile ? 16 : 18;
 
     const skillRow = (Icon, label, active, onClick) => (
-      <button
-        onClick={onClick}
-        className={`w-full text-left px-sm py-1.5 ${subTextClass} rounded-lg transition-all duration-200 flex items-center gap-2.5 group ${
-          active
-            ? 'text-warm-primary dark:text-white bg-[#F0EAE0] dark:bg-warm-primary font-semibold'
-            : 'text-warm-body dark:text-warm-on-dark-soft font-medium hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
-        }`}
-      >
-        <Icon size={iconSize} strokeWidth={2} className={active ? 'text-warm-primary dark:text-white' : 'text-warm-muted-soft dark:text-warm-on-dark-soft'} />
-        {label}
-      </button>
+      isCollapsed ? (
+        <button
+          onClick={onClick}
+          title={label}
+          className={`w-full flex items-center justify-center py-2 rounded-lg transition-all duration-200 ${
+            active
+              ? 'text-warm-primary dark:text-white bg-[#F0EAE0] dark:bg-warm-primary'
+              : 'text-warm-muted-soft dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
+          }`}
+        >
+          <Icon size={iconSize} strokeWidth={2} />
+        </button>
+      ) : (
+        <button
+          onClick={onClick}
+          className={`w-full text-left px-sm py-1.5 ${subTextClass} rounded-lg transition-all duration-200 flex items-center gap-2.5 group ${
+            active
+              ? 'text-warm-primary dark:text-white bg-[#F0EAE0] dark:bg-warm-primary font-semibold'
+              : 'text-warm-body dark:text-warm-on-dark-soft font-medium hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
+          }`}
+        >
+          <Icon size={iconSize} strokeWidth={2} className={active ? 'text-warm-primary dark:text-white' : 'text-warm-muted-soft dark:text-warm-on-dark-soft'} />
+          {label}
+        </button>
+      )
     );
 
     const sectionLabel = (label) => (
@@ -149,6 +171,22 @@ export default function DashboardHeader({
         {label}
       </div>
     );
+
+    if (isCollapsed) {
+      return (
+        <div className="mt-3.5 flex flex-col gap-xxs">
+          {skillRow(BookOpen, t('dashboard.reading'), isFullReadingActive, () => handleSubItemClick('/reading/full'))}
+          {skillRow(Headphones, t('dashboard.listening'), isFullListeningActive, () => handleSubItemClick('/listening/full'))}
+          {skillRow(PenTool, t('dashboard.writing'), isFullWritingActive, () => handleSubItemClick('/practice?tab=writing&type=full'))}
+          <div className="h-px bg-warm-hairline dark:bg-white/10 my-1" />
+          {skillRow(BookOpen, t('dashboard.reading'), isPartReadingActive, () => handleSubItemClick('/reading/parts'))}
+          {skillRow(Headphones, t('dashboard.listening'), isPartListeningActive, () => handleSubItemClick('/listening/parts'))}
+          {skillRow(PenTool, t('dashboard.writing'), isPartWritingActive, () => handleSubItemClick('/practice?tab=writing&type=part'))}
+          <div className="h-px bg-warm-hairline dark:bg-white/10 my-1" />
+          {skillRow(Mic, t('dashboard.speaking'), isSpeakingActive, () => handleSubItemClick('/speaking-ai'))}
+        </div>
+      );
+    }
 
     return (
       <div className="mt-3.5 flex flex-col gap-3.5">
@@ -178,7 +216,7 @@ export default function DashboardHeader({
     );
   };
 
-  const renderTeacherSection = (isMobile = false) => {
+  const renderTeacherSection = (isMobile = false, isCollapsed = false) => {
     if (userData?.role !== 'teacher') return null;
 
     const items = [
@@ -200,15 +238,38 @@ export default function DashboardHeader({
       }
     };
 
-    const textClass = isMobile ? 'text-[12px]' : 'text-[13px]';
-    const subTextClass = isMobile ? 'text-[12px] py-1' : 'text-[13px] py-1';
-    const iconSize = isMobile ? 13 : 14;
+    const iconSize = isMobile ? 16 : 18;
+
+    if (isCollapsed) {
+      return (
+        <div className="mt-lg flex flex-col gap-xxs">
+          {items.map(item => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path || (item.path === '/teacher' && location.pathname === '/teacher/');
+            return (
+              <button
+                key={item.id}
+                title={item.label}
+                onClick={() => handleItemClick(item.path)}
+                className={`w-full flex items-center justify-center py-2 rounded-lg transition-all ${
+                  isActive
+                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20'
+                    : 'text-warm-body dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
+                }`}
+              >
+                <Icon size={iconSize} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-warm-muted dark:text-warm-on-dark-soft'} />
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
 
     return (
-      <div className={isMobile ? "mt-lg flex flex-col gap-sm" : "mt-lg flex flex-col gap-sm"}>
+      <div className="mt-lg flex flex-col gap-sm">
         <button
           onClick={() => setIsTeacherSectionOpen(!isTeacherSectionOpen)}
-          className="flex items-center gap-xs text-[13px] font-medium text-warm-muted-soft dark:text-warm-on-dark-soft px-sm select-none hover:text-warm-body dark:hover:text-warm-on-dark transition-colors w-full text-left"
+          className="flex items-center gap-xs text-xs font-medium text-warm-muted-soft dark:text-warm-muted px-sm select-none hover:text-warm-body dark:hover:text-warm-on-dark transition-colors w-full text-left"
         >
           <span>Ustoz paneli</span>
           <ChevronDown size={13} className={`text-warm-muted-soft dark:text-warm-on-dark-soft transition-transform duration-200 ${isTeacherSectionOpen ? '' : '-rotate-90'}`} />
@@ -220,7 +281,7 @@ export default function DashboardHeader({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className={`overflow-hidden flex flex-col ${isMobile ? "gap-xs" : "gap-xxs mt-xxs pl-xxs"}`}
+              className="overflow-hidden flex flex-col gap-xxs"
             >
               {items.map(item => {
                 const Icon = item.icon;
@@ -229,13 +290,13 @@ export default function DashboardHeader({
                   <button
                     key={item.id}
                     onClick={() => handleItemClick(item.path)}
-                    className={`w-full text-left px-sm py-xs ${textClass} rounded-lg transition-all flex items-center gap-xs font-normal group ${
+                    className={`w-full text-left ${isMobile ? 'px-sm' : 'px-3'} py-1.5 text-sm rounded-lg transition-all flex items-center gap-2.5 group ${
                       isActive
                         ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 font-semibold'
-                        : 'text-warm-body dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
+                        : 'text-warm-body dark:text-warm-on-dark-soft font-medium hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
                     }`}
                   >
-                    <Icon size={15} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-warm-muted dark:text-warm-on-dark-soft group-hover:text-warm-ink dark:group-hover:text-warm-on-dark transition-colors'} />
+                    <Icon size={iconSize} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-warm-muted dark:text-warm-on-dark-soft group-hover:text-warm-ink dark:group-hover:text-warm-on-dark transition-colors'} />
                     <span>{item.label}</span>
                   </button>
                 );
@@ -247,10 +308,11 @@ export default function DashboardHeader({
     );
   };
 
-  const renderMenuItem = (item) => {
+  const renderMenuItem = (item, isCollapsed = false) => {
     const active = isTabActive(item);
     const Icon = item.icon;
     const isMock = item.id === 'mock';
+    const label = getLabel(item.id, item.label);
 
     let buttonClasses = isMock
       ? 'mock-exam-shimmer font-semibold'
@@ -267,11 +329,12 @@ export default function DashboardHeader({
     return (
       <button
         key={item.id}
+        title={isCollapsed ? label : undefined}
         onClick={() => handleNavigation(item)}
-        className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 ${buttonClasses}`}
+        className={`w-full flex items-center rounded-lg text-sm transition-all duration-200 ${isCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-1.5'} ${buttonClasses}`}
       >
-        <Icon size={18} strokeWidth={2} className={iconClasses} />
-        {getLabel(item.id, item.label)}
+        <Icon size={18} strokeWidth={2} className={`flex-shrink-0 ${iconClasses}`} />
+        {!isCollapsed && label}
       </button>
     );
   };
@@ -403,7 +466,7 @@ export default function DashboardHeader({
   return (
     <>
       {/* Desktop Content Header */}
-      <header className="hidden md:flex fixed top-0 left-60 right-0 h-12 bg-warm-canvas dark:bg-warm-dark border-b border-warm-hairline dark:border-white/5 items-center justify-between px-lg z-50">
+      <header className={`hidden md:flex fixed top-0 right-0 h-12 bg-warm-canvas dark:bg-warm-dark border-b border-warm-hairline dark:border-white/5 items-center justify-between px-lg z-50 transition-[left] duration-200 ${isCollapsed ? 'left-[72px]' : 'left-60'}`}>
         {/* Breadcrumbs */}
         <div className="flex items-center gap-xs text-[13px] font-normal text-warm-muted-soft dark:text-warm-on-dark-soft select-none">
           <span className="text-warm-body dark:text-warm-on-dark font-medium">
@@ -485,47 +548,61 @@ export default function DashboardHeader({
           </button>
         </div>
       </header>      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex fixed top-0 left-0 bottom-0 w-60 bg-warm-canvas dark:bg-warm-dark-elevated border-r border-warm-hairline dark:border-white/5 z-[60] flex-col justify-between select-none font-sans">
+      <aside className={`hidden md:flex fixed top-0 left-0 bottom-0 bg-warm-canvas dark:bg-warm-dark-elevated border-r border-warm-hairline dark:border-white/5 z-[60] flex-col justify-between select-none font-sans transition-[width] duration-200 ${isCollapsed ? 'w-[72px]' : 'w-60'}`}>
+        {/* Collapse / Expand toggle */}
+        <button
+          onClick={() => setIsCollapsed(v => !v)}
+          title={isCollapsed ? "Sidebar'ni ochish" : "Sidebar'ni yopish"}
+          className="absolute -right-3 top-[22px] w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-warm-dark-elevated border border-warm-hairline dark:border-white/10 shadow-md text-warm-muted-soft dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark hover:border-warm-primary/30 transition-all z-10"
+        >
+          <ChevronLeft size={14} className={`transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`} />
+        </button>
+
         {/* Fixed Logo Header */}
-        <div className="h-14 flex items-center px-md flex-shrink-0">
+        <div className={`h-14 flex items-center flex-shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-md'}`}>
           <div className="cursor-pointer flex items-center gap-2 select-none" onClick={() => navigate('/dashboard')}>
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-warm-primary flex-shrink-0">
               <path fillRule="evenodd" clipRule="evenodd" d="M8 0C3.58172 0 0 3.58172 0 8V20C0 24.4183 3.58172 28 8 28H20C24.4183 28 28 24.4183 28 20V8C28 3.58172 24.4183 0 20 0H8ZM14 20C17.3137 20 20 17.3137 20 14C20 10.6863 17.3137 8 14 8C10.6863 8 8 10.6863 8 14C8 17.3137 10.6863 20 14 20Z" fill="currentColor"/>
             </svg>
-            <span className="text-[22px] tracking-tight font-bold text-warm-ink dark:text-warm-on-dark font-sans">
-              Englev
-            </span>
+            {!isCollapsed && (
+              <span className="text-[22px] tracking-tight font-bold text-warm-ink dark:text-warm-on-dark font-sans">
+                Englev
+              </span>
+            )}
           </div>
         </div>
 
         {/* Scrollable sidebar content */}
-        <div className="flex-1 overflow-y-auto hide-scrollbar p-sm flex flex-col gap-3.5">
+        <div className={`flex-1 overflow-y-auto hide-scrollbar flex flex-col gap-3.5 ${isCollapsed ? 'px-2 py-sm' : 'p-sm'}`}>
           <div className="flex flex-col gap-xxs">
             {userData?.role === 'admin' && (
               <button
                 onClick={() => navigate('/admin')}
-                className="w-full flex items-center gap-xs px-sm py-xs rounded-lg text-[13px] font-semibold transition-all bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 mb-xxs"
+                title={isCollapsed ? 'Admin Panel' : undefined}
+                className={`w-full flex items-center rounded-lg text-sm font-semibold transition-all bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 mb-xxs ${isCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-1.5'}`}
               >
-                <GraduationCap size={15} className="text-amber-500" />
-                <span>Admin Panel</span>
+                <GraduationCap size={18} className="text-amber-500 flex-shrink-0" />
+                {!isCollapsed && <span>Admin Panel</span>}
               </button>
             )}
-            {userData?.role !== 'teacher' && coreItems.map(renderMenuItem)}
+            {userData?.role !== 'teacher' && coreItems.map((item) => renderMenuItem(item, isCollapsed))}
           </div>
 
           {/* Teacher Section */}
-          {renderTeacherSection(false)}
+          {renderTeacherSection(false, isCollapsed)}
 
           {/* IELTS Section */}
-          {renderIeltsSection(false)}
+          {renderIeltsSection(false, isCollapsed)}
 
           {/* Resources Section */}
           <div className="mt-3.5">
-            <div className="text-xs font-medium text-warm-muted-soft dark:text-warm-muted px-sm mb-1.5 select-none">
-              {t('dashboard.resources')}
-            </div>
+            {!isCollapsed && (
+              <div className="text-xs font-medium text-warm-muted-soft dark:text-warm-muted px-sm mb-1.5 select-none">
+                {t('dashboard.resources')}
+              </div>
+            )}
             <div className="gap-xxs flex flex-col">
-              {resourceItems.map(renderMenuItem)}
+              {resourceItems.map((item) => renderMenuItem(item, isCollapsed))}
             </div>
           </div>
 
@@ -533,30 +610,41 @@ export default function DashboardHeader({
           <div className="mt-md pt-sm border-t border-warm-hairline dark:border-white/5 flex flex-col gap-xs">
             {/* See what's included Plan Card */}
             {userData?.role !== 'teacher' && (
-              <div
-                onClick={onPremiumClick || (() => navigate('/pricing'))}
-                className="border border-warm-hairline dark:border-white/5 rounded-xl p-sm bg-warm-canvas dark:bg-white/[0.02] flex items-center justify-between cursor-pointer hover:bg-warm-surface dark:hover:bg-white/5 transition-all duration-200 group"
-              >
-                <div className="flex-1 min-w-0 pr-xs">
-                  <p className="text-[13px] font-semibold text-warm-ink dark:text-warm-on-dark group-hover:text-warm-ink dark:group-hover:text-warm-on-dark">{t('dashboard.upgradeTitle')}</p>
-                  <p className="text-[11px] font-normal text-warm-muted-soft dark:text-warm-on-dark-soft mt-xxs">{t('dashboard.upgradeSubtitle')}</p>
+              isCollapsed ? (
+                <button
+                  onClick={onPremiumClick || (() => navigate('/pricing'))}
+                  title={t('dashboard.upgradeTitle')}
+                  className="w-full flex items-center justify-center py-2 rounded-lg border border-warm-hairline dark:border-white/5 bg-warm-canvas dark:bg-white/[0.02] hover:bg-warm-surface dark:hover:bg-white/5 transition-all duration-200"
+                >
+                  <ArrowUp size={16} className="text-warm-primary" />
+                </button>
+              ) : (
+                <div
+                  onClick={onPremiumClick || (() => navigate('/pricing'))}
+                  className="border border-warm-hairline dark:border-white/5 rounded-xl p-sm bg-warm-canvas dark:bg-white/[0.02] flex items-center justify-between cursor-pointer hover:bg-warm-surface dark:hover:bg-white/5 transition-all duration-200 group"
+                >
+                  <div className="flex-1 min-w-0 pr-xs">
+                    <p className="text-[13px] font-semibold text-warm-ink dark:text-warm-on-dark group-hover:text-warm-ink dark:group-hover:text-warm-on-dark">{t('dashboard.upgradeTitle')}</p>
+                    <p className="text-[11px] font-normal text-warm-muted-soft dark:text-warm-on-dark-soft mt-xxs">{t('dashboard.upgradeSubtitle')}</p>
+                  </div>
+                  <ChevronRight size={12} className="text-warm-muted-soft dark:text-warm-on-dark-soft shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </div>
-                <ChevronRight size={12} className="text-warm-muted-soft dark:text-warm-on-dark-soft shrink-0 group-hover:translate-x-0.5 transition-transform" />
-              </div>
+              )
             )}
 
             {/* Logout Button */}
             <button
               onClick={onLogoutClick || logout}
-              className="w-full flex items-center gap-xs px-sm py-xs rounded-xl text-[13px] font-semibold transition-all duration-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
+              title={isCollapsed ? t('dashboard.logout') : undefined}
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 ${isCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-1.5'}`}
             >
-              <LogOut size={15} className="text-red-500 shrink-0" />
-              {t('dashboard.logout')}
+              <LogOut size={18} className="text-red-500 shrink-0" />
+              {!isCollapsed && t('dashboard.logout')}
             </button>
           </div>
 
           {/* BOTTOM CONTAINER (UPGRADE CARD) */}
-          {!isPremium && userData?.role !== 'teacher' && (
+          {!isCollapsed && !isPremium && userData?.role !== 'teacher' && (
             <div className="bg-warm-surface dark:bg-white/5 border border-warm-hairline dark:border-white/5 rounded-xl p-sm text-center flex flex-col items-center gap-sm mt-md shrink-0 font-sans">
               <div className="w-8 h-8 rounded-lg bg-warm-primary/10 dark:bg-warm-primary/20 flex items-center justify-center text-warm-primary">
                 <ArrowUp size={14} strokeWidth={2.5} />
@@ -578,9 +666,10 @@ export default function DashboardHeader({
         <div className="p-xs bg-warm-canvas dark:bg-warm-dark-elevated border-t border-warm-hairline dark:border-white/5 flex-shrink-0">
           <div
             onClick={() => navigate('/settings')}
-            className="flex items-center justify-between gap-xs p-xs rounded-xl hover:bg-warm-surface dark:hover:bg-white/5 cursor-pointer transition-all duration-200 select-none"
+            title={isCollapsed ? (userData?.fullName || user?.displayName || "Profil") : undefined}
+            className={`flex items-center rounded-xl hover:bg-warm-surface dark:hover:bg-white/5 cursor-pointer transition-all duration-200 select-none ${isCollapsed ? 'justify-center p-xs' : 'justify-between gap-xs p-xs'}`}
           >
-            <div className="flex items-center gap-xs min-w-0">
+            <div className={`flex items-center min-w-0 ${isCollapsed ? '' : 'gap-xs'}`}>
               <div className="w-8 h-8 rounded-lg overflow-hidden border border-warm-hairline dark:border-white/10 shrink-0">
                 <img
                   src={userData?.photoURL || user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
@@ -591,16 +680,18 @@ export default function DashboardHeader({
                   }}
                 />
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[13px] font-semibold text-warm-ink dark:text-warm-on-dark truncate">
-                  {userData?.fullName || user?.displayName || "IELTS Candidate"}
-                </span>
-                <span className="text-[11px] text-warm-muted-soft dark:text-warm-on-dark-soft truncate leading-none mt-xxs">
-                  {user?.email || userData?.email || ""}
-                </span>
-              </div>
+              {!isCollapsed && (
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[13px] font-semibold text-warm-ink dark:text-warm-on-dark truncate">
+                    {userData?.fullName || user?.displayName || "IELTS Candidate"}
+                  </span>
+                  <span className="text-[11px] text-warm-muted-soft dark:text-warm-on-dark-soft truncate leading-none mt-xxs">
+                    {user?.email || userData?.email || ""}
+                  </span>
+                </div>
+              )}
             </div>
-            <ChevronsUpDown size={13} className="text-warm-muted-soft dark:text-warm-on-dark-soft shrink-0" />
+            {!isCollapsed && <ChevronsUpDown size={13} className="text-warm-muted-soft dark:text-warm-on-dark-soft shrink-0" />}
           </div>
         </div>
       </aside>

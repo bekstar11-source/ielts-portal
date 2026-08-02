@@ -248,14 +248,30 @@ export function useMockExam(mockData, user, userData, navigate) {
     useEffect(() => {
         const activeTestStages = ['listening', 'reading', 'writing', 'listening_volume_check'];
         
+        // Telegram bildirishnomasi yoki boshqa dastur oynasi bir lahzaga ustga
+        // chiqqanda ham brauzer sahifani "hidden" deb belgilaydi. Buni
+        // qoidabuzarlik deb sanash noto'g'ri (talaba 3 ta soxta ogohlantirish
+        // bilan testdan chiqib ketardi) — shuning uchun sahifa kamida
+        // HIDDEN_GRACE_MS davomida yopiq turgandagina hisoblaymiz.
+        const HIDDEN_GRACE_MS = 2000;
+        let hiddenTimer = null;
+
         const handleVisibilityChange = () => {
+            clearTimeout(hiddenTimer);
             if (document.hidden && activeTestStages.includes(stageRef.current)) {
-                setTabSwitchCount(prev => prev + 1);
+                hiddenTimer = setTimeout(() => {
+                    if (document.hidden && activeTestStages.includes(stageRef.current)) {
+                        setTabSwitchCount(prev => prev + 1);
+                    }
+                }, HIDDEN_GRACE_MS);
             }
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            clearTimeout(hiddenTimer);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     // Fetch Tests & Restore/Auto-submit Session

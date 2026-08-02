@@ -1,11 +1,4 @@
 import React from 'react';
-import {
-  BookOpen,
-  NotePencil,
-  Headphones,
-  Trophy,
-} from '@phosphor-icons/react';
-
 // SVG ring progress chart
 export const RingChart = ({ pct, isDark }) => {
     const r = 17;
@@ -40,14 +33,4 @@ export const DeadlineCountdown = ({ deadline, isDark }) => {
     if (days > 0) return <span className={`font-bold ${color}`}>{days}k {hours}s qoldi</span>;
     if (hours > 0) return <span className="font-bold text-rose-500">{hours}s {mins}d qoldi</span>;
     return <span className="font-bold text-rose-600">{mins} daqiqa qoldi!</span>;
-};
-
-export const getTestIconAndColor = (type) => {
-    const t = (type || '').toLowerCase();
-    if (t.includes('reading')) return { icon: <BookOpen size={16} weight="fill" />, colorClass: 'bg-blue-500/10 text-blue-500' };
-    if (t.includes('listening')) return { icon: <Headphones size={16} weight="fill" />, colorClass: 'bg-pink-500/10 text-pink-500' };
-    if (t.includes('writing')) return { icon: <NotePencil size={16} weight="fill" />, colorClass: 'bg-orange-500/10 text-orange-500' };
-    if (t.includes('podcast')) return { icon: <Headphones size={16} weight="fill" />, colorClass: 'bg-indigo-500/10 text-indigo-500' };
-    if (t.includes('article')) return { icon: <BookOpen size={16} weight="fill" />, colorClass: 'bg-emerald-500/10 text-emerald-500' };
-    return { icon: <Trophy size={16} weight="fill" />, colorClass: 'bg-purple-500/10 text-purple-500' };
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { db, functions } from '../firebase/firebase';
 import { collection, doc, getDoc, getDocs, query, where, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -83,6 +84,7 @@ export const useWritingReview = (userData) => {
             setWritings(cleanWritings.sort((a, b) => dateToMillis(b.date) - dateToMillis(a.date)));
         } catch (e) {
             console.error(e);
+            toast.error("Ma'lumotlarni yuklashda xatolik yuz berdi");
         } finally {
             setLoading(false);
         }
@@ -126,6 +128,10 @@ export const useWritingReview = (userData) => {
                 writingOverall = t1;
             } else if (hasT2) {
                 writingOverall = t2;
+            }
+
+            if (Number.isNaN(writingOverall)) {
+                throw new Error("Topshirilgan vazifalar uchun band tanlanmagan");
             }
 
             const updates = {
@@ -173,9 +179,11 @@ export const useWritingReview = (userData) => {
 
             await updateDoc(resRef, updates);
             await fetchData();
+            toast.success("Baholash saqlandi");
             return true;
         } catch (e) {
             console.error(e);
+            toast.error("Saqlashda xatolik yuz berdi: " + e.message);
             throw e;
         } finally {
             setSaving(false);
@@ -188,10 +196,11 @@ export const useWritingReview = (userData) => {
             const checkWriting = httpsCallable(functions, 'checkWriting');
             const result = await checkWriting({ resultId });
             await fetchData();
+            toast.success("AI tahlili tayyor");
             return result.data;
         } catch (e) {
             console.error(e);
-            alert("AI Tekshiruvda xatolik: " + e.message);
+            toast.error("AI tekshiruvda xatolik: " + e.message);
             throw e;
         } finally {
             setAiLoading(false);

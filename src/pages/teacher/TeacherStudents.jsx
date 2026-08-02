@@ -3,14 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebase/firebase';
-import {
-    collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove
-} from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import {
     Users, Plus, Trash, MagnifyingGlass, UserCircle, CaretDown, CheckCircle, WarningCircle, CaretLeft
 } from '@phosphor-icons/react';
 import { useStudentSearch } from '../../hooks/useStudentSearch';
 import { useTranslation } from '../../context/LanguageContext';
+import { canAddStudent, addStudentToGroup, removeStudentFromGroup } from '../../utils/groupMembership';
 
 export default function TeacherStudents() {
     const navigate = useNavigate();
@@ -61,35 +60,23 @@ export default function TeacherStudents() {
         setLoading(true);
         try {
             const group = groups.find(g => g.id === groupId);
-            if (!group || !group.studentIds || group.studentIds.length === 0) {
+            const studentIds = group?.studentIds || [];
+            if (studentIds.length === 0) {
                 setStudents([]);
-                setLoading(false);
                 return;
             }
 
-            // Split into chunks of 10 to fetch
-            const chunks = [];
-            for (let i = 0; i < group.studentIds.length; i += 10) {
-                chunks.push(group.studentIds.slice(i, i + 10));
-            }
-
-            let allStudents = [];
-            for (const chunk of chunks) {
-                const q = query(collection(db, 'users'), where('uid', 'in', chunk));
-                const snap = await getDocs(q);
-                // Try fetching using document ID directly since `users` collection might be structured by ID.
-                const studentPromises = chunk.map(id => getDoc(doc(db, 'users', id)));
-                const studentSnaps = await Promise.all(studentPromises);
-                studentSnaps.forEach(docSnap => {
-                    if (docSnap.exists()) {
-                        allStudents.push({ id: docSnap.id, ...docSnap.data() });
-                    }
-                });
-            }
-            
-            // remove duplicates if any (due to both query and direct fetch attempts or just processing)
-            const uniqueStudents = Array.from(new Map(allStudents.map(s => [s.id, s])).values());
-            setStudents(uniqueStudents);
+            // Faqat hujjat ID si bo'yicha o'qiymiz. Ilgari bu yerda qo'shimcha
+            // `where('uid','in',chunk)` so'rovi ham bor edi — natijasi hech
+            // qayerda ishlatilmasdi, ya'ni har yuklashda o'qishlar ikki barobar
+            // ko'p sarflanardi.
+            const uniqueIds = [...new Set(studentIds)];
+            const snaps = await Promise.all(
+                uniqueIds.map(id => getDoc(doc(db, 'users', id)))
+            );
+            setStudents(
+                snaps.filter(s => s.exists()).map(s => ({ id: s.id, ...s.data() }))
+            );
         } catch (error) {
             console.error("Error fetching students:", error);
         } finally {
@@ -101,12 +88,18 @@ export default function TeacherStudents() {
 
     const handleAddStudent = async (student) => {
         if (!selectedGroupId) return;
+
+        // Tarif limiti — ilgari faqat Guruh statistikasi sahifasida
+        // tekshirilardi, bu yerdan cheksiz o'quvchi qo'shsa bo'lardi.
+        const allowed = canAddStudent(userData, groups);
+        if (!allowed.ok) {
+            showMessage(allowed.reason, 'error');
+            return;
+        }
+
         try {
-            const groupRef = doc(db, 'groups', selectedGroupId);
-            await updateDoc(groupRef, {
-                studentIds: arrayUnion(student.id)
-            });
-            
+            await addStudentToGroup(selectedGroupId, student.id);
+
             // Update local state
             const updatedGroups = groups.map(g => {
                 if (g.id === selectedGroupId) {
@@ -134,11 +127,8 @@ export default function TeacherStudents() {
         if (!window.confirm(t('teacherStudents.removeConfirm').replace('{name}', studentName))) return;
 
         try {
-            const groupRef = doc(db, 'groups', selectedGroupId);
-            await updateDoc(groupRef, {
-                studentIds: arrayRemove(studentId)
-            });
-            
+            await removeStudentFromGroup(selectedGroupId, studentId);
+
             // Update local state
             const updatedGroups = groups.map(g => {
                 if (g.id === selectedGroupId) {

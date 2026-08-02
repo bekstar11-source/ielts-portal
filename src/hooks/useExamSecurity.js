@@ -103,14 +103,25 @@ export const useExamSecurity = ({ enabled, onSecurityViolation }) => {
     useEffect(() => {
         if (!enabled) return;
 
+        // useMockExam'dagi hisoblagich bilan bir xil grace: qisqa muddatli
+        // yopilish (bildirishnoma, oyna miltillashi) ogohlantirish bermaydi.
+        const HIDDEN_GRACE_MS = 2000;
+        let hiddenTimer = null;
+
         const handleVisibilityChange = () => {
+            clearTimeout(hiddenTimer);
             if (document.hidden) {
-                violationRef.current?.('tab_switch');
+                hiddenTimer = setTimeout(() => {
+                    if (document.hidden) violationRef.current?.('tab_switch');
+                }, HIDDEN_GRACE_MS);
             }
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            clearTimeout(hiddenTimer);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [enabled]);
 
     // 5. Fullscreen exit detection

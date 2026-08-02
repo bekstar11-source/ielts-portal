@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebase/firebase';
-import {
-    collection, doc, getDoc, getDocs, query, where, orderBy, updateDoc, arrayUnion, arrayRemove
-} from 'firebase/firestore';
-import { Users, BookOpen, ChartLineUp as TrendingUp, MagnifyingGlass as Search, CaretDown as ChevronDown, CaretUp as ChevronUp, Plus, Trash, Download } from '@phosphor-icons/react';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { Users, BookOpen, ChartLineUp as TrendingUp, MagnifyingGlass as Search, CaretDown as ChevronDown, CaretUp as ChevronUp, Trash, Download } from '@phosphor-icons/react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { toDate } from '../../utils/subscription';
+import { getBandValue, collectStudentIds, chunkIds } from '../../utils/teacherResults';
+import { canAddStudent, addStudentToGroup, removeStudentFromGroup } from '../../utils/groupMembership';
+import { useStudentSearch } from '../../hooks/useStudentSearch';
 
 export default function TeacherGroupStats() {
     const { userData } = useAuth();
@@ -22,10 +24,12 @@ export default function TeacherGroupStats() {
     const [expandedStudent, setExpandedStudent] = useState(null);
     const [sortBy, setSortBy] = useState('name'); // 'name' | 'score' | 'tests'
 
-    // NEW STATES
+    // Yangi o'quvchi qidirish — indekslangan prefiks so'rovlari.
+    // Ilgari bu yerda butun `users` kolleksiyasi yuklanib, filtrlash brauzerda
+    // bajarilardi (bazadagi har bir foydalanuvchi uchun 1 ta o'qish).
     const [searchDbTerm, setSearchDbTerm] = useState('');
-    const [dbSearchResults, setDbSearchResults] = useState([]);
-    const [searchingDb, setSearchingDb] = useState(false);
+    const { combinedStudents: dbSearchResults, isSearchingDb: searchingDb } =
+        useStudentSearch([], searchDbTerm);
 
     useEffect(() => {
         if (userData) fetchData();
@@ -40,7 +44,7 @@ export default function TeacherGroupStats() {
 
             if (!fetchedGroups.length) { setLoading(false); return; }
 
-            let setIdsToFetch = new Set();
+            const setIdsToFetch = new Set();
             fetchedGroups.forEach(g => {
                 g.assignedTests?.forEach(test => {
                     if (test.type === 'set') setIdsToFetch.add(test.id);
@@ -49,13 +53,10 @@ export default function TeacherGroupStats() {
 
             const testSetsMap = {};
             if (setIdsToFetch.size > 0) {
-                const idsArray = Array.from(setIdsToFetch);
-                const chunks = [];
-                for (let i = 0; i < idsArray.length; i += 10) chunks.push(idsArray.slice(i, i + 10));
-                for (const chunk of chunks) {
-                    const snap = await Promise.all(chunk.map(id => getDoc(doc(db, 'testSets', id))));
-                    snap.forEach(d => { if (d.exists()) testSetsMap[d.id] = d.data(); });
-                }
+                const snaps = await Promise.all(
+                    [...setIdsToFetch].map(id => getDoc(doc(db, 'testSets', id)))
+                );
+                snaps.forEach(d => { if (d.exists()) testSetsMap[d.id] = d.data(); });
             }
 
             fetchedGroups.forEach(g => {
@@ -76,42 +77,31 @@ export default function TeacherGroupStats() {
                 setSelectedGroup(fetchedGroups[0].id);
             }
 
-            const allStudentIds = [...new Set(fetchedGroups.flatMap(g => g.studentIds || []))];
-            if (!allStudentIds.length) { 
-                setStudents([]); 
-                setResults([]); 
-                setLoading(false); 
-                return; 
+            const allStudentIds = collectStudentIds(fetchedGroups);
+            if (!allStudentIds.length) {
+                setStudents([]);
+                setResults([]);
+                return;
             }
 
             // Fetch students
-            const chunks = [];
-            for (let i = 0; i < allStudentIds.length; i += 10) {
-                chunks.push(allStudentIds.slice(i, i + 10));
-            }
-            let studentsData = [];
-            let allResults = [];
-            for (const chunk of chunks) {
-                const uq = query(collection(db, 'users'), where('__name__', 'in', chunk));
-                const usnap = await getDocs(uq);
+            const studentsData = [];
+            const allResults = [];
+            for (const chunk of chunkIds(allStudentIds)) {
+                const [usnap, rsnap] = await Promise.all([
+                    getDocs(query(collection(db, 'users'), where('__name__', 'in', chunk))),
+                    getDocs(query(collection(db, 'results'), where('userId', 'in', chunk))),
+                ]);
                 studentsData.push(...usnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
-                const rq = query(
-                    collection(db, 'results'),
-                    where('userId', 'in', chunk)
-                );
-                const rsnap = await getDocs(rq);
                 allResults.push(...rsnap.docs.map(d => ({ id: d.id, ...d.data() })));
             }
-            
-            const sortedResults = allResults.sort((a, b) => {
-                const da = a.date ? (a.date.toDate ? a.date.toDate() : new Date(a.date)) : 0;
-                const db = b.date ? (b.date.toDate ? b.date.toDate() : new Date(b.date)) : 0;
-                return db - da;
-            });
+
+            // Eng yangisi birinchi. (Ilgari bu yerdagi `const db` firebase
+            // `db` ini soya qilardi — xato bermasa ham, xavfli edi.)
+            allResults.sort((a, b) => (toDate(b.date)?.getTime() || 0) - (toDate(a.date)?.getTime() || 0));
 
             setStudents(studentsData);
-            setResults(sortedResults);
+            setResults(allResults);
         } catch (e) {
             console.error("Error in TeacherGroupStats:", e);
         } finally {
@@ -119,59 +109,18 @@ export default function TeacherGroupStats() {
         }
     };
 
-    const searchStudentsDb = async (e) => {
-        e.preventDefault();
-        if (!searchDbTerm.trim()) { setDbSearchResults([]); return; }
-        setSearchingDb(true);
-        try {
-            const q = query(
-                collection(db, 'users'),
-                where('role', '==', 'student')
-            );
-            const snap = await getDocs(q);
-            const term = searchDbTerm.toLowerCase();
-            const matched = snap.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(u => u.fullName?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
-            setDbSearchResults(matched);
-        } catch (error) {
-            console.error("Search db error:", error);
-        } finally {
-            setSearchingDb(false);
-        }
-    };
-
     const handleAddStudent = async (studentId) => {
         if (!selectedGroup) return;
 
-        // O'qituvchi obunasidagi `maxStudents` limiti — ilgari faqat tarif
-        // kartochkasida yozib qo'yilgan edi, hech qayerda tekshirilmasdi.
-        const sub = userData?.teacherSubscription;
-        const subActive = sub && new Date(sub.validUntil) > new Date();
-        if (!subActive) {
-            alert("Faol guruh obunangiz yo'q. O'quvchi qo'shish uchun avval obuna xarid qiling.");
-            return;
-        }
-        const currentCount = new Set(
-            groups.flatMap(g => g.studentIds || [])
-        ).size;
-        if (!sub.maxStudents || currentCount >= sub.maxStudents) {
-            alert(`Tarif limiti to'ldi (${currentCount}/${sub.maxStudents}). Kattaroq tarifga o'ting.`);
+        const allowed = canAddStudent(userData, groups);
+        if (!allowed.ok) {
+            alert(allowed.reason);
             return;
         }
 
         try {
-            const groupRef = doc(db, 'groups', selectedGroup);
-            await updateDoc(groupRef, {
-                studentIds: arrayUnion(studentId)
-            });
-            const userRef = doc(db, 'users', studentId);
-            await updateDoc(userRef, {
-                groupId: selectedGroup,
-                studentType: 'group'
-            });
+            await addStudentToGroup(selectedGroup, studentId);
             setSearchDbTerm('');
-            setDbSearchResults([]);
             alert("O'quvchi guruhga qo'shildi!");
             fetchData();
         } catch (e) {
@@ -183,15 +132,7 @@ export default function TeacherGroupStats() {
         if (!selectedGroup) return;
         if (!window.confirm("O'quvchini guruhdan o'chirmoqchimisiz?")) return;
         try {
-            const groupRef = doc(db, 'groups', selectedGroup);
-            await updateDoc(groupRef, {
-                studentIds: arrayRemove(studentId)
-            });
-            const userRef = doc(db, 'users', studentId);
-            await updateDoc(userRef, {
-                groupId: null,
-                studentType: 'public'
-            });
+            await removeStudentFromGroup(selectedGroup, studentId);
             alert("O'quvchi guruhdan chiqarildi!");
             fetchData();
         } catch (e) {
@@ -202,14 +143,17 @@ export default function TeacherGroupStats() {
     const handleExportCSV = () => {
         if (!currentGroup || filteredStudents.length === 0) return;
         
-        let csvContent = "\uFEFF"; // UTF-8 BOM
-        csvContent += "O'quvchi,Email,O'rtacha Ball,Yechilgan Testlar Soni\n";
-        
+        // Ismda qo'shtirnoq bo'lsa CSV ustunlari siljib ketmasligi uchun
+        // qo'shtirnoqni ikkilantiramiz.
+        const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+        const rows = [["O'quvchi", 'Email', "O'rtacha Ball", 'Yechilgan Testlar Soni']];
         filteredStudents.forEach(s => {
             const stats = getStudentStats(s.id);
-            csvContent += `"${s.fullName}","${s.email}",${stats.avgBand || "-"},${stats.count}\n`;
+            rows.push([s.fullName, s.email, stats.avgBand || '-', stats.count]);
         });
-        
+
+        const csvContent = '\uFEFF' + rows.map(r => r.map(cell).join(',')).join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -218,35 +162,69 @@ export default function TeacherGroupStats() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     const currentGroup = groups.find(g => g.id === selectedGroup);
     const currentStudentIds = currentGroup?.studentIds || [];
     const currentStudents = students.filter(s => currentStudentIds.includes(s.id));
 
-    const getStudentStats = (studentId) => {
-        const studentResults = results.filter(r => r.userId === studentId && r.submittedBy !== 'teacher');
-        const bands = studentResults.map(r => parseFloat(r.bandScore || r.writingBand || r.score || 0)).filter(n => n > 0);
-        const avgBand = bands.length > 0 ? (bands.reduce((a, b) => a + b, 0) / bands.length).toFixed(1) : null;
-        const byType = {};
-        studentResults.forEach(r => {
-            const t = (r.type || 'other').toLowerCase();
-            if (!byType[t]) byType[t] = [];
-            byType[t].push(parseFloat(r.bandScore || r.writingBand || r.score || 0));
-        });
-        return { count: studentResults.length, avgBand, byType, recentResults: studentResults.slice(0, 5) };
-    };
+    /**
+     * Har bir o'quvchi uchun statistika BIR MARTA hisoblanadi.
+     * Ilgari `getStudentStats` saralash komparatorining ichida chaqirilardi —
+     * ya'ni har taqqoslashda butun `results` massivi qaytadan filtrlanardi.
+     *
+     * Band o'rtachasiga faqat haqiqiy IELTS band (0–9) qo'shiladi: `score`
+     * maydoni "32/40" yoki "32" bo'lishi mumkin va ilgari `parseFloat` uni
+     * 32 band deb hisoblab, o'rtachani buzardi.
+     */
+    const statsByStudent = useMemo(() => {
+        const map = new Map();
+        for (const r of results) {
+            if (r.submittedBy === 'teacher') continue;
+            if (!map.has(r.userId)) map.set(r.userId, []);
+            map.get(r.userId).push(r);
+        }
 
-    const filteredStudents = currentStudents
-        .filter(s => s.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || s.email?.toLowerCase().includes(searchTerm.toLowerCase()))
-        .sort((a, b) => {
-            if (sortBy === 'name') return (a.fullName || '').localeCompare(b.fullName || '');
-            const statsA = getStudentStats(a.id);
-            const statsB = getStudentStats(b.id);
-            if (sortBy === 'score') return parseFloat(statsB.avgBand || 0) - parseFloat(statsA.avgBand || 0);
-            if (sortBy === 'tests') return statsB.count - statsA.count;
-            return 0;
-        });
+        const out = new Map();
+        for (const [studentId, studentResults] of map) {
+            const bands = studentResults.map(getBandValue).filter(n => n !== null);
+            const byType = {};
+            for (const r of studentResults) {
+                const band = getBandValue(r);
+                if (band === null) continue;
+                const t = (r.type || 'other').toLowerCase();
+                (byType[t] = byType[t] || []).push(band);
+            }
+            out.set(studentId, {
+                count: studentResults.length,
+                avgBand: bands.length > 0 ? (bands.reduce((a, b) => a + b, 0) / bands.length).toFixed(1) : null,
+                byType,
+                recentResults: studentResults.slice(0, 5),
+            });
+        }
+        return out;
+    }, [results]);
+
+    const EMPTY_STATS = { count: 0, avgBand: null, byType: {}, recentResults: [] };
+    const getStudentStats = (studentId) => statsByStudent.get(studentId) || EMPTY_STATS;
+
+    const filteredStudents = useMemo(() => {
+        const term = searchTerm.toLowerCase();
+        return currentStudents
+            .filter(s => !term
+                || s.fullName?.toLowerCase().includes(term)
+                || s.email?.toLowerCase().includes(term))
+            .sort((a, b) => {
+                if (sortBy === 'name') return (a.fullName || '').localeCompare(b.fullName || '');
+                const statsA = statsByStudent.get(a.id) || EMPTY_STATS;
+                const statsB = statsByStudent.get(b.id) || EMPTY_STATS;
+                if (sortBy === 'score') return parseFloat(statsB.avgBand || 0) - parseFloat(statsA.avgBand || 0);
+                if (sortBy === 'tests') return statsB.count - statsA.count;
+                return 0;
+            });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentStudents, searchTerm, sortBy, statsByStudent]);
 
     const typeColors = {
         reading: 'text-blue-400',
@@ -267,13 +245,11 @@ export default function TeacherGroupStats() {
 
     // Generate Chart Data: Group progress over time
     const getChartData = () => {
+        const memberIds = new Set(currentStudentIds);
         const groupResults = results
-            .filter(r => currentStudentIds.includes(r.userId) && r.submittedBy !== 'teacher')
-            .map(r => ({
-                date: r.date ? (r.date.toDate ? r.date.toDate() : new Date(r.date)) : new Date(),
-                score: parseFloat(r.bandScore || r.writingBand || r.score || 0)
-            }))
-            .filter(r => r.score > 0)
+            .filter(r => memberIds.has(r.userId) && r.submittedBy !== 'teacher')
+            .map(r => ({ date: toDate(r.date) || new Date(), score: getBandValue(r) }))
+            .filter(r => r.score !== null)
             .sort((a, b) => a.date - b.date);
 
         if (groupResults.length === 0) return [];
@@ -372,7 +348,7 @@ export default function TeacherGroupStats() {
 
                     {/* Recharts Progress Chart */}
                     {chartData.length > 0 && (
-                        <div className={`p-5 rounded-[24px] border ${isDark ? 'bg-[#2C2C2C]/50 border-white/5' : 'bg-white border-gray-150 shadow-sm'}`}>
+                        <div className={`p-5 rounded-[24px] border ${isDark ? 'bg-[#2C2C2C]/50 border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
                             <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Guruh o'rtacha o'sish tendensiyasi</h4>
                             <div className="h-64">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -425,29 +401,22 @@ export default function TeacherGroupStats() {
                     </div>
 
                     {/* Add student widget */}
-                    <div className={`p-5 rounded-[24px] border ${isDark ? 'bg-[#2C2C2C]/50 border-white/5' : 'bg-white border-gray-150 shadow-sm'}`}>
+                    <div className={`p-5 rounded-[24px] border ${isDark ? 'bg-[#2C2C2C]/50 border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
                         <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Guruhga yangi o'quvchi qo'shish</h4>
-                        <form onSubmit={searchStudentsDb} className="flex gap-2">
+                        <div className="relative flex items-center gap-2">
                             <input
                                 type="text"
-                                placeholder="Foydalanuvchi ismi yoki emaili..."
+                                placeholder="Foydalanuvchi ismi, emaili yoki telefoni..."
                                 value={searchDbTerm}
                                 onChange={e => setSearchDbTerm(e.target.value)}
                                 className={`flex-1 px-4 py-2 text-xs rounded-xl border outline-none ${
                                     isDark ? 'bg-[#1E1E1E] border-white/10 text-white focus:border-emerald-500' : 'bg-gray-50 border-gray-200 text-slate-800 focus:border-emerald-500'
                                 }`}
                             />
-                            <button
-                                type="submit"
-                                className="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                            >
-                                {searchingDb ? (
-                                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <>Qidirish</>
-                                )}
-                            </button>
-                        </form>
+                            {searchingDb && (
+                                <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                            )}
+                        </div>
 
                         {/* Search Database Results */}
                         {dbSearchResults.length > 0 && (
@@ -475,7 +444,7 @@ export default function TeacherGroupStats() {
                                 })}
                             </div>
                         )}
-                        {searchDbTerm && dbSearchResults.length === 0 && !searchingDb && (
+                        {searchDbTerm.trim().length >= 2 && dbSearchResults.length === 0 && !searchingDb && (
                             <p className="text-[11px] text-red-500 mt-2">Hech qanday o'quvchi topilmadi.</p>
                         )}
                     </div>

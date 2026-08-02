@@ -1,14 +1,30 @@
-import React, { useState, useRef } from 'react';
-import { 
-    ArrowLeft, ArrowsCounterClockwise, CaretDown, CheckCircle, 
-    CheckSquare, Clock, Flame, Lightning, ListChecks, Minus, 
-    Plus, MagnifyingGlass as SearchIcon, ShieldWarning, Square, Users, Warning, X 
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import {
+    CaretDown, CaretLeft, CheckCircle, CheckSquare, Clock, ListChecks,
+    Minus, Plus, MagnifyingGlass as SearchIcon, Square, Users, Warning, X
 } from '@phosphor-icons/react';
-import { getTestIconAndColor } from './TeacherTestHelpers';
+import { getTestTypeMeta } from './testTypeIcon';
 import { formatQType, getReadingPassages, getListeningParts } from '../../../utils/TestUtils';
+import { toDateTimeLocalValue } from '../../../utils/teacherResults';
 
-export default function AssignTestForm({ 
-    isDark, toast, showToast,
+const NOTE_MAX = 300;
+
+/** Deadline uchun "3 kun qoldi" ko'rinishidagi ishora + o'tib ketganini aniqlash. */
+const describeDeadline = (value) => {
+    if (!value) return null;
+    const ts = new Date(value).getTime();
+    if (Number.isNaN(ts)) return null;
+    const diff = ts - Date.now();
+    if (diff <= 0) return { text: "Muddat allaqachon o'tib ketgan", isPast: true };
+    const mins = Math.round(diff / 60000);
+    if (mins < 60) return { text: `${mins} daqiqa qoldi`, isPast: false };
+    const hours = Math.round(mins / 60);
+    if (hours < 48) return { text: `${hours} soat qoldi`, isPast: false };
+    return { text: `${Math.round(hours / 24)} kun qoldi`, isPast: false };
+};
+
+export default function AssignTestForm({
+    isDark, toast,
     groups, availableTests,
     selectedGroupIds, setSelectedGroupIds,
     searchTestQuery, setSearchTestQuery,
@@ -21,27 +37,71 @@ export default function AssignTestForm({
     assigning, selectedPartsMap, setSelectedPartsMap,
     onBack, onAssign
 }) {
-    const filteredAvailableTests = availableTests.filter(t => {
-        const matchesQuery = t?.title?.toLowerCase().includes(searchTestQuery.toLowerCase());
-        const tLow = (t?.type || '').toLowerCase();
-        let matchesType = testTypeFilter === 'all';
-        if (!matchesType) {
-            if (testTypeFilter === 'mock_full') {
-                matchesType = tLow.includes('mock') || tLow.includes('full');
-            } else {
-                matchesType = tLow === testTypeFilter;
+    const [showGroupDropdown, setShowGroupDropdown] = useState(false);
+    const [groupQuery, setGroupQuery] = useState('');
+    const [onlySelected, setOnlySelected] = useState(false);
+    const [expandedTestId, setExpandedTestId] = useState(null);
+    const [confirmLeave, setConfirmLeave] = useState(false);
+    const groupDropdownRef = useRef(null);
+
+    const card = isDark ? 'border-white/8' : 'border-gray-200 bg-white';
+    const field = isDark
+        ? 'bg-transparent border-white/10 text-white placeholder-gray-600 focus:border-white/25'
+        : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400 focus:border-gray-400';
+    const muted = isDark ? 'text-gray-500' : 'text-gray-500';
+
+    // `title` yo'q testlar ilgari qidiruvsiz ham ro'yxatdan tushib qolardi:
+    // `undefined?.toLowerCase()` → `undefined` → falsy.
+    const filteredAvailableTests = useMemo(() => {
+        const q = (searchTestQuery || '').toLowerCase();
+        return availableTests.filter(t => {
+            const matchesQuery = !q || (t?.title || '').toLowerCase().includes(q);
+            const tLow = (t?.type || '').toLowerCase();
+            let matchesType = testTypeFilter === 'all';
+            if (!matchesType) {
+                if (testTypeFilter === 'mock_full') {
+                    matchesType = tLow.includes('mock') || tLow.includes('full');
+                } else {
+                    matchesType = tLow === testTypeFilter;
+                }
             }
-        }
-        return matchesQuery && matchesType;
-    });
+            const matchesSelected = !onlySelected || selectedTests.some(s => s.id === t.id);
+            return matchesQuery && matchesType && matchesSelected;
+        });
+    }, [availableTests, searchTestQuery, testTypeFilter, onlySelected, selectedTests]);
+
+    const filteredGroups = useMemo(() => {
+        const q = groupQuery.trim().toLowerCase();
+        return q ? groups.filter(g => (g.name || '').toLowerCase().includes(q)) : groups;
+    }, [groups, groupQuery]);
 
     const isTestPrevAssignedInAny = (testId) =>
         groups.some(g => selectedGroupIds.has(g.id) && (g.assignedTests || []).some(a => a.id === testId));
-    
-    const [showGroupDropdown, setShowGroupDropdown] = useState(false);
-    const groupDropdownRef = useRef(null);
-    const selectedGroupNames = groups.filter(g => selectedGroupIds.has(g.id)).map(g => g.name);
-    
+
+    const selectedGroups = groups.filter(g => selectedGroupIds.has(g.id));
+    const studentTotal = selectedGroups.reduce((s, g) => s + (g.studentIds?.length || 0), 0);
+    const duplicateCount = selectedTests.filter(t => isTestPrevAssignedInAny(t.id)).length;
+    const deadlineInfo = describeDeadline(deadline);
+    const hasDraft = selectedTests.length > 0 || selectedGroupIds.size > 0 || Boolean(deadline) || Boolean(teacherNote);
+    const blocked = assigning || selectedTests.length === 0 || selectedGroupIds.size === 0 || Boolean(deadlineInfo?.isPast);
+
+    // Dropdown tashqarisiga bosilganda yoki Escape bosilganda yopilsin.
+    useEffect(() => {
+        if (!showGroupDropdown) return;
+        const onPointerDown = (e) => {
+            if (groupDropdownRef.current && !groupDropdownRef.current.contains(e.target)) {
+                setShowGroupDropdown(false);
+            }
+        };
+        const onKeyDown = (e) => { if (e.key === 'Escape') setShowGroupDropdown(false); };
+        document.addEventListener('mousedown', onPointerDown);
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', onPointerDown);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [showGroupDropdown]);
+
     const toggleGroupId = (gid) => {
         setSelectedGroupIds(prev => {
             const next = new Set(prev);
@@ -50,623 +110,596 @@ export default function AssignTestForm({
         });
     };
 
-    // We replace the handleAssignTest call with onAssign
-    const handleAssignSubmit = (e) => {
-        e.preventDefault();
-        onAssign(e);
+    const toggleTest = (test) => {
+        setSelectedTests(prev =>
+            prev.some(t => t.id === test.id) ? prev.filter(t => t.id !== test.id) : [...prev, test]
+        );
     };
 
-    // Now the JSX
+    const removeTest = (testId) => {
+        setSelectedTests(prev => prev.filter(t => t.id !== testId));
+        setSelectedPartsMap(prev => { const u = { ...prev }; delete u[testId]; return u; });
+    };
+
+    const clearSelectedTests = () => {
+        setSelectedTests([]);
+        setSelectedPartsMap({});
+        setOnlySelected(false);
+    };
+
+    const handleBack = () => {
+        if (hasDraft) setConfirmLeave(true);
+        else onBack();
+    };
+
     return (
-        <div className={`space-y-6 animate-fade-in-up text-left ${isDark ? 'text-white' : 'text-slate-800'}`}>
-        return (
-            <div className={`space-y-6 animate-fade-in-up text-left ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            {/* Toast for assign page */}
+        <div className={`space-y-6 ${isDark ? 'text-white' : 'text-slate-800'}`}>
             {toast && (
-                <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-semibold animate-fade-in-up ${
+                <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-fade-in-up ${
                     toast.type === 'error'
-                        ? (isDark ? 'bg-rose-950 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-700')
-                        : (isDark ? 'bg-emerald-950 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700')
+                        ? (isDark ? 'bg-[#1E1E1E] border-rose-500/30 text-rose-300' : 'bg-white border-rose-200 text-rose-700')
+                        : (isDark ? 'bg-[#1E1E1E] border-emerald-500/30 text-emerald-300' : 'bg-white border-emerald-200 text-emerald-700')
                 }`}>
                     {toast.type === 'error'
-                        ? <X size={16} weight="bold" className="text-rose-500 shrink-0" />
-                        : <CheckCircle size={16} weight="fill" className="text-emerald-500 shrink-0" />
+                        ? <X size={15} weight="bold" className="text-rose-500 shrink-0" />
+                        : <CheckCircle size={15} weight="fill" className="text-emerald-500 shrink-0" />
                     }
                     {toast.message}
                 </div>
             )}
-                {/* Back Button and Header */}
-                <div className="flex flex-col gap-2">
-                    <button
-                        onClick={() => {
-                            setSelectedTests([]);
-                            setSelectedGroupIds(new Set());
-                            setSelectedPartsMap({});
-                            setDeadline("");
-                            setMaxAttempts("1");
-                            setTeacherNote("");
-                            setPriority("medium");
-                            onBack();
-                        }}
-                        className={`flex items-center gap-2.5 transition-colors font-semibold text-sm group w-fit ${isDark ? 'text-gray-455 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+
+            {/* Tasodifan chiqib ketishdan saqlaydi — tanlovlar saqlanmaydi */}
+            {confirmLeave && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmLeave(false)}>
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        onClick={e => e.stopPropagation()}
+                        className={`w-full max-w-sm rounded-2xl border p-5 shadow-xl ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}
                     >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm transition-all ${isDark ? 'bg-white/5 border-white/10 group-hover:border-white/20' : 'bg-white border-gray-200 group-hover:border-gray-300'}`}>
-                            <ArrowLeft className="w-4 h-4" />
+                        <p className={`text-sm leading-relaxed mb-5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                            Tanlangan ma'lumotlar saqlanmaydi. Chiqasizmi?
+                        </p>
+                        <div className="flex gap-2 justify-end">
+                            <button
+                                onClick={() => setConfirmLeave(false)}
+                                className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
+                            >
+                                Qolaman
+                            </button>
+                            <button
+                                autoFocus
+                                onClick={() => { setConfirmLeave(false); onBack(); }}
+                                className="h-9 px-4 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium transition-colors"
+                            >
+                                Chiqish
+                            </button>
                         </div>
-                        Orqaga qaytish
-                    </button>
-                    
-                    <div className="mt-2">
-                        <h1 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Yangi vazifa tayinlash</h1>
-                        <p className={`text-sm mt-1.5 font-medium ${isDark ? 'text-gray-450' : 'text-gray-500'}`}>Guruhlar uchun yangi topshiriq tayyorlang va yuboring</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Back link — boshqa ustoz sahifalari bilan bir xil */}
+            <button
+                type="button"
+                onClick={handleBack}
+                className={`flex items-center gap-2 text-sm font-medium transition-colors -mb-1 ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+                <CaretLeft size={15} weight="bold" />
+                Tayinlangan testlar
+            </button>
+
+            <div className="min-w-0">
+                <h1 className={`text-[28px] leading-tight font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    Yangi tayinlash
+                </h1>
+                <p className={`text-sm mt-1 ${muted}`}>
+                    Testlarni tanlang, guruh va muddatni belgilang.
+                </p>
+            </div>
+
+            <form onSubmit={onAssign} className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                {/* ── Chap: test tanlash ── */}
+                <div className={`lg:col-span-7 rounded-2xl border ${card}`}>
+                    <div className="p-4 space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                            <h2 className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Testlar</h2>
+                            <div className="flex items-center gap-2">
+                                {selectedTests.length > 0 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setOnlySelected(v => !v)}
+                                            className={`h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors ${
+                                                onlySelected
+                                                    ? (isDark ? 'bg-white/10 border-white/15 text-white' : 'bg-gray-900 border-gray-900 text-white')
+                                                    : (isDark ? 'border-white/8 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50')
+                                            }`}
+                                        >
+                                            Tanlanganlar {selectedTests.length}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={clearSelectedTests}
+                                            className={`h-8 px-2.5 rounded-lg text-[13px] font-medium transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
+                                        >
+                                            Tozalash
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            {[
+                                { key: 'all', label: 'Hammasi' },
+                                { key: 'reading', label: 'Reading' },
+                                { key: 'listening', label: 'Listening' },
+                                { key: 'writing', label: 'Writing' },
+                                { key: 'mock_full', label: 'Mock' },
+                                { key: 'podcast', label: 'Podcast' },
+                                { key: 'article', label: 'Article' }
+                            ].map(t => {
+                                const active = testTypeFilter === t.key;
+                                return (
+                                    <button
+                                        key={t.key}
+                                        type="button"
+                                        onClick={() => setTestTypeFilter(t.key)}
+                                        className={`h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors ${
+                                            active
+                                                ? (isDark ? 'bg-white/10 border-white/15 text-white' : 'bg-gray-900 border-gray-900 text-white')
+                                                : (isDark ? 'border-white/8 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50')
+                                        }`}
+                                    >
+                                        {t.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="relative">
+                            <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Test nomi…"
+                                value={searchTestQuery}
+                                onChange={e => setSearchTestQuery(e.target.value)}
+                                className={`w-full h-10 pl-9 pr-8 rounded-xl border text-sm outline-none transition-colors ${field}`}
+                            />
+                            {searchTestQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchTestQuery('')}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                                >
+                                    <X size={12} weight="bold" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Ro'yxat */}
+                    <div className={`max-h-[520px] overflow-y-auto custom-scrollbar border-t ${isDark ? 'border-white/8' : 'border-gray-200'}`}>
+                        {filteredAvailableTests.length === 0 ? (
+                            <div className="py-16 text-center">
+                                <SearchIcon size={24} className="mx-auto mb-2.5 text-gray-400 opacity-50" />
+                                <p className={`text-sm ${muted}`}>Test topilmadi</p>
+                            </div>
+                        ) : filteredAvailableTests.map(test => {
+                            const isSelected = selectedTests.some(t => t.id === test.id);
+                            const { label: typeLabel, dot } = getTestTypeMeta(test.type);
+                            const prevAssigned = isTestPrevAssignedInAny(test.id);
+
+                            const tLow = (test.type || '').toLowerCase();
+                            const passagesArr = getReadingPassages(test);
+                            const partsArr = getListeningParts(test);
+                            const structure = tLow.includes('reading') ? passagesArr : tLow.includes('listening') ? partsArr : [];
+                            const isFullListening = tLow.includes('listening') && partsArr.length > 1;
+
+                            const questionCount = test.totalQuestions ?? test.questionsCount ?? test.questionCount
+                                ?? (structure.reduce((s, p) => s + (p.qCount || 0), 0) || null);
+                            const durationMin = test.duration ?? test.timeLimit ?? null;
+                            const isExpanded = expandedTestId === test.id;
+
+                            // Bitta neytral qator: turi · tuzilishi · savol · davomiylik
+                            const metaParts = [typeLabel];
+                            if (structure.length > 1) metaParts.push(`${structure.length} ${tLow.includes('reading') ? 'passage' : 'part'}`);
+                            if (questionCount) metaParts.push(`${questionCount} savol`);
+                            if (durationMin) metaParts.push(`${durationMin} daq`);
+
+                            const chosenParts = selectedPartsMap[test.id];
+
+                            return (
+                                <div
+                                    key={test.id}
+                                    className={`border-b last:border-b-0 transition-colors ${
+                                        isDark
+                                            ? `border-white/5 ${isSelected ? 'bg-blue-500/[0.06]' : 'hover:bg-white/[0.03]'}`
+                                            : `border-gray-100 ${isSelected ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`
+                                    }`}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleTest(test)}
+                                        aria-pressed={isSelected}
+                                        className="w-full flex items-start gap-3 px-4 py-3 text-left"
+                                    >
+                                        <span className={`mt-0.5 w-[18px] h-[18px] rounded-md border shrink-0 flex items-center justify-center transition-colors ${
+                                            isSelected
+                                                ? 'bg-blue-600 border-blue-600'
+                                                : (isDark ? 'border-white/20' : 'border-gray-300')
+                                        }`}>
+                                            {isSelected && <CheckSquare size={12} weight="bold" className="text-white" />}
+                                        </span>
+
+                                        <span className="flex-1 min-w-0">
+                                            <span className={`block text-sm font-medium truncate ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                                                {test.title || 'Untitled Test'}
+                                            </span>
+                                            <span className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] ${muted}`}>
+                                                <span className="flex items-center gap-1.5">
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                                                    {metaParts.join(' · ')}
+                                                </span>
+                                                {selectedGroupIds.size > 0 && prevAssigned && (
+                                                    <span className="text-amber-600 dark:text-amber-400">· ilgari berilgan</span>
+                                                )}
+                                            </span>
+                                        </span>
+
+                                        {structure.length > 0 && (
+                                            <span
+                                                role="button"
+                                                tabIndex={-1}
+                                                onClick={(e) => { e.stopPropagation(); setExpandedTestId(isExpanded ? null : test.id); }}
+                                                className={`shrink-0 p-1 rounded-md transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/5' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
+                                                title="Tuzilishini ko'rish"
+                                            >
+                                                <CaretDown size={14} weight="bold" className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {/* Tuzilishi — talab bo'lgandagina ochiladi, shuning uchun
+                                        ro'yxat sokin ko'rinadi */}
+                                    {isExpanded && structure.length > 0 && (
+                                        <div className={`px-4 pb-3 pl-[46px] space-y-1.5 text-[13px] ${muted}`}>
+                                            {structure.map((p, pi) => (
+                                                <div key={pi} className="flex items-start gap-2">
+                                                    <span className={`shrink-0 w-[74px] ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{p.label}</span>
+                                                    <span className="flex-1">
+                                                        {p.qTypes.length > 0 ? p.qTypes.map(formatQType).join(', ') : '—'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Full listening — qaysi partlar tayinlanishi */}
+                                    {isSelected && isFullListening && (
+                                        <div className="px-4 pb-3 pl-[46px]">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className={`text-[13px] mr-1 ${muted}`}>Partlar:</span>
+                                                {partsArr.map((p, pi) => {
+                                                    const partNum = pi + 1;
+                                                    const isPartOn = !chosenParts || chosenParts.includes(partNum);
+                                                    return (
+                                                        <button
+                                                            key={pi}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedPartsMap(prev => {
+                                                                    const allNums = partsArr.map((_, i) => i + 1);
+                                                                    const current = prev[test.id] ?? allNums;
+                                                                    let next;
+                                                                    if (current.includes(partNum)) {
+                                                                        next = current.filter(n => n !== partNum);
+                                                                        if (next.length === 0) next = allNums;
+                                                                    } else {
+                                                                        next = [...current, partNum].sort((a, b) => a - b);
+                                                                    }
+                                                                    const updated = { ...prev };
+                                                                    if (next.length === allNums.length) delete updated[test.id];
+                                                                    else updated[test.id] = next;
+                                                                    return updated;
+                                                                });
+                                                            }}
+                                                            className={`h-7 px-2.5 rounded-lg text-[13px] font-medium border transition-colors ${
+                                                                isPartOn
+                                                                    ? (isDark ? 'bg-white/10 border-white/15 text-white' : 'bg-gray-900 border-gray-900 text-white')
+                                                                    : (isDark ? 'border-white/8 text-gray-500 hover:bg-white/5' : 'border-gray-200 text-gray-500 hover:bg-gray-50')
+                                                            }`}
+                                                        >
+                                                            {p.label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
-                <form onSubmit={handleAssignSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                    {/* Left Column: Test Picker (col-span-7) */}
-                    <div className={`lg:col-span-7 p-6 rounded-3xl border flex flex-col gap-5 ${
-                        isDark ? 'bg-[#2C2C2C]/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                    }`}>
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <label className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                    1. Testni tanlang
-                                </label>
-                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                                    {filteredAvailableTests.length} ta test
-                                </span>
-                            </div>
-                            
-                            {/* Type Filter Buttons */}
-                            <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-gray-100/50 dark:bg-[#2C2C2C]/50 border border-gray-200/50 dark:border-white/5">
-                                {[
-                                    { key: 'all', label: 'Barchasi' },
-                                    { key: 'reading', label: 'Reading' },
-                                    { key: 'listening', label: 'Listening' },
-                                    { key: 'writing', label: 'Writing' },
-                                    { key: 'mock_full', label: 'Mock' },
-                                    { key: 'podcast', label: 'Podcast' },
-                                    { key: 'article', label: 'Article' }
-                                ].map(t => {
-                                    const isActive = testTypeFilter === t.key;
-                                    return (
-                                        <button
-                                            key={t.key}
-                                            type="button"
-                                            onClick={() => setTestTypeFilter(t.key)}
-                                            className={`flex-1 min-w-[70px] text-center py-2 px-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${
-                                                isActive
-                                                    ? 'bg-white dark:bg-[#1E1E1E] text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200/10'
-                                                    : 'text-gray-500 dark:text-gray-450 hover:text-gray-900 dark:hover:text-white'
-                                            }`}
-                                        >
-                                            {t.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Search Input */}
-                            <div className="relative">
-                                <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Test nomini yozing..."
-                                    value={searchTestQuery}
-                                    onChange={e => setSearchTestQuery(e.target.value)}
-                                    className={`w-full pl-11 pr-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all duration-200 ${
-                                        isDark 
-                                            ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500' 
-                                            : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500 shadow-sm'
-                                    }`}
-                                />
-                            </div>
-
-                            {/* List of tests to select */}
-                            <div className={`border rounded-2xl overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 h-[420px] ${
-                                isDark ? 'bg-[#2C2C2C]/50 border-white/10' : 'bg-gray-50/80 border-gray-200'
-                            }`}>
-                                {filteredAvailableTests.length > 0 ? (
-                                    filteredAvailableTests.map(test => {
-                                        const isSelected = selectedTests.some(t => t.id === test.id);
-                                        const { icon, colorClass } = getTestIconAndColor(test.type);
-
-                                        const isPreviouslyAssigned = isTestPrevAssignedInAny(test.id);
-
-                                        // Rich metadata
-                                        const questionCount = test.totalQuestions ?? test.questionsCount ?? test.questionCount ?? null;
-                                        const durationMin = test.duration ?? test.timeLimit ?? null;
-                                        const difficulty = test.difficulty ?? test.level ?? null;
-
-                                        const difficultyConfig = {
-                                            easy: { label: 'Oson', color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-                                            medium: { label: "O'rtacha", color: 'text-amber-500', bg: 'bg-amber-500/10 border-amber-500/20' },
-                                            hard: { label: 'Qiyin', color: 'text-rose-500', bg: 'bg-rose-500/10 border-rose-500/20' },
-                                        }[difficulty?.toLowerCase()] ?? null;
-
-                                        // Determine if full test or part test
-                                        const tLow2 = (test.type || '').toLowerCase();
-                                        const passagesArr = getReadingPassages(test);
+                {/* ── O'ng: sozlamalar ── */}
+                <div className={`lg:col-span-5 rounded-2xl border lg:sticky lg:top-6 ${card}`}>
+                    <div className="p-4 space-y-5">
+                        {/* Tanlangan testlar */}
+                        <div className="space-y-2">
+                            <h2 className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                Tanlangan testlar
+                                {selectedTests.length > 0 && <span className={`ml-1.5 font-normal ${muted}`}>{selectedTests.length}</span>}
+                            </h2>
+                            {selectedTests.length === 0 ? (
+                                <div className={`rounded-xl border border-dashed py-6 text-center text-[13px] ${isDark ? 'border-white/10 text-gray-500' : 'border-gray-200 text-gray-400'}`}>
+                                    <ListChecks size={20} className="mx-auto mb-2 opacity-50" />
+                                    Chap tomondan test tanlang
+                                </div>
+                            ) : (
+                                <div className="max-h-[168px] overflow-y-auto custom-scrollbar -mx-1 px-1 space-y-1">
+                                    {selectedTests.map(test => {
+                                        const { dot } = getTestTypeMeta(test.type);
                                         const partsArr = getListeningParts(test);
-                                        const isFullReading = tLow2.includes('reading') && passagesArr.length > 1;
-                                        const isPartReading = tLow2.includes('reading') && passagesArr.length === 1;
-                                        const isFullListening = tLow2.includes('listening') && partsArr.length > 1;
-                                        const isPartListening = tLow2.includes('listening') && partsArr.length === 1;
-
-                                        let typeLabel;
-                                        if (tLow2.includes('mock') || tLow2.includes('full')) typeLabel = 'Mock Exam';
-                                        else if (isFullReading) typeLabel = `Full Reading · ${passagesArr.length}P`;
-                                        else if (isPartReading) typeLabel = `Reading · Passage ${test.partNumber ?? 1}`;
-                                        else if (isFullListening) typeLabel = `Full Listening · ${partsArr.length}P`;
-                                        else if (isPartListening) typeLabel = `Listening · Part ${test.partNumber ?? 1}`;
-                                        else typeLabel = (test.type || '').toUpperCase();
-
+                                        const chosen = selectedPartsMap[test.id];
+                                        const partLabel = chosen && chosen.length > 0 && chosen.length < partsArr.length
+                                            ? chosen.map(n => `P${n}`).join('+')
+                                            : null;
                                         return (
                                             <div
                                                 key={test.id}
-                                                onClick={() => {
-                                                    setSelectedTests(prev =>
-                                                        prev.some(t => t.id === test.id)
-                                                            ? prev.filter(t => t.id !== test.id)
-                                                            : [...prev, test]
-                                                    );
-                                                }}
-                                                className={`p-3.5 rounded-xl cursor-pointer border transition-all duration-200 ${
-                                                    isSelected
-                                                        ? (isDark ? 'bg-blue-600/12 border-blue-500/60 shadow-sm shadow-blue-500/10' : 'bg-blue-50 border-blue-300 shadow-sm')
-                                                        : (isDark ? 'border-transparent hover:bg-white/5 hover:border-white/8' : 'border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm')
-                                                }`}
+                                                className={`flex items-center gap-2 h-9 px-2.5 rounded-lg text-[13px] ${isDark ? 'bg-white/[0.04]' : 'bg-gray-50'}`}
                                             >
-                                                <div className="flex items-start gap-3">
-                                                    {/* Icon */}
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass} ${isSelected ? 'ring-2 ring-blue-500/30' : ''}`}>
-                                                        {icon}
-                                                    </div>
-
-                                                    {/* Content */}
-                                                    <div className="flex-1 min-w-0 text-left">
-                                                        <div className="flex items-start justify-between gap-2">
-                                                            <span className={`text-sm font-bold leading-snug ${isSelected ? (isDark ? 'text-blue-300' : 'text-blue-800') : (isDark ? 'text-zinc-100' : 'text-gray-800')}`}>
-                                                                {test.title || 'Untitled Test'}
-                                                            </span>
-                                                            {isSelected
-                                                                ? <CheckCircle size={18} weight="fill" className="text-blue-500 shrink-0 mt-0.5" />
-                                                                : <div className="w-[18px] h-[18px] rounded-full border-2 border-gray-300 dark:border-zinc-600 shrink-0 mt-0.5" />
-                                                            }
-                                                        </div>
-
-                                                        {/* Badges row */}
-                                                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                                            <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${colorClass}`}>
-                                                                {typeLabel}
-                                                            </span>
-                                                            {selectedGroupIds.size > 0 && (isPreviouslyAssigned ? (
-                                                                <span className="text-[9px] bg-amber-500/10 text-amber-500 font-bold px-1.5 py-0.5 rounded border border-amber-500/20 uppercase tracking-wide">
-                                                                    Ilgari berilgan
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-[9px] bg-emerald-500/10 text-emerald-500 font-bold px-1.5 py-0.5 rounded border border-emerald-500/20 uppercase tracking-wide">
-                                                                    Yangi
-                                                                </span>
-                                                            ))}
-                                                            {difficultyConfig && (
-                                                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${difficultyConfig.bg} ${difficultyConfig.color}`}>
-                                                                    {difficultyConfig.label}
-                                                                </span>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Passage / Part structure — reuse already-computed arrays */}
-                                                        {tLow2.includes('reading') && passagesArr.length > 0 ? (
-                                                            <div className="mt-2 space-y-1.5">
-                                                                {passagesArr.map((p, pi) => (
-                                                                    <div key={pi} className="flex items-start gap-2">
-                                                                        <span className={`shrink-0 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border mt-0.5 ${
-                                                                            isSelected
-                                                                                ? 'bg-blue-500/15 text-blue-500 border-blue-500/30'
-                                                                                : 'bg-blue-500/8 text-blue-400 border-blue-500/15 dark:bg-blue-500/10'
-                                                                        }`}>{p.label}</span>
-                                                                        <div className="flex flex-wrap gap-1">
-                                                                            {p.qTypes.length > 0
-                                                                                ? p.qTypes.map((qt, qi) => (
-                                                                                    <span key={qi} className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-white/8">
-                                                                                        {formatQType(qt)}
-                                                                                    </span>
-                                                                                ))
-                                                                                : <span className="text-[9px] text-gray-400 dark:text-zinc-600 italic">—</span>
-                                                                            }
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        ) : tLow2.includes('listening') && partsArr.length > 0 ? (
-                                                            <div className="mt-2 space-y-1.5">
-                                                                {partsArr.map((p, pi) => (
-                                                                    <div key={pi} className="flex items-start gap-2">
-                                                                        <span className={`shrink-0 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border mt-0.5 ${
-                                                                            isSelected
-                                                                                ? 'bg-pink-500/15 text-pink-500 border-pink-500/30'
-                                                                                : 'bg-pink-500/8 text-pink-400 border-pink-500/15 dark:bg-pink-500/10'
-                                                                        }`}>{p.label}</span>
-                                                                        <div className="flex flex-wrap gap-1">
-                                                                            {p.qTypes.length > 0
-                                                                                ? p.qTypes.map((qt, qi) => (
-                                                                                    <span key={qi} className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-white/8">
-                                                                                        {formatQType(qt)}
-                                                                                    </span>
-                                                                                ))
-                                                                                : <span className="text-[9px] text-gray-400 dark:text-zinc-600 italic">—</span>
-                                                                            }
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                                {isSelected && isFullListening && (
-                                                                    <div className="mt-2 pt-2 border-t border-pink-500/15" onClick={e => e.stopPropagation()}>
-                                                                        <p className="text-[9px] font-black uppercase tracking-widest text-pink-500 mb-1.5">Tayinlanadigan partlar:</p>
-                                                                        <div className="flex flex-wrap gap-1.5">
-                                                                            {partsArr.map((p, pi) => {
-                                                                                const partNum = pi + 1;
-                                                                                const chosen = selectedPartsMap[test.id];
-                                                                                const isPartOn = !chosen || chosen.includes(partNum);
-                                                                                return (
-                                                                                    <button
-                                                                                        key={pi}
-                                                                                        type="button"
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            setSelectedPartsMap(prev => {
-                                                                                                const allNums = partsArr.map((_, i) => i + 1);
-                                                                                                const current = prev[test.id] ?? allNums;
-                                                                                                let next;
-                                                                                                if (current.includes(partNum)) {
-                                                                                                    next = current.filter(n => n !== partNum);
-                                                                                                    if (next.length === 0) next = allNums;
-                                                                                                } else {
-                                                                                                    next = [...current, partNum].sort((a, b) => a - b);
-                                                                                                }
-                                                                                                const isAll = next.length === allNums.length;
-                                                                                                const updated = { ...prev };
-                                                                                                if (isAll) delete updated[test.id];
-                                                                                                else updated[test.id] = next;
-                                                                                                return updated;
-                                                                                            });
-                                                                                        }}
-                                                                                        className={`text-[9px] font-bold px-2.5 py-1 rounded-lg border transition-all active:scale-95 ${
-                                                                                            isPartOn
-                                                                                                ? 'bg-pink-500/20 text-pink-600 dark:text-pink-400 border-pink-500/40'
-                                                                                                : (isDark ? 'bg-white/5 text-gray-500 border-white/10 hover:bg-white/10' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200')
-                                                                                        }`}
-                                                                                    >
-                                                                                        {p.label}
-                                                                                    </button>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-                                                                        {selectedPartsMap[test.id] && selectedPartsMap[test.id].length < partsArr.length && (
-                                                                            <p className="text-[9px] mt-1 text-amber-500 font-semibold">
-                                                                                Faqat {selectedPartsMap[test.id].map(n => `Part ${n}`).join(', ')} tayinlanadi
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ) : (questionCount || durationMin || test.description) ? (
-                                                            <div className="flex flex-wrap items-center gap-3 mt-2">
-                                                                {questionCount && (
-                                                                    <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-zinc-500 font-semibold">
-                                                                        <ListChecks size={11} />{questionCount} savol
-                                                                    </span>
-                                                                )}
-                                                                {durationMin && (
-                                                                    <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-zinc-500 font-semibold">
-                                                                        <Clock size={11} />{durationMin} daqiqa
-                                                                    </span>
-                                                                )}
-                                                                {test.description && !questionCount && !durationMin && (
-                                                                    <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-medium truncate max-w-[260px] italic">
-                                                                        {test.description}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        ) : null}
-                                                    </div>
-                                                </div>
+                                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
+                                                <span className={`flex-1 truncate ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{test.title}</span>
+                                                {partLabel && <span className={`shrink-0 ${muted}`}>{partLabel}</span>}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeTest(test.id)}
+                                                    aria-label="O'chirish"
+                                                    className="shrink-0 p-1 rounded text-gray-400 hover:text-rose-500 transition-colors"
+                                                >
+                                                    <X size={12} weight="bold" />
+                                                </button>
                                             </div>
                                         );
-                                    })
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center h-full gap-3 opacity-50">
-                                        <SearchIcon size={28} className="text-gray-400" />
-                                        <p className="text-xs font-semibold text-gray-400">Bunday test topilmadi</p>
-                                    </div>
-                                )}
-                            </div>
+                                    })}
+                                </div>
+                            )}
                         </div>
-                    </div>
 
-                    {/* Right Column: Settings & Submit (col-span-5) */}
-                    <div className={`lg:col-span-5 p-6 rounded-3xl border flex flex-col gap-5 lg:sticky lg:top-6 ${
-                        isDark ? 'bg-[#2C2C2C]/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                    }`}>
-                        <div className="space-y-4 flex-1">
-                            <div className="flex items-center justify-between">
-                                <label className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                    2. Sozlamalar
-                                </label>
-                                {selectedTests.length > 0 && (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                                        <CheckCircle size={10} weight="fill" />
-                                        {selectedTests.length} tanlandi
+                        {/* Guruhlar */}
+                        <div className="space-y-2">
+                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Guruhlar</label>
+                            <div className="relative" ref={groupDropdownRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGroupDropdown(p => !p)}
+                                    aria-expanded={showGroupDropdown}
+                                    className={`w-full h-10 pl-9 pr-9 rounded-xl border text-sm text-left outline-none transition-colors flex items-center ${field}`}
+                                >
+                                    <Users size={15} className="absolute left-3 text-gray-400" />
+                                    <span className={`flex-1 truncate ${selectedGroupIds.size === 0 ? 'text-gray-400' : ''}`}>
+                                        {selectedGroupIds.size === 0
+                                            ? 'Guruh tanlang…'
+                                            : selectedGroups.map(g => g.name).join(', ')}
                                     </span>
-                                )}
-                            </div>
+                                    <CaretDown size={14} className={`absolute right-3 text-gray-400 transition-transform ${showGroupDropdown ? 'rotate-180' : ''}`} />
+                                </button>
 
-                            {/* Selected items list */}
-                            {selectedTests.length > 0 && (
-                                <div className="space-y-1.5">
-                                    <div className="max-h-[140px] overflow-y-auto space-y-1.5 p-2 rounded-xl bg-blue-500/5 dark:bg-blue-500/8 border border-blue-200/50 dark:border-blue-500/15">
-                                        {selectedTests.map((test, idx) => {
-                                            const { colorClass } = getTestIconAndColor(test.type);
-                                            const prevAssigned = isTestPrevAssignedInAny(test.id);
-                                            const tLowSel = (test.type || '').toLowerCase();
-                                            const isFullListeningSel = tLowSel.includes('listening') && getListeningParts(test).length > 1;
-                                            const chosenParts = selectedPartsMap[test.id];
-                                            const partLabel = isFullListeningSel && chosenParts && chosenParts.length > 0 && chosenParts.length < getListeningParts(test).length
-                                                ? chosenParts.map(n => `P${n}`).join('+')
-                                                : null;
-                                            return (
-                                                <div key={test.id} className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-semibold transition-all ${prevAssigned ? 'bg-amber-500/5 border-amber-500/20 dark:border-amber-500/20' : 'bg-white dark:bg-[#2C2C2C]/70 border-gray-150 dark:border-white/5'}`}>
-                                                    <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${colorClass}`}>
-                                                        {test.type === 'mock_full' ? 'Mock' : (test.type || '').slice(0, 4).toUpperCase()}
-                                                    </span>
-                                                    <span className={`flex-1 truncate ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>{test.title}</span>
-                                                    {partLabel && (
-                                                        <span className="text-[8px] bg-pink-500/15 text-pink-600 dark:text-pink-400 px-1.5 py-0.5 rounded border border-pink-500/30 font-bold tracking-wider shrink-0">{partLabel}</span>
-                                                    )}
-                                                    {prevAssigned && (
-                                                        <span className="text-[8px] bg-amber-500/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30 uppercase font-bold tracking-wider shrink-0">Ilgari berilgan</span>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setSelectedTests(prev => prev.filter(t => t.id !== test.id));
-                                                            setSelectedPartsMap(prev => { const u = { ...prev }; delete u[test.id]; return u; });
-                                                        }}
-                                                        className="text-gray-400 hover:text-rose-500 p-0.5 rounded shrink-0 transition-colors"
-                                                    >
-                                                        <X size={13} />
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {selectedTests.length === 0 && (
-                                <div className={`flex flex-col items-center justify-center gap-2 py-5 rounded-xl border border-dashed ${isDark ? 'border-white/10 text-gray-500' : 'border-gray-200 text-gray-400'}`}>
-                                    <ListChecks size={22} className="opacity-40" />
-                                    <span className="text-[11px] font-semibold opacity-60">Chap tomonda testni tanlang</span>
-                                </div>
-                            )}
-
-                            {/* Multi-Group Select */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                    <Users size={14} className="text-gray-400 shrink-0" /> Guruhlarni tanlang
-                                    {selectedGroupIds.size > 0 && (
-                                        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                                            {selectedGroupIds.size} ta tanlandi
-                                        </span>
-                                    )}
-                                </label>
-                                <div className="relative" ref={groupDropdownRef}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowGroupDropdown(p => !p)}
-                                        className={`w-full pl-11 pr-10 py-3 rounded-2xl border text-sm font-semibold outline-none text-left transition-all duration-200 flex items-center ${
-                                            isDark
-                                                ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500'
-                                                : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500 shadow-sm'
-                                        } ${selectedGroupIds.size === 0 ? 'text-gray-400' : ''}`}
-                                    >
-                                        <Users size={18} className="absolute left-4 text-gray-400" />
-                                        <span className="flex-1 truncate">
-                                            {selectedGroupIds.size === 0
-                                                ? "Guruhni tanlang..."
-                                                : selectedGroupNames.join(', ')}
-                                        </span>
-                                        <CaretDown size={16} className={`absolute right-4 text-gray-400 transition-transform ${showGroupDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {showGroupDropdown && (
-                                        <div className={`absolute z-30 top-full mt-1.5 w-full rounded-2xl border shadow-xl overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
-                                            {groups.map(g => {
+                                {showGroupDropdown && (
+                                    <div className={`absolute z-30 top-full mt-1.5 w-full rounded-xl border shadow-lg overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
+                                        {groups.length > 6 && (
+                                            <div className={`p-2 border-b ${isDark ? 'border-white/8' : 'border-gray-100'}`}>
+                                                <input
+                                                    autoFocus
+                                                    type="text"
+                                                    value={groupQuery}
+                                                    onChange={e => setGroupQuery(e.target.value)}
+                                                    placeholder="Guruh qidirish…"
+                                                    className={`w-full h-9 px-3 rounded-lg border text-sm outline-none transition-colors ${field}`}
+                                                />
+                                            </div>
+                                        )}
+                                        <div className={`flex items-center justify-between px-3 py-2 border-b text-[13px] ${isDark ? 'border-white/8' : 'border-gray-100'}`}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedGroupIds(new Set(filteredGroups.map(g => g.id)))}
+                                                className="font-medium text-blue-500 hover:underline"
+                                            >
+                                                Barchasini tanlash
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedGroupIds(new Set())}
+                                                className={`font-medium ${muted} hover:underline`}
+                                            >
+                                                Tozalash
+                                            </button>
+                                        </div>
+                                        <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                                            {filteredGroups.length === 0 ? (
+                                                <p className={`px-3 py-4 text-[13px] text-center ${muted}`}>Guruh topilmadi</p>
+                                            ) : filteredGroups.map(g => {
                                                 const checked = selectedGroupIds.has(g.id);
                                                 return (
                                                     <button
                                                         key={g.id}
                                                         type="button"
                                                         onClick={() => toggleGroupId(g.id)}
-                                                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-left transition-all ${
-                                                            checked
-                                                                ? (isDark ? 'bg-blue-600/15 text-blue-300' : 'bg-blue-50 text-blue-700')
-                                                                : (isDark ? 'hover:bg-white/5 text-gray-300' : 'hover:bg-gray-50 text-gray-700')
+                                                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors ${
+                                                            isDark ? 'hover:bg-white/5 text-gray-300' : 'hover:bg-gray-50 text-gray-700'
                                                         }`}
                                                     >
                                                         {checked
                                                             ? <CheckSquare size={16} weight="fill" className="text-blue-500 shrink-0" />
                                                             : <Square size={16} className="text-gray-400 shrink-0" />}
-                                                        <span className="flex-1">{g.name}</span>
-                                                        {g.studentIds?.length > 0 && (
-                                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isDark ? 'bg-white/5 text-gray-500' : 'bg-gray-100 text-gray-500'}`}>
-                                                                {g.studentIds.length} o'q
-                                                            </span>
-                                                        )}
+                                                        <span className="flex-1 truncate">{g.name}</span>
+                                                        <span className={`text-[13px] ${muted}`}>{g.studentIds?.length || 0}</span>
                                                     </button>
                                                 );
                                             })}
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
+                            {selectedGroupIds.size > 0 && (
+                                <p className={`text-[13px] ${muted}`}>
+                                    {selectedGroupIds.size} ta guruh · {studentTotal} o'quvchi
+                                </p>
+                            )}
+                        </div>
 
-                            {/* Deadline */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                    <Clock size={14} className="text-gray-400 shrink-0" /> Deadline (Muddati)
-                                </label>
-                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                    {[
-                                        { label: '+1 kun', days: 1 },
-                                        { label: '+3 kun', days: 3 },
-                                        { label: '+1 hafta', days: 7 },
-                                        { label: '+2 hafta', days: 14 },
-                                    ].map(({ label, days }) => (
-                                        <button
-                                            key={days}
-                                            type="button"
-                                            onClick={() => {
-                                                const d = new Date();
-                                                d.setDate(d.getDate() + days);
-                                                d.setSeconds(0, 0);
-                                                setDeadline(d.toISOString().slice(0, 16));
-                                            }}
-                                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30' : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200'}`}
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
-                                    {deadline && (
-                                        <button type="button" onClick={() => setDeadline('')}
-                                            className="text-[10px] font-bold px-2 py-1 rounded-lg border border-rose-500/20 text-rose-500 bg-rose-500/5 hover:bg-rose-500/10 transition-all">
-                                            ✕ Tozalash
-                                        </button>
-                                    )}
-                                </div>
-                                <input
-                                    type="datetime-local"
-                                    value={deadline}
-                                    onChange={e => setDeadline(e.target.value)}
-                                    className={`w-full p-3 rounded-xl border text-xs font-semibold outline-none transition-all duration-200 ${
-                                        isDark
-                                            ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
-                                            : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 shadow-sm'
-                                    }`}
-                                />
-                            </div>
-
-                            {/* Max Attempts Stepper */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                    <ArrowsCounterClockwise size={14} className="text-gray-400 shrink-0" /> Maksimal urinishlar
-                                </label>
-                                <div className="flex items-center gap-3">
+                        {/* Muddat */}
+                        <div className="space-y-2">
+                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Muddat</label>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                {[
+                                    { label: '1 kun', days: 1 },
+                                    { label: '3 kun', days: 3 },
+                                    { label: '1 hafta', days: 7 },
+                                    { label: '2 hafta', days: 14 },
+                                ].map(({ label, days }) => (
+                                    <button
+                                        key={days}
+                                        type="button"
+                                        onClick={() => {
+                                            const d = new Date();
+                                            d.setDate(d.getDate() + days);
+                                            d.setSeconds(0, 0);
+                                            setDeadline(toDateTimeLocalValue(d));
+                                        }}
+                                        className={`h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors ${isDark ? 'border-white/8 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                                {deadline && (
                                     <button
                                         type="button"
-                                        disabled={Number(maxAttempts) <= 1}
-                                        onClick={() => setMaxAttempts(prev => String(Math.max(1, Number(prev) - 1)))}
-                                        className={`w-10 h-10 rounded-xl flex items-center justify-center border font-bold text-lg active:scale-95 transition-all ${
-                                            isDark 
-                                                ? 'bg-[#2C2C2C] border-white/10 text-white hover:bg-white/5 disabled:opacity-40' 
-                                                : 'bg-white border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-40 shadow-sm'
-                                        }`}
+                                        onClick={() => setDeadline('')}
+                                        className={`h-8 px-2.5 rounded-lg text-[13px] font-medium transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
                                     >
-                                        <Minus size={16} weight="bold" />
+                                        Tozalash
                                     </button>
-                                    <span className={`w-12 text-center text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                        {maxAttempts}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        disabled={Number(maxAttempts) >= 10}
-                                        onClick={() => setMaxAttempts(prev => String(Math.min(10, Number(prev) + 1)))}
-                                        className={`w-10 h-10 rounded-xl flex items-center justify-center border font-bold text-lg active:scale-95 transition-all ${
-                                            isDark 
-                                                ? 'bg-[#2C2C2C] border-white/10 text-white hover:bg-white/5 disabled:opacity-40' 
-                                                : 'bg-white border-gray-200 text-gray-800 hover:bg-gray-100 disabled:opacity-40 shadow-sm'
-                                        }`}
-                                    >
-                                        <Plus size={16} weight="bold" />
-                                    </button>
-                                </div>
+                                )}
                             </div>
+                            <input
+                                type="datetime-local"
+                                value={deadline}
+                                onChange={e => setDeadline(e.target.value)}
+                                className={`w-full h-10 px-3 rounded-xl border text-sm outline-none transition-colors ${field}`}
+                            />
+                            {deadlineInfo && (
+                                <p className={`flex items-center gap-1.5 text-[13px] ${deadlineInfo.isPast ? 'text-rose-500' : muted}`}>
+                                    {deadlineInfo.isPast ? <Warning size={13} weight="fill" /> : <Clock size={13} />}
+                                    {deadlineInfo.text}
+                                </p>
+                            )}
+                        </div>
 
-                            {/* Priority Level */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                    <Warning size={14} className="text-gray-400 shrink-0" /> Muhimlik darajasi
-                                </label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {[
-                                        { key: 'low', label: 'Past', icon: <ShieldWarning size={13} className="text-emerald-500" />, activeClass: 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-                                        { key: 'medium', label: 'O\'rtacha', icon: <Warning size={13} className="text-amber-500" />, activeClass: 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-                                        { key: 'high', label: 'Yuqori', icon: <Flame size={13} className="text-rose-500" />, activeClass: 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400' }
-                                    ].map(item => {
-                                        const isSelected = priority === item.key;
-                                        return (
-                                            <button
-                                                key={item.key}
-                                                type="button"
-                                                onClick={() => setPriority(item.key)}
-                                                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
-                                                    isSelected ? item.activeClass : (isDark ? 'border-white/5 text-gray-450 bg-[#2C2C2C]/50 hover:bg-white/5' : 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100 shadow-sm')
-                                                }`}
-                                            >
-                                                {item.icon}
-                                                {item.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Teacher Note / Instructions */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                    O'quvchilarga eslatma / izoh
-                                </label>
-                                <textarea
-                                    value={teacherNote}
-                                    onChange={e => setTeacherNote(e.target.value)}
-                                    placeholder="Masalan: Testning har bir qismini diqqat bilan o'qing va yangi lug'atlarni yozib boring..."
-                                    rows={3}
-                                    className={`w-full p-3 rounded-xl border text-xs font-semibold outline-none resize-none transition-all duration-200 ${
-                                        isDark 
-                                            ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-gray-500' 
-                                            : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder-gray-400 shadow-sm'
-                                    }`}
-                                />
+                        {/* Urinishlar */}
+                        <div className="space-y-2">
+                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Urinishlar soni</label>
+                            <div className={`inline-flex items-center rounded-xl border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                                <button
+                                    type="button"
+                                    aria-label="Kamaytirish"
+                                    disabled={Number(maxAttempts) <= 1}
+                                    onClick={() => setMaxAttempts(prev => String(Math.max(1, Number(prev) - 1)))}
+                                    className={`w-10 h-10 flex items-center justify-center rounded-l-xl transition-colors disabled:opacity-30 ${isDark ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                    <Minus size={14} weight="bold" />
+                                </button>
+                                <span className={`w-10 text-center text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{maxAttempts}</span>
+                                <button
+                                    type="button"
+                                    aria-label="Ko'paytirish"
+                                    disabled={Number(maxAttempts) >= 10}
+                                    onClick={() => setMaxAttempts(prev => String(Math.min(10, Number(prev) + 1)))}
+                                    className={`w-10 h-10 flex items-center justify-center rounded-r-xl transition-colors disabled:opacity-30 ${isDark ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                    <Plus size={14} weight="bold" />
+                                </button>
                             </div>
                         </div>
 
-                        {/* Submit Button */}
-                        <div className="pt-4 border-t border-dashed border-gray-200 dark:border-white/10 space-y-3">
-                            {selectedTests.length > 0 && selectedGroupIds.size > 0 && (
-                                <div className={`flex items-center gap-2 p-3 rounded-xl text-[11px] font-semibold ${isDark ? 'bg-blue-500/8 text-blue-300 border border-blue-500/15' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>
-                                    <Lightning size={13} weight="fill" className="text-blue-500 shrink-0" />
-                                    <span>{selectedTests.length} ta test · {selectedGroupIds.size} ta guruh · {groups.filter(g => selectedGroupIds.has(g.id)).reduce((s, g) => s + (g.studentIds?.length || 0), 0)} o'quvchi</span>
-                                </div>
-                            )}
-                            <button
-                                type="submit"
-                                disabled={assigning || selectedTests.length === 0 || selectedGroupIds.size === 0}
-                                className={`w-full py-3.5 rounded-2xl font-bold text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2
-                                    ${assigning || selectedTests.length === 0 || selectedGroupIds.size === 0
-                                        ? 'bg-blue-600/40 cursor-not-allowed text-white/60'
-                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 active:scale-[0.98]'
-                                    }
-                                `}
-                            >
-                                {assigning
-                                    ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    : <><Lightning size={16} weight="fill" /> Vazifalarni tayinlash ({selectedTests.length} × {selectedGroupIds.size} guruh)</>
-                                }
-                            </button>
+                        {/* Muhimlik */}
+                        <div className="space-y-2">
+                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Muhimlik</label>
+                            <div className={`grid grid-cols-3 gap-1 p-1 rounded-xl ${isDark ? 'bg-white/[0.04]' : 'bg-gray-100'}`}>
+                                {[
+                                    { key: 'low', label: 'Past' },
+                                    { key: 'medium', label: "O'rtacha" },
+                                    { key: 'high', label: 'Yuqori' },
+                                ].map(item => {
+                                    const active = priority === item.key;
+                                    return (
+                                        <button
+                                            key={item.key}
+                                            type="button"
+                                            onClick={() => setPriority(item.key)}
+                                            className={`h-8 rounded-lg text-[13px] font-medium transition-colors ${
+                                                active
+                                                    ? (isDark ? 'bg-[#1E1E1E] text-white' : 'bg-white text-gray-900 shadow-sm')
+                                                    : (isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900')
+                                            }`}
+                                        >
+                                            {item.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Izoh */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Izoh</label>
+                                {teacherNote && <span className={`text-[13px] ${muted}`}>{teacherNote.length}/{NOTE_MAX}</span>}
+                            </div>
+                            <textarea
+                                value={teacherNote}
+                                maxLength={NOTE_MAX}
+                                onChange={e => setTeacherNote(e.target.value)}
+                                placeholder="O'quvchilarga eslatma (ixtiyoriy)"
+                                rows={3}
+                                className={`w-full p-3 rounded-xl border text-sm outline-none resize-none transition-colors ${field}`}
+                            />
                         </div>
                     </div>
-                </form>
-            </div>
-        );
+
+                    {/* Yakuniy qadam */}
+                    <div className={`p-4 border-t space-y-3 ${isDark ? 'border-white/8' : 'border-gray-200'}`}>
+                        {duplicateCount > 0 && (
+                            <p className="flex items-start gap-1.5 text-[13px] text-amber-600 dark:text-amber-400">
+                                <Warning size={14} weight="fill" className="shrink-0 mt-0.5" />
+                                {duplicateCount} ta test tanlangan guruhlarga ilgari berilgan.
+                            </p>
+                        )}
+                        {selectedTests.length > 0 && selectedGroupIds.size > 0 && (
+                            <p className={`text-[13px] ${muted}`}>
+                                {selectedTests.length} ta test · {selectedGroupIds.size} ta guruh · {studentTotal} o'quvchi
+                            </p>
+                        )}
+                        <button
+                            type="submit"
+                            disabled={blocked}
+                            className={`w-full h-11 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                                blocked
+                                    ? (isDark ? 'bg-white/8 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
+                        >
+                            {assigning
+                                ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                : 'Tayinlash'}
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     );
 }
