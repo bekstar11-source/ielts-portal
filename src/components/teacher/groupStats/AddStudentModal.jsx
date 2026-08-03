@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MagnifyingGlass, UserPlus, Check } from '@phosphor-icons/react';
+import { useTranslation } from '../../../context/LanguageContext';
 import { useStudentSearch } from '../../../hooks/useStudentSearch';
 import { Avatar, ProgressBar } from './primitives';
 import Modal from './Modal';
@@ -17,6 +18,7 @@ import Modal from './Modal';
 const NO_LOCAL_STUDENTS = [];
 
 export default function AddStudentModal({ open, onClose, groupName, memberIds, usage, onAdd }) {
+    const { t } = useTranslation();
     const [term, setTerm] = useState('');
     const [addingId, setAddingId] = useState(null);
     const { combinedStudents: found, isSearchingDb: searching } = useStudentSearch(
@@ -44,14 +46,14 @@ export default function AddStudentModal({ open, onClose, groupName, memberIds, u
         <Modal
             open={open}
             onClose={onClose}
-            title="O'quvchi qo'shish"
-            description={`"${groupName}" guruhiga qo'shish uchun ism, email yoki telefon bo'yicha qidiring.`}
+            title={t('teacher.groupStats.addModal.title')}
+            description={t('teacher.groupStats.addModal.desc').replace('{group}', groupName)}
             maxWidth="max-w-lg"
         >
             {usage.max > 0 && (
                 <div className="mb-4">
                     <div className="flex justify-between text-[11px] mb-1.5">
-                        <span className="text-gray-500 dark:text-gray-400">Tarif limiti</span>
+                        <span className="text-gray-500 dark:text-gray-400">{t('teacher.groupStats.tariffLimit')}</span>
                         <span
                             className={`tabular-nums font-medium ${
                                 limitReached
@@ -73,7 +75,7 @@ export default function AddStudentModal({ open, onClose, groupName, memberIds, u
                     type="text"
                     value={term}
                     onChange={(e) => setTerm(e.target.value)}
-                    placeholder="Ism, email yoki telefon..."
+                    placeholder={t('teacher.groupStats.addModal.searchPlaceholder')}
                     className="bg-transparent outline-none border-none text-xs w-full text-gray-900 dark:text-white placeholder:text-gray-400"
                 />
                 {searching && (
@@ -84,11 +86,11 @@ export default function AddStudentModal({ open, onClose, groupName, memberIds, u
             <div className="mt-3 min-h-[80px]">
                 {term.trim().length < 2 ? (
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 py-6 text-center">
-                        Qidirish uchun kamida 2 ta belgi kiriting
+                        {t('teacher.groupStats.addModal.minChars')}
                     </p>
                 ) : found.length === 0 && !searching ? (
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 py-6 text-center">
-                        Hech kim topilmadi
+                        {t('teacher.groupStats.addModal.noResults')}
                     </p>
                 ) : (
                     <div className="divide-y divide-gray-100 dark:divide-white/[0.05] max-h-64 overflow-y-auto custom-scrollbar">
@@ -99,7 +101,7 @@ export default function AddStudentModal({ open, onClose, groupName, memberIds, u
                                     <Avatar name={student.fullName || student.email} size={30} />
                                     <div className="min-w-0 flex-1">
                                         <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                                            {student.fullName || 'Nomsiz'}
+                                            {student.fullName || t('teacher.dashboard.unknownStudent')}
                                         </p>
                                         <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
                                             {student.email}
@@ -107,7 +109,7 @@ export default function AddStudentModal({ open, onClose, groupName, memberIds, u
                                     </div>
                                     {inGroup ? (
                                         <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                                            <Check size={11} weight="bold" /> Guruhda
+                                            <Check size={11} weight="bold" /> {t('teacher.groupStats.addModal.inGroup')}
                                         </span>
                                     ) : (
                                         <button
@@ -117,7 +119,7 @@ export default function AddStudentModal({ open, onClose, groupName, memberIds, u
                                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:pointer-events-none"
                                         >
                                             <UserPlus size={12} />
-                                            {addingId === student.id ? '...' : "Qo'shish"}
+                                            {addingId === student.id ? '...' : t('teacher.groupStats.addModal.addBtn')}
                                         </button>
                                     )}
                                 </div>

@@ -1,9 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { db, functions } from '../firebase/firebase';
-import { collection, doc, getDoc, getDocs, query, where, updateDoc } from 'firebase/firestore';
+import {
+    collection, doc, documentId, getDoc, getDocs, limit as fsLimit,
+    orderBy, query, where, updateDoc,
+} from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { calculateOverallBand } from '../utils/ieltsScoring';
+import { useTeacherWorkspace } from './useTeacherWorkspace';
+import { chunkIds } from '../utils/teacherResults';
+
+/** Admin ko'rinishida bir marta olinadigan yozma ishlar chegarasi. */
+const ADMIN_WRITINGS_CAP = 500;
 
 // Results store `date` either as a Firestore Timestamp or an ISO string
 // (submitMockExam/submitTestAnswers use new Date().toISOString()), so both
@@ -16,79 +24,72 @@ export const dateToMillis = (d) => {
     return isNaN(t) ? 0 : t;
 };
 
+const toWritings = (results) => results
+    .filter(r => (r.type === 'writing' || r.type === 'mock_full') &&
+        !(r.type === 'writing' && (r.parentResultId || r.mockKey)))
+    .sort((a, b) => dateToMillis(b.date) - dateToMillis(a.date));
+
 export const useWritingReview = (userData) => {
-    const [writings, setWritings] = useState([]);
-    const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const isAdmin = userData?.role === 'admin';
+
+    // O'QITUVCHI: sahifa o'zi hech narsa o'qimaydi — panelning umumiy
+    // keshidan foydalanadi. Ilgari bu yerda barcha o'quvchilarning BARCHA
+    // natijalari chegarasiz olinib, keyin mijoz tomonida writing/mock ga
+    // filtrlanardi — ya'ni Dashboard/Tests/GroupStats o'qigan narsa yana
+    // bir marta to'lanardi (va har "Saqlash" dan keyin yana bir marta).
+    const workspace = useTeacherWorkspace({
+        uid: userData?.uid,
+        enabled: Boolean(userData) && !isAdmin,
+    });
+
+    // ADMIN: butun platforma bo'yicha so'rov — bu yerda kesh emas, CHEGARA
+    // muhim (ilgari `limit` umuman yo'q edi).
+    const [adminData, setAdminData] = useState({ writings: [], students: [] });
+    const [adminLoading, setAdminLoading] = useState(isAdmin);
+
     const [saving, setSaving] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
 
-    const fetchData = async () => {
-        if (!userData) return;
-        setLoading(true);
+    const fetchAdminData = async () => {
+        setAdminLoading(true);
         try {
-            let writingResults = [];
-            let allStudents = [];
+            const resultsSnap = await getDocs(query(
+                collection(db, 'results'),
+                where('type', 'in', ['writing', 'mock_full']),
+                orderBy('date', 'desc'),
+                fsLimit(ADMIN_WRITINGS_CAP)
+            ));
+            const writingResults = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            if (userData?.role === 'admin') {
-                const resultsSnap = await getDocs(query(collection(db, 'results'), where('type', 'in', ['writing', 'mock_full'])));
-                writingResults = resultsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                
-                const userIds = [...new Set(writingResults.map(r => r.userId))].filter(Boolean);
-                if (userIds.length > 0) {
-                    // Fetch users in chunks of 30 (Firestore IN limit)
-                    const chunks = [];
-                    for (let i = 0; i < userIds.length; i += 30) {
-                        chunks.push(userIds.slice(i, i + 30));
-                    }
-
-                    const userPromises = chunks.map(chunk => 
-                        getDocs(query(collection(db, 'users'), where('__name__', 'in', chunk)))
-                    );
-                    
-                    const snaps = await Promise.all(userPromises);
-                    allStudents = snaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                }
-            } else {
-                const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
-                const querySnap = await getDocs(q);
-                const fetchedGroups = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                if (fetchedGroups.length > 0) {
-                    const uniqueStudentIds = new Set();
-                    fetchedGroups.forEach(gData => {
-                        (gData.studentIds || []).forEach(id => uniqueStudentIds.add(id));
-                    });
-                    const studentIdsArray = Array.from(uniqueStudentIds);
-                    if (studentIdsArray.length > 0) {
-                        // Fetch students
-                        const sChunks = [];
-                        for (let i = 0; i < studentIdsArray.length; i += 30) sChunks.push(studentIdsArray.slice(i, i + 30));
-                        const sSnaps = await Promise.all(sChunks.map(chunk => getDocs(query(collection(db, 'users'), where('__name__', 'in', chunk)))));
-                        allStudents = sSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
-
-                        // Fetch results (filter by type client-side to avoid requiring a
-                        // composite index for the userId+type "in" combination)
-                        const rSnaps = await Promise.all(sChunks.map(chunk => getDocs(query(collection(db, 'results'), where('userId', 'in', chunk)))));
-                        writingResults = rSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
-                            .filter(r => r.type === 'writing' || r.type === 'mock_full');
-                    }
-                }
-            }
-
-            const cleanWritings = writingResults.filter(
-                r => !(r.type === 'writing' && (r.parentResultId || r.mockKey))
+            const userIds = [...new Set(writingResults.map(r => r.userId))].filter(Boolean);
+            const snaps = await Promise.all(
+                chunkIds(userIds).map(chunk =>
+                    getDocs(query(collection(db, 'users'), where(documentId(), 'in', chunk)))
+                )
             );
 
-            setStudents(allStudents);
-            setWritings(cleanWritings.sort((a, b) => dateToMillis(b.date) - dateToMillis(a.date)));
+            setAdminData({
+                writings: toWritings(writingResults),
+                students: snaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+            });
         } catch (e) {
             console.error(e);
             toast.error("Ma'lumotlarni yuklashda xatolik yuz berdi");
         } finally {
-            setLoading(false);
+            setAdminLoading(false);
         }
     };
+
+    const teacherWritings = useMemo(
+        () => (isAdmin ? [] : toWritings(workspace.results)),
+        [isAdmin, workspace.results]
+    );
+
+    const writings = isAdmin ? adminData.writings : teacherWritings;
+    const students = isAdmin ? adminData.students : workspace.students;
+    const loading = isAdmin ? adminLoading : workspace.loading;
+
+    const fetchData = () => (isAdmin ? fetchAdminData() : workspace.refresh());
 
     const handleSaveFeedback = async (resultId, data) => {
         setSaving(true);
@@ -207,14 +208,17 @@ export const useWritingReview = (userData) => {
         }
     };
 
+    // O'qituvchi tarmog'ini react-query o'zi boshqaradi; bu yerda faqat
+    // admin so'rovi qo'lda ishga tushiriladi.
     useEffect(() => {
-        fetchData();
-    }, [userData]);
+        if (isAdmin) fetchAdminData();
+    }, [isAdmin, userData?.uid]);
 
     return {
         writings,
         students,
         loading,
+        isRefreshing: isAdmin ? false : workspace.isRefreshing,
         saving,
         aiLoading,
         handleSaveFeedback,

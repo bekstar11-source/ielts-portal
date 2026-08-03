@@ -1,9 +1,42 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      // Barcha tizimga kiritgan foydalanuvchilar (O'quvchi, O'qituvchi, Admin) xavfsiz tarzda o'qish/yozish imkoniga ega
-      allow read, write: if request.auth != null;
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return firestore.get(
+        /databases/(default)/documents/users/$(request.auth.uid)
+      ).data.get('role', 'student');
+    }
+
+    function isStaff() {
+      return isAuth() && (role() == 'admin' || role() == 'teacher');
+    }
+
+    // SPEAKING AUDIO — shaxsiy ma'lumot.
+    // Ilgari bu ham umumiy qoidaga tushardi, ya'ni tizimga kirgan istalgan
+    // foydalanuvchi boshqa o'quvchining ovoz yozuvini o'qiy olardi. Endi
+    // faqat egasi va o'qituvchi/admin (tekshiruv uchun) ko'radi.
+    // Yo'l: speaking/{uid}/{sessionId}/{fayl}
+    match /speaking/{userId}/{allPaths=**} {
+      allow read: if isAuth() && (request.auth.uid == userId || isStaff());
+      allow write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // Qolgan barcha papkalar — avvalgidek, tizimga kirgan foydalanuvchilarga.
+    // `speaking` bu yerdan ataylab chiqarib tashlangan: Storage qoidalari OR
+    // bilan ishlaydi, ya'ni bu qoida `speaking` ni ham qamrab olsa,
+    // yuqoridagi cheklov umuman kuchga ega bo'lmasdi.
+    match /{topLevel}/{allPaths=**} {
+      allow read, write: if isAuth() && topLevel != 'speaking';
+    }
+
+    // Ildizdagi yakka fayllar (eski yuklamalar).
+    match /{fileName} {
+      allow read, write: if isAuth();
     }
   }
 }

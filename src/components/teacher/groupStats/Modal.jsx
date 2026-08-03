@@ -5,8 +5,11 @@
 
 import React, { useEffect } from 'react';
 import { X } from '@phosphor-icons/react';
+import { useTranslation } from '../../../context/LanguageContext';
 
 export default function Modal({ open, onClose, title, description, children, maxWidth = 'max-w-md' }) {
+    const { t } = useTranslation();
+
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => e.key === 'Escape' && onClose?.();
@@ -46,7 +49,7 @@ export default function Modal({ open, onClose, title, description, children, max
                     <button
                         type="button"
                         onClick={onClose}
-                        aria-label="Yopish"
+                        aria-label={t('common.close')}
                         className="p-1.5 -mr-1 -mt-1 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
                     >
                         <X size={16} />

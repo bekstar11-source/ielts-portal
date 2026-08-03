@@ -33,6 +33,7 @@ import {
 } from '@phosphor-icons/react';
 
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { useGroupStats } from '../../hooks/useGroupStats';
 import { canAddStudent, addStudentToGroup, removeStudentFromGroup } from '../../utils/groupMembership';
 import {
@@ -55,10 +56,13 @@ import {
     Segmented,
     Button,
     EmptyState,
-    PageSkeleton,
     SectionTitle,
     ProgressBar,
 } from '../../components/teacher/groupStats/primitives';
+import {
+    TeacherGroupStatsSkeleton,
+    RefreshBar,
+} from '../../components/teacher/TeacherSkeletons';
 import {
     TrendChart,
     SkillBreakdown,
@@ -70,35 +74,36 @@ import StudentRow from '../../components/teacher/groupStats/StudentRow';
 import AddStudentModal from '../../components/teacher/groupStats/AddStudentModal';
 import ConfirmDialog from '../../components/teacher/groupStats/ConfirmDialog';
 
-const RANGES = [
-    { value: 30, label: '30 kun' },
-    { value: 90, label: '90 kun' },
-    { value: null, label: 'Butun davr' },
-];
-
-const SORTS = [
-    { value: 'band', label: 'Band' },
-    { value: 'name', label: 'Ism' },
-    { value: 'tests', label: 'Testlar' },
-    { value: 'activity', label: 'Faollik' },
-];
-
-const FILTERS = [
-    { value: 'all', label: 'Hammasi' },
-    { value: 'attention', label: "E'tibor talab" },
-    { value: 'inactive', label: 'Passiv' },
-    { value: 'untested', label: 'Test topshirmagan' },
-];
-
-const VIEWS = [
-    { value: 'stats', label: 'Tahlil' },
-    { value: 'students', label: "O'quvchilar" },
-];
-
 export default function TeacherGroupStats() {
     const { userData } = useAuth();
-    const { groups, students, results, testSetsMap, loading, error, refresh } =
+    const { t } = useTranslation();
+    const { groups, students, results, testSetsMap, loading, isRefreshing, error, refresh } =
         useGroupStats(userData);
+
+    const RANGES = useMemo(() => [
+        { value: 30, label: t('teacher.groupStats.ranges.days30') },
+        { value: 90, label: t('teacher.groupStats.ranges.days90') },
+        { value: null, label: t('teacher.groupStats.ranges.allTime') },
+    ], [t]);
+
+    const SORTS = useMemo(() => [
+        { value: 'band', label: t('teacher.groupStats.sorts.band') },
+        { value: 'name', label: t('teacher.groupStats.sorts.name') },
+        { value: 'tests', label: t('teacher.groupStats.sorts.tests') },
+        { value: 'activity', label: t('teacher.groupStats.sorts.activity') },
+    ], [t]);
+
+    const FILTERS = useMemo(() => [
+        { value: 'all', label: t('teacher.groupStats.filters.all') },
+        { value: 'attention', label: t('teacher.groupStats.filters.attention') },
+        { value: 'inactive', label: t('teacher.groupStats.filters.inactive') },
+        { value: 'untested', label: t('teacher.groupStats.filters.untested') },
+    ], [t]);
+
+    const VIEWS = useMemo(() => [
+        { value: 'stats', label: t('teacher.groupStats.views.stats') },
+        { value: 'students', label: t('teacher.groupStats.views.students') },
+    ], [t]);
 
     // Ko'rinish URL da saqlanadi — havola ulashsa ham o'sha bo'lim ochiladi.
     const [searchParams, setSearchParams] = useSearchParams();
@@ -219,10 +224,10 @@ export default function TeacherGroupStats() {
         }
         try {
             await addStudentToGroup(currentGroup.id, studentId);
-            toast.success("O'quvchi guruhga qo'shildi");
+            toast.success(t('teacher.groupStats.studentAddedSuccess'));
             await refresh();
         } catch (e) {
-            toast.error(`Qo'shib bo'lmadi: ${e.message}`);
+            toast.error(`${t('teacher.groupStats.studentAddFailed')}: ${e.message}`);
         }
     };
 
@@ -231,11 +236,11 @@ export default function TeacherGroupStats() {
         setRemoving(true);
         try {
             await removeStudentFromGroup(currentGroup.id, pendingRemoval.id);
-            toast.success('Guruhdan chiqarildi');
+            toast.success(t('teacher.groupStats.studentRemovedSuccess'));
             setPendingRemoval(null);
             await refresh();
         } catch (e) {
-            toast.error(`Chiqarib bo'lmadi: ${e.message}`);
+            toast.error(`${t('teacher.groupStats.studentRemoveFailed')}: ${e.message}`);
         } finally {
             setRemoving(false);
         }
@@ -246,13 +251,13 @@ export default function TeacherGroupStats() {
         const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
         const header = [
-            "O'quvchi",
+            t('teacher.groupStats.students'),
             'Email',
-            "O'rtacha band",
-            'Natijalar',
+            t('teacher.groupStats.sorts.band'),
+            t('teacher.groupStats.totalResults'),
             ...SKILLS.map((s) => SKILL_LABELS[s]),
-            'Bajarilish %',
-            "So'nggi faollik",
+            `${t('teacher.groupStats.studentRow.completed')} %`,
+            t('teacher.groupStats.sorts.activity'),
         ];
 
         const rows = visibleStudents.map(({ student, stats }) => [
@@ -275,22 +280,22 @@ export default function TeacherGroupStats() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        toast.success('CSV yuklab olindi');
+        toast.success(t('teacher.groupStats.csvDownloaded'));
     };
 
     // ---- Ko'rinish ---------------------------------------------------------
 
-    if (loading) return <PageSkeleton />;
+    if (loading) return <TeacherGroupStatsSkeleton />;
 
     if (error) {
         return (
             <EmptyState
                 icon={Warning}
-                title="Ma'lumotni yuklab bo'lmadi"
-                description="Internet aloqasini tekshirib, qaytadan urinib ko'ring."
+                title={t('teacher.groupStats.fetchErrorTitle')}
+                description={t('teacher.groupStats.fetchErrorDesc')}
                 action={
                     <Button onClick={refresh}>
-                        <ArrowsClockwise size={13} /> Qayta urinish
+                        <ArrowsClockwise size={13} /> {t('teacher.groupStats.retry')}
                     </Button>
                 }
             />
@@ -301,28 +306,30 @@ export default function TeacherGroupStats() {
         return (
             <EmptyState
                 icon={Users}
-                title="Sizga guruh biriktirilmagan"
-                description="Guruh yaratilgach, o'quvchilaringizning natijalari va o'sish dinamikasi shu yerda ko'rinadi."
+                title={t('teacher.groupStats.noGroupAssignedTitle')}
+                description={t('teacher.groupStats.noGroupAssignedDesc')}
             />
         );
     }
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-5 animate-content-in">
+            <RefreshBar active={isRefreshing} />
+
             {/* Sarlavha */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div>
                     <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-white">
-                        {currentGroup?.name || 'Guruh'}
+                        {currentGroup?.name || t('teacher.groupStats.group')}
                     </h1>
                     <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">
                         {view === 'students'
-                            ? `${memberIds.length} o'quvchi${
+                            ? `${memberIds.length} ${t('teacher.groupStats.studentsCount')}${
                                   planUsage.max
-                                      ? ` · tarif bo'yicha ${planUsage.used}/${planUsage.max}`
+                                      ? ` · ${t('teacher.groupStats.tariffUsage')} ${planUsage.used}/${planUsage.max}`
                                       : ''
                               }`
-                            : `${memberIds.length} o'quvchi · ${summary.totalResults} natija (${rangeLabel.toLowerCase()})`}
+                            : `${memberIds.length} ${t('teacher.groupStats.studentsCount')} · ${summary.totalResults} ${t('teacher.groupStats.totalResults')} (${rangeLabel.toLowerCase()})`}
                     </p>
                 </div>
 
@@ -330,14 +337,14 @@ export default function TeacherGroupStats() {
                     {view === 'stats' && (
                         <Segmented options={RANGES} value={range} onChange={setRange} size="sm" />
                     )}
-                    <Button onClick={refresh} title="Yangilash" className="px-2.5">
+                    <Button onClick={refresh} title={t('teacher.groupStats.refresh')} className="px-2.5">
                         <ArrowsClockwise size={13} />
                     </Button>
                     <Button onClick={handleExportCSV} disabled={!visibleStudents.length}>
-                        <Download size={13} /> CSV
+                        <Download size={13} /> {t('teacher.groupStats.exportCSV')}
                     </Button>
                     <Button variant="primary" onClick={() => setShowAdd(true)}>
-                        <UserPlus size={13} /> O'quvchi qo'shish
+                        <UserPlus size={13} /> {t('teacher.groupStats.addStudent')}
                     </Button>
                 </div>
             </div>
@@ -382,35 +389,35 @@ export default function TeacherGroupStats() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <StatTile
                     icon={Users}
-                    label="O'quvchilar"
+                    label={t('teacher.groupStats.statsTiles.students')}
                     value={summary.studentCount}
-                    hint={`${summary.activeCount} tasi faol`}
+                    hint={t('teacher.groupStats.statsTiles.activeCountHint').replace('{count}', summary.activeCount)}
                 />
                 <StatTile
                     icon={ChartLineUp}
-                    label="O'rtacha band"
+                    label={t('teacher.groupStats.statsTiles.avgBand')}
                     value={summary.avgBand !== null ? summary.avgBand.toFixed(1) : '—'}
-                    hint={`${summary.totalResults} ta natija asosida`}
+                    hint={t('teacher.groupStats.statsTiles.basedOnResults').replace('{count}', summary.totalResults)}
                     tone="accent"
                 />
                 <StatTile
                     icon={Target}
-                    label="Testlar bajarilishi"
+                    label={t('teacher.groupStats.statsTiles.testCompletion')}
                     value={summary.completionRate !== null ? `${summary.completionRate}%` : '—'}
                     hint={
                         summary.assignedCount
-                            ? `${summary.assignedCount} ta test tayinlangan`
-                            : 'Test tayinlanmagan'
+                            ? t('teacher.groupStats.statsTiles.testsAssignedHint').replace('{count}', summary.assignedCount)
+                            : t('teacher.groupStats.statsTiles.noTestsAssignedHint')
                     }
                 />
                 <StatTile
                     icon={Warning}
-                    label="E'tibor talab qiladi"
+                    label={t('teacher.groupStats.statsTiles.needsAttention')}
                     value={summary.attentionCount}
                     hint={
                         summary.untestedCount
-                            ? `${summary.untestedCount} tasi umuman test topshirmagan`
-                            : 'Past ball yoki passiv'
+                            ? t('teacher.groupStats.statsTiles.untestedHint').replace('{count}', summary.untestedCount)
+                            : t('teacher.groupStats.statsTiles.lowOrInactiveHint')
                     }
                     tone={summary.attentionCount ? 'warn' : 'neutral'}
                 />
@@ -441,13 +448,13 @@ export default function TeacherGroupStats() {
                         </span>
                     }
                 >
-                    O'quvchilar
+                    {t('teacher.groupStats.students')}
                 </SectionTitle>
 
                 {planUsage.max > 0 && (
                     <div className="mb-4">
                         <div className="flex items-center justify-between text-[11px] mb-1.5">
-                            <span className="text-gray-500 dark:text-gray-400">Tarif limiti</span>
+                            <span className="text-gray-500 dark:text-gray-400">{t('teacher.groupStats.tariffLimit')}</span>
                             <span
                                 className={`tabular-nums font-medium ${
                                     planUsage.used >= planUsage.max
@@ -469,7 +476,7 @@ export default function TeacherGroupStats() {
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Qidirish..."
+                            placeholder={t('teacher.groupStats.searchPlaceholder')}
                             className="bg-transparent outline-none border-none text-xs w-full text-gray-900 dark:text-white placeholder:text-gray-400"
                         />
                     </div>
@@ -483,20 +490,20 @@ export default function TeacherGroupStats() {
                 {groupStudents.length === 0 ? (
                     <div className="py-10 text-center">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            Guruhda o'quvchi yo'q
+                            {t('teacher.groupStats.noStudentsInGroup')}
                         </p>
                         <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">
-                            O'quvchi qo'shing — natijalari va statistikasi shu yerda ko'rinadi.
+                            {t('teacher.groupStats.noStudentsInGroupDesc')}
                         </p>
                         <Button variant="primary" className="mt-4" onClick={() => setShowAdd(true)}>
-                            <UserPlus size={13} /> O'quvchi qo'shish
+                            <UserPlus size={13} /> {t('teacher.groupStats.addStudent')}
                         </Button>
                     </div>
                 ) : visibleStudents.length === 0 ? (
                     <div className="py-10 text-center">
                         <ClipboardText size={22} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Ushbu filtr bo'yicha o'quvchi topilmadi
+                            {t('teacher.groupStats.noStudentsFoundFilter')}
                         </p>
                     </div>
                 ) : (
@@ -521,7 +528,7 @@ export default function TeacherGroupStats() {
             <AddStudentModal
                 open={showAdd}
                 onClose={() => setShowAdd(false)}
-                groupName={currentGroup?.name || 'Guruh'}
+                groupName={currentGroup?.name || t('teacher.groupStats.group')}
                 memberIds={memberIds}
                 usage={planUsage}
                 onAdd={handleAdd}
@@ -532,11 +539,12 @@ export default function TeacherGroupStats() {
                 onClose={() => setPendingRemoval(null)}
                 onConfirm={handleRemove}
                 loading={removing}
-                title="O'quvchini guruhdan chiqarish"
-                description={`${
-                    pendingRemoval?.fullName || pendingRemoval?.email || 'O\'quvchi'
-                } "${currentGroup?.name}" guruhidan chiqariladi. Natijalari o'chmaydi.`}
-                confirmLabel="Chiqarish"
+                title={t('teacher.groupStats.removeDialog.title')}
+                description={t('teacher.groupStats.removeDialog.desc')
+                    .replace('{name}', pendingRemoval?.fullName || pendingRemoval?.email || t('teacher.dashboard.unknownStudent'))
+                    .replace('{group}', currentGroup?.name || '')}
+                confirmLabel={t('teacher.groupStats.removeDialog.confirm')}
+                cancelLabel={t('teacher.groupStats.removeDialog.cancel')}
             />
         </div>
     );

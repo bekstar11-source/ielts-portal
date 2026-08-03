@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { CaretRight, Warning } from '@phosphor-icons/react';
+import { useTranslation } from '../../../context/LanguageContext';
 
 export const CARD_CLS =
     'rounded-2xl border border-warm-hairline dark:border-white/10 bg-white dark:bg-warm-dark-elevated';
@@ -45,6 +46,7 @@ export function SectionHeader({ title, actionLabel, onAction }) {
  * Natijasiz kunlar ham ko'rinadi, shuning uchun uzilish darrov seziladi.
  */
 export function ActivityStrip({ series }) {
+    const { t } = useTranslation();
     const total = series.reduce((sum, d) => sum + d.count, 0);
     const max = Math.max(1, ...series.map((d) => d.count));
 
@@ -52,10 +54,10 @@ export function ActivityStrip({ series }) {
         <div className={`${CARD_CLS} px-5 py-4 flex items-center gap-lg`}>
             <div className="flex-shrink-0">
                 <p className="text-[13px] text-warm-muted dark:text-warm-on-dark-soft">
-                    So'nggi {series.length} kun
+                    {t('teacher.dashboard.lastNDays').replace('{n}', series.length)}
                 </p>
                 <p className="text-[20px] leading-tight font-semibold tabular-nums mt-0.5">
-                    {total} <span className="text-[13px] font-normal text-warm-muted dark:text-warm-on-dark-soft">natija</span>
+                    {total} <span className="text-[13px] font-normal text-warm-muted dark:text-warm-on-dark-soft">{t('teacher.dashboard.resultsCount')}</span>
                 </p>
             </div>
 
@@ -63,7 +65,7 @@ export function ActivityStrip({ series }) {
                 {series.map((d) => (
                     <div
                         key={d.key}
-                        title={`${d.label} — ${d.count} ta`}
+                        title={`${d.label} — ${d.count}`}
                         className="flex-1 max-w-[14px] rounded-[2px] bg-warm-hairline dark:bg-white/10 flex items-end overflow-hidden"
                         style={{ height: '100%' }}
                     >
@@ -80,16 +82,17 @@ export function ActivityStrip({ series }) {
 
 /** Ko'nikmalar kesimidagi o'rtacha band — 0..9 shkalasida. */
 export function SkillAverages({ skills, overallBand }) {
+    const { t } = useTranslation();
     const hasData = skills.some((s) => s.avg !== null);
 
     return (
         <div className={`${CARD_CLS} px-5 py-4`}>
             <div className="flex items-baseline justify-between mb-4">
                 <p className="text-[13px] text-warm-muted dark:text-warm-on-dark-soft">
-                    Ko'nikmalar kesimi
+                    {t('teacher.dashboard.skillBreakdown')}
                 </p>
                 <p className="text-[13px] text-warm-muted dark:text-warm-on-dark-soft">
-                    Umumiy{' '}
+                    {t('teacher.dashboard.overall')}{' '}
                     <span className="text-warm-ink dark:text-warm-on-dark font-semibold tabular-nums">
                         {overallBand !== null && overallBand !== undefined ? overallBand.toFixed(1) : '—'}
                     </span>
@@ -98,7 +101,7 @@ export function SkillAverages({ skills, overallBand }) {
 
             {!hasData ? (
                 <p className="py-6 text-center text-warm-body-sm text-warm-muted dark:text-warm-on-dark-soft">
-                    Hali baholangan natija yo'q
+                    {t('teacher.dashboard.noGradedResultsYet')}
                 </p>
             ) : (
                 <div className="space-y-3">
@@ -109,7 +112,7 @@ export function SkillAverages({ skills, overallBand }) {
                                 <span className="text-[13px] tabular-nums">
                                     {avg !== null ? avg.toFixed(1) : '—'}
                                     <span className="ml-1.5 text-[12px] text-warm-muted dark:text-warm-on-dark-soft">
-                                        {count} ta
+                                        {count}
                                     </span>
                                 </span>
                             </div>
@@ -129,11 +132,12 @@ export function SkillAverages({ skills, overallBand }) {
 
 /** Bali past yoki uzoq faolsiz o'quvchilar. */
 export function AttentionList({ items, onOpen }) {
+    const { t } = useTranslation();
     return (
         <div className={`${CARD_CLS} overflow-hidden divide-y divide-warm-hairline dark:divide-white/10`}>
             {items.length === 0 ? (
                 <p className="px-5 py-8 text-center text-warm-body-sm text-warm-muted dark:text-warm-on-dark-soft">
-                    Hammasi joyida
+                    {t('teacher.dashboard.allGood')}
                 </p>
             ) : (
                 items.map(({ student, stats, reason, untested }) => (
@@ -142,11 +146,11 @@ export function AttentionList({ items, onOpen }) {
                             <Warning size={16} className="text-warm-muted-soft flex-shrink-0" />
                             <div className="min-w-0">
                                 <p className="text-[14px] font-medium truncate">
-                                    {student.fullName || student.email || "Noma'lum"}
+                                    {student.fullName || student.email || t('teacher.dashboard.unknownStudent')}
                                 </p>
                                 <p className="text-[12px] text-warm-muted dark:text-warm-on-dark-soft truncate">
                                     {reason}
-                                    {!untested && ` · ${stats.count} ta natija`}
+                                    {!untested && ` · ${stats.count} ${t('teacher.dashboard.resultsCount')}`}
                                 </p>
                             </div>
                         </div>

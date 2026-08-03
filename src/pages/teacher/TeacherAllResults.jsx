@@ -1,11 +1,16 @@
 import { useEffect, useState, useMemo, Fragment } from "react";
-import { db } from "../../firebase/firebase";
-import { collection, getDocs, query, where, limit, orderBy } from "firebase/firestore";
 import { toDate } from "../../utils/subscription";
-import { detectViolation, formatDuration, getLatestAttempt, chunkIds } from "../../utils/teacherResults";
+import { detectViolation, formatDuration, getLatestAttempt } from "../../utils/teacherResults";
+import {
+  useTeacherWorkspace, RESULTS_CAP, RESULTS_CAP_WIDE,
+} from "../../hooks/useTeacherWorkspace";
+import {
+  TeacherResultsSkeleton, RefreshBar,
+} from "../../components/teacher/TeacherSkeletons";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import { useTranslation } from "../../context/LanguageContext";
 import {
   ArrowLeft,
   Eye,
@@ -27,9 +32,8 @@ export default function TeacherAllResults() {
   const navigate = useNavigate();
   const { userData } = useAuth();
   const { theme } = useTheme();
+  const { t, lang } = useTranslation();
   const isDark = theme === "dark";
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState(new Set());
 
   const toggleExpand = (id) => {
@@ -46,120 +50,64 @@ export default function TeacherAllResults() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [groupFilter, setGroupFilter] = useState("all");
-  const [groups, setGroups] = useState([]);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
-  // Load more limit states
-  const [resultsLimit, setResultsLimit] = useState(100);
-  const [hasMore, setHasMore] = useState(false);
+  // "Ko'proq yuklash" — standart chegara panelning qolgan sahifalari bilan
+  // BIR XIL, shuning uchun bu sahifaga o'tishda odatda umuman o'qish bo'lmaydi
+  // (kesh ishlaydi). Faqat o'qituvchi ataylab bosgandagina kengroq so'rov
+  // yuboriladi.
+  const [resultsCap, setResultsCap] = useState(RESULTS_CAP);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const q = query(collection(db, "groups"), where("teacherId", "==", userData.uid));
-        const querySnap = await getDocs(q);
-        const fetchedGroups = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const {
+    groups, results: rawResults, resultsTruncated,
+    loading, isRefreshing,
+  } = useTeacherWorkspace({ uid: userData?.uid, resultsCap });
 
-        if (fetchedGroups.length === 0) {
-          setLoading(false);
-          return;
-        }
+  const hasMore = resultsTruncated && resultsCap < RESULTS_CAP_WIDE;
 
-        const uniqueStudentIds = new Set();
-        fetchedGroups.forEach(groupData => {
-          if (groupData.studentIds && Array.isArray(groupData.studentIds)) {
-            groupData.studentIds.forEach(id => uniqueStudentIds.add(id));
-          }
-        });
-        setGroups(fetchedGroups);
+  // O'quvchi → guruh nomlari. Ilgari bu fetch ichida qurilardi; endi u
+  // guruhlardan kelib chiqadigan sof hosila.
+  const studentToGroupsMap = useMemo(() => {
+    const map = {};
+    groups.forEach(group => {
+      (group.studentIds || []).forEach(studentId => {
+        (map[studentId] ||= []).push(group.name || (lang === 'uz' ? "Nomsiz guruh" : "Unnamed Group"));
+      });
+    });
+    return map;
+  }, [groups, lang]);
 
-        const studentIdsArray = Array.from(uniqueStudentIds);
-        if (studentIdsArray.length === 0) {
-          setLoading(false);
-          return;
-        }
+  const results = useMemo(() => rawResults.map((d) => {
+    const { hasViolation, violationText, timeSpentSeconds } = detectViolation(d);
 
-        // Build mapping: studentId -> array of group names
-        const studentToGroupsMap = {};
-        fetchedGroups.forEach(group => {
-          if (group.studentIds && Array.isArray(group.studentIds)) {
-            group.studentIds.forEach(studentId => {
-              if (!studentToGroupsMap[studentId]) {
-                studentToGroupsMap[studentId] = [];
-              }
-              studentToGroupsMap[studentId].push(group.name || "Nomsiz guruh");
-            });
-          }
-        });
+    // Multiple attempts of the same test are stored in d.attempts[].
+    // The row should always reflect the LATEST attempt, with older
+    // ones available via the expandable "attempts history" list.
+    const attemptsArr = Array.isArray(d.attempts) ? d.attempts : [];
+    const latestAttempt = getLatestAttempt(d);
+    const latestScoreVal = d.latestBandScore ?? d.latestScore ?? latestAttempt?.bandScore ?? latestAttempt?.score ?? d.bandScore ?? d.score;
 
-        let allDocsData = [];
-        let foundMore = false;
-        for (const chunk of chunkIds(studentIdsArray)) {
-          if (chunk.length === 0) continue;
-          const q = query(
-            collection(db, "results"),
-            where("userId", "in", chunk),
-            orderBy("date", "desc"),
-            limit(resultsLimit)
-          );
-          const querySnapshot = await getDocs(q);
-          if (querySnapshot.size >= resultsLimit) {
-            foundMore = true;
-          }
-          querySnapshot.forEach(docSnap => {
-            allDocsData.push({ id: docSnap.id, ...docSnap.data() });
-          });
-        }
-        setHasMore(foundMore);
-
-        // Client-side sort by date descending
-        allDocsData.sort((a, b) => (toDate(b.date)?.getTime() || 0) - (toDate(a.date)?.getTime() || 0));
-
-        const data = allDocsData.map((d) => {
-          const { hasViolation, violationText, timeSpentSeconds } = detectViolation(d);
-          const durationDisplay = formatDuration(timeSpentSeconds);
-
-          // Multiple attempts of the same test are stored in d.attempts[].
-          // The row should always reflect the LATEST attempt, with older
-          // ones available via the expandable "attempts history" list.
-          const attemptsArr = Array.isArray(d.attempts) ? d.attempts : [];
-          const latestAttempt = getLatestAttempt(d);
-          const latestScoreVal = d.latestBandScore ?? d.latestScore ?? latestAttempt?.bandScore ?? latestAttempt?.score ?? d.bandScore ?? d.score;
-
-          return {
-            id: d.id,
-            ...d,
-            userName: d.userName || "Noma'lum",
-            studentGroups: studentToGroupsMap[d.userId] || [],
-            testTitle: d.testTitle || "Nomsiz Test",
-            type: d.type || "other",
-            score: d.score !== undefined ? d.score : "-",
-            status: d.status || "pending",
-            date: toDate(d.date),
-            durationDisplay,
-            hasViolation,
-            violationText,
-            attempts: attemptsArr,
-            attemptsCount: attemptsArr.length,
-            displayScore: (latestScoreVal !== undefined && latestScoreVal !== null && latestScoreVal !== "") ? latestScoreVal : "-"
-          };
-        });
-
-        setResults(data);
-      } catch (error) {
-        console.error("Error fetching results in TeacherAllResults:", error);
-      } finally {
-        setLoading(false);
-      }
+    return {
+      ...d,
+      id: d.id,
+      userName: d.userName || (lang === 'uz' ? "Noma'lum" : "Unknown"),
+      studentGroups: studentToGroupsMap[d.userId] || [],
+      testTitle: d.testTitle || (lang === 'uz' ? "Nomsiz Test" : "Untitled Test"),
+      type: d.type || "other",
+      score: d.score !== undefined ? d.score : "-",
+      status: d.status || "pending",
+      date: toDate(d.date),
+      durationDisplay: formatDuration(timeSpentSeconds),
+      hasViolation,
+      violationText,
+      attempts: attemptsArr,
+      attemptsCount: attemptsArr.length,
+      displayScore: (latestScoreVal !== undefined && latestScoreVal !== null && latestScoreVal !== "") ? latestScoreVal : "-"
     };
-
-    if (userData) {
-      fetchData();
-    }
-  }, [userData, resultsLimit]);
+  }), [rawResults, studentToGroupsMap, lang]);
 
   // FILTER LOGIC — hosila qiymat, shuning uchun state emas, `useMemo`.
   // Ilgari u alohida state'da saqlanib, har filtr o'zgarganda qo'shimcha
@@ -268,7 +216,7 @@ export default function TeacherAllResults() {
 
   const statsList = [
     {
-      label: "Jami Yechilgan",
+      label: t('teacher.results.totalSolved') || (lang === 'uz' ? "Jami Yechilgan" : "Total Solved"),
       value: totalCount,
       icon: FileIcon,
       color: isDark ? "text-indigo-400" : "text-indigo-600",
@@ -276,7 +224,7 @@ export default function TeacherAllResults() {
       iconBg: isDark ? "bg-indigo-500/20" : "bg-indigo-50",
     },
     {
-      label: "Tekshirish Kutilmoqda",
+      label: t('teacher.results.pendingReview') || (lang === 'uz' ? "Tekshirish Kutilmoqda" : "Pending Review"),
       value: pendingCount,
       icon: ClockIcon,
       color: isDark ? "text-amber-400" : "text-amber-600",
@@ -284,7 +232,7 @@ export default function TeacherAllResults() {
       iconBg: isDark ? "bg-amber-500/20" : "bg-amber-50",
     },
     {
-      label: "O'rtacha Band",
+      label: t('teacher.results.avgBand') || (lang === 'uz' ? "O'rtacha Band" : "Avg Band"),
       value: avgBand,
       icon: GradIcon,
       color: isDark ? "text-emerald-400" : "text-emerald-600",
@@ -292,7 +240,7 @@ export default function TeacherAllResults() {
       iconBg: isDark ? "bg-emerald-500/20" : "bg-emerald-50",
     },
     {
-      label: "Qoidabuzarliklar",
+      label: t('teacher.results.violations') || (lang === 'uz' ? "Qoidabuzarliklar" : "Violations"),
       value: violationsCount,
       icon: AlertIcon,
       color: isDark ? "text-rose-400" : "text-rose-600",
@@ -302,13 +250,14 @@ export default function TeacherAllResults() {
   ];
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className={`animate-spin rounded-full h-10 w-10 border-b-2 border-t-transparent ${isDark ? 'border-white' : 'border-gray-900'}`}></div>
+    <div className="py-6 max-w-7xl mx-auto px-4">
+      <TeacherResultsSkeleton rows={10} />
     </div>
   );
 
   return (
-    <div className={`py-6 font-sans ${isDark ? 'text-white' : 'text-slate-800'}`}>
+    <div className={`py-6 font-sans animate-content-in ${isDark ? 'text-white' : 'text-slate-800'}`}>
+      <RefreshBar active={isRefreshing} />
       <div className="max-w-7xl mx-auto flex flex-col gap-6 px-4">
         {/* Back navigation */}
         <div className="mb-2">
@@ -319,7 +268,7 @@ export default function TeacherAllResults() {
             <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm transition-all ${isDark ? 'bg-white/5 border-white/10 group-hover:border-white/20' : 'bg-white border-gray-200 group-hover:border-gray-300'}`}>
               <ArrowLeft className="w-4 h-4" />
             </div>
-            Bosh sahifa
+            {t('common.home') || (lang === 'uz' ? 'Bosh sahifa' : 'Home')}
           </button>
         </div>
 
@@ -327,15 +276,15 @@ export default function TeacherAllResults() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <div>
             <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              O'quvchilar Natijalari
+              {t('teacher.results.title') || (lang === 'uz' ? "O'quvchilar Natijalari" : "Student Results")}
             </h1>
             <p className={`text-sm mt-1 font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              Guruhlaringizdagi o'quvchilar tomonidan topshirilgan testlar va yechimlar tahlili.
+              {t('teacher.results.subtitle') || (lang === 'uz' ? "Guruhlaringizdagi o'quvchilar tomonidan topshirilgan testlar va yechimlar tahlili." : "Analysis of tests and solutions submitted by students in your groups.")}
             </p>
           </div>
           
           <div className={`px-4 py-2 rounded-2xl text-xs font-bold border ${isDark ? 'bg-white/5 border-white/10 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-700'}`}>
-            Jami {filteredResults.length} ta yechim
+            {lang === 'uz' ? `Jami ${filteredResults.length} ta yechim` : `Total ${filteredResults.length} results`}
           </div>
         </div>
 
@@ -381,7 +330,7 @@ export default function TeacherAllResults() {
               <SearchIcon className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-600'}`} />
               <input
                 type="text"
-                placeholder="Ism yoki test nomi..."
+                placeholder={t('teacher.results.searchPlaceholder') || (lang === 'uz' ? "Ism yoki test nomi..." : "Name or test title...")}
                 className={`w-full pl-11 pr-4 py-2.5 rounded-2xl border text-sm font-medium transition-all outline-none ${isDark ? 'bg-[#1E1E1E]/50 border-white/5 text-white focus:border-blue-500/50 placeholder:text-gray-600 focus:bg-[#1E1E1E]' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-600/50 placeholder:text-gray-400 focus:bg-white'}`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -398,7 +347,7 @@ export default function TeacherAllResults() {
                 onChange={(e) => setGroupFilter(e.target.value)}
                 className={`w-full pl-11 pr-10 py-2.5 rounded-2xl border text-sm font-medium transition-all outline-none appearance-none cursor-pointer ${isDark ? 'bg-[#1E1E1E]/50 border-white/5 text-gray-300 focus:border-blue-500/50 focus:bg-[#1E1E1E]' : 'bg-gray-50 border-gray-200 text-gray-700 focus:border-blue-600/50 focus:bg-white'}`}
               >
-                <option value="all">Barcha Guruhlar</option>
+                <option value="all">{t('teacher.results.allGroups') || (lang === 'uz' ? 'Barcha Guruhlar' : 'All Groups')}</option>
                 {groups.map((group) => (
                   <option key={group.id} value={group.id}>
                     {group.name}
@@ -418,7 +367,7 @@ export default function TeacherAllResults() {
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className={`w-full pl-11 pr-10 py-2.5 rounded-2xl border text-sm font-medium transition-all outline-none appearance-none cursor-pointer ${isDark ? 'bg-[#1E1E1E]/50 border-white/5 text-gray-300 focus:border-blue-500/50 focus:bg-[#1E1E1E]' : 'bg-gray-50 border-gray-200 text-gray-700 focus:border-blue-600/50 focus:bg-white'}`}
               >
-                <option value="all">Barcha Turlar</option>
+                <option value="all">{t('teacher.results.allTypes') || (lang === 'uz' ? 'Barcha Turlar' : 'All Types')}</option>
                 <option value="reading">Reading</option>
                 <option value="listening">Listening</option>
                 <option value="writing">Writing</option>
@@ -438,9 +387,9 @@ export default function TeacherAllResults() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className={`w-full pl-11 pr-10 py-2.5 rounded-2xl border text-sm font-medium transition-all outline-none appearance-none cursor-pointer ${isDark ? 'bg-[#1E1E1E]/50 border-white/5 text-gray-300 focus:border-blue-500/50 focus:bg-[#1E1E1E]' : 'bg-gray-50 border-gray-200 text-gray-700 focus:border-blue-600/50 focus:bg-white'}`}
               >
-                <option value="all">Barcha Statuslar</option>
-                <option value="pending">Kutilmoqda</option>
-                <option value="graded">Baholangan</option>
+                <option value="all">{t('teacher.results.allStatuses') || (lang === 'uz' ? 'Barcha Statuslar' : 'All Statuses')}</option>
+                <option value="pending">{t('teacher.results.statusPending') || (lang === 'uz' ? 'Kutilmoqda' : 'Pending')}</option>
+                <option value="graded">{t('teacher.results.statusGraded') || (lang === 'uz' ? 'Baholangan' : 'Graded')}</option>
               </select>
               <CaretDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
@@ -457,7 +406,7 @@ export default function TeacherAllResults() {
               className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-2xl transition-all border ${isDark ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-100'}`}
             >
               <ArrowCounterClockwise className="w-3.5 h-3.5" />
-              Tozalash
+              {t('teacher.results.clearFilters') || (lang === 'uz' ? 'Tozalash' : 'Clear')}
             </button>
           )}
         </div>
@@ -477,13 +426,13 @@ export default function TeacherAllResults() {
             <table className="w-full text-left border-collapse font-sans">
               <thead>
                 <tr className={`border-b ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-200 bg-gray-50/50'}`}>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider w-32 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Sana</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>O'quvchi</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Test Nomi</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Sarf Vaqti</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Natija</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Status / Qoida</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Amal</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider w-32 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colDate') || (lang === 'uz' ? 'Sana' : 'Date')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colStudent') || (lang === 'uz' ? "O'quvchi" : 'Student')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colTestTitle') || (lang === 'uz' ? 'Test Nomi' : 'Test Title')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colDuration') || (lang === 'uz' ? 'Sarf Vaqti' : 'Duration')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colScore') || (lang === 'uz' ? 'Natija' : 'Score')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colStatus') || (lang === 'uz' ? 'Status / Qoida' : 'Status / Rule')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colAction') || (lang === 'uz' ? 'Amal' : 'Action')}</th>
                 </tr>
               </thead>
 
@@ -493,7 +442,7 @@ export default function TeacherAllResults() {
                     <td colSpan="7" className={`p-16 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                       <div className="flex flex-col items-center gap-2">
                         <FolderIcon className="w-10 h-10 opacity-30 text-gray-400" />
-                        <span className="font-semibold">Hech qanday natija topilmadi</span>
+                        <span className="font-semibold">{t('teacher.results.noResults') || (lang === 'uz' ? 'Hech qanday natija topilmadi' : 'No results found')}</span>
                       </div>
                     </td>
                   </tr>
@@ -531,7 +480,7 @@ export default function TeacherAllResults() {
                                 ))}
                               </div>
                             ) : (
-                              <span className={`text-[11px] font-medium mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Guruhsiz</span>
+                              <span className={`text-[11px] font-medium mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('teacher.results.noGroup') || (lang === 'uz' ? 'Guruhsiz' : 'No Group')}</span>
                             )}
                           </div>
                         </td>
@@ -568,7 +517,7 @@ export default function TeacherAllResults() {
                                     ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100')
                                     : (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse')
                                 }`} title="Writing">
-                                  W: {res.scores.writingBand ?? res.writingBand ?? 'kutilmoqda'}
+                                  W: {res.scores.writingBand ?? res.writingBand ?? (t('teacher.results.pending') || (lang === 'uz' ? 'kutilmoqda' : 'pending'))}
                                 </span>
                                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-100'}`} title="Speaking">
                                   S: {res.scores.speakingBand ?? res.speakingBand ?? '-'}
@@ -601,7 +550,7 @@ export default function TeacherAllResults() {
                                 onClick={() => toggleExpand(res.id)}
                                 className={`flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-500 hover:text-blue-600'}`}
                               >
-                                {res.attemptsCount} urinish
+                                {t('teacher.results.attempts', { count: res.attemptsCount }) || (lang === 'uz' ? `${res.attemptsCount} urinish` : `${res.attemptsCount} attempts`)}
                                 <CaretDown className={`w-3 h-3 transition-transform duration-200 ${expandedRows.has(res.id) ? 'rotate-180' : ''}`} />
                               </button>
                             )}
@@ -619,7 +568,9 @@ export default function TeacherAllResults() {
                               <span className={`w-1.5 h-1.5 rounded-full ${
                                 res.status === 'graded' || res.status === 'published' ? 'bg-emerald-500' : 'bg-amber-500'
                               }`} />
-                              {res.status === 'graded' || res.status === 'published' ? 'Baholangan' : 'Kutilmoqda'}
+                              {res.status === 'graded' || res.status === 'published'
+                                ? (t('teacher.results.statusGraded') || (lang === 'uz' ? 'Baholangan' : 'Graded'))
+                                : (t('teacher.results.statusPending') || (lang === 'uz' ? 'Kutilmoqda' : 'Pending'))}
                             </span>
                             
                             {res.hasViolation && (
@@ -628,7 +579,7 @@ export default function TeacherAllResults() {
                                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border cursor-help ${isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-100 text-rose-700 border-rose-200'}`}
                               >
                                 <AlertIcon className="w-3 h-3 flex-shrink-0 text-rose-500" />
-                                Qoidabuzarlik
+                                {t('teacher.results.violation') || (lang === 'uz' ? 'Qoidabuzarlik' : 'Violation')}
                               </span>
                             )}
                           </div>
@@ -652,7 +603,9 @@ export default function TeacherAllResults() {
                               }`}
                             >
                               <Eye className="w-4 h-4" />
-                              {((res.status === 'pending' || res.status === 'pending_review') && (res.type === 'writing' || res.type === 'mock_full')) ? 'Baholash' : 'Ko\'rish'}
+                              {((res.status === 'pending' || res.status === 'pending_review') && (res.type === 'writing' || res.type === 'mock_full'))
+                                ? (t('teacher.results.grade') || (lang === 'uz' ? 'Baholash' : 'Grade'))
+                                : (t('teacher.results.view') || (lang === 'uz' ? "Ko'rish" : 'View'))}
                             </button>
                           </div>
                         </td>
@@ -664,7 +617,7 @@ export default function TeacherAllResults() {
                           <td colSpan="7" className="px-5 pb-4 pt-1">
                             <div className={`rounded-2xl border p-3 flex flex-col gap-2 ${isDark ? 'bg-[#1E1E1E]/60 border-white/5' : 'bg-white border-gray-200'}`}>
                               <p className={`text-[11px] font-bold uppercase tracking-wider px-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                Barcha urinishlar ({res.attempts.length})
+                                {t('teacher.results.allAttempts', { count: res.attempts.length }) || (lang === 'uz' ? `Barcha urinishlar (${res.attempts.length})` : `All attempts (${res.attempts.length})`)}
                               </p>
                               {[...res.attempts].reverse().map((attempt, idx) => {
                                 const attemptDateObj = attempt.date ? (attempt.date.toDate ? attempt.date.toDate() : new Date(attempt.date)) : null;
@@ -697,7 +650,7 @@ export default function TeacherAllResults() {
                                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${isDark ? 'bg-[#2C2C2C] border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'}`}
                                       >
                                         <Eye className="w-3.5 h-3.5" />
-                                        Ko'rish
+                                        {t('teacher.results.view') || (lang === 'uz' ? "Ko'rish" : 'View')}
                                       </button>
                                     </div>
                                   </div>
@@ -719,14 +672,18 @@ export default function TeacherAllResults() {
           {hasMore && (
             <div className={`flex justify-center p-4 border-t ${isDark ? 'border-white/5' : 'border-[#e5e7eb]/50'}`}>
               <button
-                onClick={() => setResultsLimit(prev => prev + 100)}
-                className={`px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                  isDark 
-                    ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/20' 
+                onClick={() => setResultsCap(RESULTS_CAP_WIDE)}
+                disabled={isRefreshing}
+                className={`px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all duration-200 inline-flex items-center gap-2 disabled:opacity-60 ${
+                  isDark
+                    ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/20'
                     : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100'
                 }`}
               >
-                Ko'proq yuklash (+100)
+                {isRefreshing && (
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                )}
+                {t('teacher.results.loadMore') || (lang === 'uz' ? "Ko'proq yuklash" : 'Load More')}
               </button>
             </div>
           )}
@@ -756,7 +713,10 @@ export default function TeacherAllResults() {
             </div>
 
             <span className={`text-[13px] font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              Jami <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{filteredResults.length}</span> tadan <span className={isDark ? 'text-white' : 'text-gray-900'}>{filteredResults.length === 0 ? 0 : indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)}</span> ko'rsatilmoqda
+              {lang === 'uz'
+                ? (<>Jami <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{filteredResults.length}</span> tadan <span className={isDark ? 'text-white' : 'text-gray-900'}>{filteredResults.length === 0 ? 0 : indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)}</span> ko'rsatilmoqda</>)
+                : (<>Showing <span className={isDark ? 'text-white' : 'text-gray-900'}>{filteredResults.length === 0 ? 0 : indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredResults.length)}</span> of <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{filteredResults.length}</span></>)
+              }
             </span>
           </div>
         </div>

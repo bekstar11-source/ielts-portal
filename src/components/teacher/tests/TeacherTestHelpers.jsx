@@ -1,4 +1,6 @@
 import React from 'react';
+import { useTranslation } from '../../../context/LanguageContext';
+
 // SVG ring progress chart
 export const RingChart = ({ pct, isDark }) => {
     const r = 17;
@@ -21,16 +23,17 @@ export const RingChart = ({ pct, isDark }) => {
 
 // Deadline countdown badge
 export const DeadlineCountdown = ({ deadline, isDark }) => {
-    if (!deadline) return <span className="text-emerald-600 dark:text-emerald-400 font-bold">Cheksiz muddat</span>;
+    const { t } = useTranslation();
+    if (!deadline) return <span className="text-emerald-600 dark:text-emerald-400 font-bold">{t('teacher.tests.deadlineCountdown.noDeadline') || 'Cheksiz muddat'}</span>;
     const now = new Date();
     const dl = new Date(deadline);
     const diff = dl - now;
-    if (diff < 0) return <span className="text-rose-500 font-bold">Muddati o'tgan</span>;
+    if (diff < 0) return <span className="text-rose-500 font-bold">{t('teacher.tests.deadlineCountdown.expired') || "Muddati o'tgan"}</span>;
     const days = Math.floor(diff / 86400000);
     const hours = Math.floor((diff % 86400000) / 3600000);
     const mins = Math.floor((diff % 3600000) / 60000);
     const color = days === 0 ? 'text-rose-500' : days <= 2 ? 'text-amber-500' : (isDark ? 'text-gray-300' : 'text-gray-700');
-    if (days > 0) return <span className={`font-bold ${color}`}>{days}k {hours}s qoldi</span>;
-    if (hours > 0) return <span className="font-bold text-rose-500">{hours}s {mins}d qoldi</span>;
-    return <span className="font-bold text-rose-600">{mins} daqiqa qoldi!</span>;
+    if (days > 0) return <span className={`font-bold ${color}`}>{(t('teacher.tests.deadlineCountdown.daysLeft') || '{n} kun qoldi').replace('{n}', `${days}d ${hours}h`)}</span>;
+    if (hours > 0) return <span className="font-bold text-rose-500">{(t('teacher.tests.deadlineCountdown.hoursLeft') || '{n} soat qoldi').replace('{n}', `${hours}h ${mins}m`)}</span>;
+    return <span className="font-bold text-rose-600">{(t('teacher.tests.deadlineCountdown.minsLeft') || '{n} daqiqa qoldi').replace('{n}', mins)}</span>;
 };

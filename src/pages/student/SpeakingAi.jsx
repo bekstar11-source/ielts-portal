@@ -1,12 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Sparkles } from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../context/LanguageContext';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Sparkles } from 'lucide-react';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardModals from '../../components/dashboard/DashboardModals';
+import SpeakingSession from '../../components/speaking/SpeakingSession';
+import SpeakingHistory from '../../components/speaking/SpeakingHistory';
+import SpeakingMistakes from '../../components/speaking/SpeakingMistakes';
+import SpeakingRoomRail from '../../components/speaking/SpeakingRoomRail';
+import SpeakingTopicBrowser from '../../components/speaking/SpeakingTopicBrowser';
+import { RoomGlow } from '../../components/speaking/ui';
+import { useSpeakingTopics } from '../../hooks/useSpeakingTopics';
+import { useSpeakingProgress } from '../../hooks/useSpeakingProgress';
+import { buildMockTopic } from '../../data/speakingQuestions';
+
+const PARTS = [1, 2, 3];
+
+const COPY = {
+    uz: {
+        badge: 'Speaking xonasi',
+        title: 'Gaplashamiz',
+        lead: "Mavzuni tanlang, kim bilan gaplashayotganingizni belgilang va ovoz chiqarib gapiring. Har javobdan keyin band ball va o'sha ohangdagi feedback.",
+        mockBadge: "To'liq suhbat",
+        mockTitle: 'Part 1 → 2 → 3, bir seansda',
+        mockTitleShort: "Part 1 → 2 → 3, bir o'tirishda",
+        mockHint:
+            "Uchala qism ketma-ket, mavzular har safar boshqacha. Oxirida mezonlar kesimidagi umumiy hisobot.",
+        micHint:
+            'Mikrofon ruxsatini bering va tinch joyda gapiring — fon shovqini talaffuz bahosiga ta’sir qiladi.',
+        backHome: 'Bosh sahifaga qaytish',
+        begin: 'Boshlash',
+        bandSoFar: 'Hozirgi band',
+        railNote: "Bo'limlar o'sganda ro'yxat emas — chapdagi ustun o'zgarmaydi.",
+        searchPlaceholder: 'Mavzu qidirish…',
+        sortLabel: 'Tartib: tavsiya etilgan',
+        filterAll: 'Hammasi',
+        filterFresh: 'Boshlanmagan',
+        filterStarted: 'Boshlangan',
+        filterWeak: 'Ball < 6.0 ·',
+        emptyResult: 'Bu shartga mos mavzu topilmadi.',
+        notStarted: 'boshlanmagan',
+        lastAttempt: (when) => `oxirgi urinish ${when}`,
+        collapse: 'yopish',
+        expand: 'ochish',
+        questions: (n) => `${n} savol`,
+        answers: (n) => `${n} javob`,
+        topicCount: (n) => `${n} mavzu`,
+        showMore: (n) => `Yana ${n} mavzu ko'rsatish`,
+    },
+    en: {
+        badge: 'Speaking room',
+        title: "Let's talk",
+        lead: "Pick a topic, choose who you are talking to — a friend, a coach or an examiner — and speak out loud. After each answer you get a band score and feedback in that voice.",
+        mockBadge: 'Full conversation',
+        mockTitle: 'Part 1 → 2 → 3, in one sitting',
+        mockTitleShort: 'Part 1 → 2 → 3, in one sitting',
+        mockHint:
+            'All three parts back to back, new topics every time. Full criterion breakdown at the end.',
+        micHint:
+            'Allow microphone access and speak somewhere quiet — background noise affects the pronunciation score.',
+        backHome: 'Back to Dashboard',
+        begin: 'Begin',
+        bandSoFar: 'Band so far',
+        railNote: 'However long the list gets, this column stays the same.',
+        searchPlaceholder: 'Search topics…',
+        sortLabel: 'Sorted by: recommended',
+        filterAll: 'All',
+        filterFresh: 'Not started',
+        filterStarted: 'In progress',
+        filterWeak: 'Band < 6.0 ·',
+        emptyResult: 'No topic matches that.',
+        notStarted: 'not started',
+        lastAttempt: (when) => `last attempt ${when}`,
+        collapse: 'collapse',
+        expand: 'expand',
+        questions: (n) => `${n} ${n === 1 ? 'question' : 'questions'}`,
+        answers: (n) => `${n} ${n === 1 ? 'answer' : 'answers'}`,
+        topicCount: (n) => `${n} ${n === 1 ? 'topic' : 'topics'}`,
+        showMore: (n) => `Show ${n} more`,
+    },
+};
 
 export default function SpeakingAi() {
     const { user, userData, logout } = useAuth();
@@ -14,13 +90,89 @@ export default function SpeakingAi() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const navigate = useNavigate();
+
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [active, setActive] = useState(null); // { topic, sessionId }
+    // Mavzular ro'yxatiga qaytilganda tarix qayta o'qiladi — endigina
+    // tugatilgan mashg'ulot darhol ko'rinib tursin.
+    const [historyKey, setHistoryKey] = useState(0);
+    const [query, setQuery] = useState('');
+    const [filter, setFilter] = useState('all');
+    // Part 1 ochiq, qolganlari yopiq: sahifa ochilishida ro'yxat qisqa
+    // ko'rinadi, o'quvchi kerakli qismni o'zi ochadi.
+    const [openParts, setOpenParts] = useState({ 1: true, 2: false, 3: false });
+    const [activePart, setActivePart] = useState(1);
+
+    // Statik baza + o'qituvchi qo'shgan mavzular.
+    const { topics } = useSpeakingTopics(userData);
+    // Mavzular kesimidagi natijalar — qatordagi ball va oxirgi urinish.
+    const { byTopic, overallBand, answerCount } = useSpeakingProgress(user?.uid, historyKey);
+    const c = COPY[lang] || COPY.uz;
+
+    const partCounts = useMemo(
+        () => PARTS.map((part) => ({ part, count: topics.filter((t) => t.part === part).length })),
+        [topics]
+    );
+
+    // Sessiya ID bir marta yaratiladi — javoblar Firestore da shu ID ostida
+    // to'planadi, o'qituvchi keyin butun mashg'ulotni bir joyda ko'radi.
+    const startTopic = useCallback((topic) => {
+        setActive({
+            topic,
+            sessionId: `${user?.uid || 'anon'}_${topic.id}_${Date.now()}`,
+        });
+    }, [user]);
+
+    // To'liq mock — Part 1 → 2 → 3 bitta sessiyada, har safar boshqa mavzular.
+    const startMock = useCallback(() => {
+        startTopic(buildMockTopic(topics));
+    }, [startTopic, topics]);
+
+    const togglePart = useCallback((part) => {
+        setOpenParts((prev) => ({ ...prev, [part]: !prev[part] }));
+        setActivePart(part);
+    }, []);
+
+    // Chap ustundan part tanlanganda bo'lim ochiladi va o'sha joyga suriladi.
+    const selectPart = useCallback((part) => {
+        setActivePart(part);
+        setOpenParts((prev) => ({ ...prev, [part]: true }));
+        document
+            .getElementById(`speaking-part-${part}`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, []);
+
+    const goBack = useCallback(() => {
+        if (!active) {
+            navigate('/dashboard');
+            return;
+        }
+        setActive(null);
+        setHistoryKey((prev) => prev + 1);
+    }, [active, navigate]);
+
+    // Mashg'ulot boshlanganda sahifa "fokus rejimi" ga o'tadi: header,
+    // navigatsiya va sahifa chegaralari yo'qoladi, ekranda faqat sahna
+    // qoladi. Chiqish tugmasi sahnaning o'z ichida.
+    if (active) {
+        return (
+            <div className="stage-scrollbar fixed inset-0 z-[60] bg-[#0B0806] text-white font-sans overflow-y-auto lg:overflow-hidden">
+                <div className="min-h-full lg:h-full">
+                    <SpeakingSession
+                        key={active.sessionId}
+                        questions={active.topic.questions}
+                        topic={active.topic}
+                        sessionId={active.sessionId}
+                        onExit={goBack}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className={`min-h-screen transition-colors duration-500 flex flex-col selection:bg-warm-primary/20 ${
-            isDark ? 'bg-warm-dark text-warm-on-dark' : 'bg-warm-canvas text-warm-ink'
-        } font-sans`}>
-            {/* Dashboard Header */}
+        <div className={`min-h-screen transition-colors duration-500 flex flex-col selection:bg-warm-primary/20 ${isDark ? 'bg-warm-dark text-warm-on-dark' : 'bg-warm-canvas text-warm-ink'
+            } font-sans`}>
             <DashboardHeader
                 user={user}
                 userData={userData}
@@ -28,190 +180,99 @@ export default function SpeakingAi() {
                 onLogoutClick={() => setShowLogoutConfirm(true)}
             />
 
-            {/* Mobile Header */}
-            <header className={`w-full border-b px-6 py-3 sticky top-0 z-50 md:hidden ${
-                isDark ? 'bg-warm-dark border-white/10' : 'bg-white border-warm-hairline'
-            }`}>
+            {/* Mobil sarlavha */}
+            <header className={`w-full border-b px-6 py-3 sticky top-0 z-50 md:hidden ${isDark ? 'bg-warm-dark border-white/10' : 'bg-white border-warm-hairline'
+                }`}>
                 <div className="max-w-6xl mx-auto flex justify-between items-center">
                     <button
-                        onClick={() => navigate('/dashboard')}
-                        className={`p-2 rounded-full transition-colors ${
-                            isDark ? 'hover:bg-white/5 text-warm-on-dark-soft hover:text-warm-on-dark' : 'hover:bg-warm-canvas text-warm-muted hover:text-warm-ink'
-                        }`}
+                        onClick={goBack}
+                        className={`p-2 rounded-full transition-colors ${isDark
+                            ? 'hover:bg-white/5 text-warm-on-dark-soft hover:text-warm-on-dark'
+                            : 'hover:bg-warm-canvas text-warm-muted hover:text-warm-ink'
+                            }`}
                     >
                         <ArrowLeft size={20} />
                     </button>
-                    <span className="font-bold text-sm">Speaking with AI</span>
+                    <span className="font-medium text-sm">{c.badge}</span>
                 </div>
             </header>
 
-            {/* Main Content */}
-            <main className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl w-full mx-auto relative overflow-hidden">
-                {/* Back button for desktop */}
-                <div className="absolute top-6 left-6 hidden md:block">
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className={`flex items-center gap-2 transition-all group font-bold text-sm ${
-                            isDark ? 'text-warm-on-dark-soft hover:text-warm-on-dark' : 'text-warm-muted hover:text-warm-ink'
-                        }`}
-                    >
-                        <div className={`p-2 rounded-full transition-colors ${
-                            isDark ? 'group-hover:bg-white/10' : 'group-hover:bg-warm-ink/5'
-                        }`}>
-                            <ArrowLeft size={18} />
+            <div className="flex-1 w-full flex">
+                <SpeakingRoomRail
+                    lang={lang}
+                    c={c}
+                    parts={partCounts}
+                    activePart={activePart}
+                    onSelectPart={selectPart}
+                    onBack={() => navigate('/dashboard')}
+                    onStartMock={startMock}
+                    overallBand={overallBand}
+                    answerCount={answerCount}
+                />
+
+                <main className="flex-1 min-w-0 px-5 sm:px-8 py-7 sm:py-8">
+                    <div className="max-w-4xl">
+                        {/* Xona "eshigi": sokin sarlavha va bitta taklif. */}
+                        <div className="relative isolate mb-6">
+                            <RoomGlow />
+                            <p className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-warm-primary mb-2.5">
+                                {c.badge}
+                            </p>
+                            <h1 className="font-serif-display font-medium text-[40px] sm:text-[52px] leading-none tracking-tight">
+                                {c.title}
+                            </h1>
+                            <p className={`mt-3 max-w-xl text-[15px] leading-relaxed ${isDark ? 'text-warm-on-dark-soft' : 'text-warm-body'
+                                }`}>
+                                {c.lead}
+                            </p>
                         </div>
-                        <span>{lang === 'uz' ? "Bosh sahifaga qaytish" : "Back to Dashboard"}</span>
-                    </button>
-                </div>
 
-                {/* Animated Background Glow */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className={`w-96 h-96 rounded-full blur-[120px] opacity-20 transition-colors duration-500 ${
-                        isDark ? 'bg-warm-primary/30' : 'bg-warm-primary/20'
-                    }`} />
-                </div>
+                        {/* To'liq mock — chap ustun ko'rinmaydigan ekranlarda
+                            (mobil/planshet) shu karta o'sha vazifani bajaradi. */}
+                        <button
+                            type="button"
+                            onClick={startMock}
+                            className="lg:hidden group w-full text-left mb-7 p-5 rounded-[14px] border border-warm-primary/30 bg-warm-primary/[0.08] hover:border-warm-primary/60 transition-colors active:scale-[0.995]"
+                        >
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-warm-primary">
+                                <Sparkles size={11} />
+                                {c.mockBadge}
+                            </span>
+                            <p className="mt-2.5 font-medium text-[17px] tracking-tight">{c.mockTitle}</p>
+                            <p className={`mt-1.5 text-xs leading-relaxed ${isDark ? 'text-warm-on-dark-soft' : 'text-warm-body'
+                                }`}>
+                                {c.mockHint}
+                            </p>
+                        </button>
 
-                <div className="text-center space-y-8 max-w-lg z-10">
-                    {/* ROBOT ANIMATION */}
-                    <div className="relative flex flex-col items-center justify-center h-64">
-                        {/* Pedestal Glow */}
-                        <motion.div 
-                            animate={{ 
-                                scale: [0.9, 1.1, 0.9],
-                                opacity: [0.3, 0.6, 0.3]
-                            }}
-                            transition={{
-                                duration: 3,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }}
-                            className={`absolute bottom-4 w-32 h-4 rounded-full blur-md ${
-                                isDark ? 'bg-warm-primary/20' : 'bg-warm-primary/20'
-                            }`}
+                        <SpeakingTopicBrowser
+                            topics={topics}
+                            statsByTopic={byTopic}
+                            lang={lang}
+                            c={c}
+                            parts={PARTS}
+                            openParts={openParts}
+                            onTogglePart={togglePart}
+                            onStart={startTopic}
+                            query={query}
+                            onQueryChange={setQuery}
+                            filter={filter}
+                            onFilterChange={setFilter}
                         />
 
-                        {/* Floating Robot */}
-                        <motion.div
-                            animate={{ y: [0, -15, 0] }}
-                            transition={{
-                                duration: 4,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }}
-                            className="relative flex flex-col items-center"
-                        >
-                            {/* Sparks / Particles */}
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                                className="absolute -top-4 -right-4 text-warm-primary"
-                            >
-                                <Sparkles size={20} />
-                            </motion.div>
-
-                            {/* Robot Body Container */}
-                            <div className={`w-40 h-40 rounded-full flex items-center justify-center p-6 shadow-2xl relative border ${
-                                isDark
-                                    ? 'bg-gradient-to-b from-warm-dark-elevated to-warm-dark border-white/10 shadow-warm-primary/10'
-                                    : 'bg-gradient-to-b from-white to-warm-card border-warm-hairline shadow-warm-primary/5'
+                        <p className={`mt-8 text-xs leading-relaxed ${isDark ? 'text-warm-on-dark-soft/70' : 'text-warm-muted'
                             }`}>
-                                {/* Sleek Robot Face SVG */}
-                                <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                                    {/* Ears/Antennas */}
-                                    <rect x="15" y="42" width="6" height="16" rx="3" fill={isDark ? "#3f3f46" : "#cbd5e1"} />
-                                    <rect x="79" y="42" width="6" height="16" rx="3" fill={isDark ? "#3f3f46" : "#cbd5e1"} />
-                                    
-                                    {/* Main Head Plate */}
-                                    <rect x="24" y="24" width="52" height="52" rx="16" fill={isDark ? "#1f1f23" : "#f1f5f9"} stroke={isDark ? "#3f3f46" : "#cbd5e1"} strokeWidth="4" />
-                                    
-                                    {/* Antenna Top */}
-                                    <line x1="50" y1="24" x2="50" y2="10" stroke={isDark ? "#3f3f46" : "#cbd5e1"} strokeWidth="4" />
-                                    <circle cx="50" cy="8" r="4" fill="#3b82f6" />
-                                    
-                                    {/* Eyes Visor Screen */}
-                                    <rect x="32" y="38" width="36" height="16" rx="8" fill={isDark ? "#18181b" : "#1e293b"} />
-                                    
-                                    {/* Glowing Eyes */}
-                                    <motion.circle 
-                                        cx="42" 
-                                        cy="46" 
-                                        r="3.5" 
-                                        fill="#3b82f6" 
-                                        animate={{ scaleY: [1, 0.1, 1] }} 
-                                        transition={{ duration: 4, repeat: Infinity, repeatDelay: 3 }}
-                                    />
-                                    <motion.circle 
-                                        cx="58" 
-                                        cy="46" 
-                                        r="3.5" 
-                                        fill="#3b82f6" 
-                                        animate={{ scaleY: [1, 0.1, 1] }} 
-                                        transition={{ duration: 4, repeat: Infinity, repeatDelay: 3 }}
-                                    />
-
-                                    {/* Robot Mouth Grid / Sound Display */}
-                                    <path d="M42 62H58" stroke={isDark ? "#3b82f6" : "#2563eb"} strokeWidth="2.5" strokeLinecap="round" />
-                                </svg>
-                            </div>
-                        </motion.div>
-                    </div>
-
-                    {/* TEXT LABELS */}
-                    <div className="space-y-3">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-warm-primary/10 border border-warm-primary/20 text-xs font-bold text-warm-primary">
-                            <Sparkles size={12} className="animate-pulse" />
-                            {lang === 'uz' ? "Yangi Imkoniyat" : "New Feature"}
-                        </div>
-
-                        <h2 className="text-3xl font-extrabold tracking-tight">
-                            Speaking with AI
-                        </h2>
-
-                        <p className={`text-sm md:text-base font-semibold leading-relaxed ${
-                            isDark ? 'text-warm-on-dark-soft' : 'text-warm-body'
-                        }`}>
-                            {lang === 'uz' 
-                                ? "Sun'iy intellekt orqali IELTS Speaking ko'nikmasini rivojlantirish moduli ishlab chiqilmoqda. Tez orada bu sahifada real vaqt rejimida AI bilan muloqot qilishingiz mumkin bo'ladi!"
-                                : "The module to practice IELTS Speaking with our advanced AI is currently under development. Soon you'll be able to have real-time speaking mock exams directly on this page!"
-                            }
+                            {c.micHint}
                         </p>
-                    </div>
 
-                    {/* SOUNDWAVE VISUALIZER */}
-                    <div className="flex items-center justify-center gap-1.5 h-12">
-                        {[1.8, 2.5, 1.2, 3.2, 2.0, 1.5, 2.8, 1.0, 2.3, 1.7, 3.0, 1.2, 1.9].map((val, idx) => (
-                            <motion.div
-                                key={idx}
-                                animate={{
-                                    scaleY: [1, val, 1]
-                                }}
-                                transition={{
-                                    duration: 1.2 + (idx * 0.05),
-                                    repeat: Infinity,
-                                    ease: "easeInOut"
-                                }}
-                                className={`w-1 rounded-full ${
-                                    idx % 3 === 0 ? 'bg-warm-primary' : idx % 3 === 1 ? 'bg-warm-accent-teal' : 'bg-warm-accent-amber'
-                                }`}
-                                style={{ height: '16px', transformOrigin: 'center' }}
-                            />
-                        ))}
+                        {/* Oldingi mashg'ulotlar — feedback endi sessiya
+                            tugashi bilan yo'qolmaydi. */}
+                        <SpeakingMistakes uid={user?.uid} lang={lang} refreshKey={historyKey} />
+                        <SpeakingHistory uid={user?.uid} lang={lang} refreshKey={historyKey} />
                     </div>
+                </main>
+            </div>
 
-                    {/* COMING SOON BADGE */}
-                    <div className="pt-4">
-                        <span className={`px-6 py-2 rounded-full text-xs font-black tracking-widest uppercase border ${
-                            isDark
-                                ? 'bg-warm-dark-elevated border-white/5 text-warm-on-dark-soft'
-                                : 'bg-white border-warm-hairline text-warm-body shadow-sm'
-                        }`}>
-                            {lang === 'uz' ? "Tez Kunda" : "Coming Soon"}
-                        </span>
-                    </div>
-                </div>
-            </main>
-
-            {/* Logout Modal */}
             <DashboardModals
                 showLogoutConfirm={showLogoutConfirm}
                 setShowLogoutConfirm={setShowLogoutConfirm}

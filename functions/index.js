@@ -6,6 +6,9 @@ admin.initializeApp();
 
 const { transcribePodcast } = require("./transcribePodcast");
 const { analyzeSpeaking } = require("./analyzeSpeaking");
+const { evaluateSpeaking } = require("./evaluateSpeaking");
+const { speakingFeedbackTone } = require("./speakingFeedbackTone");
+const { synthesizeSpeech } = require("./synthesizeSpeech");
 const { generateVocab } = require("./generateVocab");
 const { translateWord } = require("./translateWord");
 const { checkWriting } = require("./checkWriting");
@@ -17,6 +20,8 @@ const { submitTestAnswers } = require("./submitTestAnswers");
 const { submitMockExam } = require("./submitMockExam");
 const { shareTest } = require("./shareTest");
 const { expireSubscriptions } = require("./expireSubscriptions");
+const { cleanupSpeakingAudio } = require("./cleanupSpeakingAudio");
+const { requestSpeakingReview, submitSpeakingReview } = require("./speakingReview");
 
 exports.transcribePodcast = functions
     .runWith({ timeoutSeconds: 300, memory: "512MB" })
@@ -25,6 +30,33 @@ exports.transcribePodcast = functions
 exports.analyzeSpeaking = functions
     .runWith({ timeoutSeconds: 120, memory: "256MB" })
     .https.onCall(analyzeSpeaking);
+
+// IELTS Speaking moduli — audio-native baholash (Gemini).
+// 512MB: audio base64 xotirada saqlanadi.
+exports.evaluateSpeaking = functions
+    .runWith({ timeoutSeconds: 180, memory: "512MB" })
+    .https.onCall(evaluateSpeaking);
+
+// Tayyor baholashni boshqa ohangda qayta yozish. Audio yo'q, matn ham
+// qisqa — shu sabab 256MB va qisqa timeout yetadi.
+exports.speakingFeedbackTone = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onCall(speakingFeedbackTone);
+
+// Feedbackni ovozga aylantirish. Brauzerdan Edge TTS ga to'g'ridan-to'g'ri
+// ulanib bo'lmaydi — shuning uchun sintez shu yerda.
+exports.synthesizeSpeech = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onCall(synthesizeSpeech);
+
+// Speaking uchun jonli o'qituvchi tekshiruvi (pullik xizmat).
+exports.requestSpeakingReview = functions
+    .runWith({ timeoutSeconds: 30, memory: "256MB" })
+    .https.onCall(requestSpeakingReview);
+
+exports.submitSpeakingReview = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onCall(submitSpeakingReview);
 
 exports.generateVocab = functions
     .runWith({ timeoutSeconds: 60, memory: "256MB" })
@@ -138,6 +170,9 @@ exports.shareTest = functions
     .https.onRequest(shareTest);
 
 exports.expireSubscriptions = expireSubscriptions;
+
+// Eski Speaking audiolarini haftada bir marta tozalaydi.
+exports.cleanupSpeakingAudio = cleanupSpeakingAudio;
 
 exports.telegramWebhook = telegramWebhook;
 exports.verifyTelegramOTP = verifyTelegramOTP;

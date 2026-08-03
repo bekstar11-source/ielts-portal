@@ -7,6 +7,7 @@ import {
 } from '@phosphor-icons/react';
 import { toDate } from '../../../utils/subscription';
 import { detectViolation, isLowBand } from '../../../utils/teacherResults';
+import { useTranslation } from '../../../context/LanguageContext';
 
 // Render ichida e'lon qilinsa, React uni har safar YANGI komponent deb
 // biladi va DOM tugunini qayta yaratadi — shuning uchun modul darajasida.
@@ -20,6 +21,7 @@ export default function MonitorTestPage({
     onBack, fetchData, sendReminder, sendingReminder, exportMonitorCSV
 }) {
     const navigate = useNavigate();
+    const { t, lang } = useTranslation();
     const [monitorSearch, setMonitorSearch] = useState('');
     const [monitorSort, setMonitorSort] = useState({ col: null, dir: 'asc' });
     const [lastRefresh, setLastRefresh] = useState(null);
@@ -51,7 +53,7 @@ export default function MonitorTestPage({
                     isLow = submitted && isLowBand(parseFloat(att?.ieltsBands?.overall));
                 } else if (monitoringTest.type === 'article') {
                     submitted = !!student.awardedItems?.includes(monitoringTest.id);
-                    score = submitted ? "O'qilgan (10 XP)" : "-";
+                    score = submitted ? (t('teacher.testing.monitor.readXp') || (lang === 'uz' ? "O'qilgan (10 XP)" : "Read (10 XP)")) : "-";
                 } else {
                     resDoc = results.find(r =>
                         String(r.testId).trim() === String(monitoringTest.id).trim() &&
@@ -95,7 +97,7 @@ export default function MonitorTestPage({
                     violationText
                 };
             });
-    }, [students, monitoringTest, results, podcastAttempts]);
+    }, [students, monitoringTest, results, podcastAttempts, t, lang]);
 
         // Compute counts
         const totalCount = monitoringStudents.length;
@@ -161,10 +163,10 @@ export default function MonitorTestPage({
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm transition-all ${isDark ? 'bg-white/5 border-white/10 group-hover:border-white/20' : 'bg-white border-gray-200 group-hover:border-gray-300'}`}>
                                 <ArrowLeft className="w-4 h-4" />
                             </div>
-                            Orqaga qaytish
+                            {t('teacher.testing.monitor.backToTests') || (lang === 'uz' ? "Orqaga qaytish" : "Back")}
                         </button>
                         <div className="mt-1">
-                            <h1 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Test monitoringi</h1>
+                            <h1 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('teacher.testing.monitor.title') || (lang === 'uz' ? "Test monitoringi" : "Test Monitoring")}</h1>
                             <p className={`text-sm mt-1.5 font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                 <span className="font-bold text-blue-600 dark:text-blue-400">{monitoringTest.title}</span> · <span className="font-bold">{monitoringTest.groupName}</span>
                                 {lastRefresh && <span className="ml-2 text-[11px] text-gray-400">· {lastRefresh}</span>}
@@ -181,7 +183,7 @@ export default function MonitorTestPage({
                                 {sendingReminder
                                     ? <div className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                                     : <BellRinging size={14} weight="fill" />}
-                                Eslatma yuborish ({notSubmittedCount})
+                                {lang === 'uz' ? `Eslatma yuborish (${notSubmittedCount})` : `Send Reminder (${notSubmittedCount})`}
                             </button>
                         )}
                         <button
@@ -189,14 +191,14 @@ export default function MonitorTestPage({
                             className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border font-semibold text-xs transition-all ${isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
                         >
                             <DownloadSimple size={14} weight="bold" />
-                            CSV yuklab olish
+                            {t('teacher.testing.monitor.exportCsv') || (lang === 'uz' ? "CSV yuklab olish" : "Export CSV")}
                         </button>
                         <button
-                            onClick={() => { fetchData(); setLastRefresh(new Date().toLocaleTimeString('uz-UZ')); }}
+                            onClick={() => { fetchData(); setLastRefresh(new Date().toLocaleTimeString(lang === 'uz' ? 'uz-UZ' : 'en-US')); }}
                             className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border font-semibold text-xs transition-all ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'}`}
                         >
                             <ArrowsCounterClockwise size={14} weight="bold" />
-                            Yangilash
+                            {t('teacher.testing.monitor.refresh') || (lang === 'uz' ? "Yangilash" : "Refresh")}
                         </button>
                     </div>
                 </div>
@@ -226,7 +228,7 @@ export default function MonitorTestPage({
                                 {totalCount}
                             </p>
                             <p className="text-[11px] font-semibold text-gray-400 mt-1.5">
-                                Barcha o'quvchilar
+                                {t('teacher.testing.monitor.stats.allStudents') || (lang === 'uz' ? "Barcha o'quvchilar" : "All Students")}
                             </p>
                         </div>
                     </div>
@@ -267,7 +269,7 @@ export default function MonitorTestPage({
                                 {notSubmittedCount}
                             </p>
                             <p className="text-[11px] font-semibold text-gray-400 mt-1.5">
-                                Bajarmaganlar
+                                {t('teacher.testing.monitor.stats.notSubmitted') || (lang === 'uz' ? "Bajarmaganlar" : "Not Submitted")}
                             </p>
                         </div>
                     </div>
@@ -300,7 +302,7 @@ export default function MonitorTestPage({
                                 {violatorsCount}
                             </p>
                             <p className="text-[11px] font-semibold text-gray-400 mt-1.5">
-                                Qoida buzganlar
+                                {t('teacher.testing.monitor.stats.violators') || (lang === 'uz' ? "Qoida buzganlar" : "Violations")}
                             </p>
                         </div>
                     </div>
@@ -333,7 +335,7 @@ export default function MonitorTestPage({
                                 {lowScoreCount}
                             </p>
                             <p className="text-[11px] font-semibold text-gray-400 mt-1.5">
-                                Past natija olganlar
+                                {t('teacher.testing.monitor.stats.lowScore') || (lang === 'uz' ? "Past natija olganlar" : "Low Scores")}
                             </p>
                         </div>
                     </div>
@@ -344,7 +346,7 @@ export default function MonitorTestPage({
                     <MagnifyingGlass size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="O'quvchi ismini qidiring..."
+                        placeholder={t('teacher.testing.monitor.searchPlaceholder') || (lang === 'uz' ? "O'quvchi ismini qidiring..." : "Search student by name...")}
                         value={monitorSearch}
                         onChange={e => setMonitorSearch(e.target.value)}
                         className={`w-full pl-10 pr-4 py-3 rounded-2xl border text-sm font-semibold outline-none transition-all ${
@@ -366,7 +368,11 @@ export default function MonitorTestPage({
                         <div className="flex items-center gap-2.5">
                             <Info size={18} className="text-amber-500 shrink-0" />
                             <p className="text-xs font-semibold">
-                                Guruhda <span className="font-bold text-amber-600 dark:text-amber-400">{notSubmittedCount} ta o'quvchi</span> topshiriqni hali topshirmagan.
+                                {lang === 'uz' ? (
+                                    <>Guruhda <span className="font-bold text-amber-600 dark:text-amber-400">{notSubmittedCount} ta o'quvchi</span> topshiriqni hali topshirmagan.</>
+                                ) : (
+                                    <><span className="font-bold text-amber-600 dark:text-amber-400">{notSubmittedCount} students</span> in the group haven't submitted the assignment yet.</>
+                                )}
                             </p>
                         </div>
                         <button
@@ -375,7 +381,7 @@ export default function MonitorTestPage({
                                 isDark ? 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20 text-amber-400' : 'bg-white border-amber-200 hover:bg-amber-50 text-amber-700'
                             }`}
                         >
-                            Ko'rish
+                            {t('teacher.testing.monitor.view') || (lang === 'uz' ? "Ko'rish" : "View")}
                         </button>
                     </div>
                 )}
@@ -388,18 +394,20 @@ export default function MonitorTestPage({
                             <thead>
                                 <tr className={`border-b ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50'}`}>
                                     <th className="py-4 px-6 rounded-l-xl text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400 cursor-pointer select-none" onClick={() => toggleSort('name')}>
-                                        O'quvchi <SortIcon col="name" activeCol={monitorSort.col} />
+                                        {t('teacher.testing.monitor.table.student') || (lang === 'uz' ? "O'quvchi" : "Student")} <SortIcon col="name" activeCol={monitorSort.col} />
                                     </th>
                                     <th className="py-4 px-6 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400 cursor-pointer select-none" onClick={() => toggleSort('status')}>
-                                        Status <SortIcon col="status" activeCol={monitorSort.col} />
+                                        {t('teacher.testing.monitor.table.status') || (lang === 'uz' ? "Status" : "Status")} <SortIcon col="status" activeCol={monitorSort.col} />
                                     </th>
                                     <th className="py-4 px-6 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400 cursor-pointer select-none" onClick={() => toggleSort('score')}>
-                                        Ball / Natija <SortIcon col="score" activeCol={monitorSort.col} />
+                                        {t('teacher.testing.monitor.table.score') || (lang === 'uz' ? "Ball / Natija" : "Score / Result")} <SortIcon col="score" activeCol={monitorSort.col} />
                                     </th>
                                     <th className="py-4 px-6 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400 cursor-pointer select-none" onClick={() => toggleSort('date')}>
-                                        Topshirilgan Sana <SortIcon col="date" activeCol={monitorSort.col} />
+                                        {t('teacher.testing.monitor.table.submittedAt') || (lang === 'uz' ? "Topshirilgan Sana" : "Submission Date")} <SortIcon col="date" activeCol={monitorSort.col} />
                                     </th>
-                                    <th className="py-4 px-6 text-center rounded-r-xl text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Amal</th>
+                                    <th className="py-4 px-6 text-center rounded-r-xl text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                                        {t('teacher.testing.monitor.table.actions') || (lang === 'uz' ? "Amal" : "Action")}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
@@ -421,7 +429,7 @@ export default function MonitorTestPage({
                                                         {submitted && hasViolation && (
                                                             <span className="text-[10px] text-rose-500 font-bold mt-1 flex items-center gap-1">
                                                                 <Warning size={11} className="text-rose-500" />
-                                                                Qoidabuzarlik: {violationText}
+                                                                {(t('teacher.testing.monitor.violationPrefix') || (lang === 'uz' ? "Qoidabuzarlik:" : "Violation:")) + " " + violationText}
                                                             </span>
                                                         )}
                                                     </div>
@@ -432,13 +440,13 @@ export default function MonitorTestPage({
                                                             <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold border ${
                                                                 isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                                             }`}>
-                                                                Topshirdi
+                                                                {t('teacher.testing.monitor.status.completed') || (lang === 'uz' ? "Topshirdi" : "Submitted")}
                                                             </span>
                                                             {hasViolation && (
                                                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold border ${
                                                                     isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-100 text-rose-700 border-rose-200'
                                                                 }`} title={violationText}>
-                                                                    Qoidabuzarlik
+                                                                    {t('teacher.testing.monitor.violationBadge') || (lang === 'uz' ? "Qoidabuzarlik" : "Violation")}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -450,7 +458,7 @@ export default function MonitorTestPage({
                                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                                                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                                                             </span>
-                                                            Kutilmoqda
+                                                            {t('teacher.testing.monitor.status.inProgress') || (lang === 'uz' ? "Kutilmoqda" : "Pending")}
                                                         </span>
                                                     )}
                                                 </td>
@@ -463,7 +471,7 @@ export default function MonitorTestPage({
                                                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
                                                                 isDark ? 'bg-orange-500/10 text-orange-400 border border-orange-500/25' : 'bg-orange-50 text-orange-700 border border-orange-200'
                                                             }`}>
-                                                                Past natija
+                                                                {t('teacher.testing.monitor.lowScoreBadge') || (lang === 'uz' ? "Past natija" : "Low score")}
                                                             </span>
                                                         </div>
                                                     ) : (
@@ -492,7 +500,7 @@ export default function MonitorTestPage({
                                                                     : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 shadow-sm'
                                                             }`}
                                                         >
-                                                            Ko'rish
+                                                            {t('teacher.testing.monitor.view') || (lang === 'uz' ? "Ko'rish" : "View")}
                                                         </button>
                                                     ) : submitted && monitoringTest.type === 'podcast' ? (
                                                         <button
@@ -506,7 +514,7 @@ export default function MonitorTestPage({
                                                                     : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 shadow-sm'
                                                             }`}
                                                         >
-                                                            Ko'rish
+                                                            {t('teacher.testing.monitor.view') || (lang === 'uz' ? "Ko'rish" : "View")}
                                                         </button>
                                                     ) : submitted && monitoringTest.type === 'article' ? (
                                                         <button
@@ -520,7 +528,7 @@ export default function MonitorTestPage({
                                                                     : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 shadow-sm'
                                                             }`}
                                                         >
-                                                            Ko'rish
+                                                            {t('teacher.testing.monitor.view') || (lang === 'uz' ? "Ko'rish" : "View")}
                                                         </button>
                                                     ) : (
                                                         <span className="text-gray-400 dark:text-zinc-600 font-bold">-</span>
@@ -531,7 +539,9 @@ export default function MonitorTestPage({
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan="5" className="p-8 text-center text-gray-400 dark:text-zinc-500 font-bold">Bu ro'yxat bo'sh</td>
+                                        <td colSpan="5" className="p-8 text-center text-gray-400 dark:text-zinc-500 font-bold">
+                                            {t('teacher.testing.monitor.emptyList') || (lang === 'uz' ? "Bu ro'yxat bo'sh" : "This list is empty")}
+                                        </td>
                                     </tr>
                                 )}
                             </tbody>

@@ -3,7 +3,11 @@ import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { useWritingReview } from '../../hooks/useWritingReview';
+import {
+    TeacherWritingReviewSkeleton, RefreshBar,
+} from '../../components/teacher/TeacherSkeletons';
 
 // Components
 import WritingReviewSidebar from '../../components/admin/WritingReview/WritingReviewSidebar';
@@ -13,15 +17,13 @@ import { PaperPlaneTilt as SendIcon, CaretUp, CaretDown, Sparkle } from '@phosph
 export default function TeacherWritingReview() {
     const { userData } = useAuth();
     const { theme } = useTheme();
+    const { t, lang } = useTranslation();
     const isDark = theme === 'dark';
     const location = useLocation();
     const { 
-        writings, students, loading, saving, aiLoading, handleSaveFeedback, handleAICheck 
+        writings, students, loading, isRefreshing, saving, aiLoading, handleSaveFeedback, handleAICheck
     } = useWritingReview(userData);
 
-    // Natijalar sahifasidan kelingan bo'lsa, o'sha insho darhol ochiladi.
-    // Ilgari bu `useEffect` ichida `setState` bilan qilinardi — birinchi
-    // renderda noto'g'ri insho ko'rinib, keyin almashardi.
     const navState = location.state;
     const [selectedId, setSelectedId] = useState(navState?.selectedId ?? null);
     const [filter, setFilter] = useState(navState?.selectedId ? 'all' : 'pending');
@@ -29,8 +31,6 @@ export default function TeacherWritingReview() {
     const [feedbackData, setFeedbackData] = useState({});
     const [isPanelExpanded, setIsPanelExpanded] = useState(true);
 
-    // Sahifa ochiq turganda yangi `state` bilan qayta navigatsiya bo'lsa —
-    // React'ning "render paytida state'ni moslash" namunasi.
     const [prevNavState, setPrevNavState] = useState(navState);
     if (navState !== prevNavState) {
         setPrevNavState(navState);
@@ -54,8 +54,6 @@ export default function TeacherWritingReview() {
             source = res.details.writingAnswers;
         }
 
-        // Nusxa olamiz: ilgari bu yerdagi `ans.task1 = ...` natija hujjatining
-        // O'ZINI o'zgartirardi (`res.userAnswers` ga havola edi).
         const ans = { ...source };
         if (!ans.task1 && res.task1) ans.task1 = res.task1;
         if (!ans.task1 && res.writingAnswer) ans.task1 = res.writingAnswer;
@@ -108,8 +106,6 @@ export default function TeacherWritingReview() {
     const getTaskBandValue = (taskNum) => {
         const raw = fd[`task${taskNum}Band`] ?? activeWriting?.[`task${taskNum}Band`];
         if (raw === undefined || raw === null || raw === '') return '';
-        // Firestore stores whole bands (e.g. 7.0) as a bare integer (7), which
-        // won't match the "7.0"-style <option> values below — normalize.
         const n = Number(raw);
         return isNaN(n) ? '' : n.toFixed(1);
     };
@@ -136,11 +132,11 @@ export default function TeacherWritingReview() {
 
     const handleSave = async () => {
         if (hasT1 && !getTaskBandValue(1)) {
-            toast.error("1-topshiriq uchun band tanlang");
+            toast.error(t('teacher.testing.writingReview.toastSelectBand1') || (lang === 'uz' ? "1-topshiriq uchun band tanlang" : "Please select a band for Task 1"));
             return;
         }
         if (hasT2 && !getTaskBandValue(2)) {
-            toast.error("2-topshiriq uchun band tanlang");
+            toast.error(t('teacher.testing.writingReview.toastSelectBand2') || (lang === 'uz' ? "2-topshiriq uchun band tanlang" : "Please select a band for Task 2"));
             return;
         }
         const submitData = {
@@ -153,8 +149,6 @@ export default function TeacherWritingReview() {
         const savedId = selectedId;
         try {
             await handleSaveFeedback(savedId, submitData);
-            // Draft is now reflected on the server — drop it so a stale local
-            // value can't shadow fresh data if this submission is reopened.
             setFeedbackData(prev => {
                 const next = { ...prev };
                 delete next[savedId];
@@ -167,8 +161,6 @@ export default function TeacherWritingReview() {
 
     const aiReviewForActive = activeWriting?.aiReview;
 
-    // Fills the grading selects from the AI's suggested per-criterion bands
-    // so the teacher can adjust rather than retype everything.
     const applyAiSuggestion = (taskNum) => {
         const review = aiReviewForActive?.[`task${taskNum}`];
         if (!review) return;
@@ -181,7 +173,7 @@ export default function TeacherWritingReview() {
                 setTaskDetails(taskNum, critKey, String(band));
             }
         });
-        toast.success(`${taskNum}-topshiriq uchun AI baholari qo'llandi`);
+        toast.success((t('teacher.testing.writingReview.toastAiApplied') || (lang === 'uz' ? "{n}-topshiriq uchun AI baholari qo'llandi" : "AI scores applied for Task {n}")).replace('{n}', taskNum));
     };
 
     const applyAiFeedback = () => {
@@ -192,12 +184,7 @@ export default function TeacherWritingReview() {
         setFeedbackData(prev => ({ ...prev, [selectedId]: { ...prev[selectedId], feedback: parts.join('\n\n') } }));
     };
 
-    if (loading) return (
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-            <div className="w-10 h-10 border-2 border-gray-200 dark:border-white/10 border-t-blue-500 rounded-full animate-spin" />
-            <p className="text-sm text-gray-400">Ma'lumotlar yuklanmoqda...</p>
-        </div>
-    );
+    if (loading) return <TeacherWritingReviewSkeleton rows={7} />;
 
     const ieltsBands = ['4.0','4.5','5.0','5.5','6.0','6.5','7.0','7.5','8.0','8.5','9.0'];
     const selectCls = `h-7 px-2 rounded-md text-xs border outline-none cursor-pointer bg-transparent ${isDark ? 'border-white/10' : 'border-gray-200'}`;
@@ -207,21 +194,27 @@ export default function TeacherWritingReview() {
         if (!hasTask) {
             return (
                 <div className="flex items-center justify-center rounded-xl p-8 text-xs text-gray-400">
-                    {taskNum}-topshiriq topshirilmagan
+                    {(t('teacher.testing.writingReview.taskNotSubmitted') || (lang === 'uz' ? "{n}-topshiriq topshirilmagan" : "Task {n} not submitted")).replace('{n}', taskNum)}
                 </div>
             );
         }
         return (
             <div className={taskNum === 1 ? 'md:pr-6 md:border-r border-gray-100 dark:border-white/5' : ''}>
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-white/5">
-                    <h4 className="text-xs font-medium text-gray-500">{taskNum}-topshiriq mezonlari</h4>
+                    <h4 className="text-xs font-medium text-gray-500">
+                        {taskNum === 1 
+                            ? (t('teacher.testing.writingReview.criteriaTask1') || (lang === 'uz' ? '1-topshiriq mezonlari' : 'Task 1 Criteria')) 
+                            : (t('teacher.testing.writingReview.criteriaTask2') || (lang === 'uz' ? '2-topshiriq mezonlari' : 'Task 2 Criteria'))}
+                    </h4>
                     <div className="flex items-center gap-2">
                         {aiReviewForActive?.[`task${taskNum}`] && (
-                            <button onClick={() => applyAiSuggestion(taskNum)} title="AI baholarini qo'llash" className={aiHintCls}>
+                            <button onClick={() => applyAiSuggestion(taskNum)} title={t('teacher.testing.writingReview.applyAiCriteria') || (lang === 'uz' ? "AI baholarini qo'llash" : "Apply AI scores")} className={aiHintCls}>
                                 <Sparkle size={12} /> AI
                             </button>
                         )}
-                        <span className="text-xs text-gray-400">Band:</span>
+                        <span className="text-xs text-gray-400">
+                            {t('teacher.testing.writingReview.band') || (lang === 'uz' ? 'Band:' : 'Band:')}
+                        </span>
                         <select
                             value={getTaskBandValue(taskNum)}
                             onChange={e => setFeedbackData(prev => ({ ...prev, [selectedId]: { ...prev[selectedId], [`task${taskNum}Band`]: e.target.value } }))}
@@ -252,7 +245,8 @@ export default function TeacherWritingReview() {
     };
 
     return (
-        <div className={`relative w-full h-[calc(100vh-80px)] flex overflow-hidden rounded-2xl border ${isDark ? 'bg-[#121212] border-white/5' : 'bg-[#FAFAFA] border-gray-200'}`}>
+        <div className={`relative w-full h-[calc(100vh-80px)] flex overflow-hidden rounded-2xl border animate-content-in ${isDark ? 'bg-[#121212] border-white/5' : 'bg-[#FAFAFA] border-gray-200'}`}>
+            <RefreshBar active={isRefreshing} />
             <WritingReviewSidebar
                 writings={writings} students={students} filter={filter} setFilter={setFilter}
                 searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedId={selectedId} setSelectedId={setSelectedId} isDark={isDark}
@@ -263,12 +257,12 @@ export default function TeacherWritingReview() {
                     <>
                         <WritingReviewWorkspace
                             activeWriting={activeWriting}
-                            studentName={students.find(s => s.id === activeWriting.userId)?.fullName || activeWriting.userName || 'O\'quvchi'}
+                            studentName={students.find(s => s.id === activeWriting.userId)?.fullName || activeWriting.userName || (lang === 'uz' ? 'O\'quvchi' : 'Student')}
                             isDark={isDark}
                             onBack={() => setSelectedId(null)}
                         />
 
-                        {/* Collapsible Grading Drawer — docked in the flex column so it never covers the essay text */}
+                        {/* Collapsible Grading Drawer */}
                         <div className={`shrink-0 flex flex-col border-t z-20 overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${
                             isPanelExpanded ? 'h-[55vh]' : 'h-12'
                         } ${isDark ? 'bg-[#171717] border-white/5 text-white' : 'bg-white border-gray-200 text-slate-800'}`}>
@@ -279,34 +273,39 @@ export default function TeacherWritingReview() {
                                 className={`shrink-0 h-12 px-6 flex items-center justify-between cursor-pointer border-b ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'}`}
                             >
                                 <div className="flex items-center gap-2.5">
-                                    <span className="text-sm font-medium">Baholash</span>
-                                    <span className="text-xs text-gray-400">Band {calculateOverallScoreDisplay()}</span>
+                                    <span className="text-sm font-medium">
+                                        {t('teacher.testing.writingReview.grading') || (lang === 'uz' ? 'Baholash' : 'Grading')}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                        {t('teacher.testing.writingReview.band') || 'Band'} {calculateOverallScoreDisplay()}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-gray-400">
-                                    <span className="text-xs">{isPanelExpanded ? 'Yashirish' : 'Ochish'}</span>
+                                    <span className="text-xs">
+                                        {isPanelExpanded 
+                                            ? (t('teacher.testing.writingReview.collapse') || (lang === 'uz' ? 'Yashirish' : 'Hide')) 
+                                            : (t('teacher.testing.writingReview.expand') || (lang === 'uz' ? 'Ochish' : 'Open'))}
+                                    </span>
                                     {isPanelExpanded ? <CaretDown size={14} /> : <CaretUp size={14} />}
                                 </div>
                             </div>
 
-                            {/* Panel tarkibi doim DOM'da — yig'ilganda `overflow-hidden` uni
-                                qirqib turadi. Ilgari u `unmount` bo'lardi va balandlik
-                                animatsiyasi boshlanmasdan tarkib g'oyib bo'lib pirpirardi. */}
                             <div className="p-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-6" inert={!isPanelExpanded}>
                                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
                                     {/* Criteria Grading Columns */}
                                     <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {renderTaskCriteria(1, [
-                                            { key: 'ta', label: "Vazifani bajarish (TA)" },
-                                            { key: 'cc', label: "Izchillik (CC)" },
-                                            { key: 'lr', label: "Lug'at boyligi (LR)" },
-                                            { key: 'gra', label: 'Grammatika (GRA)' }
+                                            { key: 'ta', label: t('teacher.testing.writingReview.criteria.ta') || (lang === 'uz' ? "Vazifani bajarish (TA)" : "Task Achievement (TA)") },
+                                            { key: 'cc', label: t('teacher.testing.writingReview.criteria.cc') || (lang === 'uz' ? "Izchillik (CC)" : "Coherence (CC)") },
+                                            { key: 'lr', label: t('teacher.testing.writingReview.criteria.lr') || (lang === 'uz' ? "Lug'at boyligi (LR)" : "Lexical Resource (LR)") },
+                                            { key: 'gra', label: t('teacher.testing.writingReview.criteria.gra') || (lang === 'uz' ? "Grammatika (GRA)" : "Grammar (GRA)") }
                                         ], hasT1)}
                                         {renderTaskCriteria(2, [
-                                            { key: 'tr', label: "Vazifaga javob (TR)" },
-                                            { key: 'cc', label: "Izchillik (CC)" },
-                                            { key: 'lr', label: "Lug'at boyligi (LR)" },
-                                            { key: 'gra', label: 'Grammatika (GRA)' }
+                                            { key: 'tr', label: t('teacher.testing.writingReview.criteria.tr') || (lang === 'uz' ? "Vazifaga javob (TR)" : "Task Response (TR)") },
+                                            { key: 'cc', label: t('teacher.testing.writingReview.criteria.cc') || (lang === 'uz' ? "Izchillik (CC)" : "Coherence (CC)") },
+                                            { key: 'lr', label: t('teacher.testing.writingReview.criteria.lr') || (lang === 'uz' ? "Lug'at boyligi (LR)" : "Lexical Resource (LR)") },
+                                            { key: 'gra', label: t('teacher.testing.writingReview.criteria.gra') || (lang === 'uz' ? "Grammatika (GRA)" : "Grammar (GRA)") }
                                         ], hasT2)}
                                     </div>
 
@@ -314,10 +313,12 @@ export default function TeacherWritingReview() {
                                     <div className="lg:col-span-4 flex flex-col gap-4">
                                         <div>
                                             <div className="flex items-center justify-between mb-2">
-                                                <label className="text-xs text-gray-400">Ustoz izohi</label>
+                                                <label className="text-xs text-gray-400">
+                                                    {t('teacher.testing.writingReview.teacherNote') || (lang === 'uz' ? "Ustoz izohi" : "Teacher feedback")}
+                                                </label>
                                                 {(aiReviewForActive?.task1 || aiReviewForActive?.task2) && (
                                                     <button onClick={applyAiFeedback} className={aiHintCls}>
-                                                        <Sparkle size={12} /> AI dan olish
+                                                        <Sparkle size={12} /> {t('teacher.testing.writingReview.takeFromAi') || (lang === 'uz' ? "AI dan olish" : "Get from AI")}
                                                     </button>
                                                 )}
                                             </div>
@@ -325,7 +326,7 @@ export default function TeacherWritingReview() {
                                                 rows={4}
                                                 value={fd.feedback ?? (activeWriting?.teacherFeedback || '')}
                                                 onChange={e => setFeedbackData(prev => ({ ...prev, [selectedId]: { ...prev[selectedId], feedback: e.target.value } }))}
-                                                placeholder="Tahrirlash va grammatik tuzatishlar bo'yicha maslahatlar yozing..."
+                                                placeholder={t('teacher.testing.writingReview.notePlaceholder') || (lang === 'uz' ? "Tahrirlash va grammatik tuzatishlar bo'yicha maslahatlar yozing..." : "Write advice on editing and grammar corrections...")}
                                                 className={`w-full px-4 py-3 rounded-xl text-xs border outline-none resize-none transition-colors ${
                                                     isDark ? 'bg-[#1E1E1E] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-slate-800 focus:border-blue-500'
                                                 }`}
@@ -344,7 +345,7 @@ export default function TeacherWritingReview() {
                                                 {aiLoading ? (
                                                     <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
                                                 ) : (
-                                                    <><Sparkle size={13} /> {aiReviewForActive ? 'Qayta tekshirish' : 'AI Check'}</>
+                                                    <><Sparkle size={13} /> {aiReviewForActive ? (t('teacher.testing.writingReview.recheck') || (lang === 'uz' ? 'Qayta tekshirish' : 'Recheck')) : (t('teacher.testing.writingReview.aiCheck') || 'AI Check')}</>
                                                 )}
                                             </button>
 
@@ -356,7 +357,7 @@ export default function TeacherWritingReview() {
                                                 {saving ? (
                                                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                                 ) : (
-                                                    <><SendIcon size={13} /> Saqlash</>
+                                                    <><SendIcon size={13} /> {t('teacher.testing.writingReview.saveBtn') || (lang === 'uz' ? 'Saqlash' : 'Save')}</>
                                                 )}
                                             </button>
                                         </div>
@@ -368,7 +369,9 @@ export default function TeacherWritingReview() {
                         </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">Natijalar ro'yxatidan inshoni tanlang</div>
+                    <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+                        {t('teacher.testing.writingReview.selectPrompt') || (lang === 'uz' ? "Natijalar ro'yxatidan inshoni tanlang" : "Select an essay from the list")}
+                    </div>
                 )}
             </div>
         </div>

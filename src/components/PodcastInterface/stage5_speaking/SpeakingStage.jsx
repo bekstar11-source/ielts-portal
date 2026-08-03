@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { storage } from "../../../firebase/firebase";
+import { auth, storage } from "../../../firebase/firebase";
 import AILoadingSteps from "./AILoadingSteps";
 import SpeakingScoreCard from "./SpeakingScoreCard";
 import RecordingTimer from "./RecordingTimer";
@@ -54,7 +54,10 @@ export default function SpeakingStage({ podcastId, attemptId, podcastTitle, podc
                 setAiStep(0);
 
                 const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-                const storageRef = ref(storage, `speaking/${attemptId}_${Date.now()}.webm`);
+                // Ovoz yozuvlari egasining papkasida turadi — Storage qoidasi
+                // (storage.rules) boshqa o'quvchiga o'qishga ruxsat bermaydi.
+                const uid = auth.currentUser?.uid || "anon";
+                const storageRef = ref(storage, `speaking/${uid}/podcast/${attemptId}_${Date.now()}.webm`);
                 await uploadBytes(storageRef, blob);
 
                 setAiStep(1);

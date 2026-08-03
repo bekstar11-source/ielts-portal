@@ -123,35 +123,24 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
         ? (post.teacherName ? post.teacherName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : "US")
         : "IP";
 
-    const isTestCompleted = (testId) => {
-        return assignments.some(a => String(a.id).trim() === String(testId).trim() && a.status === 'completed');
-    };
-
-    // Format relative time (e.g. "3 soat oldin")
+    // Nisbiy vaqt. Ilgari kunlar cheksiz o'sib "59 kun oldin" kabi
+    // o'qish qiyin qiymatlar chiqarardi — bir haftadan keyin hafta/oy'ga o'tamiz.
     const getRelativeTime = (date) => {
         if (!date) return "";
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
+        const diffMs = new Date() - new Date(date);
+        if (!Number.isFinite(diffMs)) return "";
 
-        if (diffMins < 1) return "Hozirgina";
-        if (diffMins < 60) return `${diffMins} daqiqa oldin`;
-        if (diffHours < 24) return `${diffHours} soat oldin`;
-        return `${diffDays} kun oldin`;
-    };
+        const mins = Math.floor(diffMs / 60000);
+        const hours = Math.floor(diffMs / 3600000);
+        const days = Math.floor(diffMs / 86400000);
 
-    const navigateToTest = ({ id, type, title }) => {
-        if (type === 'mock_full') {
-            navigate('/mock-exam', { state: { mockData: { id, title, type: 'mock_full' } } });
-        } else if (type === 'podcast') {
-            navigate(`/share/podcast/${id}`);
-        } else if (type === 'article') {
-            navigate(`/article/${id}`);
-        } else {
-            navigate(`/test/${id}`);
-        }
+        if (mins < 1) return "Hozirgina";
+        if (mins < 60) return `${mins} daqiqa oldin`;
+        if (hours < 24) return `${hours} soat oldin`;
+        if (days < 7) return `${days} kun oldin`;
+        if (days < 30) return `${Math.floor(days / 7)} hafta oldin`;
+        if (days < 365) return `${Math.floor(days / 30)} oy oldin`;
+        return `${Math.floor(days / 365)} yil oldin`;
     };
 
     const handleShare = () => {
@@ -164,8 +153,10 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
     const renderCardHeaderDecoration = () => {
         const type = materialType || post.type;
         switch (type) {
+            // Vazifa kartasi endi neytral sirtga quriladi — sarlavhadagi rangli
+            // "pill" karta ichidagi urg'u bilan raqobatlashib turardi.
             case 'teacher_test':
-                return <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-0.5 rounded-full">Vazifa</span>;
+                return <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-warm-hairline dark:border-white/10 text-warm-muted dark:text-warm-on-dark-soft">Vazifa</span>;
             case 'test':
                 return <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 rounded-full">Test</span>;
             case 'podcast':
@@ -182,177 +173,7 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
     // Render main body card based on content type
     const renderContentMedia = () => {
         if (post.type === 'teacher_test') {
-            const timeRemaining = getDeadlineTimeRemaining(post.deadline);
-            let formattedDeadline = null;
-            if (post.deadline) {
-                try {
-                    const d = new Date(post.deadline);
-                    if (!isNaN(d.getTime())) {
-                        formattedDeadline = d.toLocaleString('uz-UZ', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    }
-                } catch (e) {
-                    console.error("Error formatting deadline:", e);
-                }
-            }
-
-            const priorityColor = {
-                high: 'from-rose-500 to-orange-500',
-                medium: 'from-amber-400 to-yellow-500',
-                low: 'from-emerald-400 to-teal-500',
-            }[(post.priority || 'medium').toLowerCase()] || 'from-amber-400 to-yellow-500';
-
-            return (
-                <div className="px-3 py-2">
-                    {/* Main assignment card */}
-                    <div className="relative rounded-2xl overflow-hidden border border-warm-hairline dark:border-white/10 bg-warm-canvas dark:bg-warm-dark-elevated shadow-sm">
-                        {/* Colored top accent bar */}
-                        <div className={`h-1 w-full bg-gradient-to-r ${priorityColor}`} />
-
-                        <div className="p-4 flex flex-col gap-4">
-                            {/* Header: badges + title */}
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    {post.tests && post.tests.length > 0 ? (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
-                                            {post.tests.length} ta vazifa
-                                        </span>
-                                    ) : (
-                                        getTestTypeTag(post.testType)
-                                    )}
-                                    {getPriorityBadge(post.priority)}
-                                </div>
-                                <h4 className="text-[15px] font-bold text-warm-ink dark:text-warm-on-dark leading-snug tracking-tight">
-                                    {post.content || post.testTitle || 'Yangi vazifa tayinlandi'}
-                                </h4>
-                            </div>
-
-                            {/* Teacher note */}
-                            {post.teacherNote && (
-                                <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border-l-2 border-indigo-400 dark:border-indigo-500">
-                                    <MessageSquare size={13} className="text-indigo-500 shrink-0 mt-0.5" />
-                                    <p className="text-[12px] text-indigo-700 dark:text-indigo-300 italic leading-relaxed">{post.teacherNote}</p>
-                                </div>
-                            )}
-
-                            {/* Metadata row */}
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <div className="flex items-center gap-1.5 text-[11px] text-warm-muted dark:text-warm-on-dark-soft font-medium">
-                                    <RotateCcw size={12} className="text-warm-muted-soft dark:text-warm-on-dark-soft" />
-                                    <span>{post.maxAttempts || 1} ta urinish</span>
-                                </div>
-                                <span className="text-warm-hairline dark:text-white/20">·</span>
-                                <div className="flex items-center gap-1.5 text-[11px] text-warm-muted dark:text-warm-on-dark-soft font-medium">
-                                    <Calendar size={12} className="text-warm-muted-soft dark:text-warm-on-dark-soft" />
-                                    <span>{formattedDeadline || "Cheksiz"}</span>
-                                </div>
-                                {post.deadline && (
-                                    <>
-                                        <span className="text-warm-hairline dark:text-white/20">·</span>
-                                        <div className={`flex items-center gap-1.5 text-[11px] font-bold ${
-                                            timeRemaining.isExpired ? 'text-rose-500' : timeRemaining.isUrgent ? 'text-amber-500' : 'text-warm-muted dark:text-warm-on-dark-soft'
-                                        }`}>
-                                            <Hourglass size={12} className={timeRemaining.isUrgent && !timeRemaining.isExpired ? 'animate-pulse' : ''} />
-                                            <span>{timeRemaining.text}</span>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Tasks list or single CTA */}
-                            {post.tests && post.tests.length > 0 ? (
-                                <div className="flex flex-col gap-2">
-                                    <span className="text-[10px] font-bold text-warm-muted-soft dark:text-warm-on-dark-soft uppercase tracking-wider">
-                                        Topshiriqlar ro'yxati:
-                                    </span>
-                                    <div className="flex flex-col gap-2">
-                                        {post.tests.map((test) => {
-                                            const completed = isTestCompleted(test.id);
-                                            const { icon, colorClass } = getTestIconAndColor(test.type);
-
-                                            return (
-                                                <div
-                                                    key={test.id}
-                                                    className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-200 ${
-                                                        completed
-                                                            ? 'bg-emerald-50/60 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/20'
-                                                            : 'bg-warm-surface/60 dark:bg-white/5 border-warm-hairline dark:border-white/5'
-                                                    }`}
-                                                >
-                                                    <div className="flex items-center gap-2.5 min-w-0">
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
-                                                            {icon}
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-[13px] font-semibold text-warm-body-strong dark:text-warm-on-dark truncate leading-tight">
-                                                                {test.title}
-                                                            </p>
-                                                            <div className="flex items-center gap-1.5 mt-0.5">
-                                                                <span className="text-[10px] text-warm-muted-soft dark:text-warm-on-dark-soft font-medium uppercase tracking-wide">
-                                                                    {test.type === 'mock_full' ? 'Mock Exam' : test.type}
-                                                                </span>
-                                                                {completed && (
-                                                                    <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-px rounded uppercase tracking-wide">
-                                                                        Bajarildi
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={() => setTestConfirm({ id: test.id, title: test.title, type: test.type })}
-                                                        disabled={timeRemaining.isExpired}
-                                                        className={`shrink-0 flex items-center gap-1 font-bold text-[11px] px-3 py-2 rounded-lg active:scale-[0.96] transition-all duration-150 ${
-                                                            timeRemaining.isExpired
-                                                                ? 'bg-warm-surface dark:bg-white/5 text-warm-muted-soft dark:text-warm-on-dark-soft cursor-not-allowed'
-                                                                : completed
-                                                                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
-                                                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-500/20'
-                                                        }`}
-                                                    >
-                                                        {timeRemaining.isExpired
-                                                            ? "Tugagan"
-                                                            : completed
-                                                                ? <>Qaytadan <ArrowRight size={11} /></>
-                                                                : <>Bajarish <ArrowRight size={11} /></>
-                                                        }
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => setTestConfirm({ id: post.testId, title: post.content || post.testTitle, type: post.testType })}
-                                    disabled={timeRemaining.isExpired}
-                                    className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-3 rounded-xl active:scale-[0.98] transition-all duration-150 ${
-                                        timeRemaining.isExpired
-                                            ? 'bg-warm-surface dark:bg-white/5 text-warm-muted-soft dark:text-warm-on-dark-soft cursor-not-allowed'
-                                            : isTestCompleted(post.testId)
-                                                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200'
-                                                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-500/20'
-                                    }`}
-                                >
-                                    {timeRemaining.isExpired
-                                        ? "Muddati tugagan"
-                                        : isTestCompleted(post.testId)
-                                            ? "Qaytadan topshirish"
-                                            : "Vazifani bajarish"
-                                    }
-                                    {!timeRemaining.isExpired && <ArrowRight size={14} />}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
+            return <AssignmentCard post={post} assignments={assignments} />;
         }
 
         if (post.type === 'announcement') {
@@ -727,61 +548,6 @@ export default function FeedPostCard({ post, user, userData, assignments = [], o
                 )}
             </AnimatePresence>
 
-            {/* Test boshlash confirmation modal */}
-            <AnimatePresence>
-                {testConfirm && (
-                    <div className="fixed inset-0 flex items-center justify-center z-[110] p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setTestConfirm(null)}
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.97, y: 8 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.97, y: 8 }}
-                            transition={{ duration: 0.18, ease: "easeOut" }}
-                            className="relative bg-warm-canvas dark:bg-warm-dark-elevated rounded-2xl shadow-2xl w-full max-w-[320px] border border-warm-hairline dark:border-white/10 z-10 overflow-hidden"
-                        >
-                            {/* Top accent */}
-                            <div className="h-1 w-full bg-gradient-to-r from-indigo-500 to-violet-500" />
-                            <div className="p-6 flex flex-col items-center text-center gap-3">
-                                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
-                                    <BookOpen size={22} className="text-indigo-600 dark:text-indigo-400" />
-                                </div>
-                                <div>
-                                    <h3 className="text-base font-bold text-warm-ink dark:text-warm-on-dark tracking-tight">
-                                        Testni boshlaysizmi?
-                                    </h3>
-                                    <p className="text-[12px] text-warm-muted dark:text-warm-on-dark-soft mt-1 leading-relaxed px-2">
-                                        <span className="font-semibold text-warm-body-strong dark:text-warm-on-dark">"{testConfirm.title}"</span> testini boshlashga tayyormisiz?
-                                    </p>
-                                </div>
-                                <div className="flex gap-2.5 w-full mt-1">
-                                    <button
-                                        onClick={() => setTestConfirm(null)}
-                                        className="flex-1 py-2.5 rounded-xl font-bold text-warm-muted dark:text-warm-on-dark-soft bg-warm-surface dark:bg-white/5 hover:bg-warm-card dark:hover:bg-white/10 transition-all text-sm"
-                                    >
-                                        Bekor
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            const t = testConfirm;
-                                            setTestConfirm(null);
-                                            navigateToTest(t);
-                                        }}
-                                        className="flex-1 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all text-sm shadow-sm shadow-indigo-500/30 active:scale-[0.97]"
-                                    >
-                                        Boshlash
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
         </div>
     );
 }

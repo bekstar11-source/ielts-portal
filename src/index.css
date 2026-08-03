@@ -117,6 +117,39 @@
     /* gray-300 gray-100 */
   }
 
+  /* --- QORONG'I SCROLLBAR ---
+     Speaking sahnasi doim qorong'i, standart (yorug') scrollbar esa uning
+     yonida oq chiziq bo'lib qolib ketadi. Bu variant fonga singib turadi:
+     yupqa, shaffof va faqat sirg'atish paytida sezilarli. */
+  .stage-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .stage-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .stage-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.09);
+    border-radius: 999px;
+  }
+
+  .stage-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .stage-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Firefox */
+  .stage-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+    overscroll-behavior: contain;
+  }
+
   /* --- HIDE SCROLLBAR --- */
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
@@ -561,6 +594,27 @@
 
 .animate-fade-in {
   animation: fadeIn 0.35s ease-out forwards;
+}
+
+/* --- SKELETON / YUKLANISH ANIMATSIYALARI --- */
+/* Tarkib skeletondan haqiqiy ma'lumotga o'tganda bloklar birin-ketin
+   suzib chiqadi. Kechikish `--stagger` orqali beriladi. */
+.stagger-in {
+  animation-delay: calc(var(--stagger, 0) * 55ms);
+}
+
+/* Harakatni kamaytirish so'ralgan bo'lsa — shimmer/suzish o'chadi,
+   skeleton sokin sirt bo'lib qoladi (tarkib baribir ko'rinadi). */
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer-sweep,
+  .animate-refresh-bar {
+    animation: none !important;
+  }
+  .animate-content-in,
+  .stagger-in {
+    animation: fadeIn 0.2s ease-out both !important;
+    animation-delay: 0ms !important;
+  }
 }
 
 /* Dark Mode WCAG AA Contrast Enhancements for subtexts */

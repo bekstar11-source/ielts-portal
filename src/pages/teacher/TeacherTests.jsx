@@ -2,9 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { db } from '../../firebase/firebase';
 import { getListeningParts } from '../../utils/TestUtils';
-import { collectStudentIds, chunkIds, toDateTimeLocalValue } from '../../utils/teacherResults';
+import { toDateTimeLocalValue } from '../../utils/teacherResults';
+import { useTeacherWorkspace, useTeacherCatalog } from '../../hooks/useTeacherWorkspace';
+import { TeacherTestsSkeleton, RefreshBar, Shimmer } from '../../components/teacher/TeacherSkeletons';
 import { DeadlineCountdown } from '../../components/teacher/tests/TeacherTestHelpers';
 import { getTestIconAndColor } from '../../components/teacher/tests/testTypeIcon';
 import AssignTestForm from '../../components/teacher/tests/AssignTestForm';
@@ -58,17 +61,53 @@ const ProgressBar = ({ pct, isExpired, isDark, rounded = true }) => {
 export default function TeacherTests() {
     const { userData } = useAuth();
     const { theme } = useTheme();
+    const { t, language } = useTranslation();
     const navigate = useNavigate();
     const isDark = theme === 'dark';
 
-    // State lists
-    const [groups, setGroups] = useState([]);
-    const [assignedTests, setAssignedTests] = useState([]);
-    const [results, setResults] = useState([]);
-    const [podcastAttempts, setPodcastAttempts] = useState([]);
-    const [students, setStudents] = useState([]);
-    const [availableTests, setAvailableTests] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // Panelning umumiy keshi — groups/students/results/podcastAttempts
+    // shu yerdan keladi va boshqa o'qituvchi sahifalari bilan BO'LISHILADI.
+    const {
+        groups, students, results, podcastAttempts,
+        loading, isRefreshing, refresh, patch,
+    } = useTeacherWorkspace({ uid: userData?.uid });
+
+    /**
+     * Tayinlash/o'chirish/tahrirlash darhol ko'rinishi uchun optimistik
+     * yangilanish LOKAL state ga emas, umumiy keshga yoziladi. Shunda
+     * o'qituvchi Dashboard yoki GroupStats ga o'tganda ham o'zgarishni
+     * ko'radi — qayta o'qishsiz.
+     */
+    const setGroups = (updater) => patch((prev) => {
+        const next = (typeof updater === 'function' ? updater(prev.groups) : updater)
+            .map((g) => ({
+                ...g,
+                // `set` tayinlovlari haqiqiy test soniga yoyilgani uchun
+                // ko'rsatkichlar ham darhol to'g'ri qoladi.
+                realTestCount: (g.assignedTests || []).reduce(
+                    (sum, assign) => sum + (assign?.type === 'set'
+                        ? (prev.testSetsMap[assign.id]?.testIds?.length || 0)
+                        : 1),
+                    0
+                ),
+            }));
+        return { groups: next };
+    });
+
+    // Tayinlovlar ro'yxati — `groups` dan kelib chiqadigan SOF hosila.
+    // Ilgari u alohida state edi va har bir mutatsiyada `groups` bilan
+    // qo'lda sinxronlanardi; endi bitta manba qoldi.
+    const assignedTests = useMemo(() => {
+        const list = groups.flatMap((g) =>
+            (g.assignedTests || []).map((assign) => ({
+                ...assign,
+                groupId: g.id,
+                groupName: g.name,
+                studentIds: g.studentIds || [],
+            }))
+        );
+        return list.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    }, [groups]);
 
     // Toast notification
     const [toast, setToast] = useState(null);
@@ -121,6 +160,14 @@ export default function TeacherTests() {
     // Copy assignment modal
     const [copyModal, setCopyModal] = useState(null);
     const [copySaving, setCopySaving] = useState(false);
+
+    // Testlar/podkastlar/maqolalar katalogi — UCHTA to'liq kolleksiya o'qishi.
+    // Ilgari u sahifa har ochilganda yuborilardi, garchi o'qituvchi tayinlash
+    // oynasini umuman ochmasa ham. Endi faqat kerak bo'lganda va 30 daqiqalik
+    // kesh bilan.
+    const { availableTests, catalogLoading } = useTeacherCatalog(
+        showAssignPage || Boolean(editModal)
+    );
 
     /**
      * Topshirganlar indeksi. Ilgari har bir test kartochkasi uchun butun
@@ -242,108 +289,13 @@ export default function TeacherTests() {
         return list.sort((a, b) => b.dateMs - a.dateMs);
     }, [groupedAssignments, mainGroupFilter, mainStatusFilter, mainSearch, mainSort]);
 
-    /** Filtrdan o'tgan tayinlovlardagi barcha bulk kalitlari. */
-    const visibleBulkKeys = useMemo(
-        () => filteredGroupedAssignments.flatMap(g => g.tests.map(t => `${g.groupId}__${t.id}__${t.date}`)),
-        [filteredGroupedAssignments]
-    );
-
-    useEffect(() => {
-        if (userData) {
-            fetchData();
-        }
-    }, [userData]);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
-            const querySnap = await getDocs(q);
-            const fetchedGroups = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            setGroups(fetchedGroups);
-
-            if (!fetchedGroups.length) {
-                setLoading(false);
-                return;
-            }
-
-            // 2. Fetch all student profiles in these groups.
-            //    Manba — `groups.studentIds` (yagona haqiqat). Ilgari
-            //    `where("groupId","in",groupIds)` ishlatilardi: u 30 tadan ortiq
-            //    guruhda umuman ishlamasdi va O'quvchilar sahifasi orqali
-            //    qo'shilgan (users.groupId yozilmagan) o'quvchilarni ko'rmasdi.
-            const studentIdsArray = collectStudentIds(fetchedGroups);
-
-            const studentsList = [];
-            for (const chunk of chunkIds(studentIdsArray)) {
-                const usersSnap = await getDocs(
-                    query(collection(db, "users"), where("__name__", "in", chunk))
-                );
-                studentsList.push(...usersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-            }
-            setStudents(studentsList);
-
-            // 3. Fetch student results and podcast attempts (chunked for the Firestore `in` limit)
-            const resultsList = [];
-            const podcastAttemptsList = [];
-            if (studentIdsArray.length > 0) {
-                for (const chunk of chunkIds(studentIdsArray)) {
-                    const q = query(collection(db, 'results'), where('userId', 'in', chunk));
-                    const snap = await getDocs(q);
-                    snap.docs.forEach(docSnap => {
-                        resultsList.push({ id: docSnap.id, ...docSnap.data() });
-                    });
-
-                    try {
-                        const qP = query(collection(db, 'podcastAttempts'), where('userId', 'in', chunk));
-                        const snapP = await getDocs(qP);
-                        snapP.docs.forEach(docSnap => {
-                            podcastAttemptsList.push({ id: docSnap.id, ...docSnap.data() });
-                        });
-                    } catch (pErr) {
-                        console.warn("Could not fetch podcast attempts for chunk:", pErr);
-                    }
-                }
-            }
-            setResults(resultsList);
-            setPodcastAttempts(podcastAttemptsList);
-
-            // 4. Gather assigned tests with group details
-            const testList = [];
-            fetchedGroups.forEach(g => {
-                const assignments = g.assignedTests || [];
-                assignments.forEach(assign => {
-                    testList.push({
-                        ...assign,
-                        groupId: g.id,
-                        groupName: g.name,
-                        studentIds: g.studentIds || []
-                    });
-                });
-            });
-            // Sort by assigned date descending if date exists
-            testList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-            setAssignedTests(testList);
-
-            // 5. Fetch available tests metadata, podcasts, and articles for assignment
-            const [testsSnap, podcastsSnap, articlesSnap] = await Promise.all([
-                getDocs(collection(db, 'tests_metadata')),
-                getDocs(query(collection(db, 'podcasts'), where('status', '==', 'published'))),
-                getDocs(collection(db, 'articles'))
-            ]);
-
-            const testsList = testsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            const podcastsList = podcastsSnap.docs.map(d => ({ id: d.id, ...d.data(), type: 'podcast' }));
-            const articlesList = articlesSnap.docs.map(d => ({ id: d.id, ...d.data(), type: 'article' }));
-
-            setAvailableTests([...testsList, ...podcastsList, ...articlesList]);
-
-        } catch (e) {
-            console.error("Error fetching data in TeacherTests:", e);
-        } finally {
-            setLoading(false);
-        }
-    };
+    /**
+     * Panelning umumiy keshini bekor qiladi. Ilgari bu funksiya butun
+     * zanjirni (groups → users → results → podcastAttempts → katalog)
+     * qo'lda qayta o'qirdi; endi u faqat keshni "eskirgan" deb belgilaydi,
+     * qayta o'qishni esa react-query bir marta bajaradi.
+     */
+    const fetchData = () => refresh();
 
     /**
      * Tayyor tayinlov yozuvlarini guruhlarga yozadi, feed post yaratadi va
@@ -397,24 +349,12 @@ export default function TeacherTests() {
                 ? { ...g, assignedTests: [...(g.assignedTests || []), ...assignments] }
                 : g
         )));
-        setAssignedTests(prev => [
-            ...groupIds.flatMap(gid => {
-                const grp = groups.find(g => g.id === gid);
-                return assignments.map(a => ({
-                    ...a,
-                    groupId: gid,
-                    groupName: grp?.name || '',
-                    studentIds: grp?.studentIds || [],
-                }));
-            }),
-            ...prev,
-        ]);
     };
 
     const handleAssignTest = async (e) => {
         e.preventDefault();
-        if (selectedGroupIds.size === 0) return showToast("Iltimos, kamida bitta guruhni tanlang!", 'error');
-        if (selectedTests.length === 0) return showToast("Iltimos, kamida bitta vazifani tanlang!", 'error');
+        if (selectedGroupIds.size === 0) return showToast(t('teacher.assignForm.errorSelectGroup', "Iltimos, kamida bitta guruhni tanlang!"), 'error');
+        if (selectedTests.length === 0) return showToast(t('teacher.assignForm.errorSelectTest', "Iltimos, kamida bitta vazifani tanlang!"), 'error');
 
         setAssigning(true);
         try {
@@ -441,7 +381,7 @@ export default function TeacherTests() {
             const allGroupIds = [...selectedGroupIds];
             await commitAssignments(allGroupIds, newAssignments);
 
-            showToast(`${newAssignments.length} ta vazifa ${allGroupIds.length} ta guruhga tayinlandi!`);
+            showToast(t('teacher.tests.assignSuccessToast', { tests: newAssignments.length, groups: allGroupIds.length }));
             setShowAssignPage(false);
             setSelectedTests([]);
             setSelectedGroupIds(new Set());
@@ -510,9 +450,7 @@ export default function TeacherTests() {
                     assignedTests: (g.assignedTests || []).filter(a => !(a.id === assignment.id && a.date === assignment.date))
                 };
             }));
-            setAssignedTests(prev => prev.filter(a => !(a.id === assignment.id && a.groupId === assignment.groupId && a.date === assignment.date)));
-
-            showToast("Tayinlov muvaffaqiyatli olib tashlandi!");
+            showToast(t('teacher.tests.unassignSuccess', "Tayinlov muvaffaqiyatli olib tashlandi!"));
         } catch (err) {
             console.error(err);
             showToast("Xatolik yuz berdi: " + err.message, 'error');
@@ -521,7 +459,7 @@ export default function TeacherTests() {
 
     const handleUnassignTest = (assignment) => {
         setConfirmDialog({
-            message: `"${assignment.title}" testini guruhdan olib tashlamoqchimisiz?`,
+            message: t('teacher.tests.confirmUnassignDesc', { title: assignment.title }),
             onConfirm: () => {
                 setConfirmDialog(null);
                 doUnassignTest(assignment);
@@ -533,7 +471,7 @@ export default function TeacherTests() {
         if (selectedBulk.size === 0) return;
         const keys = [...selectedBulk];
         setConfirmDialog({
-            message: `${keys.length} ta vazifani o'chirishni tasdiqlaysizmi?`,
+            message: t('teacher.tests.confirmBulkDeleteDesc', { count: keys.length }),
             onConfirm: async () => {
                 setConfirmDialog(null);
                 let removed = 0;
@@ -549,7 +487,7 @@ export default function TeacherTests() {
                 }
                 setSelectedBulk(new Set());
                 setBulkMode(false);
-                showToast(`${removed} ta vazifa o'chirildi!`);
+                showToast(t('teacher.tests.bulkDeleteSuccess', { count: removed }));
             }
         });
     };
@@ -567,20 +505,16 @@ export default function TeacherTests() {
     /** Bitta tayinlovdagi (guruh + sana) barcha testlarni birdaniga belgilash. */
     const toggleBulkAssignment = (groupAssign) => {
         const keys = groupAssign.tests.map(t => `${groupAssign.groupId}__${t.id}__${t.date}`);
+        const allSelected = keys.every(k => selectedBulk.has(k));
         setSelectedBulk(prev => {
             const next = new Set(prev);
-            const allSelected = keys.every(k => next.has(k));
-            keys.forEach(k => allSelected ? next.delete(k) : next.add(k));
+            if (allSelected) {
+                keys.forEach(k => next.delete(k));
+            } else {
+                keys.forEach(k => next.add(k));
+            }
             return next;
         });
-    };
-
-    // "Hammasini tanlash" faqat FILTRDAN O'TGANLARNI qamraydi — ilgari u
-    // ekranda ko'rinmayotgan tayinlovlarni ham belgilab, tasodifan o'chirib
-    // yuborish xavfini tug'dirardi.
-    const allVisibleSelected = visibleBulkKeys.length > 0 && visibleBulkKeys.every(k => selectedBulk.has(k));
-    const toggleSelectAll = () => {
-        setSelectedBulk(allVisibleSelected ? new Set() : new Set(visibleBulkKeys));
     };
 
     const exitBulkMode = () => {
@@ -588,71 +522,82 @@ export default function TeacherTests() {
         setSelectedBulk(new Set());
     };
 
-    // Esc — ochiq modal/dialogni yopadi, bulk rejimidan chiqadi.
+    /** Barcha ko'rinib turgan topshiriqlarni birdaniga belgilash / bekor qilish. */
+    const allVisibleKeys = useMemo(() => {
+        return filteredGroupedAssignments.flatMap(g =>
+            g.tests.map(t => `${g.groupId}__${t.id}__${t.date}`)
+        );
+    }, [filteredGroupedAssignments]);
+
+    const allVisibleSelected = allVisibleKeys.length > 0 && allVisibleKeys.every(k => selectedBulk.has(k));
+
+    const toggleSelectAll = () => {
+        if (allVisibleSelected) {
+            setSelectedBulk(new Set());
+        } else {
+            setSelectedBulk(new Set(allVisibleKeys));
+        }
+    };
+
+    // Keyboard shortcuts: Esc -> exit bulk / close modals
     useEffect(() => {
         const onKeyDown = (e) => {
-            if (e.key !== 'Escape') return;
-            if (confirmDialog) setConfirmDialog(null);
-            else if (copyModal) { if (!copySaving) setCopyModal(null); }
-            else if (editModal) { setEditModal(null); setEditTestSearch(''); setShowEditTestPicker(false); }
-            else if (bulkMode) exitBulkMode();
+            if (e.key === 'Escape') {
+                if (confirmDialog) setConfirmDialog(null);
+                else if (copyModal) setCopyModal(null);
+                else if (editModal) { setEditModal(null); setEditTestSearch(''); setShowEditTestPicker(false); }
+                else if (bulkMode) exitBulkMode();
+            }
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [confirmDialog, editModal, copyModal, copySaving, bulkMode]);
+    }, [confirmDialog, copyModal, editModal, bulkMode]);
 
+    /** Tahrirlash modalini saqlash: Firestore + optimistic update */
     const doEditAssignment = async () => {
-        if (!editModal) return;
-        if (!editModal.tests || editModal.tests.length === 0) {
-            showToast("Kamida bitta test bo'lishi kerak!", 'error');
-            return;
-        }
+        if (!editModal || !editModal.tests?.length) return;
         setEditSaving(true);
         try {
-            const { groupId, date } = editModal;
-            const targetGroup = groups.find(g => g.id === groupId);
+            const targetGroup = groups.find(g => g.id === editModal.groupId);
             if (!targetGroup) return;
 
+            const oldAssigns = targetGroup.assignedTests || [];
+            // Bitta tayinlov blokidagi barcha qadimgi testlarni olib tashlaymiz
+            const unchanged = oldAssigns.filter(a => !(a.date === editModal.date));
+
             const deadlineVal = editModal.deadline ? new Date(editModal.deadline).toISOString() : null;
-            const maxAttempts = Number(editModal.maxAttempts) || 1;
+            const maxAttemptsVal = Number(editModal.maxAttempts) || 1;
 
-            // Keep assignments from other dates unchanged
-            const otherAssignments = (targetGroup.assignedTests || []).filter(a => a.date !== date);
-
-            // Rebuild this date-group's assignments from editModal.tests
-            const updatedGroupAssignments = editModal.tests.map(t => ({
+            const updatedAssignments = editModal.tests.map(t => ({
                 id: t.id,
-                title: t.title,
+                title: t.title || 'Untitled',
                 type: t.type,
-                ...(t.selectedParts ? { selectedParts: t.selectedParts } : {}),
-                date,
+                date: editModal.date,
                 deadline: deadlineVal,
-                maxAttempts,
+                maxAttempts: maxAttemptsVal,
                 priority: editModal.priority,
                 teacherNote: editModal.teacherNote,
+                ...(t.selectedParts ? { selectedParts: t.selectedParts } : {}),
             }));
 
-            const finalAssignments = [...otherAssignments, ...updatedGroupAssignments];
-            await updateDoc(doc(db, 'groups', groupId), { assignedTests: finalAssignments });
+            const finalAssignedTests = [...unchanged, ...updatedAssignments];
 
-            setGroups(prev => prev.map(g => g.id !== groupId ? g : { ...g, assignedTests: finalAssignments }));
-            // Rebuild flat assignedTests state for this group
-            setAssignedTests(prev => {
-                const others = prev.filter(a => !(a.groupId === groupId && a.date === date));
-                const group = groups.find(g => g.id === groupId);
-                const newEntries = updatedGroupAssignments.map(a => ({
-                    ...a,
-                    groupId,
-                    groupName: group?.name || editModal.groupName || '',
-                    studentIds: group?.studentIds || [],
-                }));
-                return [...newEntries, ...others];
+            await updateDoc(doc(db, 'groups', editModal.groupId), {
+                assignedTests: finalAssignedTests
             });
+
+            // Optimistic update
+            setGroups(prev => prev.map(g => {
+                if (g.id !== editModal.groupId) return g;
+                return { ...g, assignedTests: finalAssignedTests };
+            }));
+
+            showToast(t('teacher.tests.updateSuccessToast', "Tayinlov muvaffaqiyatli yangilandi!"));
             setEditModal(null);
             setEditTestSearch('');
             setShowEditTestPicker(false);
-            showToast('Tayinlov muvaffaqiyatli yangilandi!');
         } catch (err) {
+            console.error(err);
             showToast('Xatolik: ' + err.message, 'error');
         } finally {
             setEditSaving(false);
@@ -715,7 +660,7 @@ export default function TeacherTests() {
             const targetIds = [...copyModal.targetGroupIds];
             await commitAssignments(targetIds, assignments);
 
-            showToast(`${assignments.length} ta vazifa ${targetIds.length} ta guruhga nusxalandi!`);
+            showToast(t('teacher.tests.copySuccessToast', { tests: assignments.length, groups: targetIds.length }));
             setCopyModal(null);
         } catch (err) {
             console.error(err);
@@ -738,7 +683,7 @@ export default function TeacherTests() {
             ]);
         });
         const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -762,7 +707,7 @@ export default function TeacherTests() {
                 createdAt: serverTimestamp(),
                 testId: monitoringTest.id,
             });
-            showToast(`Eslatma ${notSubmittedCount} ta o'quvchiga yuborildi!`);
+            showToast(t('teacher.tests.reminderSentToast', { count: notSubmittedCount }));
         } catch (err) {
             showToast('Xatolik: ' + err.message, 'error');
         } finally {
@@ -788,15 +733,15 @@ export default function TeacherTests() {
     };
 
     const PRIORITY_META = {
-        high: { label: 'Yuqori', className: 'text-rose-600 dark:text-rose-400' },
-        low: { label: 'Past', className: 'text-emerald-600 dark:text-emerald-400' },
+        high: { label: t('teacher.tests.priorityHigh', 'Yuqori'), className: 'text-rose-600 dark:text-rose-400' },
+        low: { label: t('teacher.tests.priorityLow', 'Past'), className: 'text-emerald-600 dark:text-emerald-400' },
     };
 
     if (showAssignPage) {
         return (
             <AssignTestForm
                 isDark={isDark} toast={toast}
-                groups={groups} availableTests={availableTests}
+                groups={groups} availableTests={availableTests} catalogLoading={catalogLoading}
                 selectedGroupIds={selectedGroupIds} setSelectedGroupIds={setSelectedGroupIds}
                 searchTestQuery={searchTestQuery} setSearchTestQuery={setSearchTestQuery}
                 testTypeFilter={testTypeFilter} setTestTypeFilter={setTestTypeFilter}
@@ -838,6 +783,8 @@ export default function TeacherTests() {
 
     return (
         <div className={`space-y-6 ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            <RefreshBar active={isRefreshing} />
+
             {/* Toast Notification — bulk paneli ochiq bo'lsa uning ustiga chiqadi */}
             {toast && (
                 <div
@@ -877,41 +824,41 @@ export default function TeacherTests() {
                                 onClick={() => setConfirmDialog(null)}
                                 className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
                             >
-                                Bekor qilish
+                                {t('common.cancel', 'Bekor qilish')}
                             </button>
                             <button
                                 autoFocus
                                 onClick={confirmDialog.onConfirm}
                                 className="h-9 px-4 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium transition-colors"
                             >
-                                O'chirish
+                                {t('common.delete', "O'chirish")}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Back link — boshqa ustoz sahifalari bilan bir xil */}
+            {/* Back link */}
             <button
                 onClick={() => navigate('/teacher')}
                 className={`flex items-center gap-2 text-sm font-medium transition-colors -mb-1 ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'}`}
             >
                 <CaretLeft size={15} weight="bold" />
-                Bosh sahifa
+                {t('common.dashboard', 'Bosh sahifa')}
             </button>
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div className="min-w-0">
                     <h1 className={`text-[28px] leading-tight font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        Tayinlangan testlar
+                        {t('teacher.tests.title', 'Tayinlangan testlar')}
                     </h1>
                     <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                         {loading
-                            ? 'Yuklanmoqda…'
+                            ? t('common.loading', 'Yuklanmoqda…')
                             : assignedTests.length === 0
-                                ? "Hali birorta vazifa biriktirilmagan"
-                                : `${summaryStats.total} ta tayinlov · ${summaryStats.totalTests} ta test`}
+                                ? t('teacher.tests.noTestsAssigned', "Hali birorta vazifa biriktirilmagan")
+                                : `${summaryStats.total} ${t('teacher.groupStats.totalResults', 'tayinlov')} · ${summaryStats.totalTests} ${t('teacher.groupStats.testsPlural', 'test')}`}
                     </p>
                 </div>
 
@@ -926,7 +873,7 @@ export default function TeacherTests() {
                             }`}
                         >
                             <CheckSquare size={15} />
-                            {bulkMode ? 'Tayyor' : 'Tanlash'}
+                            {bulkMode ? t('teacher.tests.exitBulk', 'Tayyor') : t('teacher.tests.bulkMode', 'Tanlash')}
                         </button>
                     )}
                     <button
@@ -934,20 +881,19 @@ export default function TeacherTests() {
                         className="flex items-center gap-2 h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
                     >
                         <Plus size={16} weight="bold" />
-                        Yangi tayinlash
+                        {t('teacher.tests.assignNewTask', 'Yangi tayinlash')}
                     </button>
                 </div>
             </div>
 
-            {/* Filtrlar — status chiplari sanoqni ham ko'rsatadi, shuning uchun
-                alohida statistika kartochkalari kerak emas */}
+            {/* Filtrlar */}
             {!loading && assignedTests.length > 0 && (
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-center gap-1.5">
                         {[
-                            { key: 'all', label: 'Hammasi', count: summaryStats.total },
-                            { key: 'active', label: 'Faol', count: summaryStats.active },
-                            { key: 'expired', label: "Muddati o'tgan", count: summaryStats.expired },
+                            { key: 'all', label: t('teacher.tests.tabAll', 'Hammasi'), count: summaryStats.total },
+                            { key: 'active', label: t('teacher.tests.tabActive', 'Faol'), count: summaryStats.active },
+                            { key: 'expired', label: t('teacher.tests.tabOverdue', "Muddati o'tgan"), count: summaryStats.expired },
                         ].map(chip => {
                             const active = mainStatusFilter === chip.key;
                             return (
@@ -972,7 +918,7 @@ export default function TeacherTests() {
                             <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input
                                 type="text"
-                                placeholder="Guruh yoki test nomi…"
+                                placeholder={t('teacher.tests.searchPlaceholder', "Guruh yoki test nomi…")}
                                 value={mainSearch}
                                 onChange={e => setMainSearch(e.target.value)}
                                 className={`w-full h-10 pl-9 pr-8 rounded-xl border text-sm outline-none transition-colors ${isDark ? 'bg-transparent border-white/10 text-white placeholder-gray-600 focus:border-white/25' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400 focus:border-gray-400'}`}
@@ -988,58 +934,47 @@ export default function TeacherTests() {
                             onChange={e => setMainGroupFilter(e.target.value)}
                             className={`h-10 px-3 rounded-xl border text-sm outline-none cursor-pointer transition-colors ${isDark ? 'bg-transparent border-white/10 text-gray-300' : 'bg-white border-gray-200 text-gray-700'}`}
                         >
-                            <option value="all">Barcha guruhlar</option>
+                            <option value="all">{t('teacher.tests.allGroups', 'Barcha guruhlar')}</option>
                             {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                         </select>
                         <select
                             value={mainSort}
                             onChange={e => setMainSort(e.target.value)}
-                            title="Saralash"
+                            title={t('common.sort', 'Saralash')}
                             className={`h-10 px-3 rounded-xl border text-sm outline-none cursor-pointer transition-colors ${isDark ? 'bg-transparent border-white/10 text-gray-300' : 'bg-white border-gray-200 text-gray-700'}`}
                         >
-                            <option value="newest">Eng yangi</option>
-                            <option value="deadline">Muddati yaqin</option>
-                            <option value="progress">Kam topshirilgan</option>
+                            <option value="newest">{t('teacher.tests.sortNewest', 'Eng yangi')}</option>
+                            <option value="deadline">{t('teacher.tests.sortDeadline', 'Muddati yaqin')}</option>
+                            <option value="progress">{t('teacher.tests.sortProgress', 'Kam topshirilgan')}</option>
                         </select>
                     </div>
                 </div>
             )}
 
             {loading ? (
-                <div className="flex flex-col gap-3">
-                    {/* Skeleton — bo'sh spinner o'rniga sahifa tuzilishini oldindan ko'rsatadi */}
-                    {[0, 1, 2].map(i => (
-                        <div key={i} className={`rounded-2xl border p-5 ${isDark ? 'border-white/8' : 'border-gray-200 bg-white'}`}>
-                            <div className="animate-pulse space-y-3">
-                                <div className={`h-4 w-40 rounded ${isDark ? 'bg-white/8' : 'bg-gray-200'}`} />
-                                <div className={`h-3 w-64 rounded ${isDark ? 'bg-white/5' : 'bg-gray-100'}`} />
-                                <div className={`h-12 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-100'}`} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <TeacherTestsSkeleton cards={4} />
             ) : assignedTests.length === 0 ? (
                 <div className={`rounded-2xl border border-dashed p-14 text-center ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
                     <BookOpen size={32} className="mx-auto mb-3 text-gray-400 opacity-50" />
-                    <p className={`text-base font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Hali test tayinlanmagan</p>
-                    <p className="text-sm mt-1 text-gray-500">Guruhlaringizga birinchi vazifani biriktiring.</p>
+                    <p className={`text-base font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('teacher.tests.noTestsAssigned', 'Hali test tayinlanmagan')}</p>
+                    <p className="text-sm mt-1 text-gray-500">{t('teacher.tests.noAssignmentsEmptyDesc', 'Guruhlaringizga birinchi vazifani biriktiring.')}</p>
                     <button
                         onClick={() => setShowAssignPage(true)}
                         className="mt-5 inline-flex items-center gap-2 h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
                     >
                         <Plus size={16} weight="bold" />
-                        Yangi tayinlash
+                        {t('teacher.tests.assignNewTask', 'Yangi tayinlash')}
                     </button>
                 </div>
             ) : filteredGroupedAssignments.length === 0 ? (
                 <div className={`rounded-2xl border border-dashed p-12 text-center ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
                     <FunnelSimple size={28} className="mx-auto mb-3 text-gray-400 opacity-50" />
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Filtrga mos tayinlov yo'q</p>
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('teacher.tests.noAssignmentsFiltered', "Filtrga mos tayinlov yo'q")}</p>
                     <button
                         onClick={() => { setMainSearch(''); setMainGroupFilter('all'); setMainStatusFilter('all'); }}
                         className="mt-3 text-sm text-blue-500 font-medium hover:underline"
                     >
-                        Filtrni tozalash
+                        {t('teacher.tests.clearFiltersBtn', 'Filtrni tozalash')}
                     </button>
                 </div>
             ) : (
@@ -1083,7 +1018,7 @@ export default function TeacherTests() {
                                                 {groupAssign.groupName}
                                             </h3>
                                             <span className="text-gray-300 dark:text-gray-700">·</span>
-                                            <span className="text-[13px] text-gray-500">{groupAssign.tests.length} ta test</span>
+                                            <span className="text-[13px] text-gray-500">{groupAssign.tests.length} {t('teacher.groupStats.testsPlural', 'ta test')}</span>
                                             {priority && (
                                                 <span className={`text-[11px] font-medium ${priority.className}`}>{priority.label}</span>
                                             )}
@@ -1097,35 +1032,32 @@ export default function TeacherTests() {
                                             </span>
                                             <span className="inline-flex items-center gap-1.5">
                                                 <ArrowsCounterClockwise size={13} className="text-gray-400 shrink-0" />
-                                                {groupAssign.maxAttempts || 1} urinish
+                                                {groupAssign.maxAttempts || 1} {t('teacher.tests.attemptSuffix', 'urinish')}
                                             </span>
                                             <span className="inline-flex items-center gap-1.5">
                                                 <Clock size={13} className="text-gray-400 shrink-0" />
-                                                {new Date(groupAssign.date).toLocaleDateString('uz-UZ', { day: '2-digit', month: 'short' })}
+                                                {new Date(groupAssign.date).toLocaleDateString(language === 'en' ? 'en-US' : 'uz-UZ', { day: '2-digit', month: 'short' })}
                                             </span>
                                         </div>
                                     </div>
 
-                                    {/* Umumiy holat — chiziq sarlavha ostida, butun kartochka
-                                        eni bo'ylab (test qatorlaridagi ustunlar bilan
-                                        tekislanish muammosi shu tarzda yo'qoladi) */}
+                                    {/* Umumiy holat */}
                                     <div className="shrink-0 flex items-center gap-2">
                                         {expectedTotal > 0 ? (
                                             <span className={`text-[12px] font-medium tabular-nums whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                                                 {submittedTotal}/{expectedTotal}
-                                                <span className="hidden sm:inline"> topshirdi</span>
+                                                <span className="hidden sm:inline"> {t('teacher.tests.submittedStatus', 'topshirdi')}</span>
                                             </span>
                                         ) : (
-                                            // Guruhda o'quvchi yo'q — "0/0" o'rniga sababini aytamiz
                                             <span className="text-[11px] text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                                                O'quvchi yo'q
+                                                {t('teacher.groupStats.noStudentsInGroup', "O'quvchi yo'q")}
                                             </span>
                                         )}
                                         {!bulkMode && groups.length > 1 && (
                                             <button
                                                 onClick={() => openCopyModal(groupAssign)}
                                                 className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'text-gray-500 hover:text-white hover:bg-white/5' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'}`}
-                                                title="Boshqa guruhga nusxalash"
+                                                title={t('teacher.tests.copyBtn', 'Boshqa guruhga nusxalash')}
                                             >
                                                 <CopySimple size={15} />
                                             </button>
@@ -1147,7 +1079,7 @@ export default function TeacherTests() {
                                                     });
                                                 }}
                                                 className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'text-gray-500 hover:text-white hover:bg-white/5' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'}`}
-                                                title="Tayinlovni tahrirlash"
+                                                title={t('teacher.tests.editBtn', 'Tayinlovni tahrirlash')}
                                             >
                                                 <PencilSimple size={15} />
                                             </button>
@@ -1155,7 +1087,7 @@ export default function TeacherTests() {
                                     </div>
                                 </div>
 
-                                {/* Tayinlovning umumiy progressi — kartochka enidagi ingichka chiziq */}
+                                {/* Tayinlovning umumiy progressi */}
                                 <ProgressBar pct={pct} isExpired={isExpired} isDark={isDark} rounded={false} />
 
                                 {/* ── Testlar ro'yxati ── */}
@@ -1200,7 +1132,6 @@ export default function TeacherTests() {
                                                                 · {test.selectedParts.map(n => `P${n}`).join(', ')}
                                                             </span>
                                                         )}
-                                                        {/* Mobilda progress ustuni yashiringani uchun sanoq shu yerda */}
                                                         <span className="sm:hidden text-[11px] text-gray-400 tabular-nums">
                                                             · {submitted}/{total}
                                                         </span>
@@ -1230,10 +1161,10 @@ export default function TeacherTests() {
                                                         className={`h-8 px-3 rounded-lg text-[13px] font-medium flex items-center gap-1.5 transition-colors ${
                                                             isDark ? 'text-gray-300 hover:bg-white/8' : 'text-gray-700 hover:bg-gray-100'
                                                         }`}
-                                                        title={notSubmitted > 0 ? `${notSubmitted} ta o'quvchi topshirmagan` : 'Hamma topshirdi'}
+                                                        title={notSubmitted > 0 ? t('teacher.tests.notSubmittedCount', { count: notSubmitted }) : t('teacher.tests.allSubmitted', 'Hamma topshirdi')}
                                                     >
                                                         <Eye size={15} />
-                                                        <span className="hidden md:inline">Kuzatish</span>
+                                                        <span className="hidden md:inline">{t('teacher.tests.monitorBtn', 'Kuzatish')}</span>
                                                     </button>
                                                     {!bulkMode && (
                                                         <button
@@ -1241,7 +1172,7 @@ export default function TeacherTests() {
                                                             className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 ${
                                                                 isDark ? 'text-gray-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'
                                                             }`}
-                                                            title="Tayinlovdan olib tashlash"
+                                                            title={t('teacher.tests.unassignBtn', 'Tayinlovdan olib tashlash')}
                                                         >
                                                             <Trash size={15} />
                                                         </button>
@@ -1255,7 +1186,7 @@ export default function TeacherTests() {
                                 {/* ── Ustoz eslatmasi ── */}
                                 {groupAssign.teacherNote && (
                                     <div className={`px-5 py-3 border-t text-[13px] leading-relaxed ${isDark ? 'border-white/5 text-gray-400' : 'border-gray-100 text-gray-600'}`}>
-                                        <span className="text-gray-400 dark:text-gray-500">Eslatma: </span>
+                                        <span className="text-gray-400 dark:text-gray-500">{t('teacher.tests.teacherNotePrefix', 'Eslatma: ')}</span>
                                         <span className="whitespace-pre-wrap">{groupAssign.teacherNote}</span>
                                     </div>
                                 )}
@@ -1272,13 +1203,13 @@ export default function TeacherTests() {
                         isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'
                     }`}>
                         <span className={`text-sm font-medium px-1.5 tabular-nums ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {selectedBulk.size} ta tanlandi
+                            {selectedBulk.size} {t('teacher.tests.selectedCountSuffix', 'ta tanlandi')}
                         </span>
                         <button
                             onClick={toggleSelectAll}
                             className={`h-9 px-3 rounded-xl text-[13px] font-medium transition-colors ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
                         >
-                            {allVisibleSelected ? 'Bekor qilish' : 'Hammasi'}
+                            {allVisibleSelected ? t('teacher.tests.cancelSelection', 'Bekor qilish') : t('teacher.tests.selectAllBtn', 'Hammasi')}
                         </button>
                         <div className="flex-1" />
                         <button
@@ -1286,12 +1217,12 @@ export default function TeacherTests() {
                             className="h-9 px-3.5 rounded-xl text-[13px] font-medium bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-colors"
                         >
                             <Trash size={14} weight="bold" />
-                            O'chirish
+                            {t('common.delete', "O'chirish")}
                         </button>
                         <button
                             onClick={exitBulkMode}
                             className={`h-9 w-9 rounded-xl flex items-center justify-center transition-colors ${isDark ? 'text-gray-500 hover:bg-white/5' : 'text-gray-400 hover:bg-gray-100'}`}
-                            title="Yopish (Esc)"
+                            title={t('common.close', 'Yopish (Esc)')}
                         >
                             <X size={15} weight="bold" />
                         </button>
@@ -1301,8 +1232,6 @@ export default function TeacherTests() {
 
             {/* ── Nusxalash modali ── */}
             {copyModal && (() => {
-                // Manba guruhning o'zi ro'yxatda ko'rsatilmaydi — bir guruhga
-                // ikki marta bir xil vazifa berish ko'pincha xato bo'ladi.
                 const targetGroups = groups.filter(g => g.id !== copyModal.sourceGroupId);
                 const selectedCount = copyModal.targetGroupIds.size;
                 const studentCount = groups
@@ -1324,10 +1253,10 @@ export default function TeacherTests() {
                             <div className={`flex items-start justify-between gap-3 px-5 pt-4 pb-3.5 border-b ${isDark ? 'border-white/8' : 'border-gray-100'}`}>
                                 <div className="min-w-0">
                                     <h3 className={`text-[15px] font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                        Boshqa guruhga nusxalash
+                                        {t('teacher.copyModal.title', 'Boshqa guruhga nusxalash')}
                                     </h3>
                                     <p className="text-[13px] text-gray-500 mt-0.5 truncate">
-                                        Manba: {copyModal.sourceGroupName} · {copyModal.tests.length} ta test
+                                        {t('teacher.copyModal.source', 'Manba')}: {copyModal.sourceGroupName} · {copyModal.tests.length} {t('teacher.groupStats.testsPlural', 'ta test')}
                                     </p>
                                 </div>
                                 <button
@@ -1342,18 +1271,18 @@ export default function TeacherTests() {
                                 {/* Ko'chiriladigan testlar */}
                                 <div className="space-y-2">
                                     <p className={`text-[11px] font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                        Ko'chiriladigan testlar
+                                        {t('teacher.copyModal.copiedTests', "Ko'chiriladigan testlar")}
                                     </p>
                                     <div className={`rounded-xl border divide-y ${isDark ? 'border-white/8 divide-white/5' : 'border-gray-200 divide-gray-100'}`}>
-                                        {copyModal.tests.map(t => {
-                                            const meta = getTypeMeta(t.type);
+                                        {copyModal.tests.map(tItem => {
+                                            const meta = getTypeMeta(tItem.type);
                                             return (
-                                                <div key={t.id} className="flex items-center gap-2.5 px-3 py-2.5">
+                                                <div key={tItem.id} className="flex items-center gap-2.5 px-3 py-2.5">
                                                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
-                                                    <span className={`flex-1 text-[13px] truncate ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>{t.title}</span>
-                                                    {t.selectedParts?.length > 0 && (
+                                                    <span className={`flex-1 text-[13px] truncate ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>{tItem.title}</span>
+                                                    {tItem.selectedParts?.length > 0 && (
                                                         <span className="text-[11px] text-gray-400 shrink-0">
-                                                            {t.selectedParts.map(n => `P${n}`).join(', ')}
+                                                            {tItem.selectedParts.map(n => `P${n}`).join(', ')}
                                                         </span>
                                                     )}
                                                     <span className="text-[11px] text-gray-500 shrink-0">{meta.label}</span>
@@ -1367,24 +1296,23 @@ export default function TeacherTests() {
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <p className={`text-[11px] font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                            Qaysi guruhlarga
+                                            {t('teacher.copyModal.targetGroups', 'Qaysi guruhlarga')}
                                         </p>
                                         {selectedCount > 0 && (
-                                            <span className="text-[11px] text-gray-500 tabular-nums">{selectedCount} ta tanlandi</span>
+                                            <span className="text-[11px] text-gray-500 tabular-nums">{selectedCount} {t('teacher.tests.selectedCountSuffix', 'ta tanlandi')}</span>
                                         )}
                                     </div>
 
                                     {targetGroups.length === 0 ? (
                                         <p className="text-[13px] text-gray-500 py-3">
-                                            Nusxalash uchun boshqa guruhingiz yo'q.
+                                            {t('teacher.copyModal.noOtherGroups', "Nusxalash uchun boshqa guruhingiz yo'q.")}
                                         </p>
                                     ) : (
                                         <div className={`rounded-xl border divide-y overflow-hidden ${isDark ? 'border-white/8 divide-white/5' : 'border-gray-200 divide-gray-100'}`}>
                                             {targetGroups.map(g => {
                                                 const checked = copyModal.targetGroupIds.has(g.id);
-                                                // Shu testlardan qaysidir allaqachon berilganmi
-                                                const already = copyModal.tests.filter(t =>
-                                                    (g.assignedTests || []).some(a => a.id === t.id)
+                                                const already = copyModal.tests.filter(tItem =>
+                                                    (g.assignedTests || []).some(a => a.id === tItem.id)
                                                 ).length;
                                                 return (
                                                     <button
@@ -1405,11 +1333,11 @@ export default function TeacherTests() {
                                                         </span>
                                                         {already > 0 && (
                                                             <span className="text-[11px] text-amber-600 dark:text-amber-400 shrink-0">
-                                                                {already} tasi allaqachon bor
+                                                                {t('teacher.copyModal.alreadyHas', { count: already })}
                                                             </span>
                                                         )}
                                                         <span className="text-[11px] text-gray-500 shrink-0 tabular-nums">
-                                                            {g.studentIds?.length || 0} o'q
+                                                            {g.studentIds?.length || 0} {t('teacher.groupStats.studentsShort', "o'q")}
                                                         </span>
                                                     </button>
                                                 );
@@ -1421,15 +1349,19 @@ export default function TeacherTests() {
                                 {/* Sozlamalar */}
                                 <div className="space-y-3">
                                     <p className={`text-[11px] font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                        Nusxa uchun sozlamalar
+                                        {t('teacher.copyModal.settingsTitle', 'Nusxa uchun sozlamalar')}
                                     </p>
 
                                     <div className="space-y-1.5">
                                         <label className="text-[13px] text-gray-500 flex items-center gap-1.5">
-                                            <Clock size={13} className="text-gray-400" /> Deadline
+                                            <Clock size={13} className="text-gray-400" /> {t('teacher.assignForm.deadline', 'Deadline')}
                                         </label>
                                         <div className="flex flex-wrap gap-1.5">
-                                            {[{ label: '+1 kun', days: 1 }, { label: '+3 kun', days: 3 }, { label: '+1 hafta', days: 7 }].map(({ label, days }) => (
+                                            {[
+                                                { label: t('teacher.assignForm.day1', '+1 kun'), days: 1 },
+                                                { label: t('teacher.assignForm.day3', '+3 kun'), days: 3 },
+                                                { label: t('teacher.assignForm.week1', '+1 hafta'), days: 7 }
+                                            ].map(({ label, days }) => (
                                                 <button
                                                     key={days}
                                                     type="button"
@@ -1450,7 +1382,7 @@ export default function TeacherTests() {
                                                     onClick={() => setCopyModal(p => ({ ...p, deadline: '' }))}
                                                     className="h-7 px-2.5 rounded-lg border border-rose-500/25 text-rose-500 text-[12px] font-medium hover:bg-rose-500/5 transition-colors"
                                                 >
-                                                    Tozalash
+                                                    {t('common.clear', 'Tozalash')}
                                                 </button>
                                             )}
                                         </div>
@@ -1465,7 +1397,7 @@ export default function TeacherTests() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-1.5">
                                             <label className="text-[13px] text-gray-500 flex items-center gap-1.5">
-                                                <ArrowsCounterClockwise size={13} className="text-gray-400" /> Urinishlar
+                                                <ArrowsCounterClockwise size={13} className="text-gray-400" /> {t('teacher.assignForm.attempts', 'Urinishlar')}
                                             </label>
                                             <div className="flex items-center gap-2">
                                                 <button
@@ -1490,12 +1422,12 @@ export default function TeacherTests() {
                                             </div>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[13px] text-gray-500">Muhimlik</label>
+                                            <label className="text-[13px] text-gray-500">{t('teacher.assignForm.priority', 'Muhimlik')}</label>
                                             <div className="grid grid-cols-3 gap-1">
                                                 {[
-                                                    { key: 'low', label: 'Past' },
-                                                    { key: 'medium', label: "O'rt" },
-                                                    { key: 'high', label: 'Yuq' },
+                                                    { key: 'low', label: t('teacher.assignForm.priorityLow', 'Past') },
+                                                    { key: 'medium', label: t('teacher.assignForm.priorityMedium', "O'rt") },
+                                                    { key: 'high', label: t('teacher.assignForm.priorityHigh', 'Yuq') },
                                                 ].map(item => (
                                                     <button
                                                         key={item.key}
@@ -1515,12 +1447,12 @@ export default function TeacherTests() {
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[13px] text-gray-500">Eslatma / izoh</label>
+                                        <label className="text-[13px] text-gray-500">{t('teacher.assignForm.note', 'Eslatma / izoh')}</label>
                                         <textarea
                                             rows={2}
                                             value={copyModal.teacherNote}
                                             onChange={e => setCopyModal(p => ({ ...p, teacherNote: e.target.value }))}
-                                            placeholder="Ixtiyoriy"
+                                            placeholder={t('teacher.assignForm.optional', 'Ixtiyoriy')}
                                             className={`w-full p-3 rounded-xl border text-[13px] outline-none resize-none transition-colors ${isDark ? 'bg-transparent border-white/10 text-white placeholder-gray-600' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
                                         />
                                     </div>
@@ -1531,14 +1463,14 @@ export default function TeacherTests() {
                             <div className={`flex items-center gap-2 px-5 py-3.5 border-t ${isDark ? 'border-white/8' : 'border-gray-100'}`}>
                                 <span className="text-[12px] text-gray-500 flex-1 truncate">
                                     {selectedCount > 0
-                                        ? `${copyModal.tests.length} × ${selectedCount} guruh · ${studentCount} o'quvchi`
-                                        : 'Guruh tanlang'}
+                                        ? `${copyModal.tests.length} × ${selectedCount} ${t('teacher.tests.groupCountSuffix', 'guruh')} · ${studentCount} ${t('teacher.groupStats.studentsShort', "o'quvchi")}`
+                                        : t('teacher.copyModal.selectGroupHint', 'Guruh tanlang')}
                                 </span>
                                 <button
                                     onClick={() => setCopyModal(null)}
                                     className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
                                 >
-                                    Bekor qilish
+                                    {t('common.cancel', 'Bekor qilish')}
                                 </button>
                                 <button
                                     onClick={doCopyAssignment}
@@ -1547,7 +1479,7 @@ export default function TeacherTests() {
                                 >
                                     {copySaving
                                         ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        : <><CopySimple size={15} weight="bold" /> Nusxalash</>}
+                                        : <><CopySimple size={15} weight="bold" /> {t('teacher.copyModal.copyBtn', 'Nusxalash')}</>}
                                 </button>
                             </div>
                         </div>
@@ -1557,9 +1489,9 @@ export default function TeacherTests() {
 
             {/* Edit Assignment Modal */}
             {editModal && (() => {
-                const editFilteredTests = availableTests.filter(t => {
+                const editFilteredTests = availableTests.filter(tItem => {
                     const q = editTestSearch.toLowerCase();
-                    return !q || t.title?.toLowerCase().includes(q) || (t.type || '').toLowerCase().includes(q);
+                    return !q || tItem.title?.toLowerCase().includes(q) || (tItem.type || '').toLowerCase().includes(q);
                 }).slice(0, 30);
 
                 return (
@@ -1568,7 +1500,7 @@ export default function TeacherTests() {
                         {/* Header */}
                         <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-white/8' : 'border-gray-100'}`}>
                             <div>
-                                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Tayinlovni tahrirlash</h3>
+                                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('teacher.editModal.title', 'Tayinlovni tahrirlash')}</h3>
                                 <p className={`text-xs mt-0.5 font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{editModal.groupName}</p>
                             </div>
                             <button onClick={() => { setEditModal(null); setEditTestSearch(''); setShowEditTestPicker(false); }} className="text-gray-400 hover:text-gray-600 p-1"><X size={18} /></button>
@@ -1580,32 +1512,32 @@ export default function TeacherTests() {
                             {/* ── TESTS SECTION ── */}
                             <div className="space-y-2">
                                 <label className={`text-xs font-bold uppercase tracking-wider flex items-center justify-between ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                    <span className="flex items-center gap-1.5"><ListChecks size={13} /> Tayinlangan testlar</span>
-                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isDark ? 'bg-white/8 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>{editModal.tests?.length || 0} ta</span>
+                                    <span className="flex items-center gap-1.5"><ListChecks size={13} /> {t('teacher.editModal.assignedTests', 'Tayinlangan testlar')}</span>
+                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isDark ? 'bg-white/8 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>{editModal.tests?.length || 0} {t('teacher.groupStats.testsPlural', 'ta')}</span>
                                 </label>
 
                                 {/* Current tests list */}
                                 <div className={`rounded-2xl border overflow-hidden ${isDark ? 'border-white/8 bg-white/3' : 'border-gray-100 bg-gray-50/50'}`}>
-                                    {(editModal.tests || []).map((t, idx) => {
-                                        const { icon, colorClass } = getTestIconAndColor(t.type);
+                                    {(editModal.tests || []).map((tItem, idx) => {
+                                        const { icon, colorClass } = getTestIconAndColor(tItem.type);
                                         const canRemove = (editModal.tests?.length || 0) > 1;
                                         return (
-                                            <div key={t.id} className={`flex items-center gap-3 px-3 py-2.5 ${idx > 0 ? (isDark ? 'border-t border-white/5' : 'border-t border-gray-100') : ''}`}>
+                                            <div key={tItem.id} className={`flex items-center gap-3 px-3 py-2.5 ${idx > 0 ? (isDark ? 'border-t border-white/5' : 'border-t border-gray-100') : ''}`}>
                                                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>{icon}</div>
                                                 <div className="flex-1 min-w-0">
-                                                    <span className={`text-xs font-semibold truncate block ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>{t.title}</span>
-                                                    {t.selectedParts && (
-                                                        <span className="text-[9px] text-pink-500 font-bold">{t.selectedParts.map(n => `Part ${n}`).join(', ')}</span>
+                                                    <span className={`text-xs font-semibold truncate block ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>{tItem.title}</span>
+                                                    {tItem.selectedParts && (
+                                                        <span className="text-[9px] text-pink-500 font-bold">{tItem.selectedParts.map(n => `Part ${n}`).join(', ')}</span>
                                                     )}
                                                 </div>
                                                 <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${colorClass}`}>
-                                                    {(t.type === 'mock_full' ? 'Mock' : (t.type || '').slice(0, 4)).toUpperCase()}
+                                                    {(tItem.type === 'mock_full' ? 'Mock' : (tItem.type || '').slice(0, 4)).toUpperCase()}
                                                 </span>
                                                 <button
                                                     type="button"
                                                     disabled={!canRemove}
-                                                    title={canRemove ? "Olib tashlash" : "Kamida 1 ta test bo'lishi kerak"}
-                                                    onClick={() => setEditModal(p => ({ ...p, tests: p.tests.filter(x => x.id !== t.id) }))}
+                                                    title={canRemove ? t('common.remove', "Olib tashlash") : t('teacher.editModal.minTestError', "Kamida 1 ta test bo'lishi kerak")}
+                                                    onClick={() => setEditModal(p => ({ ...p, tests: p.tests.filter(x => x.id !== tItem.id) }))}
                                                     className={`p-1.5 rounded-lg transition-all shrink-0 ${canRemove ? 'text-gray-400 hover:text-rose-500 hover:bg-rose-500/10' : 'opacity-25 cursor-not-allowed text-gray-400'}`}
                                                 >
                                                     <X size={13} />
@@ -1622,7 +1554,7 @@ export default function TeacherTests() {
                                         onClick={() => setShowEditTestPicker(true)}
                                         className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed text-xs font-semibold transition-all ${isDark ? 'border-white/15 text-gray-400 hover:border-blue-500/50 hover:text-blue-400 hover:bg-blue-500/5' : 'border-gray-200 text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50'}`}
                                     >
-                                        <Plus size={14} weight="bold" /> Test qo'shish
+                                        <Plus size={14} weight="bold" /> {t('teacher.editModal.addTestBtn', "Test qo'shish")}
                                     </button>
                                 ) : (
                                     <div className={`rounded-2xl border overflow-hidden ${isDark ? 'border-white/10 bg-[#252525]' : 'border-gray-200 bg-white shadow-sm'}`}>
@@ -1632,7 +1564,7 @@ export default function TeacherTests() {
                                             <input
                                                 autoFocus
                                                 type="text"
-                                                placeholder="Test nomini yozing..."
+                                                placeholder={t('teacher.editModal.searchTestPlaceholder', "Test nomini yozing...")}
                                                 value={editTestSearch}
                                                 onChange={e => setEditTestSearch(e.target.value)}
                                                 className={`flex-1 text-xs font-semibold outline-none bg-transparent ${isDark ? 'text-white placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`}
@@ -1641,19 +1573,19 @@ export default function TeacherTests() {
                                         </div>
                                         {/* Results */}
                                         <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                            {editFilteredTests.length > 0 ? editFilteredTests.map(t => {
-                                                const { icon, colorClass } = getTestIconAndColor(t.type);
-                                                const alreadyIn = (editModal.tests || []).some(x => x.id === t.id);
+                                            {editFilteredTests.length > 0 ? editFilteredTests.map(tItem => {
+                                                const { icon, colorClass } = getTestIconAndColor(tItem.type);
+                                                const alreadyIn = (editModal.tests || []).some(x => x.id === tItem.id);
                                                 return (
                                                     <button
-                                                        key={t.id}
+                                                        key={tItem.id}
                                                         type="button"
                                                         disabled={alreadyIn}
                                                         onClick={() => {
                                                             if (alreadyIn) return;
                                                             setEditModal(p => ({
                                                                 ...p,
-                                                                tests: [...(p.tests || []), { id: t.id, title: t.title, type: t.type }]
+                                                                tests: [...(p.tests || []), { id: tItem.id, title: tItem.title, type: tItem.type }]
                                                             }));
                                                             setEditTestSearch('');
                                                         }}
@@ -1664,7 +1596,7 @@ export default function TeacherTests() {
                                                         }`}
                                                     >
                                                         <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>{icon}</div>
-                                                        <span className={`flex-1 text-xs font-semibold truncate ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>{t.title}</span>
+                                                        <span className={`flex-1 text-xs font-semibold truncate ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>{tItem.title}</span>
                                                         {alreadyIn
                                                             ? <CheckCircle size={14} weight="fill" className="text-emerald-500 shrink-0" />
                                                             : <Plus size={13} className={`shrink-0 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
@@ -1672,7 +1604,7 @@ export default function TeacherTests() {
                                                     </button>
                                                 );
                                             }) : (
-                                                <div className="flex items-center justify-center py-6 text-xs text-gray-400 font-semibold">Test topilmadi</div>
+                                                <div className="flex items-center justify-center py-6 text-xs text-gray-400 font-semibold">{t('teacher.editModal.noTestFound', 'Test topilmadi')}</div>
                                             )}
                                         </div>
                                     </div>
@@ -1683,9 +1615,13 @@ export default function TeacherTests() {
                             <div className={`rounded-2xl border p-4 space-y-4 ${isDark ? 'border-white/8 bg-white/3' : 'border-gray-100 bg-gray-50/40'}`}>
                                 {/* Deadline */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><Clock size={13} /> Deadline</label>
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><Clock size={13} /> {t('teacher.assignForm.deadline', 'Deadline')}</label>
                                     <div className="flex flex-wrap gap-1.5 mb-1.5">
-                                        {[{ label: '+1 kun', days: 1 }, { label: '+3 kun', days: 3 }, { label: '+1 hafta', days: 7 }].map(({ label, days }) => (
+                                        {[
+                                            { label: t('teacher.assignForm.day1', '+1 kun'), days: 1 },
+                                            { label: t('teacher.assignForm.day3', '+3 kun'), days: 3 },
+                                            { label: t('teacher.assignForm.week1', '+1 hafta'), days: 7 }
+                                        ].map(({ label, days }) => (
                                             <button key={days} type="button"
                                                 onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); d.setSeconds(0, 0); setEditModal(p => ({ ...p, deadline: toDateTimeLocalValue(d) })); }}
                                                 className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-blue-500/10 hover:text-blue-400' : 'bg-white border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-600 shadow-sm'}`}
@@ -1693,7 +1629,7 @@ export default function TeacherTests() {
                                         ))}
                                         {editModal.deadline && (
                                             <button type="button" onClick={() => setEditModal(p => ({ ...p, deadline: '' }))}
-                                                className="text-[10px] font-bold px-2 py-1 rounded-lg border border-rose-500/20 text-rose-500 bg-rose-500/5 hover:bg-rose-500/10 transition-all">✕ Tozalash</button>
+                                                className="text-[10px] font-bold px-2 py-1 rounded-lg border border-rose-500/20 text-rose-500 bg-rose-500/5 hover:bg-rose-500/10 transition-all">✕ {t('common.clear', 'Tozalash')}</button>
                                         )}
                                     </div>
                                     <input type="datetime-local" value={editModal.deadline}
@@ -1705,7 +1641,7 @@ export default function TeacherTests() {
                                 {/* Max Attempts + Priority in a row */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><ArrowsCounterClockwise size={13} /> Maks. urinishlar</label>
+                                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><ArrowsCounterClockwise size={13} /> {t('teacher.assignForm.attempts', 'Maks. urinishlar')}</label>
                                         <div className="flex items-center gap-2">
                                             <button type="button" disabled={Number(editModal.maxAttempts) <= 1}
                                                 onClick={() => setEditModal(p => ({ ...p, maxAttempts: String(Math.max(1, Number(p.maxAttempts) - 1)) }))}
@@ -1721,12 +1657,12 @@ export default function TeacherTests() {
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Muhimlik darajasi</label>
+                                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">{t('teacher.assignForm.priority', 'Muhimlik darajasi')}</label>
                                         <div className="grid grid-cols-3 gap-1.5">
                                             {[
-                                                { key: 'low', label: 'Past', activeClass: 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-                                                { key: 'medium', label: "O'rt", activeClass: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-                                                { key: 'high', label: 'Yuq', activeClass: 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400' },
+                                                { key: 'low', label: t('teacher.assignForm.priorityLow', 'Past'), activeClass: 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+                                                { key: 'medium', label: t('teacher.assignForm.priorityMedium', "O'rt"), activeClass: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+                                                { key: 'high', label: t('teacher.assignForm.priorityHigh', 'Yuq'), activeClass: 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400' },
                                             ].map(item => (
                                                 <button key={item.key} type="button"
                                                     onClick={() => setEditModal(p => ({ ...p, priority: item.key }))}
@@ -1740,9 +1676,10 @@ export default function TeacherTests() {
 
                                 {/* Note */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Eslatma / izoh</label>
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">{t('teacher.assignForm.note', 'Eslatma / izoh')}</label>
                                     <textarea rows={2} value={editModal.teacherNote}
                                         onChange={e => setEditModal(p => ({ ...p, teacherNote: e.target.value }))}
+                                        placeholder={t('teacher.assignForm.optional', 'Ixtiyoriy')}
                                         className={`w-full p-3 rounded-xl border text-xs font-semibold outline-none resize-none ${isDark ? 'bg-[#2C2C2C] border-white/10 text-white focus:border-blue-500 placeholder-gray-500' : 'bg-white border-gray-200 text-gray-800 focus:border-blue-500 placeholder-gray-400 shadow-sm'}`}
                                     />
                                 </div>
@@ -1753,11 +1690,11 @@ export default function TeacherTests() {
                         <div className={`flex gap-3 px-6 py-4 border-t shrink-0 ${isDark ? 'border-white/8' : 'border-gray-100'}`}>
                             <button onClick={() => { setEditModal(null); setEditTestSearch(''); setShowEditTestPicker(false); }}
                                 className={`flex-1 py-2.5 rounded-xl border font-semibold text-sm transition-all ${isDark ? 'border-white/10 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                                Bekor qilish
+                                {t('common.cancel', 'Bekor qilish')}
                             </button>
                             <button onClick={doEditAssignment} disabled={editSaving || !editModal.tests?.length}
                                 className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60 transition-all">
-                                {editSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Saqlash'}
+                                {editSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : t('common.save', 'Saqlash')}
                             </button>
                         </div>
                     </div>

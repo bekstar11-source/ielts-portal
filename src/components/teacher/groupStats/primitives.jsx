@@ -8,6 +8,8 @@
 
 import React from 'react';
 
+import { useTranslation } from '../../../context/LanguageContext';
+
 export const surface =
     'bg-white dark:bg-[#202022] border border-gray-200/80 dark:border-white/[0.06]';
 
@@ -103,11 +105,12 @@ export function BandPill({ band, size = 'md' }) {
 
 /** O'sish/pasayish belgisi (so'nggi 3 natija vs oldingi 3). */
 export function DeltaBadge({ delta }) {
+    const { t } = useTranslation();
     if (delta === null || delta === undefined || delta === 0) return null;
     const up = delta > 0;
     return (
         <span
-            title="So'nggi 3 natija oldingi 3 tasiga nisbatan"
+            title={t('teacher.groupStats.deltaTooltip') || "So'nggi 3 natija oldingi 3 tasiga nisbatan"}
             className={`inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums ${
                 up ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'
             }`}

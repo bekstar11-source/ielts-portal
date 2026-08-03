@@ -1,17 +1,19 @@
 import React from 'react';
 import { MagnifyingGlass } from '@phosphor-icons/react';
 import { dateToMillis } from '../../../hooks/useWritingReview';
+import { useTranslation } from '../../../context/LanguageContext';
 
-const formatSubmissionDate = (d) => {
+const formatSubmissionDate = (d, lang) => {
     const ms = dateToMillis(d);
     if (!ms) return '';
-    return new Date(ms).toLocaleDateString('uz-UZ', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(ms).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 const WritingReviewSidebar = ({
     writings, students, filter, setFilter, searchTerm, setSearchTerm, selectedId, setSelectedId, isDark
 }) => {
-    const getStudentName = (w) => students.find(s => s.id === w.userId)?.fullName || w.userName || 'O\'quvchi';
+    const { t, lang } = useTranslation();
+    const getStudentName = (w) => students.find(s => s.id === w.userId)?.fullName || w.userName || (lang === 'uz' ? 'O\'quvchi' : 'Student');
 
     const filtered = writings.filter(w => {
         const matchesFilter = filter === 'all' ? true : filter === 'pending' ? (!w.writingBand) : (!!w.writingBand);
@@ -19,12 +21,13 @@ const WritingReviewSidebar = ({
         return matchesFilter && (name.toLowerCase().includes(searchTerm.toLowerCase()) || (w.testTitle || '').toLowerCase().includes(searchTerm.toLowerCase()));
     });
 
-    const filterLabels = { pending: 'Kutilmoqda', reviewed: 'Baholangan', all: 'Barchasi' };
+    const filterLabels = {
+        pending: t('teacher.testing.writingReview.sidebar.pendingTab') || (lang === 'uz' ? 'Kutilmoqda' : 'Pending'),
+        reviewed: t('teacher.testing.writingReview.sidebar.reviewedTab') || (lang === 'uz' ? 'Baholangan' : 'Graded'),
+        all: t('teacher.testing.writingReview.sidebar.allTab') || (lang === 'uz' ? 'Barchasi' : 'All')
+    };
     const pendingCount = writings.filter(w => !w.writingBand).length;
 
-    // Mobil: insho tanlanganda ro'yxat chapga silliq sirg'aladi. Ilgari `hidden`
-    // klassi bilan almashtirilardi — bu bir kadrda yo'qolib, pirpirab ketardi.
-    // Katta ekranda ro'yxat doim joyida turadi, animatsiya umuman ishlamaydi.
     return (
         <div
             className={`absolute inset-y-0 left-0 z-20 w-full transform-gpu will-change-transform transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:static lg:z-auto lg:w-[300px] lg:translate-x-0 lg:transition-none flex-shrink-0 flex flex-col border-r ${
@@ -33,9 +36,13 @@ const WritingReviewSidebar = ({
         >
             <div className="p-5 pb-3 space-y-4">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-lg font-semibold tracking-tight">Insholar</h1>
+                    <h1 className="text-lg font-semibold tracking-tight">
+                        {t('teacher.testing.writingReview.sidebar.title') || (lang === 'uz' ? 'Insholar' : 'Essays')}
+                    </h1>
                     {pendingCount > 0 && (
-                        <span className="text-xs text-gray-400">{pendingCount} kutilmoqda</span>
+                        <span className="text-xs text-gray-400">
+                            {(t('teacher.testing.writingReview.sidebar.pendingCount') || (lang === 'uz' ? '{count} kutilmoqda' : '{count} pending')).replace('{count}', pendingCount)}
+                        </span>
                     )}
                 </div>
 
@@ -49,15 +56,27 @@ const WritingReviewSidebar = ({
 
                 <div className={`flex items-center px-3 py-2 rounded-lg border ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                     <MagnifyingGlass size={14} className="text-gray-400 mr-2 shrink-0" />
-                    <input type="text" placeholder="Qidirish..." className="bg-transparent border-none outline-none text-xs w-full" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                    <input
+                        type="text"
+                        placeholder={t('teacher.testing.writingReview.sidebar.searchPlaceholder') || (lang === 'uz' ? 'Qidirish...' : 'Search...')}
+                        className="bg-transparent border-none outline-none text-xs w-full"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
                 </div>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar px-3 pb-3 space-y-0.5">
                 {filtered.length === 0 && (
                     <div className="flex flex-col items-center justify-center text-center gap-1 py-16 text-gray-400">
-                        <p className="text-xs font-medium">Hech narsa topilmadi</p>
-                        <p className="text-[11px]">{searchTerm ? 'Qidiruvga mos topshiriq yo\'q' : 'Bu bo\'limda topshiriqlar yo\'q'}</p>
+                        <p className="text-xs font-medium">
+                            {t('teacher.testing.writingReview.sidebar.nothingFound') || (lang === 'uz' ? 'Hech narsa topilmadi' : 'Nothing found')}
+                        </p>
+                        <p className="text-[11px]">
+                            {searchTerm 
+                                ? (t('teacher.testing.writingReview.sidebar.noMatchingSearch') || (lang === 'uz' ? 'Qidiruvga mos topshiriq yo\'q' : 'No tasks match search')) 
+                                : (t('teacher.testing.writingReview.sidebar.noTasksInFilter') || (lang === 'uz' ? 'Bu bo\'limda topshiriqlar yo\'q' : 'No tasks in this section'))}
+                        </p>
                     </div>
                 )}
                 {filtered.map((w) => {
@@ -74,7 +93,7 @@ const WritingReviewSidebar = ({
                                 <p className="text-[11px] text-gray-400 truncate">{w.testTitle || 'Untitled'}</p>
                             </div>
                             <div className="flex flex-col items-end gap-1 shrink-0">
-                                <span className="text-[10px] text-gray-400 whitespace-nowrap">{formatSubmissionDate(w.date)}</span>
+                                <span className="text-[10px] text-gray-400 whitespace-nowrap">{formatSubmissionDate(w.date, lang)}</span>
                                 {w.writingBand && <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">{w.writingBand}</div>}
                             </div>
                         </button>

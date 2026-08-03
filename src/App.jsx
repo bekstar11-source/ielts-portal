@@ -23,6 +23,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const TeacherTests = lazy(() => import('./pages/teacher/TeacherTests'));
 const TeacherWritingReview = lazy(() => import('./pages/teacher/TeacherWritingReview'));
+const TeacherSpeakingReview = lazy(() => import('./pages/teacher/TeacherSpeakingReview'));
 const TeacherGroupStats = lazy(() => import('./pages/teacher/TeacherGroupStats'));
 const TeacherAllResults = lazy(() => import('./pages/teacher/TeacherAllResults'));
 const TeacherCreateWriting = lazy(() => import('./pages/teacher/TeacherCreateWriting'));
@@ -171,6 +172,7 @@ function App() {
               <Route index element={<TeacherDashboard />} />
               <Route path="tests" element={<TeacherTests />} />
               <Route path="writing-review" element={<TeacherWritingReview />} />
+              <Route path="speaking-review" element={<TeacherSpeakingReview />} />
               <Route path="create-writing" element={<TeacherCreateWriting />} />
               <Route path="group-stats" element={<TeacherGroupStats />} />
               {/* Eski "O'quvchilarni boshqarish" sahifasi guruh sahifasiga birlashtirildi. */}
@@ -197,6 +199,7 @@ function App() {
               <Route path="gamification" element={<AdminGamification />} />
               <Route path="podcasts" element={<AdminPodcasts />} />
               <Route path="writing-review" element={<TeacherWritingReview />} />
+              <Route path="speaking-review" element={<TeacherSpeakingReview />} />
               <Route path="create-podcast" element={<CreatePodcast />} />
               <Route path="edit-podcast/:id" element={<CreatePodcast />} />
               <Route path="create-spotify-podcast" element={<CreateSpotifyPodcast />} />

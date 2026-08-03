@@ -163,6 +163,13 @@ export default {
         'breathe-glow': 'breatheGlow 10s ease-in-out infinite alternate',
         'meteor-effect': 'meteor 5s linear infinite',
         'shine': 'shine var(--duration) infinite linear',
+        // Skeleton ustidan yuruvchi yorug'lik — `animate-pulse` dan ko'ra
+        // sokinroq va "yuklanmoqda" hissini aniqroq beradi.
+        'shimmer-sweep': 'shimmerSweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+        // Skeleton o'rnini haqiqiy tarkib egallaganda — sakrash o'rniga oqim.
+        'content-in': 'contentIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both',
+        // Fonda yangilanish chizig'i (yuqoridagi ingichka progress).
+        'refresh-bar': 'refreshBar 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite',
       },
       keyframes: {
         fadeInUp: {
@@ -187,6 +194,19 @@ export default {
           '0%': { 'background-position': '0% 0%' },
           '50%': { 'background-position': '100% 100%' },
           'to': { 'background-position': '0% 0%' },
+        },
+        shimmerSweep: {
+          '0%': { transform: 'translateX(-110%)' },
+          '100%': { transform: 'translateX(210%)' },
+        },
+        contentIn: {
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        refreshBar: {
+          '0%': { transform: 'translateX(-100%) scaleX(0.35)' },
+          '55%': { transform: 'translateX(30%) scaleX(0.75)' },
+          '100%': { transform: 'translateX(190%) scaleX(0.35)' },
         },
       }
     },

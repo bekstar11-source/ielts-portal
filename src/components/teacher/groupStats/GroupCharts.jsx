@@ -15,6 +15,7 @@ import {
     Tooltip,
 } from 'recharts';
 import { useTheme } from '../../../context/ThemeContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import { Card, SectionTitle, EmptyState } from './primitives';
 import { ChartLine } from '@phosphor-icons/react';
 
@@ -26,21 +27,23 @@ const SKILL_LABELS = {
 };
 
 function TrendTooltip({ active, payload, label }) {
+    const { t } = useTranslation();
     if (!active || !payload?.length) return null;
     const point = payload[0].payload;
     return (
         <div className="rounded-xl px-3 py-2 text-xs shadow-lg bg-white dark:bg-[#2a2a2d] border border-gray-200 dark:border-white/10">
             <p className="font-semibold text-gray-900 dark:text-white">{label}</p>
             <p className="mt-1 text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">
-                {point.band?.toFixed(1)} band
+                {point.band?.toFixed(1)} {t('teacher.groupStats.charts.bandSuffix')}
             </p>
-            <p className="text-gray-400 dark:text-gray-500">{point.count} ta natija</p>
+            <p className="text-gray-400 dark:text-gray-500">{point.count} {t('teacher.groupStats.charts.resultsSuffix')}</p>
         </div>
     );
 }
 
 export function TrendChart({ data, rangeLabel }) {
     const { theme } = useTheme();
+    const { t } = useTranslation();
     const isDark = theme === 'dark';
 
     return (
@@ -50,14 +53,14 @@ export function TrendChart({ data, rangeLabel }) {
                     <span className="text-[11px] text-gray-400 dark:text-gray-500">{rangeLabel}</span>
                 }
             >
-                O'rtacha band dinamikasi
+                {t('teacher.groupStats.charts.trendTitle')}
             </SectionTitle>
 
             {data.length < 2 ? (
                 <div className="h-[220px] flex flex-col items-center justify-center text-center">
                     <ChartLine size={24} className="text-gray-300 dark:text-gray-600 mb-3" />
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Dinamika uchun kamida 2 kunlik natija kerak
+                        {t('teacher.groupStats.charts.needAtLeast2Days')}
                     </p>
                 </div>
             ) : (
@@ -111,14 +114,15 @@ export function TrendChart({ data, rangeLabel }) {
 
 /** Skill'lar kesimidagi o'rtacha band — 0..9 shkalasidagi yupqa chiziqlar. */
 export function SkillBreakdown({ skills }) {
+    const { t } = useTranslation();
     const hasData = skills.some((s) => s.avg !== null);
 
     return (
         <Card className="p-5">
-            <SectionTitle>Ko'nikmalar kesimi</SectionTitle>
+            <SectionTitle>{t('teacher.groupStats.charts.skillsTitle')}</SectionTitle>
             {!hasData ? (
                 <p className="text-xs text-gray-400 dark:text-gray-500 py-10 text-center">
-                    Hali baholangan natija yo'q
+                    {t('teacher.groupStats.charts.noGradedResults')}
                 </p>
             ) : (
                 <div className="space-y-4">
@@ -131,7 +135,7 @@ export function SkillBreakdown({ skills }) {
                                 <span className="text-xs tabular-nums text-gray-900 dark:text-white font-semibold">
                                     {avg !== null ? avg.toFixed(1) : '—'}
                                     <span className="ml-1.5 font-normal text-[11px] text-gray-400 dark:text-gray-500">
-                                        {count} ta
+                                        {count} {t('teacher.groupStats.charts.resultsSuffix')}
                                     </span>
                                 </span>
                             </div>
@@ -151,6 +155,7 @@ export function SkillBreakdown({ skills }) {
 
 /** O'quvchilarning o'rtacha bandi bo'yicha taqsimot. */
 export function BandDistribution({ buckets }) {
+    const { t } = useTranslation();
     const max = Math.max(1, ...buckets.map((b) => b.count));
     const total = buckets.reduce((sum, b) => sum + b.count, 0);
 
@@ -159,15 +164,15 @@ export function BandDistribution({ buckets }) {
             <SectionTitle
                 action={
                     <span className="text-[11px] text-gray-400 dark:text-gray-500">
-                        {total} o'quvchi
+                        {t('teacher.groupStats.charts.studentsCount').replace('{count}', total)}
                     </span>
                 }
             >
-                Band taqsimoti
+                {t('teacher.groupStats.charts.distributionTitle')}
             </SectionTitle>
             {total === 0 ? (
                 <p className="text-xs text-gray-400 dark:text-gray-500 py-10 text-center">
-                    Ma'lumot yetarli emas
+                    {t('teacher.groupStats.charts.notEnoughData')}
                 </p>
             ) : (
                 <div className="flex items-end gap-2 h-[150px]">
@@ -193,6 +198,7 @@ export function BandDistribution({ buckets }) {
 
 /** Top-3 va eng ko'p o'sgan o'quvchilar. */
 export function Leaderboards({ top, improved }) {
+    const { t } = useTranslation();
     if (!top.length && !improved.length) return null;
 
     const Row = ({ index, name, value, tone }) => (
@@ -207,10 +213,10 @@ export function Leaderboards({ top, improved }) {
 
     return (
         <Card className="p-5">
-            <SectionTitle>Diqqatga sazovor</SectionTitle>
+            <SectionTitle>{t('teacher.groupStats.charts.leaderboardsTitle')}</SectionTitle>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                 <div>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-1">Eng yuqori band</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-1">{t('teacher.groupStats.charts.highestBand')}</p>
                     <div className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                         {top.length ? (
                             top.map((x, i) => (
@@ -228,7 +234,7 @@ export function Leaderboards({ top, improved }) {
                     </div>
                 </div>
                 <div>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-1">Eng ko'p o'sgan</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-1">{t('teacher.groupStats.charts.mostImproved')}</p>
                     <div className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                         {improved.length ? (
                             improved.map((x, i) => (

@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { CaretDown, Trash, Warning, MoonStars, Envelope, Phone } from '@phosphor-icons/react';
+import { useTranslation } from '../../../context/LanguageContext';
 import { toDate } from '../../../utils/subscription';
 import { getBandValue } from '../../../utils/teacherResults';
 import { SKILLS, formatRelativeDays } from '../../../utils/groupAnalytics';
@@ -28,7 +29,8 @@ function Tag({ icon: Icon, children, tone }) {
 }
 
 export default function StudentRow({ student, stats, expanded, onToggle, onRemove }) {
-    const name = student.fullName || student.email || 'Nomsiz';
+    const { t, lang } = useTranslation();
+    const name = student.fullName || student.email || t('teacher.dashboard.unknownStudent');
 
     return (
         <div className={`${surface} rounded-2xl overflow-hidden transition-colors`}>
@@ -48,12 +50,12 @@ export default function StudentRow({ student, stats, expanded, onToggle, onRemov
                             </p>
                             {stats.isLow && (
                                 <Tag icon={Warning} tone="warn">
-                                    Past ball
+                                    {t('teacher.groupStats.studentRow.lowScoreTag')}
                                 </Tag>
                             )}
                             {stats.isInactive && stats.count > 0 && (
                                 <Tag icon={MoonStars} tone="muted">
-                                    Passiv
+                                    {t('teacher.groupStats.studentRow.inactiveTag')}
                                 </Tag>
                             )}
                         </div>
@@ -66,7 +68,7 @@ export default function StudentRow({ student, stats, expanded, onToggle, onRemov
                     {stats.completionRate !== null && (
                         <div className="hidden lg:block w-24">
                             <div className="flex justify-between text-[10px] mb-1 text-gray-400 dark:text-gray-500">
-                                <span>Bajarildi</span>
+                                <span>{t('teacher.groupStats.studentRow.completed')}</span>
                                 <span className="tabular-nums">{stats.completionRate}%</span>
                             </div>
                             <ProgressBar value={stats.completionRate} />
@@ -77,7 +79,7 @@ export default function StudentRow({ student, stats, expanded, onToggle, onRemov
                         <p className="text-sm font-medium tabular-nums text-gray-700 dark:text-gray-200">
                             {stats.count}
                         </p>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500">natija</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{t('teacher.groupStats.studentRow.results')}</p>
                     </div>
 
                     <div className="flex items-center gap-1.5 w-[76px] justify-end">
@@ -96,8 +98,8 @@ export default function StudentRow({ student, stats, expanded, onToggle, onRemov
                 <button
                     type="button"
                     onClick={onRemove}
-                    title="Guruhdan chiqarish"
-                    aria-label={`${name} — guruhdan chiqarish`}
+                    title={t('teacher.groupStats.studentRow.removeFromGroup')}
+                    aria-label={`${name} — ${t('teacher.groupStats.studentRow.removeFromGroup')}`}
                     className="p-2 rounded-lg text-gray-300 dark:text-gray-600 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
                 >
                     <Trash size={15} />
@@ -143,8 +145,8 @@ export default function StudentRow({ student, stats, expanded, onToggle, onRemov
                                         {s.avg !== null ? s.avg.toFixed(1) : '—'}
                                     </p>
                                     <p className="text-[10px] text-gray-400 dark:text-gray-500">
-                                        {s.count} ta
-                                        {s.best !== null && ` · eng yaxshi ${s.best.toFixed(1)}`}
+                                        {s.count} {t('teacher.groupStats.charts.resultsSuffix')}
+                                        {s.best !== null && ` · ${t('teacher.groupStats.studentRow.bestScore')} ${s.best.toFixed(1)}`}
                                     </p>
                                 </div>
                             );
@@ -154,7 +156,7 @@ export default function StudentRow({ student, stats, expanded, onToggle, onRemov
                     {stats.recentResults.length > 0 ? (
                         <div>
                             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500 mb-2">
-                                So'nggi natijalar
+                                {t('teacher.groupStats.studentRow.recentResults')}
                             </p>
                             <div className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                                 {stats.recentResults.map((r) => {
@@ -171,7 +173,7 @@ export default function StudentRow({ student, stats, expanded, onToggle, onRemov
                                                 <p className="text-[10px] text-gray-400 dark:text-gray-500 capitalize">
                                                     {r.type || '—'}
                                                     {date &&
-                                                        ` · ${date.toLocaleDateString('en-GB')}`}
+                                                        ` · ${date.toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-GB')}`}
                                                 </p>
                                             </div>
                                             <BandPill band={getBandValue(r)} size="sm" />
@@ -182,7 +184,7 @@ export default function StudentRow({ student, stats, expanded, onToggle, onRemov
                         </div>
                     ) : (
                         <p className="text-xs text-gray-400 dark:text-gray-500">
-                            Bu o'quvchi hali test topshirmagan.
+                            {t('teacher.groupStats.studentRow.noTestsYet')}
                         </p>
                     )}
                 </div>

@@ -1,10 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { db } from '../../firebase/firebase';
-import {
-    collection, doc, getDoc, getDocs, query, where, limit
-} from 'firebase/firestore';
+import { useTranslation } from '../../context/LanguageContext';
 import {
     Users, BookOpen, NotePencil, Headphones, Trophy,
     CaretRight, WarningCircle, ArrowRight
@@ -12,7 +9,6 @@ import {
 import {
     toDate, hasActiveTeacherSubscription, getTeacherSubscriptionDaysLeft
 } from '../../utils/subscription';
-import { collectStudentIds, chunkIds } from '../../utils/teacherResults';
 import {
     buildStudentStats, buildSkillAverages, buildActivitySeries,
     collectStudentsFromResults, buildAttentionList,
@@ -20,6 +16,8 @@ import {
 import {
     CARD_CLS, ROW_CLS, SectionHeader, ActivityStrip, SkillAverages, AttentionList,
 } from '../../components/teacher/dashboard/DashboardWidgets';
+import { useTeacherWorkspace } from '../../hooks/useTeacherWorkspace';
+import { TeacherDashboardSkeleton, RefreshBar } from '../../components/teacher/TeacherSkeletons';
 
 /** Natija turiga mos belgi — rangsiz, faqat shakl orqali farqlanadi. */
 const typeIcon = (type) => {
@@ -32,118 +30,33 @@ const typeIcon = (type) => {
 
 export default function TeacherDashboard() {
     const { userData } = useAuth();
+    const { t, lang } = useTranslation();
     const navigate = useNavigate();
 
-    const [groups, setGroups] = useState([]);
-    const [pendingWritings, setPendingWritings] = useState(0);
-    const [assignedTestsCount, setAssignedTestsCount] = useState(0);
-    const [results, setResults] = useState([]);
-    const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // Butun o'qituvchi paneli bitta keshlangan yozuvdan oziqlanadi —
+    // bu sahifada yuklangan ma'lumot Tests/GroupStats/Results da qayta
+    // o'qilmaydi (va aksincha).
+    const { groups, students, results, loading, isRefreshing } =
+        useTeacherWorkspace({ uid: userData?.uid });
 
-    useEffect(() => {
-        if (userData) fetchData();
-    }, [userData]);
+    // Ilgari bu qiymatlar `state` da saqlanardi va faqat fetch ichida
+    // hisoblanardi — endi ular sof hosila.
+    const assignedTestsCount = useMemo(
+        () => groups.reduce((acc, g) => acc + (g.realTestCount || 0), 0),
+        [groups]
+    );
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
-            const querySnap = await getDocs(q);
-            const fetchedGroups = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            setGroups(fetchedGroups);
+    const pendingWritings = useMemo(() => results.filter(r =>
+        (r.type === 'writing' || r.type === 'mock_full') &&
+        !(r.type === 'writing' && (r.parentResultId || r.mockKey)) &&
+        !r.teacherFeedback && !r.writingBand
+    ).length, [results]);
 
-            if (!fetchedGroups.length) { setLoading(false); return; }
-
-            const setIdsToFetch = new Set();
-            fetchedGroups.forEach(g => {
-                g.assignedTests?.forEach(test => {
-                    if (test.type === 'set') {
-                        setIdsToFetch.add(test.id);
-                    }
-                });
-            });
-
-            const testSetsMap = {};
-            if (setIdsToFetch.size > 0) {
-                const snaps = await Promise.all(
-                    [...setIdsToFetch].map(id => getDoc(doc(db, 'testSets', id)))
-                );
-                snaps.forEach(d => {
-                    if (d.exists()) testSetsMap[d.id] = d.data();
-                });
-            }
-
-            fetchedGroups.forEach(g => {
-                let realTestCount = 0;
-                g.assignedTests?.forEach(test => {
-                    if (test.type === 'set' && testSetsMap[test.id]) {
-                        realTestCount += testSetsMap[test.id].testIds?.length || 0;
-                    } else {
-                        realTestCount += 1;
-                    }
-                });
-                g.realTestCount = realTestCount;
-            });
-
-            const totalTests = fetchedGroups.reduce((acc, g) => acc + (g.realTestCount || 0), 0);
-            setAssignedTestsCount(totalTests);
-
-            const allStudentIds = collectStudentIds(fetchedGroups);
-
-            if (allStudentIds.length > 0) {
-                const allResults = [];
-                const studentDocs = [];
-                for (const chunk of chunkIds(allStudentIds)) {
-                    // O'quvchilar hujjatlari ham kerak: umuman test topshirmagan
-                    // o'quvchi natijalar ichida umuman uchramaydi.
-                    const [rsnap, usnap] = await Promise.all([
-                        getDocs(query(
-                            collection(db, 'results'),
-                            where('userId', 'in', chunk),
-                            limit(200) // Increase limit as we'll sort client-side if needed
-                        )),
-                        getDocs(query(collection(db, 'users'), where('__name__', 'in', chunk))),
-                    ]);
-                    allResults.push(...rsnap.docs.map(d => ({ id: d.id, ...d.data() })));
-                    studentDocs.push(...usnap.docs.map(d => ({ id: d.id, ...d.data() })));
-                }
-                setStudents(studentDocs);
-
-                // Sort by date client-side. (Ilgari bu komparator ichida
-                // `const db` e'lon qilinib, firebase `db` ini soya qilardi.)
-                allResults.sort((a, b) => (toDate(b.date)?.getTime() || 0) - (toDate(a.date)?.getTime() || 0));
-
-                const pending = allResults.filter(r =>
-                    (r.type === 'writing' || r.type === 'mock_full') &&
-                    !(r.type === 'writing' && (r.parentResultId || r.mockKey)) &&
-                    !r.teacherFeedback && !r.writingBand
-                );
-                setPendingWritings(pending.length);
-                setResults(allResults);
-            } else {
-                setPendingWritings(0);
-                setResults([]);
-                setStudents([]);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const firstName = userData?.fullName?.split(' ')[0] || 'Ustoz';
+    const firstName = userData?.fullName?.split(' ')[0] || t('teacher.dashboard.roleBadge');
     const totalStudents = groups.reduce((acc, g) => acc + (g.studentIds?.length || 0), 0);
 
     const recentResults = useMemo(() => results.slice(0, 6), [results]);
 
-    /**
-     * Barcha kesimlar bitta natijalar to'plamidan hisoblanadi.
-     * O'quvchilar ro'yxati `users` hujjatlaridan olinadi — natijalardan emas,
-     * aks holda umuman test topshirmaganlar hisobga tushmay qolardi.
-     * Hujjat yetib kelmagan holatda natijalardagi ismga qaytamiz.
-     */
     const insights = useMemo(() => {
         const statsMap = buildStudentStats(results);
         const roster = students.length ? students : collectStudentsFromResults(results);
@@ -167,25 +80,25 @@ export default function TeacherDashboard() {
     const subActive = hasActiveTeacherSubscription(userData);
     const daysLeft = getTeacherSubscriptionDaysLeft(userData);
     const subNotice = !subActive
-        ? { text: "Obuna faol emas — o'quvchilaringiz PRO testlarni ocholmaydi.", cta: 'Obuna olish' }
+        ? { text: lang === 'en' ? "Subscription is not active — your students cannot access PRO tests." : "Obuna faol emas — o'quvchilaringiz PRO testlarni ocholmaydi.", cta: lang === 'en' ? 'Get Subscription' : 'Obuna olish' }
         : daysLeft <= 7
-            ? { text: `Obunangiz tugashiga ${daysLeft} kun qoldi.`, cta: 'Uzaytirish' }
+            ? { text: t('teacher.subscription.daysRemaining').replace('{days}', daysLeft), cta: lang === 'en' ? 'Renew' : 'Uzaytirish' }
             : null;
 
     const stats = [
-        { label: 'Guruhlar', value: groups.length, to: '/teacher/group-stats' },
+        { label: t('teacher.dashboard.myGroups'), value: groups.length, to: '/teacher/group-stats' },
         {
-            label: "O'quvchilar",
+            label: t('teacher.groupStats.students'),
             value: totalStudents,
             to: '/teacher/group-stats?view=students',
-            hint: insights.activeStudents ? `${insights.activeStudents} faol` : null,
+            hint: insights.activeStudents ? t('teacher.groupStats.statsTiles.activeCountHint').replace('{count}', insights.activeStudents) : null,
         },
-        { label: 'Tayinlangan testlar', value: assignedTestsCount, to: '/teacher/tests' },
+        { label: t('teacher.dashboard.totalTests'), value: assignedTestsCount, to: '/teacher/tests' },
         {
-            label: 'Tekshirilmagan',
+            label: t('teacher.dashboard.pendingReviews'),
             value: pendingWritings,
             to: '/teacher/writing-review',
-            hint: pendingWritings > 0 ? 'tekshiruv kutmoqda' : null,
+            hint: pendingWritings > 0 ? t('teacher.dashboard.pending') : null,
         },
     ];
 
@@ -195,15 +108,19 @@ export default function TeacherDashboard() {
     return (
         <div className="font-sans text-warm-ink dark:text-warm-on-dark">
 
+            {/* Ma'lumot ekranda turganda fonda yangilanish — skeletonga
+                qaytmaydi, faqat tepada ingichka chiziq yuguradi. */}
+            <RefreshBar active={isRefreshing} />
+
             {/* ── Sarlavha + asosiy amal ── */}
             <div className="flex flex-wrap items-end justify-between gap-4 mb-lg">
                 <div>
                     <h1 className="font-serif-display text-warm-display-sm md:text-warm-display-md font-semibold tracking-tight">
-                        Salom, {firstName}
+                        Welcome back, {firstName}
                     </h1>
                     <p className="text-warm-body-sm text-warm-muted dark:text-warm-on-dark-soft mt-1">
-                        {groups.length} guruh · {totalStudents} o'quvchi
-                        {pendingWritings > 0 && ` · ${pendingWritings} ta ish tekshiruv kutmoqda`}
+                        {groups.length} group{groups.length !== 1 ? 's' : ''} · {totalStudents} students
+                        {pendingWritings > 0 && ` · ${pendingWritings} pending essays`}
                     </p>
                 </div>
 
@@ -211,7 +128,7 @@ export default function TeacherDashboard() {
                     onClick={() => navigate(pendingWritings > 0 ? '/teacher/writing-review' : '/teacher/create-writing')}
                     className="inline-flex items-center gap-xs px-lg py-sm rounded-full text-[14px] font-medium bg-warm-primary text-white hover:bg-warm-primary-active active:scale-[0.98] transition-all"
                 >
-                    {pendingWritings > 0 ? `Writinglarni tekshirish (${pendingWritings})` : 'Yangi writing yaratish'}
+                    {pendingWritings > 0 ? `Review Writing (${pendingWritings})` : 'Assign Test'}
                     <ArrowRight size={15} weight="bold" />
                 </button>
             </div>
@@ -233,19 +150,17 @@ export default function TeacherDashboard() {
             )}
 
             {loading ? (
-                <div className="flex items-center justify-center h-48">
-                    <div className="w-7 h-7 border-2 border-warm-hairline dark:border-white/10 border-t-warm-primary rounded-full animate-spin" />
-                </div>
+                <TeacherDashboardSkeleton />
             ) : groups.length === 0 ? (
                 <div className={`${cardCls} flex flex-col items-center justify-center py-xxl gap-1 text-center`}>
                     <Users size={28} className="text-warm-muted-soft mb-2" />
-                    <p className="text-warm-title-sm font-medium">Guruh tayinlanmagan</p>
+                    <p className="text-warm-title-sm font-medium">{t('teacher.groupStats.noGroupAssignedTitle')}</p>
                     <p className="text-warm-body-sm text-warm-muted dark:text-warm-on-dark-soft">
-                        Admin sizga guruh tayinlashini kuting
+                        {t('teacher.groupStats.noGroupAssignedDesc')}
                     </p>
                 </div>
             ) : (
-                <>
+                <div className="animate-content-in">
                     {/* ── Ko'rsatkichlar ── */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden mb-lg rounded-2xl border border-warm-hairline dark:border-white/10 bg-warm-hairline dark:bg-white/10">
                         {stats.map(s => (
@@ -274,15 +189,15 @@ export default function TeacherDashboard() {
                         <section className="lg:col-span-7 space-y-lg">
                             <div>
                             <SectionHeader
-                                title="So'nggi natijalar"
-                                actionLabel="Barchasi"
+                                title={t('teacher.dashboard.recentResults')}
+                                actionLabel={t('teacher.dashboard.viewAll')}
                                 onAction={() => navigate('/teacher/results')}
                             />
 
                             <div className={`${cardCls} overflow-hidden divide-y divide-warm-hairline dark:divide-white/10`}>
                                 {recentResults.length === 0 ? (
                                     <p className="px-5 py-8 text-center text-warm-body-sm text-warm-muted dark:text-warm-on-dark-soft">
-                                        Hali natija yo'q
+                                        {t('teacher.dashboard.noResultsYet')}
                                     </p>
                                 ) : recentResults.map(r => {
                                     const Icon = typeIcon(r.type);
@@ -294,16 +209,16 @@ export default function TeacherDashboard() {
                                                 <Icon size={16} className="text-warm-muted-soft flex-shrink-0" />
                                                 <div className="min-w-0">
                                                     <p className="text-[14px] font-medium truncate">
-                                                        {r.userName || "Noma'lum"}
+                                                        {r.userName || t('teacher.dashboard.unknownStudent')}
                                                     </p>
                                                     <p className="text-[12px] text-warm-muted dark:text-warm-on-dark-soft truncate">
                                                         {r.testTitle || 'Test'}
-                                                        {toDate(r.date) && ` · ${toDate(r.date).toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit' })}`}
+                                                        {toDate(r.date) && ` · ${toDate(r.date).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-US', { day: '2-digit', month: '2-digit' })}`}
                                                     </p>
                                                 </div>
                                             </div>
                                             {isPending ? (
-                                                <span className="text-[12px] text-warm-warning whitespace-nowrap">Kutmoqda</span>
+                                                <span className="text-[12px] text-warm-warning whitespace-nowrap">{t('teacher.dashboard.pending')}</span>
                                             ) : (
                                                 <span className="text-[15px] font-semibold tabular-nums">
                                                     {r.bandScore || r.writingBand || r.score || '—'}
@@ -322,8 +237,8 @@ export default function TeacherDashboard() {
                         <section className="lg:col-span-5 space-y-lg">
                             <div>
                                 <SectionHeader
-                                    title="E'tibor talab qiladi"
-                                    actionLabel={insights.attention.length ? 'Batafsil' : null}
+                                    title={t('teacher.dashboard.needsAttention')}
+                                    actionLabel={insights.attention.length ? t('teacher.dashboard.viewAll') : null}
                                     onAction={() => navigate('/teacher/group-stats?view=students')}
                                 />
                                 <AttentionList
@@ -334,8 +249,8 @@ export default function TeacherDashboard() {
 
                             <div>
                             <SectionHeader
-                                title="Guruhlarim"
-                                actionLabel="Boshqarish"
+                                title={t('teacher.dashboard.myGroups')}
+                                actionLabel={t('teacher.dashboard.manage')}
                                 onAction={() => navigate('/teacher/group-stats?view=students')}
                             />
 
@@ -349,7 +264,7 @@ export default function TeacherDashboard() {
                                         <div className="min-w-0">
                                             <p className="text-[14px] font-medium truncate">{group.name}</p>
                                             <p className="text-[12px] text-warm-muted dark:text-warm-on-dark-soft">
-                                                {group.studentIds?.length || 0} o'quvchi · {group.realTestCount || 0} test
+                                                {group.studentIds?.length || 0} {t('teacher.dashboard.studentsCount')} · {group.realTestCount || 0} {t('teacher.dashboard.testsPlural')}
                                             </p>
                                         </div>
                                         <CaretRight size={14} className="text-warm-muted-soft flex-shrink-0" />
@@ -360,7 +275,7 @@ export default function TeacherDashboard() {
                         </section>
 
                     </div>
-                </>
+                </div>
             )}
         </div>
     );

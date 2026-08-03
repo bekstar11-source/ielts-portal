@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "../../firebase/firebase";
+import { auth, storage } from "../../firebase/firebase";
 
 export default function SpeakingInterface({
     testData,
@@ -62,7 +62,10 @@ export default function SpeakingInterface({
                 // Upload to Firebase
                 setUploading(true);
                 try {
-                    const storageRef = ref(storage, `speaking/${Date.now()}_speaking.webm`);
+                    // Egasining papkasi — storage.rules boshqa o'quvchiga
+                    // bu yozuvni o'qishga ruxsat bermaydi.
+                    const uid = auth.currentUser?.uid || 'anon';
+                    const storageRef = ref(storage, `speaking/${uid}/answers/${Date.now()}_speaking.webm`);
                     await uploadBytes(storageRef, audioBlob);
                     const downloadURL = await getDownloadURL(storageRef);
 

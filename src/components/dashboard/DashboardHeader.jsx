@@ -226,6 +226,7 @@ export default function DashboardHeader({
       { id: 't_tests', label: "Tayinlangan Testlar", path: '/teacher/tests', icon: BookOpen },
       { id: 't_create_writing', label: "Writing Yaratish", path: '/teacher/create-writing', icon: Plus },
       { id: 't_writing_review', label: "Writing Tekshirish", path: '/teacher/writing-review', icon: PenTool },
+      { id: 't_speaking_review', label: "Speaking Tekshirish", path: '/teacher/speaking-review', icon: Mic },
       { id: 't_stats', label: "Guruh Statistikasi", path: '/teacher/group-stats', icon: BarChart2 },
       { id: 't_students', label: "O'quvchilar", path: '/teacher/group-stats?view=students', icon: Users },
       { id: 't_my_results', label: "Mening Natijalarim", path: '/my-results', icon: Award },

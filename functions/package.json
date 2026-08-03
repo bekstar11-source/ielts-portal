@@ -367,6 +367,7 @@
     "wrap-ansi-cjs": "^7.0.0",
     "wrappy": "^1.0.2",
     "write-file-atomic": "^5.0.1",
+    "ws": "^8.18.0",
     "xmlcreate": "^2.0.4",
     "y18n": "^5.0.8",
     "yallist": "^4.0.0",

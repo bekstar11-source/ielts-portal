@@ -3,29 +3,31 @@ import {
     CaretDown, CaretLeft, CheckCircle, CheckSquare, Clock, ListChecks,
     Minus, Plus, MagnifyingGlass as SearchIcon, Square, Users, Warning, X
 } from '@phosphor-icons/react';
+import { useTranslation } from '../../../context/LanguageContext';
 import { getTestTypeMeta } from './testTypeIcon';
 import { formatQType, getReadingPassages, getListeningParts } from '../../../utils/TestUtils';
 import { toDateTimeLocalValue } from '../../../utils/teacherResults';
+import { Shimmer } from '../TeacherSkeletons';
 
 const NOTE_MAX = 300;
 
 /** Deadline uchun "3 kun qoldi" ko'rinishidagi ishora + o'tib ketganini aniqlash. */
-const describeDeadline = (value) => {
+const describeDeadline = (value, lang = 'uz') => {
     if (!value) return null;
     const ts = new Date(value).getTime();
     if (Number.isNaN(ts)) return null;
     const diff = ts - Date.now();
-    if (diff <= 0) return { text: "Muddat allaqachon o'tib ketgan", isPast: true };
+    if (diff <= 0) return { text: lang === 'uz' ? "Muddat allaqachon o'tib ketgan" : "Deadline has already passed", isPast: true };
     const mins = Math.round(diff / 60000);
-    if (mins < 60) return { text: `${mins} daqiqa qoldi`, isPast: false };
+    if (mins < 60) return { text: lang === 'uz' ? `${mins} daqiqa qoldi` : `${mins}m left`, isPast: false };
     const hours = Math.round(mins / 60);
-    if (hours < 48) return { text: `${hours} soat qoldi`, isPast: false };
-    return { text: `${Math.round(hours / 24)} kun qoldi`, isPast: false };
+    if (hours < 48) return { text: lang === 'uz' ? `${hours} soat qoldi` : `${hours}h left`, isPast: false };
+    return { text: lang === 'uz' ? `${Math.round(hours / 24)} kun qoldi` : `${Math.round(hours / 24)}d left`, isPast: false };
 };
 
 export default function AssignTestForm({
     isDark, toast,
-    groups, availableTests,
+    groups, availableTests, catalogLoading = false,
     selectedGroupIds, setSelectedGroupIds,
     searchTestQuery, setSearchTestQuery,
     testTypeFilter, setTestTypeFilter,
@@ -37,6 +39,7 @@ export default function AssignTestForm({
     assigning, selectedPartsMap, setSelectedPartsMap,
     onBack, onAssign
 }) {
+    const { t, lang } = useTranslation();
     const [showGroupDropdown, setShowGroupDropdown] = useState(false);
     const [groupQuery, setGroupQuery] = useState('');
     const [onlySelected, setOnlySelected] = useState(false);
@@ -158,21 +161,21 @@ export default function AssignTestForm({
                         className={`w-full max-w-sm rounded-2xl border p-5 shadow-xl ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}
                     >
                         <p className={`text-sm leading-relaxed mb-5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-                            Tanlangan ma'lumotlar saqlanmaydi. Chiqasizmi?
+                            {lang === 'uz' ? "Tanlangan ma'lumotlar saqlanmaydi. Chiqasizmi?" : "Selected data will not be saved. Do you want to leave?"}
                         </p>
                         <div className="flex gap-2 justify-end">
                             <button
                                 onClick={() => setConfirmLeave(false)}
                                 className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'}`}
                             >
-                                Qolaman
+                                {lang === 'uz' ? "Qolaman" : "Stay"}
                             </button>
                             <button
                                 autoFocus
                                 onClick={() => { setConfirmLeave(false); onBack(); }}
                                 className="h-9 px-4 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium transition-colors"
                             >
-                                Chiqish
+                                {lang === 'uz' ? "Chiqish" : "Leave"}
                             </button>
                         </div>
                     </div>
@@ -186,15 +189,15 @@ export default function AssignTestForm({
                 className={`flex items-center gap-2 text-sm font-medium transition-colors -mb-1 ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'}`}
             >
                 <CaretLeft size={15} weight="bold" />
-                Tayinlangan testlar
+                {t('teacher.testing.assignForm.backToTests') || (lang === 'uz' ? "Tayinlangan testlar" : "Assigned Tests")}
             </button>
 
             <div className="min-w-0">
                 <h1 className={`text-[28px] leading-tight font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    Yangi tayinlash
+                    {t('teacher.testing.assignForm.title') || (lang === 'uz' ? "Yangi tayinlash" : "New Assignment")}
                 </h1>
                 <p className={`text-sm mt-1 ${muted}`}>
-                    Testlarni tanlang, guruh va muddatni belgilang.
+                    {lang === 'uz' ? "Testlarni tanlang, guruh va muddatni belgilang." : "Select tests, group and set deadline."}
                 </p>
             </div>
 
@@ -203,7 +206,9 @@ export default function AssignTestForm({
                 <div className={`lg:col-span-7 rounded-2xl border ${card}`}>
                     <div className="p-4 space-y-3">
                         <div className="flex items-center justify-between gap-3">
-                            <h2 className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Testlar</h2>
+                            <h2 className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {lang === 'uz' ? "Testlar" : "Tests"}
+                            </h2>
                             <div className="flex items-center gap-2">
                                 {selectedTests.length > 0 && (
                                     <>
@@ -216,14 +221,14 @@ export default function AssignTestForm({
                                                     : (isDark ? 'border-white/8 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50')
                                             }`}
                                         >
-                                            Tanlanganlar {selectedTests.length}
+                                            {lang === 'uz' ? `Tanlanganlar ${selectedTests.length}` : `Selected ${selectedTests.length}`}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={clearSelectedTests}
                                             className={`h-8 px-2.5 rounded-lg text-[13px] font-medium transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
                                         >
-                                            Tozalash
+                                            {t('teacher.testing.copyModal.clear') || (lang === 'uz' ? "Tozalash" : "Clear")}
                                         </button>
                                     </>
                                 )}
@@ -232,7 +237,7 @@ export default function AssignTestForm({
 
                         <div className="flex flex-wrap items-center gap-1.5">
                             {[
-                                { key: 'all', label: 'Hammasi' },
+                                { key: 'all', label: t('teacher.testing.tabAll') || (lang === 'uz' ? 'Hammasi' : 'All') },
                                 { key: 'reading', label: 'Reading' },
                                 { key: 'listening', label: 'Listening' },
                                 { key: 'writing', label: 'Writing' },
@@ -262,7 +267,7 @@ export default function AssignTestForm({
                             <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input
                                 type="text"
-                                placeholder="Test nomi…"
+                                placeholder={lang === 'uz' ? "Test nomi…" : "Test title..."}
                                 value={searchTestQuery}
                                 onChange={e => setSearchTestQuery(e.target.value)}
                                 className={`w-full h-10 pl-9 pr-8 rounded-xl border text-sm outline-none transition-colors ${field}`}
@@ -281,10 +286,25 @@ export default function AssignTestForm({
 
                     {/* Ro'yxat */}
                     <div className={`max-h-[520px] overflow-y-auto custom-scrollbar border-t ${isDark ? 'border-white/8' : 'border-gray-200'}`}>
-                        {filteredAvailableTests.length === 0 ? (
+                        {catalogLoading ? (
+                            // Katalog faqat shu oyna ochilganda yuklanadi —
+                            // "Test topilmadi" o'rniga qatorlar shakli ko'rinadi.
+                            <div className={`divide-y ${isDark ? 'divide-white/8' : 'divide-gray-100'}`}>
+                                {Array.from({ length: 7 }).map((_, i) => (
+                                    <div key={i} className="flex items-center gap-3 px-4 py-3.5" style={{ '--stagger': i }}>
+                                        <Shimmer className="h-4 w-4 flex-shrink-0" rounded="rounded" />
+                                        <div className="flex-1 min-w-0 space-y-2">
+                                            <Shimmer className="h-3.5" rounded="rounded" style={{ width: `${46 + ((i * 21) % 34)}%` }} />
+                                            <Shimmer className="h-2.5 w-24" rounded="rounded" />
+                                        </div>
+                                        <Shimmer className="h-5 w-16 flex-shrink-0" rounded="rounded-full" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : filteredAvailableTests.length === 0 ? (
                             <div className="py-16 text-center">
                                 <SearchIcon size={24} className="mx-auto mb-2.5 text-gray-400 opacity-50" />
-                                <p className={`text-sm ${muted}`}>Test topilmadi</p>
+                                <p className={`text-sm ${muted}`}>{lang === 'uz' ? "Test topilmadi" : "No tests found"}</p>
                             </div>
                         ) : filteredAvailableTests.map(test => {
                             const isSelected = selectedTests.some(t => t.id === test.id);
@@ -304,9 +324,9 @@ export default function AssignTestForm({
 
                             // Bitta neytral qator: turi · tuzilishi · savol · davomiylik
                             const metaParts = [typeLabel];
-                            if (structure.length > 1) metaParts.push(`${structure.length} ${tLow.includes('reading') ? 'passage' : 'part'}`);
-                            if (questionCount) metaParts.push(`${questionCount} savol`);
-                            if (durationMin) metaParts.push(`${durationMin} daq`);
+                            if (structure.length > 1) metaParts.push(`${structure.length} ${tLow.includes('reading') ? (lang === 'uz' ? 'passage' : 'passages') : (lang === 'uz' ? 'part' : 'parts')}`);
+                            if (questionCount) metaParts.push(`${questionCount} ${lang === 'uz' ? 'savol' : 'questions'}`);
+                            if (durationMin) metaParts.push(`${durationMin} ${lang === 'uz' ? 'daq' : 'min'}`);
 
                             const chosenParts = selectedPartsMap[test.id];
 
@@ -343,7 +363,7 @@ export default function AssignTestForm({
                                                     {metaParts.join(' · ')}
                                                 </span>
                                                 {selectedGroupIds.size > 0 && prevAssigned && (
-                                                    <span className="text-amber-600 dark:text-amber-400">· ilgari berilgan</span>
+                                                    <span className="text-amber-600 dark:text-amber-400">· {lang === 'uz' ? "ilgari berilgan" : "previously assigned"}</span>
                                                 )}
                                             </span>
                                         </span>
@@ -354,15 +374,14 @@ export default function AssignTestForm({
                                                 tabIndex={-1}
                                                 onClick={(e) => { e.stopPropagation(); setExpandedTestId(isExpanded ? null : test.id); }}
                                                 className={`shrink-0 p-1 rounded-md transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/5' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
-                                                title="Tuzilishini ko'rish"
+                                                title={lang === 'uz' ? "Tuzilishini ko'rish" : "View structure"}
                                             >
                                                 <CaretDown size={14} weight="bold" className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                             </span>
                                         )}
                                     </button>
 
-                                    {/* Tuzilishi — talab bo'lgandagina ochiladi, shuning uchun
-                                        ro'yxat sokin ko'rinadi */}
+                                    {/* Tuzilishi — talab bo'lgandagina ochiladi */}
                                     {isExpanded && structure.length > 0 && (
                                         <div className={`px-4 pb-3 pl-[46px] space-y-1.5 text-[13px] ${muted}`}>
                                             {structure.map((p, pi) => (
@@ -380,7 +399,7 @@ export default function AssignTestForm({
                                     {isSelected && isFullListening && (
                                         <div className="px-4 pb-3 pl-[46px]">
                                             <div className="flex flex-wrap items-center gap-1.5">
-                                                <span className={`text-[13px] mr-1 ${muted}`}>Partlar:</span>
+                                                <span className={`text-[13px] mr-1 ${muted}`}>{lang === 'uz' ? "Partlar:" : "Parts:"}</span>
                                                 {partsArr.map((p, pi) => {
                                                     const partNum = pi + 1;
                                                     const isPartOn = !chosenParts || chosenParts.includes(partNum);
@@ -430,13 +449,13 @@ export default function AssignTestForm({
                         {/* Tanlangan testlar */}
                         <div className="space-y-2">
                             <h2 className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                Tanlangan testlar
+                                {lang === 'uz' ? "Tanlangan testlar" : "Selected Tests"}
                                 {selectedTests.length > 0 && <span className={`ml-1.5 font-normal ${muted}`}>{selectedTests.length}</span>}
                             </h2>
                             {selectedTests.length === 0 ? (
                                 <div className={`rounded-xl border border-dashed py-6 text-center text-[13px] ${isDark ? 'border-white/10 text-gray-500' : 'border-gray-200 text-gray-400'}`}>
                                     <ListChecks size={20} className="mx-auto mb-2 opacity-50" />
-                                    Chap tomondan test tanlang
+                                    {lang === 'uz' ? "Chap tomondan test tanlang" : "Select tests from the left side"}
                                 </div>
                             ) : (
                                 <div className="max-h-[168px] overflow-y-auto custom-scrollbar -mx-1 px-1 space-y-1">
@@ -458,7 +477,7 @@ export default function AssignTestForm({
                                                 <button
                                                     type="button"
                                                     onClick={() => removeTest(test.id)}
-                                                    aria-label="O'chirish"
+                                                    aria-label="Remove"
                                                     className="shrink-0 p-1 rounded text-gray-400 hover:text-rose-500 transition-colors"
                                                 >
                                                     <X size={12} weight="bold" />
@@ -472,7 +491,9 @@ export default function AssignTestForm({
 
                         {/* Guruhlar */}
                         <div className="space-y-2">
-                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Guruhlar</label>
+                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {lang === 'uz' ? "Guruhlar" : "Groups"}
+                            </label>
                             <div className="relative" ref={groupDropdownRef}>
                                 <button
                                     type="button"
@@ -483,7 +504,7 @@ export default function AssignTestForm({
                                     <Users size={15} className="absolute left-3 text-gray-400" />
                                     <span className={`flex-1 truncate ${selectedGroupIds.size === 0 ? 'text-gray-400' : ''}`}>
                                         {selectedGroupIds.size === 0
-                                            ? 'Guruh tanlang…'
+                                            ? (lang === 'uz' ? 'Guruh tanlang…' : 'Select group...')
                                             : selectedGroups.map(g => g.name).join(', ')}
                                     </span>
                                     <CaretDown size={14} className={`absolute right-3 text-gray-400 transition-transform ${showGroupDropdown ? 'rotate-180' : ''}`} />
@@ -498,7 +519,7 @@ export default function AssignTestForm({
                                                     type="text"
                                                     value={groupQuery}
                                                     onChange={e => setGroupQuery(e.target.value)}
-                                                    placeholder="Guruh qidirish…"
+                                                    placeholder={lang === 'uz' ? "Guruh qidirish…" : "Search groups..."}
                                                     className={`w-full h-9 px-3 rounded-lg border text-sm outline-none transition-colors ${field}`}
                                                 />
                                             </div>
@@ -509,19 +530,21 @@ export default function AssignTestForm({
                                                 onClick={() => setSelectedGroupIds(new Set(filteredGroups.map(g => g.id)))}
                                                 className="font-medium text-blue-500 hover:underline"
                                             >
-                                                Barchasini tanlash
+                                                {lang === 'uz' ? "Barchasini tanlash" : "Select all"}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setSelectedGroupIds(new Set())}
                                                 className={`font-medium ${muted} hover:underline`}
                                             >
-                                                Tozalash
+                                                {t('teacher.testing.copyModal.clear') || (lang === 'uz' ? "Tozalash" : "Clear")}
                                             </button>
                                         </div>
                                         <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
                                             {filteredGroups.length === 0 ? (
-                                                <p className={`px-3 py-4 text-[13px] text-center ${muted}`}>Guruh topilmadi</p>
+                                                <p className={`px-3 py-4 text-[13px] text-center ${muted}`}>
+                                                    {lang === 'uz' ? "Guruh topilmadi" : "No groups found"}
+                                                </p>
                                             ) : filteredGroups.map(g => {
                                                 const checked = selectedGroupIds.has(g.id);
                                                 return (
@@ -547,20 +570,24 @@ export default function AssignTestForm({
                             </div>
                             {selectedGroupIds.size > 0 && (
                                 <p className={`text-[13px] ${muted}`}>
-                                    {selectedGroupIds.size} ta guruh · {studentTotal} o'quvchi
+                                    {lang === 'uz' 
+                                        ? `${selectedGroupIds.size} ta guruh · ${studentTotal} o'quvchi`
+                                        : `${selectedGroupIds.size} groups · ${studentTotal} students`}
                                 </p>
                             )}
                         </div>
 
                         {/* Muddat */}
                         <div className="space-y-2">
-                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Muddat</label>
+                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {lang === 'uz' ? "Muddat" : "Deadline"}
+                            </label>
                             <div className="flex flex-wrap items-center gap-1.5">
                                 {[
-                                    { label: '1 kun', days: 1 },
-                                    { label: '3 kun', days: 3 },
-                                    { label: '1 hafta', days: 7 },
-                                    { label: '2 hafta', days: 14 },
+                                    { label: lang === 'uz' ? '1 kun' : '1 day', days: 1 },
+                                    { label: lang === 'uz' ? '3 kun' : '3 days', days: 3 },
+                                    { label: lang === 'uz' ? '1 hafta' : '1 week', days: 7 },
+                                    { label: lang === 'uz' ? '2 hafta' : '2 weeks', days: 14 },
                                 ].map(({ label, days }) => (
                                     <button
                                         key={days}
@@ -582,7 +609,7 @@ export default function AssignTestForm({
                                         onClick={() => setDeadline('')}
                                         className={`h-8 px-2.5 rounded-lg text-[13px] font-medium transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
                                     >
-                                        Tozalash
+                                        {t('teacher.testing.copyModal.clear') || (lang === 'uz' ? "Tozalash" : "Clear")}
                                     </button>
                                 )}
                             </div>
@@ -602,11 +629,13 @@ export default function AssignTestForm({
 
                         {/* Urinishlar */}
                         <div className="space-y-2">
-                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Urinishlar soni</label>
+                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {lang === 'uz' ? "Urinishlar soni" : "Max Attempts"}
+                            </label>
                             <div className={`inline-flex items-center rounded-xl border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
                                 <button
                                     type="button"
-                                    aria-label="Kamaytirish"
+                                    aria-label="Decrease"
                                     disabled={Number(maxAttempts) <= 1}
                                     onClick={() => setMaxAttempts(prev => String(Math.max(1, Number(prev) - 1)))}
                                     className={`w-10 h-10 flex items-center justify-center rounded-l-xl transition-colors disabled:opacity-30 ${isDark ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-50'}`}
@@ -616,7 +645,7 @@ export default function AssignTestForm({
                                 <span className={`w-10 text-center text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{maxAttempts}</span>
                                 <button
                                     type="button"
-                                    aria-label="Ko'paytirish"
+                                    aria-label="Increase"
                                     disabled={Number(maxAttempts) >= 10}
                                     onClick={() => setMaxAttempts(prev => String(Math.min(10, Number(prev) + 1)))}
                                     className={`w-10 h-10 flex items-center justify-center rounded-r-xl transition-colors disabled:opacity-30 ${isDark ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-50'}`}
@@ -628,12 +657,14 @@ export default function AssignTestForm({
 
                         {/* Muhimlik */}
                         <div className="space-y-2">
-                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Muhimlik</label>
+                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {lang === 'uz' ? "Muhimlik" : "Priority"}
+                            </label>
                             <div className={`grid grid-cols-3 gap-1 p-1 rounded-xl ${isDark ? 'bg-white/[0.04]' : 'bg-gray-100'}`}>
                                 {[
-                                    { key: 'low', label: 'Past' },
-                                    { key: 'medium', label: "O'rtacha" },
-                                    { key: 'high', label: 'Yuqori' },
+                                    { key: 'low', label: t('teacher.testing.priorityLow') || (lang === 'uz' ? 'Past' : 'Low') },
+                                    { key: 'medium', label: t('teacher.testing.priorityMedium') || (lang === 'uz' ? "O'rtacha" : 'Medium') },
+                                    { key: 'high', label: t('teacher.testing.priorityHigh') || (lang === 'uz' ? 'Yuqori' : 'High') },
                                 ].map(item => {
                                     const active = priority === item.key;
                                     return (
@@ -657,14 +688,16 @@ export default function AssignTestForm({
                         {/* Izoh */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Izoh</label>
+                                <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                    {lang === 'uz' ? "Izoh" : "Teacher Note"}
+                                </label>
                                 {teacherNote && <span className={`text-[13px] ${muted}`}>{teacherNote.length}/{NOTE_MAX}</span>}
                             </div>
                             <textarea
                                 value={teacherNote}
                                 maxLength={NOTE_MAX}
                                 onChange={e => setTeacherNote(e.target.value)}
-                                placeholder="O'quvchilarga eslatma (ixtiyoriy)"
+                                placeholder={lang === 'uz' ? "O'quvchilarga eslatma (ixtiyoriy)" : "Note / instructions for students (optional)"}
                                 rows={3}
                                 className={`w-full p-3 rounded-xl border text-sm outline-none resize-none transition-colors ${field}`}
                             />
@@ -676,12 +709,16 @@ export default function AssignTestForm({
                         {duplicateCount > 0 && (
                             <p className="flex items-start gap-1.5 text-[13px] text-amber-600 dark:text-amber-400">
                                 <Warning size={14} weight="fill" className="shrink-0 mt-0.5" />
-                                {duplicateCount} ta test tanlangan guruhlarga ilgari berilgan.
+                                {lang === 'uz' 
+                                    ? `${duplicateCount} ta test tanlangan guruhlarga ilgari berilgan.`
+                                    : `${duplicateCount} tests were already assigned to selected groups.`}
                             </p>
                         )}
                         {selectedTests.length > 0 && selectedGroupIds.size > 0 && (
                             <p className={`text-[13px] ${muted}`}>
-                                {selectedTests.length} ta test · {selectedGroupIds.size} ta guruh · {studentTotal} o'quvchi
+                                {lang === 'uz'
+                                    ? `${selectedTests.length} ta test · ${selectedGroupIds.size} ta guruh · ${studentTotal} o'quvchi`
+                                    : `${selectedTests.length} tests · ${selectedGroupIds.size} groups · ${studentTotal} students`}
                             </p>
                         )}
                         <button
@@ -695,7 +732,7 @@ export default function AssignTestForm({
                         >
                             {assigning
                                 ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                : 'Tayinlash'}
+                                : (t('teacher.testing.assignForm.assignBtn') || (lang === 'uz' ? 'Tayinlash' : 'Assign'))}
                         </button>
                     </div>
                 </div>

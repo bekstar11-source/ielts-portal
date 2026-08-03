@@ -2,6 +2,9 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
+// Speaking jonli tekshiruvi to'lovi shu yerdan tasdiqlanadi.
+const { markSpeakingReviewPaid } = require("./speakingReview");
+
 // ⚠️ Token endi kod ichida SAQLANMAYDI. Deploydan oldin sozlang:
 //   firebase functions:config:set telegram.token="<BOTFATHER_TOKEN>" \
 //                                 telegram.admin_chat_id="66049218" \
@@ -149,7 +152,7 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
 });
 
 // Faqat admin bosishi mumkin bo'lgan tugmalar.
-const ADMIN_ONLY_CALLBACKS = ["approve_", "ap_mock_", "ap_teach_", "ask_reply_"];
+const ADMIN_ONLY_CALLBACKS = ["approve_", "ap_mock_", "ap_teach_", "ap_spk_", "ask_reply_"];
 
 // Callback handle (Tugmalar)
 async function handleCallback(chatId, query) {
@@ -240,6 +243,40 @@ async function handleCallback(chatId, query) {
       await editMessageText(chatId, query.message.message_id, `✅ <b>MOCK TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nMock: <b>${mockData.title}</b>\nStatus: Yakunlandi.`);
     } catch (err) {
       console.error("Mock Promotion Error:", err);
+      await sendMessage(chatId, "❌ Xatolik yuz berdi: " + err.message);
+    }
+  }
+  else if (data.startsWith("ap_spk_")) {
+    // Speaking sessiyasi uchun jonli o'qituvchi tekshiruvi to'lovi.
+    const orderId = data.slice("ap_spk_".length);
+
+    const { studentUserId, studentChatId } = parseStudentFromCaption(query.message.caption);
+    if (!studentChatId) {
+      await sendMessage(chatId, "❌ Xatolik: O'quvchi chat ID sini caption'dan o'qib bo'lmadi.");
+      return;
+    }
+
+    try {
+      const { price } = await markSpeakingReviewPaid(orderId);
+      const formatted = new Intl.NumberFormat("uz-UZ").format(price);
+
+      await admin.firestore().collection("payment_sessions").doc(studentChatId).set({
+        status: "approved",
+        approvedSpeakingOrderId: orderId,
+        approvedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      await sendMessage(
+        studentChatId,
+        `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\nSpeaking javoblaringiz jonli o'qituvchi tekshiruviga yuborildi. Tayyor bo'lgach saytdagi Speaking bo'limida ko'rasiz.`
+      );
+      await editMessageText(
+        chatId,
+        query.message.message_id,
+        `✅ <b>SPEAKING TEKSHIRUVI TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId || "-"}</code>\nBuyurtma: <code>${orderId}</code>\nSumma: <b>${formatted} so'm</b>`
+      );
+    } catch (err) {
+      console.error("Speaking review approval error:", err);
       await sendMessage(chatId, "❌ Xatolik yuz berdi: " + err.message);
     }
   }
@@ -480,6 +517,42 @@ async function sendWelcome(chatId, firstName) {
 
 // To'lov jarayoni (Chiroyli ko'rinishda)
 async function handlePaymentStart(chatId, userId, planId, billing) {
+  // Speaking jonli tekshiruvi: start=UID_spk_{orderId}
+  if (planId === "spk") {
+    const orderId = billing;
+    const orderSnap = await admin.firestore()
+      .collection("speakingReviewOrders").doc(orderId).get();
+
+    if (!orderSnap.exists) {
+      await sendMessage(chatId, "❌ <b>Buyurtma topilmadi.</b> Saytdan qaytadan urinib ko'ring.");
+      return;
+    }
+    const order = orderSnap.data();
+    const formatted = new Intl.NumberFormat("uz-UZ").format(order.price);
+
+    await admin.firestore().collection("payment_sessions").doc(chatId.toString()).set({
+      userId,
+      planId: "spk",
+      speakingOrderId: orderId,
+      sessionId: order.sessionId,
+      price: order.price,
+      status: "pending",
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    await sendMessage(chatId,
+      `💳 <b>TO'LOV MA'LUMOTLARI (SPEAKING TEKSHIRUVI)</b>\n\n` +
+      `📦 <b>Xizmat:</b> Jonli o'qituvchi tekshiruvi${order.topicTitle ? ` — ${order.topicTitle}` : ""}\n` +
+      `💰 <b>Summa:</b> ${formatted} so'm\n\n` +
+      `--------------------------\n` +
+      `🏛 <b>Karta:</b> <code>8600 0529 2812 2652</code>\n` +
+      `👤 <b>Ega:</b> Aslbek Jo'raboyev\n` +
+      `--------------------------\n\n` +
+      `📝 To'lov chekini (screenshot) shu botga yuboring — admin tasdiqlagach javoblaringiz o'qituvchiga boradi.`
+    );
+    return;
+  }
+
   if (planId === "mock") {
     const mockId = billing;
     const mockDoc = await admin.firestore().collection("tests_metadata").doc(mockId).get();
@@ -633,6 +706,10 @@ async function handleScreenshot(chatId, photoArray, documentObj, from) {
       const formattedPrice = new Intl.NumberFormat("uz-UZ").format(session.price);
       adminMsg += `📦 <b>Tanlangan:</b> ${session.mockTitle}\n` +
         `💰 <b>Summa:</b> ${formattedPrice} so'm\n`;
+    } else if (session.planId === "spk") {
+      adminMsg += `📦 <b>Tanlangan:</b> Speaking — jonli o'qituvchi tekshiruvi\n` +
+        `🧾 <b>Buyurtma:</b> <code>${session.speakingOrderId}</code>\n` +
+        `💰 <b>Summa:</b> ${new Intl.NumberFormat("uz-UZ").format(session.price)} so'm\n`;
     } else if (session.planId === "teacher") {
       const tierInfo = TEACHER_TIERS[session.teacherTier] || {};
       adminMsg += `📦 <b>Tanlangan:</b> O'qituvchi obunasi — ${tierInfo.name || session.teacherTier}\n` +
@@ -655,6 +732,15 @@ async function handleScreenshot(chatId, photoArray, documentObj, from) {
       { text: "🔥 Pro", callback_data: "approve_pro" }
     ]
   ];
+
+  if (session && session.planId === "spk" && session.speakingOrderId) {
+    inlineKeyboard.unshift([
+      {
+        text: "🎤 Speaking tekshiruvi",
+        callback_data: `ap_spk_${session.speakingOrderId}`
+      }
+    ]);
+  }
 
   if (session && session.planId === "teacher") {
     const tierInfo = TEACHER_TIERS[session.teacherTier] || {};

@@ -248,6 +248,48 @@ service cloud.firestore {
       }
     }
     
+    // SPEAKING SESSIONS (AI Speaking moduli)
+    // Yozuvni faqat server (Admin SDK) qiladi: band ballar, o'qituvchi
+    // tekshiruvining holati va to'lov statusi klientdan yozilsa, o'quvchi
+    // o'ziga 9.0 qo'yib yoki to'lovni chetlab o'tib ketardi.
+    match /speakingSessions/{sessionId} {
+      function isOwner() {
+        return isAuth() && resource.data.get('uid', '') == request.auth.uid;
+      }
+
+      allow read: if isOwner() || isAdmin() || isTeacher();
+      allow write: if isAdmin();
+
+      match /answers/{answerId} {
+        allow read: if isAuth() && (
+          resource.data.get('uid', '') == request.auth.uid || isAdmin() || isTeacher()
+        );
+        // O'qituvchi o'z tekshiruvini `reviewSpeakingAnswer` callable orqali
+        // yozadi — bu yerda emas, toki narx/holat serverda hal bo'lsin.
+        allow write: if isAdmin();
+      }
+    }
+
+    // SPEAKING QUESTIONS (o'qituvchi qo'shgan mavzular)
+    // Statik bazadagi savollar kodda; bu yerda faqat o'qituvchi yozganlari.
+    match /speakingQuestions/{topicId} {
+      allow read: if isAuth();
+      allow create: if (isTeacher() || isAdmin())
+                    && request.resource.data.get('authorId', '') == request.auth.uid;
+      allow update, delete: if isAdmin()
+                            || (isTeacher() && resource.data.get('authorId', '') == request.auth.uid);
+    }
+
+    // SPEAKING REVIEW ORDERS (pullik jonli tekshiruv buyurtmalari)
+    // Narx va holat serverda: `requestSpeakingReview` yaratadi, Telegram
+    // botdagi admin tasdig'i to'langan holatga o'tkazadi.
+    match /speakingReviewOrders/{orderId} {
+      allow read: if isAuth() && (
+        resource.data.get('uid', '') == request.auth.uid || isAdmin() || isTeacher()
+      );
+      allow write: if isAdmin();
+    }
+
     // LOGIN SESSIONS (used for secure, passwordless Telegram login polling)
     match /login_sessions/{sessionId} {
       allow read, delete: if true;

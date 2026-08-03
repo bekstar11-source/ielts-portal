@@ -84,7 +84,7 @@ export default function AssignmentCard({ post, assignments = [] }) {
     }, [post.deadline]);
 
     const deadline = getDeadlineState(post.deadline, t);
-    const tests = Array.isArray(post.tests) ? post.tests : [];
+    const tests = useMemo(() => (Array.isArray(post.tests) ? post.tests : []), [post.tests]);
     const isBundle = tests.length > 1;
 
     const singleEntry = useMemo(() => {
@@ -140,7 +140,9 @@ export default function AssignmentCard({ post, assignments = [] }) {
 
     return (
         <div className="px-4 pb-1">
-            <article className={`rounded-2xl border ${HAIRLINE} bg-warm-canvas dark:bg-warm-dark-elevated`}>
+            {/* Sirt feed foniga nisbatan bir pog'ona yorug' — /mock sahifasidagi
+                kartalar bilan bir xil (`CARD_CLS`). */}
+            <article className={`rounded-2xl border ${HAIRLINE} bg-white dark:bg-warm-dark-elevated`}>
                 <div className="p-4 flex flex-col gap-3">
                     {/* Sarlavha ustidagi kontekst: tur, muhimlik, muddat */}
                     <div className="flex items-center gap-2 text-[12px]">
@@ -235,7 +237,9 @@ export default function AssignmentCard({ post, assignments = [] }) {
                                 <p className={`text-[12px] ${MUTED}`}>{metaLine(singleState)}</p>
                             )}
 
-                            {(() => {
+                            {/* Post buzuq bo'lsa (id ham, tests ham yo'q) — bosib
+                                bo'lmaydigan tugma ko'rsatmaymiz. */}
+                            {singleEntry?.id && (() => {
                                 const { primary, secondary } = resolveActions(singleState, t);
                                 const Icon = primary.icon;
                                 return (
