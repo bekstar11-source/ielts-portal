@@ -63,7 +63,9 @@ export function formatArticleListDate(createdAt) {
 }
 
 export function formatClapsDisplay(claps) {
-    const n = parseArticleClaps(claps);
+    // Eski yozuvlarda salbiy qiymat qolib ketgan bo'lishi mumkin ("-8") —
+    // foydalanuvchiga hech qachon manfiy son ko'rinmasin.
+    const n = Math.max(0, parseArticleClaps(claps));
     if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
     return String(n);
 }

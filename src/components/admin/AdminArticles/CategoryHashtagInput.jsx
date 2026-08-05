@@ -26,9 +26,8 @@ export default function CategoryHashtagInput({
         return existingCategories.filter((cat) => cat.toLowerCase().includes(q));
     }, [existingCategories, normalizedValue]);
 
-    useEffect(() => {
-        setHighlightIndex(0);
-    }, [filtered.length, normalizedValue]);
+    // Ro'yxat qisqarganda tanlangan indeks chegaradan chiqib ketmasligi uchun
+    const highlight = highlightIndex < filtered.length ? highlightIndex : 0;
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -53,6 +52,7 @@ export default function CategoryHashtagInput({
         }
         const inner = raw.startsWith('#') ? raw.slice(1).trimStart() : raw.trim();
         onChange(inner);
+        setHighlightIndex(0);
         setOpen(true);
     };
 
@@ -69,13 +69,13 @@ export default function CategoryHashtagInput({
         }
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setHighlightIndex((i) => (i + 1) % filtered.length);
+            setHighlightIndex((i) => ((i < filtered.length ? i : 0) + 1) % filtered.length);
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
-            setHighlightIndex((i) => (i - 1 + filtered.length) % filtered.length);
-        } else if (e.key === 'Enter' && filtered[highlightIndex]) {
+            setHighlightIndex((i) => ((i < filtered.length ? i : 0) - 1 + filtered.length) % filtered.length);
+        } else if (e.key === 'Enter' && filtered[highlight]) {
             e.preventDefault();
-            applyCategory(filtered[highlightIndex]);
+            applyCategory(filtered[highlight]);
         } else if (e.key === 'Escape') {
             setOpen(false);
         }
@@ -92,7 +92,7 @@ export default function CategoryHashtagInput({
                 />
                 <input
                     ref={inputRef}
-                    required={required && !!normalizedValue}
+                    required={required}
                     type="text"
                     className="w-full bg-gray-50 dark:bg-[#252525] border-none rounded-xl pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-gray-900 dark:text-white"
                     placeholder={placeholder}
@@ -113,7 +113,7 @@ export default function CategoryHashtagInput({
                                         onMouseDown={(e) => e.preventDefault()}
                                         onClick={() => applyCategory(cat)}
                                         className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
-                                            idx === highlightIndex
+                                            idx === highlight
                                                 ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                                                 : 'text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'
                                         }`}

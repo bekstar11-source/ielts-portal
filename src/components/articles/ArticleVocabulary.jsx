@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookMarked, ChevronDown, Volume2, Plus, Check, Loader2 } from 'lucide-react';
+import {
+    BookMarked, ChevronDown, Volume2, Plus, Check, Loader2,
+    Search, X, AlertCircle, Sparkles,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 
-const speakWord = (word) => {
-    if (!window.speechSynthesis || !word) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(word);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
-};
+const norm = (w) => (w || '').toLowerCase().trim();
 
 export default function ArticleVocabulary({ vocabulary = [], level, articleTitle }) {
     const [expanded, setExpanded] = useState(true);
@@ -21,6 +17,18 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
     const [addedWords, setAddedWords] = useState(new Set());
     const [addingWordId, setAddingWordId] = useState(null);
     const [isAddingAll, setIsAddingAll] = useState(false);
+    const [speakingWord, setSpeakingWord] = useState(null);
+    const [search, setSearch] = useState('');
+    const [notice, setNotice] = useState(null); // { type: 'error' | 'info', text }
+    const noticeTimer = useRef(null);
+
+    /* Alert oynasi o'qishni to'xtatadi — xabarni panel ichida ko'rsatamiz. */
+    const flash = (type, text) => {
+        setNotice({ type, text });
+        clearTimeout(noticeTimer.current);
+        noticeTimer.current = setTimeout(() => setNotice(null), 4000);
+    };
+    useEffect(() => () => clearTimeout(noticeTimer.current), []);
 
     useEffect(() => {
         if (!user) {
@@ -32,7 +40,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
             try {
                 const q = query(collection(db, "users", user.uid, "vocabulary"));
                 const snapshot = await getDocs(q);
-                const wordsSet = new Set(snapshot.docs.map(doc => doc.data().word?.toLowerCase().trim()));
+                const wordsSet = new Set(snapshot.docs.map(doc => norm(doc.data().word)));
                 setAddedWords(wordsSet);
             } catch (error) {
                 console.error("Error fetching existing vocabulary:", error);
@@ -42,9 +50,21 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
         fetchExistingWords();
     }, [user]);
 
+    const speakWord = (word) => {
+        if (!window.speechSynthesis || !word) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(word);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        utterance.onend = () => setSpeakingWord(null);
+        utterance.onerror = () => setSpeakingWord(null);
+        setSpeakingWord(word);
+        window.speechSynthesis.speak(utterance);
+    };
+
     const handleAddWord = async (item) => {
         if (!user) {
-            alert("Lug'atga qo'shish uchun avval tizimga kiring.");
+            flash('error', "Lug'atga qo'shish uchun avval tizimga kiring.");
             return;
         }
 
@@ -71,10 +91,10 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                 nextReviewDate: serverTimestamp()
             });
 
-            setAddedWords(prev => new Set([...prev, item.word.toLowerCase().trim()]));
+            setAddedWords(prev => new Set([...prev, norm(item.word)]));
         } catch (error) {
             console.error("Error adding word to wordbank:", error);
-            alert("Lug'atga qo'shishda xatolik yuz berdi: " + error.message);
+            flash('error', "Lug'atga qo'shishda xatolik: " + error.message);
         } finally {
             setAddingWordId(null);
         }
@@ -95,12 +115,12 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
 
             setAddedWords(prev => {
                 const next = new Set(prev);
-                next.delete(item.word.toLowerCase().trim());
+                next.delete(norm(item.word));
                 return next;
             });
         } catch (error) {
             console.error("Error removing word:", error);
-            alert("O'chirishda xatolik yuz berdi: " + error.message);
+            flash('error', "O'chirishda xatolik: " + error.message);
         } finally {
             setAddingWordId(null);
         }
@@ -108,14 +128,14 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
 
     const handleAddAllWords = async () => {
         if (!user) {
-            alert("Lug'atga qo'shish uchun avval tizimga kiring.");
+            flash('error', "Lug'atga qo'shish uchun avval tizimga kiring.");
             return;
         }
 
         setIsAddingAll(true);
         try {
             const batch = writeBatch(db);
-            const wordsToAdd = vocabulary.filter(item => !addedWords.has(item.word?.toLowerCase().trim()));
+            const wordsToAdd = vocabulary.filter(item => !addedWords.has(norm(item.word)));
 
             if (wordsToAdd.length === 0) return;
 
@@ -144,195 +164,439 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
 
             setAddedWords(prev => {
                 const next = new Set(prev);
-                wordsToAdd.forEach(item => next.add(item.word.toLowerCase().trim()));
+                wordsToAdd.forEach(item => next.add(norm(item.word)));
                 return next;
             });
+            flash('info', `${wordsToAdd.length} ta so'z lug'atingizga qo'shildi.`);
         } catch (error) {
             console.error("Error adding all words to wordbank:", error);
-            alert("Barcha so'zlarni qo'shishda xatolik yuz berdi: " + error.message);
+            flash('error', "Barcha so'zlarni qo'shishda xatolik: " + error.message);
         } finally {
             setIsAddingAll(false);
         }
     };
 
+    /* Qidiruv so'z, tarjima va ta'rif bo'yicha ishlaydi — o'quvchi ko'pincha
+       o'zbekcha ma'nosini yozib qidiradi. Asl indeks saqlanadi: tartib raqami
+       filtrlangandan keyin ham maqoladagi joyni ko'rsatadi. */
+    const rows = useMemo(
+        () => vocabulary.map((item, idx) => ({ item, idx })),
+        [vocabulary]
+    );
+    const visibleRows = useMemo(() => {
+        const q = norm(search);
+        if (!q) return rows;
+        return rows.filter(({ item }) =>
+            norm(item.word).includes(q) ||
+            norm(item.translation).includes(q) ||
+            norm(item.definition).includes(q)
+        );
+    }, [rows, search]);
+
+    const addedCount = useMemo(
+        () => vocabulary.filter(item => addedWords.has(norm(item.word))).length,
+        [vocabulary, addedWords]
+    );
+    const allAdded = vocabulary.length > 0 && addedCount === vocabulary.length;
+    const progress = vocabulary.length ? (addedCount / vocabulary.length) * 100 : 0;
+
     if (!vocabulary?.length) return null;
 
     return (
-        <section className="mt-16 mb-8 max-w-2xl mx-auto">
-            <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                className="w-full flex items-center justify-between gap-4 p-5 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-[#F9F9F9] dark:bg-neutral-900/50 hover:bg-[#F2F2F2] dark:hover:bg-neutral-900 transition-colors text-left"
-            >
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                        <BookMarked size={20} />
+        <section className="mt-16 mb-8 max-w-2xl mx-auto vocab-block font-sans">
+            {/* Maqola sahifasining "qog'oz" mavzusi (--r-*) bilan bir xil ranglar:
+                oq kartochka va ko'k/to'q sariq urg'u bu fonda begona ko'rinardi. */}
+            <style>{`
+                .vocab-block { font-family: Outfit, Inter, system-ui, sans-serif; }
+                .vocab-card {
+                    background: var(--r-paper);
+                    border: 1px solid var(--r-hairline);
+                }
+                .vocab-head { background: var(--r-surface); }
+                .vocab-head:hover { background: var(--r-surface-strong); }
+                .vocab-row { transition: background-color .15s ease; }
+                .vocab-row:hover { background: var(--r-hover); }
+                .vocab-row.is-open { background: var(--r-hover); }
+                .vocab-ghost {
+                    color: var(--r-muted);
+                    transition: background-color .15s ease, color .15s ease, transform .12s ease;
+                }
+                .vocab-ghost:hover { background: var(--r-hover); color: var(--r-ink); }
+                .vocab-ghost:active { transform: scale(0.94); }
+                .vocab-ghost.is-active { color: var(--r-accent); background: var(--r-accent-soft); }
+                .vocab-added {
+                    color: var(--r-accent);
+                    background: var(--r-accent-soft);
+                    transition: background-color .15s ease, color .15s ease;
+                }
+                .vocab-added:hover { color: #d05353; background: rgba(208, 83, 83, 0.12); }
+                .vocab-solid {
+                    background: var(--r-ink);
+                    color: var(--r-paper);
+                    transition: filter .15s ease, transform .12s ease;
+                }
+                .vocab-solid:hover:not(:disabled) { filter: brightness(1.25); }
+                .vocab-solid:active:not(:disabled) { transform: scale(0.97); }
+                .vocab-solid:disabled { opacity: .6; }
+                .vocab-search {
+                    background: var(--r-surface);
+                    border: 1px solid transparent;
+                    color: var(--r-ink);
+                    transition: border-color .15s ease, background-color .15s ease;
+                }
+                .vocab-search::placeholder { color: var(--r-muted); }
+                .vocab-search:focus { border-color: var(--r-focus); background: var(--r-paper); }
+                .vocab-block button:focus-visible,
+                .vocab-search:focus-visible {
+                    outline: 2px solid var(--r-focus);
+                    outline-offset: 2px;
+                }
+                /* Misol jumlasi maqola matni bilan bir xil serif — kontekstdan uzilmasin */
+                .vocab-example {
+                    font-family: Charter, Georgia, Cambria, "Times New Roman", Times, serif;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .vocab-row, .vocab-ghost, .vocab-solid { transition: none; }
+                }
+            `}</style>
+
+            <div className="vocab-card rounded-2xl overflow-hidden">
+                {/* Sarlavha: bosilganda ro'yxat ochiladi/yopiladi */}
+                <button
+                    type="button"
+                    onClick={() => setExpanded((v) => !v)}
+                    aria-expanded={expanded}
+                    className="vocab-head w-full flex items-center gap-3 p-4 sm:p-[18px] text-left transition-colors"
+                >
+                    <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: 'var(--r-accent-soft)', color: 'var(--r-accent)' }}
+                    >
+                        <BookMarked size={18} />
                     </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-[#242424] dark:text-neutral-100 font-sans">
-                            Key vocabulary{level ? ` (${level})` : ''}
+                    <div className="min-w-0 flex-1">
+                        <h3
+                            className="text-[17px] font-semibold tracking-[-0.01em] leading-tight"
+                            style={{ color: 'var(--r-ink)' }}
+                        >
+                            Kalit so'zlar
+                            {level && (
+                                <span
+                                    className="ml-2 align-middle text-[10px] font-bold uppercase tracking-[0.06em] px-1.5 py-[3px] rounded-md"
+                                    style={{ backgroundColor: 'var(--r-accent-soft)', color: 'var(--r-accent)' }}
+                                >
+                                    {level}
+                                </span>
+                            )}
                         </h3>
-                        <p className="text-[13px] text-[#6B6B6B] dark:text-neutral-400 font-sans">
-                            {vocabulary.length} {vocabulary.length === 1 ? 'word' : 'words'} for this level
+                        <p className="text-[12.5px] leading-snug mt-[3px]" style={{ color: 'var(--r-muted)' }}>
+                            {vocabulary.length} ta so'z
+                            {user && (
+                                <>
+                                    <span className="mx-1.5 opacity-50">·</span>
+                                    <span style={allAdded ? { color: 'var(--r-accent)', fontWeight: 600 } : undefined}>
+                                        {addedCount} ta lug'atingizda
+                                    </span>
+                                </>
+                            )}
                         </p>
                     </div>
-                </div>
-                <ChevronDown
-                    size={20}
-                    className={`text-gray-400 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`}
-                />
-            </button>
+                    <ChevronDown
+                        size={18}
+                        className={`shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+                        style={{ color: 'var(--r-muted)' }}
+                    />
+                </button>
 
-            <AnimatePresence>
-                {expanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="pt-3 space-y-2">
-                            <div className="flex items-center justify-between px-2 py-1">
-                                <span className="text-[13px] text-gray-550 dark:text-neutral-400 font-sans">
-                                    Barcha so'zlarni bir martada qo'shing
-                                </span>
+                {/* Yupqa progress chizig'i — qancha so'z saqlanganini bir qarashda ko'rsatadi */}
+                {user && (
+                    <div className="h-[3px]" style={{ backgroundColor: 'var(--r-track)' }}>
+                        <motion.div
+                            className="h-full"
+                            style={{ backgroundColor: 'var(--r-accent)' }}
+                            initial={false}
+                            animate={{ width: `${progress}%` }}
+                            transition={{ duration: 0.3 }}
+                        />
+                    </div>
+                )}
+
+                <AnimatePresence initial={false}>
+                    {expanded && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22 }}
+                            className="overflow-hidden"
+                        >
+                            {/* Asboblar qatori: qidiruv + hammasini qo'shish */}
+                            <div
+                                className="flex items-center gap-2 px-3 sm:px-4 py-3 border-t"
+                                style={{ borderColor: 'var(--r-hairline)' }}
+                            >
+                                {vocabulary.length > 5 && (
+                                    <div className="relative flex-1 min-w-0">
+                                        <Search
+                                            size={15}
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                                            style={{ color: 'var(--r-muted)' }}
+                                        />
+                                        <input
+                                            type="text"
+                                            value={search}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                            placeholder="So'z yoki tarjima bo'yicha qidirish"
+                                            aria-label="Lug'at ichidan qidirish"
+                                            className="vocab-search w-full h-9 pl-9 pr-8 rounded-lg text-[13px] outline-none"
+                                        />
+                                        {search && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSearch('')}
+                                                aria-label="Qidiruvni tozalash"
+                                                className="vocab-ghost absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md"
+                                            >
+                                                <X size={13} />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                                 <button
                                     type="button"
                                     onClick={handleAddAllWords}
-                                    disabled={isAddingAll || vocabulary.every(item => addedWords.has(item.word?.toLowerCase().trim()))}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FB5102] hover:bg-[#e64a02] disabled:bg-gray-100 dark:disabled:bg-neutral-800 disabled:text-gray-400 text-white rounded-lg text-xs font-semibold transition-all active:scale-95 shadow-sm"
+                                    disabled={isAddingAll || allAdded}
+                                    title={allAdded ? "Barcha so'zlar lug'atingizda" : "Barcha so'zlarni lug'atga qo'shish"}
+                                    className={`shrink-0 ml-auto flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[13px] font-semibold tracking-[-0.005em] ${
+                                        allAdded ? 'cursor-default' : 'vocab-solid'
+                                    }`}
+                                    style={allAdded ? { backgroundColor: 'var(--r-accent-soft)', color: 'var(--r-accent)' } : undefined}
                                 >
                                     {isAddingAll ? (
                                         <>
-                                            <Loader2 size={13} className="animate-spin" />
-                                            <span>Qo'shilmoqda...</span>
+                                            <Loader2 size={14} className="animate-spin" />
+                                            <span>Qo'shilmoqda</span>
                                         </>
-                                    ) : vocabulary.every(item => addedWords.has(item.word?.toLowerCase().trim())) ? (
+                                    ) : allAdded ? (
                                         <>
-                                            <Check size={13} />
-                                            <span>Barchasi qo'shilgan</span>
+                                            <Check size={14} />
+                                            <span>Hammasi qo'shilgan</span>
                                         </>
                                     ) : (
                                         <>
-                                            <BookMarked size={13} />
-                                            <span>Barchasini qo'shish</span>
+                                            <Sparkles size={14} />
+                                            <span className="hidden sm:inline">Hammasini qo'shish</span>
+                                            <span className="sm:hidden">Hammasi</span>
                                         </>
                                     )}
                                 </button>
                             </div>
-                            {vocabulary.map((item, idx) => {
-                                const isOpen = openIndex === idx;
-                                return (
-                                    <div
-                                        key={`${item.word}-${idx}`}
-                                        className="rounded-xl border border-black/[0.05] dark:border-white/[0.06] bg-white dark:bg-neutral-950 overflow-hidden"
+
+                            <AnimatePresence>
+                                {notice && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden"
+                                        role="status"
+                                        aria-live="polite"
                                     >
-                                        <button
-                                            type="button"
-                                            onClick={() => setOpenIndex(isOpen ? null : idx)}
-                                            className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+                                        <div
+                                            className="mx-3 sm:mx-4 mb-2 flex items-start gap-2 px-3 py-2 rounded-lg text-[12.5px] leading-snug"
+                                            style={notice.type === 'error'
+                                                ? { backgroundColor: 'rgba(208, 83, 83, 0.12)', color: '#d05353' }
+                                                : { backgroundColor: 'var(--r-accent-soft)', color: 'var(--r-accent)' }}
                                         >
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <span className="text-[11px] font-bold text-gray-400 w-5 shrink-0">
-                                                    {idx + 1}
-                                                </span>
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <span className="font-bold text-[#242424] dark:text-neutral-100 font-sans">
-                                                            {item.word}
-                                                        </span>
-                                                        {item.partOfSpeech && (
-                                                            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400">
-                                                                {item.partOfSpeech}
+                                            {notice.type === 'error'
+                                                ? <AlertCircle size={15} className="mt-px shrink-0" />
+                                                : <Check size={15} className="mt-px shrink-0" />}
+                                            <span>{notice.text}</span>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Ro'yxat: kartochkalar emas, bo'linuvchi qatorlar — zichroq va o'qishga qulay */}
+                            <ul className="border-t" style={{ borderColor: 'var(--r-hairline)' }}>
+                                {visibleRows.map(({ item, idx }, position) => {
+                                    const isOpen = openIndex === idx;
+                                    const isAdded = addedWords.has(norm(item.word));
+                                    const isBusy = addingWordId === item.word;
+                                    const isSpeaking = speakingWord === item.word;
+                                    const panelId = `vocab-panel-${idx}`;
+                                    const hasDetails = Boolean(item.definition || item.example);
+                                    const toggle = () => hasDetails && setOpenIndex(isOpen ? null : idx);
+
+                                    return (
+                                        <li
+                                            key={`${item.word}-${idx}`}
+                                            className={`relative vocab-row ${isOpen ? 'is-open' : ''}`}
+                                            style={position > 0 ? { borderTop: '1px solid var(--r-hairline)' } : undefined}
+                                        >
+                                            {/* Qo'shilgan so'zning chap chekkasida urg'u chizig'i */}
+                                            {isAdded && (
+                                                <span
+                                                    className="absolute left-0 top-0 bottom-0 w-[3px]"
+                                                    style={{ backgroundColor: 'var(--r-accent)' }}
+                                                    aria-hidden="true"
+                                                />
+                                            )}
+                                            <div className="flex items-start gap-2 px-3 sm:px-4 py-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={toggle}
+                                                    aria-expanded={hasDetails ? isOpen : undefined}
+                                                    aria-controls={hasDetails ? panelId : undefined}
+                                                    className={`flex flex-1 items-start gap-3 min-w-0 text-left py-0.5 rounded-lg ${hasDetails ? 'cursor-pointer' : 'cursor-default'}`}
+                                                >
+                                                    <span
+                                                        className="text-[11px] font-semibold w-4 shrink-0 pt-[5px] tabular-nums opacity-70"
+                                                        style={{ color: 'var(--r-muted)' }}
+                                                    >
+                                                        {idx + 1}
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-baseline gap-2 flex-wrap">
+                                                            <span
+                                                                className="text-[16px] font-semibold tracking-[-0.01em] leading-snug"
+                                                                style={{ color: 'var(--r-ink)' }}
+                                                            >
+                                                                {item.word}
+                                                            </span>
+                                                            {item.partOfSpeech && (
+                                                                <span
+                                                                    className="text-[11px] italic leading-none"
+                                                                    style={{ color: 'var(--r-muted)' }}
+                                                                >
+                                                                    {item.partOfSpeech}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {item.translation && (
+                                                            <p
+                                                                className="text-[14px] leading-snug mt-[3px]"
+                                                                style={{ color: 'var(--r-ink-soft)' }}
+                                                            >
+                                                                {item.translation}
+                                                            </p>
+                                                        )}
+                                                        {hasDetails && !isOpen && (
+                                                            <span
+                                                                className="inline-flex items-center gap-1 mt-1.5 text-[11.5px] font-medium"
+                                                                style={{ color: 'var(--r-muted)' }}
+                                                            >
+                                                                Ta'rif va misol
+                                                                <ChevronDown size={11} />
                                                             </span>
                                                         )}
                                                     </div>
-                                                    {item.translation && (
-                                                        <p className="text-sm text-blue-600 dark:text-blue-400 font-medium truncate font-sans">
-                                                            {item.translation}
-                                                        </p>
-                                                    )}
+                                                </button>
+
+                                                <div className="flex items-center gap-0.5 shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => speakWord(item.word)}
+                                                        className={`vocab-ghost w-9 h-9 flex items-center justify-center rounded-lg ${isSpeaking ? 'is-active' : ''}`}
+                                                        title="Talaffuzini tinglash"
+                                                        aria-label={`${item.word} — talaffuzini tinglash`}
+                                                    >
+                                                        <Volume2 size={16} className={isSpeaking ? 'animate-pulse' : ''} />
+                                                    </button>
+                                                    {/* Qo'shish/o'chirish: holati matn bilan ham ko'rinsin */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => (isAdded ? handleRemoveWord(item) : handleAddWord(item))}
+                                                        disabled={isBusy}
+                                                        className={`h-9 px-2.5 flex items-center gap-1 rounded-lg text-[12.5px] font-semibold group/add ${
+                                                            isAdded ? 'vocab-added' : 'vocab-ghost'
+                                                        }`}
+                                                        title={isAdded ? "Lug'atdan o'chirish" : "Lug'atga qo'shish"}
+                                                        aria-label={isAdded ? `${item.word} — lug'atdan o'chirish` : `${item.word} — lug'atga qo'shish`}
+                                                    >
+                                                        {isBusy ? (
+                                                            <Loader2 size={16} className="animate-spin" />
+                                                        ) : isAdded ? (
+                                                            <>
+                                                                <Check size={16} className="group-hover/add:hidden" />
+                                                                <X size={16} className="hidden group-hover/add:block" />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Plus size={16} />
+                                                                <span className="hidden sm:inline">Qo'shish</span>
+                                                            </>
+                                                        )}
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                {(() => {
-                                                    const isAdded = addedWords.has(item.word?.toLowerCase().trim());
-                                                    return (
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (isAdded) {
-                                                                    handleRemoveWord(item);
-                                                                } else {
-                                                                    handleAddWord(item);
-                                                                }
-                                                            }}
-                                                            className={`p-2 rounded-lg transition-colors ${
-                                                                isAdded 
-                                                                    ? 'text-green-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' 
-                                                                    : 'text-gray-400 hover:text-[#FB5102] hover:bg-orange-50 dark:hover:bg-orange-950/30'
-                                                            }`}
-                                                            title={isAdded ? "Lug'atdan o'chirish" : "Lug'atga qo'shish"}
-                                                            disabled={addingWordId === item.word}
-                                                        >
-                                                            {addingWordId === item.word ? (
-                                                                <Loader2 size={16} className="animate-spin" />
-                                                            ) : isAdded ? (
-                                                                <Check size={16} />
-                                                            ) : (
-                                                                <Plus size={16} />
+
+                                            <AnimatePresence initial={false}>
+                                                {isOpen && hasDetails && (
+                                                    <motion.div
+                                                        id={panelId}
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="px-3 sm:px-4 pb-4 pl-10 sm:pl-11 space-y-2.5">
+                                                            {item.definition && (
+                                                                <p
+                                                                    className="text-[13.5px] leading-[1.6]"
+                                                                    style={{ color: 'var(--r-muted)' }}
+                                                                >
+                                                                    {item.definition}
+                                                                </p>
                                                             )}
-                                                        </button>
-                                                    );
-                                                })()}
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        speakWord(item.word);
-                                                    }}
-                                                    className="p-2 rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
-                                                    title="Listen"
-                                                >
-                                                    <Volume2 size={16} />
-                                                </button>
-                                                <ChevronDown
-                                                    size={16}
-                                                    className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                                                />
-                                            </div>
-                                        </button>
-                                        <AnimatePresence>
-                                            {isOpen && (item.definition || item.example) && (
-                                                <motion.div
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                    exit={{ height: 0, opacity: 0 }}
-                                                    className="overflow-hidden border-t border-black/[0.04] dark:border-white/[0.05]"
-                                                >
-                                                    <div className="px-4 py-3 pl-12 space-y-2 text-sm font-sans">
-                                                        {item.definition && (
-                                                            <p className="text-[#6B6B6B] dark:text-neutral-400 leading-relaxed">
-                                                                {item.definition}
-                                                            </p>
-                                                        )}
-                                                        {item.example && (
-                                                            <p className="text-[#242424] dark:text-neutral-300 italic border-l-2 border-blue-500/40 pl-3">
-                                                                &ldquo;{item.example}&rdquo;
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                                                            {item.example && (
+                                                                <p
+                                                                    className="vocab-example text-[15px] italic leading-[1.65] pl-3 border-l-2"
+                                                                    style={{ color: 'var(--r-ink-soft)', borderColor: 'var(--r-accent-soft)' }}
+                                                                >
+                                                                    &ldquo;{item.example}&rdquo;
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+
+                            {visibleRows.length === 0 && (
+                                <div className="px-4 py-10 text-center">
+                                    <p className="text-[13px]" style={{ color: 'var(--r-muted)' }}>
+                                        &ldquo;{search}&rdquo; bo'yicha so'z topilmadi
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearch('')}
+                                        className="mt-2 text-[13px] font-semibold hover:underline"
+                                        style={{ color: 'var(--r-accent)' }}
+                                    >
+                                        Qidiruvni tozalash
+                                    </button>
+                                </div>
+                            )}
+
+                            {!user && (
+                                <div
+                                    className="px-4 py-3 border-t text-center"
+                                    style={{ borderColor: 'var(--r-hairline)', backgroundColor: 'var(--r-surface)' }}
+                                >
+                                    <p className="text-[12.5px] leading-snug" style={{ color: 'var(--r-muted)' }}>
+                                        So'zlarni shaxsiy lug'atingizga saqlash uchun tizimga kiring.
+                                    </p>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </section>
     );
 }

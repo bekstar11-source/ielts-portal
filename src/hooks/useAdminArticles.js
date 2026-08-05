@@ -34,9 +34,8 @@ export const useAdminArticles = () => {
     const handleSaveArticle = async (formData, editingArticleId = null) => {
         setProcessing(true);
         try {
-            const { content, vocabulary, ...rest } = formData;
             const data = {
-                ...rest,
+                ...formData,
                 updatedAt: serverTimestamp()
             };
 
@@ -51,8 +50,8 @@ export const useAdminArticles = () => {
                     await addDoc(collection(db, "feed_posts"), {
                         type: "article",
                         title: data.title || "Yangi Maqola",
-                        content: data.excerpt || "Tizimda yangi maqola chop etildi. O'qishni boshlang!",
-                        mediaUrl: data.image || "",
+                        content: data.subtitle || "Tizimda yangi maqola chop etildi. O'qishni boshlang!",
+                        mediaUrl: data.imageUrl || "",
                         ctaUrl: `/article/${docRef.id}`,
                         ctaText: "Maqolani O'qish",
                         likes: [],
@@ -87,7 +86,6 @@ export const useAdminArticles = () => {
 
     const uploadFile = async (file, folder = "articles") => {
         if (!file) return null;
-        setProcessing(true);
         try {
             const storageRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
             const metadata = { cacheControl: 'public,max-age=31536000' };
@@ -97,8 +95,6 @@ export const useAdminArticles = () => {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            setProcessing(false);
         }
     };
 

@@ -1372,7 +1372,8 @@ export const translations = {
           tr: "Task Response (TR)",
           cc: "Coherence & Cohesion (CC)",
           lr: "Lexical Resource (LR)",
-          gra: "Grammatical Range & Accuracy (GRA)"
+          gra: "Grammatical Range & Accuracy (GRA)",
+          overall: "Umumiy"
         },
         task1Title: "Task 1",
         task2Title: "Task 2",
@@ -2846,7 +2847,8 @@ export const translations = {
             tr: "Task Response (TR)",
             cc: "Coherence & Cohesion (CC)",
             lr: "Lexical Resource (LR)",
-            gra: "Grammatical Range & Accuracy (GRA)"
+            gra: "Grammatical Range & Accuracy (GRA)",
+            overall: "Overall"
           },
           task1Title: "Task 1",
           task2Title: "Task 2",

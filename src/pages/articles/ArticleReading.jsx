@@ -4,16 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, BookMarked, Share2,
   Type, CheckCircle2, Star, X, Check,
-  MessageSquare as MessageSquareIcon, Sparkles, Volume2,
-  Pause, Play, Award, ShieldCheck, ArrowUp, Trash2, Link2
+  MessageSquare as MessageSquareIcon, Volume2,
+  Pause, Play, ShieldCheck, ArrowUp, Trash2, Link2
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from "../../firebase/firebase";
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useAuth } from '../../context/AuthContext';
 import SiteFooter from '../../components/common/SiteFooter';
-import { useGamification } from '../../hooks/useGamification';
 import { stripHtml } from '../../utils/textUtils';
 import ArticleVocabulary from '../../components/articles/ArticleVocabulary';
 import ArticleLevelPicker from '../../components/articles/ArticleLevelPicker';
@@ -22,24 +21,39 @@ import {
   getArticleContent,
   getArticleVocabulary,
   getArticleReadTime,
+  formatReadTimeLabel,
   getDefaultReadingLevel,
   savePreferredReadingLevel,
 } from '../../utils/articleLevels';
 import { hasClappedArticle, addArticleClap, removeArticleClap } from '../../utils/articleClaps';
 import { parseArticleClaps, formatClapsDisplay } from '../../utils/articlePopularity';
+import { isArticleSaved, toggleArticleSave } from '../../utils/articleSaves';
+import { createArticleReader, revokeArticleAudio } from '../../services/articleTts';
 
-/* XP shartlari */
-const REQUIRED_SECONDS = 120;
-const REQUIRED_SCROLL = 85;
-
-/* Matn o'lchami — bosqichlar (localStorage'da saqlanadi) */
+/* Matn o'lchami — bosqichlar (localStorage'da saqlanadi).
+   `base` — asosiy matn (paragraf) o'lchami px'da. */
 const FONT_STEPS = [
-  { key: 'sm', label: 'Kichik', base: 17, scale: 0.9 },
-  { key: 'md', label: "O'rtacha", base: 19, scale: 1 },
-  { key: 'lg', label: 'Katta', base: 21, scale: 1.12 },
-  { key: 'xl', label: 'Juda katta', base: 23, scale: 1.24 },
+  { key: 'sm', label: 'Kichik', base: 18 },
+  { key: 'md', label: "O'rtacha", base: 20 },
+  { key: 'lg', label: 'Katta', base: 22 },
+  { key: 'xl', label: 'Juda katta', base: 25 },
 ];
 const FONT_STORAGE_KEY = 'article_font_step';
+
+/* Muharrirdagi standart paragraf o'lchami — blok stillari shunga nisbatan miqyoslanadi */
+const EDITOR_BASE_FONT_SIZE = 16;
+/* Muharrirdagi standart qator balandligi — o'qish uchun bundan bo'shroq ko'rsatiladi */
+const EDITOR_DEFAULT_LINE_HEIGHT = 1.6;
+
+/* Tanlangan so'z menyusi (desktop) — pozitsiyani hisoblash uchun taxminiy o'lchamlar */
+const MENU_HALF_WIDTH = 180;
+const MENU_HEIGHT = 46;
+const MENU_GAP = 10;
+const STICKY_HEADER_OFFSET = 88;
+
+/* Uzun tanlovni menyuda qisqartirib ko'rsatamiz */
+const truncateWord = (text = '', max = 32) =>
+  text.length > max ? `${text.slice(0, max - 1).trim()}…` : text;
 
 const toDate = (value) => {
   if (!value) return null;
@@ -53,6 +67,66 @@ const toDate = (value) => {
   }
 };
 
+/* --- Ovozli o'qish yordamchilari ---
+   Chrome uzun utterance'ni ~15 soniyadan keyin jimgina to'xtatadi va `onend`
+   umuman ishlamay qolishi mumkin. Shuning uchun matnni qisqa bo'laklarga
+   ajratamiz — har bir bo'lak ~10 soniyadan oshmaydi. */
+const MAX_UTTERANCE_CHARS = 200;
+
+const htmlToPlainText = (html) => {
+  const div = document.createElement('div');
+  div.innerHTML = html || '';
+  return (div.textContent || div.innerText || '').replace(/\s+/g, ' ').trim();
+};
+
+const splitIntoSpeechChunks = (text) => {
+  if (!text) return [];
+  if (text.length <= MAX_UTTERANCE_CHARS) return [text];
+
+  const sentences = text.match(/[^.!?…]+[.!?…]+["')\]]*\s*|[^.!?…]+$/g) || [text];
+  const chunks = [];
+  let buffer = '';
+
+  const flush = () => {
+    const trimmed = buffer.trim();
+    if (trimmed) chunks.push(trimmed);
+    buffer = '';
+  };
+
+  for (const sentence of sentences) {
+    if (buffer && (buffer + sentence).length > MAX_UTTERANCE_CHARS) flush();
+
+    if (sentence.length > MAX_UTTERANCE_CHARS) {
+      // Juda uzun jumla — so'zlar bo'yicha bo'lamiz
+      for (const word of sentence.split(/\s+/)) {
+        if (buffer && (buffer + ' ' + word).length > MAX_UTTERANCE_CHARS) flush();
+        buffer += (buffer ? ' ' : '') + word;
+      }
+      continue;
+    }
+
+    buffer += sentence;
+  }
+  flush();
+
+  return chunks;
+};
+
+const pickEnglishVoice = (list = []) =>
+  list.find((v) => /Google (US|UK) English/i.test(v.name)) ||
+  list.find((v) => /Natural/i.test(v.name) && v.lang?.startsWith('en')) ||
+  list.find((v) => v.lang === 'en-US') ||
+  list.find((v) => v.lang?.startsWith('en')) ||
+  null;
+
+const UZ_MONTHS = ['yan', 'fev', 'mar', 'apr', 'may', 'iyn', 'iyl', 'avg', 'sen', 'okt', 'noy', 'dek'];
+
+/* Sana o'zbekcha: "24-may, 2026" */
+const formatUzDate = (date) => {
+  if (!date) return '';
+  return `${date.getDate()}-${UZ_MONTHS[date.getMonth()]}, ${date.getFullYear()}`;
+};
+
 const formatRelativeTime = (value) => {
   const d = toDate(value);
   if (!d) return 'Hozirgina';
@@ -64,7 +138,7 @@ const formatRelativeTime = (value) => {
   if (hours < 24) return `${hours} soat oldin`;
   const days = Math.round(hours / 24);
   if (days < 7) return `${days} kun oldin`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatUzDate(d);
 };
 
 export default function ArticleReading() {
@@ -74,13 +148,12 @@ export default function ArticleReading() {
   const navigate = useNavigate();
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [completed, setCompleted] = useState(false);
-  const { awardXP } = useGamification();
   const commentsRef = useRef(null);
 
   const [selectionMenu, setSelectionMenu] = useState(null);
   const [isWordBankLoading, setIsWordBankLoading] = useState(false);
   const [isWordBankAdded, setIsWordBankAdded] = useState(false);
+  const [isWordSpeaking, setIsWordSpeaking] = useState(false);
   const articleContainerRef = useRef(null);
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
@@ -147,10 +220,15 @@ export default function ArticleReading() {
   // Har bir o'qish sessiyasining tokeni — cancel qilingan zanjir davom etmasligi uchun
   const speechRunIdRef = useRef(0);
   const blockRefs = useRef({});
+  // Utterance'ni ref'da ushlab turamiz: aks holda brauzer uni o'qish tugamasdan
+  // "garbage collect" qilib yuboradi va ovoz o'rtada uziladi (Chrome/Safari bug'i).
+  const utteranceRef = useRef(null);
+  const keepAliveRef = useRef(null);
+  const isPausedRef = useRef(false);
+  // Neural (Edge TTS) o'quvchi — mavjud bo'lsa shu ishlaydi, aks holda brauzer ovozi
+  const readerRef = useRef(null);
+  const [isPreparingSpeech, setIsPreparingSpeech] = useState(false);
 
-  // Time & Scroll states for XP Claiming
-  const [timeSpent, setTimeSpent] = useState(0);
-  const [isScrollMet, setIsScrollMet] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showTopButton, setShowTopButton] = useState(false);
   const [readingLevel, setReadingLevel] = useState('B2');
@@ -175,18 +253,16 @@ export default function ArticleReading() {
       }, {})
     : {};
 
-  const alreadyAwarded = completed || Boolean(userData?.awardedItems?.includes(article?.id));
-  const timeProgress = Math.min(100, (timeSpent / REQUIRED_SECONDS) * 100);
-  const canClaimXP = timeSpent >= REQUIRED_SECONDS && isScrollMet;
 
   const publishedDate = useMemo(() => {
     const d = toDate(article?.createdAt);
-    return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
+    return d ? formatUzDate(d) : null;
   }, [article?.createdAt]);
 
   // Menyuni yopish va selectionni tozalash
   const dismissMenu = useCallback(() => {
     setSelectionMenu(null);
+    setIsWordSpeaking(false);
     const sel = window.getSelection();
     if (sel) {
       try {
@@ -194,6 +270,26 @@ export default function ArticleReading() {
       } catch { /* ignore */ }
     }
   }, []);
+
+  // Tanlangan so'zni ovoz bilan eshittirish (maqola o'qilayotgan bo'lsa — o'chiq)
+  const speakSelectedWord = useCallback(() => {
+    const text = selectionMenu?.word;
+    if (!synth || !text) return;
+    try {
+      synth.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      const voice = pickEnglishVoice(voices);
+      if (voice) utter.voice = voice;
+      utter.lang = voice?.lang || 'en-US';
+      utter.rate = 0.85;
+      utter.onend = () => setIsWordSpeaking(false);
+      utter.onerror = () => setIsWordSpeaking(false);
+      setIsWordSpeaking(true);
+      synth.speak(utter);
+    } catch {
+      setIsWordSpeaking(false);
+    }
+  }, [synth, voices, selectionMenu?.word]);
 
   const handleAddToWordBank = async () => {
     if (!selectionMenu || isWordBankLoading || isWordBankAdded) return;
@@ -251,10 +347,11 @@ export default function ArticleReading() {
       })();
 
       setIsWordBankAdded(true);
-      // 1 soniya "Added!" ko'rsatib, keyin tozalash
+      showToast(`«${truncateWord(word, 24)}» lug'atga qo'shildi`, 'success');
+      // Muvaffaqiyat holatini ko'rsatib turamiz, so'ng menyuni yopamiz
       setTimeout(() => {
         dismissMenu();
-      }, 1000);
+      }, 1100);
 
     } catch (error) {
       console.error("WordBank add error:", error);
@@ -308,21 +405,38 @@ export default function ArticleReading() {
         }
       } catch { /* ignore */ }
 
-      // Menyu pozitsiyasini hisoblash (konteyner chegarasidan chiqib ketmasin)
+      // Menyu pozitsiyasi: tanlangan matnning ustida turadi, joy yetmasa —
+      // pastiga "ag'daradi". Gorizontal chetga chiqmasligi uchun qisiladi,
+      // ko'rsatkich (arrow) esa aynan tanlangan so'zga qarab siljiydi.
       const rect = range.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
-      const rawTop = rect.top - containerRect.top + container.scrollTop - 50;
-      const rawLeft = rect.left - containerRect.left + container.scrollLeft + (rect.width / 2);
-      const halfMenu = 120;
+
+      const anchorLeft = rect.left - containerRect.left + (rect.width / 2);
+      const clampedLeft = Math.min(
+        Math.max(MENU_HALF_WIDTH, anchorLeft),
+        Math.max(MENU_HALF_WIDTH, containerRect.width - MENU_HALF_WIDTH)
+      );
+
+      const topAbove = rect.top - containerRect.top - MENU_HEIGHT - MENU_GAP;
+      // Sahifa tepasidagi yopishqoq header ostida qolib ketmasin
+      const fitsAbove = topAbove >= 0 && rect.top > MENU_HEIGHT + MENU_GAP + STICKY_HEADER_OFFSET;
+      const placement = fitsAbove ? 'top' : 'bottom';
 
       setSelectionMenu({
-        top: Math.max(4, rawTop),
-        left: Math.min(Math.max(halfMenu, rawLeft), Math.max(halfMenu, containerRect.width - halfMenu)),
+        top: fitsAbove ? topAbove : rect.bottom - containerRect.top + MENU_GAP,
+        left: clampedLeft,
+        arrowShift: Math.max(-MENU_HALF_WIDTH + 22, Math.min(MENU_HALF_WIDTH - 22, anchorLeft - clampedLeft)),
+        placement,
         word: selectedText,
         context: contextSentence
       });
-      setIsWordBankAdded(false);
-      setIsWordBankLoading(false);
+
+      // Faqat yangi so'z tanlanganda holatni tozalaymiz — aks holda scroll
+      // paytida "Qo'shildi" belgisi yo'qolib qoladi
+      if (selectionMenuRef.current?.word !== selectedText) {
+        setIsWordBankAdded(false);
+        setIsWordBankLoading(false);
+      }
     };
 
     let menuTimer = null;
@@ -353,15 +467,28 @@ export default function ArticleReading() {
       }
     };
 
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && selectionMenuRef.current) dismissMenu();
+    };
+
+    // Sahifa siljiganda menyu matndan "uzilib" qolmasin
+    const onScroll = () => {
+      if (selectionMenuRef.current) scheduleShowMenu();
+    };
+
     container.addEventListener('mouseup', onMouseUp);
     container.addEventListener('touchend', onTouchEnd);
     document.addEventListener('mousedown', onDocumentMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
       clearTimeout(menuTimer);
       container.removeEventListener('mouseup', onMouseUp);
       container.removeEventListener('touchend', onTouchEnd);
       document.removeEventListener('mousedown', onDocumentMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('scroll', onScroll);
     };
   }, [article?.id, dismissMenu]);
 
@@ -374,23 +501,41 @@ export default function ArticleReading() {
   useEffect(() => {
     if (id) {
       setHasClapped(hasClappedArticle(id, user, userData));
-      setIsSaved(Boolean(user) && Array.isArray(userData?.savedArticles) && userData.savedArticles.includes(id));
+      setIsSaved(Boolean(user) && isArticleSaved(id, userData));
     }
   }, [id, user, userData?.clappedArticles, userData?.savedArticles]);
+
+  const clearKeepAlive = useCallback(() => {
+    if (keepAliveRef.current) {
+      clearInterval(keepAliveRef.current);
+      keepAliveRef.current = null;
+    }
+  }, []);
 
   const stopSpeech = useCallback(() => {
     // Tokenni o'zgartiramiz — bekor qilingan utterance'ning onend'i keyingi blokni o'qimasin
     speechRunIdRef.current += 1;
-    if (synth) synth.cancel();
+    clearKeepAlive();
+    utteranceRef.current = null;
+    setIsPreparingSpeech(false);
+    if (readerRef.current) {
+      readerRef.current.stop();
+      readerRef.current = null;
+    }
+    if (synth) {
+      // Chrome'da "paused" holatida cancel() qilinsa, dvigatel qotib qoladi va
+      // keyingi speak() umuman ishlamaydi — avval resume qilamiz.
+      try { synth.resume(); } catch { /* ignore */ }
+      synth.cancel();
+    }
+    isPausedRef.current = false;
     setIsSpeaking(false);
     setIsPaused(false);
     setCurrentBlockIndex(-1);
-  }, [synth]);
+  }, [synth, clearKeepAlive]);
 
   useEffect(() => {
     if (!article) return;
-    setTimeSpent(0);
-    setIsScrollMet(false);
     stopSpeech();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [readingLevel, article?.id, stopSpeech]);
@@ -420,7 +565,6 @@ export default function ArticleReading() {
       const pct = scrollHeight <= 0 ? 100 : Math.min(100, Math.max(0, (scrollTop / scrollHeight) * 100));
       setProgress(pct);
       setShowTopButton(scrollTop > 800);
-      if (pct >= REQUIRED_SCROLL) setIsScrollMet(true);
     };
 
     const onScroll = () => {
@@ -436,23 +580,6 @@ export default function ArticleReading() {
       window.removeEventListener('resize', onScroll);
     };
   }, [loading, article?.id, readingLevel]);
-
-  // XP taymeri — faqat kontent ochiq bo'lganda
-  useEffect(() => {
-    if (loading || !article || isLocked) return;
-
-    const interval = setInterval(() => {
-      setTimeSpent(prev => {
-        if (prev >= REQUIRED_SECONDS) {
-          clearInterval(interval);
-          return REQUIRED_SECONDS;
-        }
-        return prev + 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [loading, article?.id, isLocked]);
 
   useEffect(() => {
     fetchArticle();
@@ -575,26 +702,6 @@ export default function ArticleReading() {
     }
   };
 
-  const handleClaimXP = async () => {
-    if (!user || !article) return;
-
-    if (!canClaimXP) {
-      showToast("XP olish uchun quyidagi shartlarni bajaring.", 'error');
-      return;
-    }
-
-    const result = await awardXP('article', article.id, article.title);
-    if (result.success) {
-      showToast(`Tabriklaymiz! +${result.amount} XP qo'shildi.`, 'success');
-      setCompleted(true);
-    } else if (result.alreadyAwarded) {
-      showToast("Siz allaqachon bu maqola uchun XP olgansiz.", 'info');
-      setCompleted(true);
-    } else {
-      showToast("Xatolik: " + result.error, 'error');
-    }
-  };
-
   const handlePostComment = async () => {
     const text = newComment.trim();
     if (!text || !user) return;
@@ -679,21 +786,128 @@ export default function ArticleReading() {
     }
   };
 
-  const handleListen = () => {
+  /**
+   * Zaxira dvigatel — brauzerning o'z `speechSynthesis` ovozi.
+   * Neural ovoz ishlamaganda ishga tushadi: sifati past, lekin tarmoqsiz ham ishlaydi.
+   * @param {Array<{ blockIndex: number, text: string }>} items
+   */
+  const speakWithBrowser = (items) => {
     if (!synth) {
       showToast("Brauzeringiz ovozli o'qishni qo'llab-quvvatlamaydi.", 'error');
+      stopSpeech();
       return;
     }
 
+    // Har bir blokni qisqa bo'laklarga ajratib, bitta navbat quramiz.
+    // Har bir bo'lak qaysi blokka tegishli ekani saqlanadi (ajratib ko'rsatish uchun).
+    const queue = [];
+    items.forEach(({ blockIndex, text }) => {
+      splitIntoSpeechChunks(text).forEach((chunk) => queue.push({ blockIndex, text: chunk }));
+    });
+
+    if (queue.length === 0) {
+      stopSpeech();
+      return;
+    }
+
+    // Avvalgi sessiyani to'xtatamiz va yangi token olamiz
+    speechRunIdRef.current += 1;
+    const runId = speechRunIdRef.current;
+    clearKeepAlive();
+    try { synth.resume(); } catch { /* ignore */ }
+    synth.cancel();
+
+    const availableVoices = voices.length > 0 ? voices : synth.getVoices();
+    const voice = pickEnglishVoice(availableVoices);
+
+    const finish = () => {
+      clearKeepAlive();
+      utteranceRef.current = null;
+      isPausedRef.current = false;
+      setIsSpeaking(false);
+      setIsPaused(false);
+      setCurrentBlockIndex(-1);
+    };
+
+    const speakAt = (index) => {
+      // Bekor qilingan (yoki eskirgan) sessiya davom etmasin
+      if (runId !== speechRunIdRef.current) return;
+      if (index >= queue.length) {
+        finish();
+        return;
+      }
+
+      const item = queue[index];
+      setCurrentBlockIndex(item.blockIndex);
+
+      const utterance = new SpeechSynthesisUtterance(item.text);
+      if (voice) utterance.voice = voice;
+      utterance.lang = voice?.lang || 'en-US';
+      utterance.rate = 0.95;
+
+      utterance.onend = () => {
+        if (runId !== speechRunIdRef.current) return;
+        speakAt(index + 1);
+      };
+
+      utterance.onerror = (event) => {
+        if (runId !== speechRunIdRef.current) return;
+        // cancel() natijasida kelgan xatolar — bu normal, e'tibor bermaymiz
+        if (event?.error === 'interrupted' || event?.error === 'canceled') return;
+        console.error('Speech error:', event?.error);
+        // Bitta bo'lak o'qilmasa, butun maqolani to'xtatmaymiz — keyingisiga o'tamiz
+        speakAt(index + 1);
+      };
+
+      utteranceRef.current = utterance;
+      synth.speak(utterance);
+    };
+
+    isPausedRef.current = false;
+    setIsSpeaking(true);
+    setIsPaused(false);
+    speakAt(0);
+
+    // Chrome'ning ~15 soniyalik "timeout" bug'iga qarshi: davriy ravishda
+    // pause/resume qilib dvigatelni uyg'oq ushlab turamiz.
+    keepAliveRef.current = setInterval(() => {
+      if (runId !== speechRunIdRef.current) {
+        clearKeepAlive();
+        return;
+      }
+      if (isPausedRef.current || !synth.speaking) return;
+      try {
+        synth.pause();
+        synth.resume();
+      } catch { /* ignore */ }
+    }, 9000);
+
+    // Agar 1.5 soniyada ovoz umuman boshlanmasa — foydalanuvchini xabardor qilamiz
+    setTimeout(() => {
+      if (runId !== speechRunIdRef.current) return;
+      if (!synth.speaking && !synth.pending) {
+        console.error('Speech synthesis did not start');
+        showToast("Ovozli o'qishni boshlab bo'lmadi. Brauzer sozlamalarini tekshiring.", 'error');
+        finish();
+      }
+    }, 1500);
+  };
+
+  const handleListen = () => {
+    // Pauza / davom ettirish — qaysi dvigatel ishlayotganiga qarab
     if (isSpeaking && !isPaused) {
-      synth.pause();
+      isPausedRef.current = true;
       setIsPaused(true);
+      if (readerRef.current) readerRef.current.pause();
+      else synth?.pause();
       return;
     }
 
     if (isSpeaking && isPaused) {
-      synth.resume();
+      isPausedRef.current = false;
       setIsPaused(false);
+      if (readerRef.current) readerRef.current.resume();
+      else synth?.resume();
       return;
     }
 
@@ -704,60 +918,59 @@ export default function ArticleReading() {
       ? fullContent?.slice(0, Math.ceil((fullContent?.length || 0) / 3))
       : fullContent;
 
-    if (!blocksToRead || blocksToRead.length === 0) return;
+    const items = (blocksToRead || [])
+      .map((block, blockIndex) => ({ blockIndex, text: htmlToPlainText(block?.text) }))
+      .filter((item) => item.text);
 
-    // Avvalgi sessiyani to'xtatamiz va yangi token olamiz
+    if (items.length === 0) {
+      showToast("Bu maqolada o'qiladigan matn topilmadi.", 'error');
+      return;
+    }
+
+    // Neural ovoz serverdan keladi va avtorizatsiya talab qiladi.
+    // Mehmon foydalanuvchi uchun to'g'ridan-to'g'ri brauzer ovoziga o'tamiz.
+    if (!user) {
+      speakWithBrowser(items);
+      return;
+    }
+
     speechRunIdRef.current += 1;
     const runId = speechRunIdRef.current;
-    synth.cancel();
-
-    const readBlock = (index) => {
-      // Bekor qilingan (yoki eskirgan) sessiya davom etmasin
-      if (runId !== speechRunIdRef.current) return;
-
-      if (index >= blocksToRead.length) {
-        setIsSpeaking(false);
-        setIsPaused(false);
-        setCurrentBlockIndex(-1);
-        return;
-      }
-
-      setCurrentBlockIndex(index);
-
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = blocksToRead[index].text;
-      const text = (tempDiv.textContent || tempDiv.innerText || "").trim();
-
-      if (!text) {
-        readBlock(index + 1);
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      const availableVoices = voices.length > 0 ? voices : synth.getVoices();
-      const naturalVoice = availableVoices.find(v => v.name.includes('Natural') || v.name.includes('Google US English'));
-      if (naturalVoice) utterance.voice = naturalVoice;
-      utterance.lang = 'en-US';
-      utterance.rate = 0.95;
-
-      utterance.onend = () => {
-        if (runId !== speechRunIdRef.current) return;
-        readBlock(index + 1);
-      };
-
-      utterance.onerror = () => {
-        if (runId !== speechRunIdRef.current) return;
-        setIsSpeaking(false);
-        setIsPaused(false);
-        setCurrentBlockIndex(-1);
-      };
-
-      synth.speak(utterance);
-    };
-
+    isPausedRef.current = false;
     setIsSpeaking(true);
     setIsPaused(false);
-    readBlock(0);
+    setIsPreparingSpeech(true);
+
+    const reader = createArticleReader({
+      blocks: items,
+      onBlockChange: (blockIndex) => {
+        if (runId !== speechRunIdRef.current) return;
+        setCurrentBlockIndex(blockIndex);
+      },
+      onLoadingChange: (loading) => {
+        if (runId !== speechRunIdRef.current) return;
+        setIsPreparingSpeech(loading);
+      },
+      onEnd: () => {
+        if (runId !== speechRunIdRef.current) return;
+        stopSpeech();
+      },
+      onError: (error) => {
+        if (runId !== speechRunIdRef.current) return;
+        // Sabab konsolga to'liq chiqadi: `unavailable` — Edge TTS javob bermadi,
+        // `NotAllowedError` — brauzer ijroga ruxsat bermadi, `unauthenticated` —
+        // sessiya eskirgan. Zaxira ovozga o'tish sababni yashirmasin.
+        console.error('Neural TTS ishlamadi:', error?.code || error?.name, error?.message || error);
+        readerRef.current?.stop();
+        readerRef.current = null;
+        setIsPreparingSpeech(false);
+        showToast("Tabiiy ovoz ishlamadi — brauzer ovoziga o'tildi.", 'error');
+        speakWithBrowser(items);
+      },
+    });
+
+    readerRef.current = reader;
+    reader.start();
   };
 
   // O'qilayotgan blok ekrandan chiqib ketmasin
@@ -774,7 +987,16 @@ export default function ArticleReading() {
   useEffect(() => {
     return () => {
       speechRunIdRef.current += 1;
-      if (synth) synth.cancel();
+      if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+      keepAliveRef.current = null;
+      utteranceRef.current = null;
+      readerRef.current?.stop();
+      readerRef.current = null;
+      revokeArticleAudio();
+      if (synth) {
+        try { synth.resume(); } catch { /* ignore */ }
+        synth.cancel();
+      }
     };
   }, [synth]);
 
@@ -931,10 +1153,9 @@ export default function ArticleReading() {
                 <span className="font-medium text-[15px] truncate" style={{ color: 'var(--r-ink)' }}>{article.author}</span>
                 <CheckCircle2 size={14} className="r-accent shrink-0" />
               </div>
+              {/* Daraja bu yerda ko'rsatilmaydi — pastdagi tanlagichda allaqachon ko'rinib turadi */}
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 r-muted text-[13.5px]">
-                <span>{activeReadTime || article.readTime || '5 daqiqa'}</span>
-                <span aria-hidden>·</span>
-                <span className="font-semibold" style={{ color: 'var(--r-accent)' }}>{readingLevel}</span>
+                <span>{formatReadTimeLabel(activeReadTime || article.readTime) || '5 daqiqa'}</span>
                 {publishedDate && (
                   <>
                     <span aria-hidden>·</span>
@@ -951,19 +1172,21 @@ export default function ArticleReading() {
             readTimes={levelReadTimes}
           />
 
-          {/* Interaction Bar */}
-          <div className="flex items-center justify-between gap-3 py-3 border-y" style={{ borderColor: 'var(--r-hairline)' }}>
-            <div className="flex items-center gap-5">
+          {/* Interaction Bar — saqlash/ulashish yuqoridagi doimiy panelda,
+              bu yerda takrorlanmaydi (ortiqcha tugmalar o'qishni chalg'itardi) */}
+          <div className="flex items-center justify-between gap-3 py-2.5 border-y" style={{ borderColor: 'var(--r-hairline)' }}>
+            <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={handleClap}
                 aria-pressed={hasClapped}
                 aria-label={hasClapped ? "Qarsakni qaytarib olish" : "Qarsak chalish"}
-                className={`flex items-center gap-2 transition-colors group ${hasClapped ? 'r-ink' : 'r-muted r-hover-ink'}`}
+                title={hasClapped ? "Qarsakni qaytarib olish" : "Qarsak chalish"}
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-full transition-colors hover:bg-[var(--r-hover)] ${hasClapped ? 'r-ink' : 'r-muted r-hover-ink'}`}
               >
                 <motion.span
                   animate={isClapping ? { scale: [1, 1.4, 1], rotate: [0, -10, 10, 0] } : {}}
-                  className="text-xl leading-none"
+                  className="text-[19px] leading-none"
                 >
                   👏
                 </motion.span>
@@ -971,10 +1194,11 @@ export default function ArticleReading() {
               </button>
               <button
                 onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                aria-label="Izohlarga o'tish"
-                className="flex items-center gap-2 r-muted r-hover-ink transition-colors"
+                aria-label={`Izohlarga o'tish (${comments.length})`}
+                title="Izohlar"
+                className="flex items-center gap-2 px-2.5 py-2 rounded-full r-muted r-hover-ink hover:bg-[var(--r-hover)] transition-colors"
               >
-                <MessageSquareIcon size={19} />
+                <MessageSquareIcon size={18} />
                 <span className="text-[13px] font-medium tabular-nums">{comments.length}</span>
               </button>
             </div>
@@ -983,13 +1207,28 @@ export default function ArticleReading() {
               <button
                 onClick={handleListen}
                 aria-label={isSpeaking ? (isPaused ? "Davom ettirish" : "Pauza") : "Ovozli o'qish"}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-full transition-colors text-[13px] font-medium ${
-                  isSpeaking ? 'r-accent-bg' : 'r-muted r-hover-ink hover:bg-[var(--r-hover)]'
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-full transition-colors text-[13px] font-medium border ${
+                  isSpeaking ? 'r-accent-bg border-transparent' : 'r-muted r-hover-ink hover:bg-[var(--r-hover)]'
                 }`}
+                style={isSpeaking ? undefined : { borderColor: 'var(--r-hairline)' }}
               >
-                {!isSpeaking ? <Volume2 size={17} /> : isPaused ? <Play size={17} /> : <Pause size={17} />}
-                <span className="hidden sm:inline">
-                  {isPaused ? 'Pauza' : isSpeaking ? "O'qilmoqda" : 'Tinglash'}
+                {isPreparingSpeech ? (
+                  <span className="w-[17px] h-[17px] border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : !isSpeaking ? (
+                  <Volume2 size={17} />
+                ) : isPaused ? (
+                  <Play size={17} />
+                ) : (
+                  <Pause size={17} />
+                )}
+                <span>
+                  {isPreparingSpeech
+                    ? 'Tayyorlanmoqda'
+                    : isPaused
+                      ? 'Davom ettirish'
+                      : isSpeaking
+                        ? "O'qilmoqda"
+                        : 'Tinglash'}
                 </span>
               </button>
               {isSpeaking && (
@@ -1002,17 +1241,6 @@ export default function ArticleReading() {
                   <X size={18} />
                 </button>
               )}
-              <button
-                onClick={handleToggleSave}
-                aria-pressed={isSaved}
-                aria-label={isSaved ? "Saqlanganlardan olib tashlash" : "Maqolani saqlash"}
-                className={iconBtn}
-              >
-                <BookMarked size={19} className={isSaved ? 'r-accent' : ''} fill={isSaved ? 'currentColor' : 'none'} />
-              </button>
-              <button onClick={handleShare} aria-label="Ulashish" className={iconBtn}>
-                <Share2 size={19} />
-              </button>
             </div>
           </div>
         </div>
@@ -1039,56 +1267,144 @@ export default function ArticleReading() {
           className="article-container relative"
           style={{ fontSize: `${fontStep.base}px`, color: 'var(--r-ink-soft)' }}
         >
-          {selectionMenu && (
-            <div
-              className={`article-selection-menu ${isMobile ? 'fixed' : 'absolute'} z-[1000] flex items-center gap-1.5 bg-neutral-900/95 dark:bg-neutral-800/95 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.35)] -translate-x-1/2 touch-none select-none border border-white/[0.08]`}
-              style={isMobile ? {
-                bottom: '24px',
-                left: '50%',
-                top: 'auto'
-              } : {
-                top: selectionMenu.top,
-                left: selectionMenu.left
-              }}
-              onMouseDown={(e) => e.preventDefault()}
-              onTouchStart={(e) => e.preventDefault()}
-            >
-              <button
-                onClick={handleAddToWordBank}
-                disabled={isWordBankLoading || isWordBankAdded}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold transition-colors active:scale-95 ${
-                  isWordBankAdded
-                    ? 'text-emerald-400'
-                    : 'text-sky-300 hover:bg-white/10 hover:text-white'
-                }`}
+          <AnimatePresence>
+            {selectionMenu && (
+              <motion.div
+                key="selection-menu"
+                role="dialog"
+                aria-label="Tanlangan so'z"
+                /* x: '-50%' — markazlash framer transformi bilan birga ishlashi uchun */
+                initial={isMobile ? { opacity: 0, y: 24, x: '-50%' } : { opacity: 0, y: selectionMenu.placement === 'top' ? 6 : -6, scale: 0.96, x: '-50%' }}
+                animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+                exit={isMobile ? { opacity: 0, y: 16, x: '-50%' } : { opacity: 0, scale: 0.96, x: '-50%' }}
+                transition={{ type: 'spring', stiffness: 480, damping: 34, mass: 0.6 }}
+                className={`article-selection-menu selection-pop ${
+                  isMobile
+                    ? 'fixed left-1/2 right-auto z-[1000] w-[calc(100vw-28px)] max-w-sm rounded-2xl px-3.5 py-3'
+                    : 'absolute z-[1000] rounded-2xl px-2 py-1.5'
+                } touch-none select-none`}
+                style={isMobile ? {
+                  bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
+                  top: 'auto'
+                } : {
+                  top: selectionMenu.top,
+                  left: selectionMenu.left,
+                  '--arrow-shift': `${selectionMenu.arrowShift || 0}px`
+                }}
+                data-placement={isMobile ? 'sheet' : selectionMenu.placement}
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
               >
-                {isWordBankLoading ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    <span>Saqlanmoqda...</span>
-                  </>
-                ) : isWordBankAdded ? (
-                  <>
-                    <CheckCircle2 size={14} />
-                    <span>Qo'shildi</span>
-                  </>
+                {isMobile ? (
+                  <div className="flex flex-col gap-2.5">
+                    {/* Tanlangan so'z — foydalanuvchi nimani saqlayotganini ko'rib tursin */}
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="selection-word text-[15px] font-semibold leading-snug break-words">
+                          {truncateWord(selectionMenu.word, 60)}
+                        </p>
+                        {selectionMenu.word.includes(' ') && (
+                          <p className="selection-meta text-[11px] mt-0.5">
+                            {selectionMenu.word.trim().split(/\s+/).length} so'zli ibora
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={dismissMenu}
+                        aria-label="Yopish"
+                        className="selection-ghost -mr-1 -mt-1 p-1.5 rounded-lg shrink-0"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {!isSpeaking && synth && (
+                        <button
+                          onClick={speakSelectedWord}
+                          aria-label="Talaffuzni eshitish"
+                          className={`selection-ghost h-10 w-10 shrink-0 rounded-xl grid place-items-center ${isWordSpeaking ? 'is-active' : ''}`}
+                        >
+                          <Volume2 size={17} />
+                        </button>
+                      )}
+                      <button
+                        onClick={handleAddToWordBank}
+                        disabled={isWordBankLoading || isWordBankAdded}
+                        aria-live="polite"
+                        className={`selection-primary flex-1 h-10 rounded-xl text-[14px] font-semibold flex items-center justify-center gap-2 ${isWordBankAdded ? 'is-done' : ''}`}
+                      >
+                        {isWordBankLoading ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            <span>Saqlanmoqda…</span>
+                          </>
+                        ) : isWordBankAdded ? (
+                          <>
+                            <CheckCircle2 size={17} />
+                            <span>Lug'atga qo'shildi</span>
+                          </>
+                        ) : (
+                          <>
+                            <BookMarked size={16} />
+                            <span>Lug'atga qo'shish</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <>
-                    <BookMarked size={14} />
-                    <span>Lug'atga qo'shish</span>
-                  </>
+                  <div className="flex items-center gap-1">
+                    <span className="selection-word max-w-[168px] truncate px-2 text-[13px] font-semibold">
+                      {truncateWord(selectionMenu.word)}
+                    </span>
+                    <span className="selection-divider" />
+                    {!isSpeaking && synth && (
+                      <button
+                        onClick={speakSelectedWord}
+                        title="Talaffuzni eshitish"
+                        aria-label="Talaffuzni eshitish"
+                        className={`selection-ghost h-8 w-8 rounded-lg grid place-items-center ${isWordSpeaking ? 'is-active' : ''}`}
+                      >
+                        <Volume2 size={15} />
+                      </button>
+                    )}
+                    <button
+                      onClick={handleAddToWordBank}
+                      disabled={isWordBankLoading || isWordBankAdded}
+                      aria-live="polite"
+                      title="Lug'atga qo'shish (so'z lug'at bo'limingizga saqlanadi)"
+                      className={`selection-primary h-8 rounded-lg px-3 text-[12.5px] font-semibold flex items-center gap-1.5 ${isWordBankAdded ? 'is-done' : ''}`}
+                    >
+                      {isWordBankLoading ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          <span>Saqlanmoqda…</span>
+                        </>
+                      ) : isWordBankAdded ? (
+                        <>
+                          <CheckCircle2 size={15} />
+                          <span>Qo'shildi</span>
+                        </>
+                      ) : (
+                        <>
+                          <BookMarked size={14} />
+                          <span>Lug'atga</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={dismissMenu}
+                      aria-label="Yopish"
+                      className="selection-ghost h-8 w-8 rounded-lg grid place-items-center"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 )}
-              </button>
-              <div className="w-px h-4 bg-white/20" />
-              <button
-                onClick={dismissMenu}
-                aria-label="Yopish"
-                className="p-1 hover:bg-white/10 rounded-lg text-neutral-400 hover:text-white transition-colors"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
           {(() => {
             const fullContent = activeContent;
             const contentToShow = isLocked
@@ -1103,21 +1419,37 @@ export default function ArticleReading() {
                     .replace(/&nbsp;/g, ' ')
                     .replace(/\u00A0/g, ' ');
 
+                  // Muharrirdagi o'lcham (odatda 16px) o'qish uchun juda kichik.
+                  // Shuning uchun uni mutlaq px sifatida emas, standart 16px'ga
+                  // nisbatan koeffitsient sifatida olamiz va o'quvchi tanlagan
+                  // asosiy o'lchamga ko'paytiramiz.
                   const rawFontSize = typeof block.style?.fontSize === 'number'
-                    ? `${block.style.fontSize}px`
-                    : (block.style?.fontSize || (block.type === 'heading' ? '26px' : undefined));
-                  // Matn o'lchami tugmasi blok stillarini ham miqyoslashi uchun
-                  const blockFontSize = rawFontSize ? `calc(${rawFontSize} * ${fontStep.scale})` : undefined;
+                    ? block.style.fontSize
+                    : parseFloat(block.style?.fontSize) || (block.type === 'heading' ? 26 : EDITOR_BASE_FONT_SIZE);
+                  const sizeRatio = rawFontSize / EDITOR_BASE_FONT_SIZE;
+                  const blockFontSize = `${(fontStep.base * sizeRatio).toFixed(1)}px`;
 
                   const blockFontWeight = block.style?.fontWeight || (block.type === 'heading' ? '700' : '400');
 
-                  const blockLineHeight = block.style?.lineHeight || (block.type === 'heading' ? 1.25 : 1.75);
-                  const blockMarginTop = block.style?.marginTop !== undefined
-                    ? (typeof block.style.marginTop === 'number' ? `${block.style.marginTop}px` : block.style.marginTop)
-                    : (block.type === 'heading' ? '2.5rem' : '0');
-                  const blockMarginBottom = block.style?.marginBottom !== undefined
-                    ? (typeof block.style.marginBottom === 'number' ? `${block.style.marginBottom}px` : block.style.marginBottom)
-                    : (block.type === 'heading' ? '1rem' : '1.5rem');
+                  // Muharrirning standart 1.6 qiymati o'qish uchun zich —
+                  // faqat qo'lda o'zgartirilgan bo'lsa hurmat qilamiz.
+                  const rawLineHeight = block.style?.lineHeight;
+                  const blockLineHeight = block.type === 'heading'
+                    ? (rawLineHeight && rawLineHeight !== EDITOR_DEFAULT_LINE_HEIGHT ? rawLineHeight : 1.24)
+                    : (rawLineHeight && rawLineHeight !== EDITOR_DEFAULT_LINE_HEIGHT ? rawLineHeight : 1.72);
+
+                  // Oraliqlar `em`da — matn kattalashganda bo'shliq ham o'sadi
+                  const toSpacing = (value, fallback) => {
+                    if (value === undefined || value === null || value === '') return fallback;
+                    if (typeof value === 'number') return `${(value / EDITOR_BASE_FONT_SIZE).toFixed(3)}em`;
+                    return value;
+                  };
+                  const blockMarginTop = block.type === 'heading'
+                    ? toSpacing(block.style?.marginTop, '1.9em')
+                    : toSpacing(block.style?.marginTop, '0');
+                  const blockMarginBottom = block.type === 'heading'
+                    ? toSpacing(block.style?.marginBottom, '0.6em')
+                    : toSpacing(block.style?.marginBottom, '1.35em');
 
                   const isActiveBlock = currentBlockIndex === i;
 
@@ -1166,9 +1498,9 @@ export default function ArticleReading() {
                               key={i}
                               className="article-body-block article-serif"
                               style={{
-                                fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
-                                lineHeight: block.style?.lineHeight || 1.75,
-                                marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '1.5rem',
+                                fontSize: `${fontStep.base}px`,
+                                lineHeight: 1.72,
+                                marginBottom: '1.35em',
                                 fontWeight: block.style?.fontWeight || '400',
                               }}
                               dangerouslySetInnerHTML={{ __html: (block.text || '').replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ') }}
@@ -1223,66 +1555,8 @@ export default function ArticleReading() {
           <ArticleVocabulary vocabulary={activeVocabulary} level={readingLevel} articleTitle={article.title} />
         )}
 
-        {/* Claim XP Section — izohlardan oldin, chunki o'qish oqimiga tegishli */}
-        {user && article && !isLocked && (
-          <div className="mt-14 rounded-2xl border p-6 md:p-7" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)' }}>
-            <div className="flex items-start gap-3 mb-5">
-              <Sparkles className="r-accent shrink-0 mt-0.5" size={20} />
-              <div>
-                <h3 className="text-[17px] font-bold" style={{ color: 'var(--r-ink)' }}>Maqolani o'qib chiqdingizmi?</h3>
-                <p className="text-[13.5px] r-muted mt-0.5">
-                  {alreadyAwarded ? "Siz ushbu maqola uchun XP olgansiz." : "Ikkala shart bajarilgach, XP tugmasi faollashadi."}
-                </p>
-              </div>
-            </div>
-
-            {!alreadyAwarded && (
-              <div className="space-y-4 mb-6">
-                <div>
-                  <div className="flex items-center justify-between text-[12.5px] mb-1.5">
-                    <span className="r-muted">O'qish vaqti</span>
-                    <span className="font-semibold tabular-nums" style={{ color: timeSpent >= REQUIRED_SECONDS ? 'var(--r-accent)' : 'var(--r-ink-soft)' }}>
-                      {Math.floor(timeSpent / 60)}:{String(timeSpent % 60).padStart(2, '0')} / 2:00
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--r-track)' }}>
-                    <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${timeProgress}%`, backgroundColor: 'var(--r-accent)' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between text-[12.5px] mb-1.5">
-                    <span className="r-muted">Varaqlash</span>
-                    <span className="font-semibold tabular-nums" style={{ color: isScrollMet ? 'var(--r-accent)' : 'var(--r-ink-soft)' }}>
-                      {isScrollMet ? 'Bajarildi' : `${Math.round(progress)}% / ${REQUIRED_SCROLL}%`}
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--r-track)' }}>
-                    <div
-                      className="h-full rounded-full transition-[width] duration-150"
-                      style={{ width: `${Math.min(100, (progress / REQUIRED_SCROLL) * 100)}%`, backgroundColor: 'var(--r-accent)' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleClaimXP}
-              disabled={alreadyAwarded || !canClaimXP}
-              className="w-full sm:w-auto px-7 py-3 r-accent-bg rounded-full font-bold text-[14px] transition-transform active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
-            >
-              {alreadyAwarded ? (
-                <><CheckCircle2 size={17} /> XP olindi</>
-              ) : (
-                <><Award size={17} /> XP olish (+10)</>
-              )}
-            </button>
-          </div>
-        )}
-
         {/* Inline Comments Section (Medium Style) */}
-        <section ref={commentsRef} className="mt-14 border-t pt-10 pb-8" style={{ borderColor: 'var(--r-hairline)' }}>
+        <section ref={commentsRef} className="mt-14 border-t pt-10 pb-8 scroll-mt-24" style={{ borderColor: 'var(--r-hairline)' }}>
           {/* Header */}
           <div className="flex items-center justify-between mb-7">
             <h3 className="text-[19px] font-bold font-sans" style={{ color: 'var(--r-ink)' }}>
@@ -1534,20 +1808,109 @@ export default function ArticleReading() {
           background-color: var(--r-selection);
         }
 
-        /* Ovozli o'qishda joriy blok — chalg'itmaydigan yumshoq belgi */
+        /* --- Tanlangan so'z menyusi --- */
+        .selection-pop {
+          font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+          background: var(--r-paper);
+          border: 1px solid var(--r-hairline);
+          color: var(--r-ink);
+          box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.06),
+            0 12px 28px -8px rgba(0, 0, 0, 0.22);
+        }
+        .dark .selection-pop {
+          background: var(--r-surface);
+          box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.4),
+            0 16px 32px -10px rgba(0, 0, 0, 0.65);
+        }
+        /* Tanlangan matnga qaragan uchburchak */
+        .selection-pop[data-placement="top"]::after,
+        .selection-pop[data-placement="bottom"]::after {
+          content: '';
+          position: absolute;
+          left: calc(50% + var(--arrow-shift, 0px));
+          width: 10px;
+          height: 10px;
+          margin-left: -5px;
+          background: inherit;
+          border: 1px solid var(--r-hairline);
+          transform: rotate(45deg);
+        }
+        .selection-pop[data-placement="top"]::after {
+          bottom: -6px;
+          border-top: none;
+          border-left: none;
+        }
+        .selection-pop[data-placement="bottom"]::after {
+          top: -6px;
+          border-bottom: none;
+          border-right: none;
+        }
+
+        .selection-word { color: var(--r-ink); }
+        .selection-meta { color: var(--r-muted); }
+        .selection-divider {
+          width: 1px;
+          height: 18px;
+          background: var(--r-hairline);
+          margin: 0 2px;
+        }
+
+        .selection-ghost {
+          color: var(--r-muted);
+          transition: background-color .15s ease, color .15s ease, transform .12s ease;
+        }
+        .selection-ghost:hover { background: var(--r-hover); color: var(--r-ink); }
+        .selection-ghost:active { transform: scale(0.94); }
+        .selection-ghost.is-active { color: var(--r-accent); background: var(--r-accent-soft); }
+
+        .selection-primary {
+          background: var(--r-accent);
+          color: var(--r-accent-contrast);
+          white-space: nowrap;
+          transition: filter .15s ease, transform .12s ease, background-color .2s ease;
+        }
+        .selection-primary:hover:not(:disabled) { filter: brightness(1.07); }
+        .selection-primary:active:not(:disabled) { transform: scale(0.97); }
+        .selection-primary:disabled { cursor: default; }
+        .selection-primary.is-done {
+          background: var(--r-accent-soft);
+          color: var(--r-accent);
+        }
+
+        .selection-pop button:focus-visible {
+          outline: 2px solid var(--r-focus);
+          outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .selection-ghost, .selection-primary { transition: none; }
+        }
+
+        /* Ovozli o'qishda joriy blok — chalg'itmaydigan yumshoq belgi.
+           Matn siljib ketmasligi uchun padding doim turadi, faqat rang o'zgaradi. */
+        .article-container .article-body-block,
+        .article-container h2 {
+          padding-left: 14px;
+          margin-left: -14px;
+          border-radius: 4px;
+          scroll-margin-top: 96px;
+        }
         .article-container .is-speaking {
           background-color: var(--r-accent-soft);
           box-shadow: inset 3px 0 0 var(--r-accent);
-          border-radius: 4px;
-          padding-left: 14px;
-          margin-left: -14px;
         }
+
+        /* Sarlavhalarda "yolg'iz so'z" qolmasin */
+        .article-container h2 { text-wrap: pretty; }
 
         .article-body-block {
           word-break: normal;
           overflow-wrap: break-word;
           hyphens: none;
           -webkit-hyphens: none;
+          text-wrap: pretty;
         }
         .article-body-block p { margin-bottom: 0.75em; }
         .article-body-block ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }

@@ -1,10 +1,10 @@
-/* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { X, Upload, Trash2, ImageIcon, Loader2, Copy, Check, Sparkles, AlignLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { motion as Motion } from 'framer-motion';
+import {
+    X, Upload, ImageIcon, Loader2, Sparkles, AlignLeft, ChevronDown, ChevronUp,
+    Star, Lock, FileText, Settings2, CheckCircle2, AlertCircle, Copy, User, Link2,
+} from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import ReactQuill from 'react-quill-new';
-import 'quill/dist/quill.snow.css';
 import {
     ARTICLE_LEVELS,
     ARTICLE_LEVEL_META,
@@ -14,24 +14,23 @@ import {
     computeReadTimeFromContent,
 } from '../../../utils/articleLevels';
 import { normalizeArticleCategory } from '../../../utils/articleCategory';
+import { parseVocabularyJson, inspectVocabularyJson } from '../../../utils/articleVocabulary';
+import { stripHtml } from '../../../utils/textUtils';
 import CategoryHashtagInput from './CategoryHashtagInput';
+import ArticleContentBlocks from './ArticleContentBlocks';
+import ArticleVocabularyEditor from './ArticleVocabularyEditor';
 
-const VOCABULARY_JSON_SAMPLE = `[
-  {
-    "word": "sustainable",
-    "translation": "barqaror, uzoq muddatli",
-    "definition": "Able to continue or be continued for a long time without harming the environment.",
-    "example": "Governments are investing in sustainable energy sources.",
-    "partOfSpeech": "adjective"
-  },
-  {
-    "word": "breakthrough",
-    "translation": "yutuq, muhim kashfiyot",
-    "definition": "An important discovery or development that helps solve a problem.",
-    "example": "Scientists announced a breakthrough in battery technology.",
-    "partOfSpeech": "noun"
-  }
-]`;
+const EMPTY_FORM = {
+    title: '',
+    subtitle: '',
+    category: '',
+    author: 'IELTS Portal',
+    authorAvatar: '',
+    imageUrl: '',
+    imageCaption: '',
+    isFeatured: false,
+    isMemberOnly: false,
+};
 
 const emptyVocabularyJsonByLevel = () =>
     ARTICLE_LEVELS.reduce((acc, lv) => {
@@ -39,625 +38,684 @@ const emptyVocabularyJsonByLevel = () =>
         return acc;
     }, {});
 
-const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, processing, existingCategories = [] }) => {
-    const [uploading, setUploading] = useState(false);
-    const [activeEditorLevel, setActiveEditorLevel] = useState('B1');
-    const [vocabularyJsonByLevel, setVocabularyJsonByLevel] = useState(emptyVocabularyJsonByLevel);
-    const [vocabularyJsonError, setVocabularyJsonError] = useState('');
-    const [vocabCopyDone, setVocabCopyDone] = useState(false);
+const levelWordCount = (levelData) =>
+    (levelData?.content || []).reduce(
+        (acc, b) => acc + stripHtml(b?.text || '').split(/\s+/).filter(Boolean).length,
+        0
+    );
 
-    // AI Assistant State
+const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, processing, existingCategories = [] }) => {
+    const [uploadingField, setUploadingField] = useState('');
+    const [activeTab, setActiveTab] = useState('meta');
+    const [activeEditorLevel, setActiveEditorLevel] = useState('B2');
+    const [vocabularyJsonByLevel, setVocabularyJsonByLevel] = useState(emptyVocabularyJsonByLevel);
+    const [formError, setFormError] = useState('');
+
+    // AI yordamchisi
     const [rawPasteText, setRawPasteText] = useState('');
     const [aiProcessing, setAiProcessing] = useState(false);
     const [showAiHelper, setShowAiHelper] = useState(false);
 
-    const [formData, setFormData] = useState({
-        title: '',
-        subtitle: '',
-        category: '',
-        author: 'IELTS Portal',
-        authorAvatar: '',
-        imageUrl: '',
-        isFeatured: false,
-        isMemberOnly: false,
-        levels: makeEmptyArticleLevels(),
-        quiz: [{ question: '', options: ['', '', '', ''], correct: 0 }],
-    });
+    const [formData, setFormData] = useState({ ...EMPTY_FORM, levels: makeEmptyArticleLevels() });
+    const snapshotRef = useRef('');
 
+    const uploading = Boolean(uploadingField);
+    const busy = processing || uploading || aiProcessing;
     const activeLevel = formData.levels[activeEditorLevel];
-    const vocabularyJson = vocabularyJsonByLevel[activeEditorLevel] || '';
 
+    /* ---------- Ochilganda formani to'liq qayta yuklash ---------- */
     useEffect(() => {
-        if (article) {
-            const levels = normalizeArticleLevels(article);
-            setFormData({
-                title: article.title || '',
-                subtitle: article.subtitle || '',
-                category: normalizeArticleCategory(article.category) || '',
-                author: article.author || 'IELTS Portal',
-                authorAvatar: article.authorAvatar || '',
-                imageUrl: article.imageUrl || '',
-                isFeatured: article.isFeatured || false,
-                isMemberOnly: article.isMemberOnly || false,
-                levels,
-                quiz: article.quiz || [{ question: '', options: ['', '', '', ''], correct: 0 }],
-            });
-            setVocabularyJsonByLevel(
-                ARTICLE_LEVELS.reduce((acc, lv) => {
-                    const vocab = levels[lv]?.vocabulary;
-                    acc[lv] = vocab?.length ? JSON.stringify(vocab, null, 2) : '';
-                    return acc;
-                }, {})
-            );
-            setVocabularyJsonError('');
-            setRawPasteText('');
-            setShowAiHelper(false);
-        } else if (isOpen && !article) {
-            setFormData((prev) => ({
-                ...prev,
-                levels: makeEmptyArticleLevels(),
-            }));
-            setVocabularyJsonByLevel(emptyVocabularyJsonByLevel());
-            setVocabularyJsonError('');
-            setActiveEditorLevel('B1');
-            setRawPasteText('');
-            setShowAiHelper(false);
-        }
+        if (!isOpen) return;
+
+        const levels = article ? normalizeArticleLevels(article) : makeEmptyArticleLevels();
+        // O'qish vaqtini darrov moslashtiramiz — aks holda forma ochilishidayoq "o'zgargan" bo'lib qoladi
+        ARTICLE_LEVELS.forEach((lv) => {
+            levels[lv].readTime = computeReadTimeFromContent(levels[lv].content);
+        });
+        const nextForm = article
+            ? {
+                  title: article.title || '',
+                  subtitle: article.subtitle || '',
+                  category: normalizeArticleCategory(article.category) || '',
+                  author: article.author || 'IELTS Portal',
+                  authorAvatar: article.authorAvatar || '',
+                  imageUrl: article.imageUrl || '',
+                  imageCaption: article.imageCaption || '',
+                  isFeatured: article.isFeatured || false,
+                  isMemberOnly: article.isMemberOnly || false,
+                  levels,
+              }
+            : { ...EMPTY_FORM, levels };
+
+        const nextVocab = ARTICLE_LEVELS.reduce((acc, lv) => {
+            const vocab = levels[lv]?.vocabulary;
+            acc[lv] = vocab?.length ? JSON.stringify(vocab, null, 2) : '';
+            return acc;
+        }, {});
+
+        setFormData(nextForm);
+        setVocabularyJsonByLevel(nextVocab);
+        snapshotRef.current = JSON.stringify({ form: nextForm, vocab: nextVocab });
+
+        setFormError('');
+        setRawPasteText('');
+        setShowAiHelper(false);
+        setActiveEditorLevel('B2');
+        setActiveTab('meta');
     }, [article, isOpen]);
 
+    /* ---------- O'qish vaqtini avtomatik hisoblash ---------- */
     useEffect(() => {
         if (!activeLevel?.content) return;
         const newReadTime = computeReadTimeFromContent(activeLevel.content);
         setFormData((prev) => {
-            const current = prev.levels[activeEditorLevel]?.readTime;
-            if (current === newReadTime) return prev;
+            if (prev.levels[activeEditorLevel]?.readTime === newReadTime) return prev;
             return {
                 ...prev,
                 levels: {
                     ...prev.levels,
-                    [activeEditorLevel]: {
-                        ...prev.levels[activeEditorLevel],
-                        readTime: newReadTime,
-                    },
+                    [activeEditorLevel]: { ...prev.levels[activeEditorLevel], readTime: newReadTime },
                 },
             };
         });
     }, [activeLevel?.content, activeEditorLevel]);
 
+    const isDirty = useCallback(
+        () => snapshotRef.current !== JSON.stringify({ form: formData, vocab: vocabularyJsonByLevel }),
+        [formData, vocabularyJsonByLevel]
+    );
+
+    const requestClose = useCallback(() => {
+        if (busy) return;
+        if (isDirty() && !window.confirm("Saqlanmagan o'zgarishlar bor. Yopilsinmi?")) return;
+        onClose();
+    }, [busy, isDirty, onClose]);
+
+    /* ---------- Esc bilan yopish + fonni qulflash ---------- */
+    useEffect(() => {
+        if (!isOpen) return;
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') requestClose();
+        };
+        document.addEventListener('keydown', onKeyDown);
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = prevOverflow;
+        };
+    }, [isOpen, requestClose]);
+
+    const setField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
+
     const updateLevels = (level, patch) => {
         setFormData((prev) => ({
             ...prev,
-            levels: {
-                ...prev.levels,
-                [level]: { ...prev.levels[level], ...patch },
-            },
+            levels: { ...prev.levels, [level]: { ...prev.levels[level], ...patch } },
         }));
     };
 
-    const handleQuickSplit = () => {
-        if (!rawPasteText.trim()) {
-            alert("Matn bo'sh! Avval maqola matnini joylang.");
-            return;
-        }
+    /* ---------- Darajalar holati ---------- */
+    const levelStats = useMemo(
+        () =>
+            ARTICLE_LEVELS.reduce((acc, lv) => {
+                const words = levelWordCount(formData.levels[lv]);
+                const { words: vocab, error } = inspectVocabularyJson(vocabularyJsonByLevel[lv] || '');
+                acc[lv] = {
+                    words,
+                    vocabCount: vocab.length,
+                    vocabError: error,
+                    ready: words > 0,
+                    readTime: formData.levels[lv]?.readTime,
+                };
+                return acc;
+            }, {}),
+        [formData.levels, vocabularyJsonByLevel]
+    );
 
-        const paragraphs = rawPasteText
-            .split(/\n\s*\n/)
-            .map(p => p.trim())
-            .filter(Boolean);
-
-        if (paragraphs.length === 0) return;
-
-        const newBlocks = paragraphs.map(p => {
-            const block = makeEmptyContentBlock('paragraph');
-            block.text = p;
-            return block;
+    const copyFromLevel = (sourceLevel) => {
+        const src = formData.levels[sourceLevel];
+        if (!src) return;
+        if (!window.confirm(`${sourceLevel} matni va lug'ati ${activeEditorLevel} ustiga ko'chirilsinmi?`)) return;
+        updateLevels(activeEditorLevel, {
+            content: src.content.map((b) => ({ ...b })),
+            readTime: src.readTime,
         });
+        setVocabularyJsonByLevel((prev) => ({ ...prev, [activeEditorLevel]: prev[sourceLevel] || '' }));
+    };
 
-        if (activeLevel.content?.length > 1 || (activeLevel.content?.length === 1 && activeLevel.content[0]?.text)) {
-            if (!window.confirm("Mavjud paragraflarni o'chirib, yangilarini joylashtirasizmi? Bekor qilinsa, oxiriga qo'shiladi.")) {
-                const existing = activeLevel.content || [];
-                updateLevels(activeEditorLevel, { content: [...existing, ...newBlocks] });
-                setRawPasteText('');
-                setShowAiHelper(false);
-                return;
-            }
+    /* ---------- AI / tezkor joylash ---------- */
+    const mergeOrReplaceContent = (newBlocks) => {
+        const existing = activeLevel?.content || [];
+        const hasContent = existing.length > 1 || (existing.length === 1 && existing[0]?.text);
+        if (hasContent && !window.confirm("Mavjud matn almashtirilsinmi? Bekor qilinsa, oxiriga qo'shiladi.")) {
+            return [...existing, ...newBlocks];
         }
-        updateLevels(activeEditorLevel, { content: newBlocks });
+        return newBlocks;
+    };
+
+    const handleQuickSplit = () => {
+        const paragraphs = rawPasteText.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+        if (!paragraphs.length) return;
+        const newBlocks = paragraphs.map((p) => ({ ...makeEmptyContentBlock('paragraph'), text: p }));
+        updateLevels(activeEditorLevel, { content: mergeOrReplaceContent(newBlocks) });
         setRawPasteText('');
         setShowAiHelper(false);
     };
 
     const handleAiBeautify = async () => {
-        if (!rawPasteText.trim()) {
-            alert("Matn bo'sh! Avval maqola matnini joylang.");
-            return;
-        }
+        if (!rawPasteText.trim()) return;
         setAiProcessing(true);
+        setFormError('');
         try {
-            const functions = getFunctions();
-            const beautifyFn = httpsCallable(functions, "beautifyArticle");
-            const result = await beautifyFn({
-                text: rawPasteText,
-                level: activeEditorLevel
-            });
+            const beautifyFn = httpsCallable(getFunctions(), 'beautifyArticle');
+            const result = await beautifyFn({ text: rawPasteText, level: activeEditorLevel });
 
-            if (result.data?.success) {
-                const { content: newBlocks, vocabulary: newVocab } = result.data;
-                
-                let finalizedContent = newBlocks;
-                if (activeLevel.content?.length > 1 || (activeLevel.content?.length === 1 && activeLevel.content[0]?.text)) {
-                    if (!window.confirm("Mavjud paragraflarni AI natijasi bilan almashtirasizmi? Bekor qilinsa, oxiriga qo'shiladi.")) {
-                        finalizedContent = [...(activeLevel.content || []), ...newBlocks];
-                    }
-                }
-                
-                if (newVocab && newVocab.length > 0) {
-                    setVocabularyJsonByLevel(prev => ({
-                        ...prev,
-                        [activeEditorLevel]: JSON.stringify(newVocab, null, 2)
-                    }));
-                }
-
-                updateLevels(activeEditorLevel, { 
-                    content: finalizedContent,
-                });
-                
-                setRawPasteText('');
-                setShowAiHelper(false);
-                alert("✨ AI orqali matn chiroyli qilindi, paragraflarga ajratildi va darajaga mos lug'at generatsiya qilindi!");
-            } else {
-                alert("AI tahririda kutilmagan xatolik yuz berdi.");
+            if (!result.data?.success) {
+                setFormError('AI tahririda kutilmagan xatolik yuz berdi.');
+                return;
             }
+            const { content: newBlocks, vocabulary: newVocab } = result.data;
+            updateLevels(activeEditorLevel, { content: mergeOrReplaceContent(newBlocks || []) });
+            if (newVocab?.length) {
+                setVocabularyJsonByLevel((prev) => ({
+                    ...prev,
+                    [activeEditorLevel]: JSON.stringify(newVocab, null, 2),
+                }));
+            }
+            setRawPasteText('');
+            setShowAiHelper(false);
         } catch (err) {
             console.error(err);
-            alert("AI tahririda xatolik: " + err.message);
+            setFormError('AI tahririda xatolik: ' + err.message);
         } finally {
             setAiProcessing(false);
         }
     };
 
-    const copyVocabularySample = async () => {
-        try {
-            await navigator.clipboard.writeText(VOCABULARY_JSON_SAMPLE);
-        } catch {
-            const ta = document.createElement('textarea');
-            ta.value = VOCABULARY_JSON_SAMPLE;
-            ta.style.position = 'fixed';
-            ta.style.left = '-9999px';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-        }
-        setVocabCopyDone(true);
-        setTimeout(() => setVocabCopyDone(false), 2000);
-    };
-
-    const insertVocabularySample = () => {
-        setVocabularyJsonByLevel((prev) => ({
-            ...prev,
-            [activeEditorLevel]: VOCABULARY_JSON_SAMPLE,
-        }));
-        setVocabularyJsonError('');
-    };
-
-    const parseVocabularyJson = (raw) => {
-        const trimmed = raw.trim();
-        if (!trimmed) return [];
-        let parsed;
-        try {
-            parsed = JSON.parse(trimmed);
-        } catch {
-            throw new Error("JSON noto'g'ri formatda. Qavslarni va vergullarni tekshiring.");
-        }
-        if (!Array.isArray(parsed)) {
-            throw new Error('JSON massiv bo\'lishi kerak: [ { "word": "..." }, ... ]');
-        }
-        return parsed.map((item, i) => {
-            if (!item || typeof item !== 'object') {
-                throw new Error(`${i + 1}-element obyekt bo'lishi kerak`);
-            }
-            if (!item.word?.trim()) {
-                throw new Error(`${i + 1}-so'zda majburiy "word" maydoni yo'q`);
-            }
-            return {
-                word: item.word.trim(),
-                translation: item.translation?.trim() || '',
-                definition: item.definition?.trim() || '',
-                example: item.example?.trim() || '',
-                partOfSpeech: item.partOfSpeech?.trim() || '',
-            };
-        });
-    };
-
+    /* ---------- Saqlash ---------- */
     const handleSave = (e) => {
         e.preventDefault();
-        const category = normalizeArticleCategory(formData.category);
-        if (!category) {
-            alert("Kategoriya kiriting (# bilan boshlang yoki ro'yxatdan tanlang)");
+        if (busy) return;
+
+        if (!formData.title.trim()) {
+            setFormError('Sarlavha kiriting.');
+            setActiveTab('meta');
             return;
         }
-        const levels = { ...formData.levels };
+        const category = normalizeArticleCategory(formData.category);
+        if (!category) {
+            setFormError("Kategoriya kiriting (# bilan boshlang yoki ro'yxatdan tanlang).");
+            setActiveTab('meta');
+            return;
+        }
 
+        const levels = { ...formData.levels };
         for (const lv of ARTICLE_LEVELS) {
             try {
-                const vocabulary = parseVocabularyJson(vocabularyJsonByLevel[lv] || '');
                 levels[lv] = {
                     ...levels[lv],
-                    vocabulary,
+                    vocabulary: parseVocabularyJson(vocabularyJsonByLevel[lv] || ''),
                     readTime: computeReadTimeFromContent(levels[lv].content),
                 };
             } catch (err) {
-                setVocabularyJsonError(`${lv}: ${err.message}`);
+                setFormError(`${lv} lug'ati: ${err.message}`);
+                setActiveTab('content');
                 setActiveEditorLevel(lv);
                 return;
             }
         }
 
-        setVocabularyJsonError('');
+        const emptyLevels = ARTICLE_LEVELS.filter((lv) => !levelStats[lv].ready);
+        if (emptyLevels.length === ARTICLE_LEVELS.length) {
+            setFormError('Kamida bitta daraja uchun matn kiriting.');
+            setActiveTab('content');
+            return;
+        }
+        if (emptyLevels.length && !window.confirm(`${emptyLevels.join(', ')} darajasi bo'sh. Shunday saqlansinmi?`)) {
+            setActiveTab('content');
+            setActiveEditorLevel(emptyLevels[0]);
+            return;
+        }
+
+        setFormError('');
         onSave({
-            title: formData.title,
-            subtitle: formData.subtitle,
+            title: formData.title.trim(),
+            subtitle: formData.subtitle.trim(),
             category,
-            author: formData.author,
+            author: formData.author.trim() || 'IELTS Portal',
             authorAvatar: formData.authorAvatar,
             imageUrl: formData.imageUrl,
+            imageCaption: formData.imageCaption.trim(),
             isFeatured: formData.isFeatured,
             isMemberOnly: formData.isMemberOnly,
-            quiz: formData.quiz,
             levels,
             readTime: levels.B2.readTime,
             hasLevels: true,
         });
     };
 
-    const addContentBlock = (type) => {
-        const content = [...(activeLevel.content || []), makeEmptyContentBlock(type)];
-        updateLevels(activeEditorLevel, { content });
-    };
-
-    const updateContentBlock = (index, text) => {
-        const content = [...activeLevel.content];
-        content[index] = { ...content[index], text };
-        updateLevels(activeEditorLevel, { content });
-    };
-
-    const removeContentBlock = (index) => {
-        const content = activeLevel.content.filter((_, i) => i !== index);
-        updateLevels(activeEditorLevel, { content: content.length ? content : [makeEmptyContentBlock('paragraph')] });
-    };
-
     const handleFileUpload = async (e, field) => {
         const file = e.target.files[0];
+        e.target.value = '';
         if (!file) return;
-        setUploading(true);
+        setUploadingField(field);
         try {
             const url = await onUpload(file);
-            if (url) setFormData((prev) => ({ ...prev, [field]: url }));
+            if (url) setField(field, url);
         } catch (err) {
-            alert('Rasm yuklashda xatolik yuz berdi: ' + err.message);
+            setFormError('Rasm yuklashda xatolik: ' + err.message);
         } finally {
-            setUploading(false);
+            setUploadingField('');
         }
-    };
-
-    const levelTabClass = (level) => {
-        const meta = ARTICLE_LEVEL_META[level];
-        const isActive = activeEditorLevel === level;
-        const base = 'px-4 py-2 rounded-xl text-xs font-bold transition-all';
-        if (!isActive) return `${base} bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400`;
-        if (meta.color === 'emerald') return `${base} bg-emerald-600 text-white`;
-        if (meta.color === 'violet') return `${base} bg-violet-600 text-white`;
-        return `${base} bg-blue-600 text-white`;
     };
 
     if (!isOpen) return null;
 
+    const levelTabClass = (level) => {
+        const meta = ARTICLE_LEVEL_META[level];
+        const isActive = activeEditorLevel === level;
+        const base = 'relative px-4 py-2.5 rounded-2xl text-xs font-bold transition-all text-left min-w-[112px]';
+        if (!isActive) {
+            return `${base} bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10`;
+        }
+        const tone =
+            meta.color === 'emerald' ? 'bg-emerald-600' : meta.color === 'violet' ? 'bg-violet-600' : 'bg-blue-600';
+        return `${base} ${tone} text-white shadow-lg shadow-black/10`;
+    };
+
+    const tabClass = (tab) =>
+        `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            activeTab === tab
+                ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+        }`;
+
+    const inputClass =
+        'w-full bg-gray-50 dark:bg-[#252525] border border-transparent focus:border-blue-500/40 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/30 font-medium text-gray-900 dark:text-white outline-none transition-all';
+
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4">
+            <Motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                onClick={() => !processing && !uploading && onClose()}
+                onClick={requestClose}
             />
-            <motion.div
-                initial={{ opacity: 0, y: 50, scale: 0.98 }}
+            <Motion.div
+                initial={{ opacity: 0, y: 30, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 50, scale: 0.98 }}
-                className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-[#1E1E1E] rounded-[24px] shadow-2xl overflow-hidden flex flex-col"
+                exit={{ opacity: 0, y: 30, scale: 0.98 }}
+                className="relative w-full max-w-4xl h-[92vh] bg-white dark:bg-[#1E1E1E] rounded-[24px] shadow-2xl overflow-hidden flex flex-col"
             >
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/2">
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                            {article ? 'Maqolani tahrirlash' : 'Yangi maqola yaratish'}
+                {/* Header */}
+                <div className="px-4 sm:px-6 py-3.5 border-b border-gray-100 dark:border-white/5 flex justify-between items-center gap-4 bg-gray-50/60 dark:bg-white/[0.02]">
+                    <div className="min-w-0">
+                        <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">
+                            {article ? 'Maqolani tahrirlash' : 'Yangi maqola'}
                         </h2>
-                        <p className="text-[11px] text-gray-500 mt-0.5">Har bir daraja uchun alohida matn va lug&apos;at (B1, B2, C1)</p>
+                        <p className="text-[11px] text-gray-500 truncate">
+                            {formData.title || "Sarlavha kiritilmagan"}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-1 p-1 rounded-2xl bg-gray-100 dark:bg-white/5 shrink-0">
+                        <button type="button" className={tabClass('meta')} onClick={() => setActiveTab('meta')}>
+                            <Settings2 size={13} /> <span className="hidden sm:inline">Ma&apos;lumot</span>
+                        </button>
+                        <button type="button" className={tabClass('content')} onClick={() => setActiveTab('content')}>
+                            <FileText size={13} /> <span className="hidden sm:inline">Kontent</span>
+                        </button>
                     </div>
                     <button
-                        onClick={onClose}
-                        disabled={processing || uploading}
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors text-gray-400"
+                        type="button"
+                        onClick={requestClose}
+                        disabled={busy}
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors text-gray-400 shrink-0 disabled:opacity-40"
                     >
                         <X size={18} />
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
-                    <form onSubmit={handleSave} className="space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">Sarlavha</label>
-                                <input
-                                    required
-                                    type="text"
-                                    className="w-full bg-gray-50 dark:bg-[#252525] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/50 font-medium text-gray-900 dark:text-white"
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">Kategoriya</label>
-                                <CategoryHashtagInput
-                                    required
-                                    value={formData.category}
-                                    onChange={(category) => setFormData({ ...formData, category })}
-                                    existingCategories={existingCategories}
-                                    placeholder="# Kategoriya — yozing yoki tanlang"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">Qisqa izoh</label>
-                            <input
-                                type="text"
-                                className="w-full bg-gray-50 dark:bg-[#252525] border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/50 font-medium text-gray-900 dark:text-white"
-                                value={formData.subtitle}
-                                onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">Cover Image</label>
-                            <div className="flex gap-3 items-center">
-                                <div className="w-12 h-12 rounded-lg bg-gray-50 dark:bg-[#252525] flex items-center justify-center overflow-hidden shrink-0">
-                                    {formData.imageUrl ? (
-                                        <img src={formData.imageUrl} className="w-full h-full object-cover" alt="" />
-                                    ) : (
-                                        <ImageIcon className="text-gray-400" size={20} />
-                                    )}
-                                </div>
-                                <input
-                                    type="text"
-                                    className="flex-1 bg-gray-50 dark:bg-[#252525] border-none rounded-xl px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-white"
-                                    value={formData.imageUrl}
-                                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                                />
-                                <label className="cursor-pointer bg-blue-600 text-white px-4 py-2.5 rounded-xl flex items-center gap-1.5 font-bold text-xs shrink-0">
-                                    {uploading ? <Loader2 className="animate-spin" size={14} /> : <Upload size={14} />}
-                                    <span>Yuklash</span>
-                                    <input type="file" className="hidden" accept="image/*" disabled={uploading} onChange={(e) => handleFileUpload(e, 'imageUrl')} />
-                                </label>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">Muallif</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-gray-50 dark:bg-[#252525] border-none rounded-xl px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-white"
-                                    value={formData.author}
-                                    onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                                />
-                            </div>
-                            <div className="flex gap-4 items-end pb-2">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={formData.isMemberOnly} onChange={(e) => setFormData({ ...formData, isMemberOnly: e.target.checked })} />
-                                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400">PRO</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={formData.isFeatured} onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })} />
-                                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400">Featured</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        {/* Level tabs */}
-                        <div className="border-t border-gray-100 dark:border-white/5 pt-4 space-y-3">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
-                                Daraja (matn + lug&apos;at)
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                                {ARTICLE_LEVELS.map((level) => (
-                                    <button
-                                        key={level}
-                                        type="button"
-                                        onClick={() => {
-                                            setActiveEditorLevel(level);
-                                            setVocabularyJsonError('');
-                                        }}
-                                        className={levelTabClass(level)}
-                                    >
-                                        {ARTICLE_LEVEL_META[level].title}
-                                        <span className="block text-[10px] font-medium opacity-80 mt-0.5">
-                                            {formData.levels[level]?.readTime}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* AI Assistant & Quick Paste Panel */}
-                        <div className="border border-blue-500/20 dark:border-blue-500/30 rounded-2xl p-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/10 space-y-3 shadow-sm">
-                            <button
-                                type="button"
-                                onClick={() => setShowAiHelper(!showAiHelper)}
-                                className="w-full flex items-center justify-between font-bold text-xs text-blue-700 dark:text-blue-400 uppercase tracking-wider transition-all hover:opacity-85"
-                            >
-                                <span className="flex items-center gap-2">
-                                    <Sparkles size={16} className="text-blue-600 dark:text-blue-400" />
-                                    AI Yordamchisi va Tezkor Joylash ({activeEditorLevel})
-                                </span>
-                                {showAiHelper ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                            </button>
-                            
-                            {showAiHelper && (
-                                <div className="space-y-3 pt-2 border-t border-blue-500/10">
-                                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                                        Maqola matnini bu yerga to'liq joylashtiring. Siz uni oddiygina paragraflarga bo'lishingiz yoki AI yordamida IELTS darajasiga moslab chiroyli qilishingiz va lug'at yaratishingiz mumkin.
-                                    </p>
-                                    <textarea
-                                        rows={6}
-                                        className="w-full bg-white dark:bg-[#252525] border border-blue-500/10 rounded-xl px-4 py-3 text-xs placeholder-gray-400 focus:ring-2 focus:ring-blue-500/30 text-gray-900 dark:text-white"
-                                        placeholder={`Maqolaning to'liq matnini shu yerga joylang...`}
-                                        value={rawPasteText}
-                                        onChange={(e) => setRawPasteText(e.target.value)}
-                                        disabled={aiProcessing}
-                                    />
-                                    <div className="flex flex-wrap gap-2 justify-end">
-                                        <button
-                                            type="button"
-                                            onClick={handleQuickSplit}
-                                            disabled={aiProcessing || !rawPasteText.trim()}
-                                            className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-250 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold text-[11px] flex items-center gap-1.5 transition-all disabled:opacity-50"
-                                        >
-                                            <AlignLeft size={14} />
-                                            <span>Paragraflarga ajratish (Oddiy)</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleAiBeautify}
-                                            disabled={aiProcessing || !rawPasteText.trim()}
-                                            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] flex items-center gap-1.5 transition-all shadow-md shadow-blue-600/10 disabled:opacity-50"
-                                        >
-                                            {aiProcessing ? (
-                                                <>
-                                                    <Loader2 className="animate-spin" size={14} />
-                                                    <span>AI Tahrirlamoqda...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Sparkles size={14} />
-                                                    <span>AI bilan chiroyli qilish ({activeEditorLevel})</span>
-                                                </>
-                                            )}
-                                        </button>
+                <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
+                        {/* ------------ TAB: MA'LUMOT ------------ */}
+                        {activeTab === 'meta' && (
+                            <div className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                                            Sarlavha *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className={inputClass}
+                                            placeholder="Maqola sarlavhasi"
+                                            value={formData.title}
+                                            onChange={(e) => setField('title', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                                            Kategoriya *
+                                        </label>
+                                        <CategoryHashtagInput
+                                            value={formData.category}
+                                            onChange={(category) => setField('category', category)}
+                                            existingCategories={existingCategories}
+                                            placeholder="# Kategoriya — yozing yoki tanlang"
+                                        />
                                     </div>
                                 </div>
-                            )}
-                        </div>
 
-                        {/* Vocabulary for active level */}
-                        <div className="space-y-2 rounded-2xl border border-black/[0.04] dark:border-white/[0.06] p-4 bg-gray-50/50 dark:bg-white/[0.02]">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <label className="text-[11px] font-bold text-gray-400 uppercase">
-                                    Lug&apos;at — {activeEditorLevel}
-                                </label>
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={copyVocabularySample} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-white/10 text-[10px] font-bold">
-                                        {vocabCopyDone ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                                        {vocabCopyDone ? 'Nusxalandi' : 'Namuna'}
-                                    </button>
-                                    <button type="button" onClick={insertVocabularySample} className="px-2.5 py-1.5 rounded-lg bg-blue-600/10 text-[10px] font-bold text-blue-600">
-                                        Qo&apos;yish
-                                    </button>
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                                        Qisqa izoh
+                                    </label>
+                                    <textarea
+                                        rows={2}
+                                        maxLength={220}
+                                        className={`${inputClass} resize-none`}
+                                        placeholder="Ro'yxatda va feedda ko'rinadigan qisqa tavsif"
+                                        value={formData.subtitle}
+                                        onChange={(e) => setField('subtitle', e.target.value)}
+                                    />
+                                    <p className="text-[10px] text-gray-400 text-right pr-1">
+                                        {formData.subtitle.length}/220
+                                    </p>
                                 </div>
-                            </div>
-                            <textarea
-                                rows={8}
-                                spellCheck={false}
-                                className={`w-full bg-white dark:bg-[#252525] rounded-xl px-4 py-3 text-xs font-mono min-h-[120px] ${
-                                    vocabularyJsonError ? 'ring-2 ring-red-500/50' : 'focus:ring-2 focus:ring-blue-500/50'
-                                }`}
-                                placeholder={`${activeEditorLevel} uchun JSON massiv...`}
-                                value={vocabularyJson}
-                                onChange={(e) => {
-                                    setVocabularyJsonByLevel((prev) => ({
-                                        ...prev,
-                                        [activeEditorLevel]: e.target.value,
-                                    }));
-                                    if (vocabularyJsonError) setVocabularyJsonError('');
-                                }}
-                            />
-                            {vocabularyJsonError && <p className="text-xs text-red-500 font-medium">{vocabularyJsonError}</p>}
-                        </div>
 
-                        {/* Content for active level */}
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                                <label className="text-xs font-bold text-gray-500 uppercase ml-1">
-                                    Maqola matni — {activeEditorLevel}
-                                </label>
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={() => addContentBlock('heading')} className="px-2.5 py-1 bg-gray-100 dark:bg-white/5 rounded-lg text-[10px] font-bold">
-                                        + Sarlavha
-                                    </button>
-                                    <button type="button" onClick={() => addContentBlock('paragraph')} className="px-2.5 py-1 bg-gray-100 dark:bg-white/5 rounded-lg text-[10px] font-bold">
-                                        + Paragraf
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="space-y-3">
-                                {(activeLevel?.content || []).map((block, idx) => (
-                                    <div key={`${activeEditorLevel}-${idx}`} className="bg-gray-50/50 dark:bg-white/[0.01] p-3 rounded-xl border border-black/[0.03] dark:border-white/[0.03]">
-                                        <div className="flex gap-3 items-start">
-                                            <div className="flex-1 min-w-0">
-                                                {block.type === 'heading' ? (
+                                {/* Cover */}
+                                <div className="space-y-2 rounded-2xl border border-black/[0.04] dark:border-white/[0.06] p-4 bg-gray-50/50 dark:bg-white/[0.02]">
+                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                        Muqova rasmi
+                                    </label>
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="w-full sm:w-40 h-24 rounded-xl bg-gray-100 dark:bg-[#252525] flex items-center justify-center overflow-hidden shrink-0 border border-black/[0.04] dark:border-white/[0.05]">
+                                            {formData.imageUrl ? (
+                                                <img src={formData.imageUrl} className="w-full h-full object-cover" alt="Muqova" />
+                                            ) : (
+                                                <ImageIcon className="text-gray-300 dark:text-gray-600" size={26} />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 space-y-2">
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                                                     <input
                                                         type="text"
-                                                        className="w-full bg-white dark:bg-[#252525] border rounded-lg px-3 py-2 text-sm font-bold"
-                                                        value={block.text}
-                                                        onChange={(e) => updateContentBlock(idx, e.target.value)}
+                                                        className={`${inputClass} pl-9 text-xs`}
+                                                        placeholder="https://... yoki yuklang"
+                                                        value={formData.imageUrl}
+                                                        onChange={(e) => setField('imageUrl', e.target.value)}
                                                     />
-                                                ) : (
-                                                    <div className="bg-white dark:bg-[#252525] rounded-lg overflow-hidden border">
-                                                        <ReactQuill
-                                                            theme="snow"
-                                                            value={block.text}
-                                                            onChange={(content) => updateContentBlock(idx, content)}
-                                                            modules={{
-                                                                toolbar: [
-                                                                    ['bold', 'italic', 'underline', 'strike'],
-                                                                    [{ list: 'ordered' }, { list: 'bullet' }],
-                                                                    ['clean'],
-                                                                ],
-                                                            }}
-                                                        />
-                                                    </div>
-                                                )}
+                                                </div>
+                                                <label className="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-4 rounded-xl flex items-center gap-1.5 font-bold text-xs shrink-0 transition-colors">
+                                                    {uploadingField === 'imageUrl' ? (
+                                                        <Loader2 className="animate-spin" size={14} />
+                                                    ) : (
+                                                        <Upload size={14} />
+                                                    )}
+                                                    <span>Yuklash</span>
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        disabled={uploading}
+                                                        onChange={(e) => handleFileUpload(e, 'imageUrl')}
+                                                    />
+                                                </label>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeContentBlock(idx)}
-                                                className="p-1.5 bg-red-500/10 text-red-500 rounded-lg self-start mt-1"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                            <input
+                                                type="text"
+                                                className={`${inputClass} text-xs`}
+                                                placeholder="Rasm izohi (ixtiyoriy) — maqolada rasm ostida chiqadi"
+                                                value={formData.imageCaption}
+                                                onChange={(e) => setField('imageCaption', e.target.value)}
+                                            />
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                </div>
 
-                        <div className="pt-4 border-t flex justify-end gap-2">
-                            <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-500">
+                                {/* Muallif */}
+                                <div className="space-y-2 rounded-2xl border border-black/[0.04] dark:border-white/[0.06] p-4 bg-gray-50/50 dark:bg-white/[0.02]">
+                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                        Muallif
+                                    </label>
+                                    <div className="flex gap-3 items-center">
+                                        <div className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#252525] flex items-center justify-center overflow-hidden shrink-0 border border-black/[0.04] dark:border-white/[0.05]">
+                                            {formData.authorAvatar ? (
+                                                <img src={formData.authorAvatar} className="w-full h-full object-cover" alt="Muallif" />
+                                            ) : (
+                                                <User className="text-gray-300 dark:text-gray-600" size={18} />
+                                            )}
+                                        </div>
+                                        <input
+                                            type="text"
+                                            className={`${inputClass} flex-1`}
+                                            placeholder="Muallif ismi"
+                                            value={formData.author}
+                                            onChange={(e) => setField('author', e.target.value)}
+                                        />
+                                        <label className="cursor-pointer bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/[0.15] text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl flex items-center gap-1.5 font-bold text-xs shrink-0 transition-colors">
+                                            {uploadingField === 'authorAvatar' ? (
+                                                <Loader2 className="animate-spin" size={14} />
+                                            ) : (
+                                                <Upload size={14} />
+                                            )}
+                                            <span className="hidden sm:inline">Avatar</span>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                disabled={uploading}
+                                                onChange={(e) => handleFileUpload(e, 'authorAvatar')}
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Ko'rinish sozlamalari */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setField('isMemberOnly', !formData.isMemberOnly)}
+                                        className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all ${
+                                            formData.isMemberOnly
+                                                ? 'border-yellow-500/40 bg-yellow-500/10'
+                                                : 'border-black/[0.05] dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] hover:border-black/10'
+                                        }`}
+                                    >
+                                        <div className={`p-2 rounded-xl ${formData.isMemberOnly ? 'bg-yellow-500 text-black' : 'bg-gray-100 dark:bg-white/10 text-gray-400'}`}>
+                                            <Lock size={15} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-bold text-gray-900 dark:text-white">Faqat PRO</p>
+                                            <p className="text-[10px] text-gray-500">Obunachilar uchun</p>
+                                        </div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setField('isFeatured', !formData.isFeatured)}
+                                        className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all ${
+                                            formData.isFeatured
+                                                ? 'border-blue-500/40 bg-blue-500/10'
+                                                : 'border-black/[0.05] dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] hover:border-black/10'
+                                        }`}
+                                    >
+                                        <div className={`p-2 rounded-xl ${formData.isFeatured ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-white/10 text-gray-400'}`}>
+                                            <Star size={15} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-bold text-gray-900 dark:text-white">Tavsiya etilgan</p>
+                                            <p className="text-[10px] text-gray-500">Bosh sahifada ajratiladi</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ------------ TAB: KONTENT ------------ */}
+                        {activeTab === 'content' && (
+                            <div className="space-y-4">
+                                {/* Daraja tanlovi */}
+                                <div className="flex flex-wrap gap-2">
+                                    {ARTICLE_LEVELS.map((level) => {
+                                        const stat = levelStats[level];
+                                        return (
+                                            <button
+                                                key={level}
+                                                type="button"
+                                                onClick={() => setActiveEditorLevel(level)}
+                                                className={levelTabClass(level)}
+                                            >
+                                                <span className="flex items-center gap-1.5">
+                                                    {ARTICLE_LEVEL_META[level].title}
+                                                    {stat.vocabError ? (
+                                                        <AlertCircle size={12} className="text-red-400" />
+                                                    ) : stat.ready ? (
+                                                        <CheckCircle2 size={12} className={activeEditorLevel === level ? 'opacity-90' : 'text-emerald-500'} />
+                                                    ) : null}
+                                                </span>
+                                                <span className="block text-[10px] font-medium opacity-75 mt-0.5">
+                                                    {stat.words} so&apos;z · {stat.vocabCount} lug&apos;at
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Boshqa darajadan ko'chirish */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                        Nusxa olish:
+                                    </span>
+                                    {ARTICLE_LEVELS.filter((lv) => lv !== activeEditorLevel).map((lv) => (
+                                        <button
+                                            key={lv}
+                                            type="button"
+                                            disabled={!levelStats[lv].ready}
+                                            onClick={() => copyFromLevel(lv)}
+                                            className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-[10px] font-bold text-gray-600 dark:text-gray-300 flex items-center gap-1 transition-colors disabled:opacity-40 disabled:hover:bg-gray-100"
+                                        >
+                                            <Copy size={11} /> {lv} → {activeEditorLevel}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* AI yordamchisi */}
+                                <div className="rounded-2xl border border-blue-500/20 dark:border-blue-500/25 bg-gradient-to-br from-blue-50/60 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/10 p-4 space-y-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAiHelper((s) => !s)}
+                                        className="w-full flex items-center justify-between font-bold text-xs text-blue-700 dark:text-blue-400 uppercase tracking-wider hover:opacity-85 transition-opacity"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Sparkles size={15} />
+                                            AI yordamchisi — {activeEditorLevel}
+                                        </span>
+                                        {showAiHelper ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </button>
+
+                                    {showAiHelper && (
+                                        <div className="space-y-3 pt-3 border-t border-blue-500/10">
+                                            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                                Matnni joylang: oddiy paragraflarga ajrating yoki AI orqali {activeEditorLevel} darajasiga
+                                                moslashtiring — lug&apos;at ham avtomatik yaratiladi.
+                                            </p>
+                                            <textarea
+                                                rows={6}
+                                                className="w-full bg-white dark:bg-[#252525] border border-blue-500/10 rounded-xl px-4 py-3 text-xs placeholder-gray-400 focus:ring-2 focus:ring-blue-500/30 text-gray-900 dark:text-white outline-none"
+                                                placeholder="Maqolaning to'liq matnini shu yerga joylang..."
+                                                value={rawPasteText}
+                                                onChange={(e) => setRawPasteText(e.target.value)}
+                                                disabled={aiProcessing}
+                                            />
+                                            <div className="flex flex-wrap gap-2 justify-between items-center">
+                                                <span className="text-[10px] text-gray-400 font-medium">
+                                                    {rawPasteText.split(/\s+/).filter(Boolean).length} so&apos;z
+                                                </span>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleQuickSplit}
+                                                        disabled={aiProcessing || !rawPasteText.trim()}
+                                                        className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold text-[11px] flex items-center gap-1.5 transition-all disabled:opacity-40"
+                                                    >
+                                                        <AlignLeft size={14} /> Paragraflarga ajratish
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleAiBeautify}
+                                                        disabled={aiProcessing || !rawPasteText.trim()}
+                                                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] flex items-center gap-1.5 transition-all shadow-md shadow-blue-600/20 disabled:opacity-40"
+                                                    >
+                                                        {aiProcessing ? (
+                                                            <>
+                                                                <Loader2 className="animate-spin" size={14} /> AI ishlamoqda...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Sparkles size={14} /> AI bilan tayyorlash
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <ArticleVocabularyEditor
+                                    level={activeEditorLevel}
+                                    value={vocabularyJsonByLevel[activeEditorLevel] || ''}
+                                    onChange={(val) =>
+                                        setVocabularyJsonByLevel((prev) => ({ ...prev, [activeEditorLevel]: val }))
+                                    }
+                                />
+
+                                <ArticleContentBlocks
+                                    blocks={activeLevel?.content || []}
+                                    onChange={(content) => updateLevels(activeEditorLevel, { content })}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-4 sm:px-6 py-3 border-t border-gray-100 dark:border-white/5 bg-gray-50/60 dark:bg-white/[0.02] flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            {formError ? (
+                                <p className="text-[11px] font-bold text-red-500 flex items-center gap-1.5">
+                                    <AlertCircle size={13} /> {formError}
+                                </p>
+                            ) : (
+                                <p className="text-[11px] text-gray-400 font-medium truncate">
+                                    {ARTICLE_LEVELS.map((lv) => `${lv}: ${levelStats[lv].words} so'z`).join('  ·  ')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                            <button
+                                type="button"
+                                onClick={requestClose}
+                                disabled={busy}
+                                className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-40"
+                            >
                                 Bekor qilish
                             </button>
                             <button
                                 type="submit"
-                                disabled={processing || uploading}
-                                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"
+                                disabled={busy}
+                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50"
                             >
                                 {processing && <Loader2 className="animate-spin" size={14} />}
                                 {article ? 'Yangilash' : 'Yaratish'}
                             </button>
                         </div>
-                    </form>
-                </div>
-            </motion.div>
+                    </div>
+                </form>
+            </Motion.div>
         </div>
     );
 };

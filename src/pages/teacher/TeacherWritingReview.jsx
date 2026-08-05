@@ -132,11 +132,11 @@ export default function TeacherWritingReview() {
 
     const handleSave = async () => {
         if (hasT1 && !getTaskBandValue(1)) {
-            toast.error(t('teacher.testing.writingReview.toastSelectBand1') || (lang === 'uz' ? "1-topshiriq uchun band tanlang" : "Please select a band for Task 1"));
+            toast.error(t('teacher.writingReview.toastSelectBand1') || (lang === 'uz' ? "1-topshiriq uchun band tanlang" : "Please select a band for Task 1"));
             return;
         }
         if (hasT2 && !getTaskBandValue(2)) {
-            toast.error(t('teacher.testing.writingReview.toastSelectBand2') || (lang === 'uz' ? "2-topshiriq uchun band tanlang" : "Please select a band for Task 2"));
+            toast.error(t('teacher.writingReview.toastSelectBand2') || (lang === 'uz' ? "2-topshiriq uchun band tanlang" : "Please select a band for Task 2"));
             return;
         }
         const submitData = {
@@ -173,7 +173,7 @@ export default function TeacherWritingReview() {
                 setTaskDetails(taskNum, critKey, String(band));
             }
         });
-        toast.success((t('teacher.testing.writingReview.toastAiApplied') || (lang === 'uz' ? "{n}-topshiriq uchun AI baholari qo'llandi" : "AI scores applied for Task {n}")).replace('{n}', taskNum));
+        toast.success((t('teacher.writingReview.toastAiApplied') || (lang === 'uz' ? "{n}-topshiriq uchun AI baholari qo'llandi" : "AI scores applied for Task {n}")).replace('{n}', taskNum));
     };
 
     const applyAiFeedback = () => {
@@ -194,7 +194,7 @@ export default function TeacherWritingReview() {
         if (!hasTask) {
             return (
                 <div className="flex items-center justify-center rounded-xl p-8 text-xs text-gray-400">
-                    {(t('teacher.testing.writingReview.taskNotSubmitted') || (lang === 'uz' ? "{n}-topshiriq topshirilmagan" : "Task {n} not submitted")).replace('{n}', taskNum)}
+                    {(t('teacher.writingReview.taskNotSubmitted') || (lang === 'uz' ? "{n}-topshiriq topshirilmagan" : "Task {n} not submitted")).replace('{n}', taskNum)}
                 </div>
             );
         }
@@ -203,17 +203,17 @@ export default function TeacherWritingReview() {
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-white/5">
                     <h4 className="text-xs font-medium text-gray-500">
                         {taskNum === 1 
-                            ? (t('teacher.testing.writingReview.criteriaTask1') || (lang === 'uz' ? '1-topshiriq mezonlari' : 'Task 1 Criteria')) 
-                            : (t('teacher.testing.writingReview.criteriaTask2') || (lang === 'uz' ? '2-topshiriq mezonlari' : 'Task 2 Criteria'))}
+                            ? (t('teacher.writingReview.criteriaTask1') || (lang === 'uz' ? '1-topshiriq mezonlari' : 'Task 1 Criteria')) 
+                            : (t('teacher.writingReview.criteriaTask2') || (lang === 'uz' ? '2-topshiriq mezonlari' : 'Task 2 Criteria'))}
                     </h4>
                     <div className="flex items-center gap-2">
                         {aiReviewForActive?.[`task${taskNum}`] && (
-                            <button onClick={() => applyAiSuggestion(taskNum)} title={t('teacher.testing.writingReview.applyAiCriteria') || (lang === 'uz' ? "AI baholarini qo'llash" : "Apply AI scores")} className={aiHintCls}>
+                            <button onClick={() => applyAiSuggestion(taskNum)} title={t('teacher.writingReview.applyAiCriteria') || (lang === 'uz' ? "AI baholarini qo'llash" : "Apply AI scores")} className={aiHintCls}>
                                 <Sparkle size={12} /> AI
                             </button>
                         )}
                         <span className="text-xs text-gray-400">
-                            {t('teacher.testing.writingReview.band') || (lang === 'uz' ? 'Band:' : 'Band:')}
+                            {t('teacher.writingReview.band') || (lang === 'uz' ? 'Band:' : 'Band:')}
                         </span>
                         <select
                             value={getTaskBandValue(taskNum)}
@@ -274,17 +274,17 @@ export default function TeacherWritingReview() {
                             >
                                 <div className="flex items-center gap-2.5">
                                     <span className="text-sm font-medium">
-                                        {t('teacher.testing.writingReview.grading') || (lang === 'uz' ? 'Baholash' : 'Grading')}
+                                        {t('teacher.writingReview.grading') || (lang === 'uz' ? 'Baholash' : 'Grading')}
                                     </span>
                                     <span className="text-xs text-gray-400">
-                                        {t('teacher.testing.writingReview.band') || 'Band'} {calculateOverallScoreDisplay()}
+                                        {t('teacher.writingReview.band') || 'Band'} {calculateOverallScoreDisplay()}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-gray-400">
                                     <span className="text-xs">
                                         {isPanelExpanded 
-                                            ? (t('teacher.testing.writingReview.collapse') || (lang === 'uz' ? 'Yashirish' : 'Hide')) 
-                                            : (t('teacher.testing.writingReview.expand') || (lang === 'uz' ? 'Ochish' : 'Open'))}
+                                            ? (t('teacher.writingReview.collapse') || (lang === 'uz' ? 'Yashirish' : 'Hide')) 
+                                            : (t('teacher.writingReview.expand') || (lang === 'uz' ? 'Ochish' : 'Open'))}
                                     </span>
                                     {isPanelExpanded ? <CaretDown size={14} /> : <CaretUp size={14} />}
                                 </div>
@@ -296,16 +296,16 @@ export default function TeacherWritingReview() {
                                     {/* Criteria Grading Columns */}
                                     <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {renderTaskCriteria(1, [
-                                            { key: 'ta', label: t('teacher.testing.writingReview.criteria.ta') || (lang === 'uz' ? "Vazifani bajarish (TA)" : "Task Achievement (TA)") },
-                                            { key: 'cc', label: t('teacher.testing.writingReview.criteria.cc') || (lang === 'uz' ? "Izchillik (CC)" : "Coherence (CC)") },
-                                            { key: 'lr', label: t('teacher.testing.writingReview.criteria.lr') || (lang === 'uz' ? "Lug'at boyligi (LR)" : "Lexical Resource (LR)") },
-                                            { key: 'gra', label: t('teacher.testing.writingReview.criteria.gra') || (lang === 'uz' ? "Grammatika (GRA)" : "Grammar (GRA)") }
+                                            { key: 'ta', label: t('teacher.writingReview.criteria.ta') || (lang === 'uz' ? "Vazifani bajarish (TA)" : "Task Achievement (TA)") },
+                                            { key: 'cc', label: t('teacher.writingReview.criteria.cc') || (lang === 'uz' ? "Izchillik (CC)" : "Coherence (CC)") },
+                                            { key: 'lr', label: t('teacher.writingReview.criteria.lr') || (lang === 'uz' ? "Lug'at boyligi (LR)" : "Lexical Resource (LR)") },
+                                            { key: 'gra', label: t('teacher.writingReview.criteria.gra') || (lang === 'uz' ? "Grammatika (GRA)" : "Grammar (GRA)") }
                                         ], hasT1)}
                                         {renderTaskCriteria(2, [
-                                            { key: 'tr', label: t('teacher.testing.writingReview.criteria.tr') || (lang === 'uz' ? "Vazifaga javob (TR)" : "Task Response (TR)") },
-                                            { key: 'cc', label: t('teacher.testing.writingReview.criteria.cc') || (lang === 'uz' ? "Izchillik (CC)" : "Coherence (CC)") },
-                                            { key: 'lr', label: t('teacher.testing.writingReview.criteria.lr') || (lang === 'uz' ? "Lug'at boyligi (LR)" : "Lexical Resource (LR)") },
-                                            { key: 'gra', label: t('teacher.testing.writingReview.criteria.gra') || (lang === 'uz' ? "Grammatika (GRA)" : "Grammar (GRA)") }
+                                            { key: 'tr', label: t('teacher.writingReview.criteria.tr') || (lang === 'uz' ? "Vazifaga javob (TR)" : "Task Response (TR)") },
+                                            { key: 'cc', label: t('teacher.writingReview.criteria.cc') || (lang === 'uz' ? "Izchillik (CC)" : "Coherence (CC)") },
+                                            { key: 'lr', label: t('teacher.writingReview.criteria.lr') || (lang === 'uz' ? "Lug'at boyligi (LR)" : "Lexical Resource (LR)") },
+                                            { key: 'gra', label: t('teacher.writingReview.criteria.gra') || (lang === 'uz' ? "Grammatika (GRA)" : "Grammar (GRA)") }
                                         ], hasT2)}
                                     </div>
 
@@ -314,11 +314,11 @@ export default function TeacherWritingReview() {
                                         <div>
                                             <div className="flex items-center justify-between mb-2">
                                                 <label className="text-xs text-gray-400">
-                                                    {t('teacher.testing.writingReview.teacherNote') || (lang === 'uz' ? "Ustoz izohi" : "Teacher feedback")}
+                                                    {t('teacher.writingReview.teacherNote') || (lang === 'uz' ? "Ustoz izohi" : "Teacher feedback")}
                                                 </label>
                                                 {(aiReviewForActive?.task1 || aiReviewForActive?.task2) && (
                                                     <button onClick={applyAiFeedback} className={aiHintCls}>
-                                                        <Sparkle size={12} /> {t('teacher.testing.writingReview.takeFromAi') || (lang === 'uz' ? "AI dan olish" : "Get from AI")}
+                                                        <Sparkle size={12} /> {t('teacher.writingReview.takeFromAi') || (lang === 'uz' ? "AI dan olish" : "Get from AI")}
                                                     </button>
                                                 )}
                                             </div>
@@ -326,7 +326,7 @@ export default function TeacherWritingReview() {
                                                 rows={4}
                                                 value={fd.feedback ?? (activeWriting?.teacherFeedback || '')}
                                                 onChange={e => setFeedbackData(prev => ({ ...prev, [selectedId]: { ...prev[selectedId], feedback: e.target.value } }))}
-                                                placeholder={t('teacher.testing.writingReview.notePlaceholder') || (lang === 'uz' ? "Tahrirlash va grammatik tuzatishlar bo'yicha maslahatlar yozing..." : "Write advice on editing and grammar corrections...")}
+                                                placeholder={t('teacher.writingReview.notePlaceholder') || (lang === 'uz' ? "Tahrirlash va grammatik tuzatishlar bo'yicha maslahatlar yozing..." : "Write advice on editing and grammar corrections...")}
                                                 className={`w-full px-4 py-3 rounded-xl text-xs border outline-none resize-none transition-colors ${
                                                     isDark ? 'bg-[#1E1E1E] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-slate-800 focus:border-blue-500'
                                                 }`}
@@ -345,7 +345,7 @@ export default function TeacherWritingReview() {
                                                 {aiLoading ? (
                                                     <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
                                                 ) : (
-                                                    <><Sparkle size={13} /> {aiReviewForActive ? (t('teacher.testing.writingReview.recheck') || (lang === 'uz' ? 'Qayta tekshirish' : 'Recheck')) : (t('teacher.testing.writingReview.aiCheck') || 'AI Check')}</>
+                                                    <><Sparkle size={13} /> {aiReviewForActive ? (t('teacher.writingReview.recheck') || (lang === 'uz' ? 'Qayta tekshirish' : 'Recheck')) : (t('teacher.writingReview.aiCheck') || 'AI Check')}</>
                                                 )}
                                             </button>
 
@@ -357,7 +357,7 @@ export default function TeacherWritingReview() {
                                                 {saving ? (
                                                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                                 ) : (
-                                                    <><SendIcon size={13} /> {t('teacher.testing.writingReview.saveBtn') || (lang === 'uz' ? 'Saqlash' : 'Save')}</>
+                                                    <><SendIcon size={13} /> {t('teacher.writingReview.saveBtn') || (lang === 'uz' ? 'Saqlash' : 'Save')}</>
                                                 )}
                                             </button>
                                         </div>
@@ -370,7 +370,7 @@ export default function TeacherWritingReview() {
                     </>
                 ) : (
                     <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-                        {t('teacher.testing.writingReview.selectPrompt') || (lang === 'uz' ? "Natijalar ro'yxatidan inshoni tanlang" : "Select an essay from the list")}
+                        {t('teacher.writingReview.selectPrompt') || (lang === 'uz' ? "Natijalar ro'yxatidan inshoni tanlang" : "Select an essay from the list")}
                     </div>
                 )}
             </div>

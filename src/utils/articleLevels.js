@@ -130,6 +130,17 @@ export function getArticleReadTime(article, level = 'B2') {
     return getArticleLevelData(article, level).readTime || article?.readTime || '5 min read';
 }
 
+/**
+ * "5 min read" (bazada shu ko'rinishda saqlanadi) → "5 daqiqa".
+ * Interfeys o'zbekcha bo'lgani uchun o'qish vaqti ham o'zbekcha ko'rsatiladi.
+ */
+export function formatReadTimeLabel(readTime) {
+    if (!readTime) return '';
+    const match = String(readTime).match(/\d+/);
+    if (!match) return String(readTime);
+    return `${match[0]} daqiqa`;
+}
+
 export function articleHasLevels(article) {
     return Boolean(article?.levels);
 }

@@ -61,6 +61,14 @@ const VOICES = {
         en: { voice: "en-US-AndrewMultilingualNeural", rate: "+9%", pitch: "+1Hz" },
         uz: { voice: "uz-UZ-SardorNeural", rate: "+10%", pitch: "+2Hz" },
     },
+    // Maqola o'qish: neytral diktor ohangi. Feedback rejimlaridan farqi —
+    // ton ko'tarilmaydi va sur'at biroz sekin: o'quvchi uzoq matnni ergashib
+    // o'qiydi, ba'zan notanish so'z ustida to'xtaydi. Jo'shqin ohang bir-ikki
+    // jumlaga yaraydi, besh daqiqalik matnda esa charchatadi.
+    reader: {
+        en: { voice: "en-US-AvaMultilingualNeural", rate: "-6%", pitch: "0Hz" },
+        uz: { voice: "uz-UZ-MadinaNeural", rate: "-4%", pitch: "0Hz" },
+    },
 };
 
 const DEFAULT_MODE = "friend";

@@ -22,9 +22,9 @@ const WritingReviewSidebar = ({
     });
 
     const filterLabels = {
-        pending: t('teacher.testing.writingReview.sidebar.pendingTab') || (lang === 'uz' ? 'Kutilmoqda' : 'Pending'),
-        reviewed: t('teacher.testing.writingReview.sidebar.reviewedTab') || (lang === 'uz' ? 'Baholangan' : 'Graded'),
-        all: t('teacher.testing.writingReview.sidebar.allTab') || (lang === 'uz' ? 'Barchasi' : 'All')
+        pending: t('teacher.writingReview.sidebar.pendingTab') || (lang === 'uz' ? 'Kutilmoqda' : 'Pending'),
+        reviewed: t('teacher.writingReview.sidebar.reviewedTab') || (lang === 'uz' ? 'Baholangan' : 'Graded'),
+        all: t('teacher.writingReview.sidebar.allTab') || (lang === 'uz' ? 'Barchasi' : 'All')
     };
     const pendingCount = writings.filter(w => !w.writingBand).length;
 
@@ -37,11 +37,11 @@ const WritingReviewSidebar = ({
             <div className="p-5 pb-3 space-y-4">
                 <div className="flex items-center justify-between">
                     <h1 className="text-lg font-semibold tracking-tight">
-                        {t('teacher.testing.writingReview.sidebar.title') || (lang === 'uz' ? 'Insholar' : 'Essays')}
+                        {t('teacher.writingReview.sidebar.title') || (lang === 'uz' ? 'Insholar' : 'Essays')}
                     </h1>
                     {pendingCount > 0 && (
                         <span className="text-xs text-gray-400">
-                            {(t('teacher.testing.writingReview.sidebar.pendingCount') || (lang === 'uz' ? '{count} kutilmoqda' : '{count} pending')).replace('{count}', pendingCount)}
+                            {(t('teacher.writingReview.sidebar.pendingCount') || (lang === 'uz' ? '{count} kutilmoqda' : '{count} pending')).replace('{count}', pendingCount)}
                         </span>
                     )}
                 </div>
@@ -58,7 +58,7 @@ const WritingReviewSidebar = ({
                     <MagnifyingGlass size={14} className="text-gray-400 mr-2 shrink-0" />
                     <input
                         type="text"
-                        placeholder={t('teacher.testing.writingReview.sidebar.searchPlaceholder') || (lang === 'uz' ? 'Qidirish...' : 'Search...')}
+                        placeholder={t('teacher.writingReview.sidebar.searchPlaceholder') || (lang === 'uz' ? 'Qidirish...' : 'Search...')}
                         className="bg-transparent border-none outline-none text-xs w-full"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
@@ -70,12 +70,12 @@ const WritingReviewSidebar = ({
                 {filtered.length === 0 && (
                     <div className="flex flex-col items-center justify-center text-center gap-1 py-16 text-gray-400">
                         <p className="text-xs font-medium">
-                            {t('teacher.testing.writingReview.sidebar.nothingFound') || (lang === 'uz' ? 'Hech narsa topilmadi' : 'Nothing found')}
+                            {t('teacher.writingReview.sidebar.nothingFound') || (lang === 'uz' ? 'Hech narsa topilmadi' : 'Nothing found')}
                         </p>
                         <p className="text-[11px]">
                             {searchTerm 
-                                ? (t('teacher.testing.writingReview.sidebar.noMatchingSearch') || (lang === 'uz' ? 'Qidiruvga mos topshiriq yo\'q' : 'No tasks match search')) 
-                                : (t('teacher.testing.writingReview.sidebar.noTasksInFilter') || (lang === 'uz' ? 'Bu bo\'limda topshiriqlar yo\'q' : 'No tasks in this section'))}
+                                ? (t('teacher.writingReview.sidebar.noMatchingSearch') || (lang === 'uz' ? 'Qidiruvga mos topshiriq yo\'q' : 'No tasks match search')) 
+                                : (t('teacher.writingReview.sidebar.noTasksInFilter') || (lang === 'uz' ? 'Bu bo\'limda topshiriqlar yo\'q' : 'No tasks in this section'))}
                         </p>
                     </div>
                 )}

@@ -13,7 +13,7 @@ const AIReviewPanel = ({ review, isDark, t, lang }) => {
         coherence: 'CC',
         lexical: 'LR',
         grammar: 'GRA',
-        overall: t('teacher.testing.writingReview.criteria.overall') || (lang === 'uz' ? 'Umumiy' : 'Overall')
+        overall: t('teacher.writingReview.criteria.overall') || (lang === 'uz' ? 'Umumiy' : 'Overall')
     };
 
     return (
@@ -21,7 +21,7 @@ const AIReviewPanel = ({ review, isDark, t, lang }) => {
             <div className="flex items-center gap-1.5 mb-3">
                 <Sparkle size={13} className="text-blue-500" />
                 <h5 className="text-xs font-medium text-gray-500">
-                    {t('teacher.testing.writingReview.workspace.aiAnalysis') || (lang === 'uz' ? 'AI tahlili' : 'AI Analysis')}
+                    {t('teacher.writingReview.workspace.aiAnalysis') || (lang === 'uz' ? 'AI tahlili' : 'AI Analysis')}
                 </h5>
             </div>
 
@@ -43,7 +43,7 @@ const AIReviewPanel = ({ review, isDark, t, lang }) => {
             {errors.length > 0 && (
                 <details className="group">
                     <summary className="cursor-pointer text-[11px] font-medium select-none text-gray-500">
-                        {(t('teacher.testing.writingReview.workspace.errorList') || (lang === 'uz' ? 'Xatolar ro\'yxati ({count})' : 'Error list ({count})')).replace('{count}', errors.length)}
+                        {(t('teacher.writingReview.workspace.errorList') || (lang === 'uz' ? 'Xatolar ro\'yxati ({count})' : 'Error list ({count})')).replace('{count}', errors.length)}
                     </summary>
                     <div className="mt-2 space-y-2">
                         {errors.map((err, i) => (
@@ -102,7 +102,7 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark, onBack }) 
                 <button
                     onClick={onBack}
                     className={`lg:hidden shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${isDark ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-gray-100 text-slate-600'}`}
-                    aria-label={t('teacher.testing.writingReview.workspace.backToList') || (lang === 'uz' ? "Ro'yxatga qaytish" : "Back to list")}
+                    aria-label={t('teacher.writingReview.workspace.backToList') || (lang === 'uz' ? "Ro'yxatga qaytish" : "Back to list")}
                 >
                     <ArrowLeft size={18} />
                 </button>
@@ -129,12 +129,12 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark, onBack }) 
                     <div className={`rounded-2xl p-6 border ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-100'}`}>
                         <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-100 dark:border-white/5">
                             <h4 className="text-sm font-medium text-gray-500">
-                                {t('teacher.testing.writingReview.workspace.task1') || (lang === 'uz' ? '1-topshiriq' : 'Task 1')}
+                                {t('teacher.writingReview.workspace.task1') || (lang === 'uz' ? '1-topshiriq' : 'Task 1')}
                             </h4>
                             <span className="text-[11px] text-gray-400">{task1Content.trim().split(/\s+/).filter(Boolean).length} {wordCountLabel}</span>
                         </div>
                         <div className="text-[15px] leading-[1.8] font-serif whitespace-pre-wrap text-slate-700 dark:text-gray-300">
-                            {task1Content || <span className="italic opacity-30">{t('teacher.testing.writingReview.workspace.notSubmitted') || (lang === 'uz' ? 'Topshirilmagan' : 'Not submitted')}</span>}
+                            {task1Content || <span className="italic opacity-30">{t('teacher.writingReview.workspace.notSubmitted') || (lang === 'uz' ? 'Topshirilmagan' : 'Not submitted')}</span>}
                         </div>
                         <AIReviewPanel review={aiReview?.task1} isDark={isDark} t={t} lang={lang} />
                     </div>
@@ -143,12 +143,12 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark, onBack }) 
                     <div className={`rounded-2xl p-6 border ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-100'}`}>
                         <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-100 dark:border-white/5">
                             <h4 className="text-sm font-medium text-gray-500">
-                                {t('teacher.testing.writingReview.workspace.task2') || (lang === 'uz' ? '2-topshiriq' : 'Task 2')}
+                                {t('teacher.writingReview.workspace.task2') || (lang === 'uz' ? '2-topshiriq' : 'Task 2')}
                             </h4>
                             <span className="text-[11px] text-gray-400">{task2Content.trim().split(/\s+/).filter(Boolean).length} {wordCountLabel}</span>
                         </div>
                         <div className="text-[15px] leading-[1.8] font-serif whitespace-pre-wrap text-slate-700 dark:text-gray-300">
-                            {task2Content || <span className="italic opacity-30">{t('teacher.testing.writingReview.workspace.notSubmitted') || (lang === 'uz' ? 'Topshirilmagan' : 'Not submitted')}</span>}
+                            {task2Content || <span className="italic opacity-30">{t('teacher.writingReview.workspace.notSubmitted') || (lang === 'uz' ? 'Topshirilmagan' : 'Not submitted')}</span>}
                         </div>
                         <AIReviewPanel review={aiReview?.task2} isDark={isDark} t={t} lang={lang} />
                     </div>
