@@ -134,12 +134,19 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
 
     // ── Audio setup ──────────────────────────────────────────────────
     useEffect(() => {
-        if (!segments.length || !audioRef.current) return;
-        audioRef.current.src = audioUrl;
-        audioRef.current.addEventListener("timeupdate", handleTimeUpdate);
-        audioRef.current.addEventListener("canplaythrough", () => setIsLoaded(true));
-        return () => { audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate); };
-    }, [segments, audioUrl]);
+        const audio = audioRef.current;
+        if (!segments.length || !audio) return;
+        if (audioUrl && audio.getAttribute("src") !== audioUrl) {
+            audio.src = audioUrl;
+        }
+        const onCanPlayThrough = () => setIsLoaded(true);
+        audio.addEventListener("timeupdate", handleTimeUpdate);
+        audio.addEventListener("canplaythrough", onCanPlayThrough);
+        return () => {
+            audio.removeEventListener("timeupdate", handleTimeUpdate);
+            audio.removeEventListener("canplaythrough", onCanPlayThrough);
+        };
+    }, [segments, audioUrl, handleTimeUpdate, audioRef, setIsLoaded]);
 
     // ── New segment init ─────────────────────────────────────────────
     useEffect(() => {
@@ -157,12 +164,26 @@ export default function DictationStage({ podcastId, audioUrl, hintWords, onCompl
         setCorrectWordDiff([]);
         setAttemptCount(0);
         
-        if (isFinite(startTime)) {
-            audioRef.current.currentTime = startTime;
+        const audio = audioRef.current;
+        const startPlayback = () => {
+            if (isFinite(startTime)) audio.currentTime = startTime;
+            audio.play().catch(() => { });
+        };
+
+        // Metadata hali yuklanmagan bo'lsa currentTime e'tiborsiz qolardi
+        // (birinchi segment 0-sekunddan o'ynab ketardi)
+        if (audio.readyState >= 1) {
+            startPlayback();
+        } else {
+            audio.addEventListener("loadedmetadata", startPlayback, { once: true });
         }
-        audioRef.current.play().catch(() => { });
-        setTimeout(() => inputRef.current?.focus(), 200);
-    }, [currentIdx, segments]);
+
+        const focusTimer = setTimeout(() => inputRef.current?.focus(), 200);
+        return () => {
+            clearTimeout(focusTimer);
+            audio.removeEventListener("loadedmetadata", startPlayback);
+        };
+    }, [currentIdx, segments, audioRef]);
 
     // ── togglePlay override: segment tugab qolganda qayta boshlash ────
     const handleTogglePlay = useCallback(() => {

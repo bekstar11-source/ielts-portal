@@ -28,6 +28,9 @@ export default function EpisodeGridItem({
     const isLiked = likedPodcasts.includes(p?.id);
     const navigate = useNavigate();
     const [isShareOpen, setIsShareOpen] = useState(false);
+    // Sessiya davomidagi o'zgarish. Avval `likesCount + (isLiked ? 1 : 0)` yozilgan edi —
+    // bu bazadagi son allaqachon foydalanuvchi like'ini o'z ichiga olgani uchun ikki marta sanardi.
+    const [likeDelta, setLikeDelta] = useState(0);
     if (!p) return null;
     const isPlayingThis = currentTrack?.id === p.id && isPlaying;
 
@@ -36,11 +39,30 @@ export default function EpisodeGridItem({
         setIsExpanded(true);
     };
 
+    // Play tugmasi haqiqatan ijro etsin (avval faqat trekni tanlab, expand qilardi —
+    // Pause ikonkasi ko'rinsa ham bosilganda hech nima o'zgarmasdi)
     const handlePlayClick = (e) => {
         e.stopPropagation();
-        setCurrentTrack(p);
+        if (playTrack) {
+            playTrack(p);
+        } else {
+            setCurrentTrack(p);
+            setIsPlaying?.(true);
+        }
         setIsExpanded(true);
     };
+
+    const handleLikeClick = (e) => {
+        e.stopPropagation();
+        if (!user?.uid) {
+            navigate('/auth/login');
+            return;
+        }
+        setLikeDelta((d) => d + (isLiked ? -1 : 1));
+        toggleLike(user.uid, p.id);
+    };
+
+    const likeCount = Math.max(0, (p.likesCount || 0) + likeDelta);
 
     return (
         <div 
@@ -82,17 +104,14 @@ export default function EpisodeGridItem({
                     </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            toggleLike(user?.uid, p?.id);
-                        }}
+                    <button
+                        onClick={handleLikeClick}
                         className={`flex items-center gap-1 p-1 rounded-full transition-all active:scale-125 ${
                             isLiked ? 'text-emerald-500' : (isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900')
                         }`}
                     >
                         <Heart size={14} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
-                        <span className="text-[11px] font-bold">{(p.likesCount || 0) + (isLiked ? 1 : 0)}</span>
+                        <span className="text-[11px] font-bold">{likeCount}</span>
                     </button>
                     <button 
                         onClick={(e) => {

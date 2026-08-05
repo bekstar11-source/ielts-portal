@@ -7,7 +7,6 @@ import { usePodcast } from "../../context/PodcastContext";
 import { usePodcastsList, usePodcastCollections } from "../../hooks/usePodcastData";
 import { formatTime } from "../../utils/podcastUtils";
 import PlayerFooter from "../../components/InteractivePlayer/PlayerFooter";
-import { useAuth } from "../../context/AuthContext";
 
 // Sub-components
 import PodcastSidebar from "../../components/podcasts/PodcastSidebar";
@@ -53,7 +52,7 @@ export default function Podcasts() {
         currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
         currentTime, duration, handleSeek, playTrack,
         setIsExpanded, isExpanded,
-        likedPodcasts, fetchUserLikes, toggleLike
+        likedPodcasts
     } = usePodcast();
 
     // Data Hooks
@@ -67,13 +66,7 @@ export default function Podcasts() {
         retryCollections();
     };
 
-    const { user } = useAuth();
-    useEffect(() => {
-        if (user?.uid) {
-            const unsubscribe = fetchUserLikes(user.uid);
-            return () => unsubscribe && unsubscribe();
-        }
-    }, [user?.uid]);
+    // Likelarga obuna endi PodcastProvider ichida (barcha podcast sahifalarida ishlaydi)
 
     // Local State
     const [searchTerm, setSearchTerm] = useState("");
@@ -92,9 +85,15 @@ export default function Podcasts() {
         handleSeek(target);
     };
 
-    const filteredPodcasts = podcasts.filter(p => 
-        p.title?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const filteredPodcasts = normalizedSearch
+        ? podcasts.filter(p =>
+            p.title?.toLowerCase().includes(normalizedSearch) ||
+            p.description?.toLowerCase().includes(normalizedSearch)
+          )
+        : podcasts;
+
+    const likedEpisodes = podcasts.filter(p => likedPodcasts.includes(p.id));
 
     return (
         <>
@@ -206,13 +205,13 @@ export default function Podcasts() {
                                     </div>
                                     <div>
                                         <h1 className="text-2xl font-black">Liked Podcasts</h1>
-                                        <p className={`text-[10px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'} font-black uppercase tracking-[0.2em]`}>{podcasts.filter(p => likedPodcasts.includes(p.id)).length} episodes</p>
+                                        <p className={`text-[10px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'} font-black uppercase tracking-[0.2em]`}>{likedEpisodes.length} episodes</p>
                                     </div>
                                 </div>
-                                
-                                {podcasts.filter(p => likedPodcasts.includes(p.id)).length > 0 ? (
+
+                                {likedEpisodes.length > 0 ? (
                                     <div className="grid grid-cols-1 gap-1">
-                                        {podcasts.filter(p => likedPodcasts.includes(p.id)).map((p) => (
+                                        {likedEpisodes.map((p) => (
                                             <EpisodeGridItem 
                                                 key={p.id} 
                                                 p={p} 
@@ -255,7 +254,37 @@ export default function Podcasts() {
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
                                 </div>
-                                
+
+                                {/* Qidiruv natijalari — avval input yozilsa ham hech narsa ko'rsatilmasdi */}
+                                {normalizedSearch && (
+                                    <div className="mb-8">
+                                        <h2 className="font-black text-lg mb-4">
+                                            Results ({filteredPodcasts.length})
+                                        </h2>
+                                        {filteredPodcasts.length > 0 ? (
+                                            <div className="grid grid-cols-1 gap-1">
+                                                {filteredPodcasts.slice(0, 20).map((p) => (
+                                                    <EpisodeGridItem
+                                                        key={p.id}
+                                                        p={p}
+                                                        isDark={isDark}
+                                                        currentTrack={currentTrack}
+                                                        isPlaying={isPlaying}
+                                                        setCurrentTrack={setCurrentTrack}
+                                                        setIsPlaying={setIsPlaying}
+                                                        setIsExpanded={setIsExpanded}
+                                                        playTrack={playTrack}
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                                "{searchTerm}" bo'yicha hech narsa topilmadi.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 <h2 className="font-black text-lg mb-4">Browse all</h2>
                                 <div className="grid grid-cols-2 gap-4">
                                     {['Podcasts', 'Live Events', 'Made For You', 'New Releases', 'IELTS Practice', 'Grammar'].map((cat, i) => (
@@ -270,7 +299,8 @@ export default function Podcasts() {
                                         >
                                             <span className="text-white font-black text-base relative z-10">{cat}</span>
                                             <div className="absolute -right-4 -bottom-2 w-16 h-16 rotate-[25deg] shadow-2xl opacity-60">
-                                                {collections[i % collections.length]?.thumbnail && (
+                                                {/* collections bo'sh bo'lsa i % 0 = NaN bo'lardi */}
+                                                {collections.length > 0 && collections[i % collections.length]?.thumbnail && (
                                                     <img src={collections[i % collections.length].thumbnail} alt="" className="w-full h-full object-cover rounded" />
                                                 )}
                                             </div>

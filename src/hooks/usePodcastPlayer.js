@@ -14,15 +14,40 @@ export function usePodcastPlayer(segments = []) {
     // (Sinxronlashtirish uchun DictationStage dagi <audio> tag native onPlay/onPause eventlarini chaqiradi)
 
     // Audio elementni boshqarish
+    // Yuklangan audio manzili — har safar src ni qayta o'rnatib yubormaslik uchun
+    const loadedUrlRef = useRef(null);
+
+    /** Audio manbasini tayyorlab, berilgan vaqtdan o'ynatadi */
+    const startAt = useCallback((time, audioUrl) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const seek = () => {
+            audio.currentTime = time || 0;
+            audio.play().catch(console.error);
+            setIsPlaying(true);
+        };
+
+        if (audioUrl && loadedUrlRef.current !== audioUrl) {
+            loadedUrlRef.current = audioUrl;
+            audio.src = audioUrl;
+            // src yangi o'rnatilganda metadata kelmaguncha currentTime e'tiborsiz qoladi
+            audio.addEventListener("loadedmetadata", seek, { once: true });
+            audio.load();
+        } else {
+            seek();
+        }
+    }, []);
+
     const playSegment = useCallback(
         (segIndex, audioUrl) => {
-            if (!audioRef.current || !currentSegment) return;
-            audioRef.current.src = audioUrl;
-            audioRef.current.currentTime = currentSegment.startTime;
-            audioRef.current.play().catch(console.error);
-            setIsPlaying(true);
+            // segIndex bo'yicha segmentni olamiz — avval currentSegment ishlatilgani sababli
+            // state yangilanishidan oldin chaqirilsa noto'g'ri segment o'ynardi
+            const seg = segments[segIndex] ?? currentSegment;
+            if (!seg) return;
+            startAt(seg.startTime, audioUrl);
         },
-        [currentSegment]
+        [segments, currentSegment, startAt]
     );
 
     const pauseAudio = useCallback(() => {
@@ -65,21 +90,22 @@ export function usePodcastPlayer(segments = []) {
 
     // Hint playback — aynan o'sha vaqtdan boshlash
     const playFromTime = useCallback((time, audioUrl) => {
-        if (!audioRef.current) return;
-        audioRef.current.src = audioUrl;
-        audioRef.current.currentTime = time;
-        audioRef.current.play().catch(console.error);
-        setIsPlaying(true);
-    }, []);
+        startAt(time, audioUrl);
+    }, [startAt]);
 
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            const tag = e.target.tagName;
-            // Input ichida bo'lsa Spaceni prevent qilmaslik (Space → type)
-            if (tag === "TEXTAREA") return;
+            const target = e.target;
+            const tag = target?.tagName;
+            // Matn kiritilayotgan joyda hech qanday shortcut ishlamasin.
+            // Avval faqat TEXTAREA tekshirilardi, natijada INPUT ichida "r" harfini
+            // yozib bo'lmasdi (KeyR → rewind + preventDefault).
+            if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) return;
+            // Modifikator bilan bosilgan tugmalar brauzer shortcut'lari
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-            if (e.code === "Space" && tag !== "INPUT") {
+            if (e.code === "Space") {
                 e.preventDefault();
                 togglePlay();
             } else if (e.code === "KeyR" && !e.shiftKey) {

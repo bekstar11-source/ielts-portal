@@ -43,7 +43,7 @@ export default function PodcastPlayer() {
     const { user } = useAuth();
 
     const [podcast, setPodcast] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(Boolean(podcastId));
     const [vocabPhase, setVocabPhase] = useState("practice"); // 'practice' | 'exam'
     const [vocabWords, setVocabWords] = useState([]);
     const [activeToolTab, setActiveToolTab] = useState("transcript"); // 'transcript' | 'vocabulary'
@@ -51,30 +51,39 @@ export default function PodcastPlayer() {
     const [allSegments, setAllSegments] = useState([]);
     const [isShareOpen, setIsShareOpen] = useState(false);
 
-    const { attempt, currentStage, stageResults, saving, completeStage, loading: attemptLoading } = usePodcastAttempt(podcastId);
+    const { attempt, currentStage, saving, completeStage, loading: attemptLoading } = usePodcastAttempt(podcastId);
 
     useEffect(() => {
         if (!podcastId) return;
         const fetchAllSegs = async () => {
-            const q = query(collection(db, "podcasts", podcastId, "segments"), orderBy("index"));
-            const snap = await getDocs(q);
-            setAllSegments(snap.docs.map(d => d.data()));
+            try {
+                const q = query(collection(db, "podcasts", podcastId, "segments"), orderBy("index"));
+                const snap = await getDocs(q);
+                setAllSegments(snap.docs.map(d => d.data()));
+            } catch (err) {
+                console.error("Error fetching segments:", err);
+                setAllSegments([]);
+            }
         };
         fetchAllSegs();
     }, [podcastId]);
 
     useEffect(() => {
+        // podcastId bo'lmasa doc() xato tashlaydi (loading boshlanishida false qilib olingan)
+        if (!podcastId) return;
         getDoc(doc(db, "podcasts", podcastId))
             .then((snap) => {
-                if (snap.exists()) setPodcast({ id: snap.id, ...snap.data() });
+                setPodcast(snap.exists() ? { id: snap.id, ...snap.data() } : null);
             })
-            .catch(err => console.error("Error fetching podcast:", err))
+            .catch(err => {
+                console.error("Error fetching podcast:", err);
+                setPodcast(null);
+            })
             .finally(() => setLoading(false));
     }, [podcastId]);
 
     const handleStageComplete = async (results) => {
         try {
-            console.log("Saving stage:", currentStage, "with results:", results);
             await completeStage(currentStage, results);
             if (currentStage === 4) setVocabPhase("practice");
         } catch (err) {
@@ -98,6 +107,15 @@ export default function PodcastPlayer() {
         return (
             <div className="podcast-layout" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
                 <div style={{ color: "var(--pod-error)" }}>Xatolik: Bunday podcast topilmadi.</div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="podcast-layout" style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+                <div style={{ color: "var(--pod-text-2)" }}>Mashqni boshlash uchun tizimga kiring.</div>
+                <button className="pod-btn" onClick={() => navigate("/auth/login")}>Kirish</button>
             </div>
         );
     }
@@ -157,25 +175,13 @@ export default function PodcastPlayer() {
                         </h3>
 
                         {currentStage === 1 && (
-                            <>
-                                <button
-                                    onClick={() => handleStageComplete({ accuracyPct: 0, segments: [], skippedAll: true })}
-                                    style={{
-                                        marginBottom: 16, padding: "8px 16px", background: "var(--pod-warning)",
-                                        color: "white", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: "bold",
-                                        boxShadow: "0 4px 12px rgba(245,158,11,0.3)"
-                                    }}
-                                >
-                                    Tuzatish: Dictation'ni tez o'tkazib yuborish (Skip to Stage 2)
-                                </button>
-                                <DictationStage
-                                    podcastId={podcastId}
-                                    audioUrl={podcast.audioUrl}
-                                    hintWords={podcast.hintWords}
-                                    onComplete={(r) => handleStageComplete(r)}
-                                    onTimeUpdate={setGlobalTime}
-                                />
-                            </>
+                            <DictationStage
+                                podcastId={podcastId}
+                                audioUrl={podcast.audioUrl}
+                                hintWords={podcast.hintWords}
+                                onComplete={(r) => handleStageComplete(r)}
+                                onTimeUpdate={setGlobalTime}
+                            />
                         )}
 
                         {currentStage === 2 && (

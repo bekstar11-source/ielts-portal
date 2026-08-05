@@ -3,9 +3,9 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db } from "../../firebase/firebase";
 import { collection, getDocs, query, orderBy, limit, startAfter } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-    BookOpen, Search, ChevronRight, Clock, User, 
-    MessageSquare, ArrowUpRight, Newspaper, Edit2, Star, ChevronDown
+import {
+    BookOpen, Search, ChevronRight, Clock, User,
+    MessageSquare, ArrowUpRight, Newspaper, Edit2, Star, ChevronDown, BookMarked
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
@@ -18,6 +18,7 @@ import { getArticleContent, getMaxVocabularyCount, articleHasLevels } from "../.
 import { extractArticleCategories, formatArticleCategoryHashtag, normalizeArticleCategory, categoryMatchesSearch } from "../../utils/articleCategory";
 import { getPopularArticles, formatClapsDisplay, parseArticleClaps } from "../../utils/articlePopularity";
 import { getUserClappedArticleIds, addArticleClap, removeArticleClap } from "../../utils/articleClaps";
+import { getSavedArticleIds, toggleArticleSave, fetchSavedArticles } from "../../utils/articleSaves";
 import PopularArticlesSidebar from "../../components/articles/PopularArticlesSidebar";
 
 const CATEGORY_INITIAL_LIMIT = 6;
@@ -38,9 +39,76 @@ export default function Articles() {
     const [clappingId, setClappingId] = useState(null);
     const feedRef = useRef(null);
 
+    // Saqlanganlar (bookmark)
+    const [showSavedOnly, setShowSavedOnly] = useState(false);
+    const [savedArticles, setSavedArticles] = useState([]);
+    const [savedLoading, setSavedLoading] = useState(false);
+    const [savingId, setSavingId] = useState(null);
+
+    const savedIds = useMemo(() => getSavedArticleIds(userData), [userData?.savedArticles]);
+    const savedIdSet = useMemo(() => new Set(savedIds), [savedIds]);
+
     useEffect(() => {
         setClappedArticleIds(new Set(getUserClappedArticleIds(user, userData)));
     }, [user, userData?.clappedArticles]);
+
+    // Saqlangan maqolalar feed'da bo'lmasligi mumkin (sahifalab yuklanadi) →
+    // ularni ID bo'yicha alohida olib kelamiz.
+    useEffect(() => {
+        if (!showSavedOnly) return;
+        if (!user || savedIds.length === 0) {
+            setSavedArticles([]);
+            return;
+        }
+
+        let cancelled = false;
+        setSavedLoading(true);
+        fetchSavedArticles(db, savedIds)
+            .then((items) => { if (!cancelled) setSavedArticles(items); })
+            .catch((err) => {
+                console.error("Error fetching saved articles:", err);
+                if (!cancelled) setSavedArticles([]);
+            })
+            .finally(() => { if (!cancelled) setSavedLoading(false); });
+
+        return () => { cancelled = true; };
+    }, [showSavedOnly, user, savedIds]);
+
+    // Foydalanuvchi chiqib ketsa filtr yopiq qolmasin
+    useEffect(() => {
+        if (!user && showSavedOnly) setShowSavedOnly(false);
+    }, [user, showSavedOnly]);
+
+    const handleToggleSave = async (e, articleId) => {
+        e.stopPropagation();
+        if (!user) {
+            navigate('/auth/login');
+            return;
+        }
+        if (savingId) return;
+
+        setSavingId(articleId);
+        const wasSaved = savedIdSet.has(articleId);
+
+        // Optimistic — userData lokal holati darhol yangilanadi
+        updateUserLocalData?.({
+            savedArticles: wasSaved
+                ? savedIds.filter((x) => x !== articleId)
+                : [...new Set([...savedIds, articleId])],
+        });
+
+        try {
+            await toggleArticleSave({ db, articleId, user, userData, updateUserLocalData, save: !wasSaved });
+            if (wasSaved) {
+                setSavedArticles((prev) => prev.filter((a) => a.id !== articleId));
+            }
+        } catch (err) {
+            console.error("Error saving article:", err);
+            updateUserLocalData?.({ savedArticles: savedIds });
+        } finally {
+            setSavingId(null);
+        }
+    };
 
     const popularArticles = useMemo(() => getPopularArticles(articles, 5), [articles]);
 
@@ -144,12 +212,14 @@ export default function Articles() {
         </button>
     );
 
-    const filteredArticles = articles.filter(a => {
-        const matchesSearch = a.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const sourceArticles = showSavedOnly ? savedArticles : articles;
+    const filteredArticles = sourceArticles.filter(a => {
+        const matchesSearch = a.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             categoryMatchesSearch(a.category, searchTerm);
         const matchesCategory = activeCategory === "All" || normalizeArticleCategory(a.category) === activeCategory;
         return matchesSearch && matchesCategory;
     });
+    const feedLoading = showSavedOnly ? savedLoading : loading;
 
     const handleClap = async (e, articleId) => {
         e.stopPropagation();
@@ -310,15 +380,38 @@ export default function Articles() {
                                 )}
                             </AnimatePresence>
                         </div>
-                        <div className="relative group w-full md:w-auto md:min-w-[220px] md:shrink-0 md:pt-0.5">
-                            <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" size={16} />
-                            <input 
-                                type="text" 
-                                placeholder="Search..."
-                                className="w-full bg-transparent border-none pl-6 pr-4 py-2 text-sm focus:ring-0 transition-all font-medium text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-gray-400 dark:placeholder-neutral-600"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="flex items-center gap-3 w-full md:w-auto md:shrink-0 md:pt-0.5">
+                            {user && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSavedOnly(v => !v)}
+                                    aria-pressed={showSavedOnly}
+                                    title={showSavedOnly ? "Barcha maqolalar" : "Saqlangan maqolalar"}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all shrink-0 ${
+                                        showSavedOnly
+                                            ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
+                                            : 'border-black/10 dark:border-white/15 text-gray-600 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:border-black/25 dark:hover:border-white/30'
+                                    }`}
+                                >
+                                    <BookMarked size={14} fill={showSavedOnly ? 'currentColor' : 'none'} />
+                                    <span>Saqlangan</span>
+                                    {savedIds.length > 0 && (
+                                        <span className={`text-[11px] tabular-nums ${showSavedOnly ? 'opacity-70' : 'text-gray-400 dark:text-neutral-500'}`}>
+                                            {savedIds.length}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
+                            <div className="relative group flex-1 md:w-auto md:min-w-[200px]">
+                                <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" size={16} />
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    className="w-full bg-transparent border-none pl-6 pr-4 py-2 text-sm focus:ring-0 transition-all font-medium text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-gray-400 dark:placeholder-neutral-600"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -338,7 +431,7 @@ export default function Articles() {
                 {/* ARTICLES FEED (MEDIUM STYLE) */}
                 <div className="space-y-12">
                     <AnimatePresence mode="popLayout">
-                        {loading ? (
+                        {feedLoading ? (
                             [1,2,3].map(i => (
                                 <div key={i} className="flex flex-col md:flex-row gap-8 items-start animate-pulse">
                                     <div className="flex-1 space-y-4">
@@ -430,12 +523,26 @@ export default function Articles() {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-4 text-gray-400">
-                                                <BookOpen size={18} className="hover:text-black transition-colors" />
+                                            <div className="flex items-center gap-3 text-gray-400">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleToggleSave(e, article.id)}
+                                                    disabled={savingId === article.id}
+                                                    aria-pressed={savedIdSet.has(article.id)}
+                                                    aria-label={savedIdSet.has(article.id) ? "Saqlanganlardan olib tashlash" : "Keyinroq o'qish uchun saqlash"}
+                                                    title={savedIdSet.has(article.id) ? "Saqlangan" : "Saqlash"}
+                                                    className={`p-1 rounded-full transition-colors disabled:opacity-50 ${
+                                                        savedIdSet.has(article.id)
+                                                            ? 'text-[#242424] dark:text-white'
+                                                            : 'hover:text-black dark:hover:text-white'
+                                                    }`}
+                                                >
+                                                    <BookMarked size={18} fill={savedIdSet.has(article.id) ? 'currentColor' : 'none'} />
+                                                </button>
                                                 {(userData?.role === 'admin' || userData?.role === 'teacher') && (
-                                                    <Edit2 
-                                                        size={18} 
-                                                        className="hover:text-black transition-colors" 
+                                                    <Edit2
+                                                        size={18}
+                                                        className="hover:text-black transition-colors cursor-pointer"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             navigate(userData.role === 'admin' ? '/admin/articles' : '/teacher/articles');
@@ -458,13 +565,33 @@ export default function Articles() {
                                     )}
                                 </motion.div>
                             ))
+                        ) : showSavedOnly ? (
+                            <div className="py-20 text-center space-y-3">
+                                <div className="w-14 h-14 rounded-full bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center mx-auto text-gray-400 dark:text-neutral-500">
+                                    <BookMarked size={24} />
+                                </div>
+                                <h3 className="text-lg font-bold text-[#242424] dark:text-neutral-200">
+                                    {savedIds.length === 0 ? "Hali saqlangan maqola yo'q" : "Bu filtrga mos saqlangan maqola yo'q"}
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-neutral-400 max-w-sm mx-auto">
+                                    {savedIds.length === 0
+                                        ? "Maqola kartasidagi yoki o'qish sahifasidagi xatcho'p belgisini bosib, maqolani keyinroq o'qish uchun saqlang."
+                                        : "Qidiruv yoki kategoriya filtrini o'zgartirib ko'ring."}
+                                </p>
+                                <button
+                                    onClick={() => setShowSavedOnly(false)}
+                                    className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                    Barcha maqolalarga qaytish
+                                </button>
+                            </div>
                         ) : (
                             <div className="py-20 text-center">
                                 <h3 className="text-xl font-bold text-gray-400">No articles found</h3>
                             </div>
                         )}
                     </AnimatePresence>
-                    {hasMore && !loading && (
+                    {hasMore && !loading && !showSavedOnly && (
                         <div className="flex justify-center pt-8">
                             <button
                                 onClick={() => fetchArticles(false)}

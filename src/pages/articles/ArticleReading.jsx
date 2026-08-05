@@ -1,17 +1,15 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronLeft, BookMarked, Share2, 
-  Type, MessageSquare, CheckCircle2,
-  ArrowRight, ExternalLink, Clock, User,
-  Star, PlayCircle, MoreHorizontal, Send, 
-  X, MessageSquare as MessageSquareIcon, Sparkles, Volume2,
-  Pause, Play, Award, ShieldCheck
+import {
+  ChevronLeft, BookMarked, Share2,
+  Type, CheckCircle2, Star, X, Check,
+  MessageSquare as MessageSquareIcon, Sparkles, Volume2,
+  Pause, Play, Award, ShieldCheck, ArrowUp, Trash2, Link2
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from "../../firebase/firebase";
-import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useAuth } from '../../context/AuthContext';
 import SiteFooter from '../../components/common/SiteFooter';
@@ -28,6 +26,46 @@ import {
   savePreferredReadingLevel,
 } from '../../utils/articleLevels';
 import { hasClappedArticle, addArticleClap, removeArticleClap } from '../../utils/articleClaps';
+import { parseArticleClaps, formatClapsDisplay } from '../../utils/articlePopularity';
+
+/* XP shartlari */
+const REQUIRED_SECONDS = 120;
+const REQUIRED_SCROLL = 85;
+
+/* Matn o'lchami — bosqichlar (localStorage'da saqlanadi) */
+const FONT_STEPS = [
+  { key: 'sm', label: 'Kichik', base: 17, scale: 0.9 },
+  { key: 'md', label: "O'rtacha", base: 19, scale: 1 },
+  { key: 'lg', label: 'Katta', base: 21, scale: 1.12 },
+  { key: 'xl', label: 'Juda katta', base: 23, scale: 1.24 },
+];
+const FONT_STORAGE_KEY = 'article_font_step';
+
+const toDate = (value) => {
+  if (!value) return null;
+  try {
+    if (typeof value.toDate === 'function') return value.toDate();
+    if (typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
+};
+
+const formatRelativeTime = (value) => {
+  const d = toDate(value);
+  if (!d) return 'Hozirgina';
+  const diff = Date.now() - d.getTime();
+  const min = Math.round(diff / 60000);
+  if (min < 1) return 'Hozirgina';
+  if (min < 60) return `${min} daqiqa oldin`;
+  const hours = Math.round(min / 60);
+  if (hours < 24) return `${hours} soat oldin`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days} kun oldin`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
 
 export default function ArticleReading() {
   const { user, userData, updateUserLocalData } = useAuth();
@@ -36,21 +74,18 @@ export default function ArticleReading() {
   const navigate = useNavigate();
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [textSize, setTextSize] = useState('text-lg'); // text-base, text-lg, text-xl
   const [completed, setCompleted] = useState(false);
   const { awardXP } = useGamification();
   const commentsRef = useRef(null);
-  
+
   const [selectionMenu, setSelectionMenu] = useState(null);
   const [isWordBankLoading, setIsWordBankLoading] = useState(false);
   const [isWordBankAdded, setIsWordBankAdded] = useState(false);
   const articleContainerRef = useRef(null);
-  
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -62,18 +97,73 @@ export default function ArticleReading() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [isClapping, setIsClapping] = useState(false);
-  
+  const [isSaved, setIsSaved] = useState(false);
+  const [savePending, setSavePending] = useState(false);
+
+  // Toast (alert() o'rniga — o'qishni to'xtatmaydi)
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+  const showToast = useCallback((message, type = 'info') => {
+    clearTimeout(toastTimerRef.current);
+    setToast({ message, type, id: Date.now() });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
+  }, []);
+  useEffect(() => () => clearTimeout(toastTimerRef.current), []);
+
+  // Matn o'lchami
+  const [fontStepKey, setFontStepKey] = useState(() => {
+    if (typeof window === 'undefined') return 'md';
+    return localStorage.getItem(FONT_STORAGE_KEY) || 'md';
+  });
+  const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
+  const fontMenuRef = useRef(null);
+  const fontStep = FONT_STEPS.find(s => s.key === fontStepKey) || FONT_STEPS[1];
+
+  useEffect(() => {
+    if (!isFontMenuOpen) return;
+    const onDown = (e) => {
+      if (!fontMenuRef.current?.contains(e.target)) setIsFontMenuOpen(false);
+    };
+    const onKey = (e) => e.key === 'Escape' && setIsFontMenuOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [isFontMenuOpen]);
+
+  const changeFontStep = (key) => {
+    setFontStepKey(key);
+    try { localStorage.setItem(FONT_STORAGE_KEY, key); } catch { /* ignore */ }
+  };
+
   // Speech states
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentBlockIndex, setCurrentBlockIndex] = useState(-1);
-  const synth = window.speechSynthesis;
+  const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
   const [voices, setVoices] = useState([]);
+  // Har bir o'qish sessiyasining tokeni — cancel qilingan zanjir davom etmasligi uchun
+  const speechRunIdRef = useRef(0);
+  const blockRefs = useRef({});
 
   // Time & Scroll states for XP Claiming
   const [timeSpent, setTimeSpent] = useState(0);
   const [isScrollMet, setIsScrollMet] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [showTopButton, setShowTopButton] = useState(false);
   const [readingLevel, setReadingLevel] = useState('B2');
+  const [clappedCommentIds, setClappedCommentIds] = useState(() => new Set());
+
+  // Premium ruxsat (bir joyda hisoblanadi — pastda bir necha marta ishlatiladi)
+  const canAccessPremium =
+    userData?.accountType === 'pro' ||
+    userData?.isPro ||
+    userData?.accountType === 'standard' ||
+    userData?.isPremium ||
+    userData?.accountType === 'premium';
+  const isLocked = Boolean(article?.isMemberOnly) && !canAccessPremium;
 
   const activeContent = article ? getArticleContent(article, readingLevel) : [];
   const activeVocabulary = article ? getArticleVocabulary(article, readingLevel) : [];
@@ -85,19 +175,32 @@ export default function ArticleReading() {
       }, {})
     : {};
 
+  const alreadyAwarded = completed || Boolean(userData?.awardedItems?.includes(article?.id));
+  const timeProgress = Math.min(100, (timeSpent / REQUIRED_SECONDS) * 100);
+  const canClaimXP = timeSpent >= REQUIRED_SECONDS && isScrollMet;
+
+  const publishedDate = useMemo(() => {
+    const d = toDate(article?.createdAt);
+    return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
+  }, [article?.createdAt]);
+
   // Menyuni yopish va selectionni tozalash
-  const dismissMenu = () => {
+  const dismissMenu = useCallback(() => {
     setSelectionMenu(null);
     const sel = window.getSelection();
     if (sel) {
       try {
         sel.removeAllRanges();
-      } catch (e) { /* ignore */ }
+      } catch { /* ignore */ }
     }
-  };
+  }, []);
 
   const handleAddToWordBank = async () => {
-    if (!selectionMenu || !user || isWordBankLoading || isWordBankAdded) return;
+    if (!selectionMenu || isWordBankLoading || isWordBankAdded) return;
+    if (!user) {
+      showToast("So'zni saqlash uchun tizimga kiring.", 'error');
+      return;
+    }
     setIsWordBankLoading(true);
 
     const { word, context } = selectionMenu;
@@ -129,9 +232,9 @@ export default function ArticleReading() {
           const { getFunctions, httpsCallable } = await import("firebase/functions");
           const functions = getFunctions();
           const translateWordFn = httpsCallable(functions, "translateWord");
-          const result = await translateWordFn({ 
-            word: word, 
-            contextSentence: context 
+          const result = await translateWordFn({
+            word: word,
+            contextSentence: context
           });
 
           if (result.data) {
@@ -155,11 +258,17 @@ export default function ArticleReading() {
 
     } catch (error) {
       console.error("WordBank add error:", error);
-      alert("So'zni saqlashda xatolik yuz berdi.");
+      showToast("So'zni saqlashda xatolik yuz berdi.", 'error');
     } finally {
       setIsWordBankLoading(false);
     }
   };
+
+  // Listenerlar ichida eng so'nggi qiymatni o'qish uchun (effektni qayta ulamaslik uchun)
+  const selectionMenuRef = useRef(null);
+  useEffect(() => {
+    selectionMenuRef.current = selectionMenu;
+  }, [selectionMenu]);
 
   useEffect(() => {
     const container = articleContainerRef.current;
@@ -197,15 +306,18 @@ export default function ArticleReading() {
             contextSentence = contextSentence.substring(0, 250) + "...";
           }
         }
-      } catch (e) { /* ignore */ }
+      } catch { /* ignore */ }
 
-      // Menyu pozitsiyasini hisoblash
+      // Menyu pozitsiyasini hisoblash (konteyner chegarasidan chiqib ketmasin)
       const rect = range.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
+      const rawTop = rect.top - containerRect.top + container.scrollTop - 50;
+      const rawLeft = rect.left - containerRect.left + container.scrollLeft + (rect.width / 2);
+      const halfMenu = 120;
 
       setSelectionMenu({
-        top: rect.top - containerRect.top + container.scrollTop - 50,
-        left: rect.left - containerRect.left + container.scrollLeft + (rect.width / 2),
+        top: Math.max(4, rawTop),
+        left: Math.min(Math.max(halfMenu, rawLeft), Math.max(halfMenu, containerRect.width - halfMenu)),
         word: selectedText,
         context: contextSentence
       });
@@ -213,21 +325,27 @@ export default function ArticleReading() {
       setIsWordBankLoading(false);
     };
 
+    let menuTimer = null;
+    const scheduleShowMenu = () => {
+      clearTimeout(menuTimer);
+      menuTimer = setTimeout(showMenu, 30);
+    };
+
     const onMouseUp = (e) => {
       if (e.button !== undefined && e.button !== 0) return;
       // Menu div ichida bosilsa — ignore
       if (e.target.closest('.article-selection-menu')) return;
-      setTimeout(showMenu, 30);
+      scheduleShowMenu();
     };
 
     const onTouchEnd = (e) => {
       if (e.target.closest('.article-selection-menu')) return;
-      setTimeout(showMenu, 30);
+      scheduleShowMenu();
     };
 
     // Tashqariga bosilsa menyuni yopish
     const onDocumentMouseDown = (e) => {
-      if (!selectionMenu) return;
+      if (!selectionMenuRef.current) return;
       // Agar menu ichida yoki article ichida bo'lmasa — yopish
       if (e.target.closest('.article-selection-menu')) return;
       if (!container.contains(e.target)) {
@@ -240,11 +358,12 @@ export default function ArticleReading() {
     document.addEventListener('mousedown', onDocumentMouseDown);
 
     return () => {
+      clearTimeout(menuTimer);
       container.removeEventListener('mouseup', onMouseUp);
       container.removeEventListener('touchend', onTouchEnd);
       document.removeEventListener('mousedown', onDocumentMouseDown);
     };
-  }, [article?.title, selectionMenu, dismissMenu]);
+  }, [article?.id, dismissMenu]);
 
   useEffect(() => {
     if (userData) {
@@ -255,19 +374,26 @@ export default function ArticleReading() {
   useEffect(() => {
     if (id) {
       setHasClapped(hasClappedArticle(id, user, userData));
+      setIsSaved(Boolean(user) && Array.isArray(userData?.savedArticles) && userData.savedArticles.includes(id));
     }
-  }, [id, user, userData?.clappedArticles]);
+  }, [id, user, userData?.clappedArticles, userData?.savedArticles]);
+
+  const stopSpeech = useCallback(() => {
+    // Tokenni o'zgartiramiz — bekor qilingan utterance'ning onend'i keyingi blokni o'qimasin
+    speechRunIdRef.current += 1;
+    if (synth) synth.cancel();
+    setIsSpeaking(false);
+    setIsPaused(false);
+    setCurrentBlockIndex(-1);
+  }, [synth]);
 
   useEffect(() => {
     if (!article) return;
     setTimeSpent(0);
     setIsScrollMet(false);
-    synth.cancel();
-    setIsSpeaking(false);
-    setIsPaused(false);
-    setCurrentBlockIndex(-1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [readingLevel, article?.id, synth]);
+    stopSpeech();
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [readingLevel, article?.id, stopSpeech]);
 
   const handleLevelChange = (level) => {
     setReadingLevel(level);
@@ -275,48 +401,58 @@ export default function ArticleReading() {
   };
 
   useEffect(() => {
-    const loadVoices = () => {
-      if (synth) {
-        setVoices(synth.getVoices());
-      }
-    };
+    if (!synth) return;
+    const loadVoices = () => setVoices(synth.getVoices());
     loadVoices();
-    if (synth && synth.onvoiceschanged !== undefined) {
-      synth.onvoiceschanged = loadVoices;
-    }
+    synth.addEventListener?.('voiceschanged', loadVoices);
+    return () => synth.removeEventListener?.('voiceschanged', loadVoices);
   }, [synth]);
 
+  // O'qish progressi (progress bar + "yuqoriga" tugmasi) — har doim ishlaydi
   useEffect(() => {
-    if (loading || !article || article.isMemberOnly) return;
-    
+    if (loading || !article) return;
+    let raf = null;
+
+    const compute = () => {
+      raf = null;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const pct = scrollHeight <= 0 ? 100 : Math.min(100, Math.max(0, (scrollTop / scrollHeight) * 100));
+      setProgress(pct);
+      setShowTopButton(scrollTop > 800);
+      if (pct >= REQUIRED_SCROLL) setIsScrollMet(true);
+    };
+
+    const onScroll = () => {
+      if (raf === null) raf = window.requestAnimationFrame(compute);
+    };
+
+    compute();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      if (raf !== null) window.cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [loading, article?.id, readingLevel]);
+
+  // XP taymeri — faqat kontent ochiq bo'lganda
+  useEffect(() => {
+    if (loading || !article || isLocked) return;
+
     const interval = setInterval(() => {
       setTimeSpent(prev => {
-        if (prev >= 120) {
+        if (prev >= REQUIRED_SECONDS) {
           clearInterval(interval);
-          return 120;
+          return REQUIRED_SECONDS;
         }
         return prev + 1;
       });
     }, 1000);
 
-    const handleScroll = () => {
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      if (scrollHeight <= 0) return;
-      const percentage = (scrollTop / scrollHeight) * 100;
-      if (percentage >= 85) {
-        setIsScrollMet(true);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    setTimeout(handleScroll, 500);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [loading, article]);
+    return () => clearInterval(interval);
+  }, [loading, article?.id, isLocked]);
 
   useEffect(() => {
     fetchArticle();
@@ -331,8 +467,9 @@ export default function ArticleReading() {
         if (docSnap.exists()) {
             const data = docSnap.data();
             setArticle({ id: docSnap.id, ...data });
-            setClaps(data.claps || 0);
-            setComments(data.comments || []);
+            // claps eski yozuvlarda "4.8K" kabi matn bo'lishi mumkin → raqamga aylantiramiz
+            setClaps(parseArticleClaps(data.claps));
+            setComments(Array.isArray(data.comments) ? data.comments : []);
         } else {
             console.error("Article not found");
             navigate('/articles');
@@ -344,8 +481,12 @@ export default function ArticleReading() {
     }
   };
 
+  const clapPendingRef = useRef(false);
+
   const handleClap = async () => {
-    if (!article) return;
+    // Tez-tez bosilganda Firestore'ga qarama-qarshi so'rovlar ketmasligi uchun qulf
+    if (!article || clapPendingRef.current) return;
+    clapPendingRef.current = true;
 
     setIsClapping(true);
 
@@ -385,52 +526,83 @@ export default function ArticleReading() {
       }
     }
 
+    clapPendingRef.current = false;
     setTimeout(() => setIsClapping(false), 300);
+  };
+
+  // Maqolani saqlash / saqlanganlardan olib tashlash
+  const handleToggleSave = async () => {
+    if (!user) {
+      showToast("Maqolani saqlash uchun tizimga kiring.", 'error');
+      return;
+    }
+    if (savePending) return;
+
+    const next = !isSaved;
+    setSavePending(true);
+    setIsSaved(next);
+
+    try {
+      await toggleArticleSave({ db, articleId: id, user, userData, updateUserLocalData, save: next });
+      showToast(next ? "Maqola saqlandi." : "Saqlanganlardan olib tashlandi.", 'success');
+    } catch (err) {
+      console.error("Error saving article:", err);
+      setIsSaved(!next);
+      showToast("Saqlashda xatolik yuz berdi.", 'error');
+    } finally {
+      setSavePending(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const shareData = {
+      title: article?.title || 'IELTS Portal',
+      text: article?.subtitle ? stripHtml(article.subtitle) : undefined,
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      showToast("Havola nusxalandi.", 'success');
+    } catch (err) {
+      if (err?.name === 'AbortError') return; // foydalanuvchi bekor qildi
+      showToast("Havolani nusxalab bo'lmadi.", 'error');
+    }
   };
 
   const handleClaimXP = async () => {
     if (!user || !article) return;
 
-    if (timeSpent < 120 || !isScrollMet) {
-      const remainingSeconds = 120 - timeSpent;
-      const minutes = Math.floor(remainingSeconds / 60);
-      const seconds = remainingSeconds % 60;
-      let timeString = "";
-      if (minutes > 0) {
-        timeString = `${minutes} daqiqa ${seconds > 0 ? `${seconds} soniya` : ''}`;
-      } else {
-        timeString = `${seconds} soniya`;
-      }
-      
-      let message = "Iltimos, maqolani diqqat bilan o'qib chiqing. XP olish uchun:\n";
-      if (timeSpent < 120) {
-        message += `- Kamida yana ${timeString} o'qishda davom eting.\n`;
-      }
-      if (!isScrollMet) {
-        message += `- Maqola oxirigacha varaqlang (scroll pastga).`;
-      }
-      alert(message);
+    if (!canClaimXP) {
+      showToast("XP olish uchun quyidagi shartlarni bajaring.", 'error');
       return;
     }
 
     const result = await awardXP('article', article.id, article.title);
     if (result.success) {
-      alert(`Tabriklaymiz! Siz ushbu maqolani o'qib ${result.amount} XP yig'dingiz.`);
+      showToast(`Tabriklaymiz! +${result.amount} XP qo'shildi.`, 'success');
       setCompleted(true);
     } else if (result.alreadyAwarded) {
-      alert("Siz allaqachon bu maqola uchun XP olgansiz!");
+      showToast("Siz allaqachon bu maqola uchun XP olgansiz.", 'info');
       setCompleted(true);
     } else {
-      alert("Xatolik: " + result.error);
+      showToast("Xatolik: " + result.error, 'error');
     }
   };
 
   const handlePostComment = async () => {
-    if (!newComment.trim() || !user) return;
-    
+    const text = newComment.trim();
+    if (!text || !user) return;
+
     const commentData = {
-      id: Date.now(),
-      text: newComment,
+      // Date.now() bir necha izoh bir vaqtda yozilsa to'qnashishi mumkin → uid bilan noyob qilamiz
+      id: `${user.uid}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      text,
       userId: user.uid,
       userName: userData?.fullName || user.email?.split('@')[0] || "User",
       userAvatar: userData?.avatar || null,
@@ -438,67 +610,88 @@ export default function ArticleReading() {
       claps: 0,
       replies: []
     };
-    
-    // Optimistic update
-    setComments(prev => [commentData, ...prev]);
+
+    // Optimistic update — ro'yxat teskari tartibda chiziladi (eng yangisi tepada),
+    // shuning uchun arrayUnion kabi oxiriga qo'shamiz
+    setComments(prev => [...prev, commentData]);
     const tempComment = newComment;
     setNewComment("");
-    
+
     try {
       const docRef = doc(db, "articles", id);
-      await updateDoc(docRef, { 
-        comments: arrayUnion(commentData) 
+      await updateDoc(docRef, {
+        comments: arrayUnion(commentData)
       });
     } catch (err) {
       console.error("Error posting comment:", err);
       setNewComment(tempComment); // Restore text on error
       setComments(prev => prev.filter(c => c.id !== commentData.id)); // Rollback
-      alert("Izohni saqlashda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
+      showToast("Izohni saqlashda xatolik yuz berdi.", 'error');
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    const target = comments.find(c => c.id === commentId);
+    if (!target || !user || target.userId !== user.uid) return;
+
+    const previous = comments;
+    const updated = comments.filter(c => c.id !== commentId);
+    setComments(updated);
+
+    try {
+      await updateDoc(doc(db, "articles", id), { comments: updated });
+      showToast("Izoh o'chirildi.", 'success');
+    } catch (err) {
+      console.error("Error deleting comment:", err);
+      setComments(previous);
+      showToast("Izohni o'chirishda xatolik.", 'error');
     }
   };
 
   const handleClapComment = async (commentId) => {
     if (!user) {
-      alert("Izohga qarsak chalish uchun tizimga kiring.");
+      showToast("Izohga qarsak chalish uchun tizimga kiring.", 'error');
       return;
     }
 
-    let updatedComments = [];
-    setComments(prev => {
-      updatedComments = prev.map(c => {
-        if (c.id === commentId) {
-          return { ...c, claps: (c.claps || 0) + 1 };
-        }
-        return c;
-      });
-      return updatedComments;
-    });
+    // Bir izohga bir marta qarsak (aks holda cheksiz bosish mumkin edi)
+    if (clappedCommentIds.has(commentId)) return;
+
+    const updatedComments = comments.map(c =>
+      c.id === commentId ? { ...c, claps: (c.claps || 0) + 1 } : c
+    );
+
+    setComments(updatedComments);
+    setClappedCommentIds(prev => new Set(prev).add(commentId));
 
     try {
       const docRef = doc(db, "articles", id);
-      // Wait a tick or compute directly to ensure accurate update
-      const targetComments = comments.map(c => {
-        if (c.id === commentId) {
-          return { ...c, claps: (c.claps || 0) + 1 };
-        }
-        return c;
-      });
-      await updateDoc(docRef, { 
-        comments: targetComments
-      });
+      await updateDoc(docRef, { comments: updatedComments });
     } catch (err) {
       console.error("Error clapping comment:", err);
+      // Rollback
+      setComments(comments);
+      setClappedCommentIds(prev => {
+        const next = new Set(prev);
+        next.delete(commentId);
+        return next;
+      });
     }
   };
 
   const handleListen = () => {
+    if (!synth) {
+      showToast("Brauzeringiz ovozli o'qishni qo'llab-quvvatlamaydi.", 'error');
+      return;
+    }
+
     if (isSpeaking && !isPaused) {
       synth.pause();
       setIsPaused(true);
       return;
     }
 
-    if (isPaused) {
+    if (isSpeaking && isPaused) {
       synth.resume();
       setIsPaused(false);
       return;
@@ -506,46 +699,56 @@ export default function ArticleReading() {
 
     if (!article) return;
 
-    // Get content to read
-    const isPro = userData?.accountType === 'pro' || userData?.isPro;
-    const isStandard = userData?.accountType === 'standard';
-    const canAccess = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
-    
-    const isLocked = article.isMemberOnly && !canAccess;
     const fullContent = getArticleContent(article, readingLevel);
-    const blocksToRead = isLocked 
-      ? fullContent?.slice(0, Math.ceil(fullContent.length / 3)) 
+    const blocksToRead = isLocked
+      ? fullContent?.slice(0, Math.ceil((fullContent?.length || 0) / 3))
       : fullContent;
 
     if (!blocksToRead || blocksToRead.length === 0) return;
 
+    // Avvalgi sessiyani to'xtatamiz va yangi token olamiz
+    speechRunIdRef.current += 1;
+    const runId = speechRunIdRef.current;
+    synth.cancel();
+
     const readBlock = (index) => {
+      // Bekor qilingan (yoki eskirgan) sessiya davom etmasin
+      if (runId !== speechRunIdRef.current) return;
+
       if (index >= blocksToRead.length) {
         setIsSpeaking(false);
+        setIsPaused(false);
         setCurrentBlockIndex(-1);
         return;
       }
 
       setCurrentBlockIndex(index);
-      
+
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = blocksToRead[index].text;
-      const text = tempDiv.textContent || tempDiv.innerText || "";
-      
+      const text = (tempDiv.textContent || tempDiv.innerText || "").trim();
+
+      if (!text) {
+        readBlock(index + 1);
+        return;
+      }
+
       const utterance = new SpeechSynthesisUtterance(text);
       const availableVoices = voices.length > 0 ? voices : synth.getVoices();
       const naturalVoice = availableVoices.find(v => v.name.includes('Natural') || v.name.includes('Google US English'));
       if (naturalVoice) utterance.voice = naturalVoice;
+      utterance.lang = 'en-US';
       utterance.rate = 0.95;
 
       utterance.onend = () => {
-        if (!synth.paused) {
-          readBlock(index + 1);
-        }
+        if (runId !== speechRunIdRef.current) return;
+        readBlock(index + 1);
       };
 
       utterance.onerror = () => {
+        if (runId !== speechRunIdRef.current) return;
         setIsSpeaking(false);
+        setIsPaused(false);
         setCurrentBlockIndex(-1);
       };
 
@@ -554,116 +757,190 @@ export default function ArticleReading() {
 
     setIsSpeaking(true);
     setIsPaused(false);
-    synth.cancel(); // Reset any existing speech
     readBlock(0);
   };
+
+  // O'qilayotgan blok ekrandan chiqib ketmasin
+  useEffect(() => {
+    if (!isSpeaking || currentBlockIndex < 0) return;
+    const el = blockRefs.current[currentBlockIndex];
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const outOfView = rect.top < 80 || rect.bottom > window.innerHeight - 80;
+    if (outOfView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [currentBlockIndex, isSpeaking]);
 
   // Cleanup speech on unmount
   useEffect(() => {
     return () => {
-      synth.cancel();
+      speechRunIdRef.current += 1;
+      if (synth) synth.cancel();
     };
   }, [synth]);
 
-
-
-
   if (loading) {
     return (
-        <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
+        <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-warm-primary border-t-transparent rounded-full animate-spin" />
         </div>
     );
   }
 
   if (!article) return null;
 
+  const stickyTop = isTeacher ? 'top-0' : 'top-0 md:top-12';
+  const iconBtn = "p-2.5 rounded-full transition-colors r-muted r-hover-ink hover:bg-[var(--r-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--r-focus)]";
+
   return (
-    <div className="min-h-screen bg-[#FFFFFF] dark:bg-black text-[#1D1D1F] dark:text-[#f5f5f7] font-sans antialiased selection:bg-blue-100 dark:selection:bg-blue-900/30 selection:text-blue-900 dark:selection:text-blue-100 transition-colors duration-300">
+    <div className="reading-root min-h-screen font-sans antialiased" style={{ backgroundColor: 'var(--r-paper)', color: 'var(--r-ink)' }}>
       {!isTeacher && <DashboardHeader user={user} userData={userData} activeTab="articles" />}
-      
+
       {/* Sub Header / Action Bar */}
-      <div className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-black/[0.05] dark:border-white/[0.08] py-3">
-        <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
-          <button 
+      <div className={`sticky ${stickyTop} z-30 backdrop-blur-xl border-b`} style={{ backgroundColor: 'var(--r-paper-blur)', borderColor: 'var(--r-hairline)' }}>
+        <div className="max-w-[760px] mx-auto px-5 md:px-6 h-14 flex items-center justify-between gap-3">
+          <button
             onClick={() => navigate(isTeacher ? '/teacher/browse-articles' : '/articles')}
-            className="flex items-center gap-1.5 text-sm font-bold text-[#0066CC] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 px-4 py-2 rounded-full transition-all"
+            className="flex items-center gap-1.5 text-sm font-semibold r-muted r-hover-ink hover:bg-[var(--r-hover)] px-3 py-2 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--r-focus)]"
           >
-            <ChevronLeft size={18} /> All Articles
+            <ChevronLeft size={18} /> <span className="hidden sm:inline">Barcha maqolalar</span>
           </button>
-          
-          <div className="flex items-center gap-2 md:gap-4">
-            <button 
-              onClick={() => setTextSize(prev => prev === 'text-base' ? 'text-lg' : prev === 'text-lg' ? 'text-xl' : 'text-base')}
-              className="p-2.5 hover:bg-[#F5F5F7] dark:hover:bg-neutral-800 rounded-full transition-all text-[#86868B] dark:text-neutral-400"
-              title="Font Size"
+
+          {/* Sarlavha — scroll qilganda kontekst yo'qolmasin */}
+          <span className="hidden md:block flex-1 min-w-0 truncate text-[13px] font-medium r-muted text-center px-2">
+            {progress > 8 ? article.title : ''}
+          </span>
+
+          <div className="flex items-center gap-1">
+            {/* Matn o'lchami menyusi */}
+            <div className="relative" ref={fontMenuRef}>
+              <button
+                onClick={() => setIsFontMenuOpen(v => !v)}
+                className={iconBtn}
+                aria-haspopup="menu"
+                aria-expanded={isFontMenuOpen}
+                aria-label="Matn o'lchami"
+                title="Matn o'lchami"
+              >
+                <Type size={20} />
+              </button>
+              <AnimatePresence>
+                {isFontMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                    role="menu"
+                    className="absolute right-0 mt-2 w-44 rounded-2xl border shadow-xl overflow-hidden py-1"
+                    style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)' }}
+                  >
+                    {FONT_STEPS.map((step) => (
+                      <button
+                        key={step.key}
+                        role="menuitemradio"
+                        aria-checked={step.key === fontStepKey}
+                        onClick={() => { changeFontStep(step.key); setIsFontMenuOpen(false); }}
+                        className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-left hover:bg-[var(--r-hover)] transition-colors"
+                      >
+                        <span style={{ fontSize: `${Math.round(step.base * 0.78)}px`, color: 'var(--r-ink)' }}>{step.label}</span>
+                        {step.key === fontStepKey && <Check size={16} className="r-accent shrink-0" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <button
+              onClick={handleToggleSave}
+              className={iconBtn}
+              aria-pressed={isSaved}
+              aria-label={isSaved ? "Saqlanganlardan olib tashlash" : "Maqolani saqlash"}
+              title={isSaved ? "Saqlangan" : "Saqlash"}
             >
-              <Type size={20} />
+              <BookMarked size={20} className={isSaved ? 'r-accent' : ''} fill={isSaved ? 'currentColor' : 'none'} />
             </button>
-            <button className="p-2.5 hover:bg-[#F5F5F7] dark:hover:bg-neutral-800 rounded-full transition-all text-[#86868B] dark:text-neutral-400">
-              <BookMarked size={20} />
+
+            <button onClick={handleShare} className={iconBtn} aria-label="Ulashish" title="Ulashish">
+              <Share2 size={20} />
             </button>
           </div>
         </div>
+
+        {/* O'qish progressi */}
+        <div className="h-[3px] w-full" style={{ backgroundColor: 'transparent' }}>
+          <div
+            className="h-full transition-[width] duration-150 ease-out"
+            style={{ width: `${progress}%`, backgroundColor: 'var(--r-accent)' }}
+            role="progressbar"
+            aria-label="O'qish progressi"
+            aria-valuenow={Math.round(progress)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          />
+        </div>
       </div>
 
-      <main className="max-w-3xl mx-auto px-6 pt-8 pb-20 md:pt-12 md:pb-32">
+      <main className="max-w-[720px] mx-auto px-5 md:px-6 pt-8 pb-20 md:pt-12 md:pb-28">
         {/* MEDIUM STYLE HEADER */}
-        <div className="space-y-8 mb-12">
+        <div className="space-y-7 mb-10">
           {/* Badges */}
-          <div className="flex flex-wrap gap-2">
-            {article.isMemberOnly && (
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-[#F2F2F2] dark:bg-neutral-900 rounded-md text-[13px] font-medium text-[#242424] dark:text-neutral-200 border border-black/[0.05] dark:border-white/[0.08]">
-                <Star size={14} className="text-yellow-500 fill-yellow-500" /> Member-only story
-              </div>
-            )}
-            {article.isFeatured && (
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-[#F2F2F2] dark:bg-neutral-900 rounded-md text-[13px] font-medium text-[#242424] dark:text-neutral-200 border border-black/[0.05] dark:border-white/[0.08]">
-                <BookMarked size={14} className="text-gray-500" /> Featured
-              </div>
-            )}
-          </div>
+          {(article.isMemberOnly || article.isFeatured) && (
+            <div className="flex flex-wrap gap-2">
+              {article.isMemberOnly && (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12.5px] font-medium border" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)', color: 'var(--r-ink-soft)' }}>
+                  <Star size={13} className="text-amber-500 fill-amber-500" /> Faqat a'zolar uchun
+                </div>
+              )}
+              {article.isFeatured && (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12.5px] font-medium border" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)', color: 'var(--r-ink-soft)' }}>
+                  <BookMarked size={13} /> Tanlangan
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Title & Subtitle */}
           <div className="space-y-4">
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl md:text-[42px] font-bold tracking-tight leading-[1.2] text-[#242424] dark:text-neutral-100 font-serif"
+              className="text-[32px] md:text-[42px] font-bold tracking-tight leading-[1.18] article-serif"
+              style={{ color: 'var(--r-ink)' }}
             >
               {article.title}
             </motion.h1>
             {article.subtitle && (
-              <p className="text-xl md:text-2xl text-[#6B6B6B] dark:text-neutral-450 leading-snug">
+              <p className="text-[19px] md:text-[22px] leading-snug r-muted">
                 {stripHtml(article.subtitle)}
               </p>
             )}
           </div>
 
           {/* Author Bio Row */}
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                {article.authorAvatar ? (
-                  <img src={article.authorAvatar} className="w-12 h-12 rounded-full object-cover border border-black/[0.05] dark:border-white/[0.08]" alt={article.author} />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-bold text-gray-400 dark:text-neutral-500">
-                    {article.author?.charAt(0)}
-                  </div>
-                )}
+          <div className="flex items-center gap-4 pt-1">
+            {article.authorAvatar ? (
+              <img src={article.authorAvatar} className="w-11 h-11 rounded-full object-cover" style={{ border: '1px solid var(--r-hairline)' }} alt={article.author} />
+            ) : (
+              <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold r-muted" style={{ backgroundColor: 'var(--r-surface)' }}>
+                {article.author?.charAt(0) || '?'}
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-[16px] text-[#242424] dark:text-neutral-200 hover:underline cursor-pointer">{article.author}</span>
-                  <CheckCircle2 size={14} className="text-blue-500 fill-blue-500 dark:fill-blue-550 text-white" />
-                </div>
-                <div className="flex items-center gap-2 text-[#6B6B6B] dark:text-neutral-450 text-[14px]">
-                  <span>{activeReadTime || article.readTime || '5 min read'}</span>
-                  <span>·</span>
-                  <span className="font-semibold text-blue-600 dark:text-blue-400">{readingLevel}</span>
-                  <span>·</span>
-                  <span>{article.createdAt ? new Date(article.createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Jan 13, 2026'}</span>
-                </div>
+            )}
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium text-[15px] truncate" style={{ color: 'var(--r-ink)' }}>{article.author}</span>
+                <CheckCircle2 size={14} className="r-accent shrink-0" />
+              </div>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 r-muted text-[13.5px]">
+                <span>{activeReadTime || article.readTime || '5 daqiqa'}</span>
+                <span aria-hidden>·</span>
+                <span className="font-semibold" style={{ color: 'var(--r-accent)' }}>{readingLevel}</span>
+                {publishedDate && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>{publishedDate}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -675,79 +952,98 @@ export default function ArticleReading() {
           />
 
           {/* Interaction Bar */}
-          <div className="flex items-center justify-between py-4 border-y border-black/[0.05] dark:border-white/[0.08]">
-            <div className="flex items-center gap-6">
-              <button 
+          <div className="flex items-center justify-between gap-3 py-3 border-y" style={{ borderColor: 'var(--r-hairline)' }}>
+            <div className="flex items-center gap-5">
+              <button
                 type="button"
                 onClick={handleClap}
-                className={`flex items-center gap-2 transition-all group hover:text-[#242424] dark:hover:text-white ${
-                  hasClapped
-                    ? 'text-[#242424] dark:text-white'
-                    : 'text-[#6B6B6B] dark:text-neutral-450'
-                } ${isClapping ? 'scale-110' : ''}`}
+                aria-pressed={hasClapped}
+                aria-label={hasClapped ? "Qarsakni qaytarib olish" : "Qarsak chalish"}
+                className={`flex items-center gap-2 transition-colors group ${hasClapped ? 'r-ink' : 'r-muted r-hover-ink'}`}
               >
-                <motion.div 
+                <motion.span
                   animate={isClapping ? { scale: [1, 1.4, 1], rotate: [0, -10, 10, 0] } : {}}
-                  className="p-1 group-hover:scale-110 transition-transform text-xl"
+                  className="text-xl leading-none"
                 >
                   👏
-                </motion.div>
-                <span className="text-[13px] font-medium">{claps >= 1000 ? (claps/1000).toFixed(1) + 'K' : claps}</span>
+                </motion.span>
+                <span className="text-[13px] font-medium tabular-nums">{formatClapsDisplay(claps)}</span>
               </button>
-              <button 
-                onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                className="flex items-center gap-2 text-[#6B6B6B] dark:text-neutral-450 hover:text-[#242424] dark:hover:text-white transition-all group"
+              <button
+                onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                aria-label="Izohlarga o'tish"
+                className="flex items-center gap-2 r-muted r-hover-ink transition-colors"
               >
-                <MessageSquareIcon size={20} className="group-hover:scale-110 transition-transform" />
-                <span className="text-[13px] font-medium">{comments.length}</span>
+                <MessageSquareIcon size={19} />
+                <span className="text-[13px] font-medium tabular-nums">{comments.length}</span>
               </button>
             </div>
-            <div className="flex items-center gap-4 text-[#6B6B6B] dark:text-neutral-450">
-              <button 
+
+            <div className="flex items-center gap-1">
+              <button
                 onClick={handleListen}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${isSpeaking ? 'bg-black text-white dark:bg-white dark:text-black' : 'hover:text-[#242424] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'}`}
+                aria-label={isSpeaking ? (isPaused ? "Davom ettirish" : "Pauza") : "Ovozli o'qish"}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-full transition-colors text-[13px] font-medium ${
+                  isSpeaking ? 'r-accent-bg' : 'r-muted r-hover-ink hover:bg-[var(--r-hover)]'
+                }`}
               >
-                {isSpeaking ? (
-                  <Pause size={18} />
-                ) : (
-                  <Volume2 size={18} />
-                )}
-                <span className="text-[13px] font-medium">
-                  {isPaused ? 'Paused' : isSpeaking ? 'Listening...' : 'Listen'}
+                {!isSpeaking ? <Volume2 size={17} /> : isPaused ? <Play size={17} /> : <Pause size={17} />}
+                <span className="hidden sm:inline">
+                  {isPaused ? 'Pauza' : isSpeaking ? "O'qilmoqda" : 'Tinglash'}
                 </span>
               </button>
-              <button className="p-1 hover:text-[#242424] dark:hover:text-white transition-all"><BookMarked size={20} /></button>
-              <button className="p-1 hover:text-[#242424] dark:hover:text-white transition-all"><Share2 size={20} /></button>
-              <button className="p-1 hover:text-[#242424] dark:hover:text-white transition-all"><MoreHorizontal size={20} /></button>
+              {isSpeaking && (
+                <button
+                  onClick={stopSpeech}
+                  aria-label="To'xtatish"
+                  title="To'xtatish"
+                  className={iconBtn}
+                >
+                  <X size={18} />
+                </button>
+              )}
+              <button
+                onClick={handleToggleSave}
+                aria-pressed={isSaved}
+                aria-label={isSaved ? "Saqlanganlardan olib tashlash" : "Maqolani saqlash"}
+                className={iconBtn}
+              >
+                <BookMarked size={19} className={isSaved ? 'r-accent' : ''} fill={isSaved ? 'currentColor' : 'none'} />
+              </button>
+              <button onClick={handleShare} aria-label="Ulashish" className={iconBtn}>
+                <Share2 size={19} />
+              </button>
             </div>
           </div>
         </div>
 
         {/* Cover Image */}
         {article.imageUrl && (
-          <div className="mb-12">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="w-full aspect-video rounded-lg overflow-hidden"
+          <figure className="mb-10">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="w-full aspect-video rounded-xl overflow-hidden"
+              style={{ backgroundColor: 'var(--r-surface)' }}
             >
-              <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover" />
+              <img src={article.imageUrl} alt={article.title} loading="lazy" className="w-full h-full object-cover" />
             </motion.div>
-            <p className="text-center text-[14px] text-[#6B6B6B] dark:text-neutral-450 mt-4">
-              All illustrations by <span className="underline cursor-pointer">{article.author}</span>
-            </p>
-          </div>
+            {article.imageCaption && (
+              <figcaption className="text-center text-[13.5px] r-muted mt-3">{article.imageCaption}</figcaption>
+            )}
+          </figure>
         )}
 
-        <article 
+        <article
           ref={articleContainerRef}
-          className={`${textSize} text-[#242424] dark:text-neutral-200 font-serif article-container relative`}
+          className="article-container relative"
+          style={{ fontSize: `${fontStep.base}px`, color: 'var(--r-ink-soft)' }}
         >
           {selectionMenu && (
             <div
-              className={`article-selection-menu ${isMobile ? 'fixed' : 'absolute'} z-[1000] flex items-center gap-1.5 bg-gray-900/95 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] -translate-x-1/2 touch-none select-none border border-white/[0.08]`}
+              className={`article-selection-menu ${isMobile ? 'fixed' : 'absolute'} z-[1000] flex items-center gap-1.5 bg-neutral-900/95 dark:bg-neutral-800/95 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.35)] -translate-x-1/2 touch-none select-none border border-white/[0.08]`}
               style={isMobile ? {
-                bottom: '32px',
+                bottom: '24px',
                 left: '50%',
                 top: 'auto'
               } : {
@@ -760,47 +1056,43 @@ export default function ArticleReading() {
               <button
                 onClick={handleAddToWordBank}
                 disabled={isWordBankLoading || isWordBankAdded}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 ${
-                  isWordBankAdded 
-                    ? 'text-green-400' 
-                    : 'text-blue-400 hover:bg-white/10 hover:text-white'
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold transition-colors active:scale-95 ${
+                  isWordBankAdded
+                    ? 'text-emerald-400'
+                    : 'text-sky-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 {isWordBankLoading ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    <span>Saving...</span>
+                    <span>Saqlanmoqda...</span>
                   </>
                 ) : isWordBankAdded ? (
                   <>
-                    <CheckCircle2 size={14} className="text-green-400" />
-                    <span>Added!</span>
+                    <CheckCircle2 size={14} />
+                    <span>Qo'shildi</span>
                   </>
                 ) : (
                   <>
                     <BookMarked size={14} />
-                    <span>WordBank'ga qo'shish</span>
+                    <span>Lug'atga qo'shish</span>
                   </>
                 )}
               </button>
-              <div className="w-[1px] h-4 bg-white/20"></div>
+              <div className="w-px h-4 bg-white/20" />
               <button
                 onClick={dismissMenu}
-                className="p-1 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                aria-label="Yopish"
+                className="p-1 hover:bg-white/10 rounded-lg text-neutral-400 hover:text-white transition-colors"
               >
                 <X size={14} />
               </button>
             </div>
           )}
           {(() => {
-            const isPro = userData?.accountType === 'pro' || userData?.isPro;
-            const isStandard = userData?.accountType === 'standard';
-            const canAccess = isPro || isStandard || userData?.isPremium || userData?.accountType === 'premium';
-            
-            const isLocked = article.isMemberOnly && !canAccess;
             const fullContent = activeContent;
-            const contentToShow = isLocked 
-              ? fullContent?.slice(0, Math.ceil((fullContent?.length || 0) / 3)) 
+            const contentToShow = isLocked
+              ? fullContent?.slice(0, Math.ceil((fullContent?.length || 0) / 3))
               : fullContent;
 
             return (
@@ -811,47 +1103,52 @@ export default function ArticleReading() {
                     .replace(/&nbsp;/g, ' ')
                     .replace(/\u00A0/g, ' ');
 
-                  const blockFontSize = typeof block.style?.fontSize === 'number'
+                  const rawFontSize = typeof block.style?.fontSize === 'number'
                     ? `${block.style.fontSize}px`
                     : (block.style?.fontSize || (block.type === 'heading' ? '26px' : undefined));
+                  // Matn o'lchami tugmasi blok stillarini ham miqyoslashi uchun
+                  const blockFontSize = rawFontSize ? `calc(${rawFontSize} * ${fontStep.scale})` : undefined;
 
                   const blockFontWeight = block.style?.fontWeight || (block.type === 'heading' ? '700' : '400');
 
-                  const blockLineHeight = block.style?.lineHeight || (block.type === 'heading' ? 1.25 : 1.8);
-                  const blockMarginTop = block.style?.marginTop !== undefined 
+                  const blockLineHeight = block.style?.lineHeight || (block.type === 'heading' ? 1.25 : 1.75);
+                  const blockMarginTop = block.style?.marginTop !== undefined
                     ? (typeof block.style.marginTop === 'number' ? `${block.style.marginTop}px` : block.style.marginTop)
                     : (block.type === 'heading' ? '2.5rem' : '0');
-                  const blockMarginBottom = block.style?.marginBottom !== undefined 
+                  const blockMarginBottom = block.style?.marginBottom !== undefined
                     ? (typeof block.style.marginBottom === 'number' ? `${block.style.marginBottom}px` : block.style.marginBottom)
                     : (block.type === 'heading' ? '1rem' : '1.5rem');
 
+                  const isActiveBlock = currentBlockIndex === i;
+
                   return block.type === 'heading' ? (
-                    <h2 
-                      key={i} 
-                      className={`font-bold text-[#242424] dark:text-neutral-100 font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1' : ''}`}
+                    <h2
+                      key={i}
+                      ref={(el) => { blockRefs.current[i] = el; }}
+                      className={`article-serif transition-colors duration-300 ${isActiveBlock ? 'is-speaking' : ''}`}
                       style={{
+                        color: 'var(--r-ink)',
                         fontSize: blockFontSize,
                         lineHeight: blockLineHeight,
                         marginTop: blockMarginTop,
                         marginBottom: blockMarginBottom,
                         fontWeight: blockFontWeight,
                         letterSpacing: block.style?.letterSpacing || '-0.015em',
-                        fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
                       }}
                     >
                       {cleanText}
                     </h2>
                   ) : (
-                    <div 
-                      key={i} 
-                      className={`article-body-block font-serif transition-all duration-500 ${currentBlockIndex === i ? 'border-b-2 border-blue-500 pb-1 bg-blue-50/10 dark:bg-blue-950/20' : ''}`}
+                    <div
+                      key={i}
+                      ref={(el) => { blockRefs.current[i] = el; }}
+                      className={`article-body-block article-serif transition-colors duration-300 ${isActiveBlock ? 'is-speaking' : ''}`}
                       style={{
                         fontSize: blockFontSize,
                         lineHeight: blockLineHeight,
                         marginBottom: blockMarginBottom,
                         fontWeight: blockFontWeight,
                         letterSpacing: block.style?.letterSpacing || undefined,
-                        fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
                       }}
                       dangerouslySetInnerHTML={{ __html: cleanHtml }}
                     />
@@ -861,19 +1158,18 @@ export default function ArticleReading() {
                 {isLocked && (
                   <div className="relative mt-0">
                     {/* The "Fade to Blur" Transition Section */}
-                    <div className="relative h-64 overflow-hidden pointer-events-none select-none">
-                      <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent via-white/80 to-white dark:via-black/80 dark:to-black" />
-                      <div className="blur-[1.5px] opacity-40">
+                    <div className="relative h-56 overflow-hidden pointer-events-none select-none" aria-hidden="true">
+                      <div className="absolute inset-0 z-10 r-fade" />
+                      <div className="blur-[2px] opacity-40">
                         {fullContent?.slice(Math.ceil((fullContent?.length || 0) / 3), Math.ceil((fullContent?.length || 0) / 3) + 2).map((block, i) => (
-                           <div 
-                              key={i} 
-                              className="article-body-block font-serif"
+                           <div
+                              key={i}
+                              className="article-body-block article-serif"
                               style={{
                                 fontSize: block.style?.fontSize ? `${block.style.fontSize}px` : undefined,
-                                lineHeight: block.style?.lineHeight || 1.8,
+                                lineHeight: block.style?.lineHeight || 1.75,
                                 marginBottom: block.style?.marginBottom ? `${block.style.marginBottom}px` : '1.5rem',
                                 fontWeight: block.style?.fontWeight || '400',
-                                fontFamily: 'Charter, Georgia, Cambria, "Times New Roman", Times, serif'
                               }}
                               dangerouslySetInnerHTML={{ __html: (block.text || '').replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ') }}
                             />
@@ -882,53 +1178,36 @@ export default function ArticleReading() {
                     </div>
 
                     {/* Premium Paywall Section */}
-                    <div className="relative z-20 text-center max-w-2xl mx-auto space-y-12 pt-10 pb-32 bg-white dark:bg-black">
-                      <div className="space-y-6">
-                        <h2 className="text-3xl md:text-[42px] font-bold text-[#242424] dark:text-neutral-100 leading-tight">
-                          Become a member to read this story, and all of IELTS Portal.
+                    <div className="relative z-20 text-center max-w-xl mx-auto space-y-8 pt-8 pb-20 font-sans" style={{ backgroundColor: 'var(--r-paper)' }}>
+                      <div className="space-y-4">
+                        <h2 className="text-[26px] md:text-[34px] font-bold leading-tight" style={{ color: 'var(--r-ink)' }}>
+                          Ushbu maqolani o'qish uchun a'zo bo'ling
                         </h2>
-                        <p className="text-[#6B6B6B] dark:text-neutral-450 text-lg max-w-xl mx-auto">
-                          {article.author} put this story behind our paywall, so it’s only available to read with a paid IELTS Portal membership, which comes with a host of benefits:
+                        <p className="r-muted text-[16px] max-w-md mx-auto leading-relaxed">
+                          {article.author} bu maqolani a'zolar uchun yopiq qildi. To'liq matn, lug'at va ovozli o'qish premium obuna bilan ochiladi.
                         </p>
                       </div>
 
-                      <div className="space-y-4 text-left max-w-lg mx-auto">
+                      <div className="space-y-3 text-left max-w-md mx-auto">
                         {[
-                          "Access all member-only stories on IELTS Portal",
-                          "Read everything on the platform, including premium sets",
-                          "Support the expert writers and teachers you learn from",
-                          "Help build an ad-free, independent learning platform"
+                          "Barcha a'zolar uchun maqolalarga to'liq kirish",
+                          "Har bir daraja (A2–C1) uchun moslashtirilgan matn",
+                          "Lug'at, ovozli o'qish va WordBank imkoniyatlari",
+                          "Reklamasiz, xotirjam o'qish muhiti"
                         ].map((benefit, idx) => (
-                          <div key={idx} className="flex items-start gap-4">
-                            <Star size={18} className="text-yellow-500 fill-yellow-500 mt-1 shrink-0" />
-                            <p className="text-[#242424] dark:text-neutral-200 font-medium">{benefit}</p>
+                          <div key={idx} className="flex items-start gap-3">
+                            <Check size={18} className="r-accent mt-0.5 shrink-0" />
+                            <p className="text-[15px]" style={{ color: 'var(--r-ink-soft)' }}>{benefit}</p>
                           </div>
                         ))}
                       </div>
 
-                      {/* Premium Content Preview (Circles) */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-8">
-                        {[
-                          { title: "Advanced Grammar", img: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=200&h=200&fit=crop" },
-                          { title: "Writing Task 2", img: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=200&h=200&fit=crop" },
-                          { title: "Speaking Mastery", img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=200&h=200&fit=crop" },
-                          { title: "Reading Hacks", img: "https://images.unsplash.com/photo-1506784365847-bbad939e9335?w=200&h=200&fit=crop" }
-                        ].map((item, idx) => (
-                          <div key={idx} className="flex flex-col items-center gap-3">
-                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-gray-100 dark:border-neutral-800 shadow-lg">
-                              <img src={item.img} className="w-full h-full object-cover" alt={item.title} />
-                            </div>
-                            <span className="text-[13px] font-bold text-[#242424] dark:text-neutral-200 text-center line-clamp-1">{item.title}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="pt-8">
-                        <button 
+                      <div className="pt-2">
+                        <button
                           onClick={() => navigate('/pricing')}
-                          className="px-12 py-3.5 bg-[#1A8917] hover:bg-[#156d12] text-white rounded-full font-bold text-lg transition-all shadow-xl shadow-[#1A8917]/20 active:scale-95"
+                          className="px-10 py-3 r-accent-bg rounded-full font-bold text-[15px] transition-transform active:scale-95"
                         >
-                          Upgrade
+                          Obunani ochish
                         </button>
                       </div>
                     </div>
@@ -939,80 +1218,146 @@ export default function ArticleReading() {
           })()}
         </article>
 
-        <ArticleVocabulary vocabulary={activeVocabulary} level={readingLevel} articleTitle={article.title} />
-        
-        {/* Inline Comments Section (Medium Style) */}
-        <section ref={commentsRef} className="mt-16 border-t border-gray-150 dark:border-neutral-850 pt-10 pb-16 max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-neutral-100 font-sans">
-              Responses ({comments.length})
-            </h3>
-            <button 
-              title="Response guidelines"
-              className="text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-neutral-350 transition-colors"
+        {/* Yopiq (member-only) maqolada lug'at ham ko'rsatilmasin */}
+        {!isLocked && (
+          <ArticleVocabulary vocabulary={activeVocabulary} level={readingLevel} articleTitle={article.title} />
+        )}
+
+        {/* Claim XP Section — izohlardan oldin, chunki o'qish oqimiga tegishli */}
+        {user && article && !isLocked && (
+          <div className="mt-14 rounded-2xl border p-6 md:p-7" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)' }}>
+            <div className="flex items-start gap-3 mb-5">
+              <Sparkles className="r-accent shrink-0 mt-0.5" size={20} />
+              <div>
+                <h3 className="text-[17px] font-bold" style={{ color: 'var(--r-ink)' }}>Maqolani o'qib chiqdingizmi?</h3>
+                <p className="text-[13.5px] r-muted mt-0.5">
+                  {alreadyAwarded ? "Siz ushbu maqola uchun XP olgansiz." : "Ikkala shart bajarilgach, XP tugmasi faollashadi."}
+                </p>
+              </div>
+            </div>
+
+            {!alreadyAwarded && (
+              <div className="space-y-4 mb-6">
+                <div>
+                  <div className="flex items-center justify-between text-[12.5px] mb-1.5">
+                    <span className="r-muted">O'qish vaqti</span>
+                    <span className="font-semibold tabular-nums" style={{ color: timeSpent >= REQUIRED_SECONDS ? 'var(--r-accent)' : 'var(--r-ink-soft)' }}>
+                      {Math.floor(timeSpent / 60)}:{String(timeSpent % 60).padStart(2, '0')} / 2:00
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--r-track)' }}>
+                    <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${timeProgress}%`, backgroundColor: 'var(--r-accent)' }} />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between text-[12.5px] mb-1.5">
+                    <span className="r-muted">Varaqlash</span>
+                    <span className="font-semibold tabular-nums" style={{ color: isScrollMet ? 'var(--r-accent)' : 'var(--r-ink-soft)' }}>
+                      {isScrollMet ? 'Bajarildi' : `${Math.round(progress)}% / ${REQUIRED_SCROLL}%`}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--r-track)' }}>
+                    <div
+                      className="h-full rounded-full transition-[width] duration-150"
+                      style={{ width: `${Math.min(100, (progress / REQUIRED_SCROLL) * 100)}%`, backgroundColor: 'var(--r-accent)' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleClaimXP}
+              disabled={alreadyAwarded || !canClaimXP}
+              className="w-full sm:w-auto px-7 py-3 r-accent-bg rounded-full font-bold text-[14px] transition-transform active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
             >
-              <ShieldCheck size={20} />
+              {alreadyAwarded ? (
+                <><CheckCircle2 size={17} /> XP olindi</>
+              ) : (
+                <><Award size={17} /> XP olish (+10)</>
+              )}
             </button>
+          </div>
+        )}
+
+        {/* Inline Comments Section (Medium Style) */}
+        <section ref={commentsRef} className="mt-14 border-t pt-10 pb-8" style={{ borderColor: 'var(--r-hairline)' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-7">
+            <h3 className="text-[19px] font-bold font-sans" style={{ color: 'var(--r-ink)' }}>
+              Izohlar ({comments.length})
+            </h3>
+            <span
+              title="Izohlar hurmatli va mavzuga oid bo'lishi kerak"
+              className="flex items-center gap-1.5 text-[12px] r-muted"
+            >
+              <ShieldCheck size={16} /> <span className="hidden sm:inline">Muloqot qoidalari</span>
+            </span>
           </div>
 
           {/* Comment Form (Medium style input container) */}
           {user ? (
-            <div className="bg-[#f9f9f9] dark:bg-neutral-900/60 border border-gray-100 dark:border-neutral-850 rounded-xl p-4 shadow-sm mb-10 transition-all text-left">
+            <div className="rounded-2xl border p-4 mb-9 transition-colors text-left" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)' }}>
               <div className="flex items-center gap-3 mb-3">
                 {userData?.avatar ? (
-                  <img src={userData.avatar} className="w-8 h-8 rounded-full object-cover" alt="me" />
+                  <img src={userData.avatar} className="w-8 h-8 rounded-full object-cover" alt="" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/40 flex items-center justify-center text-[11px] font-bold text-blue-600 dark:text-blue-400">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold r-accent" style={{ backgroundColor: 'var(--r-accent-soft)' }}>
                     {userData?.fullName?.charAt(0) || user?.email?.charAt(0) || "U"}
                   </div>
                 )}
-                <span className="text-sm font-medium text-gray-800 dark:text-neutral-250">
+                <span className="text-sm font-medium" style={{ color: 'var(--r-ink)' }}>
                   {userData?.fullName || user?.email?.split('@')[0] || "User"}
                 </span>
               </div>
-              <textarea 
+              <textarea
                 value={newComment}
                 onChange={(e) => {
                   setNewComment(e.target.value);
                   setIsInputFocused(true);
                 }}
                 onFocus={() => setIsInputFocused(true)}
-                placeholder="What are your thoughts?"
-                className="w-full bg-transparent border-none focus:ring-0 text-[14px] min-h-[80px] resize-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-600 p-0 focus:outline-none"
+                maxLength={1000}
+                placeholder="Fikringiz qanday?"
+                className="w-full bg-transparent border-none focus:ring-0 text-[14.5px] min-h-[76px] resize-none p-0 focus:outline-none"
+                style={{ color: 'var(--r-ink)' }}
               />
               {isInputFocused && (
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-150/40 dark:border-neutral-850/40 mt-2">
-                  <button 
-                    onClick={() => {
-                      setNewComment("");
-                      setIsInputFocused(false);
-                    }}
-                    className="px-4 py-1.5 hover:bg-gray-200/50 dark:hover:bg-neutral-850 text-gray-500 dark:text-neutral-450 rounded-full text-[13px] font-medium transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    disabled={!newComment.trim()}
-                    onClick={async () => {
-                      await handlePostComment();
-                      setIsInputFocused(false);
-                    }}
-                    className="px-4 py-1.5 bg-[#1A8917] hover:bg-[#156d12] disabled:opacity-40 text-white rounded-full text-[13px] font-medium transition-all"
-                  >
-                    Respond
-                  </button>
+                <div className="flex items-center justify-between gap-2 pt-2.5 mt-2 border-t" style={{ borderColor: 'var(--r-hairline)' }}>
+                  <span className="text-[11.5px] r-muted tabular-nums">{newComment.length}/1000</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setNewComment("");
+                        setIsInputFocused(false);
+                      }}
+                      className="px-4 py-1.5 r-muted r-hover-ink hover:bg-[var(--r-hover)] rounded-full text-[13px] font-medium transition-colors"
+                    >
+                      Bekor qilish
+                    </button>
+                    <button
+                      disabled={!newComment.trim()}
+                      onClick={async () => {
+                        await handlePostComment();
+                        setIsInputFocused(false);
+                      }}
+                      className="px-4 py-1.5 r-accent-bg rounded-full text-[13px] font-semibold transition-transform active:scale-95 disabled:opacity-40 disabled:active:scale-100"
+                    >
+                      Yuborish
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="bg-[#f9f9f9] dark:bg-neutral-900/60 border border-gray-100 dark:border-neutral-850 rounded-xl p-6 text-center mb-10">
-              <p className="text-sm text-gray-500 dark:text-neutral-450 mb-3">Please sign in to write a response.</p>
-              <button 
+            <div className="rounded-2xl border p-6 text-center mb-9" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)' }}>
+              <p className="text-sm r-muted mb-3">Izoh yozish uchun tizimga kiring.</p>
+              <button
                 onClick={() => navigate('/auth/login')}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-[13px] font-medium transition-all"
+                className="px-5 py-2 r-accent-bg rounded-full text-[13px] font-semibold transition-transform active:scale-95"
               >
-                Sign In
+                Kirish
               </button>
             </div>
           )}
@@ -1020,170 +1365,218 @@ export default function ArticleReading() {
           {/* Comments List */}
           <div className="space-y-6 text-left">
             {comments.length > 0 ? (
-              comments.slice().reverse().map((comment) => (
-                <div key={comment.id} className="border-b border-gray-100 dark:border-neutral-850/60 pb-6 last:border-b-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {comment.userAvatar ? (
-                        <img src={comment.userAvatar} className="w-9 h-9 rounded-full object-cover border border-gray-100 dark:border-neutral-850" alt={comment.userName} />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-neutral-450">
-                          {comment.userName?.charAt(0) || "U"}
-                        </div>
-                      )}
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[14px] font-semibold text-gray-800 dark:text-neutral-200 hover:underline cursor-pointer">
+              comments.slice().reverse().map((comment) => {
+                const isOwn = user && comment.userId === user.uid;
+                const isClappedByMe = clappedCommentIds.has(comment.id);
+                return (
+                  <div key={comment.id} className="border-b pb-6 last:border-b-0" style={{ borderColor: 'var(--r-hairline)' }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {comment.userAvatar ? (
+                          <img src={comment.userAvatar} className="w-9 h-9 rounded-full object-cover shrink-0" alt="" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold r-muted shrink-0" style={{ backgroundColor: 'var(--r-surface-strong)' }}>
+                            {comment.userName?.charAt(0) || "U"}
+                          </div>
+                        )}
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[14px] font-semibold truncate" style={{ color: 'var(--r-ink)' }}>
                             {comment.userName}
                           </span>
+                          <span className="text-[12px] r-muted">{formatRelativeTime(comment.createdAt)}</span>
                         </div>
-                        <span className="text-[12px] text-gray-400 dark:text-neutral-500">
-                          {(() => {
-                            if (!comment.createdAt) return "Just now";
-                            try {
-                              const d = typeof comment.createdAt.toDate === 'function' ? comment.createdAt.toDate() : new Date(comment.createdAt);
-                              return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                            } catch (e) {
-                              return "Just now";
-                            }
-                          })()}
-                        </span>
                       </div>
+                      {isOwn && (
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          aria-label="Izohni o'chirish"
+                          title="O'chirish"
+                          className="p-2 rounded-full r-muted r-hover-danger hover:bg-[var(--r-hover)] transition-colors shrink-0"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
-                    <button className="text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-neutral-350 transition-colors">
-                      <MoreHorizontal size={18} />
-                    </button>
+
+                    <p className="text-[15px] leading-relaxed mt-3 sm:pl-12 whitespace-pre-line font-sans" style={{ color: 'var(--r-ink-soft)' }}>
+                      {comment.text}
+                    </p>
+
+                    <div className="flex items-center gap-5 mt-3.5 sm:pl-12">
+                      <button
+                        onClick={() => handleClapComment(comment.id)}
+                        disabled={isClappedByMe}
+                        aria-pressed={isClappedByMe}
+                        className={`flex items-center gap-1.5 transition-colors ${isClappedByMe ? 'r-ink cursor-default' : 'r-muted r-hover-ink'}`}
+                        title={isClappedByMe ? "Siz qarsak chalgansiz" : "Qarsak chalish"}
+                      >
+                        <span className="text-[15px] leading-none">👏</span>
+                        <span className="text-[13px] tabular-nums">{comment.claps || 0}</span>
+                      </button>
+                    </div>
                   </div>
-
-                  <p className="text-[15px] leading-relaxed text-gray-800 dark:text-neutral-250 mt-3 pl-12 whitespace-pre-line font-sans">
-                    {comment.text}
-                  </p>
-
-                  <div className="flex items-center gap-6 mt-4 pl-12 text-gray-400 dark:text-neutral-500">
-                    <button 
-                      onClick={() => handleClapComment(comment.id)}
-                      className="flex items-center gap-1.5 hover:text-gray-700 dark:hover:text-neutral-200 transition-colors"
-                      title="Clap"
-                    >
-                      <span className="text-[15px]">👏</span>
-                      <span className="text-[13px]">{comment.claps || 0}</span>
-                    </button>
-
-                    <button className="flex items-center gap-1.5 hover:text-gray-700 dark:hover:text-neutral-200 transition-colors">
-                      <MessageSquareIcon size={14} />
-                      <span className="text-[13px]">{comment.replies?.length || 0} replies</span>
-                    </button>
-
-                    <button className="hover:text-gray-700 dark:hover:text-neutral-200 transition-colors text-[13px] font-medium">
-                      Reply
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="py-12 text-center space-y-3">
-                <div className="w-16 h-16 bg-gray-55 dark:bg-neutral-900/30 rounded-full flex items-center justify-center mx-auto text-gray-300 dark:text-neutral-700">
-                  <MessageSquareIcon size={32} />
+                <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto r-muted" style={{ backgroundColor: 'var(--r-surface)' }}>
+                  <MessageSquareIcon size={26} />
                 </div>
-                <p className="text-gray-400 dark:text-neutral-500 text-sm">No responses yet. Be the first to respond.</p>
+                <p className="r-muted text-sm">Hozircha izoh yo'q. Birinchi bo'lib fikr bildiring.</p>
               </div>
             )}
           </div>
         </section>
-
-        {/* Claim XP Section */}
-        {user && article && !article.isMemberOnly && (
-          <div className="mt-8 mb-24 flex flex-col items-center justify-center p-8 bg-blue-50/50 dark:bg-blue-950/10 rounded-3xl border border-blue-100 dark:border-blue-900/40 max-w-2xl mx-auto text-center">
-            <Sparkles className="text-blue-500 mb-4" size={32} />
-            <h3 className="text-xl font-bold text-[#242424] dark:text-neutral-200 mb-2">Maqolani o'qib chiqdingizmi?</h3>
-            <p className="text-[#6B6B6B] dark:text-neutral-400 mb-6 text-center text-sm">
-              {!completed && !userData?.awardedItems?.includes(article.id) && (
-                <>
-                  XP olish uchun maqolani oxirigacha o'qing.<br />
-                  <span className="font-semibold">O'qish vaqti:</span> {Math.floor(timeSpent / 60)} daqiqa {timeSpent % 60} soniya / 2 daqiqa.
-                  <span className="mx-2">|</span>
-                  <span className="font-semibold">Varaqlash:</span> {isScrollMet ? "✓ Oxiriga yetdi" : "✗ Oxirigacha scroll qiling"}
-                </>
-              )}
-              {(completed || userData?.awardedItems?.includes(article.id)) && "Siz ushbu maqola uchun XP olgansiz."}
-            </p>
-            <button 
-              onClick={handleClaimXP}
-              disabled={completed || userData?.awardedItems?.includes(article.id)}
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-neutral-800 disabled:text-gray-500 dark:disabled:text-neutral-500 text-white rounded-full font-bold text-sm transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-blue-500/20 dark:shadow-none"
-            >
-              {completed || userData?.awardedItems?.includes(article.id) ? (
-                <><CheckCircle2 size={18} /> XP Olindi</>
-              ) : (
-                <><Award size={18} /> XP Olish (+10)</>
-              )}
-            </button>
-          </div>
-        )}
-
-        <style>{`
-          .article-container,
-          .article-container h2,
-          .article-container div,
-          .article-container p,
-          .article-container span {
-            font-family: Charter, Georgia, Cambria, "Times New Roman", Times, serif !important;
-          }
-          .article-container,
-          .article-container * {
-            -webkit-user-select: text !important;
-            user-select: text !important;
-            cursor: auto;
-          }
-          .article-container::selection,
-          .article-container *::selection {
-            background-color: #b3d4fc !important;
-            color: #000 !important;
-          }
-          .dark .article-container::selection,
-          .dark .article-container *::selection {
-            background-color: rgba(96, 165, 250, 0.45) !important;
-            color: #fff !important;
-          }
-          /* Persistent selection highlight (so'z belgilangandan keyin ko'k bo'lib turadi) */
-          mark.article-active-selection {
-            background-color: #b3d4fc !important;
-            color: inherit !important;
-            border-radius: 3px;
-            padding: 1px 0;
-            box-decoration-break: clone;
-            -webkit-box-decoration-break: clone;
-          }
-          .dark mark.article-active-selection {
-            background-color: rgba(96, 165, 250, 0.45) !important;
-            color: #fff !important;
-          }
-          .dark .article-container span,
-          .dark .article-container p,
-          .dark .article-container div,
-          .dark .article-container h2 {
-            color: #e5e5e5 !important;
-          }
-          .article-body-block {
-            word-break: normal;
-            overflow-wrap: normal;
-            hyphens: none;
-            -webkit-hyphens: none;
-          }
-          .article-body-block p { margin-bottom: 0.75em; }
-          .article-body-block ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
-          .article-body-block ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
-          .article-body-block li { margin-bottom: 0.25rem; }
-          .article-body-block a { color: #0066CC; text-decoration: underline; }
-          .dark .article-body-block a { color: #60a5fa !important; }
-          .article-body-block strong { font-weight: 700; }
-          .article-body-block em { font-style: italic; }
-          .article-body-block s { text-decoration: line-through; }
-          .article-body-block u { text-decoration: underline; }
-        `}</style>
       </main>
 
-      {!isTeacher && <SiteFooter />}    </div>
+      {/* Yuqoriga qaytish */}
+      <AnimatePresence>
+        {showTopButton && !(isMobile && selectionMenu) && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="Yuqoriga qaytish"
+            className="fixed bottom-6 right-5 md:right-8 z-40 w-11 h-11 rounded-full border shadow-lg flex items-center justify-center r-muted r-hover-ink transition-colors"
+            style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)' }}
+          >
+            <ArrowUp size={19} />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            role="status"
+            aria-live="polite"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-2 px-4 py-2.5 rounded-full text-[13.5px] font-medium text-white shadow-xl max-w-[90vw]"
+            style={{ backgroundColor: toast.type === 'error' ? '#c64545' : toast.type === 'success' ? '#3f7d46' : '#2c2b28' }}
+          >
+            {toast.type === 'success' ? <Check size={16} className="shrink-0" /> : toast.type === 'error' ? <X size={16} className="shrink-0" /> : <Link2 size={16} className="shrink-0" />}
+            <span className="truncate">{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
+        /* --- Xotirjam o'qish palitrasi (Medium-style, iliq qog'oz) --- */
+        .reading-root {
+          --r-paper: #faf9f5;
+          --r-paper-blur: rgba(250, 249, 245, 0.85);
+          --r-surface: #f5f2eb;
+          --r-surface-strong: #ece7dd;
+          --r-hairline: #e6dfd8;
+          --r-ink: #1f1e1c;
+          --r-ink-soft: #33322e;
+          --r-muted: #6c6a64;
+          --r-accent: #1a7f4b;
+          --r-accent-soft: rgba(26, 127, 75, 0.12);
+          --r-accent-contrast: #ffffff;
+          --r-hover: rgba(31, 30, 28, 0.05);
+          --r-focus: rgba(26, 127, 75, 0.45);
+          --r-track: #e6dfd8;
+          --r-selection: #d8e8dc;
+          --r-fade: linear-gradient(to bottom, rgba(250,249,245,0) 0%, rgba(250,249,245,0.85) 55%, #faf9f5 100%);
+        }
+        .dark .reading-root {
+          --r-paper: #171614;
+          --r-paper-blur: rgba(23, 22, 20, 0.85);
+          --r-surface: #201f1c;
+          --r-surface-strong: #2a2825;
+          --r-hairline: #2e2c28;
+          --r-ink: #e8e5de;
+          --r-ink-soft: #d3cfc7;
+          --r-muted: #948f85;
+          --r-accent: #6cbf8b;
+          --r-accent-soft: rgba(108, 191, 139, 0.14);
+          --r-accent-contrast: #10221a;
+          --r-hover: rgba(232, 229, 222, 0.07);
+          --r-focus: rgba(108, 191, 139, 0.45);
+          --r-track: #2e2c28;
+          --r-selection: rgba(108, 191, 139, 0.28);
+          --r-fade: linear-gradient(to bottom, rgba(23,22,20,0) 0%, rgba(23,22,20,0.85) 55%, #171614 100%);
+        }
+
+        .r-ink { color: var(--r-ink); }
+        .r-muted { color: var(--r-muted); }
+        .r-accent { color: var(--r-accent); }
+        .r-hover-ink:hover { color: var(--r-ink); }
+        .r-hover-danger:hover { color: #d05353; }
+        .r-fade { background-image: var(--r-fade); }
+        .r-accent-bg {
+          background-color: var(--r-accent);
+          color: var(--r-accent-contrast);
+        }
+        .r-accent-bg:hover:not(:disabled) { filter: brightness(1.06); }
+
+        .article-serif,
+        .article-container,
+        .article-container h2,
+        .article-container div,
+        .article-container p,
+        .article-container span,
+        .article-container li {
+          font-family: Charter, Georgia, Cambria, "Times New Roman", Times, serif;
+        }
+        .article-container,
+        .article-container * {
+          -webkit-user-select: text;
+          user-select: text;
+        }
+        .article-container ::selection {
+          background-color: var(--r-selection);
+        }
+
+        /* Ovozli o'qishda joriy blok — chalg'itmaydigan yumshoq belgi */
+        .article-container .is-speaking {
+          background-color: var(--r-accent-soft);
+          box-shadow: inset 3px 0 0 var(--r-accent);
+          border-radius: 4px;
+          padding-left: 14px;
+          margin-left: -14px;
+        }
+
+        .article-body-block {
+          word-break: normal;
+          overflow-wrap: break-word;
+          hyphens: none;
+          -webkit-hyphens: none;
+        }
+        .article-body-block p { margin-bottom: 0.75em; }
+        .article-body-block ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+        .article-body-block ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
+        .article-body-block li { margin-bottom: 0.25rem; }
+        .article-body-block a {
+          color: var(--r-accent);
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .article-body-block img { max-width: 100%; height: auto; border-radius: 8px; }
+        .article-body-block blockquote {
+          border-left: 3px solid var(--r-hairline);
+          padding-left: 1rem;
+          font-style: italic;
+          color: var(--r-muted);
+          margin: 1.25rem 0;
+        }
+        .article-body-block strong { font-weight: 700; color: var(--r-ink); }
+        .article-body-block em { font-style: italic; }
+        .article-body-block s { text-decoration: line-through; }
+        .article-body-block u { text-decoration: underline; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .reading-root * { scroll-behavior: auto !important; }
+        }
+      `}</style>
+
+      {!isTeacher && <SiteFooter />}
+    </div>
   );
 }
-

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useRef, useEffect } from "r
 import { db } from "../firebase/firebase";
 import { collection, addDoc, deleteDoc, doc, query, where, getDocs, onSnapshot, updateDoc, increment, setDoc } from "firebase/firestore";
 import { getCdnUrl } from "../utils/cdnUtils";
+import { useAuth } from "./AuthContext";
 
 const PodcastContext = createContext();
 
@@ -24,18 +25,26 @@ export const PodcastProvider = ({ children }) => {
     const [likedPodcasts, setLikedPodcasts] = useState([]); // Array of podcast IDs
     const youtubePlayerRef = useRef(null); // Global ref for YouTube player
 
-    // Fetch Likes for a user
-    const fetchUserLikes = (userId) => {
-        if (!userId) {
+    const { user } = useAuth();
+
+    // Likelar butun ilova bo'ylab bitta joyda kuzatiladi — avval faqat Podcasts
+    // sahifasi obuna bo'lgani uchun album/episode sahifalarida yurak holati noto'g'ri edi.
+    useEffect(() => {
+        if (!user?.uid) {
             setLikedPodcasts([]);
             return;
         }
-        const q = query(collection(db, "podcastLikes"), where("userId", "==", userId));
-        return onSnapshot(q, (snapshot) => {
-            const likedIds = snapshot.docs.map(doc => doc.data().podcastId);
-            setLikedPodcasts(likedIds);
-        });
-    };
+        const q = query(collection(db, "podcastLikes"), where("userId", "==", user.uid));
+        const unsubscribe = onSnapshot(
+            q,
+            (snapshot) => setLikedPodcasts(snapshot.docs.map(d => d.data().podcastId)),
+            (err) => console.error("Error listening to likes:", err)
+        );
+        return () => unsubscribe();
+    }, [user?.uid]);
+
+    // Eskicha API (sahifalardan chaqiriladi) — endi obuna provider darajasida
+    const fetchUserLikes = () => undefined;
 
     const toggleLike = async (userId, podcastId) => {
         if (!userId || !podcastId) return;
@@ -44,6 +53,11 @@ export const PodcastProvider = ({ children }) => {
         const likeDocId = `${userId}_${podcastId}`;
         const likeRef = doc(db, "podcastLikes", likeDocId);
         const podcastRef = doc(db, "podcasts", podcastId);
+
+        // Optimistik yangilash — onSnapshot javobini kutmasdan UI darhol o'zgaradi
+        setLikedPodcasts(prev =>
+            isLiked ? prev.filter(id => id !== podcastId) : [...prev, podcastId]
+        );
 
         try {
             if (isLiked) {
@@ -61,6 +75,10 @@ export const PodcastProvider = ({ children }) => {
             }
         } catch (e) {
             console.error("Error toggling like:", e);
+            // Rollback
+            setLikedPodcasts(prev =>
+                isLiked ? [...prev, podcastId] : prev.filter(id => id !== podcastId)
+            );
         }
     };
 
@@ -77,15 +95,35 @@ export const PodcastProvider = ({ children }) => {
         }
     }, []);
 
+    // currentTime har ~250ms da o'zgaradi — avval har o'zgarishda butun track
+    // JSON.stringify qilinib localStorage'ga yozilardi. Endi throttle qilamiz.
+    const currentTimeRef = useRef(0);
     useEffect(() => {
-        if (currentTrack) {
-            localStorage.setItem('last_played_podcast', JSON.stringify({
-                track: currentTrack,
-                time: currentTime,
-                timestamp: Date.now()
-            }));
-        }
-    }, [currentTrack, currentTime]);
+        currentTimeRef.current = currentTime;
+    }, [currentTime]);
+
+    useEffect(() => {
+        if (!currentTrack) return;
+
+        const persist = () => {
+            try {
+                localStorage.setItem('last_played_podcast', JSON.stringify({
+                    track: currentTrack,
+                    time: currentTimeRef.current,
+                    timestamp: Date.now()
+                }));
+            } catch (e) {
+                console.warn("Could not persist podcast state", e);
+            }
+        };
+
+        persist();
+        const interval = setInterval(persist, 5000);
+        return () => {
+            clearInterval(interval);
+            persist();
+        };
+    }, [currentTrack]);
 
     // Audio Playback Sync
     useEffect(() => {

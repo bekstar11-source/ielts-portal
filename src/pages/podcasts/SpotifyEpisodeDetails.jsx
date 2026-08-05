@@ -36,34 +36,40 @@ export default function SpotifyEpisodeDetails() {
     const [openSection, setOpenSection] = useState(null); // 'exercises' or 'transcript'
     const [isShareOpen, setIsShareOpen] = useState(false);
     const containerRef = useRef(null);
+    const scrollAreaRef = useRef(null);
 
+    // Scroll haqiqatda ichki konteynerda sodir bo'ladi — avval tashqi div kuzatilgani
+    // uchun sticky mini-header hech qachon ko'rinmasdi.
     useEffect(() => {
-        const el = containerRef.current;
+        const el = scrollAreaRef.current;
         if (!el) return;
 
         let ticking = false;
-        const handleScroll = (e) => {
+        const handleScroll = () => {
             if (!ticking) {
+                ticking = true;
                 window.requestAnimationFrame(() => {
-                    const scrollTop = e.target.scrollTop;
-                    const opacity = Math.min(1, Math.max(0, scrollTop / 120));
+                    const opacity = Math.min(1, Math.max(0, el.scrollTop / 120));
                     setScrollOpacity(opacity);
                     ticking = false;
                 });
-                ticking = true;
             }
         };
 
         el.addEventListener('scroll', handleScroll, { passive: true });
         return () => el.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [loading]);
 
     const handlePlay = () => {
-        if (currentTrack?.id !== podcast.id) {
+        if (!podcast) return;
+        // Ayni shu epizod o'ynayotgan bo'lsa — pauza (Pause ikonkasi bosilganda hech nima bo'lmasdi)
+        if (currentTrack?.id === podcast.id) {
+            setIsPlaying(!isPlaying);
+        } else {
             setCurrentTrack(podcast);
+            setIsPlaying(true);
         }
         setIsExpanded(true);
-        setIsPlaying(true);
     };
 
     const handleMediaSkip = (amount) => {
@@ -95,7 +101,7 @@ export default function SpotifyEpisodeDetails() {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+            <div ref={scrollAreaRef} className="flex-1 overflow-y-auto custom-scrollbar relative">
                 {error ? (
                     <div className="flex items-center justify-center min-h-[60vh] px-4">
                         <PodcastError isDark={isDark} onRetry={retry} />
@@ -103,6 +109,17 @@ export default function SpotifyEpisodeDetails() {
                 ) : loading ? (
                     <div className="p-8">
                         <EpisodeSkeleton isDark={isDark} />
+                    </div>
+                ) : !podcast ? (
+                    /* Epizod topilmaganda avval podcast.title o'qilib sahifa qulab tushardi */
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4 text-center">
+                        <p className={`font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Epizod topilmadi.</p>
+                        <button
+                            onClick={() => navigate('/podcasts')}
+                            className="px-5 py-2 rounded-full bg-[#1ed760] text-black font-bold text-sm"
+                        >
+                            Podcastlarga qaytish
+                        </button>
                     </div>
                 ) : (
                     <>

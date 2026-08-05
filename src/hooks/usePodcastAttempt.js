@@ -8,7 +8,6 @@ import {
     setDoc,
     updateDoc,
     serverTimestamp,
-    collection,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
@@ -38,12 +37,15 @@ export function usePodcastAttempt(podcastId) {
 
     // Mavjud attempt ni yuklash yoki yangi yaratish
     useEffect(() => {
-        if (!user || !podcastId) return;
+        // Foydalanuvchi yo'q bo'lsa loading'ni o'chirmasak, sahifa abadiy spinner'da qolardi
+        if (!user || !podcastId) {
+            setLoading(false);
+            return;
+        }
 
         const fetchOrCreateAttempt = async () => {
             setLoading(true);
             try {
-                const attemptQuery = collection(db, "podcastAttempts");
                 const attemptId = `${user.uid}_${podcastId}`;
                 const attemptRef = doc(db, "podcastAttempts", attemptId);
                 const snap = await getDoc(attemptRef);
@@ -89,7 +91,9 @@ export function usePodcastAttempt(podcastId) {
 
             const stageKey = ["dictation", "mcq", "gapFill", "vocab", "speaking"][stage - 1];
             const updatedResults = { ...stageResults, [stageKey]: results };
-            const nextStage = Math.min(stage + 1, 5);
+            // 5-bosqich tugagach currentStage 6 bo'lishi kerak — aks holda natijalar sahifasi
+            // ochilmay, oxirgi bosqich qayta ko'rsatilardi
+            const nextStage = Math.min(stage + 1, 6);
 
             try {
                 const attemptRef = doc(db, "podcastAttempts", attempt.id);
@@ -99,8 +103,9 @@ export function usePodcastAttempt(podcastId) {
                 };
 
                 // Agar oxirgi bosqich bo'lsa — umumiy balni hisoblash
+                let bands = null;
                 if (stage === 5) {
-                    const bands = calcAllBands(updatedResults);
+                    bands = calcAllBands(updatedResults);
                     updateData.ieltsBands = bands;
                     updateData.completedAt = serverTimestamp();
                 }
@@ -108,6 +113,18 @@ export function usePodcastAttempt(podcastId) {
                 await updateDoc(attemptRef, updateData);
                 setStageResults(updatedResults);
                 setCurrentStage(nextStage);
+
+                // Lokal attempt holatini ham yangilaymiz — natijalar kartasi bandlarsiz chiqmasin
+                setAttempt((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              currentStage: nextStage,
+                              stageResults: updatedResults,
+                              ...(stage === 5 ? { ieltsBands: bands, completedAt: new Date() } : {}),
+                          }
+                        : prev
+                );
 
                 if (stage === 5) return "/podcast-completed";
             } catch (err) {
