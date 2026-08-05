@@ -147,6 +147,10 @@ async function speakingFeedbackTone(data, context) {
                         question: stored?.question || question,
                         part: stored?.part || part,
                         evaluation: sanitizeEvaluation(source),
+                        // Faqat saqlangan javobdan: klient yuborgan nom yoki
+                        // "tarix" ga ishonib bo'lmaydi, u ekrandagi matnni
+                        // begona o'quvchi haqida gapirtira olardi.
+                        personalization: stored?.personalization || null,
                     }),
                 },
             ],

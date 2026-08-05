@@ -55,7 +55,8 @@ export default function AdminHeader() {
             <div className="flex items-center gap-4">
                 <button
                     onClick={toggleSidebar}
-                    className={`p-2 rounded-lg md:hidden transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-white' : 'hover:bg-gray-100 text-gray-900'}`}
+                    className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-white' : 'hover:bg-gray-100 text-gray-900'}`}
+                    title="Menyuni yig'ish/ochish"
                 >
                     <Menu size={20} />
                 </button>

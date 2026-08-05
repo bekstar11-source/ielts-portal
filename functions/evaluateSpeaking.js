@@ -19,6 +19,7 @@ const {
 } = require("./speakingRubric");
 const { generateJson } = require("./speakingModel");
 const { reserveSpeakingSlot, releaseSpeakingSlot } = require("./speakingQuota");
+const { fetchSpeakingHistory } = require("./speakingHistory");
 
 // Gemini qabul qiladigan audio formatlar. DIQQAT: audio/webm bu ro'yxatda YO'Q,
 // shuning uchun klient yozuvni WAV ga o'giradi (src/utils/audioWav.js).
@@ -146,8 +147,24 @@ async function evaluateSpeaking(data, context) {
     );
 
     // 0. Kunlik limit — AI chaqiruvidan OLDIN band qilinadi.
-    const userSnap = await db.collection("users").doc(uid).get();
+    //
+    // Oldingi urinishlar tarixi shu yerda, foydalanuvchi hujjati bilan BIRGA
+    // o'qiladi: promptga tushishi kerak, lekin uning uchun alohida aylanish
+    // kutib turishga arzimaydi. Tarix bo'lmasa feedback shunchaki
+    // shaxsiylashtirilmagan chiqadi — javobni yiqitmaydi.
+    const [userSnap, history] = await Promise.all([
+        db.collection("users").doc(uid).get(),
+        fetchSpeakingHistory(db, uid).catch((error) => {
+            console.error("Speaking history error:", error.message);
+            return null;
+        }),
+    ]);
     const userData = userSnap.exists ? userSnap.data() : {};
+    const studentName = userData.name || userData.displayName || null;
+    // Baholash paytidagi holat. Ohang almashtirilganda AYNAN shu qayta
+    // ishlatiladi — o'sha payt tarixni qayta o'qib bo'lmaydi, chunki shu
+    // javobning xatolari omborga allaqachon tushgan bo'ladi.
+    const personalization = { studentName, history };
     mark("user", startedAt);
 
     let quota;
@@ -198,7 +215,17 @@ async function evaluateSpeaking(data, context) {
             const raw = await generateJson({
                 apiKey,
                 parts: [
-                    { text: buildPrompt({ question, part, cueCard, feedbackLang: lang, mode }) },
+                    {
+                        text: buildPrompt({
+                            question,
+                            part,
+                            cueCard,
+                            feedbackLang: lang,
+                            mode,
+                            studentName,
+                            history,
+                        }),
+                    },
                     { inlineData: { mimeType, data: audioBase64 } },
                 ],
                 schema: RESPONSE_SCHEMA,
@@ -235,8 +262,9 @@ async function evaluateSpeaking(data, context) {
                     topicId: topicId || null,
                     topicTitle: topicTitle || null,
                     questionCount: Number(questionCount) || null,
-                    studentName: userData.name || userData.displayName || null,
+                    studentName,
                     groupId: userData.groupId || null,
+                    personalization,
                 }).catch((error) => {
                     // Saqlash muvaffaqiyatsiz bo'lsa ham natijani qaytaramiz —
                     // o'quvchi feedbackni yo'qotmasligi kerak.
@@ -354,6 +382,9 @@ async function saveAnswer(db, ctx) {
                 feedbackLang: ctx.lang,
                 audioPath: ctx.audioPath,
                 durationSec: ctx.durationSec,
+                // Ohang almashtirilganda `speakingFeedbackTone` shu yerdan
+                // o'qiydi — batafsil izoh speakingRubric.js:buildTonePrompt da.
+                personalization: ctx.personalization || null,
                 createdAt: answerSnap.exists ? answerSnap.data().createdAt || now : now,
                 updatedAt: now,
             },

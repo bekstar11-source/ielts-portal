@@ -57,22 +57,32 @@ const menuGroups = [
 
 export default function AdminSidebar() {
     const location = useLocation();
-    const { isMobile, setOpenMobile } = useSidebar();
+    const { isMobile, setOpenMobile, state, toggleSidebar } = useSidebar();
+    const collapsed = !isMobile && state === 'collapsed';
 
     return (
         <Sidebar collapsible="icon">
-            <SidebarHeader className="h-14 flex items-center px-4 relative flex-shrink-0">
+            <SidebarHeader className={`h-14 flex items-center relative flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-4'}`}>
                 <div className="font-bold text-lg tracking-tighter flex items-center gap-3 text-gray-900 dark:text-white">
                     <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white flex-shrink-0 text-xs font-black">A</div>
-                    <SidebarMenuLabel>Control</SidebarMenuLabel>
+                    {!collapsed && <SidebarMenuLabel>Control</SidebarMenuLabel>}
                 </div>
 
-                {isMobile && (
+                {isMobile ? (
                     <button
                         onClick={() => setOpenMobile(false)}
                         className="absolute -right-3 top-5 bg-blue-600 text-white p-1 rounded-full shadow-lg"
                     >
                         <ChevronLeft size={12} />
+                    </button>
+                ) : (
+                    <button
+                        onClick={toggleSidebar}
+                        title={collapsed ? "Menyuni ochish" : "Menyuni yig'ish"}
+                        aria-label={collapsed ? "Menyuni ochish" : "Menyuni yig'ish"}
+                        className="absolute -right-3 top-4 z-40 bg-blue-600 text-white p-1 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+                    >
+                        <ChevronLeft size={12} className={`transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
                     </button>
                 )}
             </SidebarHeader>

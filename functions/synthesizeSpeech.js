@@ -66,6 +66,97 @@ const VOICES = {
 const DEFAULT_MODE = "friend";
 const DEFAULT_LANG = "uz";
 
+// Ko'p ovozli o'qish uchun chegara. Har bir bo'lak alohida WebSocket so'rovi
+// (ular parallel ketadi, ya'ni kutish vaqti oshmaydi), lekin har bir bo'g'inda
+// qisqa sukunat qoladi. To'qqizta — uch-to'rt jumlalik feedback ichidagi
+// iqtiboslarga yetadi; undan ko'pi matn shu qadar tez til almashtiryaptiki,
+// uzuq-yuluq eshitiladi, shuning uchun bitta ovozga qaytamiz.
+//
+// Bu son quloq bilan sozlanadi: bo'g'inlar sezilib qolsa pasaytiring.
+const MAX_SEGMENTS = 9;
+
+/**
+ * Matnni ovoz dvigateli kutgan ko'rinishga keltiradi.
+ *
+ * Model apostrofni uch xil belgi bilan qaytaradi (', ', ʻ), va uz-UZ ovozlari
+ * faqat ASCII ni "o'" deb o'qiydi — qolganida "o" bo'lib ketadi, ya'ni "so'z"
+ * "soz" ga aylanadi. Tire esa promptda taqiqlangan bo'lsa ham vaqti-vaqti
+ * bilan chiqib qoladi va ovozda qoqilishga o'xshaydi.
+ */
+function normalizeForSpeech(text) {
+    return text
+        .replace(/[‘’ʻʼ´`]/g, "'")
+        .replace(/[“”]/g, '"')
+        .replace(/\s*[—–]\s*/g, ", ")
+        .replace(/,\s*,+/g, ",")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+// Ovoz almashtiriladigan inglizcha bo'laklar: qo'shtirnoq ichidagi iqtibos
+// (prompt o'quvchining o'z so'zlarini aynan shunday keltiradi) va IELTS.
+const QUOTED = /"([^"]{1,120})"/g;
+const ENGLISH_TERM = /\bIELTS\b/g;
+
+/**
+ * Qo'shtirnoq ichidagi matn inglizchami?
+ *
+ * Ataylab QATTIQ tekshiruv. Xato ijobiy javob o'zbekcha so'zni inglizcha ovoz
+ * bilan o'qitadi, va bu hozirgi holatdan ko'ra yomonroq eshitiladi. Shuning
+ * uchun o'zbekchaning eng aniq belgisi — o' va g' — uchrasa, tegmaymiz.
+ */
+function looksEnglish(text) {
+    if (!/[A-Za-z]/.test(text)) return false;
+    if (/[oOgG]'/.test(text)) return false;
+    return /^[A-Za-z0-9 ,.'!?%-]+$/.test(text);
+}
+
+/**
+ * Matnni til bo'yicha bo'laklarga ajratadi.
+ * @returns {Array<{ text: string, english: boolean }>}
+ */
+function splitByLanguage(text) {
+    const spans = [];
+
+    for (const match of text.matchAll(QUOTED)) {
+        // Qo'shtirnoqning o'zi tashlanadi: iqtibos ekanini endi ovoz almashuvi
+        // bildiradi, ovoz esa tirnoq belgisini baribir o'qimaydi.
+        if (looksEnglish(match[1])) {
+            spans.push({ start: match.index, end: match.index + match[0].length, text: match[1] });
+        }
+    }
+    for (const match of text.matchAll(ENGLISH_TERM)) {
+        const start = match.index;
+        // Iqtibos ichiga tushgan bo'lsa ikki marta hisoblamaymiz.
+        if (spans.some((span) => start >= span.start && start < span.end)) continue;
+        spans.push({ start, end: start + match[0].length, text: match[0] });
+    }
+
+    spans.sort((a, b) => a.start - b.start);
+
+    const segments = [];
+    let cursor = 0;
+    for (const span of spans) {
+        if (span.start > cursor) {
+            segments.push({ text: text.slice(cursor, span.start), english: false });
+        }
+        segments.push({ text: span.text, english: true });
+        cursor = span.end;
+    }
+    if (cursor < text.length) segments.push({ text: text.slice(cursor), english: false });
+
+    // Qo'shni bir xil tildagilar birlashtiriladi — har bir bo'lak alohida
+    // so'rov, keraksizini yaratmaymiz.
+    const merged = [];
+    for (const segment of segments) {
+        if (!segment.text.trim()) continue;
+        const last = merged[merged.length - 1];
+        if (last && last.english === segment.english) last.text += segment.text;
+        else merged.push({ ...segment });
+    }
+    return merged;
+}
+
 /** Vaqtga bog'liq token — har 5 daqiqada yangilanadi. */
 function generateSecMsGec() {
     let ticks = Math.floor(Date.now() / 1000) + WIN_EPOCH;
@@ -190,7 +281,7 @@ async function synthesizeSpeech(data, context) {
         );
     }
 
-    const text = String(data?.text || "").trim();
+    const text = normalizeForSpeech(String(data?.text || ""));
     if (!text) {
         throw new functions.https.HttpsError("invalid-argument", "Matn bo'sh.");
     }
@@ -202,11 +293,38 @@ async function synthesizeSpeech(data, context) {
     }
 
     const byLang = VOICES[data?.mode] || VOICES[DEFAULT_MODE];
-    const config = byLang[data?.lang] || byLang[DEFAULT_LANG];
+    const lang = byLang[data?.lang] ? data.lang : DEFAULT_LANG;
+    const config = byLang[lang];
+
+    // O'zbekcha ovoz inglizcha so'zni buzib o'qiydi: "fluency" "flunkiy" bo'lib
+    // chiqadi, va matnning sun'iyligi aynan shu joyda bilinadi. SSML da <lang>
+    // tegi bu endpointda rad etiladi, shuning uchun inglizcha bo'laklar alohida
+    // so'rov bilan inglizcha ovozda o'qiladi va mp3 lar ulanadi.
+    //
+    // Tezlik va ton O'ZBEKCHA sozlamadan olinadi — ovoz almashsa ham sur'at
+    // o'zgarmasligi kerak, aks holda iqtibos boshqa odam gapirganday eshitiladi.
+    const segments = lang === "uz" ? splitByLanguage(text) : [{ text, english: false }];
+    const multiVoice =
+        segments.length > 1 &&
+        segments.length <= MAX_SEGMENTS &&
+        segments.some((segment) => segment.english);
 
     let audio;
     try {
-        audio = await synthesize(text, config);
+        if (multiVoice) {
+            const englishVoice = byLang.en?.voice || config.voice;
+            const parts = await Promise.all(
+                segments.map((segment) =>
+                    synthesize(segment.text.trim(), {
+                        ...config,
+                        voice: segment.english ? englishVoice : config.voice,
+                    })
+                )
+            );
+            audio = Buffer.concat(parts);
+        } else {
+            audio = await synthesize(text, config);
+        }
     } catch (error) {
         console.error("Edge TTS error:", error.message);
         throw new functions.https.HttpsError("unavailable", "Ovozni sintez qilib bo'lmadi.");
@@ -219,4 +337,4 @@ async function synthesizeSpeech(data, context) {
     return { audioBase64: audio.toString("base64"), mimeType: MIME_TYPE };
 }
 
-module.exports = { synthesizeSpeech, VOICES };
+module.exports = { synthesizeSpeech, VOICES, normalizeForSpeech, splitByLanguage };

@@ -155,6 +155,9 @@ export function Sidebar({ collapsible = 'icon', className, children, ...props })
     }
 
     const expanded = state === 'expanded';
+    // Yig'ilgan holatda sichqoncha panel ustiga kelganda vizual ravishda ochiladi
+    // (kontent ustidan overlay bo'lib), lekin bo'sh joy (gap) kengligi haqiqiy
+    // pinned holatga bog'liq bo'lib qoladi — shu sabab kontent hover paytida sakramaydi.
     const visuallyExpanded = collapsible === 'icon' ? expanded || hovered : expanded;
 
     return (
@@ -276,7 +279,8 @@ export function SidebarMenuButton({ asChild = false, isActive = false, tooltip, 
     // esa matn qatori (~20px) belgilardi — natijada har bir element bir-ikki
     // piksel sakrardi. Endi ikkalasida ham bir xil.
     const buttonClassName = cn(
-        'flex h-9 items-center gap-3 px-2.5 rounded-xl font-semibold text-[13px] transition-colors duration-200',
+        'flex h-9 items-center rounded-xl font-semibold text-[13px] transition-colors duration-200',
+        expanded ? 'gap-3 px-2.5' : 'justify-center gap-0 px-0',
         isActive
             ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 dark:bg-blue-600'
             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white',

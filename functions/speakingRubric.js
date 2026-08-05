@@ -56,29 +56,113 @@ const FEEDBACK_MODES = {
 const SPEECH_RULES = `These strings are fed straight into a text-to-speech engine, so write SPOKEN
 language, not written language:
 - No markdown, no bullet points, no emoji, no numbered lists, no parentheses, no slashes.
+- No dashes of any kind, neither short nor long. The voice reads a dash as a stumble. Where you
+  want that pause, use a comma or start a new sentence.
 - Never use abbreviations or symbols the voice would mangle (%, &, e.g., i.e., IELTS is fine).
 - Write every number as words, including band scores: "six and a half", not "6.5".
-- Short sentences, one idea each. Break long sentences into two — the voice needs somewhere
-  to breathe, and commas and full stops are the only breathing marks it has.
+- Vary the sentence length on purpose. A very short sentence next to a longer one is what makes
+  speech sound spoken; sentences of the same length in a row sound like a machine reading a list.
+- One idea per sentence. Break a long sentence into two — the voice needs somewhere to breathe,
+  and commas and full stops are the only breathing marks it has.
 - Use the contractions and connectives a person actually says out loud, and open sentences the
   way speech does, not the way an essay does.
 - When you quote what the candidate said, keep the quote short — one phrase, not a sentence.`;
 
 const LANG_RULES = {
     en: `Write all three feedback strings in English.`,
-    uz: `Write all three feedback strings in Uzbek (Latin script) — this student's own language.
-Natural spoken Uzbek is the requirement, and it is easy to get wrong:
-- Do NOT translate English sentence by sentence. Word order, and where the verb lands, must be
-  what an Uzbek teacher would actually say. If a sentence reads like a translation, rewrite it.
-- Use the living spoken forms a teacher uses with a student, not bookish written Uzbek.
+    uz: `Write the feedback in Uzbek (Latin script) — this student's own language.
+Natural spoken Uzbek is the requirement, and it is the easiest thing here to get wrong.
+
+Never translate an English sentence into Uzbek. Compose it in Uzbek from the start. The test:
+if a sentence could be back-translated into English word for word, it is a translation wearing
+Uzbek words. Rewrite it.
+
+BANNED. Every one of these is grammatical, and every one of them gives you away:
+- Bookish written forms: mazkur, ushbu, hisoblanadi, amalga oshirish, ta'kidlash joizki,
+  shuni aytish kerakki, lozim, mavjud.
+- The "-moqda" verb form. Say "gapiryapsiz", never "gapirmoqdasiz"; "yaxshi ketyapti", never
+  "yaxshi bormoqda".
+- The possessive chain "Sizning ...ingiz ... edi". That is English syntax in Uzbek clothing.
+- Calqued praise: "Ajoyib ish", "Yaxshi ish", "Yo'lda davom eting", "Zo'r bo'ldi" as an opener
+  every single time.
+- English words Uzbek already owns: level, problem, practice, mistake, improve. Use daraja,
+  muammo, mashq, xato, yaxshilash.
+
+REQUIRED. The small words that make Uzbek sound like it was said out loud rather than written:
+-ku, -da, -chi, mana, endi, xullas, aslida, hozir, qarang, bo'pti. A teacher uses them
+constantly, but not in every sentence — sprinkled in, not stacked.
+
+Other rules:
 - Address the student with "siz".
-- Use the Uzbek names of the criteria: ravonlik, so'z boyligi, grammatika, talaffuz.
-- Keep IELTS terms and the candidate's own quoted English words in English — an Uzbek teacher
-  code-switches exactly like that, and it sounds natural. Everything else must be Uzbek; do not
-  sprinkle in English words that Uzbek already has.
-- Uzbek band scores as words too: "olti yarim", not "6.5".
-- Use apostrophes properly in o' and g' — the voice reads them as different letters.`,
+- Uzbek names of the criteria: ravonlik, so'z boyligi, grammatika, talaffuz.
+- Keep IELTS terms and the candidate's own quoted English words in English. An Uzbek teacher
+  code-switches exactly like that and it sounds natural.
+- Band scores as Uzbek words: "olti yarim", not "6.5".
+- Use apostrophes properly in o' and g' — the voice reads them as different letters.
+
+REWRITE EXAMPLES. Study the shape of the change, do not reuse the wording:
+BAD:  "Sizning ravonligingiz yaxshi edi, lekin siz ko'proq bog'lovchi so'zlarni ishlatishingiz kerak."
+GOOD: "Ravon gapirdingiz-ku, zo'r. Faqat gaplar bir-biriga ulanmayapti. Orasiga "and then",
+      "that's why" qo'shib ko'ring."
+BAD:  "Grammatikangizda bir nechta xatolar mavjud. Siz o'tgan zamonni to'g'ri ishlatishingiz lozim."
+GOOD: "Grammatika biroz oqsayapti. "I go there last year" dedingiz, "I went" bo'lishi kerak edi."
+BAD:  "Ajoyib ish! Yo'lda davom eting!"
+GOOD: "Zo'r ketyapsiz. Shu tempni ushlab turing."
+BAD:  "Sizning talaffuzingiz olti ballga teng hisoblanadi."
+GOOD: "Talaffuz olti ball. Tovushlar tushunarli, lekin urg'u bir tekis, shuning uchun olti
+      yarimga yetmadi."`,
 };
+
+/**
+ * "Bu o'quvchini taniyman" bloki.
+ *
+ * Ism va oldingi urinishlar promptga tushmasa, matn har safar o'quvchini
+ * birinchi marta ko'rayotgan begonaning matni bo'lib qolaveradi. Blok faqat
+ * aytishga arziydigan narsa bo'lgandagina qo'shiladi — bo'sh sarlavha modelni
+ * yo'qni bordek qilib gapirishga undaydi.
+ *
+ * @param {{ studentName?: string|null, history?: object|null }} ctx
+ * @returns {string} bo'sh satr — kontekst yo'q degani
+ */
+function buildPersonalBlock({ studentName, history }) {
+    const facts = [];
+
+    // Faqat ism — familiya bilan murojaat qilish o'zbekchada g'alati eshitiladi.
+    const firstName = String(studentName || "").trim().split(/\s+/)[0];
+    if (firstName) facts.push(`This student's first name is ${firstName}.`);
+
+    if (history?.lastOverall) {
+        facts.push(`Their previous overall band was ${history.lastOverall}.`);
+    }
+
+    const mistakes = (history?.mistakes || []).filter((item) => item?.said && item?.better);
+    if (mistakes.length > 0) {
+        const lines = mistakes
+            .map(
+                (item) =>
+                    `- said "${item.said}" instead of "${item.better}"` +
+                    (item.sessions > 1 ? ` (in ${item.sessions} separate sessions)` : "")
+            )
+            .join("\n");
+        facts.push(`Mistakes they have made in recent sessions:\n${lines}`);
+    }
+
+    if (facts.length === 0) return "";
+
+    return `YOU HAVE TAUGHT THIS STUDENT BEFORE. What you already know:
+${facts.join("\n")}
+
+How to use this, and it is easy to overdo:
+- Say their name at most once, in the place a teacher would actually say it. Never open with it
+  every time, and never use it in the examiner voice.
+- Refer to at most ONE item from the list above, and only if THIS answer actually touches it:
+  either they repeated it, or they finally got it right. Getting it right is worth saying out
+  loud, and it is the most valuable sentence you can write.
+- Never recite the list, never count out loud how many times, never say the word "history".
+- Only mention the previous band if today's overall actually moved.
+- If none of this is relevant to this particular answer, ignore the whole block in silence.
+  A forced callback is worse than no callback.`;
+}
 
 /**
  * Gemini responseSchema.
@@ -187,11 +271,21 @@ function resolveMode(mode) {
 
 /**
  * @param {{ question: string, part: 1|2|3, cueCard?: string,
- *           feedbackLang?: 'uz'|'en', mode?: string }} ctx
+ *           feedbackLang?: 'uz'|'en', mode?: string,
+ *           studentName?: string|null, history?: object|null }} ctx
  */
-function buildPrompt({ question, part = 1, cueCard, feedbackLang = "uz", mode }) {
+function buildPrompt({
+    question,
+    part = 1,
+    cueCard,
+    feedbackLang = "uz",
+    mode,
+    studentName,
+    history,
+}) {
     const langRule = LANG_RULES[feedbackLang] || LANG_RULES.uz;
     const tone = resolveMode(mode);
+    const personal = buildPersonalBlock({ studentName, history });
 
     return `You are a certified IELTS Speaking examiner. You are listening to the audio of a
 candidate answering ONE question from IELTS Speaking Part ${part}.
@@ -241,7 +335,7 @@ with the bands you gave; a student who reads the feedback and then looks at the 
 see the same story.
 
 ${FEEDBACK_MODES[tone].style}
-
+${personal ? `\n${personal}\n` : ""}
 ${langRule}
 
 ${SPEECH_RULES}`;
@@ -254,9 +348,21 @@ ${SPEECH_RULES}`;
  * faqat ovoz. Shu sabab bu chaqiruv baholashdan bir necha barobar tez va
  * arzon, va kunlik limitdan yemaydi.
  */
-function buildTonePrompt({ mode, feedbackLang = "uz", question, part = 1, evaluation }) {
+function buildTonePrompt({
+    mode,
+    feedbackLang = "uz",
+    question,
+    part = 1,
+    evaluation,
+    personalization,
+}) {
     const tone = resolveMode(mode);
     const langRule = LANG_RULES[feedbackLang] || LANG_RULES.uz;
+    // Kontekst baholash paytida hisoblangan holicha keladi (javob hujjatidan).
+    // Bu yerda qaytadan o'qib bo'lmaydi: shu javobning xatolari o'sha omborga
+    // ALLAQACHON yozilgan, ya'ni model hozir tuzatayotgan xatosini "o'tgan
+    // safar ham shunday edingiz" deb qaytarib berardi.
+    const personal = buildPersonalBlock(personalization || {});
     const bands = evaluation?.bands || {};
     const corrections = (evaluation?.corrections || [])
         .map((item) => `- said "${item.said}" -> better "${item.better}"`)
@@ -287,7 +393,7 @@ What the candidate said, verbatim:
 Write "feedback" as a single string in this voice:
 
 ${FEEDBACK_MODES[tone].style}
-
+${personal ? `\n${personal}\n` : ""}
 ${langRule}
 
 ${SPEECH_RULES}`;
@@ -373,6 +479,7 @@ module.exports = {
     resolveMode,
     buildPrompt,
     buildTonePrompt,
+    buildPersonalBlock,
     roundBand,
     normalizeEvaluation,
 };
