@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '../../context/LanguageContext';
 import {
     BookMarked, ChevronDown, Volume2, Plus, Check, Loader2,
     Search, X, AlertCircle, Sparkles,
@@ -11,6 +12,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc, 
 const norm = (w) => (w || '').toLowerCase().trim();
 
 export default function ArticleVocabulary({ vocabulary = [], level, articleTitle }) {
+    const { lang, t } = useTranslation();
     const [expanded, setExpanded] = useState(true);
     const [openIndex, setOpenIndex] = useState(null);
     const { user } = useAuth();
@@ -64,7 +66,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
 
     const handleAddWord = async (item) => {
         if (!user) {
-            flash('error', "Lug'atga qo'shish uchun avval tizimga kiring.");
+            flash('error', t('articles.loginToSaveVocab') || "Lug'atga qo'shish uchun avval tizimga kiring.");
             return;
         }
 
@@ -94,7 +96,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
             setAddedWords(prev => new Set([...prev, norm(item.word)]));
         } catch (error) {
             console.error("Error adding word to wordbank:", error);
-            flash('error', "Lug'atga qo'shishda xatolik: " + error.message);
+            flash('error', (t('articles.errorAddingToVocab') || "Lug'atga qo'shishda xatolik: {error}").replace('{error}', error.message));
         } finally {
             setAddingWordId(null);
         }
@@ -120,7 +122,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
             });
         } catch (error) {
             console.error("Error removing word:", error);
-            flash('error', "O'chirishda xatolik: " + error.message);
+            flash('error', (t('articles.errorDeletingComment') || "O'chirishda xatolik: {error}").replace('{error}', error.message));
         } finally {
             setAddingWordId(null);
         }
@@ -128,7 +130,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
 
     const handleAddAllWords = async () => {
         if (!user) {
-            flash('error', "Lug'atga qo'shish uchun avval tizimga kiring.");
+            flash('error', t('articles.loginToSaveVocab') || "Lug'atga qo'shish uchun avval tizimga kiring.");
             return;
         }
 
@@ -167,10 +169,10 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                 wordsToAdd.forEach(item => next.add(norm(item.word)));
                 return next;
             });
-            flash('info', `${wordsToAdd.length} ta so'z lug'atingizga qo'shildi.`);
+            flash('info', (t('articles.wordsAddedSuccess') || "{count} ta so'z lug'atingizga qo'shildi.").replace('{count}', wordsToAdd.length));
         } catch (error) {
             console.error("Error adding all words to wordbank:", error);
-            flash('error', "Barcha so'zlarni qo'shishda xatolik: " + error.message);
+            flash('error', (t('articles.errorAddingAllWords') || "Barcha so'zlarni qo'shishda xatolik: {error}").replace('{error}', error.message));
         } finally {
             setIsAddingAll(false);
         }
@@ -279,7 +281,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                             className="text-[17px] font-semibold tracking-[-0.01em] leading-tight"
                             style={{ color: 'var(--r-ink)' }}
                         >
-                            Kalit so'zlar
+                            {t('articles.keywords') || "Kalit so'zlar"}
                             {level && (
                                 <span
                                     className="ml-2 align-middle text-[10px] font-bold uppercase tracking-[0.06em] px-1.5 py-[3px] rounded-md"
@@ -290,12 +292,12 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                             )}
                         </h3>
                         <p className="text-[12.5px] leading-snug mt-[3px]" style={{ color: 'var(--r-muted)' }}>
-                            {vocabulary.length} ta so'z
+                            {(t('articles.wordsCount') || "{count} ta so'z").replace('{count}', vocabulary.length)}
                             {user && (
                                 <>
                                     <span className="mx-1.5 opacity-50">·</span>
                                     <span style={allAdded ? { color: 'var(--r-accent)', fontWeight: 600 } : undefined}>
-                                        {addedCount} ta lug'atingizda
+                                        {lang === 'uz' ? `${addedCount} ta lug'atingizda` : `${addedCount} in your vocabulary`}
                                     </span>
                                 </>
                             )}
@@ -346,15 +348,15 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                                             type="text"
                                             value={search}
                                             onChange={(e) => setSearch(e.target.value)}
-                                            placeholder="So'z yoki tarjima bo'yicha qidirish"
-                                            aria-label="Lug'at ichidan qidirish"
+                                            placeholder={t('articles.searchWordOrTranslation') || "So'z yoki tarjima bo'yicha qidirish"}
+                                            aria-label={t('articles.searchInVocab') || "Lug'at ichidan qidirish"}
                                             className="vocab-search w-full h-9 pl-9 pr-8 rounded-lg text-[13px] outline-none"
                                         />
                                         {search && (
                                             <button
                                                 type="button"
                                                 onClick={() => setSearch('')}
-                                                aria-label="Qidiruvni tozalash"
+                                                aria-label={t('articles.clearFilters') || "Qidiruvni tozalash"}
                                                 className="vocab-ghost absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md"
                                             >
                                                 <X size={13} />
@@ -366,7 +368,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                                     type="button"
                                     onClick={handleAddAllWords}
                                     disabled={isAddingAll || allAdded}
-                                    title={allAdded ? "Barcha so'zlar lug'atingizda" : "Barcha so'zlarni lug'atga qo'shish"}
+                                    title={allAdded ? t('articles.allAddedToVocab') : t('articles.addAllToVocab')}
                                     className={`shrink-0 ml-auto flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[13px] font-semibold tracking-[-0.005em] ${
                                         allAdded ? 'cursor-default' : 'vocab-solid'
                                     }`}
@@ -375,18 +377,18 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                                     {isAddingAll ? (
                                         <>
                                             <Loader2 size={14} className="animate-spin" />
-                                            <span>Qo'shilmoqda</span>
+                                            <span>{lang === 'uz' ? "Qo'shilmoqda" : "Adding..."}</span>
                                         </>
                                     ) : allAdded ? (
                                         <>
                                             <Check size={14} />
-                                            <span>Hammasi qo'shilgan</span>
+                                            <span>{lang === 'uz' ? "Hammasi qo'shilgan" : "All added"}</span>
                                         </>
                                     ) : (
                                         <>
                                             <Sparkles size={14} />
-                                            <span className="hidden sm:inline">Hammasini qo'shish</span>
-                                            <span className="sm:hidden">Hammasi</span>
+                                            <span className="hidden sm:inline">{lang === 'uz' ? "Hammasini qo'shish" : "Add all"}</span>
+                                            <span className="sm:hidden">{lang === 'uz' ? "Hammasi" : "All"}</span>
                                         </>
                                     )}
                                 </button>
@@ -511,8 +513,8 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                                                         className={`h-9 px-2.5 flex items-center gap-1 rounded-lg text-[12.5px] font-semibold group/add ${
                                                             isAdded ? 'vocab-added' : 'vocab-ghost'
                                                         }`}
-                                                        title={isAdded ? "Lug'atdan o'chirish" : "Lug'atga qo'shish"}
-                                                        aria-label={isAdded ? `${item.word} — lug'atdan o'chirish` : `${item.word} — lug'atga qo'shish`}
+                                                        title={isAdded ? t('articles.removeFromVocab') : t('articles.addToVocab')}
+                                                        aria-label={isAdded ? `${item.word} — ${t('articles.removeFromVocab')}` : `${item.word} — ${t('articles.addToVocab')}`}
                                                     >
                                                         {isBusy ? (
                                                             <Loader2 size={16} className="animate-spin" />
@@ -524,7 +526,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                                                         ) : (
                                                             <>
                                                                 <Plus size={16} />
-                                                                <span className="hidden sm:inline">Qo'shish</span>
+                                                                <span className="hidden sm:inline">{lang === 'uz' ? "Qo'shish" : "Add"}</span>
                                                             </>
                                                         )}
                                                     </button>
@@ -570,7 +572,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                             {visibleRows.length === 0 && (
                                 <div className="px-4 py-10 text-center">
                                     <p className="text-[13px]" style={{ color: 'var(--r-muted)' }}>
-                                        &ldquo;{search}&rdquo; bo'yicha so'z topilmadi
+                                        {(t('articles.noWordsFoundForSearch') || "«{search}» bo'yicha so'z topilmadi").replace('{search}', search)}
                                     </p>
                                     <button
                                         type="button"
@@ -578,7 +580,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                                         className="mt-2 text-[13px] font-semibold hover:underline"
                                         style={{ color: 'var(--r-accent)' }}
                                     >
-                                        Qidiruvni tozalash
+                                        {t('articles.clearFilters') || "Qidiruvni tozalash"}
                                     </button>
                                 </div>
                             )}
@@ -589,7 +591,7 @@ export default function ArticleVocabulary({ vocabulary = [], level, articleTitle
                                     style={{ borderColor: 'var(--r-hairline)', backgroundColor: 'var(--r-surface)' }}
                                 >
                                     <p className="text-[12.5px] leading-snug" style={{ color: 'var(--r-muted)' }}>
-                                        So'zlarni shaxsiy lug'atingizga saqlash uchun tizimga kiring.
+                                        {t('articles.loginToSaveVocab') || "So'zlarni shaxsiy lug'atingizga saqlash uchun tizimga kiring."}
                                     </p>
                                 </div>
                             )}

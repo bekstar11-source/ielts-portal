@@ -171,6 +171,10 @@ export const useEpisodeDetails = (episodeId) => {
             return;
         }
 
+        // Boshqa epizodga o'tilganda eski epizod/albom ma'lumotlari ekranda
+        // qolib ketmasligi uchun tozalab olamiz.
+        setPodcast(null);
+        setAlbum(null);
         setLoading(true);
         setError(null);
         try {
@@ -178,16 +182,18 @@ export const useEpisodeDetails = (episodeId) => {
             if (podSnap.exists()) {
                 const podData = { id: podSnap.id, ...podSnap.data() };
                 setPodcast(podData);
-                
+
                 let albumData = null;
                 if (podData.collectionId && podData.collectionId !== "None") {
                     const albumSnap = await getDoc(doc(db, "podcast_collections", podData.collectionId));
                     if (albumSnap.exists()) {
-                        albumData = albumSnap.data();
+                        albumData = { id: albumSnap.id, ...albumSnap.data() };
                         setAlbum(albumData);
                     }
                 }
                 podcastCache.episodes[episodeId] = { podcast: podData, album: albumData };
+            } else {
+                podcastCache.episodes[episodeId] = { podcast: null, album: null };
             }
         } catch (err) {
             console.error("Error fetching episode details:", err);

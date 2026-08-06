@@ -9,7 +9,7 @@ const WritingSection = ({
     const activeTask = testData.writingTasks?.[activeWritingTask] || {};
 
     return (
-        <div className={`p-5 rounded-2xl border mb-6 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+        <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
             <h3 className="text-sm font-bold uppercase tracking-wider mb-4 opacity-50">Writing Tasklar</h3>
             
             <div className="flex gap-2 mb-6 p-1 rounded-xl bg-gray-500/5">
@@ -64,12 +64,15 @@ const WritingSection = ({
                                 onChange={e => handleWritingUpdate('image', e.target.value)}
                                 placeholder="URL..."
                             />
-                            <label className="h-10 px-4 rounded-xl bg-blue-600 text-white flex items-center justify-center cursor-pointer">
-                                <input type="file" className="hidden" accept="image/*" onChange={handleWritingImageUpload} />
+                            <label
+                                title="Rasm yuklash"
+                                className={`h-10 px-4 shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center cursor-pointer hover:bg-blue-500 transition ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                            >
+                                <input type="file" className="hidden" accept="image/*" onChange={handleWritingImageUpload} disabled={uploading} />
                                 {uploading && uploadingPart === 'writing' ? (
                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
-                                    <span className="text-[10px] font-bold">UP</span>
+                                    <span className="text-[10px] font-bold">Yuklash</span>
                                 )}
                             </label>
                         </div>
@@ -77,8 +80,16 @@ const WritingSection = ({
                 </div>
 
                 {activeTask.image && (
-                    <div className="mt-4 p-2 rounded-xl border border-white/5 bg-black/20 flex justify-center">
+                    <div className={`relative mt-4 p-2 rounded-xl border flex justify-center ${isDark ? 'border-white/5 bg-black/20' : 'border-gray-200 bg-gray-50'}`}>
                         <img src={activeTask.image} alt="Writing Task" className="max-h-[200px] object-contain" />
+                        <button
+                            type="button"
+                            onClick={() => handleWritingUpdate('image', '')}
+                            aria-label="Rasmni olib tashlash"
+                            className="absolute top-2 right-2 w-6 h-6 rounded-lg bg-black/60 text-white text-xs font-bold flex items-center justify-center hover:bg-red-500 transition"
+                        >
+                            ×
+                        </button>
                     </div>
                 )}
             </div>

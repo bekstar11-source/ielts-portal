@@ -12,6 +12,7 @@ import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import { useAuth } from "../../context/AuthContext";
 import SiteFooter from "../../components/common/SiteFooter";
 import BottomNav from "../../components/dashboard/BottomNav";
+import { useTranslation } from "../../context/LanguageContext";
 
 import { stripHtml } from "../../utils/textUtils";
 import { getArticleContent, getMaxVocabularyCount, articleHasLevels } from "../../utils/articleLevels";
@@ -25,6 +26,7 @@ const CATEGORY_INITIAL_LIMIT = 6;
 
 export default function Articles() {
     const { user, userData, updateUserLocalData } = useAuth();
+    const { t } = useTranslation();
     const isTeacher = userData?.role === 'teacher';
     const navigate = useNavigate();
     const [articles, setArticles] = useState([]);
@@ -202,7 +204,7 @@ export default function Articles() {
                 : 'text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white'
             }`}
         >
-            {cat === "All" ? cat : formatArticleCategoryHashtag(cat)}
+            {cat === "All" ? (t('common.all') || 'All') : formatArticleCategoryHashtag(cat)}
             {activeCategory === cat && (
                 <motion.div 
                     layoutId="activeTab"
@@ -324,7 +326,7 @@ export default function Articles() {
                         </svg>
                         <span className="text-[19px] md:text-[22px] font-bold tracking-[-0.03em] text-[#1d1d1f] dark:text-white leading-none">
                             Englev
-                            <span className="hidden sm:inline font-normal text-gray-400 dark:text-neutral-500"> Articles</span>
+                            <span className="hidden sm:inline font-normal text-gray-400 dark:text-neutral-500"> {t('articles.title') || 'Articles'}</span>
                         </span>
                     </button>
 
@@ -336,7 +338,7 @@ export default function Articles() {
                         />
                         <input
                             type="text"
-                            placeholder="Search..."
+                            placeholder={t('articles.searchPlaceholder') || 'Search...'}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full h-9 md:h-10 rounded-full bg-black/[0.045] dark:bg-white/[0.07] border border-transparent focus:border-black/10 dark:focus:border-white/15 focus:bg-black/[0.06] dark:focus:bg-white/10 pl-10 pr-4 text-sm outline-none focus:ring-0 text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-gray-400 dark:placeholder-neutral-500 transition-colors"
@@ -349,11 +351,11 @@ export default function Articles() {
                             <button
                                 type="button"
                                 onClick={() => navigate(userData.role === 'admin' ? '/admin/articles' : '/teacher/articles')}
-                                title="Manage Articles"
+                                title={t('articles.manageArticles') || "Manage Articles"}
                                 className="flex items-center gap-1.5 px-2 py-1.5 rounded-full text-[13px] font-medium text-gray-600 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
                             >
                                 <Edit2 size={18} strokeWidth={1.6} />
-                                <span className="hidden md:inline">Manage Articles</span>
+                                <span className="hidden md:inline">{t('articles.manageArticles') || "Manage Articles"}</span>
                             </button>
                         )}
                         {user && (
@@ -361,7 +363,7 @@ export default function Articles() {
                                 type="button"
                                 onClick={() => setShowSavedOnly(v => !v)}
                                 aria-pressed={showSavedOnly}
-                                title={showSavedOnly ? "Barcha maqolalar" : "Saqlangan maqolalar"}
+                                title={showSavedOnly ? (t('articles.allArticles') || "Barcha maqolalar") : (t('articles.savedArticles') || "Saqlangan maqolalar")}
                                 className={`relative flex items-center gap-1.5 px-2 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
                                     showSavedOnly
                                         ? 'text-black dark:text-white bg-black/[0.06] dark:bg-white/[0.1]'
@@ -369,7 +371,7 @@ export default function Articles() {
                                 }`}
                             >
                                 <BookMarked size={18} strokeWidth={1.6} fill={showSavedOnly ? 'currentColor' : 'none'} />
-                                <span className="hidden md:inline">Saqlangan</span>
+                                <span className="hidden md:inline">{t('articles.saved') || "Saqlangan"}</span>
                                 {savedIds.length > 0 && (
                                     <span className="hidden md:inline text-[11px] tabular-nums text-gray-400 dark:text-neutral-500">
                                         {savedIds.length}
@@ -434,14 +436,14 @@ export default function Articles() {
                             <div className="flex items-center gap-2 md:shrink-0 md:pt-1">
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.05] dark:bg-white/[0.08] px-3 py-1 text-[12px] font-medium text-[#242424] dark:text-neutral-200">
                                     <BookMarked size={13} fill="currentColor" />
-                                    Saqlangan
+                                    {t('articles.saved') || "Saqlangan"}
                                 </span>
                                 <button
                                     type="button"
                                     onClick={() => setShowSavedOnly(false)}
                                     className="text-[12px] font-medium text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-colors"
                                 >
-                                    Tozalash
+                                    {t('articles.clearFilters') || "Tozalash"}
                                 </button>
                             </div>
                         )}
@@ -603,23 +605,23 @@ export default function Articles() {
                                     <BookMarked size={24} />
                                 </div>
                                 <h3 className="text-lg font-bold text-[#242424] dark:text-neutral-200">
-                                    {savedIds.length === 0 ? "Hali saqlangan maqola yo'q" : "Bu filtrga mos saqlangan maqola yo'q"}
+                                    {savedIds.length === 0 ? (t('articles.noSavedArticles') || "Hali saqlangan maqola yo'q") : (t('articles.noSavedArticlesMatch') || "Bu filtrga mos saqlangan maqola yo'q")}
                                 </h3>
                                 <p className="text-sm text-gray-500 dark:text-neutral-400 max-w-sm mx-auto">
                                     {savedIds.length === 0
-                                        ? "Maqola kartasidagi yoki o'qish sahifasidagi xatcho'p belgisini bosib, maqolani keyinroq o'qish uchun saqlang."
-                                        : "Qidiruv yoki kategoriya filtrini o'zgartirib ko'ring."}
+                                        ? (t('articles.saveTooltip') || "Maqola kartasidagi yoki o'qish sahifasidagi xatcho'p belgisini bosib, maqolani keyinroq o'qish uchun saqlang.")
+                                        : (t('articles.tryChangingFilters') || "Qidiruv yoki kategoriya filtrini o'zgartirib ko'ring.")}
                                 </p>
                                 <button
                                     onClick={() => setShowSavedOnly(false)}
                                     className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
                                 >
-                                    Barcha maqolalarga qaytish
+                                    {t('articles.backToAll') || "Barcha maqolalarga qaytish"}
                                 </button>
                             </div>
                         ) : (
                             <div className="py-20 text-center">
-                                <h3 className="text-xl font-bold text-gray-400">No articles found</h3>
+                                <h3 className="text-xl font-bold text-gray-400">{t('articles.noArticlesFound') || "No articles found"}</h3>
                             </div>
                         )}
                     </AnimatePresence>
@@ -633,10 +635,10 @@ export default function Articles() {
                                 {loadingMore ? (
                                     <>
                                         <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                        <span>Yuklanmoqda...</span>
+                                        <span>{t('articles.loading') || "Yuklanmoqda..."}</span>
                                     </>
                                 ) : (
-                                    <span>Yana yuklash</span>
+                                    <span>{t('articles.loadMore') || "Yana yuklash"}</span>
                                 )}
                             </button>
                         </div>

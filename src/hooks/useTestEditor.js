@@ -286,7 +286,16 @@ export const useTestEditor = (id) => {
                             endTime: p.endTime !== undefined && p.endTime !== null ? toMMSS(p.endTime) : ""
                         })) : [];
 
-                        setTestData({ ...data, passages: newPassages });
+                        // Eski hujjatlarda writingTasks/tags kabi maydonlar bo'lmasligi mumkin —
+                        // default qiymatlar ustiga yozamiz, aks holda UI ularsiz yiqiladi.
+                        setTestData(prev => ({
+                            ...prev,
+                            ...data,
+                            passages: newPassages,
+                            writingTasks: (data.writingTasks && data.writingTasks.length)
+                                ? data.writingTasks
+                                : prev.writingTasks
+                        }));
                         setIsMockMode(data.isExclusive || false);
                         setIsFree(data.isFree || false);
                         setJsonInput(JSON.stringify({
@@ -378,8 +387,10 @@ export const useTestEditor = (id) => {
         } catch (err) { setJsonError("JSON Xato: " + err.message); }
     }, [audioMode, singleAudioUrl, partAudios]);
 
+    // Muvaffaqiyatli saqlansa `true`, aks holda `false` qaytaradi —
+    // chaqiruvchi shu asosda draftni o'chirish/saqlab qolishni hal qiladi.
     const handleSave = async (bypass = false) => {
-        if (!testData.title) { toast.error("Test nomini yozing!"); return; }
+        if (!testData.title) { toast.error("Test nomini yozing!"); return false; }
         setLoading(true);
         try {
             // Duplicate check logic should ideally be here too or passed as a helper
@@ -452,11 +463,14 @@ export const useTestEditor = (id) => {
                 toast.success("Test muvaffaqiyatli yaratildi!");
             }
             navigate("/admin/tests");
+            return true;
         } catch (error) {
             console.error("Firestore Save Error:", error);
             toast.error("Xato: " + (error.message || "Bilinmagan xato yuz berdi"));
+            return false;
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return {

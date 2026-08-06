@@ -17,7 +17,12 @@ import TaskSection from "./InteractivePlayer/TaskSection";
 import { useYouTubeBridge } from "./InteractivePlayer/useYouTubeBridge";
 
 export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEnabled = false }) {
-    const { playTrack, currentTrack: podcast, setCurrentTrack, isPlaying, setIsPlaying, isLoading, setIsLoading, currentTime, setCurrentTime, duration, setDuration, volume, isMuted, playbackRate, handleSeek, toggleMute, updateVolume, audioRef, youtubePlayerRef } = usePodcast();
+    const {
+        currentTrack: podcast, isPlaying, setIsPlaying,
+        setIsLoading, currentTime, setCurrentTime, duration, setDuration,
+        playbackRate, cyclePlaybackRate, handleSeek,
+        audioRef, youtubePlayerRef, setMuteGlobalAudio,
+    } = usePodcast();
     const { user, userData } = useAuth();
     
     const [currentStep, setCurrentStep] = useState(1);
@@ -38,7 +43,7 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
     const [isTasksVisible, setIsTasksVisible] = useState(true);
 
     // YouTube Bridge Logic
-    const { ytPlayerRef, handleYoutubeSeek, syncYoutubeState } = useYouTubeBridge(
+    const { handleYoutubeSeek, syncYoutubeState } = useYouTubeBridge(
         podcast, 
         isOpen, 
         setIsPlaying, 
@@ -118,7 +123,7 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
         };
 
         fetchResult();
-    }, [user, podcast?.id, isOpen]);
+    }, [user, podcast?.id, isOpen, isGrouped]);
 
     const savePodcastResult = async (finalAnswers) => {
         if (!user || !podcast?.id || initialScore || isSaving || !isGrouped) return;
@@ -276,6 +281,9 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
                         duration={duration}
                         audioRef={audioRef}
                         youtubePlayerRef={youtubePlayerRef}
+                        setMuteGlobalAudio={setMuteGlobalAudio}
+                        playbackRate={playbackRate}
+                        cyclePlaybackRate={cyclePlaybackRate}
                         keyboardShortcutsEnabled={keyboardShortcutsEnabled}
                     />
                 </div>

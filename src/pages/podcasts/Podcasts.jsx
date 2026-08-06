@@ -1,11 +1,12 @@
 // src/pages/Podcasts.jsx
-import React, { useState, useEffect } from "react";
-import { List as ListIcon, Search as SearchIcon, Plus, Moon, Sun, Heart } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Search as SearchIcon, Plus, Moon, Sun, Heart, Play } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import { usePodcast } from "../../context/PodcastContext";
 import { usePodcastsList, usePodcastCollections } from "../../hooks/usePodcastData";
-import { formatTime } from "../../utils/podcastUtils";
+import { formatTime, getPodcastDuration } from "../../utils/podcastUtils";
+import { getAllProgress } from "../../utils/podcastProgress";
 import PlayerFooter from "../../components/InteractivePlayer/PlayerFooter";
 
 // Sub-components
@@ -48,11 +49,11 @@ export default function Podcasts() {
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
     
-    const { 
-        currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
+    const {
+        currentTrack, setCurrentTrack, isPlaying, setIsPlaying,
         currentTime, duration, handleSeek, playTrack,
         setIsExpanded, isExpanded,
-        likedPodcasts
+        likedPodcasts, setQueue
     } = usePodcast();
 
     // Data Hooks
@@ -71,7 +72,10 @@ export default function Podcasts() {
     // Local State
     const [searchTerm, setSearchTerm] = useState("");
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [activeTab, setActiveTab] = useState("all"); // 'all', 'music', 'podcasts'
+    // Avval "All / Music / Podcasts" tugmalari hech narsa qilmasdi.
+    // Endi ular haqiqiy ma'lumot — daraja (level) bo'yicha filtrlaydi.
+    const [activeLevel, setActiveLevel] = useState("all");
+    const [visibleCount, setVisibleCount] = useState(12);
 
     // Avtomatik birinchi podcastni tanlash olib tashlandi (autoplay muammosi uchun)
     // useEffect(() => {
@@ -86,14 +90,44 @@ export default function Podcasts() {
     };
 
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    const filteredPodcasts = normalizedSearch
-        ? podcasts.filter(p =>
+
+    const levels = useMemo(() => {
+        const set = new Set(podcasts.map(p => p.level).filter(Boolean));
+        return ["all", ...Array.from(set).sort()];
+    }, [podcasts]);
+
+    const filteredPodcasts = useMemo(() => podcasts.filter(p => {
+        if (activeLevel !== "all" && p.level !== activeLevel) return false;
+        if (!normalizedSearch) return true;
+        return (
             p.title?.toLowerCase().includes(normalizedSearch) ||
             p.description?.toLowerCase().includes(normalizedSearch)
-          )
-        : podcasts;
+        );
+    }), [podcasts, activeLevel, normalizedSearch]);
 
-    const likedEpisodes = podcasts.filter(p => likedPodcasts.includes(p.id));
+    const likedEpisodes = useMemo(
+        () => podcasts.filter(p => likedPodcasts.includes(p.id)),
+        [podcasts, likedPodcasts]
+    );
+
+    // Boshlangan, lekin tugallanmagan epizodlar — "davom ettirish" uchun
+    const inProgressEpisodes = useMemo(() => {
+        if (podcasts.length === 0) return [];
+        const progress = getAllProgress();
+        return podcasts
+            .filter(p => {
+                const entry = progress[p.id];
+                return entry && !entry.completed && entry.time > 15;
+            })
+            .sort((a, b) => (progress[b.id].updatedAt || 0) - (progress[a.id].updatedAt || 0))
+            .slice(0, 6)
+            .map(p => ({ ...p, _progress: progress[p.id] }));
+    }, [podcasts]);
+
+    // Navbat — shu tufayli pleyerdagi "keyingi/oldingi", shuffle va repeat ishlaydi
+    useEffect(() => {
+        setQueue(filteredPodcasts);
+    }, [filteredPodcasts, setQueue]);
 
     return (
         <>
@@ -129,25 +163,27 @@ export default function Podcasts() {
                     </div>
 
                     <div className="px-4 md:px-8 pb-40 pt-[calc(env(safe-area-inset-top,0px)+1rem)] md:pt-6">
-                        {/* Mobile Filter Pills */}
-                        <div className="flex md:hidden items-center gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
-                            <button 
+                        {/* Level Filter Pills (mobil + desktop) */}
+                        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
+                            <button
                                 onClick={toggleTheme}
-                                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-90 ${isDark ? 'bg-[#2a2a2a] text-white' : 'bg-zinc-100 text-zinc-900'} shadow-md border ${isDark ? 'border-white/10' : 'border-zinc-200'}`}
+                                aria-label="Mavzuni almashtirish"
+                                className={`md:hidden w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-90 ${isDark ? 'bg-[#2a2a2a] text-white' : 'bg-zinc-100 text-zinc-900'} shadow-md border ${isDark ? 'border-white/10' : 'border-zinc-200'}`}
                             >
                                 {isDark ? <Moon size={18} /> : <Sun size={18} />}
                             </button>
-                            {['All', 'Music', 'Podcasts'].map((tab) => (
+                            {levels.map((level) => (
                                 <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab.toLowerCase())}
+                                    key={level}
+                                    onClick={() => setActiveLevel(level)}
+                                    aria-pressed={activeLevel === level}
                                     className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                                        activeTab === tab.toLowerCase()
+                                        activeLevel === level
                                             ? (isDark ? 'bg-[#1ed760] text-black' : 'bg-zinc-900 text-white')
                                             : (isDark ? 'bg-[#2a2a2a] text-white hover:bg-[#333]' : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200')
                                     }`}
                                 >
-                                    {tab}
+                                    {level === 'all' ? 'Barchasi' : level}
                                 </button>
                             ))}
                         </div>
@@ -311,6 +347,44 @@ export default function Podcasts() {
                         ) : (
                             /* Standard Home View */
                             <>
+                                {/* Davom ettirish — tugallanmagan epizodlar */}
+                                {inProgressEpisodes.length > 0 && (
+                                    <section className="mb-10">
+                                        <h2 className="text-[20px] md:text-[24px] font-black tracking-tight mb-4">Davom ettirish</h2>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {inProgressEpisodes.map((p) => {
+                                                const total = p._progress.duration || getPodcastDuration(p);
+                                                const pctDone = total > 0 ? Math.min(100, (p._progress.time / total) * 100) : 0;
+                                                return (
+                                                    <button
+                                                        key={p.id}
+                                                        onClick={() => { playTrack(p); setIsExpanded(true); }}
+                                                        className={`text-left flex items-center gap-3 p-2 pr-4 rounded-lg transition-all active:scale-[0.98] ${
+                                                            isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-zinc-100 hover:bg-zinc-200'
+                                                        }`}
+                                                    >
+                                                        <div className="w-14 h-14 rounded-md overflow-hidden shrink-0 bg-zinc-800 relative">
+                                                            {p.thumbnail && <img src={p.thumbnail} alt="" className="w-full h-full object-cover" />}
+                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                                                <Play size={18} fill="white" className="text-white" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[13px] font-bold truncate">{p.title}</p>
+                                                            <p className={`text-[11px] font-medium mb-1.5 tabular-nums ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                                                                {total > 0 ? `${formatTime(Math.max(0, total - p._progress.time))} qoldi` : 'Davom ettirish'}
+                                                            </p>
+                                                            <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-zinc-300'}`}>
+                                                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${pctDone}%` }} />
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </section>
+                                )}
+
                                 {/* Recents Grid (Mobile Style) */}
                                 <div className="grid grid-cols-2 gap-3 mb-8 md:hidden">
                                     {loading ? (
@@ -369,10 +443,25 @@ export default function Podcasts() {
                                             {Array(4).fill(0).map((_, i) => <EpisodeSkeleton key={i} />)}
                                         </div>
                                     ) : filteredPodcasts.length === 0 ? (
-                                        <div className="text-center py-10 text-zinc-500 font-bold">No podcasts found.</div>
+                                        /* Filtr/qidiruv sababli bo'sh bo'lsa — tozalash yo'li ko'rsatiladi */
+                                        <div className="text-center py-10">
+                                            <p className="text-zinc-500 font-bold mb-3">
+                                                {normalizedSearch || activeLevel !== 'all'
+                                                    ? "Tanlangan filtrlarga mos epizod topilmadi."
+                                                    : "Hozircha epizodlar yo'q."}
+                                            </p>
+                                            {(normalizedSearch || activeLevel !== 'all') && (
+                                                <button
+                                                    onClick={() => { setSearchTerm(""); setActiveLevel("all"); }}
+                                                    className="px-4 py-1.5 rounded-full bg-[#1ed760] text-black text-xs font-bold"
+                                                >
+                                                    Filtrlarni tozalash
+                                                </button>
+                                            )}
+                                        </div>
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                                            {filteredPodcasts.slice(0, 12).map((p) => (
+                                            {filteredPodcasts.slice(0, visibleCount).map((p) => (
                                                 <EpisodeGridItem 
                                                     key={p.id}
                                                     p={p}
@@ -385,6 +474,20 @@ export default function Podcasts() {
                                                     playTrack={playTrack}
                                                 />
                                             ))}
+                                        </div>
+                                    )}
+
+                                    {/* Avval ro'yxat 12 ta epizodda kesilib qolardi va qolganiga yo'l yo'q edi */}
+                                    {!loading && filteredPodcasts.length > visibleCount && (
+                                        <div className="flex justify-center mt-8">
+                                            <button
+                                                onClick={() => setVisibleCount((c) => c + 12)}
+                                                className={`px-6 py-2 rounded-full text-sm font-bold border transition-colors ${
+                                                    isDark ? 'border-white/20 text-white hover:border-white' : 'border-zinc-300 text-zinc-700 hover:border-zinc-900'
+                                                }`}
+                                            >
+                                                Yana ko'rsatish ({filteredPodcasts.length - visibleCount})
+                                            </button>
                                         </div>
                                     )}
                                 </section>

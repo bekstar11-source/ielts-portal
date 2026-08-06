@@ -25,7 +25,7 @@ export default function SpotifyAlbum() {
     const { 
         currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
         playTrack, duration, currentTime,
-        isExpanded, setIsExpanded, handleSeek
+        isExpanded, setIsExpanded, handleSeek, setQueue
     } = usePodcast();
 
     // Data Hook
@@ -46,6 +46,12 @@ export default function SpotifyAlbum() {
     //         setCurrentTrack(podcasts[0]);
     //     }
     // }, [podcasts, currentTrack, setCurrentTrack]);
+
+    // Albom ochilganda navbat shu albom epizodlaridan iborat bo'ladi —
+    // pleyerdagi "keyingi/oldingi" va takrorlash shu ro'yxat bo'yicha ishlaydi.
+    useEffect(() => {
+        if (podcasts.length > 0) setQueue(podcasts);
+    }, [podcasts, setQueue]);
 
     const handleMediaSkip = (amount) => {
         const target = Math.max(0, Math.min(duration, currentTime + amount));

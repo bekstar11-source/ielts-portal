@@ -13,6 +13,7 @@ import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, serverTimestamp
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useAuth } from '../../context/AuthContext';
 import SiteFooter from '../../components/common/SiteFooter';
+import { useTranslation } from '../../context/LanguageContext';
 import { stripHtml } from '../../utils/textUtils';
 import ArticleVocabulary from '../../components/articles/ArticleVocabulary';
 import ArticleLevelPicker from '../../components/articles/ArticleLevelPicker';
@@ -119,30 +120,40 @@ const pickEnglishVoice = (list = []) =>
   list.find((v) => v.lang?.startsWith('en')) ||
   null;
 
+const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const UZ_MONTHS = ['yan', 'fev', 'mar', 'apr', 'may', 'iyn', 'iyl', 'avg', 'sen', 'okt', 'noy', 'dek'];
 
-/* Sana o'zbekcha: "24-may, 2026" */
 const formatUzDate = (date) => {
   if (!date) return '';
   return `${date.getDate()}-${UZ_MONTHS[date.getMonth()]}, ${date.getFullYear()}`;
 };
 
-const formatRelativeTime = (value) => {
+const formatArticleDate = (date, t) => {
+  if (!date) return '';
+  const months = t('articles.justNow') === 'Just now' ? EN_MONTHS : UZ_MONTHS;
+  if (months === EN_MONTHS) {
+    return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+  }
+  return `${date.getDate()}-${months[date.getMonth()]}, ${date.getFullYear()}`;
+};
+
+const formatRelativeTime = (value, t) => {
   const d = toDate(value);
-  if (!d) return 'Hozirgina';
+  if (!d) return t('articles.justNow') || 'Hozirgina';
   const diff = Date.now() - d.getTime();
   const min = Math.round(diff / 60000);
-  if (min < 1) return 'Hozirgina';
-  if (min < 60) return `${min} daqiqa oldin`;
+  if (min < 1) return t('articles.justNow') || 'Hozirgina';
+  if (min < 60) return (t('articles.minutesAgo') || "{count} daqiqa oldin").replace('{count}', min);
   const hours = Math.round(min / 60);
-  if (hours < 24) return `${hours} soat oldin`;
+  if (hours < 24) return (t('articles.hoursAgo') || "{count} soat oldin").replace('{count}', hours);
   const days = Math.round(hours / 24);
-  if (days < 7) return `${days} kun oldin`;
-  return formatUzDate(d);
+  if (days < 7) return (t('articles.daysAgo') || "{count} kun oldin").replace('{count}', days);
+  return formatArticleDate(d, t);
 };
 
 export default function ArticleReading() {
   const { user, userData, updateUserLocalData } = useAuth();
+  const { lang, t } = useTranslation();
   const isTeacher = userData?.role === 'teacher';
   const { id } = useParams();
   const navigate = useNavigate();
@@ -256,8 +267,9 @@ export default function ArticleReading() {
 
   const publishedDate = useMemo(() => {
     const d = toDate(article?.createdAt);
-    return d ? formatUzDate(d) : null;
-  }, [article?.createdAt]);
+    if (!d) return null;
+    return lang === 'uz' ? formatUzDate(d) : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }, [article?.createdAt, lang]);
 
   // Menyuni yopish va selectionni tozalash
   const dismissMenu = useCallback(() => {
@@ -294,7 +306,7 @@ export default function ArticleReading() {
   const handleAddToWordBank = async () => {
     if (!selectionMenu || isWordBankLoading || isWordBankAdded) return;
     if (!user) {
-      showToast("So'zni saqlash uchun tizimga kiring.", 'error');
+      showToast(t('articles.loginToSaveWord') || "So'zni saqlash uchun tizimga kiring.", 'error');
       return;
     }
     setIsWordBankLoading(true);
@@ -347,7 +359,7 @@ export default function ArticleReading() {
       })();
 
       setIsWordBankAdded(true);
-      showToast(`«${truncateWord(word, 24)}» lug'atga qo'shildi`, 'success');
+      showToast((t('articles.wordAddedToVocab') || "«{word}» lug'atga qo'shildi").replace('{word}', truncateWord(word, 24)), 'success');
       // Muvaffaqiyat holatini ko'rsatib turamiz, so'ng menyuni yopamiz
       setTimeout(() => {
         dismissMenu();
@@ -355,7 +367,7 @@ export default function ArticleReading() {
 
     } catch (error) {
       console.error("WordBank add error:", error);
-      showToast("So'zni saqlashda xatolik yuz berdi.", 'error');
+      showToast(t('articles.errorSavingWord') || "So'zni saqlashda xatolik yuz berdi.", 'error');
     } finally {
       setIsWordBankLoading(false);
     }
@@ -660,7 +672,7 @@ export default function ArticleReading() {
   // Maqolani saqlash / saqlanganlardan olib tashlash
   const handleToggleSave = async () => {
     if (!user) {
-      showToast("Maqolani saqlash uchun tizimga kiring.", 'error');
+      showToast(t('articles.loginToSaveArticle') || "Maqolani saqlash uchun tizimga kiring.", 'error');
       return;
     }
     if (savePending) return;
@@ -671,11 +683,11 @@ export default function ArticleReading() {
 
     try {
       await toggleArticleSave({ db, articleId: id, user, userData, updateUserLocalData, save: next });
-      showToast(next ? "Maqola saqlandi." : "Saqlanganlardan olib tashlandi.", 'success');
+      showToast(next ? (t('articles.articleSaved') || "Maqola saqlandi.") : (t('articles.articleUnsaved') || "Saqlanganlardan olib tashlandi."), 'success');
     } catch (err) {
       console.error("Error saving article:", err);
       setIsSaved(!next);
-      showToast("Saqlashda xatolik yuz berdi.", 'error');
+      showToast(t('articles.errorSavingArticle') || "Saqlashda xatolik yuz berdi.", 'error');
     } finally {
       setSavePending(false);
     }
@@ -695,10 +707,10 @@ export default function ArticleReading() {
         return;
       }
       await navigator.clipboard.writeText(url);
-      showToast("Havola nusxalandi.", 'success');
+      showToast(lang === 'uz' ? "Havola nusxalandi." : "Link copied.", 'success');
     } catch (err) {
       if (err?.name === 'AbortError') return; // foydalanuvchi bekor qildi
-      showToast("Havolani nusxalab bo'lmadi.", 'error');
+      showToast(lang === 'uz' ? "Havolani nusxalab bo'lmadi." : "Failed to copy link.", 'error');
     }
   };
 
@@ -733,7 +745,7 @@ export default function ArticleReading() {
       console.error("Error posting comment:", err);
       setNewComment(tempComment); // Restore text on error
       setComments(prev => prev.filter(c => c.id !== commentData.id)); // Rollback
-      showToast("Izohni saqlashda xatolik yuz berdi.", 'error');
+      showToast(t('articles.errorSavingComment') || "Izohni saqlashda xatolik yuz berdi.", 'error');
     }
   };
 
@@ -747,17 +759,17 @@ export default function ArticleReading() {
 
     try {
       await updateDoc(doc(db, "articles", id), { comments: updated });
-      showToast("Izoh o'chirildi.", 'success');
+      showToast(t('articles.commentDeleted') || "Izoh o'chirildi.", 'success');
     } catch (err) {
       console.error("Error deleting comment:", err);
       setComments(previous);
-      showToast("Izohni o'chirishda xatolik.", 'error');
+      showToast(t('articles.errorDeletingComment') || "Izohni o'chirishda xatolik.", 'error');
     }
   };
 
   const handleClapComment = async (commentId) => {
     if (!user) {
-      showToast("Izohga qarsak chalish uchun tizimga kiring.", 'error');
+      showToast(t('articles.loginToClapComment') || "Izohga qarsak chalish uchun tizimga kiring.", 'error');
       return;
     }
 
@@ -1040,8 +1052,8 @@ export default function ArticleReading() {
                 className={iconBtn}
                 aria-haspopup="menu"
                 aria-expanded={isFontMenuOpen}
-                aria-label="Matn o'lchami"
-                title="Matn o'lchami"
+                aria-label={lang === 'uz' ? "Matn o'lchami" : "Text size"}
+                title={lang === 'uz' ? "Matn o'lchami" : "Text size"}
               >
                 <Type size={20} />
               </button>
@@ -1064,7 +1076,9 @@ export default function ArticleReading() {
                         onClick={() => { changeFontStep(step.key); setIsFontMenuOpen(false); }}
                         className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-left hover:bg-[var(--r-hover)] transition-colors"
                       >
-                        <span style={{ fontSize: `${Math.round(step.base * 0.78)}px`, color: 'var(--r-ink)' }}>{step.label}</span>
+                        <span style={{ fontSize: `${Math.round(step.base * 0.78)}px`, color: 'var(--r-ink)' }}>
+                          {step.key === 'sm' ? t('articles.fontSmall') : step.key === 'md' ? t('articles.fontMedium') : step.key === 'lg' ? t('articles.fontLarge') : t('articles.fontExtraLarge')}
+                        </span>
                         {step.key === fontStepKey && <Check size={16} className="r-accent shrink-0" />}
                       </button>
                     ))}
@@ -1077,13 +1091,13 @@ export default function ArticleReading() {
               onClick={handleToggleSave}
               className={iconBtn}
               aria-pressed={isSaved}
-              aria-label={isSaved ? "Saqlanganlardan olib tashlash" : "Maqolani saqlash"}
-              title={isSaved ? "Saqlangan" : "Saqlash"}
+              aria-label={isSaved ? (t('articles.articleUnsaved') || "Saqlanganlardan olib tashlash") : (t('articles.articleSaved') || "Maqolani saqlash")}
+              title={isSaved ? (t('articles.saved') || "Saqlangan") : (t('common.save') || "Saqlash")}
             >
               <BookMarked size={20} className={isSaved ? 'r-accent' : ''} fill={isSaved ? 'currentColor' : 'none'} />
             </button>
 
-            <button onClick={handleShare} className={iconBtn} aria-label="Ulashish" title="Ulashish">
+            <button onClick={handleShare} className={iconBtn} aria-label={lang === 'uz' ? "Ulashish" : "Share"} title={lang === 'uz' ? "Ulashish" : "Share"}>
               <Share2 size={20} />
             </button>
           </div>
@@ -1095,7 +1109,7 @@ export default function ArticleReading() {
             className="h-full transition-[width] duration-150 ease-out"
             style={{ width: `${progress}%`, backgroundColor: 'var(--r-accent)' }}
             role="progressbar"
-            aria-label="O'qish progressi"
+            aria-label={lang === 'uz' ? "O'qish progressi" : "Reading progress"}
             aria-valuenow={Math.round(progress)}
             aria-valuemin={0}
             aria-valuemax={100}
@@ -1111,12 +1125,12 @@ export default function ArticleReading() {
             <div className="flex flex-wrap gap-2">
               {article.isMemberOnly && (
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12.5px] font-medium border" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)', color: 'var(--r-ink-soft)' }}>
-                  <Star size={13} className="text-amber-500 fill-amber-500" /> Faqat a'zolar uchun
+                  <Star size={13} className="text-amber-500 fill-amber-500" /> {lang === 'uz' ? "Faqat a'zolar uchun" : "Members only"}
                 </div>
               )}
               {article.isFeatured && (
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12.5px] font-medium border" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)', color: 'var(--r-ink-soft)' }}>
-                  <BookMarked size={13} /> Tanlangan
+                  <BookMarked size={13} /> {lang === 'uz' ? "Tanlangan" : "Featured"}
                 </div>
               )}
             </div>
@@ -1155,7 +1169,13 @@ export default function ArticleReading() {
               </div>
               {/* Daraja bu yerda ko'rsatilmaydi — pastdagi tanlagichda allaqachon ko'rinib turadi */}
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 r-muted text-[13.5px]">
-                <span>{formatReadTimeLabel(activeReadTime || article.readTime) || '5 daqiqa'}</span>
+                <span>
+                  {(() => {
+                    const time = activeReadTime || article.readTime || '5 min read';
+                    const num = String(time).match(/\d+/)?.[0] || '5';
+                    return lang === 'uz' ? `${num} daqiqa` : `${num} min read`;
+                  })()}
+                </span>
                 {publishedDate && (
                   <>
                     <span aria-hidden>·</span>
@@ -1180,8 +1200,8 @@ export default function ArticleReading() {
                 type="button"
                 onClick={handleClap}
                 aria-pressed={hasClapped}
-                aria-label={hasClapped ? "Qarsakni qaytarib olish" : "Qarsak chalish"}
-                title={hasClapped ? "Qarsakni qaytarib olish" : "Qarsak chalish"}
+                aria-label={hasClapped ? (lang === 'uz' ? "Qarsakni qaytarib olish" : "Remove clap") : (lang === 'uz' ? "Qarsak chalish" : "Clap")}
+                title={hasClapped ? (lang === 'uz' ? "Qarsakni qaytarib olish" : "Remove clap") : (lang === 'uz' ? "Qarsak chalish" : "Clap")}
                 className={`flex items-center gap-2 px-2.5 py-2 rounded-full transition-colors hover:bg-[var(--r-hover)] ${hasClapped ? 'r-ink' : 'r-muted r-hover-ink'}`}
               >
                 <motion.span
@@ -1194,8 +1214,8 @@ export default function ArticleReading() {
               </button>
               <button
                 onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                aria-label={`Izohlarga o'tish (${comments.length})`}
-                title="Izohlar"
+                aria-label={t('articles.commentsTitle').replace('{count}', comments.length)}
+                title={t('articles.commentsTitle').replace(' ({count})', '')}
                 className="flex items-center gap-2 px-2.5 py-2 rounded-full r-muted r-hover-ink hover:bg-[var(--r-hover)] transition-colors"
               >
                 <MessageSquareIcon size={18} />
@@ -1206,7 +1226,7 @@ export default function ArticleReading() {
             <div className="flex items-center gap-1">
               <button
                 onClick={handleListen}
-                aria-label={isSpeaking ? (isPaused ? "Davom ettirish" : "Pauza") : "Ovozli o'qish"}
+                aria-label={isSpeaking ? (isPaused ? (lang === 'uz' ? "Davom ettirish" : "Resume") : (lang === 'uz' ? "Pauza" : "Pause")) : (lang === 'uz' ? "Ovozli o'qish" : "Audio reading")}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-full transition-colors text-[13px] font-medium border ${
                   isSpeaking ? 'r-accent-bg border-transparent' : 'r-muted r-hover-ink hover:bg-[var(--r-hover)]'
                 }`}
@@ -1223,19 +1243,19 @@ export default function ArticleReading() {
                 )}
                 <span>
                   {isPreparingSpeech
-                    ? 'Tayyorlanmoqda'
+                    ? (lang === 'uz' ? 'Tayyorlanmoqda' : 'Preparing...')
                     : isPaused
-                      ? 'Davom ettirish'
+                      ? (lang === 'uz' ? 'Davom ettirish' : 'Resume')
                       : isSpeaking
-                        ? "O'qilmoqda"
-                        : 'Tinglash'}
+                        ? (lang === 'uz' ? "O'qilmoqda" : 'Reading...')
+                        : (lang === 'uz' ? 'Tinglash' : 'Listen')}
                 </span>
               </button>
               {isSpeaking && (
                 <button
                   onClick={stopSpeech}
-                  aria-label="To'xtatish"
-                  title="To'xtatish"
+                  aria-label={lang === 'uz' ? "To'xtatish" : "Stop"}
+                  title={lang === 'uz' ? "To'xtatish" : "Stop"}
                   className={iconBtn}
                 >
                   <X size={18} />
@@ -1337,17 +1357,17 @@ export default function ArticleReading() {
                         {isWordBankLoading ? (
                           <>
                             <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            <span>Saqlanmoqda…</span>
+                            <span>{t('articles.saving') || "Saqlanmoqda…"}</span>
                           </>
                         ) : isWordBankAdded ? (
                           <>
                             <CheckCircle2 size={17} />
-                            <span>Lug'atga qo'shildi</span>
+                            <span>{lang === 'uz' ? "Lug'atga qo'shildi" : "Added to vocabulary"}</span>
                           </>
                         ) : (
                           <>
                             <BookMarked size={16} />
-                            <span>Lug'atga qo'shish</span>
+                            <span>{t('articles.addToVocab') || "Lug'atga qo'shish"}</span>
                           </>
                         )}
                       </button>
@@ -1362,8 +1382,8 @@ export default function ArticleReading() {
                     {!isSpeaking && synth && (
                       <button
                         onClick={speakSelectedWord}
-                        title="Talaffuzni eshitish"
-                        aria-label="Talaffuzni eshitish"
+                        title={lang === 'uz' ? "Talaffuzni eshitish" : "Listen to pronunciation"}
+                        aria-label={lang === 'uz' ? "Talaffuzni eshitish" : "Listen to pronunciation"}
                         className={`selection-ghost h-8 w-8 rounded-lg grid place-items-center ${isWordSpeaking ? 'is-active' : ''}`}
                       >
                         <Volume2 size={15} />
@@ -1373,29 +1393,29 @@ export default function ArticleReading() {
                       onClick={handleAddToWordBank}
                       disabled={isWordBankLoading || isWordBankAdded}
                       aria-live="polite"
-                      title="Lug'atga qo'shish (so'z lug'at bo'limingizga saqlanadi)"
+                      title={lang === 'uz' ? "Lug'atga qo'shish (so'z lug'at bo'limingizga saqlanadi)" : "Add to vocabulary (word will be saved to your vocabulary section)"}
                       className={`selection-primary h-8 rounded-lg px-3 text-[12.5px] font-semibold flex items-center gap-1.5 ${isWordBankAdded ? 'is-done' : ''}`}
                     >
                       {isWordBankLoading ? (
                         <>
                           <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          <span>Saqlanmoqda…</span>
+                          <span>{t('articles.saving') || "Saqlanmoqda…"}</span>
                         </>
                       ) : isWordBankAdded ? (
                         <>
                           <CheckCircle2 size={15} />
-                          <span>Qo'shildi</span>
+                          <span>{lang === 'uz' ? "Qo'shildi" : "Added"}</span>
                         </>
                       ) : (
                         <>
                           <BookMarked size={14} />
-                          <span>Lug'atga</span>
+                          <span>{lang === 'uz' ? "Lug'atga" : "Add"}</span>
                         </>
                       )}
                     </button>
                     <button
                       onClick={dismissMenu}
-                      aria-label="Yopish"
+                      aria-label={t('common.close') || "Yopish"}
                       className="selection-ghost h-8 w-8 rounded-lg grid place-items-center"
                     >
                       <X size={14} />
@@ -1513,20 +1533,25 @@ export default function ArticleReading() {
                     <div className="relative z-20 text-center max-w-xl mx-auto space-y-8 pt-8 pb-20 font-sans" style={{ backgroundColor: 'var(--r-paper)' }}>
                       <div className="space-y-4">
                         <h2 className="text-[26px] md:text-[34px] font-bold leading-tight" style={{ color: 'var(--r-ink)' }}>
-                          Ushbu maqolani o'qish uchun a'zo bo'ling
+                          {lang === 'uz' ? "Ushbu maqolani o'qish uchun a'zo bo'ling" : "Join to read this article"}
                         </h2>
                         <p className="r-muted text-[16px] max-w-md mx-auto leading-relaxed">
-                          {article.author} bu maqolani a'zolar uchun yopiq qildi. To'liq matn, lug'at va ovozli o'qish premium obuna bilan ochiladi.
+                          {t('articles.memberOnlyNotice').replace('{author}', article.author || 'The author')}
                         </p>
                       </div>
 
                       <div className="space-y-3 text-left max-w-md mx-auto">
-                        {[
+                        {(lang === 'uz' ? [
                           "Barcha a'zolar uchun maqolalarga to'liq kirish",
                           "Har bir daraja (A2–C1) uchun moslashtirilgan matn",
                           "Lug'at, ovozli o'qish va WordBank imkoniyatlari",
                           "Reklamasiz, xotirjam o'qish muhiti"
-                        ].map((benefit, idx) => (
+                        ] : [
+                          "Full access to all articles for members",
+                          "Tailored text for each level (A2-C1)",
+                          "Vocabulary, audio reading, and WordBank features",
+                          "Ad-free, calm reading environment"
+                        ]).map((benefit, idx) => (
                           <div key={idx} className="flex items-start gap-3">
                             <Check size={18} className="r-accent mt-0.5 shrink-0" />
                             <p className="text-[15px]" style={{ color: 'var(--r-ink-soft)' }}>{benefit}</p>
@@ -1539,7 +1564,7 @@ export default function ArticleReading() {
                           onClick={() => navigate('/pricing')}
                           className="px-10 py-3 r-accent-bg rounded-full font-bold text-[15px] transition-transform active:scale-95"
                         >
-                          Obunani ochish
+                          {lang === 'uz' ? "Obunani ochish" : "Unlock Subscription"}
                         </button>
                       </div>
                     </div>
@@ -1560,13 +1585,13 @@ export default function ArticleReading() {
           {/* Header */}
           <div className="flex items-center justify-between mb-7">
             <h3 className="text-[19px] font-bold font-sans" style={{ color: 'var(--r-ink)' }}>
-              Izohlar ({comments.length})
+              {t('articles.commentsTitle').replace('{count}', comments.length)}
             </h3>
             <span
-              title="Izohlar hurmatli va mavzuga oid bo'lishi kerak"
+              title={lang === 'uz' ? "Izohlar hurmatli va mavzuga oid bo'lishi kerak" : "Comments must be respectful and relevant"}
               className="flex items-center gap-1.5 text-[12px] r-muted"
             >
-              <ShieldCheck size={16} /> <span className="hidden sm:inline">Muloqot qoidalari</span>
+              <ShieldCheck size={16} /> <span className="hidden sm:inline">{lang === 'uz' ? "Muloqot qoidalari" : "Rules of conduct"}</span>
             </span>
           </div>
 
@@ -1593,7 +1618,7 @@ export default function ArticleReading() {
                 }}
                 onFocus={() => setIsInputFocused(true)}
                 maxLength={1000}
-                placeholder="Fikringiz qanday?"
+                placeholder={t('articles.commentsPlaceholder') || "Fikr qoldiring..."}
                 className="w-full bg-transparent border-none focus:ring-0 text-[14.5px] min-h-[76px] resize-none p-0 focus:outline-none"
                 style={{ color: 'var(--r-ink)' }}
               />
@@ -1608,7 +1633,7 @@ export default function ArticleReading() {
                       }}
                       className="px-4 py-1.5 r-muted r-hover-ink hover:bg-[var(--r-hover)] rounded-full text-[13px] font-medium transition-colors"
                     >
-                      Bekor qilish
+                      {t('common.cancel') || "Bekor qilish"}
                     </button>
                     <button
                       disabled={!newComment.trim()}
@@ -1618,7 +1643,7 @@ export default function ArticleReading() {
                       }}
                       className="px-4 py-1.5 r-accent-bg rounded-full text-[13px] font-semibold transition-transform active:scale-95 disabled:opacity-40 disabled:active:scale-100"
                     >
-                      Yuborish
+                      {lang === 'uz' ? "Yuborish" : "Send"}
                     </button>
                   </div>
                 </div>
@@ -1626,12 +1651,12 @@ export default function ArticleReading() {
             </div>
           ) : (
             <div className="rounded-2xl border p-6 text-center mb-9" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)' }}>
-              <p className="text-sm r-muted mb-3">Izoh yozish uchun tizimga kiring.</p>
+              <p className="text-sm r-muted mb-3">{t('articles.loginToComment') || "Izoh yozish uchun tizimga kiring."}</p>
               <button
                 onClick={() => navigate('/auth/login')}
                 className="px-5 py-2 r-accent-bg rounded-full text-[13px] font-semibold transition-transform active:scale-95"
               >
-                Kirish
+                {t('auth.login') || "Kirish"}
               </button>
             </div>
           )}
@@ -1657,7 +1682,7 @@ export default function ArticleReading() {
                           <span className="text-[14px] font-semibold truncate" style={{ color: 'var(--r-ink)' }}>
                             {comment.userName}
                           </span>
-                          <span className="text-[12px] r-muted">{formatRelativeTime(comment.createdAt)}</span>
+                          <span className="text-[12px] r-muted">{formatRelativeTime(comment.createdAt, t)}</span>
                         </div>
                       </div>
                       {isOwn && (
@@ -1696,7 +1721,7 @@ export default function ArticleReading() {
                 <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto r-muted" style={{ backgroundColor: 'var(--r-surface)' }}>
                   <MessageSquareIcon size={26} />
                 </div>
-                <p className="r-muted text-sm">Hozircha izoh yo'q. Birinchi bo'lib fikr bildiring.</p>
+                <p className="r-muted text-sm">{t('articles.noComments') || "Hozircha izoh yo'q. Birinchi bo'lib fikr bildiring."}</p>
               </div>
             )}
           </div>

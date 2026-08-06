@@ -7,6 +7,7 @@ import {
     getArticleCommentCount,
     parseArticleClaps,
 } from '../../utils/articlePopularity';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function PopularArticlesSidebar({
     articles = [],
@@ -15,11 +16,12 @@ export default function PopularArticlesSidebar({
     onSeeAll,
     className = '',
 }) {
+    const { t } = useTranslation();
     return (
         <aside className={`${className}`}>
             <div className="lg:sticky lg:top-24">
                 <h2 className="text-[12px] font-bold text-[#242424] dark:text-neutral-100 mb-4 tracking-tight uppercase">
-                    Popular Articles
+                    {t('articles.popularArticles') || "Popular Articles"}
                 </h2>
 
                 {loading ? (
@@ -34,7 +36,7 @@ export default function PopularArticlesSidebar({
                     </div>
                 ) : articles.length === 0 ? (
                     <p className="text-[11px] text-gray-500 dark:text-neutral-400 leading-relaxed">
-                        Hozircha mashhur maqolalar yo&apos;q. O&apos;qing va qarsak chaling — ro&apos;yxat shu yerda paydo bo&apos;ladi.
+                        {t('articles.noPopularArticles') || "Hozircha mashhur maqolalar yo'q. O'qing va qarsak chaling — ro'yxat shu yerda paydo bo'ladi."}
                     </p>
                 ) : (
                     <ul className="space-y-6">
@@ -115,7 +117,7 @@ export default function PopularArticlesSidebar({
                         onClick={onSeeAll}
                         className="mt-6 text-[11px] text-[#6B6B6B] dark:text-neutral-400 hover:text-[#242424] dark:hover:text-white transition-colors"
                     >
-                        See the full list
+                        {t('articles.seeFullList') || "See the full list"}
                     </button>
                 )}
             </div>

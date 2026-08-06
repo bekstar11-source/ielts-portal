@@ -1,5 +1,25 @@
 import React, { useState } from 'react';
 
+const isArrowGlyph = (text) => ["↓", "▼", "⬇", "arrow", "⇓"].includes(String(text || '').trim());
+
+// Decorative/non-scored pseudo-items (section headings, arrow connectors, header boxes)
+// are legitimately missing id/answer by design — the exam-taking renderers skip them too,
+// so the validator must not flag them as errors.
+export const isNonScoredItem = (q, itemIdx) => {
+    if (!q || typeof q !== 'object' || Object.keys(q).length === 0) return true;
+    if (q.isInfo || q.type === 'info' || q.type === 'text' || q.type === 'instruction' || q.isExample || q.type === 'example') return true;
+    if (q.type === 'heading') return true;
+    const itemText = typeof q.text === 'object' ? q.text?.text : q.text;
+    if (isArrowGlyph(itemText)) return true;
+    const hasInput = itemText && String(itemText).includes('[INPUT]');
+    if (itemIdx === 0 && q.isQuestion === false && !hasInput) return true;
+    return false;
+};
+
+// Bu turdagi xatolar bilan test o'quvchida buziladi — ularni "baribir saqlash" bilan
+// o'tkazib yuborib bo'lmaydi.
+const BLOCKING_CATEGORIES = ['Javoblar (Answers)', 'Savollar Tuzilishi'];
+
 export function runValidation(testData) {
     const errors = [];
     const warnings = [];
@@ -32,10 +52,10 @@ export function runValidation(testData) {
         passages.forEach((p, idx) => {
             const num = idx + 1;
             if (!p.title || !p.title.trim()) {
-                errors.push({ id: `reading-p${num}-title`, message: `Passage ${num}: Nomi kiritilmagan`, category: 'Passage-lar' });
+                errors.push({ id: `reading-p${num}-title`, message: `Passage ${num}: Nomi kiritilmagan`, category: 'Passage-lar', path: ['passages', idx] });
             }
             if (!p.content || !p.content.trim()) {
-                errors.push({ id: `reading-p${num}-content`, message: `Passage ${num}: Matni (content) kiritilmagan`, category: 'Passage-lar' });
+                errors.push({ id: `reading-p${num}-content`, message: `Passage ${num}: Matni (content) kiritilmagan`, category: 'Passage-lar', path: ['passages', idx] });
             } else if (p.content.trim().length < 200) {
                 warnings.push({ id: `reading-p${num}-content-short`, message: `Passage ${num}: Matni juda qisqa (${p.content.trim().length} ta belgi)`, category: 'Passage-lar' });
             }
@@ -57,7 +77,7 @@ export function runValidation(testData) {
         passages.forEach((p, idx) => {
             const num = idx + 1;
             if (!p.title || !p.title.trim()) {
-                errors.push({ id: `listening-p${num}-title`, message: `Part ${num}: Nomi kiritilmagan`, category: 'Part-lar' });
+                errors.push({ id: `listening-p${num}-title`, message: `Part ${num}: Nomi kiritilmagan`, category: 'Part-lar', path: ['passages', idx] });
             }
             // Script check
             if (!p.content || !p.content.trim()) {
@@ -77,39 +97,26 @@ export function runValidation(testData) {
     // Flatten helper to extract all actual questions
     const allQuestions = [];
 
-    const isArrowGlyph = (text) => ["↓", "▼", "⬇", "arrow", "⇓"].includes(String(text || '').trim());
-
-    // Decorative/non-scored pseudo-items (section headings, arrow connectors, header boxes)
-    // are legitimately missing id/answer by design — the exam-taking renderers skip them too,
-    // so the validator must not flag them as errors.
-    const isNonScoredItem = (q, itemIdx) => {
-        if (!q || typeof q !== 'object' || Object.keys(q).length === 0) return true;
-        if (q.isInfo || q.type === 'info' || q.type === 'text' || q.type === 'instruction' || q.isExample || q.type === 'example') return true;
-        if (q.type === 'heading') return true;
-        const itemText = typeof q.text === 'object' ? q.text?.text : q.text;
-        if (isArrowGlyph(itemText)) return true;
-        const hasInput = itemText && String(itemText).includes('[INPUT]');
-        if (itemIdx === 0 && q.isQuestion === false && !hasInput) return true;
-        return false;
-    };
-
     const checkGroupQuestions = (group, gIdx) => {
         const passageId = group.passageId;
         // Every group should specify which passage/part it belongs to
+        const groupPath = ['questions', gIdx];
         if (passageId === undefined || passageId === null || passageId === '') {
-            errors.push({ 
-                id: `group-${gIdx}-missing-passageid`, 
-                message: `Savollar Guruhi #${gIdx + 1} (${group.type || 'noma\'lum'}): passageId kiritilmagan (savollar interfeysda ko'rinmaydi!)`, 
-                category: 'Savollar Tuzilishi' 
+            errors.push({
+                id: `group-${gIdx}-missing-passageid`,
+                message: `Savollar Guruhi #${gIdx + 1} (${group.type || 'noma\'lum'}): passageId kiritilmagan (savollar interfeysda ko'rinmaydi!)`,
+                category: 'Savollar Tuzilishi',
+                path: groupPath
             });
         } else {
             // Verify if passageId matches an actual passage
             const hasMatchingPassage = passages.some(p => String(p.id) === String(passageId));
             if (!hasMatchingPassage) {
-                errors.push({ 
-                    id: `group-${gIdx}-invalid-passageid`, 
-                    message: `Savollar Guruhi #${gIdx + 1}: passageId "${passageId}" mos keluvchi passage/part topilmadi (id-lar mosligini tekshiring)`, 
-                    category: 'Savollar Tuzilishi' 
+                errors.push({
+                    id: `group-${gIdx}-invalid-passageid`,
+                    message: `Savollar Guruhi #${gIdx + 1}: passageId "${passageId}" mos keluvchi passage/part topilmadi (id-lar mosligini tekshiring)`,
+                    category: 'Savollar Tuzilishi',
+                    path: groupPath
                 });
             }
         }
@@ -118,34 +125,38 @@ export function runValidation(testData) {
         const typeLower = (group.type || '').toLowerCase();
         if (typeLower === 'map_labeling' || typeLower === 'map') {
             if (!group.image) {
-                errors.push({ 
-                    id: `group-${gIdx}-missing-image`, 
-                    message: `Map/Diagram guruhi uchun xarita rasmi (image) kiritilmagan`, 
-                    category: 'Dizayn & Kontent' 
+                errors.push({
+                    id: `group-${gIdx}-missing-image`,
+                    message: `Map/Diagram guruhi uchun xarita rasmi (image) kiritilmagan`,
+                    category: 'Dizayn & Kontent',
+                    path: groupPath
                 });
             }
         }
 
+        const itemsKey = group.items ? 'items' : (group.questions ? 'questions' : 'items');
         const items = group.items || group.questions || [];
         if (items.length === 0 && !group.groups) {
-            warnings.push({ 
-                id: `group-${gIdx}-empty-items`, 
-                message: `Savollar Guruhi #${gIdx + 1} (${group.type || 'noma\'lum'}): ichida birorta ham savol elementi yo'q`, 
-                category: 'Savollar Tuzilishi' 
+            warnings.push({
+                id: `group-${gIdx}-empty-items`,
+                message: `Savollar Guruhi #${gIdx + 1} (${group.type || 'noma\'lum'}): ichida birorta ham savol elementi yo'q`,
+                category: 'Savollar Tuzilishi',
+                path: groupPath
             });
         }
 
         items.forEach((q, iIdx) => {
             if (isNonScoredItem(q, iIdx)) return;
-            allQuestions.push({ q, group });
+            allQuestions.push({ q, group, path: [...groupPath, itemsKey, iIdx] });
         });
 
         if (group.groups && Array.isArray(group.groups)) {
-            group.groups.forEach(sub => {
+            group.groups.forEach((sub, sIdx) => {
+                const subKey = sub.items ? 'items' : (sub.questions ? 'questions' : 'items');
                 const subItems = sub.items || sub.questions || [];
                 subItems.forEach((q, iIdx) => {
                     if (isNonScoredItem(q, iIdx)) return;
-                    allQuestions.push({ q, group, subGroup: sub });
+                    allQuestions.push({ q, group, subGroup: sub, path: [...groupPath, 'groups', sIdx, subKey, iIdx] });
                 });
             });
         }
@@ -177,7 +188,7 @@ export function runValidation(testData) {
     }
 
     // Verify individual questions
-    allQuestions.forEach(({ q, group }) => {
+    allQuestions.forEach(({ q, group, path }) => {
         const qId = q.id || 'Noma\'lum';
         const answer = q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value;
 
@@ -185,7 +196,8 @@ export function runValidation(testData) {
             errors.push({
                 id: `q-missing-id-${Math.random().toString(36).substr(2, 9)}`,
                 message: `Savol ID (raqami) kiritilmagan. (Guruh: ${group.type || 'Noma\'lum'}, ${q.text ? `Matni: "${String(q.text).substring(0, 30)}..."` : 'ID qo\'shing'})`,
-                category: 'Savollar Tuzilishi'
+                category: 'Savollar Tuzilishi',
+                path
             });
         }
 
@@ -193,8 +205,9 @@ export function runValidation(testData) {
         if (answer === undefined || answer === null || String(answer).trim() === '') {
             errors.push({ 
                 id: `q-${qId}-missing-answer-${Math.random().toString(36).substr(2, 9)}`, 
-                message: `Savol ${qId}: Javob kaliti (answer) kiritilmagan`, 
-                category: 'Javoblar (Answers)' 
+                message: `Savol ${qId}: Javob kaliti (answer) kiritilmagan`,
+                category: 'Javoblar (Answers)',
+                path
             });
         } else {
             // Check for typos in TFNG / YNNG questions
@@ -209,7 +222,8 @@ export function runValidation(testData) {
                         errors.push({
                             id: `q-${qId}-invalid-tfng`,
                             message: `Savol ${qId}: True/False/Not Given javobi noto'g'ri: "${answer}". Faqat TRUE, FALSE yoki NOT GIVEN bo'lishi kerak.`,
-                            category: 'Javoblar (Answers)'
+                            category: 'Javoblar (Answers)',
+                            path
                         });
                     }
                 } else {
@@ -217,7 +231,8 @@ export function runValidation(testData) {
                         errors.push({
                             id: `q-${qId}-invalid-ynng`,
                             message: `Savol ${qId}: Yes/No/Not Given javobi noto'g'ri: "${answer}". Faqat YES, NO yoki NOT GIVEN bo'lishi kerak.`,
-                            category: 'Javoblar (Answers)'
+                            category: 'Javoblar (Answers)',
+                            path
                         });
                     }
                 }
@@ -230,7 +245,8 @@ export function runValidation(testData) {
                     errors.push({
                         id: `q-${qId}-mcq-options-count`,
                         message: `Savol ${qId}: Multiple choice savolida variantlar (options) kamida 2 ta bo'lishi kerak`,
-                        category: 'Savollar Tuzilishi'
+                        category: 'Savollar Tuzilishi',
+                        path
                     });
                 } else {
                     // Check if answer is in option labels
@@ -284,7 +300,8 @@ export function runValidation(testData) {
                         errors.push({
                             id: `q-${qId}-mcq-answer-mismatch`,
                             message: `Savol ${qId}: Javob kaliti "${answer}" kiritilgan variantlar (${optionLabels.join(', ')}) orasida topilmadi`,
-                            category: 'Javoblar (Answers)'
+                            category: 'Javoblar (Answers)',
+                            path
                         });
                     }
                 }
@@ -298,18 +315,24 @@ export function runValidation(testData) {
                 warnings.push({
                     id: `q-${qId}-missing-text`,
                     message: `Savol ${qId}: Savol matni (text) kiritilmagan`,
-                    category: 'Savollar Tuzilishi'
+                    category: 'Savollar Tuzilishi',
+                    path
                 });
             }
         }
     });
 
+    // Bloklovchi xatolar — bularsiz test o'quvchida ishlamaydi
+    errors.forEach(e => { e.blocking = BLOCKING_CATEGORIES.includes(e.category); });
+
     return { errors, warnings };
 }
 
-export default function TestValidator({ testData, isDark }) {
+// `result` berilsa qayta hisoblamaydi — sahifa validatsiyani memo qilib uzatadi,
+// aks holda komponent har renderda 40 ta savolni qaytadan tekshirib chiqardi.
+export default function TestValidator({ testData, isDark, result, onJump, onAutoFix }) {
     const [isOpen, setIsOpen] = useState(true);
-    const { errors, warnings } = runValidation(testData);
+    const { errors, warnings } = result || runValidation(testData);
 
     const totalIssues = errors.length + warnings.length;
 
@@ -358,7 +381,17 @@ export default function TestValidator({ testData, isDark }) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    {onAutoFix && totalIssues > 0 && (
+                        <button
+                            type="button"
+                            onClick={onAutoFix}
+                            title="Mexanik xatolarni avtomatik tuzatish"
+                            className="text-[10px] font-black px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 border border-violet-500/20 hover:bg-violet-500/20 transition active:scale-95"
+                        >
+                            Avto-tuzatish
+                        </button>
+                    )}
                     {/* Gauge badge */}
                     {totalIssues > 0 ? (
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
@@ -374,14 +407,16 @@ export default function TestValidator({ testData, isDark }) {
                         </span>
                     )}
 
-                    <svg 
-                        className={`w-4 h-4 opacity-40 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <button type="button" onClick={() => setIsOpen(!isOpen)} aria-label={isOpen ? "Yopish" : "Ochish"} className="w-5 h-5 flex items-center justify-center">
+                        <svg
+                            className={`w-4 h-4 opacity-40 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -418,11 +453,21 @@ export default function TestValidator({ testData, isDark }) {
                                                 <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
-                                                <div>
+                                                <div className="min-w-0">
                                                     <span className="font-bold uppercase tracking-wider text-[9px] opacity-60 mr-1.5">
                                                         [{err.category}]
                                                     </span>
                                                     <span>{err.message}</span>
+                                                    {onJump && err.path && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onJump(err.path)}
+                                                            title="JSON'dagi joyiga o'tish"
+                                                            className="ml-1.5 text-[10px] font-black text-blue-500 underline underline-offset-2 hover:opacity-80"
+                                                        >
+                                                            ochish
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -448,11 +493,21 @@ export default function TestValidator({ testData, isDark }) {
                                                 <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                                 </svg>
-                                                <div>
+                                                <div className="min-w-0">
                                                     <span className="font-bold uppercase tracking-wider text-[9px] opacity-60 mr-1.5">
                                                         [{warn.category}]
                                                     </span>
                                                     <span>{warn.message}</span>
+                                                    {onJump && warn.path && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onJump(warn.path)}
+                                                            title="JSON'dagi joyiga o'tish"
+                                                            className="ml-1.5 text-[10px] font-black text-blue-500 underline underline-offset-2 hover:opacity-80"
+                                                        >
+                                                            ochish
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}

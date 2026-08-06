@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-    Play, Pause, Download, PlusCircle, MoreHorizontal, ChevronLeft, Share2
+import {
+    Play, Pause, Download, Heart, RotateCcw, ChevronLeft, Share2, CheckCircle2
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { useTheme } from "../../context/ThemeContext";
 import { usePodcast } from "../../context/PodcastContext";
+import { useAuth } from "../../context/AuthContext";
 import { useEpisodeDetails } from "../../hooks/usePodcastData";
 import { formatTime, getPodcastDuration, getPodcastDate } from "../../utils/podcastUtils";
+import { getProgress, clearProgress } from "../../utils/podcastProgress";
 import PlayerFooter from "../../components/InteractivePlayer/PlayerFooter";
 import ShareModal from "../../components/common/ShareModal";
 
@@ -21,13 +24,15 @@ import PodcastBottomNav from "../../components/podcasts/PodcastBottomNav";
 export default function SpotifyEpisodeDetails() {
     const { podcastId } = useParams();
     const navigate = useNavigate();
-    const { theme, toggleTheme } = useTheme();
+    const { theme } = useTheme();
     const isDark = theme === 'dark';
-    const { 
-        playTrack, currentTrack, setCurrentTrack, isPlaying, setIsPlaying, 
-        currentTime, duration, handleSeek, isExpanded, setIsExpanded 
+    const {
+        currentTrack, setCurrentTrack, isPlaying, setIsPlaying,
+        currentTime, duration, handleSeek, isExpanded, setIsExpanded,
+        likedPodcasts, toggleLike,
     } = usePodcast();
-    
+    const { user } = useAuth();
+
     // Data Hook
     const { podcast, album, loading, error, retry } = useEpisodeDetails(podcastId);
     
@@ -80,8 +85,57 @@ export default function SpotifyEpisodeDetails() {
 
 
     const isPlayingThis = currentTrack?.id === podcast?.id && isPlaying;
+    const isCurrent = currentTrack?.id === podcast?.id;
     const exercises = podcast?.questions || [];
     const transcript = podcast?.transcript || [];
+    const isLiked = likedPodcasts.includes(podcastId);
+
+    // Haqiqiy tinglash progressi: joriy trek bo'lsa — jonli vaqt, aks holda
+    // saqlangan progress. Avval progress bar doim bo'sh (w-0) turardi.
+    const totalDuration = (isCurrent && duration > 0) ? duration : getPodcastDuration(podcast);
+    const saved = useMemo(
+        () => (podcast?.id ? getProgress(podcast.id) : null),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [podcast?.id, isCurrent, currentTime]
+    );
+    const listenedTime = isCurrent ? currentTime : (saved?.completed ? totalDuration : (saved?.time || 0));
+    const progressPct = totalDuration > 0 ? Math.min(100, (listenedTime / totalDuration) * 100) : 0;
+    const remaining = Math.max(0, totalDuration - listenedTime);
+    const isCompleted = !isCurrent && !!saved?.completed;
+    const canResume = !isCurrent && !saved?.completed && (saved?.time || 0) > 15;
+
+    const handleRestart = () => {
+        if (!podcast) return;
+        clearProgress(podcast.id);
+        if (isCurrent) handleSeek(0);
+        else setCurrentTrack(podcast);
+        setIsPlaying(true);
+        setIsExpanded(true);
+    };
+
+    const handleDownload = () => {
+        // Avval tugma hech nima qilmasdi
+        if (!podcast?.audioUrl) {
+            toast.error("Bu epizod uchun yuklab olish mavjud emas.");
+            return;
+        }
+        const a = document.createElement('a');
+        a.href = podcast.audioUrl;
+        a.download = `${(podcast.title || 'podcast').replace(/[^\w\s-]/g, '')}.mp3`;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    };
+
+    const handleLike = () => {
+        if (!user?.uid) {
+            navigate('/auth/login');
+            return;
+        }
+        toggleLike(user.uid, podcastId);
+    };
 
     return (
         <div ref={containerRef} className={`h-screen w-full flex flex-col font-sans select-none overflow-y-auto custom-scrollbar relative transition-colors duration-300 gpu-accelerated ${isDark ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
@@ -149,34 +203,82 @@ export default function SpotifyEpisodeDetails() {
 
                         {/* Content section */}
                         <div className="px-6 md:px-10 pb-48">
-                            {/* Date and time */}
+                            {/* Date and listening progress */}
                             <div className={`flex items-center gap-2 mb-6 mt-8 text-sm font-medium ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>
-                                <span>{getPodcastDate(podcast)} • {formatTime(getPodcastDuration(podcast))} left</span>
-                                <div className={`w-24 h-1 rounded-full ml-2 overflow-hidden ${isDark ? 'bg-white/20' : 'bg-zinc-200'}`}>
-                                    <div className="h-full bg-emerald-500 rounded-full w-0"></div>
-                                </div>
+                                <span>{getPodcastDate(podcast)}</span>
+                                <span aria-hidden>•</span>
+                                {isCompleted ? (
+                                    <span className="flex items-center gap-1.5 text-emerald-500 font-bold">
+                                        <CheckCircle2 size={15} /> Tinglab bo'lingan
+                                    </span>
+                                ) : (
+                                    <span className="tabular-nums">
+                                        {progressPct > 0
+                                            ? `${formatTime(remaining)} qoldi`
+                                            : formatTime(totalDuration)}
+                                    </span>
+                                )}
+                                {totalDuration > 0 && (
+                                    <div className={`w-24 h-1 rounded-full ml-2 overflow-hidden ${isDark ? 'bg-white/20' : 'bg-zinc-200'}`}>
+                                        <div
+                                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                            style={{ width: `${isCompleted ? 100 : progressPct}%` }}
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex items-center gap-6 mb-10">
-                                <button 
+                            <div className="flex items-center gap-5 md:gap-6 mb-10 flex-wrap">
+                                <button
                                     onClick={handlePlay}
-                                    className="w-14 h-14 bg-[#1ed760] rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 text-black shadow-xl"
+                                    aria-label={isPlayingThis ? "Pauza" : (canResume ? "Davom ettirish" : "Ijro etish")}
+                                    className="w-14 h-14 bg-[#1ed760] rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 text-black shadow-xl shrink-0"
                                 >
                                     {isPlayingThis ? <Pause fill="black" size={28} /> : <Play fill="black" size={28} className="ml-1" />}
                                 </button>
-                                <button className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900'}`}>
+
+                                {/* Qayerdan davom etishi endi ochiq ko'rsatiladi */}
+                                {(canResume || isCompleted) && (
+                                    <button
+                                        onClick={handleRestart}
+                                        className={`flex items-center gap-2 px-4 h-9 rounded-full border text-[13px] font-bold transition-colors ${isDark ? 'border-white/20 text-white hover:border-white' : 'border-zinc-300 text-zinc-700 hover:border-zinc-900'}`}
+                                    >
+                                        <RotateCcw size={15} /> Boshidan
+                                    </button>
+                                )}
+
+                                <button
+                                    onClick={handleLike}
+                                    aria-pressed={isLiked}
+                                    aria-label={isLiked ? "Saralanganlardan olib tashlash" : "Saralanganlarga qo'shish"}
+                                    title={isLiked ? "Saralanganlardan olib tashlash" : "Saralanganlarga qo'shish"}
+                                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
+                                        isLiked
+                                            ? 'border-emerald-500 text-emerald-500'
+                                            : (isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900')
+                                    }`}
+                                >
+                                    <Heart size={16} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
+                                </button>
+
+                                <button
+                                    onClick={handleDownload}
+                                    aria-label="Yuklab olish"
+                                    title="Yuklab olish"
+                                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900'}`}
+                                >
                                     <Download size={16} />
                                 </button>
-                                <button 
+
+                                <button
                                     onClick={() => setIsShareOpen(true)}
-                                    className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900'}`}
-                                    title="Share"
+                                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900'}`}
+                                    title="Ulashish"
+                                    aria-label="Ulashish"
                                 >
                                     <Share2 size={16} />
                                 </button>
-                                <PlusCircle size={32} strokeWidth={1} className={`cursor-pointer transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
-                                <MoreHorizontal size={32} className={`cursor-pointer transition-colors ${isDark ? 'text-[#a7a7a7] hover:text-white' : 'text-zinc-400 hover:text-zinc-900'}`} />
                             </div>
 
                             {/* Description */}

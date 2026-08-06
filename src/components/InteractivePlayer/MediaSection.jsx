@@ -6,9 +6,6 @@ export default function MediaSection({
     isDark, 
     podcast, 
     isFullscreen, 
-    toggleFullscreen, 
-    isTasksVisible, 
-    setIsTasksVisible, 
     combinedTimeline, 
     activeTimelineIdx, 
     isPlaying,
@@ -16,14 +13,16 @@ export default function MediaSection({
     currentTime,
     duration,
     handleSeek: globalHandleSeek,
-    audioRef,
+    setMuteGlobalAudio,
+    youtubePlayerRef,
+    cyclePlaybackRate,
+    playbackRate = 1,
     keyboardShortcutsEnabled = false,
 }) {
     const videoRef = React.useRef(null);
     const [isBuffering, setIsBuffering] = React.useState(false);
-    const [showControls, setShowControls] = React.useState(false);
-    const controlsTimeoutRef = React.useRef(null);
     const [showScript, setShowScript] = React.useState(true);
+    const mediaType = podcast?.mediaType;
 
     // Sync local video with global state
     React.useEffect(() => {
@@ -45,56 +44,75 @@ export default function MediaSection({
         }
     }, [currentTime, podcast.mediaType]);
 
-    // PREVENT ECHO: Mute the background global audio element when video is visible
+    // PREVENT ECHO: Mute the background global audio element when video is visible.
+    // Avval element `muted` xossasi to'g'ridan-to'g'ri o'zgartirilardi — context ovoz
+    // sozlamalarini qayta qo'llaganda ovoz tiklanib, ikki manba bir vaqtda eshitilardi.
     React.useEffect(() => {
-        if (podcast.mediaType === 'video' && audioRef.current) {
-            const originalMuted = audioRef.current.muted;
-            audioRef.current.muted = true; // Mute the hidden global player
-            return () => {
-                if (audioRef.current) audioRef.current.muted = originalMuted; // Restore on unmount
-            };
+        if (podcast.mediaType !== 'video') return;
+        setMuteGlobalAudio?.(true);
+        return () => setMuteGlobalAudio?.(false);
+    }, [podcast.mediaType, setMuteGlobalAudio]);
+
+    // Mahalliy video tezligi ham global playbackRate bilan sinxron bo'lsin
+    React.useEffect(() => {
+        if (podcast.mediaType !== 'video' || !videoRef.current) return;
+        videoRef.current.playbackRate = playbackRate;
+    }, [playbackRate, podcast.mediaType]);
+
+    // Klaviatura yorliqlari — faqat podcast sahifalarida
+    const togglePlayback = React.useCallback(() => {
+        // YouTube uchun ijro to'g'ridan-to'g'ri iframe API orqali boshlanishi kerak,
+        // aks holda brauzer "user gesture" ni yo'qotib, ijro boshlanmay qolardi.
+        if (mediaType === 'youtube' && youtubePlayerRef?.current) {
+            const yt = youtubePlayerRef.current;
+            if (isPlaying) yt.pauseVideo?.();
+            else yt.playVideo?.();
         }
-    }, [podcast.mediaType, audioRef]);
+        setIsPlaying(!isPlaying);
+    }, [isPlaying, setIsPlaying, mediaType, youtubePlayerRef]);
 
-    // Handle Controls Visibility on Play/Pause
-    React.useEffect(() => {
-        setShowControls(true);
-        if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-        controlsTimeoutRef.current = setTimeout(() => {
-            setShowControls(false);
-        }, 2000);
-    }, [isPlaying]);
-
-    // Keyboard Shortcuts (Space for Play/Pause, Arrows for Seeking) — faqat podcast sahifalarida
     React.useEffect(() => {
         if (!keyboardShortcutsEnabled) return;
 
         const handleKeyDown = (e) => {
-            if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+            const tag = e.target?.tagName;
+            if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target?.isContentEditable) return;
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-            if (e.code === "Space") {
-                e.preventDefault();
-                if (!isPlaying && podcast?.mediaType === 'youtube' && globalHandleSeek /* we can't easily access youtubePlayerRef here unless we pass it */) {
-                    // We need to pass youtubePlayerRef from InteractivePlayer to MediaSection to do this synchronously
-                }
-                setIsPlaying(!isPlaying);
-                setShowControls(true);
-            } else if (e.code === "ArrowRight") {
-                e.preventDefault();
-                globalHandleSeek(Math.min(duration, currentTime + 5));
-                setShowControls(true);
-            } else if (e.code === "ArrowLeft") {
-                e.preventDefault();
-                globalHandleSeek(Math.max(0, currentTime - 5));
-                setShowControls(true);
+            let handled = true;
+            switch (e.code) {
+                case "Space":
+                case "KeyK":
+                    togglePlayback();
+                    break;
+                case "ArrowRight":
+                    globalHandleSeek(Math.min(duration || Infinity, currentTime + 5));
+                    break;
+                case "ArrowLeft":
+                    globalHandleSeek(Math.max(0, currentTime - 5));
+                    break;
+                case "KeyL":
+                    globalHandleSeek(Math.min(duration || Infinity, currentTime + 10));
+                    break;
+                case "KeyJ":
+                    globalHandleSeek(Math.max(0, currentTime - 10));
+                    break;
+                case "KeyS":
+                    setShowScript((v) => !v);
+                    break;
+                case "KeyX":
+                    cyclePlaybackRate?.();
+                    break;
+                default:
+                    handled = false;
             }
 
-            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-            controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2000);
+            if (!handled) return;
+            e.preventDefault();
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [keyboardShortcutsEnabled, isPlaying, setIsPlaying, currentTime, duration, globalHandleSeek, podcast?.mediaType]);
+    }, [keyboardShortcutsEnabled, togglePlayback, currentTime, duration, globalHandleSeek, cyclePlaybackRate]);
 
     const isVideoMode = (podcast.mediaType === 'youtube' || podcast.mediaType === 'video') && podcast.showVideo !== false && String(podcast.showVideo) !== 'false';
 

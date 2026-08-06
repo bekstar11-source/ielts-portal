@@ -1,7 +1,10 @@
 import React from 'react';
 
-export default function ValidationModal({ show, errors, onConfirm, onCancel, isDark }) {
+export default function ValidationModal({ show, errors, onConfirm, onCancel, onAutoFix, onJump, isDark }) {
     if (!show) return null;
+
+    // Bloklovchi xatolar bilan test o'quvchida ishlamaydi — ularni o'tkazib yuborib bo'lmaydi
+    const blocking = errors.filter(e => e.blocking);
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -18,7 +21,9 @@ export default function ValidationModal({ show, errors, onConfirm, onCancel, isD
                                 {errors.length} ta kritik xato aniqlandi
                             </h3>
                             <p className={`text-xs mt-0.5 ${isDark ? 'opacity-50' : 'text-gray-500'}`}>
-                                Baribir saqlashni xohlaysizmi?
+                                {blocking.length > 0
+                                    ? `${blocking.length} tasi tuzatilmasa test o'quvchida buziladi.`
+                                    : "Baribir saqlashni xohlaysizmi?"}
                             </p>
                         </div>
                     </div>
@@ -26,30 +31,53 @@ export default function ValidationModal({ show, errors, onConfirm, onCancel, isD
                     <div className={`rounded-xl p-3 mb-5 max-h-[200px] overflow-y-auto space-y-2 ${isDark ? 'bg-black/20' : 'bg-gray-50'}`}>
                         {errors.map((err, i) => (
                             <div key={err.id || i} className="flex items-start gap-2 text-xs">
-                                <span className="text-red-500 font-black shrink-0 mt-0.5">✗</span>
-                                <div>
+                                <span className={`font-black shrink-0 mt-0.5 ${err.blocking ? 'text-red-500' : 'text-amber-500'}`}>
+                                    {err.blocking ? '✗' : '!'}
+                                </span>
+                                <div className="min-w-0">
                                     <span className={`text-[9px] font-black uppercase tracking-wider opacity-50 mr-1`}>
                                         [{err.category}]
                                     </span>
                                     <span className={isDark ? 'text-red-300' : 'text-red-700'}>{err.message}</span>
+                                    {onJump && err.path && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { onCancel(); onJump(err.path); }}
+                                            className="ml-1.5 text-[10px] font-black text-blue-500 underline underline-offset-2 hover:opacity-80"
+                                        >
+                                            JSON'da ochish
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    <div className="flex gap-3">
-                        <button
-                            onClick={onCancel}
-                            className={`flex-1 h-10 rounded-xl text-sm font-bold border transition active:scale-95 ${isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-gray-200 hover:bg-gray-50 text-gray-700'}`}
-                        >
-                            Qaytish va tuzatish
-                        </button>
-                        <button
-                            onClick={onConfirm}
-                            className="flex-1 h-10 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white transition active:scale-95"
-                        >
-                            Baribir saqlash
-                        </button>
+                    <div className="flex flex-col gap-2">
+                        {onAutoFix && (
+                            <button
+                                onClick={() => { onCancel(); onAutoFix(); }}
+                                className="h-10 rounded-xl text-sm font-bold bg-violet-600 hover:bg-violet-700 text-white transition active:scale-95"
+                            >
+                                Avto-tuzatishni ochish
+                            </button>
+                        )}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={onCancel}
+                                className={`flex-1 h-10 rounded-xl text-sm font-bold border transition active:scale-95 ${isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-gray-200 hover:bg-gray-50 text-gray-700'}`}
+                            >
+                                Qaytish va tuzatish
+                            </button>
+                            <button
+                                onClick={onConfirm}
+                                disabled={blocking.length > 0}
+                                title={blocking.length > 0 ? "Kritik xatolar tuzatilmaguncha saqlab bo'lmaydi" : ""}
+                                className="flex-1 h-10 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                Baribir saqlash
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

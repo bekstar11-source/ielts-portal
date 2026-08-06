@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ARTICLE_LEVELS, ARTICLE_LEVEL_META, formatReadTimeLabel } from '../../utils/articleLevels';
+import { useTranslation } from '../../context/LanguageContext';
 
 /**
  * Daraja tanlagich — segmented control.
@@ -8,6 +9,7 @@ import { ARTICLE_LEVELS, ARTICLE_LEVEL_META, formatReadTimeLabel } from '../../u
  * (boshqa joyda ishlatilsa, fallback qiymatlar ishlaydi).
  */
 export default function ArticleLevelPicker({ value, onChange, readTimes = {}, compact = false }) {
+    const { t } = useTranslation();
     const containerRef = useRef(null);
 
     // Chap/o'ng strelkalar bilan darajani almashtirish (radiogroup xulq-atvori)
@@ -30,14 +32,14 @@ export default function ArticleLevelPicker({ value, onChange, readTimes = {}, co
                     style={{ color: 'var(--r-muted, #6B6B6B)' }}
                     id="article-level-picker-label"
                 >
-                    O&apos;qish darajasini tanlang — matn va lug&apos;at shu darajaga moslashadi.
+                    {t('articles.chooseReadingLevel') || "O'qish darajasini tanlang — matn va lug'at shu darajaga moslashadi."}
                 </p>
             )}
             <div
                 ref={containerRef}
                 role="radiogroup"
                 aria-labelledby={compact ? undefined : 'article-level-picker-label'}
-                aria-label={compact ? "O'qish darajasi" : undefined}
+                aria-label={compact ? (t('articles.readingLevel') || "O'qish darajasi") : undefined}
                 onKeyDown={handleKeyDown}
                 className="grid grid-cols-3 gap-1 p-1 rounded-2xl border"
                 style={{

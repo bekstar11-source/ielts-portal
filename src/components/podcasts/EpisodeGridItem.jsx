@@ -5,6 +5,7 @@ import LazyImage from "../common/LazyImage";
 import { usePodcast } from "../../context/PodcastContext";
 import { useAuth } from "../../context/AuthContext";
 import ShareModal from "../common/ShareModal";
+import { formatTime, getPodcastDuration } from "../../utils/podcastUtils";
 
 const DIFF_COLORS = {
     easy: "bg-emerald-500",
@@ -63,6 +64,7 @@ export default function EpisodeGridItem({
     };
 
     const likeCount = Math.max(0, (p.likesCount || 0) + likeDelta);
+    const episodeDuration = getPodcastDuration(p);
 
     return (
         <div 
@@ -99,8 +101,9 @@ export default function EpisodeGridItem({
                     } group-hover:text-emerald-500`}>
                         {p.title}
                     </h3>
+                    {/* `p.duration` — soniyalardagi son; avval xom holda "912" deb chiqardi */}
                     <p className={`text-[11px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                        {p.duration || '15 min'}
+                        {episodeDuration > 0 ? formatTime(episodeDuration) : '—'}
                     </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
