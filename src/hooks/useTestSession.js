@@ -13,7 +13,12 @@ export function useTestSession(storageKey) {
         setAnswers(JSON.parse(savedData));
       } catch (e) {
         console.error("Error parsing session data", e);
+        setAnswers({});
       }
+    } else {
+      // Kalit almashganda (masalan full test <-> part) eski javoblar qolib
+      // ketmasligi kerak.
+      setAnswers({});
     }
     setIsDataLoaded(true);
   }, [storageKey]);

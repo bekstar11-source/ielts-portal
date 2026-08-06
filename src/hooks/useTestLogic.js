@@ -87,7 +87,19 @@ export function useTestLogic() {
         return 60 * 60;
     }, [test, partNumber]);
 
-    const { timeLeft, setTimeLeft } = useTestTimer(cleanTestId, user?.uid, testMode, initialDuration, !!test && !showModeSelection && !showResult, partNumber);
+    // Listening testlarda haqiqiy davomiylik audio uzunligidan kelib chiqadi.
+    // Uni alohida state'da saqlaymiz — shunda taymerni yuklash/reset qilish
+    // mantiqi ham ayni shu qiymatdan foydalanadi (ilgari ular bir-birini bosardi).
+    const [audioDuration, setAudioDuration] = useState(null);
+    const effectiveDuration = useMemo(() => {
+        if (test?.type?.toLowerCase() === 'listening' && audioDuration > 0) return audioDuration;
+        return initialDuration;
+    }, [test, audioDuration, initialDuration]);
+
+    // Taymer resume modal ochiq turganda ishlamasligi/yuklanmasligi kerak —
+    // aks holda o'quvchi hali "Continue/Start Fresh" ni tanlamasidan vaqt oqib ketardi.
+    const isTimerActive = !!test && !showModeSelection && !showResult && !showResumeModal;
+    const { timeLeft, setTimeLeft, resetTimer } = useTestTimer(cleanTestId, user?.uid, testMode, effectiveDuration, isTimerActive, partNumber);
     const { saving, submitTest } = useTestSubmission(user, userData);
 
     // Initialize Mode & Settings
@@ -98,7 +110,20 @@ export function useTestLogic() {
         const savedDraft = localStorage.getItem(draftKey);
         const savedMode = localStorage.getItem(`mode_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`);
 
-        if (savedDraft) {
+        // Bo'sh draft ("{}") ham avtosaqlash tufayli yozilib qoladi — bunday holatda
+        // resume modalni ko'rsatishning ma'nosi yo'q (va u taymerni ushlab turadi).
+        const hasDraftContent = (() => {
+            if (!savedDraft) return false;
+            try {
+                const parsed = JSON.parse(savedDraft);
+                if (parsed && typeof parsed === 'object') return Object.keys(parsed).length > 0;
+                return String(parsed ?? '').trim().length > 0;
+            } catch {
+                return savedDraft.trim().length > 0;
+            }
+        })();
+
+        if (hasDraftContent) {
             setDraftData({ draft: savedDraft, mode: savedMode });
             setShowResumeModal(true);
             setShowModeSelection(false); // Hide mode selection while resume modal is up
@@ -133,6 +158,9 @@ export function useTestLogic() {
         clearTestStorage(user.uid, test.id, partNumber, false);
         setUserAnswers({});
         setWritingEssay("");
+        setDraftData(null);
+        // Storage tozalash o'zi yetarli emas: taymer state'i eski qiymatda qolib ketardi.
+        resetTimer(null);
         if (['reading', 'listening', 'writing'].includes(test.type?.toLowerCase())) {
             setShowModeSelection(true);
         } else {
@@ -144,11 +172,13 @@ export function useTestLogic() {
 
     // Auto Save
     useEffect(() => {
-        if (!test || showResult) return;
+        // Resume modal ochiq ekan saqlamaymiz: aks holda hali tiklanmagan javoblar
+        // ustidan bo'sh "{}" yozilib, o'quvchining draft'i yo'qolardi.
+        if (!test || showResult || showResumeModal) return;
         const draftKey = `draft_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`;
         localStorage.setItem(draftKey, JSON.stringify(userAnswers));
         if (testMode) localStorage.setItem(`mode_${user.uid}_${test.id}${partNumber ? `_part_${partNumber}` : ''}`, testMode);
-    }, [userAnswers, test, testMode, showResult, partNumber]);
+    }, [userAnswers, test, testMode, showResult, showResumeModal, partNumber]);
 
     // Anti-Cheat
     useEffect(() => {
@@ -159,7 +189,7 @@ export function useTestLogic() {
         if (!test) return;
         setIsSubmitting(true);
         try {
-            const totalTime = initialDuration;
+            const totalTime = effectiveDuration;
             const timeSpent = testMode === 'practice' ? timeLeft : Math.max(0, totalTime - timeLeft);
             const resultData = {
                 mode: testMode,
@@ -214,8 +244,8 @@ export function useTestLogic() {
         userAnswers, handleSelectAnswer, flaggedQuestions, toggleFlag,
         showResult, score, bandScore, totalQuestions, partBreakdown, saving, handleSubmit, timeLeft, setTimeLeft,
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
-        activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
+        activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration: effectiveDuration,
         audioRefs, handleSeekTo, partNumber, resultId, isSubmitting,
-        showResumeModal, handleResumeContinue, handleResumeFresh
+        showResumeModal, handleResumeContinue, handleResumeFresh, setAudioDuration
     };
 }

@@ -1,6 +1,6 @@
 // src/pages/PodcastPlayer.jsx
 // O'quvchi uchun asosiy podcast o'ynatuvchi (5 bosqich wrapper)
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
@@ -21,6 +21,7 @@ import "../../components/PodcastInterface/shared/PodcastStyles.css";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { Share2 } from "lucide-react";
 import ShareModal from "../../components/common/ShareModal";
+import { getCdnUrl } from "../../utils/cdnUtils";
 
 const STAGE_TITLES = [
     "✍️ Dictation — Eshitib yazing",
@@ -81,6 +82,11 @@ export default function PodcastPlayer() {
             })
             .finally(() => setLoading(false));
     }, [podcastId]);
+
+    // Bosqichlar audioni CDN orqali oladi. Manzil shu yerda bir marta hisoblanadi
+    // va PodcastContext'dagi asosiy pleyer bilan bir xil bo'ladi — shunda brauzer
+    // keshi ham umumiy bo'ladi va fayl ikki marta yuklanmaydi.
+    const cdnAudioUrl = useMemo(() => getCdnUrl(podcast?.audioUrl), [podcast?.audioUrl]);
 
     const handleStageComplete = async (results) => {
         try {
@@ -177,7 +183,7 @@ export default function PodcastPlayer() {
                         {currentStage === 1 && (
                             <DictationStage
                                 podcastId={podcastId}
-                                audioUrl={podcast.audioUrl}
+                                audioUrl={cdnAudioUrl}
                                 hintWords={podcast.hintWords}
                                 onComplete={(r) => handleStageComplete(r)}
                                 onTimeUpdate={setGlobalTime}
@@ -187,7 +193,7 @@ export default function PodcastPlayer() {
                         {currentStage === 2 && (
                             <MCQStage
                                 podcastId={podcastId}
-                                audioUrl={podcast.audioUrl}
+                                audioUrl={cdnAudioUrl}
                                 onComplete={(r) => handleStageComplete(r)}
                                 onTimeUpdate={setGlobalTime}
                             />
@@ -196,7 +202,7 @@ export default function PodcastPlayer() {
                         {currentStage === 3 && (
                             <GapFillStage
                                 podcastId={podcastId}
-                                audioUrl={podcast.audioUrl}
+                                audioUrl={cdnAudioUrl}
                                 onComplete={(r) => handleStageComplete(r)}
                                 onTimeUpdate={setGlobalTime}
                             />

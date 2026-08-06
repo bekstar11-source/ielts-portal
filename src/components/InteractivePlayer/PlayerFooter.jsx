@@ -337,7 +337,7 @@ export default function PlayerFooter({
                     {playbackRate}x
                 </button>
 
-                <div className="flex items-center gap-2 w-[110px] group">
+                <div className="flex items-center gap-2 w-[110px] min-w-0 shrink group">
                     <button
                         onClick={toggleMute}
                         aria-label={iconMuted ? "Ovozni yoqish" : "Ovozni o'chirish"}
@@ -354,7 +354,9 @@ export default function PlayerFooter({
                         value={iconMuted ? 0 : volume}
                         onChange={(e) => updateVolume(parseFloat(e.target.value))}
                         aria-label="Ovoz balandligi"
-                        className="flex-1 h-1 accent-emerald-500 cursor-pointer"
+                        // min-w-0 bo'lmasa input o'z tabiiy kengligidan (~129px) kichraymaydi
+                        // va footerdan tashqariga chiqib ketadi
+                        className="flex-1 min-w-0 w-full h-1 accent-emerald-500 cursor-pointer"
                     />
                 </div>
             </div>

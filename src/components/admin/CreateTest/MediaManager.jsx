@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { toMMSS, processTime } from "./CreateTestUtils";
 import PartWaveformEditor from "./PartWaveformEditor";
+import { getCdnUrl } from "../../../utils/cdnUtils";
 
 const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark, onMark }) => {
     const audioRef = useRef(null);
@@ -244,7 +245,7 @@ const MediaManager = ({
                                     </label>
                                 </div>
                                 {singleAudioUrl && (
-                                    <audio src={singleAudioUrl} controls preload="none" className="w-full h-8" />
+                                    <audio src={getCdnUrl(singleAudioUrl)} controls preload="none" className="w-full h-8" />
                                 )}
                             </div>
                         ) : (
@@ -359,7 +360,7 @@ const MediaManager = ({
                         <div className="mb-3">
                             <PartWaveformEditor
                                 key={singleAudioUrl}
-                                audioUrl={singleAudioUrl}
+                                audioUrl={getCdnUrl(singleAudioUrl)}
                                 passages={testData.passages || []}
                                 partCount={listeningPartCount}
                                 onChange={(i, patch) => onPassageTimeChange(i, patch)}
@@ -418,7 +419,7 @@ const MediaManager = ({
                                     </div>
                                     <AudioSegmentPlayer
                                         index={i}
-                                        audioUrl={partAudioUrl}
+                                        audioUrl={getCdnUrl(partAudioUrl)}
                                         startTimeStr={passage.startTime || ""}
                                         endTimeStr={passage.endTime || ""}
                                         isDark={isDark}

@@ -218,41 +218,52 @@ export const mergeTestsLogic = (selectedTestObjects, mergeTitle) => {
     };
 };
 
+export const MAX_TEST_PARTS = 10;
+
+// Bitta urinishga (full test yoki aniq bir part) tegishli barcha kalitlar.
+// Suffiks — full test uchun '', part uchun `_part_N`.
+export const testStorageSuffix = (partNumber = null) => (partNumber ? `_part_${partNumber}` : '');
+
 export const clearTestStorage = (userId, testId, partNumber = null, keepHighlightsAndNotes = false) => {
     if (!testId) return;
 
-    // 1. Remove draft answers & modes (localStorage)
-    const suffix = partNumber ? `_part_${partNumber}` : '';
-    localStorage.removeItem(`draft_${userId}_${testId}${suffix}`);
-    localStorage.removeItem(`mode_${userId}_${testId}${suffix}`);
+    const suffix = testStorageSuffix(partNumber);
 
-    // Also remove general drafts just in case
-    localStorage.removeItem(`draft_${userId}_${testId}`);
-    localStorage.removeItem(`mode_${userId}_${testId}`);
+    // MUHIM: faqat shu urinishning kalitlarini o'chiramiz.
+    // Ilgari bu yerda suffikssiz (full test) kalitlar ham so'zsiz o'chirilardi —
+    // shu sababli bitta partni topshirish yoki "Start Fresh" qilish to'liq testning
+    // javoblarini va vaqtini yo'q qilib yuborardi.
+    const clearScope = (scopeSuffix) => {
+        // Draft javoblar & rejim (localStorage)
+        localStorage.removeItem(`draft_${userId}_${testId}${scopeSuffix}`);
+        localStorage.removeItem(`mode_${userId}_${testId}${scopeSuffix}`);
+        // Interfeys ichidagi session javoblari (localStorage)
+        localStorage.removeItem(`ielts_reading_session_${testId}${scopeSuffix}`);
+        localStorage.removeItem(`ielts_writing_session_${testId}${scopeSuffix}`);
+        // Taymer (sessionStorage)
+        sessionStorage.removeItem(`timer_${userId}_${testId}${scopeSuffix}`);
+    };
 
-    // 2. Remove session answers (localStorage)
-    localStorage.removeItem(`ielts_reading_session_${testId}`);
-    localStorage.removeItem(`ielts_writing_session_${testId}`);
-
-    if (!keepHighlightsAndNotes) {
-        // 3. Remove reading highlights & notes (localStorage)
-        localStorage.removeItem(`reading_rp_hl_${testId}`);
-        localStorage.removeItem(`reading_highlights_${testId}`);
-        localStorage.removeItem(`reading_notes_${testId}`);
-
-        // 4. Remove passage-specific HTML states (localStorage)
-        for (let i = 0; i <= 10; i++) {
-            localStorage.removeItem(`reading_session_${testId}_passage_${i}`);
-        }
-    }
-
-    // 5. Remove timer & listening highlights (sessionStorage)
-    sessionStorage.removeItem(`timer_${userId}_${testId}${suffix}`);
-    sessionStorage.removeItem(`timer_${userId}_${testId}`);
+    // Full test va har bir part — mustaqil urinishlar (alohida taymer, alohida
+    // natija). Shuning uchun ular bir-birining holatini tozalamaydi.
+    clearScope(suffix);
 
     if (!keepHighlightsAndNotes) {
-        for (let i = 0; i <= 10; i++) {
-            sessionStorage.removeItem(`listening_hl_${testId}_p${i}`);
+        if (partNumber) {
+            // Part rejimida faqat shu passage/part holatini tozalaymiz —
+            // umumiy highlight/notes bloblari full testga ham tegishli.
+            const idx = partNumber - 1;
+            localStorage.removeItem(`reading_session_${testId}_passage_${idx}`);
+            sessionStorage.removeItem(`listening_hl_${testId}_p${idx}`);
+        } else {
+            localStorage.removeItem(`reading_rp_hl_${testId}`);
+            localStorage.removeItem(`reading_highlights_${testId}`);
+            localStorage.removeItem(`reading_notes_${testId}`);
+
+            for (let i = 0; i <= MAX_TEST_PARTS; i++) {
+                localStorage.removeItem(`reading_session_${testId}_passage_${i}`);
+                sessionStorage.removeItem(`listening_hl_${testId}_p${i}`);
+            }
         }
     }
 };

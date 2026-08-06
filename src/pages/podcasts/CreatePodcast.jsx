@@ -12,6 +12,7 @@ import WaveformEditor from "../../components/PodcastInterface/admin/WaveformEdit
 import VocabAIHelper from "../../components/PodcastInterface/admin/VocabAIHelper";
 import MCQEditor from "../../components/PodcastInterface/admin/MCQEditor";
 import "../../components/PodcastInterface/shared/PodcastStyles.css";
+import { getCdnUrl } from "../../utils/cdnUtils";
 
 const DIFFICULTIES = [
     { value: "easy", label: "🟢 Easy" },
@@ -299,10 +300,10 @@ export default function CreatePodcast() {
                         </div>
 
                         {activeTab === "segments" && (
-                            <WaveformEditor podcastId={podcast.id} audioUrl={podcast.audioUrl} />
+                            <WaveformEditor podcastId={podcast.id} audioUrl={getCdnUrl(podcast.audioUrl)} />
                         )}
                         {activeTab === "mcq" && (
-                            <MCQEditor podcastId={podcast.id} audioUrl={podcast.audioUrl} />
+                            <MCQEditor podcastId={podcast.id} audioUrl={getCdnUrl(podcast.audioUrl)} />
                         )}
                         {activeTab === "vocab" && (
                             <VocabAIHelper podcastId={podcast.id} transcript={podcast.fullTranscript} level={form.level} hintWords={form.hintWords} />

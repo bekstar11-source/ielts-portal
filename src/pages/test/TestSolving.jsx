@@ -27,7 +27,7 @@ export default function TestSolving() {
         textSize, setTextSize, isReviewing, setIsReviewing, isFullScreen, handleToggleFullScreen,
         activePart, setActivePart, audioTime, setAudioTime, navigate, initialDuration,
         audioRefs, handleSeekTo, partNumber, resultId, isSubmitting,
-        showResumeModal, handleResumeContinue, handleResumeFresh
+        showResumeModal, handleResumeContinue, handleResumeFresh, setAudioDuration
     } = useTestLogic();
 
     // Dynamically determine the originating/return path
@@ -482,10 +482,11 @@ export default function TestSolving() {
                 audioRefs={audioRefs}
                 partNumber={partNumber}
                 onTotalDurationCalculated={(totalDuration) => {
-                    const timerKey = `timer_${user?.uid}_${test?.id}${partNumber ? `_part_${partNumber}` : ''}`;
-                    const savedTime = sessionStorage.getItem(timerKey);
-                    if (!savedTime && test?.type?.toLowerCase() === 'listening') {
-                        setTimeLeft(totalDuration);
+                    // Audio uzunligi taymerning asosiy manbasi bo'ladi (useTestLogic
+                    // ichida). Saqlangan vaqt bo'lsa, u baribir ustunlik qiladi —
+                    // shuning uchun bu yerda setTimeLeft bilan poyga yo'q.
+                    if (test?.type?.toLowerCase() === 'listening' && totalDuration > 0) {
+                        setAudioDuration(totalDuration);
                     }
                 }}
                 onAudioEnded={async () => {

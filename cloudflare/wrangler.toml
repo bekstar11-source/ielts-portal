@@ -1,0 +1,11 @@
+# Firebase Storage oldidagi kesh proksisi.
+# Deploy:  npx wrangler deploy --config cloudflare/wrangler.toml
+#
+# `name` dashboard'dagi mavjud worker nomi bilan bir xil bo'lishi SHART —
+# aks holda yangi worker yaratiladi va ilova hamon eskisiga murojaat qilaveradi.
+name = "firebase-cdn"
+main = "firebase-cdn-worker.js"
+compatibility_date = "2026-08-01"
+
+# firebase-cdn.bekstar11.workers.dev manzili ishlab turishi uchun.
+workers_dev = true

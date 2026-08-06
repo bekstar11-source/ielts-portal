@@ -49,11 +49,14 @@ export default function ReadingInterface({
   const currentTestId = testId || testData?.id;
 
   // --- 1. SESSION & ANSWERS ---
+  // Kalitga part suffiksi shart: aks holda bitta testning "Parts" rejimidagi
+  // javoblari o'sha testning to'liq versiyasiga (va aksincha) oqib o'tardi.
+  const sessionKey = `ielts_reading_session_${currentTestId || 'default'}${partNumber ? `_part_${partNumber}` : ''}`;
   const {
     answers: sessionAnswers,
     handleAnswerChange: setSessionAnswer,
     confirmRestart
-  } = useTestSession(`ielts_reading_session_${currentTestId || 'default'}`);
+  } = useTestSession(sessionKey);
 
   const handleDualAnswerChange = useCallback((questionId, value) => {
     setSessionAnswer(questionId, value);

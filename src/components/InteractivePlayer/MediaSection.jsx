@@ -1,6 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Maximize, Minimize, FileText, Play, Pause, Eye, EyeOff, Headphones } from "lucide-react";
+import { getCdnUrl } from "../../utils/cdnUtils";
 
 export default function MediaSection({ 
     isDark, 
@@ -201,7 +202,7 @@ export default function MediaSection({
                         <video 
                             ref={videoRef}
                             className="w-full h-full object-contain"
-                            src={podcast.audioUrl}
+                            src={getCdnUrl(podcast.audioUrl)}
                             onWaiting={() => setIsBuffering(true)}
                             onPlaying={() => setIsBuffering(false)}
                             onClick={() => setIsPlaying(!isPlaying)}

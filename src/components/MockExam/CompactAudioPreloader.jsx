@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { getCdnUrl } from '../../utils/cdnUtils';
 
 /**
  * Compact audio preloader for IELTS Listening tests.
@@ -69,15 +70,20 @@ export default function CompactAudioPreloader({ test, onReady, onBlobsReady }) {
                     return;
                 }
 
+                // Tarmoqqa Cloudflare CDN orqali chiqiladi (bandwidth tejash), ammo
+                // `newUrls` kalitlari ORIGINAL `src` bo'lib qoladi — VolumeCheckScreen
+                // blob xaritasini xom Firebase manzili bo'yicha qidiradi.
+                const fetchUrl = getCdnUrl(src);
+
                 // Check Cache API first
                 const cache = await caches.open('ielts-audio-cache');
-                let response = await cache.match(src);
-                
+                let response = await cache.match(fetchUrl);
+
                 if (!response) {
                     // Fetch the audio and store it in cache
-                    response = await fetch(src);
+                    response = await fetch(fetchUrl);
                     if (response.ok) {
-                        cache.put(src, response.clone());
+                        cache.put(fetchUrl, response.clone());
                     } else {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
