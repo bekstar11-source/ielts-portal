@@ -92,12 +92,15 @@ export default function SpotifyEpisodeDetails() {
 
     // Haqiqiy tinglash progressi: joriy trek bo'lsa — jonli vaqt, aks holda
     // saqlangan progress. Avval progress bar doim bo'sh (w-0) turardi.
-    const totalDuration = (isCurrent && duration > 0) ? duration : getPodcastDuration(podcast);
+    // Joriy trek bo'lmaganda localStorage'dan bir marta o'qiymiz — har bir
+    // currentTime tick'ida o'qish keraksiz ish edi.
     const saved = useMemo(
-        () => (podcast?.id ? getProgress(podcast.id) : null),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [podcast?.id, isCurrent, currentTime]
+        () => (podcast?.id && !isCurrent ? getProgress(podcast.id) : null),
+        [podcast?.id, isCurrent]
     );
+    const totalDuration = (isCurrent && duration > 0)
+        ? duration
+        : (saved?.duration || getPodcastDuration(podcast));
     const listenedTime = isCurrent ? currentTime : (saved?.completed ? totalDuration : (saved?.time || 0));
     const progressPct = totalDuration > 0 ? Math.min(100, (listenedTime / totalDuration) * 100) : 0;
     const remaining = Math.max(0, totalDuration - listenedTime);

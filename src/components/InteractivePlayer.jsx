@@ -20,8 +20,8 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
     const {
         currentTrack: podcast, isPlaying, setIsPlaying,
         setIsLoading, currentTime, setCurrentTime, duration, setDuration,
-        playbackRate, cyclePlaybackRate, handleSeek,
-        audioRef, youtubePlayerRef, setMuteGlobalAudio,
+        playbackRate, cyclePlaybackRate, handleSeek, handleEnded,
+        youtubePlayerRef, setMuteGlobalAudio,
     } = usePodcast();
     const { user, userData } = useAuth();
     
@@ -52,7 +52,8 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
         currentTime,
         youtubePlayerRef,
         isPlaying,
-        setIsLoading
+        setIsLoading,
+        handleEnded
     );
 
     // Sync YouTube playback state with context
@@ -269,9 +270,6 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
                         isDark={isDark}
                         podcast={podcast}
                         isFullscreen={isFullscreen}
-                        toggleFullscreen={toggleFullscreen}
-                        isTasksVisible={isTasksVisible}
-                        setIsTasksVisible={setIsTasksVisible}
                         combinedTimeline={combinedTimeline}
                         activeTimelineIdx={activeTimelineIdx}
                         handleSeek={handleMediaSeek}
@@ -279,7 +277,6 @@ export default function InteractivePlayer({ isOpen, onClose, keyboardShortcutsEn
                         setIsPlaying={setIsPlaying}
                         currentTime={currentTime}
                         duration={duration}
-                        audioRef={audioRef}
                         youtubePlayerRef={youtubePlayerRef}
                         setMuteGlobalAudio={setMuteGlobalAudio}
                         playbackRate={playbackRate}

@@ -203,8 +203,10 @@ export const PodcastProvider = ({ children }) => {
     );
 
     const pickNextIndex = useCallback(() => {
-        if (queue.length === 0) return -1;
-        if (queue.length === 1) return -1;
+        if (queue.length < 2) return -1;
+        // Joriy epizod navbatda bo'lmasa (masalan, navbat boshqa albomdan qolgan bo'lsa)
+        // kutilmaganda begona epizodga o'tib ketmaymiz.
+        if (queueIndex === -1) return -1;
 
         if (shuffle) {
             // Yaqinda o'ynatilganlarni takrorlamaslikka harakat qilamiz
@@ -218,14 +220,15 @@ export const PodcastProvider = ({ children }) => {
             return pool[Math.floor(Math.random() * pool.length)];
         }
 
-        if (queueIndex === -1) return 0;
         const next = queueIndex + 1;
         if (next < queue.length) return next;
         return repeat === "all" ? 0 : -1;
     }, [queue, queueIndex, shuffle, repeat]);
 
-    const hasNext = queue.length > 1 && (shuffle || repeat === "all" || (queueIndex > -1 && queueIndex < queue.length - 1));
-    const hasPrev = queue.length > 1 && (shuffle || repeat === "all" || queueIndex > 0);
+    const hasNext = queue.length > 1 && queueIndex > -1 &&
+        (shuffle || repeat === "all" || queueIndex < queue.length - 1);
+    const hasPrev = queue.length > 1 && queueIndex > -1 &&
+        (shuffle || repeat === "all" || queueIndex > 0);
 
     const playNext = useCallback(() => {
         const idx = pickNextIndex();
@@ -261,11 +264,23 @@ export const PodcastProvider = ({ children }) => {
     // turgani uchun podcast doim 100% ovozda va 1x tezlikda ijro etilardi.
     useEffect(() => {
         const el = audioRef.current;
-        if (!el) return;
-        el.volume = volume;
-        el.muted = isMuted || muteGlobalAudio;
-        el.playbackRate = playbackRate;
-    }, [volume, isMuted, muteGlobalAudio, playbackRate, currentTrack?.id]);
+        if (el) {
+            el.volume = volume;
+            el.muted = isMuted || muteGlobalAudio;
+            el.playbackRate = playbackRate;
+        }
+
+        // YouTube epizodlarida <audio> yo'q — ovoz sozlamalari iframe API orqali
+        // qo'llanadi, aks holda ovoz tugmalari umuman ishlamasdi.
+        const yt = youtubePlayerRef.current;
+        if (currentTrack?.mediaType === 'youtube' && yt) {
+            try {
+                if (isMuted || volume === 0) yt.mute?.();
+                else { yt.unMute?.(); yt.setVolume?.(Math.round(volume * 100)); }
+                yt.setPlaybackRate?.(playbackRate);
+            } catch { /* player hali tayyor emas */ }
+        }
+    }, [volume, isMuted, muteGlobalAudio, playbackRate, currentTrack?.id, currentTrack?.mediaType]);
 
     useEffect(() => {
         try {
@@ -332,19 +347,15 @@ export const PodcastProvider = ({ children }) => {
             return;
         }
 
-        // Aks holda — saqlangan joydan davom ettiramiz
+        // Aks holda — trek birinchi marta yuklanayotgan bo'lsa, saqlangan joydan
+        // davom ettiramiz. Qayta yuklanishda (buferlash, retry) pozitsiyaga tegmaymiz —
+        // aks holda audio o'z-o'zidan boshiga qaytib ketardi.
         if (trackId && resumedTrackIdRef.current !== trackId) {
             resumedTrackIdRef.current = trackId;
-            const resumeAt = getResumeTime(trackId, dur);
-            if (resumeAt != null) {
-                el.currentTime = resumeAt;
-                setCurrentTime(resumeAt);
-                return;
-            }
+            const resumeAt = getResumeTime(trackId, dur) ?? 0;
+            el.currentTime = resumeAt;
+            setCurrentTime(resumeAt);
         }
-
-        el.currentTime = 0;
-        setCurrentTime(0);
     }, [playbackRate, volume, isMuted, muteGlobalAudio]);
 
     const handleEnded = useCallback(() => {
@@ -383,6 +394,8 @@ export const PodcastProvider = ({ children }) => {
         const el = audioRef.current;
         if (!el) return;
         setPlaybackError(null);
+        // Qayta yuklashdan keyin turgan joyimizga qaytamiz
+        pendingSeekRef.current = currentTimeRef.current || null;
         el.load();
         setIsPlaying(true);
     }, []);
@@ -417,6 +430,10 @@ export const PodcastProvider = ({ children }) => {
         setIsMuted(prev => {
             const next = !prev;
             if (audioRef.current) audioRef.current.muted = next;
+            try {
+                if (next) youtubePlayerRef.current?.mute?.();
+                else youtubePlayerRef.current?.unMute?.();
+            } catch { /* ignore */ }
             return next;
         });
     }, []);
@@ -428,6 +445,11 @@ export const PodcastProvider = ({ children }) => {
             audioRef.current.volume = clamped;
             audioRef.current.muted = clamped === 0;
         }
+        try {
+            const yt = youtubePlayerRef.current;
+            if (clamped === 0) yt?.mute?.();
+            else { yt?.unMute?.(); yt?.setVolume?.(Math.round(clamped * 100)); }
+        } catch { /* ignore */ }
         setIsMuted(clamped === 0);
     }, []);
 
@@ -506,6 +528,9 @@ export const PodcastProvider = ({ children }) => {
 
     // --------------------------------------------------------------- Render
 
+    const useNativeMedia = !!currentTrack?.audioUrl &&
+        !(currentTrack.mediaType === 'youtube' && currentTrack.youtubeId);
+
     const mediaProps = {
         ref: audioRef,
         src: getCdnUrl(currentTrack?.audioUrl),
@@ -551,13 +576,17 @@ export const PodcastProvider = ({ children }) => {
             getProgress,
             playTrack,
             handleSeek,
+            handleEnded,
             skipBy,
             toggleMute,
             updateVolume,
             audioRef
         }}>
             {children}
-            {currentTrack && (currentTrack.mediaType !== 'youtube' || currentTrack.audioUrl) && (
+            {/* YouTube epizodlarida `audioUrl` — bu youtu.be havolasi, ya'ni <audio> uni
+                hech qachon o'ynata olmaydi (jimgina MEDIA_ERR_SRC_NOT_SUPPORTED berardi).
+                Bunday epizodlar YouTube iframe ko'prigi orqali ijro etiladi. */}
+            {useNativeMedia && (
                 currentTrack.isVideo
                     ? <video {...mediaProps} />
                     : <audio {...mediaProps} />

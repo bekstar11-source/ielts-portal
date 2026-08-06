@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
+import { getResumeTime } from "../../utils/podcastProgress";
 
-export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, setDuration, currentTime, youtubePlayerRef, isPlaying, setIsLoading) {
+export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, setDuration, currentTime, youtubePlayerRef, isPlaying, setIsLoading, onEnded) {
     const intervalRef = useRef(null);
 
     const startInterval = useCallback(() => {
@@ -44,6 +45,17 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                 onReady: (event) => {
                     const d = event.target.getDuration();
                     if (d) setDuration(d);
+
+                    // Saqlangan joydan davom ettirish — avval bu faqat oddiy audio
+                    // epizodlarda ishlab, YouTube epizodlari doim boshidan boshlanardi.
+                    const resumeAt = getResumeTime(podcast.id, d);
+                    if (resumeAt != null) {
+                        try {
+                            event.target.seekTo(resumeAt, true);
+                            setCurrentTime(resumeAt);
+                        } catch { /* player hali tayyor emas */ }
+                    }
+
                     if (isPlaying) {
                         event.target.playVideo();
                     }
@@ -59,8 +71,10 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                         setIsPlaying(false);
                         if (setIsLoading) setIsLoading(false);
                     } else if (event.data === window.YT.PlayerState.ENDED) {
-                        setIsPlaying(false);
                         if (setIsLoading) setIsLoading(false);
+                        // Takrorlash / keyingi epizodga o'tish oddiy audio bilan bir xil ishlasin
+                        if (onEnded) onEnded();
+                        else setIsPlaying(false);
                     } else if (event.data === window.YT.PlayerState.BUFFERING) {
                         if (setIsLoading) setIsLoading(true);
                     }
@@ -71,7 +85,7 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
             }
         });
         youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
-    }, [podcast, isPlaying, setIsPlaying, setDuration, startInterval, youtubePlayerRef, setIsLoading]);
+    }, [podcast, isPlaying, setIsPlaying, setCurrentTime, setDuration, startInterval, youtubePlayerRef, setIsLoading, onEnded]);
 
     useEffect(() => {
         if (!podcast || podcast.mediaType !== 'youtube') return;
@@ -91,8 +105,9 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                 startInterval();
             } else if (youtubePlayerRef.current && typeof youtubePlayerRef.current.loadVideoById === 'function') {
                 // Different video, load it into existing player
-                youtubePlayerRef.current.loadVideoById(podcast.youtubeId);
-                setCurrentTime(0);
+                const resumeAt = getResumeTime(podcast.id, 0);
+                youtubePlayerRef.current.loadVideoById(podcast.youtubeId, resumeAt ?? 0);
+                setCurrentTime(resumeAt ?? 0);
                 setDuration(0);
                 youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
                 startInterval();
