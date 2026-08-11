@@ -1,39 +1,31 @@
 // src/components/ReadingInterface/ReadingFooter.jsx
 import React from "react";
 
-export default function ReadingFooter({
-    testData,
-    activePassage,
-    setActivePassage,
-    userAnswers,
-    scrollToQuestionDiv,
-    isMobile,
-    setMobileActiveTab,
-    partNumber = null
-}) {
-    if (!testData || !testData.passages) return null;
+// ⚠️ Bu yordamchilar props/state'ga bog'liq emas — shuning uchun komponent
+// TASHQARISIDA turadi. Ilgari ular har renderda qaytadan yaratilar va
+// natijada `activePassageQuestions` ham har safar yangi massiv bo'lib,
+// quyidagi click-listener effekti har renderda o'chirilib-qayta qo'shilardi.
+const getDisplayLabel = (item) => item.id;
 
-    const getDisplayLabel = (item) => item.id;
+const isRealQuestion = (item) => {
+    if (!item || item.id == null) return false;
+    if (item.answer) return true;
+    const idStr = String(item.id).trim();
+    if (idStr.includes('-') || idStr.includes('–') || idStr.includes('_')) return false;
+    return !isNaN(idStr) && idStr !== "";
+};
 
-    const isRealQuestion = (item) => {
-        if (!item || item.id == null) return false;
-        if (item.answer) return true;
-        const idStr = String(item.id).trim();
-        if (idStr.includes('-') || idStr.includes('–') || idStr.includes('_')) return false;
-        return !isNaN(idStr) && idStr !== "";
-    };
+const checkIfAnswered = (q, answers) => {
+    if (q.isMulti && q.parentQuestionId) {
+        const val = answers[q.parentQuestionId];
+        if (!val) return false;
+        const choices = String(val).split(',').filter(Boolean);
+        return choices.length > q.multiIndex;
+    }
+    return answers[q.id] && String(answers[q.id]).trim() !== "";
+};
 
-    const checkIfAnswered = (q, answers) => {
-        if (q.isMulti && q.parentQuestionId) {
-            const val = answers[q.parentQuestionId];
-            if (!val) return false;
-            const choices = String(val).split(',').filter(Boolean);
-            return choices.length > q.multiIndex;
-        }
-        return answers[q.id] && String(answers[q.id]).trim() !== "";
-    };
-
-    const extractQuestionsFromGroup = (group) => {
+const extractQuestionsFromGroup = (group) => {
         let questions = [];
         const type = String(group.type || "").toLowerCase();
         const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
@@ -87,18 +79,34 @@ export default function ReadingFooter({
             questions = [...rawItems];
         }
 
-        return questions;
-    };
+    return questions;
+};
 
+export default function ReadingFooter({
+    testData,
+    activePassage,
+    setActivePassage,
+    userAnswers,
+    scrollToQuestionDiv,
+    isMobile,
+    setMobileActiveTab,
+    partNumber = null
+}) {
+    // ⚠️ BARCHA hook'lar shartsiz, eng yuqorida chaqiriladi. Ilgari
+    // `if (!testData) return null` hook'lardan OLDIN turardi: testData
+    // keyinroq kelganda komponent avvalgidan ko'p hook chaqirib
+    // "Rendered more hooks than during the previous render" bilan
+    // butun sahifani yiqitardi.
     const [activeQuestionId, setActiveQuestionId] = React.useState(null);
 
-    const activePassageGroups = testData.questions
-        ? testData.questions.filter(g => String(g.passageId) === String(testData.passages[activePassage]?.id))
-        : [];
-    const activePassageQuestions = activePassageGroups
-        .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
-        .filter(isRealQuestion)
-        .filter((q, i, self) => i === self.findIndex(t => String(t.id) === String(q.id)));
+    const activePassageQuestions = React.useMemo(() => {
+        if (!testData?.questions || !testData?.passages) return [];
+        return testData.questions
+            .filter(g => String(g.passageId) === String(testData.passages[activePassage]?.id))
+            .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
+            .filter(isRealQuestion)
+            .filter((q, i, self) => i === self.findIndex(t => String(t.id) === String(q.id)));
+    }, [testData, activePassage]);
 
     const firstQuestionId = activePassageQuestions[0]?.id || null;
 
@@ -123,6 +131,9 @@ export default function ReadingFooter({
         document.addEventListener('click', handleDocumentClick);
         return () => document.removeEventListener('click', handleDocumentClick);
     }, [activePassageQuestions]);
+
+    // Hook'lardan KEYINGI guard — bu yerdan pastda hook chaqirilmaydi.
+    if (!testData || !testData.passages) return null;
 
     // ── Precompute per-passage data ──────────────────────────────────────
     const passageData = testData.passages.map((passage, idx) => {

@@ -20,6 +20,32 @@ service cloud.firestore {
       return isAuth() && getUserData().get('role', 'student') == 'teacher';
     }
 
+    // ─── Ijtimoiy hisoblagichlar uchun umumiy yordamchilar ──────────────
+    //
+    // ⚠️ `affectedKeys().hasOnly([...])` faqat QAYSI maydon tegilganini
+    // tekshiradi, u QANDAY o'zgarganini emas. Ya'ni "faqat `claps` ni
+    // o'zgartirishga ruxsat" degani "claps ni 999999 qilib qo'yishga ham
+    // ruxsat" degani edi. Quyidagilar o'zgarish MIQDORINI cheklaydi.
+
+    /** Hisoblagich faqat bittaga oshishi yoki kamayishi mumkin. */
+    function counterDeltaOk(field) {
+      return request.resource.data.get(field, 0) is int
+             && request.resource.data.get(field, 0) >= resource.data.get(field, 0) - 1
+             && request.resource.data.get(field, 0) <= resource.data.get(field, 0) + 1;
+    }
+
+    /** Ro'yxat uzunligi ko'pi bilan bitta element o'zgargan bo'lsin. */
+    function listDeltaOk(field) {
+      return request.resource.data.get(field, []).size() >= resource.data.get(field, []).size() - 1
+             && request.resource.data.get(field, []).size() <= resource.data.get(field, []).size() + 1;
+    }
+
+    /** `likes` massivida faqat O'Z uid'ini qo'shish/olib tashlash mumkin. */
+    function likesTouchSelfOnly() {
+      return resource.data.get('likes', []).toSet().difference([request.auth.uid].toSet())
+             == request.resource.data.get('likes', []).toSet().difference([request.auth.uid].toSet());
+    }
+
     // --- COLLECTION RULES ---
 
     // USERS
@@ -155,11 +181,17 @@ service cloud.firestore {
     }
 
     // ARTICLES
+    // Izohlar butun massiv sifatida qayta yoziladi (ArticleReading.jsx), shuning
+    // uchun "o'z izohini o'chirish" bilan "hamma izohni o'chirish" ni qoida
+    // darajasida ajratib bo'lmaydi — lekin bir marta chaqiruvda ko'pi bilan
+    // BITTA izoh o'zgarishini talab qilib, ommaviy o'chirishni to'sib qo'yamiz.
     match /articles/{articleId} {
       allow read: if isAuth();
-      allow update: if isAuth() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claps', 'comments']) ||
-        isAdmin() || isTeacher()
+      allow update: if isAdmin() || isTeacher() || (
+        isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claps', 'comments'])
+        && counterDeltaOk('claps')
+        && listDeltaOk('comments')
       );
       allow create, delete: if isAdmin() || isTeacher();
     }
@@ -181,7 +213,13 @@ service cloud.firestore {
     match /podcasts/{podcastId} {
       allow read: if isAuth();
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount']));
+      // `likesCount` — PodcastContext `increment(±1)` yuboradi, shuning uchun
+      // qadam ham ±1 bilan cheklanadi (ilgari istalgan son yozib bo'lardi).
+      allow update: if isAdmin() || (
+        isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount'])
+        && counterDeltaOk('likesCount')
+      );
 
       match /{allSub=**} {
         allow read: if isAuth();
@@ -192,7 +230,9 @@ service cloud.firestore {
     // PODCAST ATTEMPTS
     match /podcastAttempts/{attemptId} {
       allow read: if isAuth() && (resource == null || resource.data.userId == request.auth.uid || isAdmin() || isTeacher());
-      allow create: if isAuth();
+      // Egalik tekshiruvi: ilgari `create: if isAuth()` edi, ya'ni boshqa
+      // o'quvchi nomidan urinish yozib qo'yish mumkin edi.
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
       allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();
     }
@@ -220,18 +260,42 @@ service cloud.firestore {
     }
 
     // TEST COMMENTS
+    // Egalik tekshiruvi qo'shildi: ilgari `create: if isAuth()` edi, ya'ni
+    // istalgan odam `userId`/`userName`/`userRole` ni boshqa kishinikiga
+    // qo'yib, uning nomidan izoh yoki shikoyat yozib qo'ya olardi.
     match /testComments/{commentId} {
       allow read: if isAuth();
-      allow create: if isAuth();
+      allow create: if isAuth()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.get('userRole', 'student') == getUserData().get('role', 'student');
       allow update: if isAuth() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow delete: if isAuth() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
     // STORIES
+    // Ovoz berish `interactiveData.votes.{idx}` ni oshiradi. Ammo ichma-ich
+    // yozuvda ham `affectedKeys()` faqat `interactiveData` ni ko'radi — ya'ni
+    // eski qoida o'quvchiga BUTUN `interactiveData` ni (savol, variantlar,
+    // to'g'ri javob indeksi) qayta yozish imkonini berardi. Endi savol
+    // tarkibi o'zgarmasligi va variantlar o'chib ketmasligi talab qilinadi.
+    function storyContentUnchanged() {
+      return request.resource.data.interactiveData.get('type', '') == resource.data.interactiveData.get('type', '')
+             && request.resource.data.interactiveData.get('question', '') == resource.data.interactiveData.get('question', '')
+             && request.resource.data.interactiveData.get('options', []) == resource.data.interactiveData.get('options', [])
+             && request.resource.data.interactiveData.get('correctIndex', -1) == resource.data.interactiveData.get('correctIndex', -1)
+             && request.resource.data.interactiveData.get('votes', {}).keys().hasAll(
+                  resource.data.interactiveData.get('votes', {}).keys()
+                );
+    }
+
     match /stories/{storyId} {
       allow read: if isAuth();
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['interactiveData']));
+      allow update: if isAdmin() || (
+        isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['interactiveData'])
+        && storyContentUnchanged()
+      );
     }
 
     // STORY RESPONSES
@@ -245,9 +309,15 @@ service cloud.firestore {
     match /feed_posts/{postId} {
       allow read: if isAuth();
       allow create: if isAdmin() || isTeacher();
-      allow update: if isAuth() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'commentsCount']) ||
-        isAdmin() || isTeacher()
+      // `likes` — useNewsFeed `arrayUnion/arrayRemove(uid)` yuboradi, ya'ni
+      // foydalanuvchi faqat O'Z uid'ini qo'sha/olib tashlay oladi; boshqalarning
+      // like'lariga tegib bo'lmaydi (ilgari butun massivni tozalab yuborish
+      // mumkin edi). `commentsCount` esa ±1 qadam bilan.
+      allow update: if isAdmin() || isTeacher() || (
+        isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'commentsCount'])
+        && likesTouchSelfOnly()
+        && counterDeltaOk('commentsCount')
       );
       allow delete: if isAdmin() || (isTeacher() && resource.data.teacherId == request.auth.uid);
 

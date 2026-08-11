@@ -194,7 +194,9 @@ export const useWritingReview = (userData) => {
     const handleAICheck = async (resultId) => {
         setAiLoading(true);
         try {
-            const checkWriting = httpsCallable(functions, 'checkWriting');
+            // Vision bilan tahlil 70s (SDK standarti) dan uzoq ketadi —
+            // aks holda so'rov "deadline-exceeded" bilan uzilardi.
+            const checkWriting = httpsCallable(functions, 'checkWriting', { timeout: 300000 });
             const result = await checkWriting({ resultId });
             await fetchData();
             toast.success("AI tahlili tayyor");

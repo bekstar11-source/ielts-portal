@@ -67,8 +67,10 @@ exports.translateWord = functions
     .runWith({ timeoutSeconds: 30, memory: "256MB" })
     .https.onCall(translateWord);
 
+// Task 1 rasmi base64 holida xotirada saqlanadi va Vision so'rovi uzoq
+// ketadi — 256MB/120s yetmay qolardi.
 exports.checkWriting = functions
-    .runWith({ timeoutSeconds: 120, memory: "256MB" })
+    .runWith({ timeoutSeconds: 300, memory: "512MB" })
     .https.onCall(checkWriting);
 
 exports.beautifyArticle = functions

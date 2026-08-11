@@ -1,6 +1,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
+const crypto = require("crypto");
 
 // Speaking jonli tekshiruvi to'lovi shu yerdan tasdiqlanadi.
 const { markSpeakingReviewPaid } = require("./speakingReview");
@@ -33,6 +34,36 @@ function isAdminChat(chatId) {
   return String(chatId) === ADMIN_CHAT_ID;
 }
 
+/** Vaqt hujumiga chidamli string solishtirish. */
+function safeEquals(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+// ─── Kirish sessiyasi (session fixation'ga qarshi) ───────────────────────
+//
+// ⚠️ MUAMMO: `sessionId` ni BRAUZER tanlaydi va u deep link orqali botga
+// keladi. Hujumchi o'z sessiyasi bilan havola yasab qurbonga yuborsa
+// (t.me/bot?start=login_<hujumchi_sessiyasi>), qurbon kontaktini ulashishi
+// bilan QURBONNING token'i hujumchi sessiyasiga yozilar va hujumchi uning
+// hisobiga kirib olardi.
+//
+// YECHIM: kontakt so'ralishidan OLDIN bot tasdiqlash so'raydi va sessiyadan
+// kelib chiqadigan 4 belgili kodni ko'rsatadi. Xuddi shu kod foydalanuvchining
+// brauzer ekranida ham turadi. Kodlar mos kelmasa — demak havola begona
+// qurilma uchun, foydalanuvchi "Bekor qilish" ni bosadi.
+// Brauzer tomonidagi juftligi: src/pages/auth/Login.jsx → derivePairingCode
+function derivePairingCode(sessionId) {
+  return crypto.createHash("sha256").update(`pair|${sessionId}`, "utf8")
+    .digest("hex").slice(0, 4).toUpperCase();
+}
+
+// Boshlangan kirish sessiyasi shu muddatdan keyin kuchini yo'qotadi.
+const LOGIN_STATE_TTL_MS = 5 * 60 * 1000;
+
 // O'qituvchi guruh obunalari (src/pages/teacher/TeacherSubscription.jsx bilan mos)
 const TEACHER_TIERS = {
   tier_10: { name: "Kichik Guruh", maxStudents: 10, price: 500000 },
@@ -47,7 +78,23 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
 
   // Telegram webhook'ni faqat Telegram chaqirayotganiga ishonch hosil qilamiz
   // (setWebhook ... secret_token=<WEBHOOK_SECRET> bilan o'rnatilishi kerak).
-  if (WEBHOOK_SECRET && req.get("X-Telegram-Bot-Api-Secret-Token") !== WEBHOOK_SECRET) {
+  //
+  // ⚠️ Ilgari bu tekshiruv `if (WEBHOOK_SECRET && ...)` edi — ya'ni secret
+  // sozlanmagan bo'lsa HIMOYA UMUMAN ISHLAMASDI. U holda istalgan odam bu
+  // function URL'iga soxta `callback_query` POST qilib, `chat.id` ni admin
+  // ID'siga tenglashtirar va `isAdminChat()` tekshiruvini chetlab o'tib,
+  // o'ziga bepul Pro/obuna tasdiqlatib olardi. Endi secret bo'lmasa
+  // so'rov RAD ETILADI (fail-closed).
+  if (!WEBHOOK_SECRET) {
+    console.error(
+      "TELEGRAM_WEBHOOK_SECRET sozlanmagan — webhook rad etildi. " +
+      "Sozlash: firebase functions:config:set telegram.webhook_secret=\"<random>\" " +
+      "(yoki TELEGRAM_WEBHOOK_SECRET env) va setWebhook'da secret_token bilan qayta ro'yxatdan o'tkazing."
+    );
+    return res.status(503).send("Webhook secret not configured");
+  }
+
+  if (!safeEquals(req.get("X-Telegram-Bot-Api-Secret-Token"), WEBHOOK_SECRET)) {
     console.warn("Rejected webhook call with invalid secret token");
     return res.status(401).send("Unauthorized");
   }
@@ -79,13 +126,19 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
       if (payload === "login" || payload.startsWith("login_")) {
         const sessionId = payload.includes("_") ? payload.split("_")[1] : null;
         if (sessionId) {
+          // Sessiya hali TASDIQLANMAGAN. Token yozilishidan oldin
+          // foydalanuvchi ekranidagi kod bilan solishtirib tasdiqlashi shart
+          // (izoh: derivePairingCode).
           await admin.firestore().collection("bot_states").doc(chatId.toString()).set({
-            action: "login_auth",
+            action: "login_pending",
             sessionId: sessionId,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
           });
+          await sendLoginConfirmPrompt(chatId, sessionId);
+        } else {
+          // sessionId'siz oddiy `/start login` — faqat qo'lda kod olish.
+          await sendAuthCodePrompt(chatId);
         }
-        await sendAuthCodePrompt(chatId);
       } else {
         const parts = payload.split("_");
         // params: USERID_PLANID_BILLING
@@ -433,6 +486,63 @@ async function handleCallback(chatId, query) {
   else if (data === "get_auth_code") {
     await sendAuthCodePrompt(chatId);
   }
+  // Kirish sessiyasini TASDIQLASH — shundan keyingina kontakt so'raladi.
+  else if (data.startsWith("lgok_")) {
+    const sessionId = data.slice(5);
+    const stateRef = admin.firestore().collection("bot_states").doc(chatId.toString());
+    const stateSnap = await stateRef.get();
+    const state = stateSnap.exists ? stateSnap.data() : null;
+
+    // Tugma faqat SHU chat boshlagan va hali eskirmagan sessiya uchun ishlaydi.
+    const startedMs = state && state.timestamp ? state.timestamp.toMillis() : 0;
+    const stale = !startedMs || Date.now() - startedMs > LOGIN_STATE_TTL_MS;
+
+    if (!state || state.sessionId !== sessionId || state.action !== "login_pending" || stale) {
+      await answerCallbackQuery(query.id, "Bu so'rov eskirgan. Saytdan qaytadan boshlang.");
+      await stateRef.delete().catch(() => {});
+      return;
+    }
+
+    await stateRef.set({
+      action: "login_auth",
+      sessionId: sessionId,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    await answerCallbackQuery(query.id, "");
+    await sendAuthCodePrompt(chatId);
+  }
+  else if (data.startsWith("lgno_")) {
+    await admin.firestore().collection("bot_states").doc(chatId.toString()).delete().catch(() => {});
+    await answerCallbackQuery(query.id, "");
+    await sendMessage(
+      chatId,
+      "🛑 <b>Kirish bekor qilindi.</b>\n\n" +
+      "Agar bu havolani kimdir sizga yuborgan bo'lsa — u sizning hisobingizga kirmoqchi bo'lgan. " +
+      "Hech qanday ma'lumot uzatilmadi.\n\n" +
+      "Saytga kirish uchun har doim saytning o'zidagi «Telegram orqali kirish» tugmasidan foydalaning."
+    );
+  }
+}
+
+/**
+ * Kirishni tasdiqlash so'rovi. Foydalanuvchi botdagi kodni O'Z EKRANIDAGI kod
+ * bilan solishtiradi — begona (fishing) havolada ular mos kelmaydi.
+ */
+async function sendLoginConfirmPrompt(chatId, sessionId) {
+  const pairingCode = derivePairingCode(sessionId);
+
+  const msg = "🔐 <b>Saytga kirishni tasdiqlang</b>\n\n" +
+    `Brauzeringiz ekranida shu kod turgan bo'lishi kerak:\n\n👉 <code>${pairingCode}</code>\n\n` +
+    "⚠️ <b>Agar kod mos kelmasa yoki siz hozir saytga kirmayotgan bo'lsangiz — " +
+    "«Men emas» tugmasini bosing.</b> Aks holda hisobingizga boshqa odam kirib qolishi mumkin.";
+
+  await sendMessage(chatId, msg, {
+    inline_keyboard: [
+      [{ text: "✅ Ha, bu men — davom etish", callback_data: `lgok_${sessionId}` }],
+      [{ text: "❌ Men emas / bekor qilish", callback_data: `lgno_${sessionId}` }]
+    ]
+  });
 }
 
 async function sendAuthCodePrompt(chatId) {
@@ -781,16 +891,28 @@ async function handleScreenshot(chatId, photoArray, documentObj, from) {
 async function handleAuthContact(chatId, contact) {
   const cleanPhone = contact.phone_number.replace(/\D/g, "");
   const telegramId = (contact.user_id || chatId).toString();
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-  // 1. Fetch any pending login session for this bot user
+  // ⚠️ Kod TAXMIN QILINMAYDIGAN bo'lishi shart: `Math.random()` kriptografik
+  // emas va uning chiqishlaridan keyingi qiymatlarni tiklash mumkin.
+  const code = crypto.randomInt(100000, 1000000).toString();
+
+  // 1. Tasdiqlangan kirish sessiyasini olamiz.
+  //    Faqat `login_auth` (foydalanuvchi botda «Ha, bu men» ni bosgan) va
+  //    hali eskirmagan holat qabul qilinadi — tasdiqlanmagan `login_pending`
+  //    ga token YOZILMAYDI.
   let sessionId = null;
   try {
     const botStateDoc = await admin.firestore().collection("bot_states").doc(chatId.toString()).get();
     if (botStateDoc.exists) {
       const stateData = botStateDoc.data();
-      if (stateData.action === "login_auth" && stateData.sessionId) {
+      const startedMs = stateData.timestamp ? stateData.timestamp.toMillis() : 0;
+      const stale = !startedMs || Date.now() - startedMs > LOGIN_STATE_TTL_MS;
+
+      if (stateData.action === "login_auth" && stateData.sessionId && !stale) {
         sessionId = stateData.sessionId;
+      } else if (stale || stateData.action === "login_pending") {
+        // Eskirgan yoki tasdiqlanmagan holatni tozalaymiz.
+        await admin.firestore().collection("bot_states").doc(chatId.toString()).delete().catch(() => {});
       }
     }
   } catch (err) {
@@ -853,12 +975,13 @@ async function handleAuthContact(chatId, contact) {
 
   // 4. Save code as fallback in telegram_codes
   await admin.firestore().collection("telegram_codes").doc(telegramId).set({
-    code, 
-    phoneNumber: cleanPhone, 
+    code,
+    phoneNumber: cleanPhone,
     firstName: contact.first_name || "",
     lastName: contact.last_name || "",
-    timestamp: admin.firestore.FieldValue.serverTimestamp(), 
-    chatId: chatId.toString()
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    chatId: chatId.toString(),
+    attempts: 0 // noto'g'ri urinishlar hisoblagichi — verifyTelegramOTP ga qarang
   });
 
   let msg;
@@ -878,61 +1001,89 @@ async function handleAuthContact(chatId, contact) {
   });
 }
 
+// Bitta kodga ruxsat etilgan noto'g'ri urinishlar soni.
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Telegram OTP tekshiruvi.
+ *
+ * ⚠️ Ilgari bu yerda ikkita jiddiy teshik bor edi:
+ *   1. `phoneNumber` berilmasa kod BUTUN kolleksiya bo'ylab qidirilardi
+ *      (`where("code", "==", ...)`). Ya'ni 000000–999999 ni aylanib chiqqan
+ *      hujumchi o'sha payt kod kutayotgan ISTALGAN foydalanuvchining
+ *      token'ini olardi — kimning hisobi ekanini bilishi ham shart emasdi.
+ *   2. Urinishlar soni cheklanmagandi: lockout ham, hisoblagich ham yo'q edi.
+ *
+ * Endi telefon raqami majburiy (ya'ni hujumchi qurbonning raqamini bilishi
+ * shart) va har bir kod uchun atigi 5 ta urinish beriladi — shundan keyin kod
+ * o'chiriladi va qaytadan so'rash kerak bo'ladi.
+ */
 exports.verifyTelegramOTP = functions.https.onCall(async (data, context) => {
-  const { phoneNumber, code } = data;
-  if (!code) {
-    throw new functions.https.HttpsError("invalid-argument", "Kod kiritilishi shart.");
+  const { phoneNumber, code } = data || {};
+
+  if (!code || !/^\d{6}$/.test(String(code))) {
+    throw new functions.https.HttpsError("invalid-argument", "Kod 6 xonali bo'lishi kerak.");
   }
 
-  let doc;
-  
-  if (phoneNumber) {
-    const cleanPhone = phoneNumber.replace(/\D/g, "");
-    const snapshot = await admin.firestore().collection("telegram_codes")
-      .where("phoneNumber", "==", cleanPhone)
-      .get();
-      
-    if (snapshot.empty) {
-      throw new functions.https.HttpsError("not-found", "Ushbu raqam uchun kod topilmadi.");
-    }
-    
-    // Sort by timestamp and get latest
-    const docs = snapshot.docs.sort((a, b) => {
-      const tA = a.data().timestamp ? a.data().timestamp.toMillis() : 0;
-      const tB = b.data().timestamp ? b.data().timestamp.toMillis() : 0;
-      return tB - tA;
-    });
-    
-    doc = docs[0];
-  } else {
-    // Search by code only (if phone not provided by client)
-    const snapshot = await admin.firestore().collection("telegram_codes")
-      .where("code", "==", code.toString())
-      .get();
-      
-    if (snapshot.empty) {
-      throw new functions.https.HttpsError("not-found", "Kod noto'g'ri yoki muddati o'tgan.");
-    }
-    
-    // Get the most recent one with this code
-    const docs = snapshot.docs.sort((a, b) => {
-      const tA = a.data().timestamp ? a.data().timestamp.toMillis() : 0;
-      const tB = b.data().timestamp ? b.data().timestamp.toMillis() : 0;
-      return tB - tA;
-    });
-    
-    doc = docs[0];
+  if (!phoneNumber || typeof phoneNumber !== "string") {
+    throw new functions.https.HttpsError("invalid-argument", "Telefon raqami kiritilishi shart.");
   }
 
+  const cleanPhone = phoneNumber.replace(/\D/g, "");
+  if (cleanPhone.length < 9) {
+    throw new functions.https.HttpsError("invalid-argument", "Telefon raqami noto'g'ri.");
+  }
+
+  const snapshot = await admin.firestore().collection("telegram_codes")
+    .where("phoneNumber", "==", cleanPhone)
+    .get();
+
+  if (snapshot.empty) {
+    throw new functions.https.HttpsError("not-found", "Kod noto'g'ri yoki muddati o'tgan.");
+  }
+
+  // Eng oxirgi so'ralgan kod
+  const docs = snapshot.docs.sort((a, b) => {
+    const tA = a.data().timestamp ? a.data().timestamp.toMillis() : 0;
+    const tB = b.data().timestamp ? b.data().timestamp.toMillis() : 0;
+    return tB - tA;
+  });
+
+  const doc = docs[0];
   const storedData = doc.data();
-  if (storedData.code !== code.toString()) {
-    throw new functions.https.HttpsError("permission-denied", "Kod noto'g'ri.");
+
+  // Muddat — kod yaratilganidan 5 daqiqa.
+  const timestamp = storedData.timestamp ? storedData.timestamp.toMillis() : 0;
+  if (!timestamp || Date.now() - timestamp > OTP_TTL_MS) {
+    await doc.ref.delete().catch(() => {});
+    throw new functions.https.HttpsError("deadline-exceeded", "Kod muddati tugagan. Yangi kod so'rang.");
   }
 
-  const now = Date.now();
-  const timestamp = storedData.timestamp ? storedData.timestamp.toMillis() : 0;
-  if (now - timestamp > 10 * 60 * 1000) {
-    throw new functions.https.HttpsError("deadline-exceeded", "Kod muddati tugagan.");
+  // Urinishlar limiti — kodni topgunicha taxmin qilishning oldini oladi.
+  const attempts = Number(storedData.attempts || 0);
+  if (attempts >= OTP_MAX_ATTEMPTS) {
+    await doc.ref.delete().catch(() => {});
+    throw new functions.https.HttpsError(
+      "resource-exhausted",
+      "Juda ko'p noto'g'ri urinish. Botdan yangi kod so'rang."
+    );
+  }
+
+  if (!safeEquals(String(storedData.code || ""), String(code))) {
+    const left = OTP_MAX_ATTEMPTS - (attempts + 1);
+    if (left <= 0) {
+      await doc.ref.delete().catch(() => {});
+      throw new functions.https.HttpsError(
+        "resource-exhausted",
+        "Juda ko'p noto'g'ri urinish. Botdan yangi kod so'rang."
+      );
+    }
+    await doc.ref.update({ attempts: admin.firestore.FieldValue.increment(1) }).catch(() => {});
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      `Kod noto'g'ri. Yana ${left} ta urinish qoldi.`
+    );
   }
 
   const telegramId = doc.id;

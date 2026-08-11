@@ -203,7 +203,9 @@ export const useTestReview = (id, user, userData, navigate) => {
     const handleAICheck = async () => {
         setIsAiLoading(true);
         try {
-            const checkWriting = httpsCallable(functions, 'checkWriting');
+            // Vision bilan tahlil 70s (SDK standarti) dan uzoq ketadi —
+            // aks holda so'rov "deadline-exceeded" bilan uzilardi.
+            const checkWriting = httpsCallable(functions, 'checkWriting', { timeout: 300000 });
             await checkWriting({ resultId: id });
             await fetchData();
             alert("AI Tekshiruv yakunlandi! ✨");

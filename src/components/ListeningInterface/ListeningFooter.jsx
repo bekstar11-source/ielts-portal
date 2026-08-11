@@ -1,24 +1,18 @@
 import React from "react";
 
-export default function ListeningFooter({
-    testData,
-    activePart,
-    setActivePart,
-    userAnswers,
-    scrollToQuestionDiv,
-    partNumber = null
-}) {
-    if (!testData || !testData.passages) return null;
+// ⚠️ props/state'ga bog'liq bo'lmagan yordamchilar komponent tashqarisida —
+// aks holda ular har renderda qaytadan yaratilib, quyidagi
+// `activePartQuestions` ham har safar yangi massiv bo'lar va click-listener
+// effekti har renderda o'chirilib-qayta qo'shilardi.
+const isRealQuestion = (item) => {
+    if (!item || item.id == null) return false;
+    if (item.answer) return true;
+    const idStr = String(item.id).trim();
+    if (idStr.includes('-')) return false;
+    return !isNaN(idStr) && idStr !== "";
+};
 
-    const isRealQuestion = (item) => {
-        if (!item || item.id == null) return false;
-        if (item.answer) return true;
-        const idStr = String(item.id).trim();
-        if (idStr.includes('-')) return false;
-        return !isNaN(idStr) && idStr !== "";
-    };
-
-    const extractQuestionsFromGroup = (group) => {
+const extractQuestionsFromGroup = (group) => {
         let questions = [];
         const type = String(group.type || "").toLowerCase();
         const isMultiTwo = type.includes('pick_two') || type.includes('multi_two');
@@ -108,19 +102,32 @@ export default function ListeningFooter({
                 });
             });
         }
-        return questions;
-    };
+    return questions;
+};
 
+export default function ListeningFooter({
+    testData,
+    activePart,
+    setActivePart,
+    userAnswers,
+    scrollToQuestionDiv,
+    partNumber = null
+}) {
+    // ⚠️ BARCHA hook'lar shartsiz, eng yuqorida. Ilgari
+    // `if (!testData) return null` hook'lardan oldin turardi: testData
+    // keyinroq kelganda React "Rendered more hooks than during the previous
+    // render" xatosi bilan sahifani yiqitardi.
     const [activeQuestionId, setActiveQuestionId] = React.useState(null);
 
-    const activePartPassage = testData.passages[activePart];
-    const activePartGroups = testData.questions
-        ? testData.questions.filter(g => String(g.passageId) === String(activePartPassage?.id))
-        : [];
-    const activePartQuestions = activePartGroups
-        .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
-        .filter(isRealQuestion)
-        .filter((q, i, self) => i === self.findIndex(t => String(t.id) === String(q.id)));
+    const activePartQuestions = React.useMemo(() => {
+        if (!testData?.questions || !testData?.passages) return [];
+        const activePartPassage = testData.passages[activePart];
+        return testData.questions
+            .filter(g => String(g.passageId) === String(activePartPassage?.id))
+            .reduce((acc, g) => [...acc, ...extractQuestionsFromGroup(g)], [])
+            .filter(isRealQuestion)
+            .filter((q, i, self) => i === self.findIndex(t => String(t.id) === String(q.id)));
+    }, [testData, activePart]);
 
     const firstQuestionId = activePartQuestions[0]?.id || null;
 
@@ -145,6 +152,9 @@ export default function ListeningFooter({
         document.addEventListener('click', handleDocumentClick);
         return () => document.removeEventListener('click', handleDocumentClick);
     }, [activePartQuestions]);
+
+    // Hook'lardan KEYINGI guard — bu yerdan pastda hook chaqirilmaydi.
+    if (!testData || !testData.passages) return null;
 
     // ── Precompute per-passage data ──────────────────────────────────────
     const passageData = testData.passages.map((passage, idx) => {

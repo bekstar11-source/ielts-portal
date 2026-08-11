@@ -97,10 +97,10 @@ const ListeningRightPane = memo(({
         }
     }, [testData?.introDuration, isReviewMode, testMode, hideSecondaryIntro]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Guard Clause
-    if (!testData?.questions || !testData?.passages) {
-        return <div className="p-10 text-center text-gray-400">Loading questions...</div>;
-    }
+    // ⚠️ Guard clause pastga — `questionsForPart` useMemo'sidan KEYINGA —
+    // ko'chirildi. Bu yerda turganda testData kechikib kelgan holatda
+    // komponent avval kam, keyin ko'p hook chaqirib "Rendered more hooks than
+    // during the previous render" bilan yiqilardi.
 
     // --- MAIN DISPATCHER ---
     const renderGroupContent = (group) => {
@@ -215,6 +215,11 @@ const ListeningRightPane = memo(({
             };
         });
     }, [testData?.questions, currentPassage?.id]);
+
+    // Guard Clause — barcha hook'lardan keyin.
+    if (!testData?.questions || !testData?.passages) {
+        return <div className="p-10 text-center text-gray-400">Loading questions...</div>;
+    }
 
     return (
         <div

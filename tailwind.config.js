@@ -99,7 +99,6 @@ export default {
           orangeGlow: '#FF6B47',
           text: '#161616',
           textMuted: '#A8AAAC',
-          blue: '#F44A22',
           silver: '#FEF8E8',
           grey: '#E4E2E3',
           midnight: '#161616',

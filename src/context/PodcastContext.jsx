@@ -4,7 +4,7 @@ import { db } from "../firebase/firebase";
 import { collection, deleteDoc, doc, query, where, onSnapshot, updateDoc, increment, setDoc } from "firebase/firestore";
 import { getCdnUrl } from "../utils/cdnUtils";
 import { useAuth } from "./AuthContext";
-import { getResumeTime, saveProgress, markCompleted, getProgress } from "../utils/podcastProgress";
+import { getResumeTime, saveProgress, markCompleted, getProgress, setProgressUser } from "../utils/podcastProgress";
 
 const PodcastContext = createContext();
 
@@ -16,6 +16,12 @@ const REPEAT_MODES = ["off", "all", "one"];
 // Ovoz balandligi sessiyalar orasida saqlanadi
 const VOLUME_KEY = "podcast_volume_v1";
 const RATE_KEY = "podcast_rate_v1";
+
+// Oxirgi tinglangan trek har bir profil uchun alohida saqlanadi — avval kalit umumiy
+// edi, shuning uchun bitta brauzerda boshqa profil bilan kirilganda o'zganing epizodi
+// pleyerga tiklanib qolardi.
+const lastPlayedKey = (uid) => `last_played_podcast_${uid}`;
+const LEGACY_LAST_PLAYED_KEY = "last_played_podcast";
 
 const readStoredNumber = (key, fallback, min, max) => {
     try {
@@ -59,6 +65,11 @@ export const PodcastProvider = ({ children }) => {
     const durationRef = useRef(0);
     const currentTimeRef = useRef(0);
     const shuffleHistoryRef = useRef([]);
+
+    // Tinglash progressi ham profilga bog'lanadi. Bu effekt render paytida emas,
+    // effekt ichida chaqiriladi: React avval barcha eski effektlarni tozalaydi, ya'ni
+    // profil almashganda oxirgi `saveProgress` hali eski kalit bilan yoziladi.
+    useEffect(() => { setProgressUser(user?.uid || null); }, [user?.uid]);
 
     useEffect(() => { currentTrackRef.current = currentTrack; }, [currentTrack]);
     useEffect(() => { durationRef.current = duration; }, [duration]);
@@ -171,29 +182,57 @@ export const PodcastProvider = ({ children }) => {
         };
     }, [currentTrack?.id]);
 
-    // Oxirgi tinglangan trek (sahifa yangilanganda tiklash uchun)
+    // Oxirgi tinglangan trek (sahifa yangilanganda tiklash uchun). Profil almashganda
+    // avvalgi foydalanuvchining treki pleyerda qolib ketmasligi uchun avval tozalaymiz.
     useEffect(() => {
+        try { localStorage.removeItem(LEGACY_LAST_PLAYED_KEY); } catch { /* ignore */ }
+
+        // Har qanday holatda ijro to'xtatiladi — boshqa profilga o'tilganda audio
+        // o'z-o'zidan davom etib ketmasin.
+        setIsPlaying(false);
+        if (audioRef.current) {
+            try { audioRef.current.pause(); } catch { /* ignore */ }
+        }
+        try { youtubePlayerRef.current?.pauseVideo?.(); } catch { /* ignore */ }
+
+        currentTrackRef.current = null;
+        pendingSeekRef.current = null;
+        resumedTrackIdRef.current = null;
+        // Vaqt refl.ari ham darhol nolga tushiriladi — aks holda progressni saqlovchi
+        // effekt tozalanayotganda eski vaqtni yangi profil kaliti ostiga yozib qo'yardi.
+        currentTimeRef.current = 0;
+        durationRef.current = 0;
+        setCurrentTime(0);
+        setDuration(0);
+        setCurrentTrackState(null);
+
+        if (!user?.uid) return;
+
         try {
-            const saved = localStorage.getItem("last_played_podcast");
+            const saved = localStorage.getItem(lastPlayedKey(user.uid));
             if (!saved) return;
             const data = JSON.parse(saved);
-            if (data?.track?.id) setCurrentTrackState(data.track);
+            if (!data?.track?.id) return;
+            // Faqat pleyerni tiklaymiz — `isPlaying` false bo'lib qoladi, ya'ni
+            // yangilangandan keyin ijro foydalanuvchi bosmaguncha boshlanmaydi.
+            currentTrackRef.current = data.track;
+            setCurrentTrackState(data.track);
         } catch (e) {
             console.warn("Could not restore last podcast", e);
         }
-    }, []);
+    }, [user?.uid]);
 
     useEffect(() => {
-        if (!currentTrack) return;
+        if (!currentTrack || !user?.uid) return;
         try {
-            localStorage.setItem("last_played_podcast", JSON.stringify({
+            localStorage.setItem(lastPlayedKey(user.uid), JSON.stringify({
                 track: currentTrack,
                 timestamp: Date.now()
             }));
         } catch (e) {
             console.warn("Could not persist podcast state", e);
         }
-    }, [currentTrack]);
+    }, [currentTrack, user?.uid]);
 
     // ------------------------------------------------------ Navbat (queue)
 

@@ -18,13 +18,21 @@ const SESSION_ID_LENGTH = 40;
 const TELEGRAM_POLL_INTERVAL_MS = 2000;
 const TELEGRAM_LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
 
-const deriveSessionId = async (pollKey) => {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pollKey));
+const sha256Hex = async (value) => {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-    .slice(0, SESSION_ID_LENGTH);
+    .join('');
 };
+
+const deriveSessionId = async (pollKey) => (await sha256Hex(pollKey)).slice(0, SESSION_ID_LENGTH);
+
+// Session fixation'ga qarshi tasdiqlash kodi. Bot ham AYNAN shu qiymatni
+// sessionId'dan hisoblab ko'rsatadi (functions/telegramBot.js →
+// derivePairingCode). Foydalanuvchi ikkalasini solishtiradi: begona odam
+// yuborgan havolada kodlar mos kelmaydi.
+const derivePairingCode = async (sessionId) =>
+  (await sha256Hex(`pair|${sessionId}`)).slice(0, 4).toUpperCase();
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -37,6 +45,7 @@ export default function Login() {
   const [otp, setOtp] = useState("");
   const [telegramLoading, setTelegramLoading] = useState(false);
   const [telegramSessionId, setTelegramSessionId] = useState("");
+  const [pairingCode, setPairingCode] = useState("");
   const [resetSent, setResetSent] = useState(false);
   const { t } = useTranslation();
 
@@ -174,9 +183,11 @@ export default function Login() {
     // Serverdagi juftligi: functions/telegramLogin.js
     let pollKey;
     let sessionId;
+    let code;
     try {
       pollKey = `${crypto.randomUUID()}${crypto.randomUUID()}`;
       sessionId = await deriveSessionId(pollKey);
+      code = await derivePairingCode(sessionId);
     } catch (cryptoErr) {
       console.error("Web Crypto mavjud emas:", cryptoErr);
       setError(t('auth.errorGeneric'));
@@ -184,6 +195,7 @@ export default function Login() {
     }
 
     setTelegramSessionId(sessionId);
+    setPairingCode(code);
     setError("");
 
     // Open telegram bot with deep link to trigger /start immediately
@@ -263,25 +275,55 @@ export default function Login() {
     timerId = setTimeout(poll, TELEGRAM_POLL_INTERVAL_MS);
   };
 
+  // 3-bosqich: telefon raqami. Endi u MAJBURIY — server kodni faqat shu raqam
+  // bo'yicha qidiradi (ilgari kod butun baza bo'ylab qidirilib, brute-force
+  // bilan begona hisobga kirish mumkin edi).
+  const handlePhoneSubmit = (e) => {
+    e.preventDefault();
+    if (phone.replace(/\D/g, "").length < 9) {
+      setError(t('auth.errorInvalidPhone'));
+      return;
+    }
+    setError("");
+    setStep(4);
+  };
+
   const handleVerifyOtp = async (e) => {
     if (e) e.preventDefault();
-    
+
+    if (!/^\d{6}$/.test(otp)) {
+      setError(t('auth.errorInvalidOtp'));
+      return;
+    }
+
     setTelegramLoading(true);
     setError("");
 
     try {
       const verifyOTP = httpsCallable(functions, "verifyTelegramOTP");
-      const result = await verifyOTP({ code: otp });
+      const result = await verifyOTP({ code: otp, phoneNumber: phone });
       const { token, isNewUser } = result.data;
-      
+
       await signInWithCustomToken(auth, token);
       navigate(isNewUser ? '/onboarding' : '/dashboard');
     } catch (err) {
-      setError(t('auth.errorInvalidOtp'));
+      // Server foydali xabar qaytaradi ("Yana 3 ta urinish qoldi" kabi).
+      setError(err?.message || t('auth.errorInvalidOtp'));
       console.error(err);
     } finally {
       setTelegramLoading(false);
     }
+  };
+
+  // Har bosqichning o'z submit ishlovchisi.
+  // ⚠️ Ilgari 3-bosqich (telefon) ham to'g'ridan-to'g'ri `handleVerifyOtp` ga
+  // ketardi, ya'ni raqam kiritilgach bo'sh kod bilan tekshiruv chaqirilardi.
+  const handleFormSubmit = (e) => {
+    if (step === 6) return handleResetSubmit(e);
+    if (step === 5) return e.preventDefault();
+    if (step === 4) return handleVerifyOtp(e);
+    if (step === 3) return handlePhoneSubmit(e);
+    return handleSubmit(e);
   };
 
   const handleBackToManual = () => {
@@ -289,7 +331,11 @@ export default function Login() {
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }
-    setStep(4);
+    setError("");
+    // Kod endi telefon raqami bo'yicha tekshiriladi, shuning uchun qo'lda
+    // kiritishga o'tganda avval raqamni so'raymiz (ilgari to'g'ridan-to'g'ri
+    // kod ekraniga o'tib, raqam bo'sh qolardi).
+    setStep(phone.replace(/\D/g, "").length >= 9 ? 4 : 3);
   };
 
   const handleBackFromTelegram = () => {
@@ -375,7 +421,7 @@ export default function Login() {
                 </>
             )}
 
-            <form onSubmit={step === 6 ? handleResetSubmit : step < 3 ? handleSubmit : handleVerifyOtp} className="space-y-3.5">
+            <form onSubmit={handleFormSubmit} className="space-y-3.5">
               <AnimatePresence mode="wait">
                 {step === 1 ? (
                     <motion.div
@@ -399,6 +445,13 @@ export default function Login() {
                         >
                             {t('auth.continue')}
                             <ArrowRight size={14} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={openResetStep}
+                            className="w-full text-[12px] font-bold text-[#888] hover:text-[#1a1a1a] underline underline-offset-4 decoration-[#ddd]"
+                        >
+                            {t('auth.forgotPassword')}
                         </button>
                     </motion.div>
                 ) : step === 2 ? (
@@ -575,6 +628,22 @@ export default function Login() {
                                         {t('auth.telegramInstruction')}
                                     </p>
                                 </div>
+
+                                {/* Session fixation'ga qarshi: botdagi kod shu kod
+                                    bilan mos kelmasa — havola begona qurilma uchun. */}
+                                {pairingCode && (
+                                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-center space-y-2">
+                                        <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
+                                            {t('auth.pairingCodeLabel')}
+                                        </p>
+                                        <p className="text-2xl font-black font-mono tracking-[0.3em] text-[#1a1a1a] pl-[0.3em]">
+                                            {pairingCode}
+                                        </p>
+                                        <p className="text-[11px] text-amber-800/80 font-medium leading-relaxed">
+                                            {t('auth.pairingCodeHint')}
+                                        </p>
+                                    </div>
+                                )}
                                 <div className="space-y-2 text-[12px] font-semibold text-gray-700 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
                                     <p className="flex items-start gap-2">
                                         <span className="text-[#24A1DE]">✦</span>

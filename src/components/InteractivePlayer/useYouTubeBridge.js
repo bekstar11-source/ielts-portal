@@ -104,9 +104,14 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
                 // Already loaded, just ensure interval is running
                 startInterval();
             } else if (youtubePlayerRef.current && typeof youtubePlayerRef.current.loadVideoById === 'function') {
-                // Different video, load it into existing player
+                // Boshqa video — mavjud pleyerga yuklaymiz. `loadVideoById` videoni darhol
+                // ijro etib yuboradi, shuning uchun ijro so'ralmagan bo'lsa `cueVideoById`
+                // ishlatiladi: aks holda epizod almashganda ovoz o'z-o'zidan chiqib ketardi.
                 const resumeAt = getResumeTime(podcast.id, 0);
-                youtubePlayerRef.current.loadVideoById(podcast.youtubeId, resumeAt ?? 0);
+                const load = isPlaying
+                    ? youtubePlayerRef.current.loadVideoById
+                    : (youtubePlayerRef.current.cueVideoById || youtubePlayerRef.current.loadVideoById);
+                load.call(youtubePlayerRef.current, podcast.youtubeId, resumeAt ?? 0);
                 setCurrentTime(resumeAt ?? 0);
                 setDuration(0);
                 youtubePlayerRef.current.loadedVideoId = podcast.youtubeId;
@@ -120,7 +125,7 @@ export function useYouTubeBridge(podcast, isOpen, setIsPlaying, setCurrentTime, 
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [podcast?.youtubeId, initPlayer, startInterval, youtubePlayerRef, setCurrentTime, setDuration]);
+    }, [podcast?.youtubeId, isPlaying, initPlayer, startInterval, youtubePlayerRef, setCurrentTime, setDuration]);
 
     const handleYoutubeSeek = useCallback((time) => {
         if (youtubePlayerRef.current && typeof youtubePlayerRef.current.seekTo === 'function') {

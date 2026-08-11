@@ -303,14 +303,14 @@ export default function ReadingInterface({
     activeDragData, dndSensors, onDragStart, onDragEnd, onDragCancel 
   } = useReadingDnd(testData, activePassage, parentAnswers, handleDualAnswerChange, isReviewMode);
 
-  if (!testData) return <div className="p-10">Loading Test Data...</div>;
-
-  const currentStorageKey = `reading_session_${currentTestId}_passage_${activePassage}`;
-  const passageQuestions = testData.questions?.filter(g => String(g.passageId) === String(currentPassageRaw?.id)) || [];
-  const labelSuffix = detectPassageLabelSuffix(testData, activePassage);
-  const passageLabel = `Passage ${labelSuffix}`;
-  const passageTitle = currentPassageRaw?.title || "";
-  const matchingHeadingsGroup = findMatchingHeadingsGroup(passageQuestions);
+  // ⚠️ `if (!testData) return ...` guard'i quyiga, BARCHA hook'lardan keyinga
+  // ko'chirildi. Bu yerda turganda testData null'dan qiymatga o'tgan renderda
+  // komponent avvalgidan ko'p hook chaqirib, React'ning "Rendered more hooks
+  // than during the previous render" xatosi bilan sahifani yiqitardi.
+  const passageQuestions = useMemo(
+    () => testData?.questions?.filter(g => String(g.passageId) === String(currentPassageRaw?.id)) || [],
+    [testData, currentPassageRaw?.id]
+  );
 
   // --- PROGRESS CALCULATION (for floating bar) ---
   const progressPercent = useMemo(() => {
@@ -347,6 +347,15 @@ export default function ReadingInterface({
     handleDualAnswerChange(id, val);
     triggerHaptic('light');
   }, [handleDualAnswerChange, triggerHaptic]);
+
+  // Hook'lardan KEYINGI guard — bu yerdan pastda hook chaqirilmaydi.
+  if (!testData) return <div className="p-10">Loading Test Data...</div>;
+
+  const currentStorageKey = `reading_session_${currentTestId}_passage_${activePassage}`;
+  const labelSuffix = detectPassageLabelSuffix(testData, activePassage);
+  const passageLabel = `Passage ${labelSuffix}`;
+  const passageTitle = currentPassageRaw?.title || "";
+  const matchingHeadingsGroup = findMatchingHeadingsGroup(passageQuestions);
 
   return (
     <div 

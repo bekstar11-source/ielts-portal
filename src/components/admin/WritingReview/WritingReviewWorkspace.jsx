@@ -7,6 +7,7 @@ const AIReviewPanel = ({ review, isDark, t, lang }) => {
     const criteria = review.criteria || {};
     const overallFeedback = criteria.overall?.feedback;
     const errors = [...(review.grammarErrors || []), ...(review.lexicalErrors || [])];
+    const imageAnalysis = review.imageAnalysis;
 
     const criterionLabels = {
         taskAchievement: 'TA/TR',
@@ -35,6 +36,15 @@ const AIReviewPanel = ({ review, isDark, t, lang }) => {
                     </span>
                 ))}
             </div>
+
+            {imageAnalysis && (
+                <div className={`mb-3 p-2.5 rounded-lg text-[12px] leading-relaxed ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                    <span className="font-medium opacity-60">
+                        {lang === 'uz' ? 'Rasm tahlili: ' : 'Image analysis: '}
+                    </span>
+                    <span className="opacity-80 whitespace-pre-wrap">{imageAnalysis}</span>
+                </div>
+            )}
 
             {overallFeedback && (
                 <p className="text-[13px] leading-relaxed opacity-80 whitespace-pre-wrap mb-3">{overallFeedback}</p>

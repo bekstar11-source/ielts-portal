@@ -2,8 +2,28 @@
 // Har bir epizod uchun tinglash progressini localStorage'da saqlaydi.
 // Shu tufayli o'quvchi sahifadan chiqib ketsa ham qoldirgan joyidan davom etadi.
 
-const PROGRESS_KEY = 'podcast_progress_v1';
+// Progress har bir foydalanuvchi uchun alohida saqlanadi — avval kalit umumiy edi
+// va bitta brauzerda boshqa profil bilan kirilganda o'zganing progressi ko'rinardi.
+const PROGRESS_KEY_PREFIX = 'podcast_progress_v1';
+const LEGACY_PROGRESS_KEY = 'podcast_progress_v1';
 const MAX_ENTRIES = 100;
+
+let activeUserId = null;
+
+/** Joriy foydalanuvchini o'rnatadi (AuthContext o'zgarganda chaqiriladi). */
+export const setProgressUser = (uid) => {
+    activeUserId = uid || null;
+};
+
+const progressKey = () => `${PROGRESS_KEY_PREFIX}_${activeUserId || 'guest'}`;
+
+// Eski umumiy kalit endi ishlatilmaydi — bir marta tozalab yuboramiz, aks holda
+// u localStorage'da o'zga profilning ma'lumoti bo'lib qolaverardi.
+try {
+    localStorage.removeItem(LEGACY_PROGRESS_KEY);
+} catch {
+    // ignore
+}
 
 // Boshidagi shu qadar soniya ichida to'xtatilgan bo'lsa — davom ettirishga arzimaydi
 export const RESUME_MIN_SECONDS = 15;
@@ -12,7 +32,7 @@ export const RESUME_TAIL_SECONDS = 20;
 
 const readAll = () => {
     try {
-        const raw = localStorage.getItem(PROGRESS_KEY);
+        const raw = localStorage.getItem(progressKey());
         if (!raw) return {};
         const parsed = JSON.parse(raw);
         return parsed && typeof parsed === 'object' ? parsed : {};
@@ -65,7 +85,7 @@ export const saveProgress = (podcastId, time, duration) => {
                 .forEach((id) => delete all[id]);
         }
 
-        localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+        localStorage.setItem(progressKey(), JSON.stringify(all));
     } catch {
         // localStorage to'lgan yoki bloklangan — progress kritik emas
     }
@@ -81,7 +101,7 @@ export const markCompleted = (podcastId, duration) => {
             completed: true,
             updatedAt: Date.now(),
         };
-        localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+        localStorage.setItem(progressKey(), JSON.stringify(all));
     } catch {
         // ignore
     }
@@ -92,7 +112,7 @@ export const clearProgress = (podcastId) => {
     try {
         const all = readAll();
         delete all[podcastId];
-        localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+        localStorage.setItem(progressKey(), JSON.stringify(all));
     } catch {
         // ignore
     }
