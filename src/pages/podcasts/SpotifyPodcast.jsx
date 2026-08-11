@@ -1,6 +1,6 @@
 // src/pages/SpotifyPodcast.jsx
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useNavigationType } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import { motion } from "framer-motion";
@@ -28,6 +28,7 @@ const formatTime = (time) => {
 export default function SpotifyPodcast() {
     const { podcastId } = useParams();
     const navigate = useNavigate();
+    const navigationType = useNavigationType(); // "POP" = sahifa yangilandi / orqaga-oldinga
     const {
         setCurrentTrack, isPlaying, setIsPlaying,
         currentTime, duration, volume, isMuted, repeat, cycleRepeat,
@@ -107,9 +108,12 @@ export default function SpotifyPodcast() {
                 const data = { id: snap.id, ...snap.data() };
                 setPodcast(data);
                 setCurrentTrack(data);
-                // Yangi epizod ochilganda ijroni boshlashga urinamiz; brauzer to'ssa
-                // context `autoplayBlocked` ni ko'taradi va foydalanuvchiga xabar beriladi.
-                if (startedRef.current !== data.id) {
+                // Ilova ichida yangi epizod ochilganda ijroni boshlashga urinamiz; brauzer
+                // to'ssa context `autoplayBlocked` ni ko'taradi va foydalanuvchiga xabar beriladi.
+                // Sahifa yangilanganda yoki saytga qaytib kirilganda (POP) avtomatik
+                // boshlamaymiz — foydalanuvchi pauza qilgan epizod o'z-o'zidan qayta ijro
+                // etilib ketardi.
+                if (navigationType !== "POP" && startedRef.current !== data.id) {
                     startedRef.current = data.id;
                     setIsPlaying(true);
                 }
@@ -123,7 +127,7 @@ export default function SpotifyPodcast() {
             });
 
         return () => { cancelled = true; };
-    }, [podcastId, setCurrentTrack, setIsPlaying]);
+    }, [podcastId, setCurrentTrack, setIsPlaying, navigationType]);
 
     // XP faqat bir marta va har bir epizod uchun alohida beriladi
     useEffect(() => {

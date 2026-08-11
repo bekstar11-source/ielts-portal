@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
   onAuthStateChanged,
   RecaptchaVerifier,
   signInWithPhoneNumber,
@@ -68,6 +69,23 @@ export function AuthProvider({ children }) {
       logAction(user.uid, 'USER_LOGOUT', { email: user.email });
     }
     return signOut(auth);
+  };
+
+  // 3.5. Parolni tiklash havolasini yuborish
+  //
+  // Firebase'ning o'zi xatni yuboradi (qo'shimcha email servisi kerak emas).
+  // Xat matnini Firebase Console → Authentication → Templates dan o'zgartiriladi.
+  //
+  // ⚠️ Email enumeration protection yoqilgan bo'lsa Firebase mavjud bo'lmagan
+  // email uchun ham xatosiz javob qaytaradi — bu ataylab shunday. Shuning uchun
+  // UI'da "bunday foydalanuvchi yo'q" deb ko'rsatmaymiz.
+  const resetPassword = async (email) => {
+    const cleanEmail = (email || "").trim();
+    await sendPasswordResetEmail(auth, cleanEmail, {
+      url: `${window.location.origin}/login`,
+      handleCodeInApp: false
+    });
+    logAction(null, 'PASSWORD_RESET_REQUEST', { email: cleanEmail });
   };
 
   // 4. Lokal ma'lumotni yangilash (Settings uchun)
@@ -274,6 +292,7 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
+    resetPassword,
     updateUserLocalData,
     refreshUserData,
     signInWithPhone,

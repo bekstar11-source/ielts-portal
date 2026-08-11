@@ -18,7 +18,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
     Users,
@@ -111,6 +111,7 @@ export default function TeacherGroupStats() {
     const setView = (next) =>
         setSearchParams(next === 'students' ? { view: 'students' } : {}, { replace: true });
 
+    const navigate = useNavigate();
     const [selectedGroupId, setSelectedGroupId] = useState(null);
     const [range, setRange] = useState(90);
     const [searchTerm, setSearchTerm] = useState('');
@@ -342,6 +343,13 @@ export default function TeacherGroupStats() {
                     </Button>
                     <Button onClick={handleExportCSV} disabled={!visibleStudents.length}>
                         <Download size={13} /> {t('teacher.groupStats.exportCSV')}
+                    </Button>
+                    {/* Davomat ekrani — hozircha namuna ma'lumot bilan. */}
+                    <Button
+                        onClick={() => navigate(`/teacher/group/${currentGroup?.id || 'go-english'}`)}
+                        disabled={!currentGroup}
+                    >
+                        <ClipboardText size={13} /> {t('teacher.groupDetail.takeAttendance')}
                     </Button>
                     <Button variant="primary" onClick={() => setShowAdd(true)}>
                         <UserPlus size={13} /> {t('teacher.groupStats.addStudent')}

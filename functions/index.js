@@ -14,6 +14,7 @@ const { translateWord } = require("./translateWord");
 const { checkWriting } = require("./checkWriting");
 const { beautifyArticle } = require("./beautifyArticle");
 const { telegramWebhook, verifyTelegramOTP } = require("./telegramBot");
+const { claimTelegramLogin } = require("./telegramLogin");
 const { verifyAccessKey } = require("./verifyAccessKey");
 const { getSanitizedTest } = require("./getSanitizedTest");
 const { submitTestAnswers } = require("./submitTestAnswers");
@@ -176,3 +177,9 @@ exports.cleanupSpeakingAudio = cleanupSpeakingAudio;
 
 exports.telegramWebhook = telegramWebhook;
 exports.verifyTelegramOTP = verifyTelegramOTP;
+
+// Telegram login sessiyasidan tokenni olib kelish. `login_sessions` endi
+// klientga umuman ochiq emas — batafsil izoh telegramLogin.js da.
+exports.claimTelegramLogin = functions
+    .runWith({ timeoutSeconds: 30, memory: "256MB" })
+    .https.onCall(claimTelegramLogin);

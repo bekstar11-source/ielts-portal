@@ -301,10 +301,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // LOGIN SESSIONS (used for secure, passwordless Telegram login polling)
+    // LOGIN SESSIONS (Telegram orqali parolsiz kirish)
+    //
+    // ⚠️ Ilgari bu yerda `allow read, delete: if true` turardi. Firestore'da
+    // `read` — bu `get` ham, `list` ham, ya'ni istalgan odam tizimga
+    // kirmasdan `getDocs(collection(db, "login_sessions"))` deb butun
+    // kolleksiyani so'rab, o'sha payt kirayotgan HAR QANDAY foydalanuvchining
+    // custom token'ini olib ketardi — to'liq hisob o'g'irlash. `delete: true`
+    // esa har kimga barcha loginlarni buzish imkonini berardi.
+    //
+    // Endi hujjat klientga umuman ko'rinmaydi: tokenni faqat sessiyani
+    // boshlagan brauzer, maxfiy `pollKey` ni ko'rsatib, `claimTelegramLogin`
+    // callable orqali oladi (functions/telegramLogin.js).
     match /login_sessions/{sessionId} {
-      allow read, delete: if true;
-      allow create, update: if false; // Only Firestore Admin SDK can write
+      allow read, write: if false; // Faqat Admin SDK
     }
 
     // OTHER COLLECTIONS (Generic fallback)

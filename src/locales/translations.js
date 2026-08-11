@@ -263,6 +263,15 @@ export const translations = {
       hide: "Yashirish",
       show: "Ko'rsatish",
       back: "Orqaga qaytish",
+      forgotPassword: "Parolni unutdingizmi?",
+      resetSubtitle: "Email manzilingizni kiriting — parolni tiklash havolasini yuboramiz.",
+      resetSendBtn: "Tiklash havolasini yuborish",
+      resetSentTitle: "Havola yuborildi",
+      resetSentText: "Agar bu email ro'yxatdan o'tgan bo'lsa, parolni tiklash havolasi yuborildi.",
+      resetSpamHint: "Xat kelmasa, \"Spam\" yoki \"Promotions\" papkasini ham tekshiring.",
+      resetSocialHint: "Telegram yoki Google orqali kirgan bo'lsangiz, parol kerak emas — o'sha tugma orqali kiravering.",
+      resetErrorTooMany: "Juda ko'p urinish bo'ldi. Bir necha daqiqadan so'ng qayta urinib ko'ring.",
+      errorTelegramTimeout: "Kirish sessiyasi muddati tugadi. \"Telegram orqali kirish\" tugmasini qayta bosing.",
       telegramPhoneLabel: "Telegram botdan kod olish uchun raqamingizni kiriting:",
       telegramOtpLabel: "Telegram bot yuborgan 6 xonali kodni kiriting:",
       telegramWaiting: "Telegram orqali ulanmoqda...",
@@ -939,6 +948,33 @@ export const translations = {
         allGood: "Hammasi joyida",
         testItemCount: "ta",
         testsPlural: "test"
+      },
+      groupDetail: {
+        todaysLesson: "Bugungi dars",
+        takeAttendance: "Davomat olish",
+        editGroup: "Guruhni tahrirlash",
+        moreActions: "Boshqa amallar",
+        openFull: "To'liq ochish",
+        distribution: "Holatlar nisbati",
+        hourShort: "soat",
+        minutesLeft: "daqiqa qoldi",
+        lessonOngoing: "Dars davom etmoqda",
+        lessonFinished: "Dars yakunlandi",
+        debtShort: "qarz",
+        fineShort: "jarima",
+        emptyList: "Bu holatda o'quvchi yo'q",
+        comingSoon: "Tez orada",
+        mockNotice: "Namuna ma'lumot — davomat va to'lovlar hali bazaga ulanmagan",
+        status: {
+          toza: "Toza",
+          qarzdor: "Qarzdor",
+          yozib: "Yozmagan"
+        },
+        listTitle: {
+          toza: "Toza o'quvchilar",
+          qarzdor: "Qarzdorlar",
+          yozib: "Yozib kelmaganlar"
+        }
       },
       groupStats: {
         title: "Guruh statistikasi",
@@ -1803,6 +1839,15 @@ export const translations = {
       hide: "Hide",
       show: "Show",
       back: "Go Back",
+      forgotPassword: "Forgot your password?",
+      resetSubtitle: "Enter your email address and we'll send you a password reset link.",
+      resetSendBtn: "Send reset link",
+      resetSentTitle: "Link sent",
+      resetSentText: "If this email is registered, a password reset link has been sent to it.",
+      resetSpamHint: "If you don't see the email, check your \"Spam\" or \"Promotions\" folder.",
+      resetSocialHint: "If you signed in with Telegram or Google, you don't need a password — just use that button.",
+      resetErrorTooMany: "Too many attempts. Please try again in a few minutes.",
+      errorTelegramTimeout: "Your login session expired. Please tap \"Sign in with Telegram\" again.",
       telegramPhoneLabel: "Enter your phone number to get a code from Telegram bot:",
       telegramOtpLabel: "Enter the 6-digit code sent by Telegram bot:",
       telegramWaiting: "Connecting via Telegram...",
@@ -2479,6 +2524,33 @@ export const translations = {
          allGood: "All good",
          testItemCount: "",
          testsPlural: "tests"
+       },
+       groupDetail: {
+         todaysLesson: "Today's lesson",
+         takeAttendance: "Take attendance",
+         editGroup: "Edit group",
+         moreActions: "More actions",
+         openFull: "Open full view",
+         distribution: "Status breakdown",
+         hourShort: "h",
+         minutesLeft: "min left",
+         lessonOngoing: "Lesson in progress",
+         lessonFinished: "Lesson finished",
+         debtShort: "debt",
+         fineShort: "fine",
+         emptyList: "No students in this status",
+         comingSoon: "Coming soon",
+         mockNotice: "Sample data — attendance and payments are not wired to the database yet",
+         status: {
+           toza: "Clear",
+           qarzdor: "In debt",
+           yozib: "No homework"
+         },
+         listTitle: {
+           toza: "Students with no issues",
+           qarzdor: "Students in debt",
+           yozib: "Homework not done"
+         }
        },
        groupStats: {
          title: "Group Analytics",

@@ -25,6 +25,7 @@ const TeacherTests = lazy(() => import('./pages/teacher/TeacherTests'));
 const TeacherWritingReview = lazy(() => import('./pages/teacher/TeacherWritingReview'));
 const TeacherSpeakingReview = lazy(() => import('./pages/teacher/TeacherSpeakingReview'));
 const TeacherGroupStats = lazy(() => import('./pages/teacher/TeacherGroupStats'));
+const TeacherGroupDetail = lazy(() => import('./pages/teacher/TeacherGroupDetail'));
 const TeacherAllResults = lazy(() => import('./pages/teacher/TeacherAllResults'));
 const TeacherCreateWriting = lazy(() => import('./pages/teacher/TeacherCreateWriting'));
 const TeacherSubscription = lazy(() => import('./pages/teacher/TeacherSubscription'));
@@ -175,6 +176,7 @@ function App() {
               <Route path="speaking-review" element={<TeacherSpeakingReview />} />
               <Route path="create-writing" element={<TeacherCreateWriting />} />
               <Route path="group-stats" element={<TeacherGroupStats />} />
+              <Route path="group/:groupId" element={<TeacherGroupDetail />} />
               {/* Eski "O'quvchilarni boshqarish" sahifasi guruh sahifasiga birlashtirildi. */}
               <Route path="students" element={<Navigate to="/teacher/group-stats?view=students" replace />} />
               <Route path="results" element={<TeacherAllResults />} />

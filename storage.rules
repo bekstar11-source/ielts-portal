@@ -16,27 +16,85 @@ service firebase.storage {
       return isAuth() && (role() == 'admin' || role() == 'teacher');
     }
 
+    // Kontent turi ba'zi eski yuklamalarda umuman berilmagan bo'lishi mumkin —
+    // shunda tekshiruvni o'tkazib yuboramiz (hajm cheklovi baribir kuchda).
+    function typeIs(prefix) {
+      return request.resource.contentType == null
+             || request.resource.contentType.matches(prefix + '/.*');
+    }
+
+    function underMB(n) {
+      return request.resource.size < n * 1024 * 1024;
+    }
+
+    // ⚠️ Klientdan yozishga ruxsat etilgan YAGONA "kontent" papkalari.
+    // Bu ro'yxatga kirmagan papkaga klient hech narsa yoza olmaydi —
+    // qolgan hamma narsa Admin SDK (Cloud Functions) ishi.
+    function isStaffFolder(folder) {
+      return folder in [
+        'part_audios', 'map_images', 'writing_images',
+        'articles', 'feed_posts', 'stories',
+        'thumbnails', 'test_collection_covers', 'podcasts'
+      ];
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // SPEAKING AUDIO — shaxsiy ma'lumot.
-    // Ilgari bu ham umumiy qoidaga tushardi, ya'ni tizimga kirgan istalgan
-    // foydalanuvchi boshqa o'quvchining ovoz yozuvini o'qiy olardi. Endi
-    // faqat egasi va o'qituvchi/admin (tekshiruv uchun) ko'radi.
     // Yo'l: speaking/{uid}/{sessionId}/{fayl}
+    // Faqat egasi va o'qituvchi/admin (tekshiruv uchun) ko'radi.
+    // ─────────────────────────────────────────────────────────────
     match /speaking/{userId}/{allPaths=**} {
       allow read: if isAuth() && (request.auth.uid == userId || isStaff());
-      allow write: if isAuth() && request.auth.uid == userId;
+
+      allow create, update: if isAuth()
+                            && request.auth.uid == userId
+                            && typeIs('audio')
+                            && underMB(50);
+
+      allow delete: if isAuth() && request.auth.uid == userId;
     }
 
-    // Qolgan barcha papkalar — avvalgidek, tizimga kirgan foydalanuvchilarga.
-    // `speaking` bu yerdan ataylab chiqarib tashlangan: Storage qoidalari OR
-    // bilan ishlaydi, ya'ni bu qoida `speaking` ni ham qamrab olsa,
-    // yuqoridagi cheklov umuman kuchga ega bo'lmasdi.
-    match /{topLevel}/{allPaths=**} {
-      allow read, write: if isAuth() && topLevel != 'speaking';
+    // ─────────────────────────────────────────────────────────────
+    // PROFIL RASMLARI — har kim faqat O'ZINIKINI yozadi.
+    // Yo'l: profile_pictures/{uid}
+    // ─────────────────────────────────────────────────────────────
+    match /profile_pictures/{fileName} {
+      allow read: if isAuth();
+
+      allow create, update: if isAuth()
+                            && fileName.matches(request.auth.uid + '.*')
+                            && typeIs('image')
+                            && underMB(5);
+
+      allow delete: if isAuth() && fileName.matches(request.auth.uid + '.*');
     }
 
-    // Ildizdagi yakka fayllar (eski yuklamalar).
+    // ─────────────────────────────────────────────────────────────
+    // QOLGAN BARCHA PAPKALAR
+    //
+    // ⚠️ Ilgari bu yerda `allow read, write: if isAuth()` turardi — ya'ni
+    // tizimga kirgan ISTALGAN o'quvchi podkast audiolarini, listening
+    // fayllarini, maqola rasmlarini almashtirib yoki BUTUNLAY O'CHIRIB
+    // yubora olardi. Endi yozish faqat admin/o'qituvchiga va faqat
+    // yuqoridagi ro'yxatdagi papkalarga ochiq.
+    //
+    // O'qish avvalgidek — barcha kontent login orqasida. `speaking`
+    // ataylab chiqarib tashlangan: Storage qoidalari OR bilan ishlaydi,
+    // ya'ni bu qoida uni ham qamrab olsa, yuqoridagi cheklov kuchsiz
+    // bo'lib qolardi.
+    // ─────────────────────────────────────────────────────────────
+    match /{folder}/{allPaths=**} {
+      allow read: if isAuth() && folder != 'speaking';
+
+      allow create, update: if isStaff() && isStaffFolder(folder) && underMB(300);
+      allow delete: if isStaff() && isStaffFolder(folder);
+    }
+
+    // Ildizdagi yakka fayllar (eski yuklamalar) — o'qish hammaga,
+    // yozish faqat xodimlarga.
     match /{fileName} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow write: if isStaff();
     }
   }
 }

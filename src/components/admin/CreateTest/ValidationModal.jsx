@@ -3,7 +3,8 @@ import React from 'react';
 export default function ValidationModal({ show, errors, onConfirm, onCancel, onAutoFix, onJump, isDark }) {
     if (!show) return null;
 
-    // Bloklovchi xatolar bilan test o'quvchida ishlamaydi — ularni o'tkazib yuborib bo'lmaydi
+    // Bloklovchi xatolar bilan test o'quvchida buzilishi mumkin — faqat ogohlantiramiz,
+    // saqlashni to'smaymiz (admin o'zi qaror qiladi).
     const blocking = errors.filter(e => e.blocking);
 
     return (
@@ -22,7 +23,7 @@ export default function ValidationModal({ show, errors, onConfirm, onCancel, onA
                             </h3>
                             <p className={`text-xs mt-0.5 ${isDark ? 'opacity-50' : 'text-gray-500'}`}>
                                 {blocking.length > 0
-                                    ? `${blocking.length} tasi tuzatilmasa test o'quvchida buziladi.`
+                                    ? `${blocking.length} tasi tuzatilmasa test o'quvchida buzilishi mumkin. Baribir saqlashingiz mumkin.`
                                     : "Baribir saqlashni xohlaysizmi?"}
                             </p>
                         </div>
@@ -71,9 +72,8 @@ export default function ValidationModal({ show, errors, onConfirm, onCancel, onA
                             </button>
                             <button
                                 onClick={onConfirm}
-                                disabled={blocking.length > 0}
-                                title={blocking.length > 0 ? "Kritik xatolar tuzatilmaguncha saqlab bo'lmaydi" : ""}
-                                className="flex-1 h-10 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                                title={blocking.length > 0 ? "Diqqat: kritik xatolar bilan test o'quvchida buzilishi mumkin" : ""}
+                                className="flex-1 h-10 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white transition active:scale-95"
                             >
                                 Baribir saqlash
                             </button>

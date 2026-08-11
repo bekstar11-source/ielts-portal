@@ -102,7 +102,6 @@ const PracticeCard = React.memo(function PracticeCard({ test, isCompleted, onRev
 
   // Warm design-system themes for reading/listening thumbnails (ported from the imported dc.html mockup)
   const CARD_GRADIENT_THEMES = [
-    { grad: 'from-warm-dark to-warm-dark-elevated', badge: 'bg-warm-canvas/15 text-warm-canvas', tag: 'bg-warm-canvas/10 text-warm-canvas' },
     { grad: 'from-warm-primary to-warm-primary-active', badge: 'bg-white/20 text-white', tag: 'bg-white/15 text-white' },
     { grad: 'from-warm-accent-amber to-warm-primary', badge: 'bg-warm-ink/25 text-white', tag: 'bg-warm-ink/15 text-white' },
     { grad: 'from-warm-accent-teal to-[#3d8a7a]', badge: 'bg-warm-ink/25 text-white', tag: 'bg-warm-ink/15 text-white' },

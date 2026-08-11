@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
-import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowRight, MailCheck } from 'lucide-react';
 import { db, auth } from "../../firebase/firebase";
-import { doc, getDoc, onSnapshot, deleteDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { httpsCallable } from "firebase/functions";
@@ -11,20 +11,36 @@ import { signInWithCustomToken } from "firebase/auth";
 import { Send } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 
+// Telegram deep-link'dagi `start` parametri 64 belgidan oshmasligi kerak,
+// shuning uchun hash'ning dastlabki 40 ta hex belgisi olinadi (160 bit).
+// Server tomonidagi juftligi: functions/telegramLogin.js → deriveSessionId
+const SESSION_ID_LENGTH = 40;
+const TELEGRAM_POLL_INTERVAL_MS = 2000;
+const TELEGRAM_LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
+
+const deriveSessionId = async (pollKey) => {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pollKey));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, SESSION_ID_LENGTH);
+};
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [step, setStep] = useState(1); // 1: Email, 2: Password, 3: Telegram Phone, 4: Telegram OTP, 5: Telegram Auto-Auth
+  const [step, setStep] = useState(1); // 1: Email, 2: Password, 3: Telegram Phone, 4: Telegram OTP, 5: Telegram Auto-Auth, 6: Parolni tiklash
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [telegramLoading, setTelegramLoading] = useState(false);
   const [telegramSessionId, setTelegramSessionId] = useState("");
+  const [resetSent, setResetSent] = useState(false);
   const { t } = useTranslation();
 
-  const { login, signInWithGoogle, user } = useAuth();
+  const { login, signInWithGoogle, resetPassword, user } = useAuth();
   const navigate = useNavigate();
   const unsubscribeRef = useRef(null);
   const telegramWindowRef = useRef(null);
@@ -109,15 +125,66 @@ export default function Login() {
     }
   };
 
-  const handleTelegramLogin = () => {
-    // Generate secure session ID
-    const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    setTelegramSessionId(sessionId);
-    
-    // Clear any previous listener
+  const handleResetSubmit = async (e) => {
+    e.preventDefault();
+    if (!email.includes('@')) {
+      setError(t('auth.errorInvalidEmail'));
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    try {
+      await resetPassword(email);
+      setResetSent(true);
+    } catch (err) {
+      console.error("Password reset error:", err);
+      if (err.code === 'auth/invalid-email') {
+        setError(t('auth.errorInvalidEmail'));
+      } else if (err.code === 'auth/too-many-requests') {
+        setError(t('auth.resetErrorTooMany'));
+      } else if (err.code === 'auth/user-not-found') {
+        // Email enumeration'ni oshkor qilmaslik uchun muvaffaqiyat deb ko'rsatamiz.
+        setResetSent(true);
+      } else {
+        setError(t('auth.errorGeneric'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openResetStep = () => {
+    setError("");
+    setResetSent(false);
+    setStep(6);
+  };
+
+  const handleTelegramLogin = async () => {
+    // Avvalgi kuzatuvchini to'xtatamiz
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
+      unsubscribeRef.current = null;
     }
+
+    // `pollKey` — maxfiy, faqat SHU brauzerda qoladi va hech qayerga
+    // yuborilmaydi (Telegram'ga ham, havolaga ham). Deep link'ka esa uning
+    // sha256 hash'i tushadi. Shu sababli havolani ko'rgan odam (Telegram
+    // serverlari, chatdagi xabar, brauzer tarixi) tokenni ololmaydi.
+    // Serverdagi juftligi: functions/telegramLogin.js
+    let pollKey;
+    let sessionId;
+    try {
+      pollKey = `${crypto.randomUUID()}${crypto.randomUUID()}`;
+      sessionId = await deriveSessionId(pollKey);
+    } catch (cryptoErr) {
+      console.error("Web Crypto mavjud emas:", cryptoErr);
+      setError(t('auth.errorGeneric'));
+      return;
+    }
+
+    setTelegramSessionId(sessionId);
+    setError("");
 
     // Open telegram bot with deep link to trigger /start immediately
     const telegramUrl = `https://t.me/ielts_portal_auth_bot?start=login_${sessionId}`;
@@ -125,44 +192,75 @@ export default function Login() {
     telegramWindowRef.current = win;
     setStep(5); // Go to new auto-auth screen
 
-    // Set up real-time listener on the login session
-    unsubscribeRef.current = onSnapshot(doc(db, "login_sessions", sessionId), async (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        if (data.status === "authenticated" && data.token) {
-          setTelegramLoading(true);
-          setError("");
-          try {
-            // Close the opened Telegram tab automatically
-            if (telegramWindowRef.current && !telegramWindowRef.current.closed) {
-              try {
-                telegramWindowRef.current.close();
-              } catch (closeErr) {
-                console.warn("Could not close Telegram tab automatically:", closeErr);
-              }
-            }
+    // Tokenni Firestore'dan EMAS, `claimTelegramLogin` callable'dan olamiz:
+    // `login_sessions` endi klientga umuman ochiq emas.
+    const claimLogin = httpsCallable(functions, "claimTelegramLogin");
+    const startedAt = Date.now();
+    let stopped = false;
+    let timerId = null;
 
-            await signInWithCustomToken(auth, data.token);
-            // Try to delete the session document to clean up
+    const stop = () => {
+      stopped = true;
+      if (timerId) clearTimeout(timerId);
+      timerId = null;
+    };
+    unsubscribeRef.current = stop;
+
+    const poll = async () => {
+      if (stopped) return;
+
+      if (Date.now() - startedAt > TELEGRAM_LOGIN_TIMEOUT_MS) {
+        stop();
+        unsubscribeRef.current = null;
+        setError(t('auth.errorTelegramTimeout'));
+        return;
+      }
+
+      try {
+        const res = await claimLogin({ pollKey });
+        if (stopped) return;
+
+        if (res.data?.status === "authenticated" && res.data.token) {
+          stop();
+          unsubscribeRef.current = null;
+          setTelegramLoading(true);
+
+          // Close the opened Telegram tab automatically
+          if (telegramWindowRef.current && !telegramWindowRef.current.closed) {
             try {
-              await deleteDoc(doc(db, "login_sessions", sessionId));
-            } catch (delErr) {
-              console.warn("Could not delete session doc:", delErr);
-            }
-            navigate(data.isNewUser ? '/onboarding' : '/dashboard');
-          } catch (err) {
-            setError(t('auth.errorInvalidOtp'));
-            console.error(err);
-          } finally {
-            setTelegramLoading(false);
-            if (unsubscribeRef.current) {
-              unsubscribeRef.current();
-              unsubscribeRef.current = null;
+              telegramWindowRef.current.close();
+            } catch (closeErr) {
+              console.warn("Could not close Telegram tab automatically:", closeErr);
             }
           }
+
+          try {
+            await signInWithCustomToken(auth, res.data.token);
+            navigate(res.data.isNewUser ? '/onboarding' : '/dashboard');
+          } catch (signInErr) {
+            console.error(signInErr);
+            setError(t('auth.errorInvalidOtp'));
+          } finally {
+            setTelegramLoading(false);
+          }
+          return;
         }
+      } catch (err) {
+        // Sessiya eskirgan — qaytadan boshlash kerak.
+        if (err.code === "functions/deadline-exceeded") {
+          stop();
+          unsubscribeRef.current = null;
+          setError(t('auth.errorTelegramTimeout'));
+          return;
+        }
+        // Vaqtinchalik tarmoq xatosi — keyingi urinishda o'tib ketadi.
+        console.warn("claimTelegramLogin:", err);
       }
-    });
+
+      if (!stopped) timerId = setTimeout(poll, TELEGRAM_POLL_INTERVAL_MS);
+    };
+
+    timerId = setTimeout(poll, TELEGRAM_POLL_INTERVAL_MS);
   };
 
   const handleVerifyOtp = async (e) => {
@@ -277,7 +375,7 @@ export default function Login() {
                 </>
             )}
 
-            <form onSubmit={step < 3 ? handleSubmit : handleVerifyOtp} className="space-y-3.5">
+            <form onSubmit={step === 6 ? handleResetSubmit : step < 3 ? handleSubmit : handleVerifyOtp} className="space-y-3.5">
               <AnimatePresence mode="wait">
                 {step === 1 ? (
                     <motion.div
@@ -338,8 +436,74 @@ export default function Login() {
                         </button>
                         <button
                             type="button"
+                            onClick={openResetStep}
+                            className="w-full text-[12px] font-bold text-[#888] hover:text-[#1a1a1a] underline underline-offset-4 decoration-[#ddd]"
+                        >
+                            {t('auth.forgotPassword')}
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => setStep(1)}
                             className="w-full text-[12px] font-bold text-[#aaa] hover:text-[#1a1a1a]"
+                        >
+                            {t('auth.back')}
+                        </button>
+                    </motion.div>
+                ) : step === 6 ? (
+                    <motion.div
+                        key="reset"
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        className="space-y-3.5"
+                    >
+                        {resetSent ? (
+                            <div className="space-y-4">
+                                <div className="p-4 bg-green-50 border border-green-100 rounded-xl flex flex-col items-center text-center space-y-2">
+                                    <div className="bg-green-500 text-white p-2.5 rounded-full">
+                                        <MailCheck size={18} />
+                                    </div>
+                                    <h3 className="text-[14px] font-bold text-black">
+                                        {t('auth.resetSentTitle')}
+                                    </h3>
+                                    <p className="text-[12px] text-[#666] leading-relaxed font-medium">
+                                        {t('auth.resetSentText')}
+                                    </p>
+                                </div>
+                                <p className="text-[11px] text-[#999] font-medium leading-relaxed text-center">
+                                    {t('auth.resetSpamHint')}
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-[12px] text-[#666] font-medium mb-2">
+                                    {t('auth.resetSubtitle')}
+                                </p>
+                                <input
+                                    type="email"
+                                    placeholder={t('auth.emailPlaceholder')}
+                                    className="w-full px-5 py-2.5 bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg outline-none transition-all duration-200 text-[13px] font-medium text-[#1a1a1a] placeholder-[#bbb]"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    autoFocus
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full !mt-4 py-2.5 bg-[#1a1a1a] hover:bg-black text-white rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+                                >
+                                    {loading ? <Loader2 className="animate-spin w-4 h-4" /> : t('auth.resetSendBtn')}
+                                </button>
+                                <p className="text-[11px] text-[#999] font-medium leading-relaxed !mt-4">
+                                    {t('auth.resetSocialHint')}
+                                </p>
+                            </>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => { setError(""); setResetSent(false); setStep(1); }}
+                            className="w-full !mt-4 text-[12px] font-bold text-[#aaa] hover:text-[#1a1a1a]"
                         >
                             {t('auth.back')}
                         </button>
